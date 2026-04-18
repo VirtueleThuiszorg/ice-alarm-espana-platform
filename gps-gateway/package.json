@@ -1,0 +1,14 @@
+{
+  "name": "ev07b-gps-gateway",
+  "version": "1.0.0",
+  "description": "TCP bridge server for EV-07B GT06 GPS trackers",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

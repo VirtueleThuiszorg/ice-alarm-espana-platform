@@ -1,0 +1,23 @@
+#!/bin/sh
+
+echo "Running pre-commit checks..."
+
+cd "$(git rev-parse --show-toplevel)"
+
+# Type check
+echo "Type checking..."
+npx tsc --noEmit
+if [ $? -ne 0 ]; then
+  echo "Type check failed. Fix errors before committing."
+  exit 1
+fi
+
+# Run tests
+echo "Running tests..."
+npx vitest run
+if [ $? -ne 0 ]; then
+  echo "Tests failed. Fix failing tests before committing."
+  exit 1
+fi
+
+echo "All checks passed."

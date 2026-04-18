@@ -1,0 +1,246 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ICE Alarm España Design System
+   Emergency Medical Response Platform
+   Brand: Coral/Red (#E74C3C) with healthcare professionalism
+*/
+
+@layer base {
+  :root {
+    /* Core Brand Colors */
+    --background: 0 0% 99%;
+    --foreground: 220 15% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 20%;
+
+    /* Primary - ICE Alarm Coral */
+    --primary: 4 78% 57%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary - Warm Gray */
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 15% 20%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 10% 46%;
+
+    /* Accent - Soft Coral */
+    --accent: 4 78% 95%;
+    --accent-foreground: 4 78% 40%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 4 78% 57%;
+
+    --radius: 0.75rem;
+
+    /* Alert State Colors */
+    --alert-sos: 0 84% 55%;
+    --alert-sos-foreground: 0 0% 100%;
+    --alert-fall: 25 95% 53%;
+    --alert-fall-foreground: 0 0% 100%;
+    --alert-battery: 45 93% 47%;
+    --alert-battery-foreground: 45 93% 15%;
+    --alert-checkin: 210 100% 50%;
+    --alert-checkin-foreground: 0 0% 100%;
+    --alert-resolved: 142 76% 36%;
+    --alert-resolved-foreground: 0 0% 100%;
+
+    /* Status Colors */
+    --status-active: 142 76% 36%;
+    --status-inactive: 220 10% 46%;
+    --status-pending: 45 93% 47%;
+    --status-error: 0 84% 55%;
+
+    /* Sidebar */
+    --sidebar-background: 220 15% 15%;
+    --sidebar-foreground: 220 10% 90%;
+    --sidebar-primary: 4 78% 57%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 15% 22%;
+    --sidebar-accent-foreground: 220 10% 90%;
+    --sidebar-border: 220 15% 25%;
+    --sidebar-ring: 4 78% 57%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(4, 78%, 57%) 0%, hsl(6, 63%, 46%) 100%);
+    --gradient-header: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(220, 14%, 98%) 100%);
+    --gradient-card-hover: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(4, 78%, 98%) 100%);
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --shadow-glow: 0 0 20px hsl(4, 78%, 57%, 0.3);
+  }
+
+  .dark {
+    --background: 220 15% 8%;
+    --foreground: 220 10% 95%;
+
+    --card: 220 15% 12%;
+    --card-foreground: 220 10% 95%;
+
+    --popover: 220 15% 12%;
+    --popover-foreground: 220 10% 95%;
+
+    --primary: 4 78% 57%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 15% 18%;
+    --secondary-foreground: 220 10% 95%;
+
+    --muted: 220 15% 18%;
+    --muted-foreground: 220 10% 60%;
+
+    --accent: 4 60% 20%;
+    --accent-foreground: 4 78% 70%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 15% 20%;
+    --input: 220 15% 20%;
+    --ring: 4 78% 57%;
+
+    --sidebar-background: 220 15% 6%;
+    --sidebar-foreground: 220 10% 90%;
+    --sidebar-primary: 4 78% 57%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 15% 15%;
+    --sidebar-accent-foreground: 220 10% 90%;
+    --sidebar-border: 220 15% 15%;
+    --sidebar-ring: 4 78% 57%;
+
+    /* Dark mode gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(4, 78%, 57%) 0%, hsl(6, 63%, 46%) 100%);
+    --gradient-header: linear-gradient(180deg, hsl(220, 15%, 12%) 0%, hsl(220, 15%, 8%) 100%);
+    --gradient-card-hover: linear-gradient(180deg, hsl(220, 15%, 14%) 0%, hsl(220, 15%, 12%) 100%);
+
+    /* Dark mode shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.2);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.2);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.2);
+    --shadow-glow: 0 0 20px hsl(4, 78%, 57%, 0.2);
+
+    /* Dark alert colors (slightly muted for contrast) */
+    --alert-battery-foreground: 45 93% 90%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  /* Alert Pulse Animation for Incoming Alerts */
+  .alert-pulse {
+    animation: alertPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes alertPulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 hsl(var(--alert-sos) / 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 12px hsl(var(--alert-sos) / 0);
+    }
+  }
+
+  /* Battery indicator styles */
+  .battery-critical {
+    @apply text-destructive;
+    animation: batteryPulse 1s ease-in-out infinite;
+  }
+
+  @keyframes batteryPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* Glassmorphism effect for cards */
+  .glass {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .dark .glass {
+    background: rgba(30, 35, 50, 0.85);
+  }
+
+  /* Gradient text */
+  .text-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Status dot indicator */
+  .status-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+
+  .status-dot-active {
+    @apply bg-[hsl(var(--status-active))];
+  }
+
+  .status-dot-inactive {
+    @apply bg-[hsl(var(--status-inactive))];
+  }
+
+  .status-dot-pending {
+    @apply bg-[hsl(var(--status-pending))];
+  }
+
+  /* Large touch targets for accessibility */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Focus visible styles for accessibility */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+}
+
+@layer utilities {
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Smooth transitions */
+  .transition-smooth {
+    @apply transition-all duration-300 ease-in-out;
+  }
+}

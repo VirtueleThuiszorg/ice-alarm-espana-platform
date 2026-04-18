@@ -1,0 +1,1 @@
+ALTER TYPE public.partner_status ADD VALUE IF NOT EXISTS 'invited' BEFORE 'pending';

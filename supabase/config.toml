@@ -1,0 +1,121 @@
+project_id = "pduhccavshrhfkfbjgmj"
+
+[functions]
+  [functions.ai-dispatch-events]
+    verify_jwt = false
+  [functions.ai-execute-action]
+    verify_jwt = false
+  [functions.ai-run]
+    verify_jwt = false
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.email-inbound-webhook]
+    verify_jwt = false
+  [functions.ev07b-checkin]
+    verify_jwt = false
+  [functions.ev07b-offline-monitor]
+    verify_jwt = false
+  [functions.ev07b-sos-alert]
+    verify_jwt = false
+  [functions.ev07b-stock-sync]
+    verify_jwt = false
+  [functions.facebook-metrics]
+    verify_jwt = false
+  [functions.facebook-publish]
+    verify_jwt = false
+  [functions.facebook-unpublish]
+    verify_jwt = false
+  [functions.generate-ai-image]
+    verify_jwt = false
+  [functions.generate-content-plan]
+    verify_jwt = false
+  [functions.generate-courtesy-calls]
+    verify_jwt = false
+  [functions.generate-slot-content]
+    verify_jwt = false
+  [functions.media-draft]
+    verify_jwt = false
+  [functions.outreach-enrich-lead]
+    verify_jwt = false
+  [functions.outreach-followup-runner]
+    verify_jwt = false
+  [functions.outreach-generate-drafts]
+    verify_jwt = false
+  [functions.outreach-pipeline-runner]
+    verify_jwt = false
+  [functions.outreach-send-email]
+    verify_jwt = false
+  [functions.outreach-unsubscribe]
+    verify_jwt = false
+  [functions.partner-admin-create]
+    verify_jwt = false
+  [functions.partner-register]
+    verify_jwt = false
+  [functions.partner-verify]
+    verify_jwt = false
+  [functions.process-commissions]
+    verify_jwt = false
+  [functions.publish-scheduled]
+    verify_jwt = false
+  [functions.rate-outreach-leads]
+    verify_jwt = false
+  [functions.save-api-keys]
+    verify_jwt = false
+  [functions.save-registration-draft]
+    verify_jwt = false
+  [functions.send-email]
+    verify_jwt = false
+  [functions.send-member-update-request]
+    verify_jwt = false
+  [functions.send-test-email]
+    verify_jwt = false
+  [functions.staff-register]
+    verify_jwt = false
+  [functions.staff-send-invite]
+    verify_jwt = false
+  [functions.staff-validate-invite]
+    verify_jwt = false
+  [functions.staff-complete-invite]
+    verify_jwt = false
+  [functions.create-checkout]
+    verify_jwt = false
+  [functions.submit-registration]
+    verify_jwt = false
+  [functions.stripe-webhook]
+    verify_jwt = false
+  [functions.submit-member-update]
+    verify_jwt = false
+  [functions.test-twilio]
+    verify_jwt = false
+  [functions.track-invite-view]
+    verify_jwt = false
+  [functions.twilio-call-me]
+    verify_jwt = false
+  [functions.twilio-sms]
+    verify_jwt = false
+  [functions.twilio-voice]
+    verify_jwt = false
+  [functions.twilio-whatsapp]
+    verify_jwt = false
+  [functions.validate-member-update-token]
+    verify_jwt = false
+  [functions.video-render-queue]
+    verify_jwt = false
+  [functions.voice-handler]
+    verify_jwt = false
+  [functions.youtube-disconnect]
+    verify_jwt = false
+  [functions.youtube-integration-status]
+    verify_jwt = false
+  [functions.youtube-oauth-callback]
+    verify_jwt = false
+  [functions.youtube-oauth-start]
+    verify_jwt = false
+  [functions.youtube-publish]
+    verify_jwt = false
+  [functions.create-mollie-checkout]
+    verify_jwt = false
+  [functions.mollie-webhook]
+    verify_jwt = false
+  [functions.cancel-mollie-subscription]
+    verify_jwt = false

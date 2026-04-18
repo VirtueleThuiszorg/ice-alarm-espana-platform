@@ -267,7 +267,7 @@ export default function PartnerInvitePage() {
               {t("partnerInvite.invalid.title", "Invalid Invitation")}
             </h2>
             <p className="text-muted-foreground">
-              {t("partnerInvite.invalid.description", "This invitation link is invalid. Please contact ICE Alarm for assistance.")}
+              {t("partnerInvite.invalid.description", "This invitation link is invalid. Please contact Care Conneqt for assistance.")}
             </p>
           </CardContent>
         </Card>
@@ -285,7 +285,7 @@ export default function PartnerInvitePage() {
               {t("partnerInvite.expired.title", "Invitation Expired")}
             </h2>
             <p className="text-muted-foreground">
-              {t("partnerInvite.expired.description", "This invitation has expired. Please contact ICE Alarm to request a new one.")}
+              {t("partnerInvite.expired.description", "This invitation has expired. Please contact Care Conneqt to request a new one.")}
             </p>
           </CardContent>
         </Card>
@@ -321,7 +321,7 @@ export default function PartnerInvitePage() {
           <CardContent className="pt-6 text-center">
             <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">
-              {t("partnerInvite.completed.title", "Welcome to ICE Alarm!")}
+              {t("partnerInvite.completed.title", "Welcome to Care Conneqt!")}
             </h2>
             <p className="text-muted-foreground">
               {t("partnerInvite.completed.subtitle", "Your partner account is ready. Redirecting to your dashboard...")}

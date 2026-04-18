@@ -1,5 +1,5 @@
 -- Seed complete staff documentation (62 documents across 6 categories, EN + ES)
--- Generated for ICE Alarm España
+-- Generated for Care Conneqt
 
 -- ============================================
 -- CATEGORY 1: EMERGENCY PROTOCOLS (10 docs)
@@ -27,7 +27,7 @@ When a member presses the SOS button on their EV-07B pendant, it triggers an imm
 
 2. **Establish Contact (within 30 seconds)**
    - Call member using the one-click dial button
-   - Speak clearly: "Hello, this is [Name] from ICE Alarm. We received your emergency alert. Are you okay?"
+   - Speak clearly: "Hello, this is [Name] from Care Conneqt. We received your emergency alert. Are you okay?"
    - Wait for response - allow 15 seconds
 
 3. **Assess Situation**
@@ -104,7 +104,7 @@ Cuando un miembro pulsa el botón SOS de su colgante EV-07B, se activa una alert
 
 2. **Establecer Contacto (en 30 segundos)**
    - Llame al miembro usando el botón de marcación rápida
-   - Hable claramente: "Hola, soy [Nombre] de ICE Alarm. Hemos recibido su alerta de emergencia. ¿Está usted bien?"
+   - Hable claramente: "Hola, soy [Nombre] de Care Conneqt. Hemos recibido su alerta de emergencia. ¿Está usted bien?"
    - Espere respuesta - permita 15 segundos
 
 3. **Evaluar Situación**
@@ -193,7 +193,7 @@ The EV-07B pendant includes automatic fall detection. When a fall is detected, t
    - Member may be injured and unable to respond
 
 2. **Contact Member**
-   - "Hello, this is [Name] from ICE Alarm. Your pendant detected a possible fall. Are you okay?"
+   - "Hello, this is [Name] from Care Conneqt. Your pendant detected a possible fall. Are you okay?"
    - Listen carefully for signs of distress
 
 3. **Assessment Questions**
@@ -280,7 +280,7 @@ El colgante EV-07B incluye detección automática de caídas. Cuando se detecta 
    - El miembro puede estar herido e incapaz de responder
 
 2. **Contactar al Miembro**
-   - "Hola, soy [Nombre] de ICE Alarm. Su colgante detectó una posible caída. ¿Está usted bien?"
+   - "Hola, soy [Nombre] de Care Conneqt. Su colgante detectó una posible caída. ¿Está usted bien?"
    - Escuche atentamente señales de angustia
 
 3. **Preguntas de Evaluación**
@@ -554,7 +554,7 @@ VALUES (
 - Any life-threatening situation
 
 **Information to Provide to 112:**
-1. Your name and "ICE Alarm monitoring centre"
+1. Your name and "Care Conneqt monitoring centre"
 2. Member''s full name and date of birth
 3. Complete address with any access notes
 4. GPS coordinates if outdoors
@@ -647,7 +647,7 @@ VALUES (
 - Cualquier situación que amenace la vida
 
 **Información a Proporcionar al 112:**
-1. Su nombre y "centro de monitoreo ICE Alarm"
+1. Su nombre y "centro de monitoreo Care Conneqt"
 2. Nombre completo y fecha de nacimiento del miembro
 3. Dirección completa con notas de acceso
 4. Coordenadas GPS si está en exterior
@@ -918,7 +918,7 @@ VALUES (
   '## EV-07B Pendant Complete Guide
 
 ### Overview
-The EV-07B is a medical alert pendant designed for elderly users and those needing emergency assistance. It provides 24/7 connection to the ICE Alarm monitoring centre.
+The EV-07B is a medical alert pendant designed for elderly users and those needing emergency assistance. It provides 24/7 connection to the Care Conneqt monitoring centre.
 
 ### Device Specifications
 
@@ -1012,7 +1012,7 @@ VALUES (
   '## Guía Completa del Colgante EV-07B
 
 ### Descripción General
-El EV-07B es un colgante de alerta médica diseñado para usuarios mayores y aquellos que necesitan asistencia de emergencia. Proporciona conexión 24/7 al centro de monitoreo de ICE Alarm.
+El EV-07B es un colgante de alerta médica diseñado para usuarios mayores y aquellos que necesitan asistencia de emergencia. Proporciona conexión 24/7 al centro de monitoreo de Care Conneqt.
 
 ### Especificaciones del Dispositivo
 
@@ -1173,7 +1173,7 @@ The EV-07B pendant uses a built-in rechargeable lithium-ion battery designed for
 
 ### Battery Replacement
 
-The battery is not user-replaceable. If battery performance degrades significantly (less than 2 days standby), contact ICE Alarm for device replacement.
+The battery is not user-replaceable. If battery performance degrades significantly (less than 2 days standby), contact Care Conneqt for device replacement.
 
 ### Safety Warnings
 
@@ -1264,7 +1264,7 @@ El colgante EV-07B utiliza una batería de iones de litio recargable integrada, 
 
 ### Reemplazo de Batería
 
-La batería no es reemplazable por el usuario. Si el rendimiento de la batería se degrada significativamente (menos de 2 días en espera), contacte a ICE Alarm para reemplazo del dispositivo.
+La batería no es reemplazable por el usuario. Si el rendimiento de la batería se degrada significativamente (menos de 2 días en espera), contacte a Care Conneqt para reemplazo del dispositivo.
 
 ### Advertencias de Seguridad
 
@@ -2321,7 +2321,7 @@ Courtesy calls are proactive check-ins with members to:
 ### Courtesy Call Script
 
 **Opening:**
-"Good [morning/afternoon], this is [Name] calling from ICE Alarm. May I speak with [Member Name]?"
+"Good [morning/afternoon], this is [Name] calling from Care Conneqt. May I speak with [Member Name]?"
 
 "Hello [Member Name], I''m calling for your regular welfare check. How are you today?"
 
@@ -2420,7 +2420,7 @@ Las llamadas de cortesía son verificaciones proactivas con los miembros para:
 ### Guión de Llamada de Cortesía
 
 **Apertura:**
-"Buenos [días/tardes], le habla [Nombre] de ICE Alarm. ¿Puedo hablar con [Nombre del Miembro]?"
+"Buenos [días/tardes], le habla [Nombre] de Care Conneqt. ¿Puedo hablar con [Nombre del Miembro]?"
 
 "Hola [Nombre del Miembro], le llamo para su verificación de bienestar regular. ¿Cómo está usted hoy?"
 
@@ -2710,7 +2710,7 @@ All communication with members, families, and emergency services must be:
 ### Phone Etiquette
 
 **Answering Calls:**
-"ICE Alarm, [Your Name] speaking. How may I help you?"
+"Care Conneqt, [Your Name] speaking. How may I help you?"
 
 **Greeting Members:**
 - Use their name when possible
@@ -2740,7 +2740,7 @@ All communication with members, families, and emergency services must be:
 
 ### Bilingual Communication
 
-ICE Alarm serves members in English and Spanish.
+Care Conneqt serves members in English and Spanish.
 
 **Ask Early:**
 "Would you prefer to speak in English or Spanish?"
@@ -2822,7 +2822,7 @@ Toda comunicación con miembros, familias y servicios de emergencia debe ser:
 ### Etiqueta Telefónica
 
 **Contestar Llamadas:**
-"ICE Alarm, le habla [Su Nombre]. ¿En qué puedo ayudarle?"
+"Care Conneqt, le habla [Su Nombre]. ¿En qué puedo ayudarle?"
 
 **Saludar a Miembros:**
 - Use su nombre cuando sea posible
@@ -2852,7 +2852,7 @@ Toda comunicación con miembros, familias y servicios de emergencia debe ser:
 
 ### Comunicación Bilingüe
 
-ICE Alarm atiende miembros en inglés y español.
+Care Conneqt atiende miembros en inglés y español.
 
 **Pregunte Temprano:**
 "Would you prefer to speak in English or Spanish?"
@@ -2927,9 +2927,9 @@ VALUES (
   'general',
   '## Company Overview
 
-### About ICE Alarm España
+### About Care Conneqt
 
-ICE Alarm España is a personal emergency response service (PERS) provider operating in Spain. We specialize in providing 24/7 emergency monitoring for elderly individuals and those with medical conditions who wish to maintain their independence while having reliable emergency support.
+Care Conneqt is a personal emergency response service (PERS) provider operating in Spain. We specialize in providing 24/7 emergency monitoring for elderly individuals and those with medical conditions who wish to maintain their independence while having reliable emergency support.
 
 ### Our Mission
 
@@ -2951,7 +2951,7 @@ Our trained staff respond quickly and effectively to every alert.
 
 ### What We Do
 
-ICE Alarm provides:
+Care Conneqt provides:
 - 24/7 emergency monitoring from our call centre
 - GPS-enabled medical alert pendants
 - Automatic fall detection
@@ -2969,7 +2969,7 @@ We primarily serve:
 
 ### Service Area
 
-ICE Alarm España operates throughout Spain, providing coverage wherever there is mobile network connectivity.
+Care Conneqt operates throughout Spain, providing coverage wherever there is mobile network connectivity.
 
 ### Technology
 
@@ -3004,9 +3004,9 @@ VALUES (
   'general',
   '## Descripción de la Empresa
 
-### Acerca de ICE Alarm España
+### Acerca de Care Conneqt
 
-ICE Alarm España es un proveedor de servicios de respuesta de emergencia personal (PERS) que opera en España. Nos especializamos en proporcionar monitoreo de emergencia 24/7 para personas mayores y aquellos con condiciones médicas que desean mantener su independencia mientras tienen apoyo de emergencia confiable.
+Care Conneqt es un proveedor de servicios de respuesta de emergencia personal (PERS) que opera en España. Nos especializamos en proporcionar monitoreo de emergencia 24/7 para personas mayores y aquellos con condiciones médicas que desean mantener su independencia mientras tienen apoyo de emergencia confiable.
 
 ### Nuestra Misión
 
@@ -3028,7 +3028,7 @@ Nuestro personal capacitado responde rápida y efectivamente a cada alerta.
 
 ### Lo Que Hacemos
 
-ICE Alarm proporciona:
+Care Conneqt proporciona:
 - Monitoreo de emergencia 24/7 desde nuestro centro de llamadas
 - Colgantes de alerta médica con GPS
 - Detección automática de caídas
@@ -3046,7 +3046,7 @@ Servimos principalmente a:
 
 ### Área de Servicio
 
-ICE Alarm España opera en toda España, proporcionando cobertura dondequiera que haya conectividad de red móvil.
+Care Conneqt opera en toda España, proporcionando cobertura dondequiera que haya conectividad de red móvil.
 
 ### Tecnología
 
@@ -3083,7 +3083,7 @@ VALUES (
 
 ### Membership Plans
 
-ICE Alarm offers two membership types to suit different household needs.
+Care Conneqt offers two membership types to suit different household needs.
 
 #### Single Membership
 **€27.49 per month**
@@ -3189,7 +3189,7 @@ VALUES (
 
 ### Planes de Membresía
 
-ICE Alarm ofrece dos tipos de membresía para adaptarse a diferentes necesidades del hogar.
+Care Conneqt ofrece dos tipos de membresía para adaptarse a diferentes necesidades del hogar.
 
 #### Membresía Individual
 **€27.49 por mes**
@@ -3295,7 +3295,7 @@ VALUES (
 
 ### Our Commitment
 
-ICE Alarm España is fully committed to protecting the personal data of our members in accordance with the General Data Protection Regulation (GDPR) and Spanish data protection law (LOPD-GDD).
+Care Conneqt is fully committed to protecting the personal data of our members in accordance with the General Data Protection Regulation (GDPR) and Spanish data protection law (LOPD-GDD).
 
 ### Data We Collect
 
@@ -3368,8 +3368,8 @@ We protect your data with:
 ### Contact Us
 
 Data Protection Officer:
-- Email: dpo@icealarm.es
-- Post: ICE Alarm España, [Address]
+- Email: dpo@careconneqt.es
+- Post: Care Conneqt, [Address]
 
 You also have the right to lodge a complaint with the Spanish Data Protection Agency (AEPD).',
   ARRAY['admin', 'staff', 'ai'],
@@ -3389,7 +3389,7 @@ VALUES (
 
 ### Nuestro Compromiso
 
-ICE Alarm España está totalmente comprometido con la protección de los datos personales de nuestros miembros de acuerdo con el Reglamento General de Protección de Datos (RGPD) y la ley española de protección de datos (LOPD-GDD).
+Care Conneqt está totalmente comprometido con la protección de los datos personales de nuestros miembros de acuerdo con el Reglamento General de Protección de Datos (RGPD) y la ley española de protección de datos (LOPD-GDD).
 
 ### Datos Que Recopilamos
 
@@ -3462,8 +3462,8 @@ Protegemos sus datos con:
 ### Contáctenos
 
 Delegado de Protección de Datos:
-- Email: dpo@icealarm.es
-- Correo postal: ICE Alarm España, [Dirección]
+- Email: dpo@careconneqt.es
+- Correo postal: Care Conneqt, [Dirección]
 
 También tiene derecho a presentar una reclamación ante la Agencia Española de Protección de Datos (AEPD).',
   ARRAY['admin', 'staff', 'ai'],
@@ -3509,14 +3509,14 @@ Members: Use your pendant or call centre number on device
 
 **Customer Service**
 Phone: [Customer Service Number]
-Email: info@icealarm.es
+Email: info@careconneqt.es
 
 **Technical Support**
 Phone: [Support Number]
-Email: soporte@icealarm.es
+Email: soporte@careconneqt.es
 
 **Partner Enquiries**
-Email: partners@icealarm.es
+Email: partners@careconneqt.es
 
 ### Response Times
 
@@ -3537,7 +3537,7 @@ Staff can assist in both languages during all hours.
 
 ### Postal Address
 
-ICE Alarm España
+Care Conneqt
 [Full postal address]
 Spain
 
@@ -3545,7 +3545,7 @@ Spain
 
 Follow us for updates and safety tips:
 - Facebook: [Facebook page]
-- Website: www.icealarm.es
+- Website: www.careconneqt.es
 
 ### Emergency Services
 
@@ -3602,14 +3602,14 @@ Miembros: Use su colgante o el número del centro de llamadas en el dispositivo
 
 **Servicio al Cliente**
 Teléfono: [Número de Servicio al Cliente]
-Email: info@icealarm.es
+Email: info@careconneqt.es
 
 **Soporte Técnico**
 Teléfono: [Número de Soporte]
-Email: soporte@icealarm.es
+Email: soporte@careconneqt.es
 
 **Consultas de Socios**
-Email: partners@icealarm.es
+Email: partners@careconneqt.es
 
 ### Tiempos de Respuesta
 
@@ -3630,7 +3630,7 @@ El personal puede asistir en ambos idiomas durante todas las horas.
 
 ### Dirección Postal
 
-ICE Alarm España
+Care Conneqt
 [Dirección postal completa]
 España
 
@@ -3638,7 +3638,7 @@ España
 
 Síganos para actualizaciones y consejos de seguridad:
 - Facebook: [Página de Facebook]
-- Sitio web: www.icealarm.es
+- Sitio web: www.careconneqt.es
 
 ### Servicios de Emergencia
 
@@ -3694,7 +3694,7 @@ Medical order indicating member does not want CPR. Noted in medical profile.
 Person designated by member to be called during emergencies (up to 3).
 
 **EV-07B**
-Model name of the GPS medical alert pendant used by ICE Alarm.
+Model name of the GPS medical alert pendant used by Care Conneqt.
 
 ### F
 
@@ -3725,7 +3725,7 @@ Water resistance rating - can withstand immersion in water up to 1 meter.
 ### M
 
 **Member**
-Person subscribed to ICE Alarm services.
+Person subscribed to Care Conneqt services.
 
 **Monitoring**
 Continuous observation of alerts from member devices.
@@ -3808,7 +3808,7 @@ Número de emergencia nacional español.
 ### E
 
 **EV-07B**
-Nombre del modelo del colgante de alerta médica GPS usado por ICE Alarm.
+Nombre del modelo del colgante de alerta médica GPS usado por Care Conneqt.
 
 ### F
 
@@ -3839,7 +3839,7 @@ Tecnología de red móvil 4G usada por el colgante para comunicación.
 ### M
 
 **Miembro**
-Persona suscrita a los servicios de ICE Alarm.
+Persona suscrita a los servicios de Care Conneqt.
 
 **Monitoreo**
 Observación continua de alertas de los dispositivos de los miembros.
@@ -3883,21 +3883,21 @@ Función automática que detecta cuando el miembro puede haber caído y activa a
 -- CATEGORY 5: MEMBER GUIDES (12 docs)
 -- ============================================
 
--- 5.1 Getting Started with ICE Alarm (EN)
+-- 5.1 Getting Started with Care Conneqt (EN)
 INSERT INTO documentation (slug, title, category, content, visibility, importance, tags, language, status)
 VALUES (
   'getting-started-en',
-  'Getting Started with ICE Alarm',
+  'Getting Started with Care Conneqt',
   'member_guide',
-  '## Getting Started with ICE Alarm
+  '## Getting Started with Care Conneqt
 
-### Welcome to ICE Alarm
+### Welcome to Care Conneqt
 
-Congratulations on taking an important step toward independent living with peace of mind. This guide will help you get started with your new ICE Alarm service.
+Congratulations on taking an important step toward independent living with peace of mind. This guide will help you get started with your new Care Conneqt service.
 
 ### What You''ll Receive
 
-Your ICE Alarm package includes:
+Your Care Conneqt package includes:
 - EV-07B GPS Pendant
 - Neck lanyard
 - Wrist strap (optional wearing method)
@@ -3966,21 +3966,21 @@ Your safety is our priority. Don''t hesitate to press the button - even false al
   'published'
 );
 
--- 5.2 Getting Started with ICE Alarm (ES)
+-- 5.2 Getting Started with Care Conneqt (ES)
 INSERT INTO documentation (slug, title, category, content, visibility, importance, tags, language, status)
 VALUES (
   'getting-started-es',
-  'Comenzando con ICE Alarm',
+  'Comenzando con Care Conneqt',
   'member_guide',
-  '## Comenzando con ICE Alarm
+  '## Comenzando con Care Conneqt
 
-### Bienvenido a ICE Alarm
+### Bienvenido a Care Conneqt
 
-Felicitaciones por dar un paso importante hacia la vida independiente con tranquilidad. Esta guía le ayudará a comenzar con su nuevo servicio ICE Alarm.
+Felicitaciones por dar un paso importante hacia la vida independiente con tranquilidad. Esta guía le ayudará a comenzar con su nuevo servicio Care Conneqt.
 
 ### Lo Que Recibirá
 
-Su paquete ICE Alarm incluye:
+Su paquete Care Conneqt incluye:
 - Colgante GPS EV-07B
 - Cordón para cuello
 - Correa de muñeca (método de uso opcional)
@@ -4113,7 +4113,7 @@ For each contact, please provide:
 
 - Keep contact information current
 - Let your contacts know they are listed
-- Inform them about how ICE Alarm works
+- Inform them about how Care Conneqt works
 - Update us if contacts change
 
 ### What Happens During an Alert
@@ -4202,7 +4202,7 @@ Para cada contacto, proporcione:
 
 - Mantenga la información de contacto actualizada
 - Avise a sus contactos que están en la lista
-- Infórmeles sobre cómo funciona ICE Alarm
+- Infórmeles sobre cómo funciona Care Conneqt
 - Actualícenos si los contactos cambian
 
 ### Qué Sucede Durante una Alerta
@@ -4916,7 +4916,7 @@ Contact us - we can discuss options for extended hospitalization.
 
 For billing questions:
 - Call our customer service line
-- Email: info@icealarm.es
+- Email: info@careconneqt.es
 - Use dashboard contact form',
   ARRAY['member', 'staff', 'ai'],
   6,
@@ -5010,7 +5010,7 @@ Contáctenos - podemos discutir opciones para hospitalización prolongada.
 
 Para preguntas de facturación:
 - Llame a nuestra línea de servicio al cliente
-- Email: info@icealarm.es
+- Email: info@careconneqt.es
 - Use el formulario de contacto del panel',
   ARRAY['member', 'staff', 'ai'],
   6,
@@ -5031,9 +5031,9 @@ VALUES (
   'partner',
   '## Partner Program Overview
 
-### About the ICE Alarm Partner Program
+### About the Care Conneqt Partner Program
 
-The ICE Alarm Partner Program enables individuals and organizations to earn commissions by referring new members to our service. Partners play a vital role in helping elderly individuals and their families discover the peace of mind that ICE Alarm provides.
+The Care Conneqt Partner Program enables individuals and organizations to earn commissions by referring new members to our service. Partners play a vital role in helping elderly individuals and their families discover the peace of mind that Care Conneqt provides.
 
 ### Who Can Be a Partner?
 
@@ -5111,7 +5111,7 @@ Our program is open to:
 
 ### Questions?
 
-Email: partners@icealarm.es',
+Email: partners@careconneqt.es',
   ARRAY['staff', 'ai'],
   8,
   ARRAY['partner', 'referral', 'program', 'overview', 'commission'],
@@ -5127,9 +5127,9 @@ VALUES (
   'partner',
   '## Descripción del Programa de Socios
 
-### Acerca del Programa de Socios de ICE Alarm
+### Acerca del Programa de Socios de Care Conneqt
 
-El Programa de Socios de ICE Alarm permite a individuos y organizaciones ganar comisiones refiriendo nuevos miembros a nuestro servicio. Los socios juegan un papel vital ayudando a personas mayores y sus familias a descubrir la tranquilidad que ICE Alarm proporciona.
+El Programa de Socios de Care Conneqt permite a individuos y organizaciones ganar comisiones refiriendo nuevos miembros a nuestro servicio. Los socios juegan un papel vital ayudando a personas mayores y sus familias a descubrir la tranquilidad que Care Conneqt proporciona.
 
 ### ¿Quién Puede Ser Socio?
 
@@ -5207,7 +5207,7 @@ Nuestro programa está abierto a:
 
 ### ¿Preguntas?
 
-Email: partners@icealarm.es',
+Email: partners@careconneqt.es',
   ARRAY['staff', 'ai'],
   8,
   ARRAY['socio', 'referido', 'programa', 'descripcion', 'comision'],
@@ -5309,7 +5309,7 @@ In your partner dashboard:
 
 ### Questions About Payments?
 
-Contact: partners@icealarm.es',
+Contact: partners@careconneqt.es',
   ARRAY['staff', 'ai'],
   8,
   ARRAY['commission', 'payment', 'earnings', 'payout', 'structure'],
@@ -5411,7 +5411,7 @@ En su panel de socios:
 
 ### ¿Preguntas Sobre Pagos?
 
-Contacto: partners@icealarm.es',
+Contacto: partners@careconneqt.es',
   ARRAY['staff', 'ai'],
   8,
   ARRAY['comision', 'pago', 'ganancias', 'desembolso', 'estructura'],
@@ -5534,7 +5534,7 @@ In "Commissions" section:
 ### Need Help?
 
 - Click "Support" in dashboard
-- Email: partners@icealarm.es
+- Email: partners@careconneqt.es
 - FAQ section available',
   ARRAY['staff', 'ai'],
   7,
@@ -5658,7 +5658,7 @@ En la sección "Comisiones":
 ### ¿Necesita Ayuda?
 
 - Haga clic en "Soporte" en el panel
-- Email: partners@icealarm.es
+- Email: partners@careconneqt.es
 - Sección de FAQ disponible',
   ARRAY['staff', 'ai'],
   7,
@@ -5704,7 +5704,7 @@ VALUES (
 ### Brand Guidelines
 
 **DO:**
-- Use official ICE Alarm logo
+- Use official Care Conneqt logo
 - Maintain brand colors
 - Use approved messaging
 - Keep materials up to date
@@ -5747,7 +5747,7 @@ VALUES (
 - Use approved hashtags
 
 **Sample posts:**
-- "Helping families stay connected with their elderly loved ones. Ask me about ICE Alarm."
+- "Helping families stay connected with their elderly loved ones. Ask me about Care Conneqt."
 - "Peace of mind for independent living. #ICEAlarm #ElderCare"
 
 ### Compliance
@@ -5770,7 +5770,7 @@ Materials are updated periodically. Always check your dashboard for latest versi
 
 ### Questions?
 
-Email: partners@icealarm.es',
+Email: partners@careconneqt.es',
   ARRAY['staff', 'ai'],
   7,
   ARRAY['marketing', 'branding', 'materials', 'guidelines', 'assets'],
@@ -5815,7 +5815,7 @@ VALUES (
 ### Directrices de Marca
 
 **HAGA:**
-- Use el logo oficial de ICE Alarm
+- Use el logo oficial de Care Conneqt
 - Mantenga los colores de la marca
 - Use mensajes aprobados
 - Mantenga los materiales actualizados
@@ -5858,7 +5858,7 @@ VALUES (
 - Use hashtags aprobados
 
 **Publicaciones de ejemplo:**
-- "Ayudando a familias a mantenerse conectadas con sus seres queridos mayores. Pregúnteme sobre ICE Alarm."
+- "Ayudando a familias a mantenerse conectadas con sus seres queridos mayores. Pregúnteme sobre Care Conneqt."
 - "Tranquilidad para la vida independiente. #ICEAlarm #CuidadoMayores"
 
 ### Cumplimiento
@@ -5881,7 +5881,7 @@ Los materiales se actualizan periódicamente. Siempre verifique su panel para la
 
 ### ¿Preguntas?
 
-Email: partners@icealarm.es',
+Email: partners@careconneqt.es',
   ARRAY['staff', 'ai'],
   7,
   ARRAY['marketing', 'marca', 'materiales', 'directrices', 'activos'],
@@ -5899,7 +5899,7 @@ VALUES (
 
 ### Overview
 
-To become an ICE Alarm partner, you must complete the partner agreement. This document outlines the terms, responsibilities, and requirements of the partnership.
+To become an Care Conneqt partner, you must complete the partner agreement. This document outlines the terms, responsibilities, and requirements of the partnership.
 
 ### Eligibility Requirements
 
@@ -5907,7 +5907,7 @@ To become an ICE Alarm partner, you must complete the partner agreement. This do
 - Be at least 18 years old
 - Have valid Spanish identification
 - Have a Spanish bank account
-- Not be a current ICE Alarm employee
+- Not be a current Care Conneqt employee
 - Not have conflicts of interest
 
 ### Required Documentation
@@ -5926,13 +5926,13 @@ To become an ICE Alarm partner, you must complete the partner agreement. This do
 The partner agreement covers:
 
 **Your Commitments:**
-- Honest representation of ICE Alarm services
+- Honest representation of Care Conneqt services
 - Protection of member privacy
 - Compliance with marketing guidelines
 - Professional conduct at all times
 - Accurate reporting of referrals
 
-**ICE Alarm Commitments:**
+**Care Conneqt Commitments:**
 - Commission payments as agreed
 - Access to marketing materials
 - Partner support and training
@@ -5979,11 +5979,11 @@ The partner agreement covers:
 
 ### Agreement Updates
 
-ICE Alarm may update agreement terms. Partners will be notified 30 days in advance of significant changes.
+Care Conneqt may update agreement terms. Partners will be notified 30 days in advance of significant changes.
 
 ### Questions?
 
-Contact: partners@icealarm.es',
+Contact: partners@careconneqt.es',
   ARRAY['staff', 'ai'],
   8,
   ARRAY['agreement', 'legal', 'compliance', 'requirements', 'contract'],
@@ -6001,7 +6001,7 @@ VALUES (
 
 ### Descripción General
 
-Para convertirse en socio de ICE Alarm, debe completar el acuerdo de socio. Este documento describe los términos, responsabilidades y requisitos de la asociación.
+Para convertirse en socio de Care Conneqt, debe completar el acuerdo de socio. Este documento describe los términos, responsabilidades y requisitos de la asociación.
 
 ### Requisitos de Elegibilidad
 
@@ -6009,7 +6009,7 @@ Para convertirse en socio de ICE Alarm, debe completar el acuerdo de socio. Este
 - Tener al menos 18 años
 - Tener identificación española válida
 - Tener cuenta bancaria española
-- No ser empleado actual de ICE Alarm
+- No ser empleado actual de Care Conneqt
 - No tener conflictos de interés
 
 ### Documentación Requerida
@@ -6028,13 +6028,13 @@ Para convertirse en socio de ICE Alarm, debe completar el acuerdo de socio. Este
 El acuerdo de socio cubre:
 
 **Sus Compromisos:**
-- Representación honesta de los servicios de ICE Alarm
+- Representación honesta de los servicios de Care Conneqt
 - Protección de la privacidad de los miembros
 - Cumplimiento de las directrices de marketing
 - Conducta profesional en todo momento
 - Reporte preciso de referidos
 
-**Compromisos de ICE Alarm:**
+**Compromisos de Care Conneqt:**
 - Pagos de comisiones según lo acordado
 - Acceso a materiales de marketing
 - Soporte y capacitación para socios
@@ -6081,11 +6081,11 @@ El acuerdo de socio cubre:
 
 ### Actualizaciones del Acuerdo
 
-ICE Alarm puede actualizar los términos del acuerdo. Los socios serán notificados 30 días antes de cambios significativos.
+Care Conneqt puede actualizar los términos del acuerdo. Los socios serán notificados 30 días antes de cambios significativos.
 
 ### ¿Preguntas?
 
-Contacto: partners@icealarm.es',
+Contacto: partners@careconneqt.es',
   ARRAY['staff', 'ai'],
   8,
   ARRAY['acuerdo', 'legal', 'cumplimiento', 'requisitos', 'contrato'],

@@ -15,7 +15,7 @@ interface GenerateImageOptions {
   height?: number;
 }
 
-// ICE Alarm España brand colors (from design system)
+// Care Conneqt brand colors (from design system)
 const BRAND_COLORS = {
   primary: "#E74C3C",       // Coral Red
   primaryDark: "#C0392B",   // Darker Coral
@@ -97,7 +97,7 @@ export function useBrandedImageGenerator() {
       // Brand name next to logo
       ctx.fillStyle = BRAND_COLORS.dark;
       ctx.font = "bold 32px system-ui, -apple-system, sans-serif";
-      ctx.fillText("ICE Alarm", 130, 65);
+      ctx.fillText("Care Conneqt", 130, 65);
       ctx.fillStyle = BRAND_COLORS.primary;
       ctx.font = "600 18px system-ui, -apple-system, sans-serif";
       ctx.fillText("España", 130, 90);
@@ -158,7 +158,7 @@ export function useBrandedImageGenerator() {
       ctx.font = "500 18px system-ui, -apple-system, sans-serif";
       ctx.fillStyle = BRAND_COLORS.dark;
       ctx.globalAlpha = 0.6;
-      ctx.fillText("🌐 www.icealarmespana.es  |  📞 +34 900 123 456  |  💬 DM us", width / 2, height - 35);
+      ctx.fillText("🌐 www.careconneqtespana.es  |  📞 +34 900 123 456  |  💬 DM us", width / 2, height - 35);
       ctx.globalAlpha = 1;
 
       // === EXPORT TO BLOB ===

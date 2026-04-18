@@ -52,7 +52,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You analyze outreach email replies for ICE Alarm España (personal emergency alarms for elderly people in Spain). Extract the top 3-5 common themes/topics that leads are asking about or expressing interest in.
+            content: `You analyze outreach email replies for Care Conneqt (personal emergency alarms for elderly people in Spain). Extract the top 3-5 common themes/topics that leads are asking about or expressing interest in.
 
 For each theme, provide:
 - topic: A short topic name suitable for a content calendar (e.g., "GPS Tracking Features", "Pricing Plans", "Family Peace of Mind")

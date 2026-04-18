@@ -263,7 +263,7 @@ export default function StaffLogin() {
                         <FormControl>
                           <Input
                             type="email"
-                            placeholder="staff@icealarm.es"
+                            placeholder="staff@careconneqt.es"
                             {...field}
                           />
                         </FormControl>

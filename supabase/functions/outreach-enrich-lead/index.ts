@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
         const websiteUrl = lead.website_url;
         if (!websiteUrl) continue;
 
-        const prompt = `Analyze this company for B2B outreach by ICE Alarm España (personal emergency response service for elderly people in Spain). 
+        const prompt = `Analyze this company for B2B outreach by Care Conneqt (personal emergency response service for elderly people in Spain). 
 
 Company: ${lead.company_name}
 Website: ${websiteUrl}
@@ -90,7 +90,7 @@ Provide a JSON response with:
   "location_details": "city, region if identifiable",
   "potential_contacts": ["any decision-maker roles mentioned"],
   "contact_emails": ["any public emails found on website description"],
-  "why_fit": "Why this company could be a good partner/customer for ICE Alarm España (elderly care, healthcare, insurance, residential, etc.)",
+  "why_fit": "Why this company could be a good partner/customer for Care Conneqt (elderly care, healthcare, insurance, residential, etc.)",
   "recommended_approach": "How to approach them (partnership, reseller, direct customer, referral partner)"
 }`;
 
@@ -105,7 +105,7 @@ Provide a JSON response with:
             messages: [
               {
                 role: "system",
-                content: "You are a B2B research analyst for ICE Alarm España, a personal emergency response service. Analyze companies and return structured JSON. Always respond with valid JSON only.",
+                content: "You are a B2B research analyst for Care Conneqt, a personal emergency response service. Analyze companies and return structured JSON. Always respond with valid JSON only.",
               },
               { role: "user", content: prompt },
             ],

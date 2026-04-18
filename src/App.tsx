@@ -202,9 +202,9 @@ queryClient.prefetchQuery({
     }, {} as Record<string, string>);
 
     return {
-      company_name: settingsMap.company_name || "ICE Alarm España",
+      company_name: settingsMap.company_name || "Care Conneqt",
       emergency_phone: settingsMap.emergency_phone || "+34 900 123 456",
-      support_email: settingsMap.support_email || "info@icealarm.es",
+      support_email: settingsMap.support_email || "info@careconneqt.es",
       address: settingsMap.address || "Calle Principal 1, Albox, 04800 Almería"
     };
   },

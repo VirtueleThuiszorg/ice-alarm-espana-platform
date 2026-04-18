@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     const { data: allSettings } = await supabase.from("outreach_settings").select("setting_key, setting_value");
     if (allSettings) allSettings.forEach((s: any) => { settingsMap[s.setting_key] = s.setting_value; });
 
-    const senderName = (typeof settingsMap.sender_name === "string" ? settingsMap.sender_name : "ICE Alarm España") || "ICE Alarm España";
+    const senderName = (typeof settingsMap.sender_name === "string" ? settingsMap.sender_name : "Care Conneqt") || "Care Conneqt";
     const autoApprove = !settingsMap.auto_sending_enabled ? false : settingsMap.auto_sending_enabled === true;
     const minScore = (typeof settingsMap.min_score_to_send === "number" ? settingsMap.min_score_to_send : 3.5) || 3.5;
 
@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
             : "Tone: Professional but warm, Spanish business culture aware.";
 
         const goalInstruction = goal === "intro"
-          ? "Goal: Introduce ICE Alarm España and its services. No hard sell."
+          ? "Goal: Introduce Care Conneqt and its services. No hard sell."
           : goal === "meeting"
             ? "Goal: Secure a meeting or call. Be direct about wanting to schedule a conversation."
             : "Goal: Propose a partnership opportunity. Emphasise mutual benefit.";
@@ -165,7 +165,7 @@ Respond with JSON:
           body: JSON.stringify({
             model: "google/gemini-3-flash-preview",
             messages: [
-              { role: "system", content: "You are an expert B2B email copywriter for ICE Alarm España. Write compelling, personalized outreach emails. Always respond with valid JSON." },
+              { role: "system", content: "You are an expert B2B email copywriter for Care Conneqt. Write compelling, personalized outreach emails. Always respond with valid JSON." },
               { role: "user", content: prompt },
             ],
             temperature: 0.7,
@@ -194,7 +194,7 @@ Respond with JSON:
         const { error: insertError } = await supabase.from("outreach_email_drafts").insert({
           crm_lead_id: lead.id,
           campaign_id: lead.campaign_id,
-          subject: draft.subject || `Partnership opportunity - ICE Alarm España`,
+          subject: draft.subject || `Partnership opportunity - Care Conneqt`,
           body_text: textBody,
           body_html: htmlBody,
           status,

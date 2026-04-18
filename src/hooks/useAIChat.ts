@@ -187,9 +187,9 @@ export function useAIChat(options: UseAIChatOptions | string = {}) {
     if (userRole === "admin" && staffName) {
       // Personalized greeting for admin staff
       if (i18n.language === "es") {
-        content = `${greeting}, ${staffName}! 👋 Soy el Main Brain, tu asistente de IA para la gestión del sistema ICE Alarm. Puedo ayudarte con análisis de datos, gestión de miembros, reportes, y coordinar las operaciones del negocio. ¿En qué puedo ayudarte hoy?`;
+        content = `${greeting}, ${staffName}! 👋 Soy el Main Brain, tu asistente de IA para la gestión del sistema Care Conneqt. Puedo ayudarte con análisis de datos, gestión de miembros, reportes, y coordinar las operaciones del negocio. ¿En qué puedo ayudarte hoy?`;
       } else {
-        content = `${greeting}, ${staffName}! 👋 I'm the Main Brain, your AI assistant for managing the ICE Alarm system. I can help you with data analysis, member management, reports, and coordinating business operations. What can I help you with today?`;
+        content = `${greeting}, ${staffName}! 👋 I'm the Main Brain, your AI assistant for managing the Care Conneqt system. I can help you with data analysis, member management, reports, and coordinating business operations. What can I help you with today?`;
       }
     } else if (userRole === "staff" && staffName) {
       // Personalized greeting for call centre staff
@@ -201,9 +201,9 @@ export function useAIChat(options: UseAIChatOptions | string = {}) {
     } else if (userRole === "member" && memberName) {
       // Personalized greeting for logged-in members
       if (i18n.language === "es") {
-        content = `${greeting}, ${memberName}! 👋 Soy tu asistente personal de ICE Alarm. Estoy aquí para ayudarte con cualquier cosa que necesites - tu dispositivo, tu cuenta, o cualquier pregunta. ¿En qué puedo ayudarte hoy?`;
+        content = `${greeting}, ${memberName}! 👋 Soy tu asistente personal de Care Conneqt. Estoy aquí para ayudarte con cualquier cosa que necesites - tu dispositivo, tu cuenta, o cualquier pregunta. ¿En qué puedo ayudarte hoy?`;
       } else {
-        content = `${greeting}, ${memberName}! 👋 I'm your personal ICE Alarm assistant. I'm here to help you with anything you need - your device, your account, or any questions you have. How can I help you today?`;
+        content = `${greeting}, ${memberName}! 👋 I'm your personal Care Conneqt assistant. I'm here to help you with anything you need - your device, your account, or any questions you have. How can I help you today?`;
       }
     } else {
       // Generic welcome for public visitors

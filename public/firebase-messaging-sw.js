@@ -24,7 +24,7 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   const { title, body } = payload.notification || {};
 
-  self.registration.showNotification(title || "ICE Alarm España", {
+  self.registration.showNotification(title || "Care Conneqt", {
     body: body || "You have a new notification",
     icon: "/icon-512.png",
     badge: "/favicon.ico",

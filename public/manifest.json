@@ -1,10 +1,17 @@
 {
-  "name": "ICE Alarm España",
-  "short_name": "ICE Alarm",
+  "name": "Care Conneqt",
+  "short_name": "Care Conneqt",
+  "description": "Connected Health. Human Care. 24/7 nurse-led care and emergency monitoring for seniors across Spain, UK, and Netherlands.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#E74C3C",
+  "theme_color": "#1e5a9c",
+  "orientation": "portrait-primary",
+  "categories": ["health", "medical", "lifestyle"],
+  "lang": "en",
+  "dir": "ltr",
+  "scope": "/",
+  "prefer_related_applications": false,
   "icons": [
     { "src": "/favicon.ico", "sizes": "64x64", "type": "image/x-icon" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }

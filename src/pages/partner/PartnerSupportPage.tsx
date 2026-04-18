@@ -12,8 +12,8 @@ export default function PartnerSupportPage() {
       icon: Mail,
       title: t("partnerSupport.emailTitle", "Email Support"),
       description: t("partnerSupport.emailDesc", "Send us an email and we'll respond within 24 hours"),
-      action: "partners@icealarm.es",
-      href: "mailto:partners@icealarm.es",
+      action: "partners@careconneqt.es",
+      href: "mailto:partners@careconneqt.es",
     },
     {
       icon: Phone,
@@ -52,7 +52,7 @@ export default function PartnerSupportPage() {
   const faqs = [
     {
       question: t("partnerSupport.faq1Q", "How do I earn commissions?"),
-      answer: t("partnerSupport.faq1A", "You earn a commission for every person who signs up through your unique referral link and receives their ICE Alarm pendant. Commissions are created automatically when the device is delivered."),
+      answer: t("partnerSupport.faq1A", "You earn a commission for every person who signs up through your unique referral link and receives their Care Conneqt pendant. Commissions are created automatically when the device is delivered."),
     },
     {
       question: t("partnerSupport.faq2Q", "When do I get paid?"),
@@ -76,7 +76,7 @@ export default function PartnerSupportPage() {
     },
     {
       question: t("partnerSupport.faq7Q", "Can I refer from outside Spain?"),
-      answer: t("partnerSupport.faq7A", "ICE Alarm currently operates in Spain and Portugal. Your referred customers must reside in these regions, but you can be based anywhere."),
+      answer: t("partnerSupport.faq7A", "Care Conneqt currently operates in Spain and Portugal. Your referred customers must reside in these regions, but you can be based anywhere."),
     },
     {
       question: t("partnerSupport.faq8Q", "What if my referral cancels?"),

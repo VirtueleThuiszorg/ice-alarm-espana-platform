@@ -133,7 +133,7 @@ export default function LandingPage() {
               <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-primary/10 aspect-[4/3] bg-muted">
                 <ImageWithPlaceholder
                   imageUrl={heroImage.imageUrl}
-                  altText={heroImage.altText || "Happy multigenerational family enjoying peace of mind with ICE Alarm protection"}
+                  altText={heroImage.altText || "Happy multigenerational family enjoying peace of mind with Care Conneqt protection"}
                   placeholderText="Hero Image"
                   placeholderSubtext="Coming Soon"
                   priority={true}
@@ -361,7 +361,7 @@ export default function LandingPage() {
             </Card>
           </div>
 
-          {/* ICE Alarm GPS Pendant - Premium Section */}
+          {/* Care Conneqt GPS Pendant - Premium Section */}
           <div className="mt-12 max-w-4xl mx-auto relative">
             {/* Recommended Badge */}
             <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
@@ -380,7 +380,7 @@ export default function LandingPage() {
                       {pendantPromoImage.imageUrl ? (
                         <img
                           src={pendantPromoImage.imageUrl}
-                          alt={pendantPromoImage.altText || "ICE Alarm GPS Pendant"}
+                          alt={pendantPromoImage.altText || "Care Conneqt GPS Pendant"}
                           className="relative w-48 h-48 md:w-56 md:h-56 object-contain drop-shadow-2xl"
                           loading="lazy"
                           decoding="async"
@@ -628,7 +628,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Latest from ICE Alarm - Blog Section */}
+      {/* Latest from Care Conneqt - Blog Section */}
       {latestPosts && latestPosts.length > 0 && (
         <section className="py-20 px-4">
           <div className="container mx-auto">
@@ -711,7 +711,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-sidebar-border pt-8 text-center text-sm text-sidebar-foreground/60">
-            <p>&copy; {new Date().getFullYear()} ICE Alarm Espa&ntilde;a. {t("landing.allRightsReserved")}</p>
+            <p>&copy; {new Date().getFullYear()} Care Conneqt Espa&ntilde;a. {t("landing.allRightsReserved")}</p>
           </div>
         </div>
       </footer>

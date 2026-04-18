@@ -135,7 +135,7 @@ export function usePartnerDistribution() {
         .replace(/\s+/g, "-")
         .substring(0, 30);
 
-      const siteUrl = "https://icealarm.es";
+      const siteUrl = "https://careconneqt.es";
 
       // Create links for each partner
       const links = partners.map((partner) => ({

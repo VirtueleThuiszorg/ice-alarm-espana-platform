@@ -43,7 +43,7 @@ export function useTwoFactorAuth() {
     try {
       const { data, error: enrollError } = await supabase.auth.mfa.enroll({
         factorType: "totp",
-        friendlyName: "ICE Alarm Authenticator",
+        friendlyName: "Care Conneqt Authenticator",
       });
       if (enrollError) throw enrollError;
       return data as TOTPFactor;

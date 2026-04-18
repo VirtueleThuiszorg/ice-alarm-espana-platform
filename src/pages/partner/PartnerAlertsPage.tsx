@@ -116,7 +116,7 @@ export default function PartnerAlertsPage() {
           <h2 className="text-xl font-semibold mb-2">Feature Not Available</h2>
           <p className="text-muted-foreground max-w-md mx-auto">
             Alert visibility is only available for Residential partners with alert notifications enabled.
-            Contact ICE Alarm to enable this feature for your facility.
+            Contact Care Conneqt to enable this feature for your facility.
           </p>
         </div>
       </div>

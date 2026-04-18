@@ -99,8 +99,8 @@ serve(async (req) => {
     if (channel === "email") {
       // Send via Gmail SMTP
       const subject = language === "es" 
-        ? "Invitación a ICE Alarm España" 
-        : "Invitation to ICE Alarm Spain";
+        ? "Invitación a Care Conneqt" 
+        : "Invitation to Care Conneqt Spain";
 
       // Build presentations HTML section
       let presentationsHtml = "";
@@ -136,7 +136,7 @@ serve(async (req) => {
 
       const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #333;">${language === "es" ? "Invitación a ICE Alarm" : "ICE Alarm Invitation"}</h2>
+          <h2 style="color: #333;">${language === "es" ? "Invitación a Care Conneqt" : "Care Conneqt Invitation"}</h2>
           <div style="white-space: pre-wrap; line-height: 1.6; color: #555;">
             ${message.replace(/\n/g, "<br>")}
           </div>
@@ -145,8 +145,8 @@ serve(async (req) => {
           <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
           <p style="font-size: 12px; color: #999;">
             ${language === "es" 
-              ? "Este correo fue enviado por un socio de ICE Alarm España." 
-              : "This email was sent by an ICE Alarm Spain partner."}
+              ? "Este correo fue enviado por un socio de Care Conneqt." 
+              : "This email was sent by an Care Conneqt Spain partner."}
           </p>
         </div>
       `;

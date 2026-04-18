@@ -22,13 +22,13 @@ function ArticleSchema({ post, canonicalUrl }: { post: any; canonicalUrl: string
     dateModified: post.updated_at || post.published_at,
     author: {
       "@type": "Organization",
-      name: "ICE Alarm España",
-      url: "https://icealarm.es",
+      name: "Care Conneqt",
+      url: "https://careconneqt.es",
     },
     publisher: {
       "@type": "Organization",
-      name: "ICE Alarm España",
-      url: "https://icealarm.es",
+      name: "Care Conneqt",
+      url: "https://careconneqt.es",
     },
     mainEntityOfPage: {
       "@type": "WebPage",
@@ -53,14 +53,14 @@ export default function BlogPostPage() {
   // Generate SEO values
   const seoTitle = post?.seo_title || post?.title || "Blog Post";
   const seoDescription = post?.seo_description || post?.excerpt || post?.content?.substring(0, 150) || "";
-  const canonicalUrl = `https://icealarm.es/blog/${slug}`;
+  const canonicalUrl = `https://careconneqt.es/blog/${slug}`;
 
   return (
     <div className="min-h-screen bg-background">
       {post && (
         <>
           <SEOHead
-            title={`${seoTitle} | ICE Alarm Blog`}
+            title={`${seoTitle} | Care Conneqt Blog`}
             description={seoDescription}
             canonicalUrl={canonicalUrl}
             ogType="article"
@@ -228,7 +228,7 @@ export default function BlogPostPage() {
       {/* Footer */}
       <footer className="py-8 px-4 bg-sidebar text-sidebar-foreground">
         <div className="container mx-auto text-center text-sm text-sidebar-foreground/60">
-          <p>© {new Date().getFullYear()} ICE Alarm España. {t("landing.allRightsReserved")}</p>
+          <p>© {new Date().getFullYear()} Care Conneqt. {t("landing.allRightsReserved")}</p>
         </div>
       </footer>
     </div>

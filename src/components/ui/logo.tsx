@@ -1,5 +1,4 @@
 import { forwardRef } from "react";
-import { Heart, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface LogoProps {
@@ -9,6 +8,11 @@ interface LogoProps {
   className?: string;
 }
 
+/**
+ * Care Conneqt Logo
+ * Two interlocking "C" shapes — teal + navy — forming the "Connected" mark.
+ * API preserved from ICE v1's Logo component so no other usages break.
+ */
 export const Logo = forwardRef<HTMLDivElement, LogoProps>(
   function Logo({ variant = "default", size = "md", showText = true, className }, ref) {
     const sizeClasses = {
@@ -18,9 +22,9 @@ export const Logo = forwardRef<HTMLDivElement, LogoProps>(
     };
 
     const iconSizes = {
-      sm: "w-5 h-5",
-      md: "w-6 h-6",
-      lg: "w-8 h-8",
+      sm: "w-7 h-7",
+      md: "w-9 h-9",
+      lg: "w-12 h-12",
     };
 
     const textSizes = {
@@ -29,53 +33,53 @@ export const Logo = forwardRef<HTMLDivElement, LogoProps>(
       lg: "text-2xl",
     };
 
-    const colorClasses = {
-      default: {
-        icon: "text-primary",
-        text: "text-foreground",
-        accent: "text-primary",
-      },
-      white: {
-        icon: "text-white",
-        text: "text-white",
-        accent: "text-white/80",
-      },
-      dark: {
-        icon: "text-primary",
-        text: "text-slate-900",
-        accent: "text-primary",
-      },
-      sidebar: {
-        icon: "text-primary",
-        text: "text-white",
-        accent: "text-primary",
-      },
+    // Brand colors for the two-C mark
+    // Left C = teal, Right C = deep blue (matches Care Conneqt reference)
+    const markColors = {
+      default: { left: "hsl(185, 75%, 45%)", right: "hsl(215, 85%, 35%)" },
+      white:   { left: "hsl(0, 0%, 100%)",   right: "hsl(0, 0%, 100%)" },
+      dark:    { left: "hsl(185, 75%, 45%)", right: "hsl(215, 85%, 35%)" },
+      sidebar: { left: "hsl(185, 75%, 45%)", right: "hsl(215, 85%, 35%)" },
     };
 
-    const colors = colorClasses[variant];
+    const textColors = {
+      default: { main: "text-foreground", accent: "text-primary" },
+      white:   { main: "text-white",       accent: "text-white/80" },
+      dark:    { main: "text-slate-900",   accent: "text-primary" },
+      sidebar: { main: "text-white",       accent: "text-[hsl(185,75%,55%)]" },
+    };
+
+    const { left: leftColor, right: rightColor } = markColors[variant];
+    const text = textColors[variant];
 
     return (
       <div ref={ref} className={cn("flex items-center gap-2", sizeClasses[size], className)}>
-        <div className="relative">
-          <div className={cn(
-            "flex items-center justify-center rounded-xl bg-primary/10 p-2",
-            variant === "white" && "bg-white/20"
-          )}>
-            <Heart className={cn(iconSizes[size], colors.icon, "fill-current")} />
-          </div>
-          <Phone className={cn(
-            "absolute -bottom-1 -right-1 w-3 h-3",
-            colors.icon,
-            size === "lg" && "w-4 h-4"
-          )} />
-        </div>
+        <svg
+          viewBox="0 0 100 100"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className={iconSizes[size]}
+          aria-label="Care Conneqt"
+        >
+          {/* Left C */}
+          <path
+            d="M0 20 C0 8.95 8.95 0 20 0 L50 0 L50 25 L25 25 C22.24 25 20 27.24 20 30 L20 45 L50 45 L50 70 L20 70 C8.95 70 0 61.05 0 50 L0 20 Z"
+            fill={leftColor}
+          />
+          {/* Right C */}
+          <path
+            d="M100 80 C100 91.05 91.05 100 80 100 L50 100 L50 75 L75 75 C77.76 75 80 72.76 80 70 L80 55 L50 55 L50 30 L80 30 C91.05 30 100 38.95 100 50 L100 80 Z"
+            fill={rightColor}
+          />
+        </svg>
+
         {showText && (
           <div className="flex flex-col leading-none">
-            <span className={cn("font-bold tracking-tight", textSizes[size], colors.text)}>
-              ICE Alarm
+            <span className={cn("font-bold tracking-tight font-['Poppins']", textSizes[size], text.main)}>
+              Care Conneqt
             </span>
-            <span className={cn("text-xs font-medium", colors.accent)}>
-              España
+            <span className={cn("text-xs font-medium", text.accent)}>
+              Connected Health
             </span>
           </div>
         )}

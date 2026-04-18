@@ -145,7 +145,7 @@ serve(async (req) => {
                   value: parseFloat(subscriptionAmount).toFixed(2),
                 },
                 interval,
-                description: "ICE Alarm membership",
+                description: "Care Conneqt membership",
                 webhookUrl,
               }
             );

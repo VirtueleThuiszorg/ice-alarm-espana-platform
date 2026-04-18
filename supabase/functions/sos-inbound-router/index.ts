@@ -65,10 +65,10 @@ Deno.serve(async (req) => {
 
       return twiml(
         `<Say language="en-GB" voice="Polly.Amy">` +
-          `Your ${esc(relationship)}, ${esc(memberName)}, has an active emergency alert with ICE Alarm. Press 1 to join the call.` +
+          `Your ${esc(relationship)}, ${esc(memberName)}, has an active emergency alert with Care Conneqt. Press 1 to join the call.` +
         `</Say>` +
         `<Say language="es-ES" voice="Polly.Lucia">` +
-          `Su ${esc(relationship)}, ${esc(memberName)}, tiene una alerta de emergencia activa con ICE Alarm. Pulse 1 para unirse a la llamada.` +
+          `Su ${esc(relationship)}, ${esc(memberName)}, tiene una alerta de emergencia activa con Care Conneqt. Pulse 1 para unirse a la llamada.` +
         `</Say>` +
         `<Gather numDigits="1" action="${esc(respondUrl)}" method="POST" timeout="15">` +
           `<Say language="en-GB" voice="Polly.Amy">Press 1 now.</Say>` +

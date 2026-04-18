@@ -60,7 +60,7 @@ export function printDocument(doc: Documentation): void {
     <html lang="${doc.language}">
       <head>
         <meta charset="UTF-8">
-        <title>${doc.title} - ICE Alarm España</title>
+        <title>${doc.title} - Care Conneqt</title>
         <style>
           * {
             margin: 0;
@@ -204,7 +204,7 @@ export function printDocument(doc: Documentation): void {
       </head>
       <body>
         <header>
-          <div class="company-name">ICE Alarm España</div>
+          <div class="company-name">Care Conneqt</div>
           <span class="category-badge">${CATEGORY_LABELS[doc.category]}</span>
           <h1 class="document-title">${doc.title}</h1>
           <div class="document-meta">
@@ -217,7 +217,7 @@ export function printDocument(doc: Documentation): void {
         </main>
         
         <footer>
-          <span>ICE Alarm España - Confidential</span>
+          <span>Care Conneqt - Confidential</span>
           <span>Document ID: ${doc.slug}</span>
         </footer>
       </body>

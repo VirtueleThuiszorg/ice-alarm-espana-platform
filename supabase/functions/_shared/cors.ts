@@ -1,8 +1,8 @@
 const ALLOWED_ORIGINS = [
-  "https://icealarm.es",
-  "https://www.icealarm.es",
-  "https://icealarmespana.com",
-  "https://www.icealarmespana.com",
+  "https://careconneqt.es",
+  "https://www.careconneqt.es",
+  "https://careconneqtespana.com",
+  "https://www.careconneqtespana.com",
 ];
 
 // Patterns for dynamic origins (Loveable, Vercel previews, local dev)

@@ -1,4 +1,4 @@
-// PDF Invoice Generator for ICE Alarm Espana
+// PDF Invoice Generator for Care Conneqt
 // Uses browser print dialog to generate PDF invoices — no external dependencies required.
 
 export interface InvoiceLineItem {
@@ -28,11 +28,11 @@ export interface CompanyInfo {
 }
 
 const DEFAULT_COMPANY: Required<CompanyInfo> = {
-  company_name: 'ICE Alarm España S.L.',
+  company_name: 'Care Conneqt S.L.',
   cif: 'B93557218',
   address: 'Costa del Sol, Málaga, Spain',
-  email: 'info@icealarmespana.es',
-  website: 'www.icealarmespana.es',
+  email: 'info@careconneqtespana.es',
+  website: 'www.careconneqtespana.es',
   phone: '+34 900 123 456',
   iban: 'ES00 0000 0000 0000 0000 0000',
   bic: 'CAIXESBBXXX',
@@ -255,7 +255,7 @@ export function generateInvoicePdf(order: InvoiceData, locale: Locale = 'es'): v
 <html lang="${locale}">
 <head>
   <meta charset="UTF-8">
-  <title>${l.invoiceTitle} ${escapeHtml(order.invoiceNumber)} - ICE Alarm Espana</title>
+  <title>${l.invoiceTitle} ${escapeHtml(order.invoiceNumber)} - Care Conneqt</title>
   <style>
     * {
       margin: 0;
@@ -582,7 +582,7 @@ export function generateInvoicePdf(order: InvoiceData, locale: Locale = 'es'): v
     <div class="payment-label">${l.paymentInfo}</div>
     <div class="payment-detail">IBAN: ${escapeHtml(company.iban)}</div>
     <div class="payment-detail">BIC/SWIFT: ${escapeHtml(company.bic)}</div>
-    <div class="payment-detail">${locale === 'es' ? 'Beneficiario' : 'Beneficiary'}: ICE Alarm Espana S.L.</div>
+    <div class="payment-detail">${locale === 'es' ? 'Beneficiario' : 'Beneficiary'}: Care Conneqt S.L.</div>
     <div class="payment-detail">${locale === 'es' ? 'Referencia' : 'Reference'}: ${escapeHtml(order.invoiceNumber)}</div>
   </div>
 

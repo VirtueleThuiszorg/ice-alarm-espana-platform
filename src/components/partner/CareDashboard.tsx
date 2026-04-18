@@ -152,7 +152,7 @@ export function CareDashboard({ partnerId, partner }: CareDashboardProps) {
                 inviteId: invite.id,
                 channel: "email",
                 recipient: invite.invitee_email,
-                message: `Hi ${invite.invitee_name}, you've been referred to ICE Alarm España by ${partner.company_name || partner.contact_name}.\n\nSign up here: ${referralLink}`,
+                message: `Hi ${invite.invitee_name}, you've been referred to Care Conneqt by ${partner.company_name || partner.contact_name}.\n\nSign up here: ${referralLink}`,
                 language: "en",
                 referralCode: partner.referral_code,
                 referralLink,
@@ -454,7 +454,7 @@ export function CareDashboard({ partnerId, partner }: CareDashboardProps) {
                     {t("partner.care.reports.yourImpact", "Your Impact")}
                   </h2>
                   <p className="text-green-700 dark:text-green-300">
-                    {t("partner.care.reports.impactStatement", "You've helped protect {{count}} people through ICE Alarm", { count: totalProtected })}
+                    {t("partner.care.reports.impactStatement", "You've helped protect {{count}} people through Care Conneqt", { count: totalProtected })}
                   </p>
                 </div>
               </div>

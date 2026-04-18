@@ -151,7 +151,7 @@ serve(async (req) => {
       .eq("integration_type", "youtube_oauth_state");
 
     const message = channelMismatch
-      ? `Connected to "${channelName}" (Warning: Channel ID does not match expected ICE Alarm España channel)`
+      ? `Connected to "${channelName}" (Warning: Channel ID does not match expected Care Conneqt channel)`
       : `Successfully connected to "${channelName}"`;
 
     return htmlResponse(message, true);

@@ -28,21 +28,21 @@ export const InviteEmail = ({
 }: InviteEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>You've been invited to join ICE Alarm España</Preview>
+    <Preview>You've been invited to join Care Conneqt</Preview>
     <Body style={main}>
       <Container style={container}>
         <Img
           src="https://pduhccavshrhfkfbjgmj.supabase.co/storage/v1/object/public/email-assets/logo.png"
           width="64"
           height="64"
-          alt="ICE Alarm España"
+          alt="Care Conneqt"
           style={logo}
         />
         <Heading style={h1}>You've been invited</Heading>
         <Text style={text}>
           You've been invited to join{' '}
           <Link href={siteUrl} style={link}>
-            <strong>ICE Alarm España</strong>
+            <strong>Care Conneqt</strong>
           </Link>
           . Click the button below to accept the invitation and create your
           account.

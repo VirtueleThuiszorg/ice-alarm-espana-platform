@@ -42,13 +42,13 @@ async function sendTestViaGmailSMTP(
       },
     });
 
-    const fromName = settings.from_name || "ICE Alarm España";
+    const fromName = settings.from_name || "Care Conneqt";
     const fromEmail = settings.from_email || settings.gmail_smtp_user;
 
     await transporter.sendMail({
       from: `${fromName} <${fromEmail}>`,
       to: toEmail,
-      subject: "Test Email - ICE Alarm Email System",
+      subject: "Test Email - Care Conneqt Email System",
       html: htmlContent,
       headers: {
         "X-ICE-Module": "system",
@@ -90,13 +90,13 @@ async function sendTestViaResend(
   }
 
   const resend = new Resend(resendApiKey);
-  const fromName = settings.from_name || "ICE Alarm España";
+  const fromName = settings.from_name || "Care Conneqt";
   const fromEmail = settings.from_email || "onboarding@resend.dev";
 
   const { data, error } = await resend.emails.send({
     from: `${fromName} <${fromEmail}>`,
     to: [toEmail],
-    subject: "Test Email - ICE Alarm Email System",
+    subject: "Test Email - Care Conneqt Email System",
     html: htmlContent,
     headers: {
       "X-ICE-Module": "system",
@@ -194,9 +194,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Determine provider
     const provider = settings.provider || "resend";
-    const fromName = settings.from_name || "ICE Alarm España";
+    const fromName = settings.from_name || "Care Conneqt";
     const fromEmail = settings.from_email || 
-      (provider === "gmail" ? settings.gmail_smtp_user : "noreply@icealarm.es");
+      (provider === "gmail" ? settings.gmail_smtp_user : "noreply@careconneqt.es");
     const signature = settings.signature_html || "";
 
     // Build email content
@@ -209,12 +209,12 @@ const handler = async (req: Request): Promise<Response> => {
       </head>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #dc2626;">ICE Alarm España</h1>
+          <h1 style="color: #dc2626;">Care Conneqt</h1>
         </div>
         
         <h2 style="color: #1f2937;">Test Email</h2>
         
-        <p>This is a test email from your ICE Alarm email system.</p>
+        <p>This is a test email from your Care Conneqt email system.</p>
         
         <p>If you received this email, your email configuration is working correctly!</p>
         
@@ -247,7 +247,7 @@ const handler = async (req: Request): Promise<Response> => {
     await supabase.from("email_log").insert({
       to_email: toEmail,
       from_email: fromEmail,
-      subject: "Test Email - ICE Alarm Email System",
+      subject: "Test Email - Care Conneqt Email System",
       body_html: htmlContent,
       module: "system",
       status: sendResult.success ? "sent" : "failed",

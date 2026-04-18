@@ -141,23 +141,23 @@ serve(async (req) => {
     // 8. Send confirmation email to original address
     if (memberEmail) {
       const subject = memberLang === "es"
-        ? "Confirmación de eliminación de datos - ICE Alarm"
-        : "Data Deletion Confirmation - ICE Alarm";
+        ? "Confirmación de eliminación de datos - Care Conneqt"
+        : "Data Deletion Confirmation - Care Conneqt";
 
       const html = memberLang === "es"
         ? `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
-            <h2 style="color:#dc2626;">ICE Alarm España</h2>
+            <h2 style="color:#dc2626;">Care Conneqt</h2>
             <p>Hemos procesado su solicitud de eliminación de datos de acuerdo con el RGPD (Artículo 17).</p>
             <p>Sus datos personales, información médica y contactos de emergencia han sido eliminados de nuestros sistemas.</p>
             <p>Si tiene alguna pregunta, puede contactarnos en cualquier momento.</p>
-            <p style="color:#6b7280;font-size:12px;margin-top:30px;">ICE Alarm España</p>
+            <p style="color:#6b7280;font-size:12px;margin-top:30px;">Care Conneqt</p>
           </div>`
         : `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
-            <h2 style="color:#dc2626;">ICE Alarm España</h2>
+            <h2 style="color:#dc2626;">Care Conneqt</h2>
             <p>We have processed your data deletion request in accordance with GDPR (Article 17).</p>
             <p>Your personal data, medical information, and emergency contacts have been removed from our systems.</p>
             <p>If you have any questions, you can contact us at any time.</p>
-            <p style="color:#6b7280;font-size:12px;margin-top:30px;">ICE Alarm España</p>
+            <p style="color:#6b7280;font-size:12px;margin-top:30px;">Care Conneqt</p>
           </div>`;
 
       await sendEmail(memberEmail, subject, html);

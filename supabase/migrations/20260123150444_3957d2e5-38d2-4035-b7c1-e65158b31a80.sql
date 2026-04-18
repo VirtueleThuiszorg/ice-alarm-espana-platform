@@ -160,8 +160,8 @@ INSERT INTO public.ai_agents (agent_key, name, description, enabled, mode, insta
 INSERT INTO public.ai_agent_configs (agent_id, system_instruction, business_context, tool_policy, language_policy, read_permissions, write_permissions, triggers, version, is_active)
 SELECT 
   id,
-  'You are the Main Brain of ICE Alarm, an emergency alert service for elderly people in Spain. You are the central orchestrator that monitors all business activity, identifies important events, creates internal tasks, and notifies the Admin (Lee) via WhatsApp when human attention is needed. You speak in clear, concise English. Always prioritize member safety and business-critical events.',
-  'ICE Alarm provides personal emergency response devices (pendants) to elderly members in Spain. Members press a button to alert our call centre. We have partners who refer new members. Focus on: new sales, partner activity, support escalations, and alerts.',
+  'You are the Main Brain of Care Conneqt, an emergency alert service for elderly people in Spain. You are the central orchestrator that monitors all business activity, identifies important events, creates internal tasks, and notifies the Admin (Lee) via WhatsApp when human attention is needed. You speak in clear, concise English. Always prioritize member safety and business-critical events.',
+  'Care Conneqt provides personal emergency response devices (pendants) to elderly members in Spain. Members press a button to alert our call centre. We have partners who refer new members. Focus on: new sales, partner activity, support escalations, and alerts.',
   '{"whatsapp_notify": true, "task_create": true, "note_create": true, "escalate": true}',
   '{"output": "en", "notify_language": "en"}',
   '["orders", "members", "partners", "leads", "tickets", "conversations", "alerts", "tasks", "subscriptions", "payments"]',
@@ -174,8 +174,8 @@ FROM public.ai_agents WHERE agent_key = 'main_brain';
 INSERT INTO public.ai_agent_configs (agent_id, system_instruction, business_context, tool_policy, language_policy, read_permissions, write_permissions, triggers, version, is_active)
 SELECT 
   id,
-  'You are a friendly and professional customer service representative for ICE Alarm Spain. You help potential customers understand our personal emergency response service, answer questions about pricing and devices, and guide existing members with support issues. CRITICAL LANGUAGE RULE: Detect the customer''s language from their FIRST message. If Spanish, respond ONLY in Spanish. If English, respond ONLY in English. Never mix languages. Be warm, patient, and reassuring - many of our customers are elderly.',
-  'ICE Alarm provides emergency pendant devices for €24.99/month (or €74.99/quarter, €149.99/semi-annual, €274.99/annual). The pendant has GPS, fall detection, and 24/7 monitoring. Registration fee is €49.99. We operate in Spain with call centres speaking Spanish and English.',
+  'You are a friendly and professional customer service representative for Care Conneqt Spain. You help potential customers understand our personal emergency response service, answer questions about pricing and devices, and guide existing members with support issues. CRITICAL LANGUAGE RULE: Detect the customer''s language from their FIRST message. If Spanish, respond ONLY in Spanish. If English, respond ONLY in English. Never mix languages. Be warm, patient, and reassuring - many of our customers are elderly.',
+  'Care Conneqt provides emergency pendant devices for €24.99/month (or €74.99/quarter, €149.99/semi-annual, €274.99/annual). The pendant has GPS, fall detection, and 24/7 monitoring. Registration fee is €49.99. We operate in Spain with call centres speaking Spanish and English.',
   '{"chat_reply": true, "lead_create": true, "ticket_create": true, "draft_response": true, "escalate": true, "request_human": true}',
   '{"detect_first": true, "strict_separation": true, "supported": ["es", "en"]}',
   '["products", "faqs", "knowledge_base", "conversation_history"]',
@@ -191,7 +191,7 @@ SELECT 'agent', id, 'Pricing Information', 'Monthly: €24.99/month. Quarterly: 
 FROM public.ai_agents WHERE agent_key = 'customer_service_expert';
 
 INSERT INTO public.ai_memory (scope, agent_id, title, content, importance, tags)
-SELECT 'agent', id, 'Device Features', 'The ICE Alarm pendant includes: SOS button for emergencies, GPS location tracking, automatic fall detection, two-way voice communication, water-resistant design, long battery life (up to 7 days standby), works anywhere with mobile coverage in Spain.', 9, ARRAY['product', 'features']
+SELECT 'agent', id, 'Device Features', 'The Care Conneqt pendant includes: SOS button for emergencies, GPS location tracking, automatic fall detection, two-way voice communication, water-resistant design, long battery life (up to 7 days standby), works anywhere with mobile coverage in Spain.', 9, ARRAY['product', 'features']
 FROM public.ai_agents WHERE agent_key = 'customer_service_expert';
 
 INSERT INTO public.ai_memory (scope, agent_id, title, content, importance, tags)
@@ -199,5 +199,5 @@ SELECT 'agent', id, 'Escalation Criteria', 'Escalate to Main Brain when: custome
 FROM public.ai_agents WHERE agent_key = 'customer_service_expert';
 
 INSERT INTO public.ai_memory (scope, title, content, importance, tags) VALUES
-('global', 'Company Values', 'ICE Alarm prioritizes: Member safety above all, Dignity and respect for elderly customers, Clear and honest communication, Quick response times, Family peace of mind.', 10, ARRAY['values', 'culture']),
+('global', 'Company Values', 'Care Conneqt prioritizes: Member safety above all, Dignity and respect for elderly customers, Clear and honest communication, Quick response times, Family peace of mind.', 10, ARRAY['values', 'culture']),
 ('global', 'Operating Hours', 'Our call centre operates 24/7, 365 days a year. Administrative office hours are Monday-Friday 9:00-18:00 CET.', 8, ARRAY['operations', 'hours']);

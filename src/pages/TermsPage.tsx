@@ -49,7 +49,7 @@ export default function TermsPage() {
       {/* Footer */}
       <footer className="py-8 px-4 bg-sidebar text-sidebar-foreground">
         <div className="container mx-auto text-center text-sm text-sidebar-foreground/60">
-          <p>© {new Date().getFullYear()} ICE Alarm España. {t("landing.allRightsReserved")}</p>
+          <p>© {new Date().getFullYear()} Care Conneqt. {t("landing.allRightsReserved")}</p>
           <div className="mt-2 space-x-4">
             <Link to="/terms" className="hover:text-sidebar-foreground">{t("legal.footer.termsOfService")}</Link>
             <Link to="/privacy" className="hover:text-sidebar-foreground">{t("legal.footer.privacyPolicy")}</Link>

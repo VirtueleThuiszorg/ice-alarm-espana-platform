@@ -248,10 +248,10 @@ serve(async (req: Request): Promise<Response> => {
     // Send verification email
     const emailContent = data.preferred_language === "es" 
       ? {
-          subject: "Verifica tu cuenta de socio - ICE Alarm",
+          subject: "Verifica tu cuenta de socio - Care Conneqt",
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h1 style="color: #1a365d;">¡Bienvenido a ICE Alarm!</h1>
+              <h1 style="color: #1a365d;">¡Bienvenido a Care Conneqt!</h1>
               <p>Hola ${data.contact_name},</p>
               <p>Gracias por registrarte como socio. Por favor verifica tu dirección de correo electrónico haciendo clic en el botón de abajo:</p>
               <div style="text-align: center; margin: 30px 0;">
@@ -261,15 +261,15 @@ serve(async (req: Request): Promise<Response> => {
               </div>
               <p>Este enlace expirará en 24 horas.</p>
               <p>Tu código de referido es: <strong>${referralCode}</strong></p>
-              <p>Saludos,<br>El equipo de ICE Alarm</p>
+              <p>Saludos,<br>El equipo de Care Conneqt</p>
             </div>
           `
         }
       : {
-          subject: "Verify your partner account - ICE Alarm",
+          subject: "Verify your partner account - Care Conneqt",
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h1 style="color: #1a365d;">Welcome to ICE Alarm!</h1>
+              <h1 style="color: #1a365d;">Welcome to Care Conneqt!</h1>
               <p>Hello ${data.contact_name},</p>
               <p>Thank you for registering as a partner. Please verify your email address by clicking the button below:</p>
               <div style="text-align: center; margin: 30px 0;">
@@ -279,7 +279,7 @@ serve(async (req: Request): Promise<Response> => {
               </div>
               <p>This link will expire in 24 hours.</p>
               <p>Your referral code is: <strong>${referralCode}</strong></p>
-              <p>Best regards,<br>The ICE Alarm Team</p>
+              <p>Best regards,<br>The Care Conneqt Team</p>
             </div>
           `
         };

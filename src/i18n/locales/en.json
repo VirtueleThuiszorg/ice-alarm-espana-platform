@@ -607,7 +607,7 @@
     "signOut": "Sign Out",
     "register": {
       "title": "Create Your Account",
-      "subtitle": "Start your ICE Alarm protection today",
+      "subtitle": "Start your Care Conneqt protection today",
       "emailPlaceholder": "your@email.com",
       "passwordMin8": "Password must be at least 8 characters",
       "creating": "Creating account...",
@@ -622,11 +622,11 @@
     "forgotPassword": "Forgot Password?",
     "resetPassword": "Reset Password",
     "loginTitle": "Welcome Back",
-    "loginSubtitle": "Sign in to your ICE Alarm account",
+    "loginSubtitle": "Sign in to your Care Conneqt account",
     "registerTitle": "Create Account",
-    "registerSubtitle": "Join ICE Alarm España",
+    "registerSubtitle": "Join Care Conneqt",
     "memberLogin": "Member Login",
-    "memberLoginDesc": "Sign in to access your ICE Alarm dashboard",
+    "memberLoginDesc": "Sign in to access your Care Conneqt dashboard",
     "staffLogin": "Staff Login",
     "staffLoginDesc": "Access the admin or call centre dashboard",
     "signingIn": "Signing in...",
@@ -635,7 +635,7 @@
     "backToHome": "Back to home",
     "staffMember": "Staff member?",
     "loginHere": "Login here",
-    "memberQuestion": "ICE Alarm Member?",
+    "memberQuestion": "Care Conneqt Member?",
     "accountSettings": "Account Settings",
     "forgotPasswordDesc": "Enter your email and we'll send you a link to reset your password.",
     "sendResetLink": "Send Reset Link",
@@ -716,7 +716,7 @@
   "blog": {
     "title": "Blog",
     "subtitle": "Stay informed with our latest updates about personal safety, elderly care, and emergency response.",
-    "latestFrom": "Latest from ICE Alarm",
+    "latestFrom": "Latest from Care Conneqt",
     "viewAll": "View All Articles",
     "readMore": "Read More",
     "postedOn": "Posted on",
@@ -737,7 +737,7 @@
     "englishSpanish": "English & Spanish support",
     "floatingMonitored": "Always Monitored",
     "floatingIsabella": "Your Personal Assistant",
-    "whyChoose": "Why Families Choose ICE Alarm",
+    "whyChoose": "Why Families Choose Care Conneqt",
     "whyChooseDesc": "More than just an alarm button. Isabella, your personal safety assistant, combines instant response with real-time technology — designed specifically for life in Spain.",
     "featureIsabella": "Meet Isabella",
     "featureIsabellaDesc": "When you call or press your SOS button, Isabella answers — instantly, by name, in your language. She's available 24 hours a day, 365 days a year. No waiting on hold, no automated menus. Just a calm, helpful voice ready to assist you.",
@@ -748,7 +748,7 @@
     "featureDashboard": "Your Safety Dashboard",
     "featureDashboardDesc": "Log into your private portal on any device to see your pendant's battery, connection status, and account details. Chat with Isabella anytime for help or questions. Everything in one place, always available.",
     "howItWorks": {
-      "title": "How ICE Alarm Protects You",
+      "title": "How Care Conneqt Protects You",
       "description": "From the moment you press the button to the moment help arrives — here's exactly what happens.",
       "step1Title": "Press the SOS Button",
       "step1Desc": "Press the button on your pendant — or the system detects a fall automatically. Instantly, Isabella receives your alert with your name, location, and medical information.",
@@ -791,12 +791,12 @@
       "pendant": {
         "recommended": "Recommended for Full Protection",
         "subtitle": "Wear it as a pendant or on your wrist. One button connects you to Isabella instantly.",
-        "title": "ICE Alarm GPS Pendant"
+        "title": "Care Conneqt GPS Pendant"
       }
     },
     "dashboard": {
       "title": "Your Safety, Always Visible",
-      "description": "Every ICE Alarm member gets access to a private online portal — on your phone, tablet, or computer.",
+      "description": "Every Care Conneqt member gets access to a private online portal — on your phone, tablet, or computer.",
       "deviceTitle": "Device Status",
       "deviceDesc": "See your pendant's battery level, connection status, and last known location at a glance.",
       "chatTitle": "Chat with Isabella",
@@ -811,12 +811,12 @@
       "trustLine": "Protecting families across the Costa Blanca, Costa del Sol, Balearic Islands, and all of Spain."
     },
     "partners": {
-      "title": "ICE Alarm for Communities & Partners",
+      "title": "Care Conneqt for Communities & Partners",
       "description": "We work with residential communities, urbanisations, care providers, and local businesses across Spain to bring safety to their residents and clients.",
       "benefit1Title": "Protect Your Residents",
-      "benefit1Desc": "Offer ICE Alarm as an included or optional service for your community. We handle everything — setup, monitoring, support — in English and Spanish.",
+      "benefit1Desc": "Offer Care Conneqt as an included or optional service for your community. We handle everything — setup, monitoring, support — in English and Spanish.",
       "benefit2Title": "Make a Difference in Your Community",
-      "benefit2Desc": "Help the people around you feel safer and more independent. When your residents or clients join ICE Alarm, you know they're protected 24/7.",
+      "benefit2Desc": "Help the people around you feel safer and more independent. When your residents or clients join Care Conneqt, you know they're protected 24/7.",
       "benefit3Title": "Dedicated Partner Support",
       "benefit3Desc": "Your own account manager, co-branded materials, and priority support. We make it easy to offer world-class safety to your community.",
       "benefit4Title": "Simple Invite Tools",
@@ -825,7 +825,7 @@
       "idealFor": "Ideal for: urbanisations, residential communities, care homes, physiotherapy clinics, insurance brokers, and estate agents."
     },
     "readyToJoin": "Start Your Protection Today",
-    "readyToJoinDesc": "Join ICE Alarm in minutes. No engineers, no installation, no long-term contracts. Your pendant arrives ready to use — and Isabella is ready to meet you.",
+    "readyToJoinDesc": "Join Care Conneqt in minutes. No engineers, no installation, no long-term contracts. Your pendant arrives ready to use — and Isabella is ready to meet you.",
     "haveQuestions": "Questions?",
     "callUsAnytime": "Call us or send a WhatsApp — Isabella and our team are here to help.",
     "allRightsReserved": "All rights reserved.",
@@ -1251,7 +1251,7 @@
     "welcomeBack": "Welcome back",
     "needHelp": "Need Help?",
     "emergencyTeamReady": "Our 24/7 emergency response team is always ready to help",
-    "callIceAlarm": "Call ICE Alarm",
+    "callIceAlarm": "Call Care Conneqt",
     "whatsAppUs": "WhatsApp Us",
     "callUs": "Call Us",
     "whatsappUs": "WhatsApp Us",
@@ -1262,7 +1262,7 @@
     "updateContacts": "Update Contacts",
     "announcement": "Service Announcement",
     "deviceWorking": "Your pendant is working properly",
-    "contactIceAlarm": "Contact ICE Alarm",
+    "contactIceAlarm": "Contact Care Conneqt",
     "noDeviceAssigned": "No device assigned",
     "contactSupportDevice": "Please contact support to get your device set up.",
     "noActiveSubscription": "No active subscription",
@@ -1271,7 +1271,7 @@
     "batteryLevel": "Battery",
     "deviceStatus": "Device",
     "serviceAnnouncement": "Service Announcement",
-    "announcementText": "We've upgraded our response system! Your alerts now reach our team 30% faster. Thank you for trusting ICE Alarm España with your safety.",
+    "announcementText": "We've upgraded our response system! Your alerts now reach our team 30% faster. Thank you for trusting Care Conneqt with your safety.",
     "unread": "unread",
     "unreadMessages": "{{count}} unread messages",
     "tapToRead": "Tap to read and reply",
@@ -1317,7 +1317,7 @@
     "noGeoFencing": "No boundary alerts available",
     "addPendant": "Add a Pendant for Full Protection",
     "getComplete": "Get complete peace of mind with our GPS pendant",
-    "pendantName": "ICE Alarm GPS Pendant",
+    "pendantName": "Care Conneqt GPS Pendant",
     "shipping": "shipping",
     "purchasePendant": "Purchase Pendant",
     "gpsTracking": "GPS Location Tracking",
@@ -1492,7 +1492,7 @@
   "admin": {
     "members": {
       "title": "Members",
-      "subtitle": "Manage all ICE Alarm members and their information.",
+      "subtitle": "Manage all Care Conneqt members and their information.",
       "addMember": "Add Member",
       "exportCsv": "Export CSV",
       "crmImport": "CRM Import",
@@ -1603,7 +1603,7 @@
   },
   "finance": {
     "dashboard": "Finance Dashboard",
-    "description": "Financial overview and key metrics for ICE Alarm España",
+    "description": "Financial overview and key metrics for Care Conneqt",
     "monthlyRevenue": "Monthly Revenue",
     "annualRevenue": "Annual Revenue",
     "activeSubscriptions": "Active Subscriptions",
@@ -1833,7 +1833,7 @@
   },
   "adminDashboard": {
     "title": "Dashboard",
-    "welcome": "Welcome back! Here's an overview of ICE Alarm España.",
+    "welcome": "Welcome back! Here's an overview of Care Conneqt.",
     "addMember": "Add Member",
     "activeMembers": "Active Members",
     "activeAlerts": "Active Alerts",
@@ -1977,7 +1977,7 @@
     "resourceFAQDesc": "Detailed answers to common questions",
     "faqTitle": "Frequently Asked Questions",
     "faq1Q": "How do I earn commissions?",
-    "faq1A": "You earn a commission for every person who signs up through your unique referral link and receives their ICE Alarm pendant. Commissions are created automatically when the device is delivered.",
+    "faq1A": "You earn a commission for every person who signs up through your unique referral link and receives their Care Conneqt pendant. Commissions are created automatically when the device is delivered.",
     "faq2Q": "When do I get paid?",
     "faq2A": "Commissions enter a 7-day holding period after device delivery, then move to 'approved' status. Payments are processed monthly via bank transfer to the IBAN on file.",
     "faq3Q": "How do I share my referral link?",
@@ -1989,7 +1989,7 @@
     "faq6Q": "How do I update my bank details?",
     "faq6A": "Go to Settings > Payout Information and update your IBAN and beneficiary name. Changes take effect for the next payout cycle.",
     "faq7Q": "Can I refer from outside Spain?",
-    "faq7A": "ICE Alarm currently operates in Spain and Portugal. Your referred customers must reside in these regions, but you can be based anywhere.",
+    "faq7A": "Care Conneqt currently operates in Spain and Portugal. Your referred customers must reside in these regions, but you can be based anywhere.",
     "faq8Q": "What if my referral cancels?",
     "faq8A": "If a customer cancels within the 7-day holding period, the commission is automatically cancelled. After the holding period, earned commissions are yours to keep."
   },
@@ -2131,12 +2131,12 @@
     "hero": {
       "badge": "Designed for Expats in Spain",
       "title": "Your Lifeline in Spain",
-      "subtitle": "The ICE Alarm GPS Personal Pendant gives you and your loved ones peace of mind, wherever you are in Spain.",
+      "subtitle": "The Care Conneqt GPS Personal Pendant gives you and your loved ones peace of mind, wherever you are in Spain.",
       "feature1": "24/7 English & Spanish Support",
       "feature2": "GPS Location Tracking",
       "feature3": "Automatic Fall Detection",
       "feature4": "Two-Way Communication",
-      "cta": "Join ICE Alarm Today",
+      "cta": "Join Care Conneqt Today",
       "startingFrom": "Starting from",
       "perMonth": "/month",
       "plusPendant": "+ pendant",
@@ -2154,7 +2154,7 @@
     },
     "features": {
       "title": "Pendant Features",
-      "subtitle": "The ICE Alarm pendant is packed with life-saving technology.",
+      "subtitle": "The Care Conneqt pendant is packed with life-saving technology.",
       "gps": {
         "title": "GPS Location Tracking",
         "description": "When you press the SOS button, your exact location is instantly sent to our call centre. No need to explain where you are - we already know and can send help directly to you.",
@@ -2271,12 +2271,12 @@
     },
     "testimonials": {
       "title": "What Our Members Say",
-      "quote1": "ICE Alarm gave me back my independence. I feel safe knowing help is just one button press away.",
+      "quote1": "Care Conneqt gave me back my independence. I feel safe knowing help is just one button press away.",
       "author1": "Margaret",
       "location1": "Alicante",
       "quote2": "When my father fell, the pendant automatically called for help. The team was amazing and spoke to him in English. They saved his life.",
       "author2": "David",
-      "location2": "Son of ICE Alarm member",
+      "location2": "Son of Care Conneqt member",
       "quote3": "The peace of mind this gives our family is priceless. Mum can live independently knowing we'll be called if anything happens.",
       "author3": "Sarah",
       "location3": "Málaga"
@@ -2299,9 +2299,9 @@
       "a7": "No long-term contracts! You can cancel anytime. We offer monthly and annual billing options."
     },
     "cta": {
-      "title": "Ready to Join the ICE Alarm Family?",
-      "subtitle": "Get 24/7 peace of mind for you and your loved ones. Join thousands of families across Spain who trust ICE Alarm.",
-      "button": "Join ICE Alarm Today",
+      "title": "Ready to Join the Care Conneqt Family?",
+      "subtitle": "Get 24/7 peace of mind for you and your loved ones. Join thousands of families across Spain who trust Care Conneqt.",
+      "button": "Join Care Conneqt Today",
       "whatsapp": "Or WhatsApp us anytime"
     },
     "footer": {
@@ -2315,7 +2315,7 @@
       "legal": "Legal",
       "termsOfService": "Terms of Service",
       "privacyPolicy": "Privacy Policy",
-      "companyInfo": "ICE Alarm España S.L. • CIF: B24731531",
+      "companyInfo": "Care Conneqt S.L. • CIF: B24731531",
       "allRightsReserved": "All rights reserved."
     }
   },
@@ -2609,11 +2609,11 @@
       "paymentError": "Payment Error",
       "paymentSuccess": "Payment Successful!",
       "paymentSuccessDesc": "Your registration is complete. Click \"Continue\" to view your confirmation.",
-      "success": "Payment successful! Welcome to ICE Alarm.",
+      "success": "Payment successful! Welcome to Care Conneqt.",
       "cancelled": "Payment was cancelled. You can try again when ready."
     },
     "confirmation": {
-      "title": "Welcome to ICE Alarm España!",
+      "title": "Welcome to Care Conneqt!",
       "subtitle": "Thank you for joining, {{name}}! Your membership is now active and you're protected 24/7.",
       "registrationComplete": "Registration Complete",
       "orderReference": "Order Reference",
@@ -2661,19 +2661,19 @@
     "openChat": "Open chat",
     "closeChat": "Close chat",
     "newChat": "New chat",
-    "assistantName": "ICE Alarm Assistant",
+    "assistantName": "Care Conneqt Assistant",
     "memberAssistantName": "Your Personal Assistant",
     "available": "Available 24/7",
     "memberAssistantAvailable": "Here to help you",
     "placeholder": "Type your message...",
     "send": "Send",
-    "welcomeMessage": "Hello! 👋 I'm your ICE Alarm virtual assistant. How can I help you today? I can answer questions about our services, pricing, or help you get started.",
+    "welcomeMessage": "Hello! 👋 I'm your Care Conneqt virtual assistant. How can I help you today? I can answer questions about our services, pricing, or help you get started.",
     "errorMessage": "Sorry, there was a connection issue. Please try again later.",
     "fallbackMessage": "Sorry, I couldn't process your message. Please try again."
   },
   "partnerAgreement": {
     "title": "Partner Agreement",
-    "pageDescription": "Your partnership agreement with ICE Alarm España",
+    "pageDescription": "Your partnership agreement with Care Conneqt",
     "requiredMessage": "Please review and sign the partner agreement to continue",
     "mustSignWarning": "You must sign this agreement before accessing your partner dashboard. Commission payments require a signed agreement.",
     "version": "Version",
@@ -2716,7 +2716,7 @@
     "sections": {
       "parties": {
         "title": "CONTRACTING PARTIES",
-        "content": "<strong>ICE Alarm España S.L.</strong>, with registered office at Calle Principal 1, Albox, 04800 Almería, Spain, and CIF B24731531, represented by its legal administrator (hereinafter \"THE COMPANY\").<br/><br/>And the <strong>Partner</strong>, whose details are registered in our partner portal system at the time of signing this agreement (hereinafter \"THE PARTNER\")."
+        "content": "<strong>Care Conneqt S.L.</strong>, with registered office at Calle Principal 1, Albox, 04800 Almería, Spain, and CIF B24731531, represented by its legal administrator (hereinafter \"THE COMPANY\").<br/><br/>And the <strong>Partner</strong>, whose details are registered in our partner portal system at the time of signing this agreement (hereinafter \"THE PARTNER\")."
       },
       "definitions": {
         "title": "DEFINITIONS",
@@ -2832,7 +2832,7 @@
       "support": "Technical Support"
     },
     "whyTrust": {
-      "title": "Why Trust ICE Alarm?",
+      "title": "Why Trust Care Conneqt?",
       "protection": "24/7 Protection",
       "protectionDesc": "Round-the-clock emergency monitoring and response team always ready to help.",
       "bilingual": "Bilingual Support",
@@ -3013,11 +3013,11 @@
       "importantWarning": "IMPORTANT: PLEASE READ THESE TERMS CAREFULLY BEFORE USING OUR SERVICES.",
       "emergencyWarning": "THIS IS A PERSONAL EMERGENCY RESPONSE SERVICE, NOT A SUBSTITUTE FOR EMERGENCY SERVICES (112). IN A LIFE-THREATENING EMERGENCY, ALWAYS CALL 112 DIRECTLY IF POSSIBLE.",
       "s1Title": "1. Agreement to Terms",
-      "s1p1": "By creating an account, subscribing to our services, or using any ICE Alarm España service, you agree to be bound by these Terms of Service (\"Terms\"), our Privacy Policy, and any additional terms that apply to specific services.",
+      "s1p1": "By creating an account, subscribing to our services, or using any Care Conneqt service, you agree to be bound by these Terms of Service (\"Terms\"), our Privacy Policy, and any additional terms that apply to specific services.",
       "s1p2": "If you do not agree to these Terms, do not use our services.",
       "s2Title": "2. Who We Are",
-      "s2p1": "<strong>ICE Alarm España</strong> (\"we\", \"us\", \"our\", \"ICE Alarm\") provides personal emergency response services including GPS pendant monitoring, emergency alert handling, and related support services.",
-      "s2p2": "Contact: info@icealarm.es",
+      "s2p1": "<strong>Care Conneqt</strong> (\"we\", \"us\", \"our\", \"Care Conneqt\") provides personal emergency response services including GPS pendant monitoring, emergency alert handling, and related support services.",
+      "s2p2": "Contact: info@careconneqt.es",
       "s3Title": "3. Description of Services",
       "s3_1Title": "3.1 What We Provide",
       "s3_1Items": [
@@ -3166,7 +3166,7 @@
       "s9_1Intro": "You may cancel your subscription at any time through:",
       "s9_1Items": [
         "Your member dashboard",
-        "Emailing info@icealarm.es",
+        "Emailing info@careconneqt.es",
         "Calling our customer service"
       ],
       "s9_1p1": "Cancellation takes effect at the end of your current billing period.",
@@ -3226,7 +3226,7 @@
         "Your statutory rights as a consumer"
       ],
       "s11Title": "11. Indemnification",
-      "s11p1": "You agree to indemnify and hold harmless ICE Alarm España, its officers, directors, employees, and partners from any claims, damages, losses, liabilities, costs, and expenses (including legal fees) arising from:",
+      "s11p1": "You agree to indemnify and hold harmless Care Conneqt, its officers, directors, employees, and partners from any claims, damages, losses, liabilities, costs, and expenses (including legal fees) arising from:",
       "s11Items": [
         "Your breach of these Terms",
         "Your misuse of the service or devices",
@@ -3283,7 +3283,7 @@
       "s16p1": "If you do not agree to updated Terms, you must stop using our services and cancel your subscription.",
       "s17Title": "17. Dispute Resolution",
       "s17_1Title": "17.1 Informal Resolution",
-      "s17_1p1": "Before initiating formal proceedings, you agree to contact us at info@icealarm.es to attempt to resolve any dispute informally.",
+      "s17_1p1": "Before initiating formal proceedings, you agree to contact us at info@careconneqt.es to attempt to resolve any dispute informally.",
       "s17_2Title": "17.2 Governing Law",
       "s17_2p1": "These Terms are governed by the laws of Spain.",
       "s17_3Title": "17.3 Jurisdiction",
@@ -3292,7 +3292,7 @@
       "s17_4p1": "If you are a consumer in the EU, you have the right to access the Online Dispute Resolution platform at:",
       "s18Title": "18. General Provisions",
       "s18_1Title": "18.1 Entire Agreement",
-      "s18_1p1": "These Terms, together with our Privacy Policy, constitute the entire agreement between you and ICE Alarm España.",
+      "s18_1p1": "These Terms, together with our Privacy Policy, constitute the entire agreement between you and Care Conneqt.",
       "s18_2Title": "18.2 Severability",
       "s18_2p1": "If any provision of these Terms is found unenforceable, the remaining provisions will continue in effect.",
       "s18_3Title": "18.3 No Waiver",
@@ -3302,7 +3302,7 @@
       "s18_5Title": "18.5 Force Majeure",
       "s18_5p1": "We are not liable for failures caused by circumstances beyond our reasonable control, including natural disasters, wars, pandemics, network failures, or government actions.",
       "s19Title": "19. Contact Us",
-      "s19Content": "<strong>ICE Alarm España</strong><br/><br/>General enquiries: info@icealarm.es<br/>Support: support@icealarm.es<br/>Privacy: privacy@icealarm.es",
+      "s19Content": "<strong>Care Conneqt</strong><br/><br/>General enquiries: info@careconneqt.es<br/>Support: support@careconneqt.es<br/>Privacy: privacy@careconneqt.es",
       "s20Title": "20. Acknowledgment",
       "s20Warning": "BY USING OUR SERVICES, YOU ACKNOWLEDGE THAT:",
       "s20Items": [
@@ -3315,13 +3315,13 @@
         "You will call 112 directly whenever possible in a life-threatening emergency"
       ],
       "effectiveDate": "These Terms of Service are effective as of the date last updated above.",
-      "tagline": "ICE Alarm España — Keeping You Connected, Keeping You Safe"
+      "tagline": "Care Conneqt — Keeping You Connected, Keeping You Safe"
     },
     "privacy": {
       "s1Title": "1. Who We Are",
-      "s1p1": "<strong>ICE Alarm España</strong> (\"we\", \"us\", \"our\") operates the personal emergency response service available at icealarm.es.",
-      "s1p2": "<strong>Data Controller:</strong><br/>ICE Alarm España<br/>Email: info@icealarm.es",
-      "s1p3": "For any privacy-related questions, contact us at: privacy@icealarm.es",
+      "s1p1": "<strong>Care Conneqt</strong> (\"we\", \"us\", \"our\") operates the personal emergency response service available at careconneqt.es.",
+      "s1p2": "<strong>Data Controller:</strong><br/>Care Conneqt<br/>Email: info@careconneqt.es",
+      "s1p3": "For any privacy-related questions, contact us at: privacy@careconneqt.es",
       "s2Title": "2. What This Policy Covers",
       "s2Intro": "This Privacy Policy explains:",
       "s2Items": [
@@ -3608,8 +3608,8 @@
       "s9Warning": "Important: If you withdraw consent for medical data processing or request deletion, we may no longer be able to provide effective emergency response services. In such cases, we may need to terminate your membership for your own safety.",
       "s9_8Title": "9.8 How to Exercise Your Rights",
       "s9_8Items": [
-        "<strong>Online:</strong> Through your member dashboard at icealarm.es/dashboard",
-        "<strong>Email:</strong> privacy@icealarm.es"
+        "<strong>Online:</strong> Through your member dashboard at careconneqt.es/dashboard",
+        "<strong>Email:</strong> privacy@careconneqt.es"
       ],
       "s9_8p1": "We will respond within 30 days. We may need to verify your identity before processing requests.",
       "s10Title": "10. Data Security",
@@ -3654,7 +3654,7 @@
       "s15p2": "You also have the right to seek judicial remedy.",
       "s16Title": "16. Contact Us",
       "s16Intro": "<strong>For any privacy-related questions:</strong>",
-      "s16Content": "ICE Alarm España<br/>Email: privacy@icealarm.es<br/>General enquiries: info@icealarm.es",
+      "s16Content": "Care Conneqt<br/>Email: privacy@careconneqt.es<br/>General enquiries: info@careconneqt.es",
       "governedBy": "This Privacy Policy is governed by Spanish law and the General Data Protection Regulation (EU) 2016/679."
     }
   },
@@ -4484,7 +4484,7 @@
       "deviceFocus": "Device Focus",
       "reassuranceTrust": "Reassurance / Trust",
       "locked": "ICE Template",
-      "description": "Pre-built video templates designed for ICE Alarm España marketing",
+      "description": "Pre-built video templates designed for Care Conneqt marketing",
       "useTemplate": "Use Template"
     },
     "exports": {
@@ -4536,10 +4536,10 @@
     },
     "settings": {
       "brandIdentity": "Brand Identity",
-      "brandIdentityDesc": "ICE Alarm España brand elements - locked for consistency",
+      "brandIdentityDesc": "Care Conneqt brand elements - locked for consistency",
       "locked": "Locked",
       "brandRules": "Brand Rules",
-      "brandRulesDesc": "These settings are locked to maintain ICE Alarm España brand consistency",
+      "brandRulesDesc": "These settings are locked to maintain Care Conneqt brand consistency",
       "logo": "Logo",
       "colors": "Brand Colors",
       "colorsLocked": "Colors are locked to maintain healthcare-trust aesthetic",
@@ -4671,7 +4671,7 @@
     },
     "assets": {
       "logoLocked": "Logo is locked to maintain brand consistency",
-      "defaultLogo": "ICE Alarm España Logo",
+      "defaultLogo": "Care Conneqt Logo",
       "backgroundUrl": "Background Image/Video URL",
       "backgroundHint": "Optional: Enter a URL for a background image or video",
       "productIcons": "Product Icons",
@@ -5179,7 +5179,7 @@
     }
   },
   "partnerOnboarding": {
-    "title": "Become an ICE Alarm Partner",
+    "title": "Become an Care Conneqt Partner",
     "subtitle": "Help protect the people in your community — register your interest and Isabella will be in touch with everything you need to know.",
     "benefit1Title": "Support Your Community",
     "benefit1Desc": "Help the people you care about stay safe and independent with 24/7 protection.",
@@ -5489,8 +5489,8 @@
       "time": "3 seconds",
       "title": "Isabella Answers — By Name",
       "description": "A calm, familiar voice comes through the pendant:",
-      "isabellaQuote": "\"Hola Maria, soy Isabella de ICE Alarm. Estoy aquí contigo. ¿Qué ha pasado?\"",
-      "isabellaQuoteTranslation": "(\"Hello Maria, it's Isabella from ICE Alarm. I'm here with you. What happened?\")",
+      "isabellaQuote": "\"Hola Maria, soy Isabella de Care Conneqt. Estoy aquí contigo. ¿Qué ha pasado?\"",
+      "isabellaQuoteTranslation": "(\"Hello Maria, it's Isabella from Care Conneqt. I'm here with you. What happened?\")",
       "detail1": "Isabella already knows Maria speaks Spanish at home",
       "detail2": "She's not a cold automated system — she greets Maria by name, in her language, in a calm and reassuring tone",
       "detail3": "Maria isn't on hold. She isn't navigating menus. She has a voice with her instantly."
@@ -5522,7 +5522,7 @@
       "detail1": "They already know Maria's name and what happened",
       "detail2": "They already have the AI transcript and medical context",
       "detail3": "They can speak to Maria in Spanish and to emergency services in Spanish",
-      "agentQuote": "\"Maria, I'm Ana from the ICE Alarm team. Isabella has told me what happened. I'm going to call an ambulance for you right now. Stay on the line — I'm not going anywhere.\"",
+      "agentQuote": "\"Maria, I'm Ana from the Care Conneqt team. Isabella has told me what happened. I'm going to call an ambulance for you right now. Stay on the line — I'm not going anywhere.\"",
       "note": "Maria doesn't have to repeat a single thing. No explaining. No frustration. Just help."
     },
     "step6": {
@@ -5539,8 +5539,8 @@
       "time": "2 minutes",
       "title": "Your Phone Rings",
       "subtitle": "This is the moment that matters most.",
-      "description": "Sarah is sitting in her office in London. Her phone rings. It's ICE Alarm.",
-      "agentQuote": "\"Hello Sarah, this is Ana from ICE Alarm España. Your mum Maria had a fall in her kitchen about two minutes ago. She's conscious, talking, and an ambulance is on its way. She has some hip pain, so we've flagged her surgical history with the paramedics. Would you like me to connect you to her now?\"",
+      "description": "Sarah is sitting in her office in London. Her phone rings. It's Care Conneqt.",
+      "agentQuote": "\"Hello Sarah, this is Ana from Care Conneqt. Your mum Maria had a fall in her kitchen about two minutes ago. She's conscious, talking, and an ambulance is on its way. She has some hip pain, so we've flagged her surgical history with the paramedics. Would you like me to connect you to her now?\"",
       "emotionalNote": "Sarah didn't find out hours later. She didn't get a missed call from a Spanish number she didn't recognise. She received a clear, calm, professional call — in English — within two minutes of the incident.",
       "detail1": "Sarah gets connected to Maria on the pendant",
       "detail2": "She can hear her mum's voice and know she's okay",
@@ -5552,7 +5552,7 @@
       "description": "The ambulance arrives. Maria is taken to hospital for checks. She's bruised but nothing is broken.",
       "detail1": "Ana has already sent Maria's medical profile to the hospital",
       "detail2": "Sarah is kept updated throughout",
-      "detail3": "The next day, ICE Alarm follows up with Maria to check she's okay",
+      "detail3": "The next day, Care Conneqt follows up with Maria to check she's okay",
       "note": "This isn't a one-time response. It's an ongoing relationship. Maria gets a follow-up call, and her incident is logged so our team knows to check on her."
     },
     "whatIf": {

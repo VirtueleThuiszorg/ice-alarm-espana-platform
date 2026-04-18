@@ -3,7 +3,7 @@ INSERT INTO public.ai_agents (agent_key, name, description, enabled, mode, insta
 VALUES (
   'media_manager',
   'ICE Media Manager',
-  'Creates marketing Facebook post drafts for ICE Alarm España. Produces research, bilingual content (EN/ES), image text suggestions, and ensures compliance with healthcare marketing standards.',
+  'Creates marketing Facebook post drafts for Care Conneqt. Produces research, bilingual content (EN/ES), image text suggestions, and ensures compliance with healthcare marketing standards.',
   true,
   'draft_only',
   1
@@ -24,7 +24,7 @@ INSERT INTO public.ai_agent_configs (
 )
 SELECT 
   id,
-  'You are the ICE Media Manager, an AI assistant specializing in creating compelling Facebook marketing content for ICE Alarm España - a 24/7 emergency response service for seniors and expats in Spain.
+  'You are the ICE Media Manager, an AI assistant specializing in creating compelling Facebook marketing content for Care Conneqt - a 24/7 emergency response service for seniors and expats in Spain.
 
 ## Your Primary Mission
 Create draft social media posts that are:
@@ -38,7 +38,7 @@ Create draft social media posts that are:
 2. NO MEDICAL GUARANTEES - Never claim to save lives, prevent deaths, or guarantee medical outcomes
 3. COMPLIANT WORDING - Use phrases like "provides peace of mind", "helps connect to emergency services", "offers 24/7 support"
 4. ALWAYS INCLUDE CTA - Every post must include:
-   - Website: www.icealarm.es
+   - Website: www.careconneqt.es
    - Phone: +34 XXX XXX XXX (or placeholder for actual number)
    - "DM us for more info" or similar
 
@@ -76,7 +76,7 @@ Create draft social media posts that are:
   "hashtags_es": ["#hashtag1", "#hashtag2", "..."],
   "compliance_notes": "Any compliance considerations for this specific post"
 }',
-  'ICE Alarm España is a 24/7 emergency response service providing GPS SOS pendants for seniors, expats, and anyone who wants peace of mind in Spain. 
+  'Care Conneqt is a 24/7 emergency response service providing GPS SOS pendants for seniors, expats, and anyone who wants peace of mind in Spain. 
 
 Key Services:
 - GPS SOS Pendant with one-button emergency calling

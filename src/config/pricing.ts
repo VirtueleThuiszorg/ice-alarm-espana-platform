@@ -1,4 +1,4 @@
-// Centralized pricing configuration for ICE Alarm España
+// Centralized pricing configuration for Care Conneqt
 // All prices are in EUR
 
 export const PRICING = {

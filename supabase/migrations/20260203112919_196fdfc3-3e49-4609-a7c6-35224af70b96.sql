@@ -152,14 +152,14 @@ CREATE INDEX idx_media_content_calendar_status ON public.media_content_calendar(
 
 -- Insert default data
 INSERT INTO public.media_goals (name, description) VALUES
-  ('Brand Awareness', 'Increase visibility and recognition of ICE Alarm España'),
+  ('Brand Awareness', 'Increase visibility and recognition of Care Conneqt'),
   ('Family Education', 'Educate families about elderly care and safety'),
   ('Trust Building', 'Build trust through testimonials and reliability'),
   ('Safety Awareness', 'Promote safety tips and awareness'),
   ('Emergency Preparedness', 'Help people prepare for emergencies');
 
 INSERT INTO public.media_audiences (name, description) VALUES
-  ('Elderly Members', 'Seniors who may use or are using ICE Alarm services'),
+  ('Elderly Members', 'Seniors who may use or are using Care Conneqt services'),
   ('Adult Children', 'Adult children caring for elderly parents'),
   ('Care Contacts', 'Family members and caregivers as emergency contacts'),
   ('Expats', 'British and European expats living in Spain'),

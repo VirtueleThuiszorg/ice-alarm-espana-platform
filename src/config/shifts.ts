@@ -1,4 +1,4 @@
-// Shift scheduling constants for ICE Alarm España 24/7 call centre
+// Shift scheduling constants for Care Conneqt 24/7 call centre
 
 export type ShiftType = "morning" | "afternoon" | "night";
 export type HolidayStatus = "requested" | "approved" | "rejected" | "cancelled";

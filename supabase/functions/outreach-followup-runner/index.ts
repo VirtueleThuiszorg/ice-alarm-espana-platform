@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
         const followupNum = (lead.followup_count || 0) + 1;
 
         // Generate follow-up draft
-        const prompt = `Write a follow-up email #${followupNum} for ${lead.company_name} from ICE Alarm España.
+        const prompt = `Write a follow-up email #${followupNum} for ${lead.company_name} from Care Conneqt.
 Previous emails sent: ${lead.email_count || 1}
 Company: ${lead.company_name}, Contact: ${lead.contact_name || "there"}
 This is follow-up #${followupNum}. Keep it short (2-3 paragraphs), reference previous outreach, add new value.

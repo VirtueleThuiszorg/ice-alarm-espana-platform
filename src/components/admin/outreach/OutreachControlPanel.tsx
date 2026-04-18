@@ -252,7 +252,7 @@ export function OutreachControlPanel() {
             <div className="space-y-2">
               <Label>{t("outreach.control.senderName")}</Label>
               <Input
-                value={typeof settings.sender_name === "string" ? settings.sender_name : "ICE Alarm España"}
+                value={typeof settings.sender_name === "string" ? settings.sender_name : "Care Conneqt"}
                 onChange={(e) => updateSetting("sender_name", e.target.value)}
               />
             </div>
@@ -262,7 +262,7 @@ export function OutreachControlPanel() {
                 type="email"
                 value={typeof settings.sender_email === "string" ? settings.sender_email : ""}
                 onChange={(e) => updateSetting("sender_email", e.target.value)}
-                placeholder="outreach@icealarm.es"
+                placeholder="outreach@careconneqt.es"
               />
             </div>
           </div>
@@ -272,7 +272,7 @@ export function OutreachControlPanel() {
               value={typeof settings.sender_signature === "string" ? settings.sender_signature : ""}
               onChange={(e) => updateSetting("sender_signature", e.target.value)}
               rows={3}
-              placeholder="<p>Best regards,<br/>ICE Alarm España Team</p>"
+              placeholder="<p>Best regards,<br/>Care Conneqt Team</p>"
             />
           </div>
         </CardContent>

@@ -329,7 +329,7 @@ export default function StaffInvitePage() {
           <CardContent className="pt-6 text-center">
             <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">
-              {t("staffInvite.completed.title", "Welcome to ICE Alarm!")}
+              {t("staffInvite.completed.title", "Welcome to Care Conneqt!")}
             </h2>
             <p className="text-muted-foreground">
               {t("staffInvite.completed.subtitle", "Your account is ready. Redirecting to your dashboard...")}

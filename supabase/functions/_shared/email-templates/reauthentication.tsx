@@ -20,14 +20,14 @@ interface ReauthenticationEmailProps {
 export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Your verification code for ICE Alarm España</Preview>
+    <Preview>Your verification code for Care Conneqt</Preview>
     <Body style={main}>
       <Container style={container}>
         <Img
           src="https://pduhccavshrhfkfbjgmj.supabase.co/storage/v1/object/public/email-assets/logo.png"
           width="64"
           height="64"
-          alt="ICE Alarm España"
+          alt="Care Conneqt"
           style={logo}
         />
         <Heading style={h1}>Confirm your identity</Heading>

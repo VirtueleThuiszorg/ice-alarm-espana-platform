@@ -1,4 +1,4 @@
-# ICE Alarm Espa&ntilde;a
+# Care Conneqt Espa&ntilde;a
 
 Personal emergency alarm service for expats and elderly residents in Spain. Members get a GPS pendant (EV-07B) with 24/7 SOS monitoring, fall detection, and geo-fencing.
 
@@ -18,8 +18,8 @@ Personal emergency alarm service for expats and elderly residents in Spain. Memb
 ## Local Development
 
 ```sh
-git clone https://github.com/LeeLovable/ice-alarm-espanav1.git
-cd ice-alarm-espanav1
+git clone https://github.com/LeeLovable/care-conneqtv1.git
+cd care-conneqtv1
 npm install
 npm run dev
 ```
@@ -71,7 +71,7 @@ npx vitest          # Watch mode
 
 ## Deployment
 
-- **Frontend**: Push to `main` triggers Vercel auto-deploy to `icealarm.es`
+- **Frontend**: Push to `main` triggers Vercel auto-deploy to `careconneqt.es`
 - **Edge Functions**: Update through the Lovable Cloud dashboard
 - **Migrations**: Apply through the Lovable Cloud Supabase SQL editor
 

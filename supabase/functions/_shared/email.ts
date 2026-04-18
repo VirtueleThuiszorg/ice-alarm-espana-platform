@@ -7,9 +7,9 @@ export async function sendEmail(
 ): Promise<{ success: boolean; error?: string }> {
   const appPassword = Deno.env.get("GMAIL_APP_PASSWORD");
   const senderEmail =
-    Deno.env.get("SENDER_EMAIL") || "icealarmespana@gmail.com";
+    Deno.env.get("SENDER_EMAIL") || "careconneqtespana@gmail.com";
   const senderName =
-    Deno.env.get("SENDER_NAME") || "ICE Alarm España";
+    Deno.env.get("SENDER_NAME") || "Care Conneqt";
 
   if (!appPassword) {
     return { success: false, error: "GMAIL_APP_PASSWORD not configured" };

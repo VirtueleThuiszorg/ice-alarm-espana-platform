@@ -171,7 +171,7 @@ export default function HowItWorksPage() {
                   imageUrl={heroImage.imageUrl || "/images/how-it-works-hero.jpg"}
                   altText={
                     heroImage.altText ||
-                    "Elderly woman at home protected by ICE Alarm pendant"
+                    "Elderly woman at home protected by Care Conneqt pendant"
                   }
                   priority={true}
                   width={800}

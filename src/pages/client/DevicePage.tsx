@@ -176,7 +176,7 @@ export default function DevicePage() {
                 <Smartphone className="h-10 w-10 text-primary" />
               </div>
               <div>
-                <p className="font-semibold text-lg">{t('device.iceAlarmGpsPendant', 'ICE Alarm GPS Pendant')}</p>
+                <p className="font-semibold text-lg">{t('device.iceAlarmGpsPendant', 'Care Conneqt GPS Pendant')}</p>
                 <p className="text-2xl font-bold text-primary">€151.25</p>
                 <p className="text-sm text-muted-foreground">+ €14.99 {t('landing.shipping')}</p>
               </div>
@@ -242,7 +242,7 @@ export default function DevicePage() {
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t('navigation.myPendant')}</h1>
-        <p className="text-muted-foreground mt-1">{t('device.yourIceAlarmPendant', 'Your ICE Alarm GPS Personal Pendant')}</p>
+        <p className="text-muted-foreground mt-1">{t('device.yourIceAlarmPendant', 'Your Care Conneqt GPS Personal Pendant')}</p>
       </div>
 
       {/* Device Status */}
@@ -254,7 +254,7 @@ export default function DevicePage() {
             </div>
             <div className="flex-1 space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-lg">{t('device.iceAlarmGpsPendant', 'ICE Alarm GPS Pendant')}</h3>
+                <h3 className="font-semibold text-lg">{t('device.iceAlarmGpsPendant', 'Care Conneqt GPS Pendant')}</h3>
                 <Badge 
                   variant={isConnected ? "default" : "destructive"}
                   className={isConnected ? "bg-alert-resolved" : ""}

@@ -76,7 +76,7 @@ export default function PartnerOnboarding() {
         <div className="max-w-2xl w-full space-y-8">
           <div className="text-center space-y-4">
             <h1 className="text-4xl font-bold tracking-tight">
-              {t("partnerOnboarding.title", "Become an ICE Alarm Partner")}
+              {t("partnerOnboarding.title", "Become an Care Conneqt Partner")}
             </h1>
             <p className="text-xl text-muted-foreground">
               {t("partnerOnboarding.subtitle", "Help protect the people in your community — register your interest and Isabella will be in touch with everything you need to know.")}

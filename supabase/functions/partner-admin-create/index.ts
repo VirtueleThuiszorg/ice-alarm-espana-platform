@@ -90,14 +90,14 @@ function buildWelcomeEmail(
       </head>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #dc2626;">ICE Alarm España</h1>
+          <h1 style="color: #dc2626;">Care Conneqt</h1>
         </div>
         
         <h2 style="color: #1f2937;">¡Bienvenido al Programa de Socios!</h2>
         
         <p>Hola ${contactName},</p>
         
-        <p>¡Tu cuenta de socio ha sido creada por nuestro equipo de administración! Ahora formas parte del Programa de Socios de ICE Alarm.</p>
+        <p>¡Tu cuenta de socio ha sido creada por nuestro equipo de administración! Ahora formas parte del Programa de Socios de Care Conneqt.</p>
         
         <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3 style="margin-top: 0; color: #1f2937;">Tus credenciales de acceso:</h3>
@@ -118,7 +118,7 @@ function buildWelcomeEmail(
         
         <p style="color: #6b7280; font-size: 14px;">
           Saludos cordiales,<br>
-          El Equipo de ICE Alarm
+          El Equipo de Care Conneqt
         </p>
       </body>
       </html>
@@ -135,14 +135,14 @@ function buildWelcomeEmail(
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #dc2626;">ICE Alarm España</h1>
+        <h1 style="color: #dc2626;">Care Conneqt</h1>
       </div>
       
       <h2 style="color: #1f2937;">Welcome to the Partner Program!</h2>
       
       <p>Hello ${contactName},</p>
       
-      <p>Your partner account has been created by our admin team! You are now part of the ICE Alarm Partner Program.</p>
+      <p>Your partner account has been created by our admin team! You are now part of the Care Conneqt Partner Program.</p>
       
       <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
         <h3 style="margin-top: 0; color: #1f2937;">Your login credentials:</h3>
@@ -163,7 +163,7 @@ function buildWelcomeEmail(
       
       <p style="color: #6b7280; font-size: 14px;">
         Best regards,<br>
-        The ICE Alarm Team
+        The Care Conneqt Team
       </p>
     </body>
     </html>
@@ -416,7 +416,7 @@ Deno.serve(async (req) => {
     });
 
     // Send welcome email via Gmail SMTP
-    const loginUrl = `${req.headers.get("origin") || "https://icealarm.es"}/partner/login`;
+    const loginUrl = `${req.headers.get("origin") || "https://careconneqt.es"}/partner/login`;
     
     const emailHtml = buildWelcomeEmail(
       body.contact_name,
@@ -428,8 +428,8 @@ Deno.serve(async (req) => {
     );
 
     const emailSubject = body.preferred_language === "en" 
-      ? "Welcome to ICE Alarm Partner Program - Your Login Credentials"
-      : "Bienvenido al Programa de Socios ICE Alarm - Tus Credenciales";
+      ? "Welcome to Care Conneqt Partner Program - Your Login Credentials"
+      : "Bienvenido al Programa de Socios Care Conneqt - Tus Credenciales";
 
     const emailResult = await sendEmail(email, emailSubject, emailHtml);
 

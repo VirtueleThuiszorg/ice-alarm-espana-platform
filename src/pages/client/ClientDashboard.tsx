@@ -476,7 +476,7 @@ export default function ClientDashboard() {
             <div>
               <h3 className="font-semibold text-sm">{t("dashboard.serviceAnnouncement") || "Service Announcement"}</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                {t("dashboard.announcementText") || "We've upgraded our response system! Your alerts now reach our team 30% faster. Thank you for trusting ICE Alarm España with your safety."}
+                {t("dashboard.announcementText") || "We've upgraded our response system! Your alerts now reach our team 30% faster. Thank you for trusting Care Conneqt with your safety."}
               </p>
             </div>
           </div>

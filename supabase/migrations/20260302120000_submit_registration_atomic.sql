@@ -420,7 +420,7 @@ BEGIN
     v_primary_member_id,
     'New Member',
     'Website Signup',
-    CASE WHEN v_partner_id IS NOT NULL THEN 'Partner' ELSE 'icealarm.es' END,
+    CASE WHEN v_partner_id IS NOT NULL THEN 'Partner' ELSE 'careconneqt.es' END,
     ARRAY[
       CASE WHEN v_membership_type = 'couple' THEN 'membership_couple' ELSE 'membership_single' END,
       CASE WHEN (v_primary->>'preferredLanguage') = 'en' THEN 'language_en' ELSE 'language_es' END,
@@ -448,7 +448,7 @@ BEGIN
       v_partner_member_id,
       'New Member',
       'Website Signup',
-      CASE WHEN v_partner_id IS NOT NULL THEN 'Partner' ELSE 'icealarm.es' END,
+      CASE WHEN v_partner_id IS NOT NULL THEN 'Partner' ELSE 'careconneqt.es' END,
       ARRAY[
         CASE WHEN v_membership_type = 'couple' THEN 'membership_couple' ELSE 'membership_single' END,
         CASE WHEN COALESCE(v_partner->>'preferredLanguage', 'es') = 'en' THEN 'language_en' ELSE 'language_es' END,

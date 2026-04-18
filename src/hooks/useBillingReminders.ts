@@ -169,9 +169,9 @@ export function useBillingReminders() {
         };
 
         const subjectMap: Record<string, string> = {
-          overdue_subscription: "Your ICE Alarm Espana subscription is overdue",
+          overdue_subscription: "Your Care Conneqt subscription is overdue",
           failed_payment: "Payment failed - Action required",
-          renewal_warning: "Your ICE Alarm Espana subscription renewal is approaching",
+          renewal_warning: "Your Care Conneqt subscription renewal is approaching",
         };
 
         const { error } = await supabase.functions.invoke("send-email", {

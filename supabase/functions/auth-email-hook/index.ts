@@ -16,12 +16,12 @@ const corsHeaders = {
 }
 
 const EMAIL_SUBJECTS: Record<string, string> = {
-  signup: 'Welcome to ICE Alarm España — Confirm your email',
-  invite: "You've been invited to ICE Alarm España",
-  magiclink: 'Your login link for ICE Alarm España',
-  recovery: 'Reset your ICE Alarm España password',
-  email_change: 'Confirm your email change — ICE Alarm España',
-  reauthentication: 'Your ICE Alarm España verification code',
+  signup: 'Welcome to Care Conneqt — Confirm your email',
+  invite: "You've been invited to Care Conneqt",
+  magiclink: 'Your login link for Care Conneqt',
+  recovery: 'Reset your Care Conneqt password',
+  email_change: 'Confirm your email change — Care Conneqt',
+  reauthentication: 'Your Care Conneqt verification code',
 }
 
 // Template mapping
@@ -35,7 +35,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "ICE Alarm España"
+const SITE_NAME = "Care Conneqt"
 const SENDER_DOMAIN = "notify.icehealthsync.com"
 const ROOT_DOMAIN = "icehealthsync.com"
 const FROM_DOMAIN = "icehealthsync.com" // Domain shown in From address (may be root or sender subdomain)

@@ -50,12 +50,12 @@ const WRITING_TONES = [
 
 // Post format templates (different structures for variety)
 const POST_FORMATS = [
-  "story_format: Start with 'Imagine...' or 'Picture this...' and tell a brief, vivid scenario (3-4 sentences) that brings the reader into a moment. Then connect it to how ICE Alarm fits into that peaceful picture.",
+  "story_format: Start with 'Imagine...' or 'Picture this...' and tell a brief, vivid scenario (3-4 sentences) that brings the reader into a moment. Then connect it to how Care Conneqt fits into that peaceful picture.",
   "question_hook: Open with a thought-provoking question that resonates deeply with the audience. Let the question hang for a beat, then answer it with warmth and insight.",
   "statistic_lead: Lead with a compelling, surprising statistic or fact about seniors, safety, or living in Spain. Use it as a springboard to discuss our solution naturally.",
-  "tip_list: Present 2-3 quick, actionable tips in a numbered or bulleted format. Make them genuinely useful, then weave in how ICE Alarm complements these tips.",
+  "tip_list: Present 2-3 quick, actionable tips in a numbered or bulleted format. Make them genuinely useful, then weave in how Care Conneqt complements these tips.",
   "testimonial_style: Write as if sharing a customer's experience (without using real names). Describe their situation before and the peace they feel now. Keep it authentic and relatable.",
-  "day_in_life: Describe a typical peaceful day in the life of an ICE Alarm user. Show the device as a subtle, reassuring presence rather than the focus.",
+  "day_in_life: Describe a typical peaceful day in the life of an Care Conneqt user. Show the device as a subtle, reassuring presence rather than the focus.",
   "myth_buster: Address a common misconception about elderly care, emergency pendants, or aging. Correct it gently with facts and warmth.",
   "comparison_angle: Contrast two scenarios - life with worry vs. life with peace of mind. Don't be fear-mongering; focus on the positive transformation.",
   "seasonal_connection: Connect the content to the current season, a holiday, or a timely event. Make it feel relevant and in-the-moment."
@@ -173,11 +173,11 @@ interface CompanySettings {
 }
 
 const DEFAULT_COMPANY_SETTINGS: CompanySettings = {
-  company_name: "ICE Alarm España",
+  company_name: "Care Conneqt",
   emergency_phone: "+34 900 123 456",
-  support_email: "info@icealarm.es",
+  support_email: "info@careconneqt.es",
   address: "Calle Principal 1, Albox, 04800 Almería",
-  website: "www.icealarm.es"
+  website: "www.careconneqt.es"
 };
 
 // =============================================================================
@@ -240,7 +240,7 @@ To keep content fresh, AVOID these overused patterns:
 2. NO MEDICAL GUARANTEES - Never claim to save lives, prevent deaths, or guarantee medical outcomes
 3. COMPLIANT WORDING - Use phrases like "provides reassurance", "helps connect to emergency services", "offers support"
 4. ALWAYS INCLUDE CTA - Every post must include:
-   - Website: ${company.website || "www.icealarm.es"}
+   - Website: ${company.website || "www.careconneqt.es"}
    - Phone: ${company.emergency_phone}
    - A message/contact encouragement
 
@@ -397,7 +397,7 @@ Please generate:
 Remember: 
 - Follow the CREATIVE VARIETY INSTRUCTIONS in your system prompt for this specific post
 - Each post should feel fresh and unique, not templated
-- Include contact info: ${company.website || "www.icealarm.es"} and ${company.emergency_phone}`;
+- Include contact info: ${company.website || "www.careconneqt.es"} and ${company.emergency_phone}`;
 
     console.log("Calling Lovable AI with variety engine...");
 

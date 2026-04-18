@@ -73,7 +73,7 @@ export async function logCrmEvents(
 
 /**
  * Generate a clean referral link for a partner.
- * Format: https://icealarm.es/r/CODE
+ * Format: https://careconneqt.es/r/CODE
  *
  * This produces a short, professional link that partners can share.
  * UTM tracking is handled server-side by the ReferralRedirect component.
@@ -81,7 +81,7 @@ export async function logCrmEvents(
 export function generateReferralLink(referralCode: string): string {
   const siteUrl = typeof window !== "undefined"
     ? window.location.origin
-    : "https://icealarm.es";
+    : "https://careconneqt.es";
   return `${siteUrl}/r/${referralCode}`;
 }
 

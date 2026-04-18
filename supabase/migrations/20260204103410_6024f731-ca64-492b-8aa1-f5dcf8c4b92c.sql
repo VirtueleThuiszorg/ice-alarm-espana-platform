@@ -10,7 +10,7 @@ AND social_post_id NOT IN (
 DELETE FROM blog_posts
 WHERE social_post_id IS NULL
 AND facebook_post_id IS NULL
-AND slug != 'welcome-to-ice-alarm';
+AND slug != 'welcome-to-care-conneqt';
 
 -- Delete duplicates, keeping only the newest per social_post_id
 DELETE FROM blog_posts a

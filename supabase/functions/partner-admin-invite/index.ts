@@ -218,19 +218,19 @@ serve(async (req: Request) => {
 
     // Send invite email
     try {
-      const baseUrl = req.headers.get("origin") || "https://icealarm.es";
+      const baseUrl = req.headers.get("origin") || "https://careconneqt.es";
       const inviteLink = `${baseUrl}/partner/invite?token=${inviteToken}`;
 
       const emailContent = lang === "es"
         ? `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: linear-gradient(135deg, #dc2626, #ef4444); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-              <h1 style="color: white; margin: 0; font-size: 24px;">ICE Alarm España</h1>
+              <h1 style="color: white; margin: 0; font-size: 24px;">Care Conneqt</h1>
               <p style="color: #fecaca; margin: 8px 0 0 0;">Programa de Socios</p>
             </div>
             <div style="padding: 30px; background: white; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
               <h2 style="color: #1f2937; margin-top: 0;">¡Hola ${contact_name}!</h2>
-              <p style="color: #4b5563;">Has sido invitado/a a unirte al <strong>Programa de Socios de ICE Alarm España</strong>.</p>
+              <p style="color: #4b5563;">Has sido invitado/a a unirte al <strong>Programa de Socios de Care Conneqt</strong>.</p>
               <p style="color: #4b5563;">Como socio, podrás referir clientes, ganar comisiones y acceder a tu propio panel de control con herramientas de marketing y seguimiento.</p>
               <p style="color: #4b5563;">Haz clic en el botón de abajo para configurar tu cuenta y empezar.</p>
               <div style="text-align: center; margin: 30px 0;">
@@ -243,12 +243,12 @@ serve(async (req: Request) => {
         : `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: linear-gradient(135deg, #dc2626, #ef4444); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-              <h1 style="color: white; margin: 0; font-size: 24px;">ICE Alarm España</h1>
+              <h1 style="color: white; margin: 0; font-size: 24px;">Care Conneqt</h1>
               <p style="color: #fecaca; margin: 8px 0 0 0;">Partner Program</p>
             </div>
             <div style="padding: 30px; background: white; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
               <h2 style="color: #1f2937; margin-top: 0;">Hello ${contact_name}!</h2>
-              <p style="color: #4b5563;">You have been invited to join the <strong>ICE Alarm España Partner Program</strong>.</p>
+              <p style="color: #4b5563;">You have been invited to join the <strong>Care Conneqt Partner Program</strong>.</p>
               <p style="color: #4b5563;">As a partner, you'll be able to refer clients, earn commissions, and access your own dashboard with marketing tools and tracking.</p>
               <p style="color: #4b5563;">Click the button below to set up your account and get started.</p>
               <div style="text-align: center; margin: 30px 0;">
@@ -260,8 +260,8 @@ serve(async (req: Request) => {
         `;
 
       const emailSubject = lang === "es"
-        ? "Invitación al Programa de Socios de ICE Alarm"
-        : "You're Invited to Join ICE Alarm Partner Program";
+        ? "Invitación al Programa de Socios de Care Conneqt"
+        : "You're Invited to Join Care Conneqt Partner Program";
 
       const emailResult = await sendEmail(normalizedEmail, emailSubject, emailContent);
 

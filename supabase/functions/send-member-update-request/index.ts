@@ -104,8 +104,8 @@ const handler = async (req: Request): Promise<Response> => {
     const isSpanish = preferredLanguage === "es";
 
     const emailSubject = isSpanish 
-      ? "Por favor actualice su información - ICE Alarm España"
-      : "Please Update Your Information - ICE Alarm España";
+      ? "Por favor actualice su información - Care Conneqt"
+      : "Please Update Your Information - Care Conneqt";
 
     const emailHtml = `
 <!DOCTYPE html>
@@ -124,7 +124,7 @@ const handler = async (req: Request): Promise<Response> => {
 </head>
 <body>
   <div class="header">
-    <h1 style="margin: 0;">ICE Alarm España</h1>
+    <h1 style="margin: 0;">Care Conneqt</h1>
   </div>
   <div class="content">
     <h2>${isSpanish ? "Hola" : "Hello"} ${memberName},</h2>
@@ -154,7 +154,7 @@ const handler = async (req: Request): Promise<Response> => {
       : "Necesitamos información adicional para poder asistirle mejor en caso de emergencia. Por favor haga clic en el botón de arriba para actualizar su información."}</p>
     
     <div class="footer">
-      <p>ICE Alarm España - ${isSpanish ? "Protegiendo a nuestros mayores" : "Protecting our elderly"}</p>
+      <p>Care Conneqt - ${isSpanish ? "Protegiendo a nuestros mayores" : "Protecting our elderly"}</p>
       <p>${isSpanish 
         ? "Si no solicitó esta actualización, por favor ignore este correo."
         : "If you did not request this update, please ignore this email."}</p>

@@ -246,7 +246,7 @@ export async function handleSuccessfulPayment(
       try {
         const orderNum = orderData?.order_number || orderId;
         const lang = memberData?.preferred_language || "es";
-        const dashboardUrl = "https://icealarm.es/dashboard";
+        const dashboardUrl = "https://careconneqt.es/dashboard";
 
         const emailHtml = buildMemberWelcomeEmail(
           memberData.first_name,
@@ -259,8 +259,8 @@ export async function handleSuccessfulPayment(
 
         const emailSubject =
           lang === "es" || lang === "ES"
-            ? "¡Bienvenido a ICE Alarm! Tu membresía está activa"
-            : "Welcome to ICE Alarm! Your membership is active";
+            ? "¡Bienvenido a Care Conneqt! Tu membresía está activa"
+            : "Welcome to Care Conneqt! Your membership is active";
 
         const emailResult = await sendEmail(memberData.email, emailSubject, emailHtml);
         if (!emailResult.success) {

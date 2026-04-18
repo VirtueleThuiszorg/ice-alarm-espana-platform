@@ -249,7 +249,7 @@ export default function PartnerMembersPage() {
               </p>
               {!searchQuery && !isAdminViewMode && (
                 <p className="text-sm text-muted-foreground mt-2">
-                  Contact ICE Alarm to add members to your organization.
+                  Contact Care Conneqt to add members to your organization.
                 </p>
               )}
             </div>

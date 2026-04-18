@@ -109,7 +109,7 @@ serve(async (req) => {
       // TwiML response
       const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>Gracias por contactar ICE Alarm. Un operador revisará su mensaje. / Thank you for contacting ICE Alarm. An operator will review your message.</Message>
+  <Message>Gracias por contactar Care Conneqt. Un operador revisará su mensaje. / Thank you for contacting Care Conneqt. An operator will review your message.</Message>
 </Response>`;
 
       return new Response(twiml, {

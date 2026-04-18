@@ -3,7 +3,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 
 
 
-const SITE_URL = "https://icealarm.es";
+const SITE_URL = "https://careconneqt.es";
 
 // ─────────────────────────── HELPERS ───────────────────────────
 
@@ -35,8 +35,8 @@ async function generateAIIntro(postText: string, language: string): Promise<stri
   }
 
   const systemPrompt = language === "es"
-    ? `Eres un escritor profesional para ICE Alarm España, una empresa de servicios de alarmas personales para personas mayores. Escribe una introducción breve (2-4 oraciones) en un tono profesional y amigable que explique el tema del siguiente post. No repitas el contenido del post, solo introduce el tema de manera atractiva.`
-    : `You are a professional writer for ICE Alarm España, a personal alarm service company for elderly care. Write a brief introduction (2-4 sentences) in a professional, friendly tone that explains the topic of the following post. Don't repeat the post content, just introduce the topic engagingly.`;
+    ? `Eres un escritor profesional para Care Conneqt, una empresa de servicios de alarmas personales para personas mayores. Escribe una introducción breve (2-4 oraciones) en un tono profesional y amigable que explique el tema del siguiente post. No repitas el contenido del post, solo introduce el tema de manera atractiva.`
+    : `You are a professional writer for Care Conneqt, a personal alarm service company for elderly care. Write a brief introduction (2-4 sentences) in a professional, friendly tone that explains the topic of the following post. Don't repeat the post content, just introduce the topic engagingly.`;
 
   try {
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -235,8 +235,8 @@ Deno.serve(async (req) => {
         console.log("AI intro generated:", aiIntro ? "success" : "skipped/failed");
 
         const ctaLine = language === "es"
-          ? `\n\nConoce más sobre los servicios de ICE Alarm en ${SITE_URL}`
-          : `\n\nLearn more about ICE Alarm services at ${SITE_URL}`;
+          ? `\n\nConoce más sobre los servicios de Care Conneqt en ${SITE_URL}`
+          : `\n\nLearn more about Care Conneqt services at ${SITE_URL}`;
 
         const composedContent = aiIntro
           ? `${aiIntro}\n\n---\n\n${postText}${ctaLine}`

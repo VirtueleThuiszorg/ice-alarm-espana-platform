@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/icon-512.png">
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1e5a9c" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Care Conneqt" />
+    <link rel="apple-touch-icon" href="/icon-512.png" />
+    <title>Care Conneqt - Connected Health. Human Care.</title>
+    <meta name="description" content="Care Conneqt provides 24/7 bilingual connected care for seniors and expats across Spain, UK, and Netherlands. GPS tracking, fall detection, nurse-led monitoring, and instant help at the push of a button.">
+    <meta name="author" content="Care Conneqt" />
+
+    <!-- Google Fonts: Poppins (headings) + Open Sans (body) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Preconnect to critical domains for faster loading -->
+    <!-- TODO: Replace <YOUR_NEW_SUPABASE_REF> with the new Care Conneqt Supabase project ref -->
+    <link rel="preconnect" href="https://<YOUR_NEW_SUPABASE_REF>.supabase.co" crossorigin />
+    <link rel="dns-prefetch" href="https://<YOUR_NEW_SUPABASE_REF>.supabase.co" />
+    <link rel="preconnect" href="https://<YOUR_NEW_SUPABASE_REF>.supabase.co/storage/v1" crossorigin />
+    <link rel="dns-prefetch" href="https://<YOUR_NEW_SUPABASE_REF>.supabase.co/storage/v1" />
+
+    <!-- Preload hero images for instant display -->
+    <!-- TODO: Re-upload hero/pendant/avatar images to the NEW Supabase storage bucket and update these URLs -->
+    <!--
+    <link rel="preload" as="image" href="https://<YOUR_NEW_SUPABASE_REF>.supabase.co/storage/v1/object/public/website-images/homepage_hero.png" fetchpriority="high" />
+    <link rel="preload" as="image" href="https://<YOUR_NEW_SUPABASE_REF>.supabase.co/storage/v1/object/public/website-images/pendant_hero.png" fetchpriority="high" />
+    <link rel="preload" as="image" href="https://<YOUR_NEW_SUPABASE_REF>.supabase.co/storage/v1/object/public/ai-agent-avatars/customer_service_expert.png" fetchpriority="high" />
+    -->
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/icon-512.png">
+    <meta property="og:title" content="Care Conneqt - Connected Health. Human Care.">
+    <meta property="og:description" content="Care Conneqt provides 24/7 bilingual connected care for seniors and expats across Spain, UK, and Netherlands. GPS tracking, fall detection, nurse-led monitoring, and instant help at the push of a button.">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@CareConneqt" />
+    <meta name="twitter:image" content="/icon-512.png">
+    <meta name="twitter:title" content="Care Conneqt - Connected Health. Human Care.">
+    <meta name="twitter:description" content="Care Conneqt provides 24/7 bilingual connected care for seniors and expats across Spain, UK, and Netherlands. GPS tracking, fall detection, nurse-led monitoring, and instant help at the push of a button.">
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker
+            .register("/sw.js")
+            .then(function (reg) {
+              console.log("[Care Conneqt] Service worker registered:", reg.scope);
+            })
+            .catch(function (err) {
+              console.warn("[Care Conneqt] Service worker registration failed:", err);
+            });
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -76,7 +76,7 @@ serve(async (req) => {
           goalDescription: goal?.description || "",
           audience: audience?.name || "General Public",
           audienceDescription: audience?.description || "",
-          topic: topic?.name || "ICE Alarm Services",
+          topic: topic?.name || "Care Conneqt Services",
           topicDescription: topic?.description || "",
           imageStyle: imageStyle?.name || "Professional",
           imageStyleDescription: imageStyle?.description || "",
@@ -84,10 +84,10 @@ serve(async (req) => {
         };
 
         // Generate content using AI
-        const systemPrompt = `You are an expert social media content creator for ICE Alarm España, a personal emergency alarm service for elderly people in Spain. 
+        const systemPrompt = `You are an expert social media content creator for Care Conneqt, a personal emergency alarm service for elderly people in Spain. 
 
 Company context:
-- ICE Alarm provides 24/7 personal emergency response services
+- Care Conneqt provides 24/7 personal emergency response services
 - Main product is a GPS pendant worn around the neck
 - Target market: elderly people, their families, and caregivers in Spain
 - Brand voice: caring, professional, reassuring, trustworthy

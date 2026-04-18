@@ -90,8 +90,8 @@ Deno.serve(async (req) => {
     if (action === "greeting") {
       const recordingEs = "Esta llamada está siendo grabada para su seguridad.";
       const recordingEn = "This call is being recorded for your safety.";
-      const greetEs = `${name ? `${name}, ` : ""}soy Isabella de ICE Alarm. Puedo ver su alerta. ¿Puede hablar conmigo?`;
-      const greetEn = `${name ? `${name}, ` : ""}this is Isabella from ICE Alarm. I can see your alert. Are you able to speak to me?`;
+      const greetEs = `${name ? `${name}, ` : ""}soy Isabella de Care Conneqt. Puedo ver su alerta. ¿Puede hablar conmigo?`;
+      const greetEn = `${name ? `${name}, ` : ""}this is Isabella from Care Conneqt. I can see your alert. Are you able to speak to me?`;
 
       const recording = lang === "es" ? recordingEs : recordingEn;
       const greeting = lang === "es" ? greetEs : greetEn;

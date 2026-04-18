@@ -89,7 +89,7 @@ serve(async (req) => {
       // Response message
       const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>Gracias por contactar ICE Alarm por WhatsApp. Un operador le atenderá pronto. / Thank you for contacting ICE Alarm via WhatsApp. An operator will assist you shortly.</Message>
+  <Message>Gracias por contactar Care Conneqt por WhatsApp. Un operador le atenderá pronto. / Thank you for contacting Care Conneqt via WhatsApp. An operator will assist you shortly.</Message>
 </Response>`;
 
       return new Response(twiml, {

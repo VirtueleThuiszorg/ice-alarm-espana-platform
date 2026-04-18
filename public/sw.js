@@ -1,9 +1,9 @@
 /* ================================================================== */
-/*  ICE Alarm Espana  -  Service Worker                               */
+/*  Care Conneqt  -  Service Worker                               */
 /*  Cache-first for statics, network-first for API, offline fallback  */
 /* ================================================================== */
 
-const CACHE_VERSION = "ice-alarm-v3";
+const CACHE_VERSION = "care-conneqt-v3";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 
@@ -164,7 +164,7 @@ function offlineFallback() {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ICE Alarm Espana - Offline</title>
+  <title>Care Conneqt - Offline</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -200,7 +200,7 @@ function offlineFallback() {
     <div class="icon">!</div>
     <h1>You are offline</h1>
     <p>
-      ICE Alarm Espana requires an internet connection. Please check your
+      Care Conneqt requires an internet connection. Please check your
       network and try again. In a medical emergency, call
       <strong>112</strong> directly.
     </p>

@@ -146,7 +146,7 @@ export default function PendantPage() {
                 <div className="aspect-square overflow-hidden rounded-2xl shadow-2xl bg-muted">
                   <ImageWithPlaceholder
                     imageUrl={pendantHeroImage.imageUrl}
-                    altText={pendantHeroImage.altText || "ICE Alarm GPS Personal Pendant"}
+                    altText={pendantHeroImage.altText || "Care Conneqt GPS Personal Pendant"}
                     placeholderText="Product Image"
                     placeholderSubtext="Coming Soon"
                     priority={true}
@@ -345,7 +345,7 @@ export default function PendantPage() {
               <div className="aspect-square max-w-sm mx-auto overflow-hidden rounded-2xl shadow-xl bg-muted">
                 <ImageWithPlaceholder
                   imageUrl={pendantSpecsImage.imageUrl}
-                  altText={pendantSpecsImage.altText || "ICE Alarm Pendant Specifications"}
+                  altText={pendantSpecsImage.altText || "Care Conneqt Pendant Specifications"}
                   placeholderText="Specifications Image"
                   placeholderSubtext="Coming Soon"
                 />

@@ -129,7 +129,7 @@ serve(async (req: Request): Promise<Response> => {
                       ${alert.location_address ? `<p style="margin: 5px 0;"><strong>Ubicación:</strong> ${alert.location_address}</p>` : ''}
                     </div>
                     <p>Nuestro equipo de respuesta está gestionando esta alerta.</p>
-                    <p>Saludos,<br>El equipo de ICE Alarm</p>
+                    <p>Saludos,<br>El equipo de Care Conneqt</p>
                   </div>
                 `
               }
@@ -147,7 +147,7 @@ serve(async (req: Request): Promise<Response> => {
                       ${alert.location_address ? `<p style="margin: 5px 0;"><strong>Location:</strong> ${alert.location_address}</p>` : ''}
                     </div>
                     <p>Our response team is handling this alert.</p>
-                    <p>Best regards,<br>The ICE Alarm Team</p>
+                    <p>Best regards,<br>The Care Conneqt Team</p>
                   </div>
                 `
               };
@@ -159,7 +159,7 @@ serve(async (req: Request): Promise<Response> => {
               Authorization: `Bearer ${RESEND_API_KEY}`,
             },
             body: JSON.stringify({
-              from: "ICE Alarm Alerts <alerts@icealarm.es>",
+              from: "Care Conneqt Alerts <alerts@careconneqt.es>",
               to: [partner.email],
               subject: emailContent.subject,
               html: emailContent.html,

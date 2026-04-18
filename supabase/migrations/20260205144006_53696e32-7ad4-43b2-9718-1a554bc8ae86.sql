@@ -89,8 +89,8 @@ CREATE TABLE IF NOT EXISTS public.video_brand_settings (
   secondary_color TEXT DEFAULT '#1E3A8A',
   font_family TEXT DEFAULT 'Inter',
   watermark_enabled BOOLEAN DEFAULT true,
-  disclaimers_en TEXT DEFAULT 'ICE Alarm España is a 24/7 personal alarm monitoring service providing peace of mind for elderly and vulnerable individuals.',
-  disclaimers_es TEXT DEFAULT 'ICE Alarm España es un servicio de monitoreo de alarmas personales 24/7 que brinda tranquilidad a personas mayores y vulnerables.',
+  disclaimers_en TEXT DEFAULT 'Care Conneqt is a 24/7 personal alarm monitoring service providing peace of mind for elderly and vulnerable individuals.',
+  disclaimers_es TEXT DEFAULT 'Care Conneqt es un servicio de monitoreo de alarmas personales 24/7 que brinda tranquilidad a personas mayores y vulnerables.',
   default_cta_en TEXT DEFAULT 'Call Now',
   default_cta_es TEXT DEFAULT 'Llama Ahora',
   created_at TIMESTAMPTZ DEFAULT now(),
@@ -121,9 +121,9 @@ CREATE POLICY "Staff can manage video outreach links" ON public.video_outreach_l
 
 -- 7. Seed initial ICE templates
 INSERT INTO public.video_templates (name, description, allowed_durations, allowed_formats, schema_json) VALUES
-('Calm Problem → Solution → CTA', 'A calm, reassuring template that presents a problem and offers ICE Alarm as the solution. Perfect for addressing common concerns about elderly safety.', ARRAY[15], ARRAY['9:16', '16:9', '1:1'], '{"sections": ["problem", "solution", "cta"], "fields": ["headline", "problem_text", "solution_text", "cta_text"]}'),
+('Calm Problem → Solution → CTA', 'A calm, reassuring template that presents a problem and offers Care Conneqt as the solution. Perfect for addressing common concerns about elderly safety.', ARRAY[15], ARRAY['9:16', '16:9', '1:1'], '{"sections": ["problem", "solution", "cta"], "fields": ["headline", "problem_text", "solution_text", "cta_text"]}'),
 ('How SOS Works', 'Step-by-step walkthrough of the SOS pendant functionality. Shows how easy it is to get help when needed.', ARRAY[30], ARRAY['9:16', '16:9', '1:1'], '{"sections": ["intro", "step1", "step2", "step3", "cta"], "fields": ["headline", "step1_text", "step2_text", "step3_text", "cta_text"]}'),
-('Service Overview', 'Comprehensive overview of all ICE Alarm services. Great for introducing the full range of protection options.', ARRAY[45, 60], ARRAY['16:9', '1:1'], '{"sections": ["intro", "services", "benefits", "cta"], "fields": ["headline", "service1", "service2", "service3", "benefits", "cta_text"]}'),
+('Service Overview', 'Comprehensive overview of all Care Conneqt services. Great for introducing the full range of protection options.', ARRAY[45, 60], ARRAY['16:9', '1:1'], '{"sections": ["intro", "services", "benefits", "cta"], "fields": ["headline", "service1", "service2", "service3", "benefits", "cta_text"]}'),
 ('Device Focus', 'Highlight specific device features and capabilities. Ideal for showcasing the SOS pendant or Dosell dispenser.', ARRAY[15, 30], ARRAY['9:16', '16:9', '1:1'], '{"sections": ["device", "features", "cta"], "fields": ["headline", "device_name", "feature1", "feature2", "feature3", "cta_text"]}'),
 ('Reassurance / Trust', 'Build trust with reassurance messaging and credibility points. Perfect for addressing family concerns.', ARRAY[20, 30], ARRAY['9:16', '16:9', '1:1'], '{"sections": ["intro", "trust", "reassurance", "cta"], "fields": ["headline", "trust_point1", "trust_point2", "reassurance_text", "cta_text"]}');
 

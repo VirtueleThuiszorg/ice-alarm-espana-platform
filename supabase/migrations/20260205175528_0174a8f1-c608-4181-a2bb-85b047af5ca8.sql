@@ -4,15 +4,15 @@ ADD COLUMN IF NOT EXISTS phone_en text DEFAULT '+34 900 123 456',
 ADD COLUMN IF NOT EXISTS phone_es text DEFAULT '+34 900 123 456',
 ADD COLUMN IF NOT EXISTS whatsapp_en text DEFAULT '+34 600 000 000',
 ADD COLUMN IF NOT EXISTS whatsapp_es text DEFAULT '+34 600 000 000',
-ADD COLUMN IF NOT EXISTS web_url_en text DEFAULT 'www.icealarm.es',
-ADD COLUMN IF NOT EXISTS web_url_es text DEFAULT 'www.icealarm.es',
-ADD COLUMN IF NOT EXISTS youtube_footer_en text DEFAULT 'ICE Alarm España - 24/7 Emergency Response for Seniors',
-ADD COLUMN IF NOT EXISTS youtube_footer_es text DEFAULT 'ICE Alarm España - Respuesta de Emergencia 24/7 para Mayores',
+ADD COLUMN IF NOT EXISTS web_url_en text DEFAULT 'www.careconneqt.es',
+ADD COLUMN IF NOT EXISTS web_url_es text DEFAULT 'www.careconneqt.es',
+ADD COLUMN IF NOT EXISTS youtube_footer_en text DEFAULT 'Care Conneqt - 24/7 Emergency Response for Seniors',
+ADD COLUMN IF NOT EXISTS youtube_footer_es text DEFAULT 'Care Conneqt - Respuesta de Emergencia 24/7 para Mayores',
 ADD COLUMN IF NOT EXISTS captions_enabled_default boolean DEFAULT true,
 ADD COLUMN IF NOT EXISTS safe_margins_enabled boolean DEFAULT true,
 ADD COLUMN IF NOT EXISTS transition_style text DEFAULT 'fade';
 
--- Update existing record with ICE Alarm defaults
+-- Update existing record with Care Conneqt defaults
 UPDATE public.video_brand_settings SET
   primary_color = COALESCE(primary_color, '#B91C1C'),
   secondary_color = COALESCE(secondary_color, '#1E3A8A'),

@@ -47,7 +47,7 @@ export function ShareContentSection({ partnerId }: ShareContentSectionProps) {
   };
 
   const shareEmail = (link: PartnerPostLink) => {
-    const subject = encodeURIComponent(link.post?.topic || "ICE Alarm");
+    const subject = encodeURIComponent(link.post?.topic || "Care Conneqt");
     const body = encodeURIComponent(
       `${link.post?.post_text || ""}\n\n${link.tracked_url}`
     );

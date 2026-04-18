@@ -341,7 +341,7 @@ export function VideoSettingsTab() {
                   value={formData.web_url_en}
                   onChange={(e) => setFormData({ ...formData, web_url_en: e.target.value })}
                   className="mt-1"
-                  placeholder="www.icealarm.es"
+                  placeholder="www.careconneqt.es"
                 />
               </div>
               <div>
@@ -350,7 +350,7 @@ export function VideoSettingsTab() {
                   value={formData.web_url_es}
                   onChange={(e) => setFormData({ ...formData, web_url_es: e.target.value })}
                   className="mt-1"
-                  placeholder="www.icealarm.es"
+                  placeholder="www.careconneqt.es"
                 />
               </div>
             </div>
@@ -375,7 +375,7 @@ export function VideoSettingsTab() {
                 value={formData.youtube_footer_en}
                 onChange={(e) => setFormData({ ...formData, youtube_footer_en: e.target.value })}
                 className="mt-1 min-h-[80px]"
-                placeholder="ICE Alarm España - 24/7 Emergency Response for Seniors"
+                placeholder="Care Conneqt - 24/7 Emergency Response for Seniors"
               />
             </div>
             <div>
@@ -384,7 +384,7 @@ export function VideoSettingsTab() {
                 value={formData.youtube_footer_es}
                 onChange={(e) => setFormData({ ...formData, youtube_footer_es: e.target.value })}
                 className="mt-1 min-h-[80px]"
-                placeholder="ICE Alarm España - Respuesta de Emergencia 24/7 para Mayores"
+                placeholder="Care Conneqt - Respuesta de Emergencia 24/7 para Mayores"
               />
             </div>
           </div>
@@ -408,7 +408,7 @@ export function VideoSettingsTab() {
                 value={formData.disclaimers_en}
                 onChange={(e) => setFormData({ ...formData, disclaimers_en: e.target.value })}
                 className="mt-1 min-h-[100px]"
-                placeholder="ICE Alarm España is a personal emergency response service..."
+                placeholder="Care Conneqt is a personal emergency response service..."
               />
             </div>
             <div>
@@ -417,7 +417,7 @@ export function VideoSettingsTab() {
                 value={formData.disclaimers_es}
                 onChange={(e) => setFormData({ ...formData, disclaimers_es: e.target.value })}
                 className="mt-1 min-h-[100px]"
-                placeholder="ICE Alarm España es un servicio de respuesta de emergencia personal..."
+                placeholder="Care Conneqt es un servicio de respuesta de emergencia personal..."
               />
             </div>
           </div>

@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
     if (!existingMember) {
       const { firstName, lastName } = parseName(sanitizedName);
       const timestamp = Date.now();
-      const placeholderEmail = `call-${timestamp}@pending.icealarm.es`;
+      const placeholderEmail = `call-${timestamp}@pending.careconneqt.es`;
 
       const { data: newLead, error: leadError } = await supabase
         .from("leads")

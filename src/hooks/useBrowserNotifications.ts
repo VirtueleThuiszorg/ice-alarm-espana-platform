@@ -35,7 +35,7 @@ export function useBrowserNotifications() {
         const notification = new Notification(title, {
           icon: "/favicon.ico",
           badge: "/favicon.ico",
-          tag: "ice-alarm-notification",
+          tag: "care-conneqt-notification",
           requireInteraction: true,
           ...options,
         });

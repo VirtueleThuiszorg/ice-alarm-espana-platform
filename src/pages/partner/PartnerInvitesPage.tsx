@@ -49,12 +49,12 @@ const getFileIcon = (fileType: string | null) => {
 };
 
 const defaultMessages = {
-  en: `Hi! I'd like to invite you to join ICE Alarm Spain - a personal emergency response service that provides peace of mind for you and your loved ones. 
+  en: `Hi! I'd like to invite you to join Care Conneqt Spain - a personal emergency response service that provides peace of mind for you and your loved ones. 
 
 Use my referral link to sign up: {referral_link}
 
 The service includes a GPS pendant that connects you to a 24/7 emergency response center with just one button press.`,
-  es: `¡Hola! Me gustaría invitarte a unirte a ICE Alarm España - un servicio de respuesta a emergencias personales que proporciona tranquilidad para ti y tus seres queridos.
+  es: `¡Hola! Me gustaría invitarte a unirte a Care Conneqt - un servicio de respuesta a emergencias personales que proporciona tranquilidad para ti y tus seres queridos.
 
 Usa mi enlace de referido para registrarte: {referral_link}
 
@@ -218,15 +218,15 @@ export default function PartnerInvitesPage() {
 
   const shareViaWhatsApp = () => {
     const message = encodeURIComponent(
-      `Join ICE Alarm Spain with my referral link: ${referralLink}`
+      `Join Care Conneqt Spain with my referral link: ${referralLink}`
     );
     window.open(`https://wa.me/?text=${message}`, "_blank");
   };
 
   const shareViaEmail = () => {
-    const subject = encodeURIComponent("Join ICE Alarm Spain");
+    const subject = encodeURIComponent("Join Care Conneqt Spain");
     const body = encodeURIComponent(
-      `Hi,\n\nI'd like to invite you to join ICE Alarm Spain - a personal emergency response service.\n\nSign up here: ${referralLink}\n\nBest regards`
+      `Hi,\n\nI'd like to invite you to join Care Conneqt Spain - a personal emergency response service.\n\nSign up here: ${referralLink}\n\nBest regards`
     );
     window.open(`mailto:?subject=${subject}&body=${body}`, "_blank");
   };

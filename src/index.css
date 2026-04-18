@@ -2,9 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ICE Alarm España Design System
-   Emergency Medical Response Platform
-   Brand: Coral/Red (#E74C3C) with healthcare professionalism
+/* Care Conneqt Design System
+   Connected Health. Human Care.
+   Brand: Deep Blue (#1e5a9c / HSL 215 85% 35%) + Teal accent (HSL 185 75% 45%)
+   ——————————————————————————————————————————————————————————————
+   NOTE: This file preserves 100% of ICE v1's functional tokens
+   (alerts, status, shadows, radius, structure). Only the BRAND
+   hues (primary/accent/ring/sidebar/glow/gradients) have changed.
+   Emergency/SOS/Fall/Battery alert colors are intentionally kept
+   identical to ICE — they are functional UI states, not brand.
 */
 
 @layer base {
@@ -19,31 +25,36 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 15% 20%;
 
-    /* Primary - ICE Alarm Coral */
-    --primary: 4 78% 57%;
+    /* Primary - Care Conneqt Deep Blue */
+    --primary: 215 85% 35%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Warm Gray */
+    /* Secondary - Warm Gray (preserved from ICE for layout neutrality) */
     --secondary: 220 14% 96%;
     --secondary-foreground: 220 15% 20%;
 
     --muted: 220 14% 96%;
     --muted-foreground: 220 10% 46%;
 
-    /* Accent - Soft Coral */
-    --accent: 4 78% 95%;
-    --accent-foreground: 4 78% 40%;
+    /* Accent - Soft Blue (was Soft Coral) */
+    --accent: 215 65% 94%;
+    --accent-foreground: 215 85% 30%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 4 78% 57%;
+    --ring: 215 85% 35%;
 
     --radius: 0.75rem;
 
-    /* Alert State Colors */
+    /* Care Conneqt Brand Teal (new — use for highlights/CTAs alongside primary blue) */
+    --brand-teal: 185 75% 45%;
+    --brand-teal-foreground: 0 0% 100%;
+    --brand-teal-soft: 185 65% 90%;
+
+    /* Alert State Colors (UNCHANGED — functional, not brand) */
     --alert-sos: 0 84% 55%;
     --alert-sos-foreground: 0 0% 100%;
     --alert-fall: 25 95% 53%;
@@ -55,33 +66,33 @@
     --alert-resolved: 142 76% 36%;
     --alert-resolved-foreground: 0 0% 100%;
 
-    /* Status Colors */
+    /* Status Colors (UNCHANGED — functional) */
     --status-active: 142 76% 36%;
     --status-inactive: 220 10% 46%;
     --status-pending: 45 93% 47%;
     --status-error: 0 84% 55%;
 
-    /* Sidebar */
-    --sidebar-background: 220 15% 15%;
-    --sidebar-foreground: 220 10% 90%;
-    --sidebar-primary: 4 78% 57%;
+    /* Sidebar - Care Conneqt command centre (dark blue-grey + teal accent) */
+    --sidebar-background: 215 30% 18%;
+    --sidebar-foreground: 210 20% 95%;
+    --sidebar-primary: 185 75% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 15% 22%;
-    --sidebar-accent-foreground: 220 10% 90%;
-    --sidebar-border: 220 15% 25%;
-    --sidebar-ring: 4 78% 57%;
+    --sidebar-accent: 215 30% 24%;
+    --sidebar-accent-foreground: 210 20% 95%;
+    --sidebar-border: 215 30% 22%;
+    --sidebar-ring: 185 75% 45%;
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(4, 78%, 57%) 0%, hsl(6, 63%, 46%) 100%);
+    /* Gradients - Care blue-to-teal */
+    --gradient-primary: linear-gradient(135deg, hsl(215, 85%, 35%) 0%, hsl(185, 75%, 45%) 100%);
     --gradient-header: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(220, 14%, 98%) 100%);
-    --gradient-card-hover: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(4, 78%, 98%) 100%);
+    --gradient-card-hover: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(215, 65%, 98%) 100%);
 
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
     --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    --shadow-glow: 0 0 20px hsl(4, 78%, 57%, 0.3);
+    --shadow-glow: 0 0 20px hsl(215, 85%, 35%, 0.3);
   }
 
   .dark {
@@ -94,7 +105,8 @@
     --popover: 220 15% 12%;
     --popover-foreground: 220 10% 95%;
 
-    --primary: 4 78% 57%;
+    /* Primary in dark mode - flips to brand teal for pop (mirrors Care reference) */
+    --primary: 185 75% 45%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 15% 18%;
@@ -103,27 +115,27 @@
     --muted: 220 15% 18%;
     --muted-foreground: 220 10% 60%;
 
-    --accent: 4 60% 20%;
-    --accent-foreground: 4 78% 70%;
+    --accent: 215 60% 22%;
+    --accent-foreground: 215 85% 75%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 220 15% 20%;
     --input: 220 15% 20%;
-    --ring: 4 78% 57%;
+    --ring: 185 75% 45%;
 
-    --sidebar-background: 220 15% 6%;
-    --sidebar-foreground: 220 10% 90%;
-    --sidebar-primary: 4 78% 57%;
+    --sidebar-background: 215 35% 10%;
+    --sidebar-foreground: 210 20% 95%;
+    --sidebar-primary: 185 75% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 15% 15%;
-    --sidebar-accent-foreground: 220 10% 90%;
-    --sidebar-border: 220 15% 15%;
-    --sidebar-ring: 4 78% 57%;
+    --sidebar-accent: 215 35% 15%;
+    --sidebar-accent-foreground: 210 20% 95%;
+    --sidebar-border: 215 35% 12%;
+    --sidebar-ring: 185 75% 45%;
 
     /* Dark mode gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(4, 78%, 57%) 0%, hsl(6, 63%, 46%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(215, 85%, 35%) 0%, hsl(185, 75%, 45%) 100%);
     --gradient-header: linear-gradient(180deg, hsl(220, 15%, 12%) 0%, hsl(220, 15%, 8%) 100%);
     --gradient-card-hover: linear-gradient(180deg, hsl(220, 15%, 14%) 0%, hsl(220, 15%, 12%) 100%);
 
@@ -132,7 +144,7 @@
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.2);
     --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.2);
-    --shadow-glow: 0 0 20px hsl(4, 78%, 57%, 0.2);
+    --shadow-glow: 0 0 20px hsl(185, 75%, 45%, 0.25);
 
     /* Dark alert colors (slightly muted for contrast) */
     --alert-battery-foreground: 45 93% 90%;
@@ -146,7 +158,12 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: 'Open Sans', system-ui, -apple-system, sans-serif;
     font-feature-settings: "cv11", "ss01";
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Poppins', system-ui, -apple-system, sans-serif;
   }
 
   /* Smooth scrolling */
@@ -154,6 +171,10 @@
     scroll-behavior: smooth;
   }
 }
+
+/* ———————————————————————————————————————————————————————————————
+   ICE v1 component layer, animations & utilities — preserved verbatim
+   ——————————————————————————————————————————————————————————————— */
 
 @layer components {
   /* Alert Pulse Animation for Incoming Alerts */

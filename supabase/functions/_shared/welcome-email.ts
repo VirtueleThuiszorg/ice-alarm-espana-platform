@@ -16,14 +16,14 @@ export function buildMemberWelcomeEmail(
       </head>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #dc2626;">ICE Alarm España</h1>
+          <h1 style="color: #dc2626;">Care Conneqt</h1>
         </div>
 
-        <h2 style="color: #1f2937;">¡Bienvenido a ICE Alarm!</h2>
+        <h2 style="color: #1f2937;">¡Bienvenido a Care Conneqt!</h2>
 
         <p>Hola ${firstName},</p>
 
-        <p>¡Gracias por unirte a ICE Alarm! Tu pago ha sido procesado correctamente y tu membresía ya está activa.</p>
+        <p>¡Gracias por unirte a Care Conneqt! Tu pago ha sido procesado correctamente y tu membresía ya está activa.</p>
 
         <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3 style="margin-top: 0; color: #1f2937;">Detalles del Pedido:</h3>
@@ -49,7 +49,7 @@ export function buildMemberWelcomeEmail(
 
         <p style="color: #6b7280; font-size: 14px;">
           Mantente seguro,<br>
-          El Equipo de ICE Alarm
+          El Equipo de Care Conneqt
         </p>
       </body>
       </html>
@@ -65,14 +65,14 @@ export function buildMemberWelcomeEmail(
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #dc2626;">ICE Alarm España</h1>
+        <h1 style="color: #dc2626;">Care Conneqt</h1>
       </div>
 
-      <h2 style="color: #1f2937;">Welcome to ICE Alarm!</h2>
+      <h2 style="color: #1f2937;">Welcome to Care Conneqt!</h2>
 
       <p>Hello ${firstName},</p>
 
-      <p>Thank you for joining ICE Alarm! Your payment has been processed successfully and your membership is now active.</p>
+      <p>Thank you for joining Care Conneqt! Your payment has been processed successfully and your membership is now active.</p>
 
       <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
         <h3 style="margin-top: 0; color: #1f2937;">Order Details:</h3>
@@ -98,7 +98,7 @@ export function buildMemberWelcomeEmail(
 
       <p style="color: #6b7280; font-size: 14px;">
         Stay safe,<br>
-        The ICE Alarm Team
+        The Care Conneqt Team
       </p>
     </body>
     </html>

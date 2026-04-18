@@ -37,3 +37,4 @@ Thumbs.db
 # Sentry
 .sentryclirc
 .vercel
+supabase/.temp/

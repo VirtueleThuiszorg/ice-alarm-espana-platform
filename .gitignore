@@ -13,12 +13,10 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
 node_modules
 dist
 dist-ssr
 *.local
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -29,14 +27,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
 # OS files
-.DS_Store
 Thumbs.db
-
 # Sentry
 .sentryclirc
 .vercel
-supabase/.temp/
-supabase/.temp/
 supabase/.temp/

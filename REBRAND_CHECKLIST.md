@@ -130,3 +130,16 @@ Just to be explicit — none of this is touched:
 - Pricing structure, Stripe integration logic
 
 Care Conneqt IS ICE, just with different paint.
+
+---
+
+## Known tech debt (intentionally preserved ICE references)
+
+- **Programmatic localStorage/i18n keys** still use `iceAlarm*` naming (e.g. `iceAlarmLanguageSelected`, `callIceAlarm`, `contactIceAlarm`, `iceAlarmGpsPendant`). Display values are correct — only keys remain. Renaming requires a coordinated refactor and migration for existing cached localStorage.
+- **Legacy color key `iceRed`** in `src/i18n/locales/en.json` and `es.json` — label now says "Coral Red" / "Rojo Coral" but the JSON key is preserved to avoid breaking component lookups.
+- **CSS dev comments** referencing ICE v1 provenance in `src/index.css` (lines 9, 13, 32, 176) and `src/components/ui/logo.tsx` (line 14) — intentionally kept for codebase history.
+- **Legal disclaimer** in Terms page (`s4_1Warning`) has been brand-swapped but the full T&Cs need a proper legal review before launch (Phase 7).
+- **`vercel.json` sitemap rewrite** — contained ICE's Supabase project ref (`pduhccavshrhfkfbjgmj`), now replaced with `YOUR_SUPABASE_PROJECT_REF` placeholder. Must be filled in Phase 2.
+- **6 email templates** in `supabase/functions/_shared/email-templates/` contain `YOUR_SUPABASE_PROJECT_REF` placeholders in logo image URLs — must be replaced with the new project ref AND a Care Conneqt logo PNG must be uploaded to the new Supabase storage bucket (`email-assets/logo.png`) before email flows work correctly.
+- **`vite.config.ts:22`** has a hardcoded Supabase URL fallback — replaced with placeholder but the fallback pattern itself is an anti-pattern (missing env vars silently connect to fallback instead of failing). Should be reconsidered. The anon key fallback on line 26 was also replaced (`YOUR_SUPABASE_ANON_KEY`).
+- **`supabase/config.toml`** has had its `project_id` line removed. Run `supabase link --project-ref <new-ref>` in Phase 2 to reconnect.

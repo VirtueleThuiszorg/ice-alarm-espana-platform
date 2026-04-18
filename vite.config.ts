@@ -18,12 +18,15 @@ export default defineConfig(({ mode }) => ({
     },
   },
   define: {
+    // TODO: Hardcoded Supabase fallbacks are an anti-pattern — missing env vars
+    // silently connect to the fallback instead of failing loud. Consider removing
+    // these defaults so a missing .env is caught immediately at dev startup.
     "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(
-      process.env.VITE_SUPABASE_URL ?? "https://pduhccavshrhfkfbjgmj.supabase.co"
+      process.env.VITE_SUPABASE_URL ?? "https://YOUR_SUPABASE_PROJECT_REF.supabase.co"
     ),
     "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
       process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkdWhjY2F2c2hyaGZrZmJqZ21qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwMDM5ODksImV4cCI6MjA4NDU3OTk4OX0.SE_GoVKY4Vrb13f57E3jCwMWG7efnTFv9CHz2MIZCDM"
+        "YOUR_SUPABASE_ANON_KEY"
     ),
   },
   build: {

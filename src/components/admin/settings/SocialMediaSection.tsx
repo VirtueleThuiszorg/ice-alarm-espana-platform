@@ -339,7 +339,7 @@ export function SocialMediaSection({
                     <Input
                       value={defaultTags}
                       onChange={(e) => setDefaultTags(e.target.value)}
-                      placeholder="ice alarm, elderly care, spain"
+                      placeholder="care conneqt, elderly care, spain"
                     />
                     <p className="text-xs text-muted-foreground">Comma-separated tags</p>
                   </div>

@@ -156,7 +156,7 @@ export function YouTubePublishDialog({
               id="tags"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
-              placeholder="ice alarm, elderly care, spain"
+              placeholder="care conneqt, elderly care, spain"
             />
             <p className="text-xs text-muted-foreground">
               {t("videoHub.youtube.tagsHelp", "Comma-separated tags")}

@@ -1,7 +1,9 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "care-conneqt-platform",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Care Conneqt — Connected health monitoring and emergency response platform",
+  "author": "Care Conneqt",
   "type": "module",
   "scripts": {
     "dev": "vite",

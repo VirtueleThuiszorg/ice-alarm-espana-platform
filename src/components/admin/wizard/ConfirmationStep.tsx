@@ -63,7 +63,7 @@ export function ConfirmationStep({ data }: ConfirmationStepProps) {
                 {data.primaryMember.firstName} {data.primaryMember.lastName}
               </p>
               <p className="text-sm text-muted-foreground">
-                Member ID: {data.orderId?.slice(0, 8).toUpperCase() || "ICE-XXXXX"}
+                Member ID: {data.orderId?.slice(0, 8).toUpperCase() || "CC-XXXXX"}
               </p>
             </div>
           </div>

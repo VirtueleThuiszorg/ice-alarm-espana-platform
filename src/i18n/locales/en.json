@@ -3041,7 +3041,7 @@
       ],
       "s4Title": "4. Important Limitations and Disclaimers",
       "s4_1Title": "4.1 Not a Replacement for Emergency Services",
-      "s4_1Warning": "ICE ALARM IS A SUPPLEMENTARY SERVICE. WE ARE NOT EMERGENCY SERVICES.",
+      "s4_1Warning": "CARE CONNEQT IS A SUPPLEMENTARY SERVICE. WE ARE NOT EMERGENCY SERVICES.",
       "s4_1Items": [
         "If you are able to call 112 directly in an emergency, you should do so",
         "Our service depends on technology that can fail",
@@ -4483,7 +4483,7 @@
       "serviceOverview": "Service Overview",
       "deviceFocus": "Device Focus",
       "reassuranceTrust": "Reassurance / Trust",
-      "locked": "ICE Template",
+      "locked": "Care Conneqt Template",
       "description": "Pre-built video templates designed for Care Conneqt marketing",
       "useTemplate": "Use Template"
     },
@@ -4546,7 +4546,7 @@
       "fontFamily": "Font Family",
       "fontLocked": "Font is locked for readability and brand consistency",
       "watermark": "Logo Watermark",
-      "watermarkEnabled": "Show ICE logo watermark on videos",
+      "watermarkEnabled": "Show Care Conneqt logo watermark on videos",
       "accessibility": "Accessibility & Safety",
       "accessibilityDesc": "Healthcare-trust standards for readable, accessible content",
       "captionsDefault": "Captions Always On",
@@ -4585,7 +4585,7 @@
       "videoDefaults": "Video Defaults",
       "videoDefaultsDesc": "Configure default settings for new videos",
       "saved": "Settings saved successfully",
-      "iceRed": "ICE Red",
+      "iceRed": "Coral Red",
       "trustBlue": "Trust Blue"
     },
     "logo": {
@@ -4691,7 +4691,7 @@
       "createTitle": "Create Video",
       "createDesc": "Use the step-by-step wizard to create new videos. Choose a template, set the format, add content, and render.",
       "templatesTitle": "Templates",
-      "templatesDesc": "Browse pre-built ICE templates designed for healthcare marketing. Each template is optimized for different goals.",
+      "templatesDesc": "Browse pre-built Care Conneqt templates designed for healthcare marketing. Each template is optimized for different goals.",
       "exportsTitle": "Exports",
       "exportsDesc": "Download your rendered videos in MP4 format. Captions are available in SRT and VTT formats for accessibility.",
       "settingsTitle": "Settings",

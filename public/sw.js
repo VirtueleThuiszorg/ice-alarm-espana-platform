@@ -181,14 +181,14 @@ function offlineFallback() {
     .container { max-width: 420px; }
     .icon {
       width: 64px; height: 64px; margin: 0 auto 24px;
-      background: #E74C3C; border-radius: 50%;
+      background: #1e5a9c; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       color: white; font-size: 28px; font-weight: bold;
     }
     h1 { font-size: 22px; margin-bottom: 12px; }
     p { color: #64748b; line-height: 1.6; margin-bottom: 24px; }
     button {
-      background: #E74C3C; color: white; border: none;
+      background: #1e5a9c; color: white; border: none;
       padding: 12px 32px; border-radius: 8px; font-size: 16px;
       font-weight: 600; cursor: pointer;
     }

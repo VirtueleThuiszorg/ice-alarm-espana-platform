@@ -123,7 +123,7 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string |
       {
         headers: {
           "Accept-Language": "es,en",
-          "User-Agent": "ICE-Alarm-App"
+          "User-Agent": "Care-Conneqt-App"
         }
       }
     );

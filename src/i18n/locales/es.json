@@ -3033,7 +3033,7 @@
       ],
       "s4Title": "4. Limitaciones y Descargos Importantes",
       "s4_1Title": "4.1 No es un Reemplazo de los Servicios de Emergencia",
-      "s4_1Warning": "ICE ALARM ES UN SERVICIO COMPLEMENTARIO. NO SOMOS SERVICIOS DE EMERGENCIA.",
+      "s4_1Warning": "CARE CONNEQT ES UN SERVICIO COMPLEMENTARIO. NO SOMOS SERVICIOS DE EMERGENCIA.",
       "s4_1Items": [
         "Si puede llamar al 112 directamente en una emergencia, debe hacerlo",
         "Nuestro servicio depende de tecnología que puede fallar",
@@ -4475,7 +4475,7 @@
       "serviceOverview": "Resumen de Servicios",
       "deviceFocus": "Enfoque en Dispositivo",
       "reassuranceTrust": "Tranquilidad / Confianza",
-      "locked": "Plantilla ICE",
+      "locked": "Plantilla Care Conneqt",
       "description": "Plantillas de video prediseñadas para el marketing de Care Conneqt",
       "useTemplate": "Usar Plantilla"
     },
@@ -4538,7 +4538,7 @@
       "fontFamily": "Familia de Fuentes",
       "fontLocked": "La fuente está bloqueada para legibilidad y consistencia de marca",
       "watermark": "Marca de Agua del Logo",
-      "watermarkEnabled": "Mostrar marca de agua del logo ICE en videos",
+      "watermarkEnabled": "Mostrar marca de agua del logo Care Conneqt en videos",
       "accessibility": "Accesibilidad y Seguridad",
       "accessibilityDesc": "Estándares de confianza sanitaria para contenido legible y accesible",
       "captionsDefault": "Subtítulos Siempre Activos",
@@ -4577,7 +4577,7 @@
       "videoDefaults": "Valores Predeterminados de Video",
       "videoDefaultsDesc": "Configurar ajustes predeterminados para nuevos videos",
       "saved": "Configuración guardada correctamente",
-      "iceRed": "Rojo ICE",
+      "iceRed": "Rojo Coral",
       "trustBlue": "Azul Confianza"
     },
     "logo": {
@@ -4683,7 +4683,7 @@
       "createTitle": "Crear Video",
       "createDesc": "Usa el asistente paso a paso para crear nuevos videos. Elige una plantilla, configura el formato, añade contenido y renderiza.",
       "templatesTitle": "Plantillas",
-      "templatesDesc": "Explora plantillas ICE prediseñadas para marketing sanitario. Cada plantilla está optimizada para diferentes objetivos.",
+      "templatesDesc": "Explora plantillas Care Conneqt prediseñadas para marketing sanitario. Cada plantilla está optimizada para diferentes objetivos.",
       "exportsTitle": "Exportaciones",
       "exportsDesc": "Descarga tus videos renderizados en formato MP4. Los subtítulos están disponibles en formatos SRT y VTT para accesibilidad.",
       "settingsTitle": "Configuración",

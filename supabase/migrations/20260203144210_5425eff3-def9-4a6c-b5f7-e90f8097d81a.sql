@@ -5748,7 +5748,7 @@ VALUES (
 
 **Sample posts:**
 - "Helping families stay connected with their elderly loved ones. Ask me about Care Conneqt."
-- "Peace of mind for independent living. #ICEAlarm #ElderCare"
+- "Peace of mind for independent living. #CareConneqt #ElderCare"
 
 ### Compliance
 
@@ -5859,7 +5859,7 @@ VALUES (
 
 **Publicaciones de ejemplo:**
 - "Ayudando a familias a mantenerse conectadas con sus seres queridos mayores. Pregúnteme sobre Care Conneqt."
-- "Tranquilidad para la vida independiente. #ICEAlarm #CuidadoMayores"
+- "Tranquilidad para la vida independiente. #CareConneqt #CuidadoMayores"
 
 ### Cumplimiento
 

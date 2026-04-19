@@ -38,13 +38,21 @@ CREATE POLICY "Staff can view conference_rooms"
 
 -- ─── 2. CONFERENCE PARTICIPANTS ─────────────────────────────────────────────
 
-CREATE TYPE public.participant_type AS ENUM (
-  'member', 'staff', 'ai', 'emergency_contact', 'external_service'
-);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'participant_type') THEN
+    CREATE TYPE public.participant_type AS ENUM (
+      'member', 'staff', 'ai', 'emergency_contact', 'external_service'
+    );
+  END IF;
+END $$;
 
-CREATE TYPE public.participant_join_method AS ENUM (
-  'automatic', 'accepted_alert', 'added_by_staff', 'callback_routed'
-);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'participant_join_method') THEN
+    CREATE TYPE public.participant_join_method AS ENUM (
+      'automatic', 'accepted_alert', 'added_by_staff', 'callback_routed'
+    );
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.conference_participants (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -79,9 +87,13 @@ CREATE POLICY "Staff can view conference_participants"
 
 -- ─── 3. ALERT ESCALATIONS ──────────────────────────────────────────────────
 
-CREATE TYPE public.escalation_target_type AS ENUM (
-  'browser_alert', 'mobile_call', 'emergency_contact_call'
-);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'escalation_target_type') THEN
+    CREATE TYPE public.escalation_target_type AS ENUM (
+      'browser_alert', 'mobile_call', 'emergency_contact_call'
+    );
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.alert_escalations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

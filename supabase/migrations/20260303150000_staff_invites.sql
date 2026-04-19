@@ -10,8 +10,29 @@ ALTER TABLE staff ADD CONSTRAINT staff_status_check
   CHECK (status IN ('active', 'on_leave', 'suspended', 'terminated', 'pending'));
 
 -- 2. Recreate is_active generated column (pending staff are NOT active)
+--    Must drop dependent view first, then recreate after column change.
+DROP VIEW IF EXISTS public.staff_holiday_balance;
+
 ALTER TABLE staff DROP COLUMN IF EXISTS is_active;
 ALTER TABLE staff ADD COLUMN is_active BOOLEAN GENERATED ALWAYS AS (status = 'active') STORED;
+
+-- Recreate view (originally from 20260301153008)
+CREATE OR REPLACE VIEW public.staff_holiday_balance AS
+SELECT
+  s.id AS staff_id,
+  s.first_name,
+  s.last_name,
+  s.annual_holiday_days,
+  COALESCE(SUM(h.total_days) FILTER (WHERE h.status IN ('approved', 'requested')), 0)::INTEGER AS days_used_or_pending,
+  COALESCE(SUM(h.total_days) FILTER (WHERE h.status = 'approved'), 0)::INTEGER AS days_approved,
+  COALESCE(SUM(h.total_days) FILTER (WHERE h.status = 'requested'), 0)::INTEGER AS days_pending,
+  (s.annual_holiday_days - COALESCE(SUM(h.total_days) FILTER (WHERE h.status IN ('approved', 'requested')), 0))::INTEGER AS days_remaining
+FROM public.staff s
+LEFT JOIN public.staff_holidays h ON h.staff_id = s.id
+  AND EXTRACT(YEAR FROM h.start_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+  AND h.status IN ('approved', 'requested')
+WHERE s.is_active = true
+GROUP BY s.id, s.first_name, s.last_name, s.annual_holiday_days;
 
 -- 3. Expand staff_activity_log action values
 ALTER TABLE staff_activity_log DROP CONSTRAINT IF EXISTS staff_activity_log_action_check;

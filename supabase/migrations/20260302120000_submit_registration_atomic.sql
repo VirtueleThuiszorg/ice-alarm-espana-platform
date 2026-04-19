@@ -514,6 +514,3 @@ BEGIN
   );
 END;
 $$;
-
--- Grant execute to service role (edge functions use service role key)
-GRANT EXECUTE ON FUNCTION submit_registration_atomic(JSONB) TO service_role;

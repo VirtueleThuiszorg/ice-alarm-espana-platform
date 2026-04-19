@@ -29,6 +29,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_conference_rooms_twilio_sid
 
 ALTER TABLE public.conference_rooms ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Staff can view conference_rooms" ON public.conference_rooms;
 CREATE POLICY "Staff can view conference_rooms"
   ON public.conference_rooms
   FOR SELECT
@@ -69,6 +70,7 @@ CREATE INDEX IF NOT EXISTS idx_conference_participants_active
 
 ALTER TABLE public.conference_participants ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Staff can view conference_participants" ON public.conference_participants;
 CREATE POLICY "Staff can view conference_participants"
   ON public.conference_participants
   FOR SELECT
@@ -102,6 +104,7 @@ CREATE INDEX IF NOT EXISTS idx_alert_escalations_alert
 
 ALTER TABLE public.alert_escalations ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Staff can view alert_escalations" ON public.alert_escalations;
 CREATE POLICY "Staff can view alert_escalations"
   ON public.alert_escalations
   FOR SELECT
@@ -110,10 +113,14 @@ CREATE POLICY "Staff can view alert_escalations"
 
 -- ─── 4. ISABELLA ASSESSMENT NOTES ──────────────────────────────────────────
 
-CREATE TYPE public.isabella_note_type AS ENUM (
-  'observation', 'question_asked', 'member_response',
-  'triage_decision', 'handover_briefing', 'flag'
-);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'isabella_note_type') THEN
+    CREATE TYPE public.isabella_note_type AS ENUM (
+      'observation', 'question_asked', 'member_response',
+      'triage_decision', 'handover_briefing', 'flag'
+    );
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.isabella_assessment_notes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -129,6 +136,7 @@ CREATE INDEX IF NOT EXISTS idx_isabella_notes_alert_timestamp
 
 ALTER TABLE public.isabella_assessment_notes ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Staff can view isabella_assessment_notes" ON public.isabella_assessment_notes;
 CREATE POLICY "Staff can view isabella_assessment_notes"
   ON public.isabella_assessment_notes
   FOR SELECT

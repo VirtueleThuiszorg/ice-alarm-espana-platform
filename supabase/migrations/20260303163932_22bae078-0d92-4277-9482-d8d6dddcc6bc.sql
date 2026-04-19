@@ -17,6 +17,7 @@ CREATE INDEX IF NOT EXISTS idx_partner_admin_invites_status ON public.partner_ad
 
 ALTER TABLE public.partner_admin_invites ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admin full access to partner_admin_invites" ON public.partner_admin_invites;
 CREATE POLICY "Admin full access to partner_admin_invites"
   ON public.partner_admin_invites FOR ALL
   USING (

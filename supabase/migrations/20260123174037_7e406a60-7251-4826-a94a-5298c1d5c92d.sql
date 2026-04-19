@@ -1,6 +1,7 @@
 -- Create storage bucket for partner presentations
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('partner-presentations', 'partner-presentations', true);
+VALUES ('partner-presentations', 'partner-presentations', true)
+ON CONFLICT (id) DO NOTHING;
 
 -- RLS Policies for storage: Partners can only access their own files
 CREATE POLICY "Partners can view own presentations"

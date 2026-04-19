@@ -1,6 +1,7 @@
 -- Create storage bucket for website images
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('website-images', 'website-images', true);
+VALUES ('website-images', 'website-images', true)
+ON CONFLICT (id) DO NOTHING;
 
 -- Storage policies for website-images bucket
 CREATE POLICY "Anyone can view website images"

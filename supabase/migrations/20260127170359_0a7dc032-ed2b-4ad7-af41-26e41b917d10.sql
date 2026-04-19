@@ -97,7 +97,8 @@ CREATE POLICY "Admins can delete social post research"
 -- STORAGE BUCKET FOR POST IMAGES
 -- =============================================
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('social-post-images', 'social-post-images', true);
+VALUES ('social-post-images', 'social-post-images', true)
+ON CONFLICT (id) DO NOTHING;
 
 -- Storage policies for staff access
 CREATE POLICY "Staff can view social post images"

@@ -158,17 +158,22 @@ VALUES ('video-hub-exports', 'video-hub-exports', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- 12. Create storage policies for video-hub-exports bucket
+DROP POLICY IF EXISTS "Staff can view video exports" ON storage.objects;
 CREATE POLICY "Staff can view video exports" ON storage.objects
   FOR SELECT USING (bucket_id = 'video-hub-exports' AND public.is_staff(auth.uid()));
 
+DROP POLICY IF EXISTS "Staff can upload video exports" ON storage.objects;
 CREATE POLICY "Staff can upload video exports" ON storage.objects
   FOR INSERT WITH CHECK (bucket_id = 'video-hub-exports' AND public.is_staff(auth.uid()));
 
+DROP POLICY IF EXISTS "Staff can update video exports" ON storage.objects;
 CREATE POLICY "Staff can update video exports" ON storage.objects
   FOR UPDATE USING (bucket_id = 'video-hub-exports' AND public.is_staff(auth.uid()));
 
+DROP POLICY IF EXISTS "Staff can delete video exports" ON storage.objects;
 CREATE POLICY "Staff can delete video exports" ON storage.objects
   FOR DELETE USING (bucket_id = 'video-hub-exports' AND public.is_staff(auth.uid()));
 
+DROP POLICY IF EXISTS "Public can view video exports" ON storage.objects;
 CREATE POLICY "Public can view video exports" ON storage.objects
   FOR SELECT USING (bucket_id = 'video-hub-exports');

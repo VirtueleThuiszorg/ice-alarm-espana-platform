@@ -81,6 +81,7 @@ const Unauthorized = lazyWithRetry(() => import("./pages/auth/Unauthorized"));
 const StaffInvitePage = lazyWithRetry(() => import("./pages/staff/StaffInvitePage"));
 
 // Admin Pages - Lazy loaded
+const ProductCatalogPage = lazyWithRetry(() => import("./pages/admin/ProductCatalogPage"));
 const AdminDashboard = lazyWithRetry(() => import("./pages/admin/AdminDashboard"));
 const MembersPage = lazyWithRetry(() => import("./pages/admin/MembersPage"));
 const DevicesPage = lazyWithRetry(() => import("./pages/admin/DevicesPage"));
@@ -375,7 +376,7 @@ const App = () => {
                       <Route path="reports" element={<ReportsPage />} />
                       <Route path="analytics" element={<AnalyticsPage />} />
                       <Route path="ev07b" element={<EV07BPage />} />
-                      <Route path="products" element={<Navigate to="/admin/ev07b" replace />} />
+                      <Route path="products" element={<ProductCatalogPage />} />
                       <Route path="settings" element={<SettingsPage />} />
                       <Route path="messages" element={<MessagesPage />} />
                       <Route path="tasks" element={<TasksPage />} />

@@ -138,6 +138,7 @@ const menuGroups: MenuGroup[] = [
       { icon: DollarSign, labelKey: "sidebar.payments", path: "/admin/payments" },
       { icon: DollarSign, labelKey: "sidebar.commissions", path: "/admin/commissions" },
       { icon: Smartphone, labelKey: "sidebar.ev07b", path: "/admin/ev07b" },
+      { icon: ShoppingCart, labelKey: "sidebar.productCatalog", path: "/admin/products" },
       { icon: Activity, labelKey: "sidebar.analytics", path: "/admin/analytics" },
       { icon: BarChart3, labelKey: "sidebar.reports", path: "/admin/reports" }
     ]

@@ -57,6 +57,8 @@ import { PartnerLayout } from "@/components/layout/PartnerLayout";
 const Index = lazyWithRetry(() => import("./pages/Index"));
 const ContactPage = lazyWithRetry(() => import("./pages/ContactPage"));
 const PendantPage = lazyWithRetry(() => import("./pages/PendantPage"));
+const ProductsPage = lazyWithRetry(() => import("./pages/ProductsPage"));
+const ProductDetailPage = lazyWithRetry(() => import("./pages/ProductDetailPage"));
 const TermsPage = lazyWithRetry(() => import("./pages/TermsPage"));
 const PrivacyPage = lazyWithRetry(() => import("./pages/PrivacyPage"));
 const BlogListPage = lazyWithRetry(() => import("./pages/blog/BlogListPage"));
@@ -330,6 +332,8 @@ const App = () => {
                     {/* Public Routes */}
                     <Route path="/" element={<Index />} />
                     <Route path="/how-it-works" element={<HowItWorksPage />} />
+                    <Route path="/products" element={<ProductsPage />} />
+                    <Route path="/products/:slug" element={<ProductDetailPage />} />
                     <Route path="/pendant" element={<PendantPage />} />
                     <Route path="/contact" element={<ContactPage />} />
                     <Route path="/terms" element={<TermsPage />} />

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { functionKeyForTrigger, isIsabellaFunctionAllowed } from "../_shared/isabella-gate.ts";
 
 
 
@@ -845,6 +846,34 @@ serve(async (req) => {
 
 // Handle CHAT WIDGET requests
     if (isChatWidget && (agentKey === "customer_service_expert" || agentKey === "member_specialist" || agentKey === "staff_support_specialist")) {
+      // Isabella settings gate: the public website chat ("chat_widget") is a
+      // discretionary inbound channel — if an admin disables it, suppress the
+      // autonomous reply but ALWAYS leave escalate-to-human open (the response
+      // signals the widget to route to a human). Internal authenticated tools
+      // (member_specialist, staff_support_specialist) are not the public widget
+      // and are not gated here.
+      if (agentKey === "customer_service_expert") {
+        const gate = await isIsabellaFunctionAllowed(supabase, "chat_widget");
+        if (!gate.allowed) {
+          console.log(JSON.stringify({
+            event: "ai_run_gated",
+            requestId,
+            agentKey,
+            functionKey: "chat_widget",
+            reason: gate.reason,
+          }));
+          return new Response(
+            JSON.stringify({
+              success: true,
+              disabled: true,
+              escalate: true,
+              output: { response: null, disabled: true, escalate: true },
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
       const startTime = Date.now();
       const userLanguage = context?.userLanguage || "en";
       const conversationHistory = context?.conversationHistory || [];
@@ -1226,6 +1255,38 @@ When discussing emergency contacts, use the EXACT names listed above - never inv
       eventData = event;
     }
 
+    // Isabella settings gate (autonomous, event-driven runs). Resolve the event
+    // to an Isabella function_key; if it is a DISCRETIONARY function that is
+    // disabled, do not run. Safety-critical/legal functions are never gated, and
+    // events with no mapped function fall through (no behaviour change).
+    const isabellaFunctionKey = functionKeyForTrigger(eventData?.event_type);
+    if (isabellaFunctionKey) {
+      const gate = await isIsabellaFunctionAllowed(supabase, isabellaFunctionKey);
+      if (!gate.allowed) {
+        console.log(JSON.stringify({
+          event: "ai_run_gated",
+          requestId,
+          agentKey,
+          functionKey: isabellaFunctionKey,
+          reason: gate.reason,
+        }));
+        if (eventId) {
+          await supabase
+            .from("ai_events")
+            .update({ processed: true, processed_at: new Date().toISOString() })
+            .eq("id", eventId);
+        }
+        return new Response(
+          JSON.stringify({
+            success: true,
+            skipped: true,
+            reason: `Isabella function "${isabellaFunctionKey}" disabled (${gate.reason})`,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Build context based on read permissions
     const enrichedContext: Record<string, any> = { ...context };
     
@@ -1451,12 +1512,18 @@ If no action is needed, respond with {"actions": [], "analysis": "your analysis 
         actionStatus = "approved"; // Will be executed immediately
       }
 
+      // Stamp the originating Isabella function key into the payload so that
+      // ai-execute-action can re-gate discretionary actions at execution time.
+      const actionPayload = isabellaFunctionKey
+        ? { ...action.payload, __isabella_function_key: isabellaFunctionKey }
+        : action.payload;
+
       const { data: actionRecord, error: actionError } = await supabase
         .from("ai_actions")
         .insert({
           run_id: runRecord.id,
           action_type: action.action_type,
-          payload: action.payload,
+          payload: actionPayload,
           status: actionStatus,
         })
         .select()

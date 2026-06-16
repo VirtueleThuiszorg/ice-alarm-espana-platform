@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { isActionNeverGated, isIsabellaFunctionAllowed } from "../_shared/isabella-gate.ts";
 
 
 
@@ -39,6 +40,36 @@ serve(async (req) => {
         JSON.stringify({ success: false, message: `Action status is ${action.status}, not approved` }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Isabella settings gate. Escalate-to-human actions are NEVER gated (this is
+    // the carve-out for inbound channels: suppress the autonomous reply, never
+    // the path to a human). Other actions carry the originating function key
+    // (stamped by ai-run); if that discretionary function is disabled, do not
+    // execute. Safety-critical/legal functions and infra errors fail open.
+    if (!isActionNeverGated(action.action_type)) {
+      const fnKey = action.payload?.__isabella_function_key;
+      if (fnKey) {
+        const gate = await isIsabellaFunctionAllowed(supabase, fnKey);
+        if (!gate.allowed) {
+          await supabase
+            .from("ai_actions")
+            .update({
+              status: "skipped",
+              error_message: `Isabella function "${fnKey}" disabled (${gate.reason})`,
+            })
+            .eq("id", actionId);
+          return new Response(
+            JSON.stringify({
+              success: true,
+              actionId,
+              skipped: true,
+              reason: `Isabella function "${fnKey}" disabled (${gate.reason})`,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
     }
 
     let result: any = null;

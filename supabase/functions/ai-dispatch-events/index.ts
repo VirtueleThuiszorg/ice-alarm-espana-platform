@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { functionKeyForTrigger, isIsabellaFunctionAllowed } from "../_shared/isabella-gate.ts";
 
 
 
@@ -77,6 +78,26 @@ serve(async (req) => {
         throw new Error(`Failed to create event: ${eventError.message}`);
       }
 
+      // Isabella settings gate: if this event maps to a discretionary function
+      // that is disabled, do not dispatch. Safety-critical/legal functions are
+      // never gated (the gate fails open for them, and on infra errors).
+      const fnKey = functionKeyForTrigger(event_type);
+      if (fnKey) {
+        const gate = await isIsabellaFunctionAllowed(supabase, fnKey);
+        if (!gate.allowed) {
+          return new Response(
+            JSON.stringify({
+              success: true,
+              eventId: newEvent.id,
+              dispatchedTo: [],
+              skipped: true,
+              reason: `Isabella function "${fnKey}" disabled (${gate.reason})`,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
       // Dispatch immediately
       const agents = EVENT_AGENT_MAP[event_type] || [];
       const dispatchResults = [];
@@ -134,8 +155,27 @@ serve(async (req) => {
     const results = [];
 
     for (const event of pendingEvents || []) {
+      // Isabella settings gate (discretionary functions only; safety-critical
+      // and legal never gated). Disabled -> mark processed and skip dispatch.
+      const fnKey = functionKeyForTrigger(event.event_type);
+      if (fnKey) {
+        const gate = await isIsabellaFunctionAllowed(supabase, fnKey);
+        if (!gate.allowed) {
+          await supabase
+            .from("ai_events")
+            .update({ processed: true, processed_at: new Date().toISOString() })
+            .eq("id", event.id);
+          results.push({
+            eventId: event.id,
+            skipped: true,
+            reason: `Isabella function "${fnKey}" disabled (${gate.reason})`,
+          });
+          continue;
+        }
+      }
+
       const agents = EVENT_AGENT_MAP[event.event_type] || [];
-      
+
       if (agents.length === 0) {
         // No agents configured for this event type, mark as processed
         await supabase

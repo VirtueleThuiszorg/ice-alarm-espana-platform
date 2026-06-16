@@ -112,27 +112,29 @@ export default function SubscriptionsPage() {
     },
   });
 
+  // Drives Stripe via the admin-subscription-action edge function. The DB status is only
+  // changed if the Stripe call succeeds (the function refuses if the gateway is Mollie).
   const updateSubscriptionMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Record<string, any> }) => {
-      const { error } = await supabase
-        .from("subscriptions")
-        .update(updates)
-        .eq("id", id);
-      if (error) throw error;
+    mutationFn: async ({ id, action }: { id: string; action: "pause" | "resume" | "cancel" }) => {
+      const { data, error } = await supabase.functions.invoke("admin-subscription-action", {
+        body: { subscriptionId: id, action },
+      });
+      if (error) throw new Error(error.message);
+      if (!data?.success) throw new Error(data?.error || "Subscription action failed");
+      return data;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["admin-subscriptions"] });
-      const action = variables.updates.status;
       const messages: Record<string, string> = {
-        paused: "Subscription paused successfully",
-        active: "Subscription resumed successfully",
-        cancelled: "Subscription cancelled successfully",
+        pause: "Subscription paused in Stripe",
+        resume: "Subscription resumed in Stripe",
+        cancel: "Subscription cancelled in Stripe",
       };
-      toast.success(messages[action] || "Subscription updated");
+      toast.success(messages[variables.action] || "Subscription updated");
       setConfirmAction(null);
     },
-    onError: () => {
-      toast.error("Failed to update subscription");
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : "Failed to update subscription");
       setConfirmAction(null);
     },
   });
@@ -143,24 +145,8 @@ export default function SubscriptionsPage() {
 
   const confirmActionHandler = () => {
     if (!confirmAction) return;
-
     const { type, subscription } = confirmAction;
-    const updates: Record<string, any> = {};
-
-    switch (type) {
-      case "pause":
-        updates.status = "paused";
-        break;
-      case "resume":
-        updates.status = "active";
-        break;
-      case "cancel":
-        updates.status = "cancelled";
-        updates.cancelled_at = new Date().toISOString();
-        break;
-    }
-
-    updateSubscriptionMutation.mutate({ id: subscription.id, updates });
+    updateSubscriptionMutation.mutate({ id: subscription.id, action: type });
   };
 
   const getConfirmDialogContent = () => {

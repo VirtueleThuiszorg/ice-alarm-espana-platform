@@ -954,11 +954,29 @@ export default function MessagesPage() {
                         </Button>
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={!selectedConversation.member?.phone}
+                          title={selectedConversation.member?.phone ? undefined : "No phone number on file"}
+                          onClick={() => {
+                            const phone = selectedConversation.member?.phone;
+                            if (phone) window.location.href = `tel:${phone}`;
+                          }}
+                        >
                           <Phone className="mr-2 h-4 w-4" />
                           Call
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={!selectedConversation.member?.phone}
+                          title={selectedConversation.member?.phone ? undefined : "No phone number on file"}
+                          onClick={() => {
+                            const phone = selectedConversation.member?.phone;
+                            if (phone) window.location.href = `sms:${phone}`;
+                          }}
+                        >
                           <MessageSquare className="mr-2 h-4 w-4" />
                           SMS
                         </Button>

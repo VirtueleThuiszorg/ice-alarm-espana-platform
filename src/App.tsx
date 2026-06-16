@@ -56,7 +56,6 @@ import { PartnerLayout } from "@/components/layout/PartnerLayout";
 // Public Pages - Lazy loaded
 const Index = lazyWithRetry(() => import("./pages/Index"));
 const ContactPage = lazyWithRetry(() => import("./pages/ContactPage"));
-const PendantPage = lazyWithRetry(() => import("./pages/PendantPage"));
 const ProductsPage = lazyWithRetry(() => import("./pages/ProductsPage"));
 const ProductDetailPage = lazyWithRetry(() => import("./pages/ProductDetailPage"));
 const TermsPage = lazyWithRetry(() => import("./pages/TermsPage"));
@@ -87,6 +86,7 @@ const MembersPage = lazyWithRetry(() => import("./pages/admin/MembersPage"));
 const DevicesPage = lazyWithRetry(() => import("./pages/admin/DevicesPage"));
 const DeviceDetailPage = lazyWithRetry(() => import("./pages/admin/DeviceDetailPage"));
 const OrdersPage = lazyWithRetry(() => import("./pages/admin/OrdersPage"));
+const OrderDetailPage = lazyWithRetry(() => import("./pages/admin/OrderDetailPage"));
 const SubscriptionsPage = lazyWithRetry(() => import("./pages/admin/SubscriptionsPage"));
 const PaymentsPage = lazyWithRetry(() => import("./pages/admin/PaymentsPage"));
 const AlertsPage = lazyWithRetry(() => import("./pages/admin/AlertsPage"));
@@ -335,7 +335,7 @@ const App = () => {
                     <Route path="/how-it-works" element={<HowItWorksPage />} />
                     <Route path="/products" element={<ProductsPage />} />
                     <Route path="/products/:slug" element={<ProductDetailPage />} />
-                    <Route path="/pendant" element={<PendantPage />} />
+                    <Route path="/pendant" element={<Navigate to="/products/pendant" replace />} />
                     <Route path="/contact" element={<ContactPage />} />
                     <Route path="/terms" element={<TermsPage />} />
                     <Route path="/privacy" element={<PrivacyPage />} />
@@ -368,6 +368,7 @@ const App = () => {
                       <Route path="devices/:id" element={<DeviceDetailPage />} />
                       <Route path="finance" element={<FinanceDashboard />} />
                       <Route path="orders" element={<OrdersPage />} />
+                      <Route path="orders/:id" element={<OrderDetailPage />} />
                       <Route path="subscriptions" element={<SubscriptionsPage />} />
                       <Route path="payments" element={<PaymentsPage />} />
                       <Route path="alerts" element={<AlertsPage />} />

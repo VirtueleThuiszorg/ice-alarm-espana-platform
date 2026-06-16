@@ -31,21 +31,22 @@ export default function PartnerSupportPage() {
     },
   ];
 
+  // No hosted assets for these yet — render as "coming soon" rather than dead "#" links.
   const resources = [
     {
       title: t("partnerSupport.resourceGuide", "Partner Guide"),
       description: t("partnerSupport.resourceGuideDesc", "Everything you need to know about the partner programme"),
-      href: "#",
+      href: null,
     },
     {
       title: t("partnerSupport.resourceMarketing", "Marketing Materials"),
       description: t("partnerSupport.resourceMarketingDesc", "Downloadable brochures, flyers, and digital assets"),
-      href: "#",
+      href: null,
     },
     {
       title: t("partnerSupport.resourceFAQ", "Full FAQ"),
       description: t("partnerSupport.resourceFAQDesc", "Detailed answers to common questions"),
-      href: "#",
+      href: null,
     },
   ];
 
@@ -132,19 +133,37 @@ export default function PartnerSupportPage() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-3">
-            {resources.map((resource) => (
-              <a
-                key={resource.title}
-                href={resource.href}
-                className="flex items-start gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors"
-              >
-                <ExternalLink className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-sm">{resource.title}</p>
-                  <p className="text-xs text-muted-foreground">{resource.description}</p>
+            {resources.map((resource) =>
+              resource.href ? (
+                <a
+                  key={resource.title}
+                  href={resource.href}
+                  className="flex items-start gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors"
+                >
+                  <ExternalLink className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-sm">{resource.title}</p>
+                    <p className="text-xs text-muted-foreground">{resource.description}</p>
+                  </div>
+                </a>
+              ) : (
+                <div
+                  key={resource.title}
+                  className="flex items-start gap-3 p-3 rounded-lg border opacity-60 cursor-not-allowed"
+                  title="Coming soon"
+                  aria-disabled="true"
+                >
+                  <ExternalLink className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-sm">
+                      {resource.title}{" "}
+                      <span className="text-xs text-muted-foreground">(coming soon)</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">{resource.description}</p>
+                  </div>
                 </div>
-              </a>
-            ))}
+              )
+            )}
           </div>
         </CardContent>
       </Card>

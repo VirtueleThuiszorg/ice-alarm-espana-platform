@@ -75,7 +75,8 @@ export const Logo = forwardRef<HTMLDivElement, LogoProps>(
 
         {showText && (
           <div className="flex flex-col leading-none">
-            <span className={cn("font-bold tracking-tight font-['Poppins']", textSizes[size], text.main)}>
+            {/* Wordmark — Fraunces (display/serif), weight ~600. Tagline stays sans. */}
+            <span className={cn("font-semibold tracking-tight font-display", textSizes[size], text.main)}>
               Care Conneqt
             </span>
             <span className={cn("text-xs font-medium", text.accent)}>

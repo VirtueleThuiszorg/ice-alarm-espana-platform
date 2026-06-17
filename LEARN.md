@@ -61,6 +61,15 @@ session*, driven by this routine, not a live background process.
 
 > Format: `### YYYY-MM-DD — short title` then 1–3 lines. Never delete entries.
 
+### 2026-06-17 — Pre-client BLOCKING gates added to CUTOVER Step F (F8, F9)
+F8: **Twilio must be PAID before any real client** — a trial account only reaches
+pre-verified numbers, so the SOS/emergency path can't contact real members' emergency
+contacts; trial is for cutover testing only. F9: **rotate any credential exposed during
+setup** (esp. the Twilio Auth Token; also Stripe/Mollie/Resend/Gmail/service-role/EV07B/
+webhook secrets if shared in chat/screenshots) before go-live, and set secrets only in
+dashboards. (F7 = replace staff test passwords via invite flow, already added.) Verify-gate F
+now "all nine"; F5/F7/F8/F9 are hard blockers.
+
 ### 2026-06-17 — Staff test-accounts documented + no-test-password go-live gate
 CUTOVER Step C2 now lists the 5 test accounts (lee/mary/carmen/albert/travis@careconneqt.com,
 temp `Test@1234`, TESTING ONLY, created post-bootstrap on the deployed project) so Lee can

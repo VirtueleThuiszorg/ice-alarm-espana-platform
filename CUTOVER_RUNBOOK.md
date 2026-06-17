@@ -302,9 +302,21 @@ Run against the live (new) environment:
    - Confirm the real staff accounts were created via invites (each has a unique,
      self-set password).
    If any account still uses the test password, **STOP — do not onboard real members.**
+8. **🔴 BLOCKING — Twilio must be on a PAID plan before any real client.** A Twilio TRIAL
+   account can only send to **pre-verified** numbers — which means the SOS/emergency path
+   **cannot call or SMS a real member's emergency contacts**, and outbound voice/SMS to real
+   members will fail. Trial is acceptable for **cutover testing only**. Before onboarding any
+   real client: upgrade the Twilio account to paid, remove the trial restriction, and confirm
+   an SMS/call reaches a NON-verified number. **Do not go live on a trial Twilio account.**
+9. **🔴 BLOCKING — rotate any credential exposed during setup.** Any secret that was shared
+   in chat, screenshots, or otherwise exposed during cutover (notably the **Twilio Auth
+   Token**, but also Stripe/Mollie/Resend/Gmail/Supabase service-role/`EV07B_HMAC_SECRET`
+   /`EV07B_CHECKIN_KEY`/`WEBHOOK_SECRET` if exposed) MUST be rotated before go-live. Going
+   forward, set all secrets **directly in the Supabase / provider dashboards** — never in
+   chat or screenshots. Verify the old (exposed) values no longer work.
 
-**Verify-gate F:** **all seven** pass — and gates F5 (medical-data) and F7 (no test
-passwords) are HARD BLOCKERS: the
+**Verify-gate F:** **all nine** pass — and gates F5 (medical-data), F7 (no test passwords),
+F8 (Twilio paid) and F9 (rotated exposed credentials) are HARD BLOCKERS: the
 platform is NOT considered live until F5 passes for both single and couple. Only then is
 the cutover complete and `cfwnrcogikjycjcobsay` becomes live production — at which point
 update `CLAUDE.md` §4 (swap which ref is "current live") and retire `crpsuhoixfdhjugprbuc`

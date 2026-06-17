@@ -156,11 +156,38 @@ Run against the live (new) environment:
 4. **Chat widget** — send a message; confirm `ai-run` (chat_widget) returns a reply.
    Then toggle `chat_widget` off in admin → confirm the reply is suppressed but
    escalate-to-human still works (the Isabella gate, now live).
+5. **🔴 BLOCKING — medical-data correctness (verifies `feat/join-medical-fix` end to end;
+   unit tests cannot prove the DB write).** Complete a FULL `/join` signup with medical
+   info filled in — conditions, medications, allergies, blood type — for BOTH:
+   - a **single** registration, and
+   - a **couple** registration (fill the partner's medical info too).
 
-**Verify-gate F:** all four pass. Only then is the cutover complete and
-`cfwnrcogikjycjcobsay` becomes live production — at which point update `CLAUDE.md` §4
-(swap which ref is "current live") and retire `crpsuhoixfdhjugprbuc` per a separate
-decision.
+   Then query the new DB (`cfwnrcogikjycjcobsay`) and confirm for each new member:
+   ```sql
+   -- primary member has a medical row with the entered values
+   select m.id, m.first_name, mi.blood_type, mi.allergies, mi.medications, mi.medical_conditions
+   from members m join medical_information mi on mi.member_id = m.id
+   where m.id = '<new_member_id>';
+   -- couple: the partner member ALSO has a medical_information row
+   -- emergency contacts were written
+   select count(*) from emergency_contacts where member_id = '<new_member_id>';
+   ```
+   **Pass criteria (ALL must hold):**
+   - `medical_information` row exists for the new member with the entered blood type /
+     allergies / medications / conditions (not null/empty).
+   - For the couple case, a `medical_information` row also exists for the partner member.
+   - `emergency_contacts` rows exist for the member.
+
+   If any of these is missing, the medical-data fix is NOT working — **STOP, do not go
+   live.** This is the regression that shipped before (`FRONTEND_GAPS.md`): medical info
+   entered at signup was silently dropped from the member record.
+
+**Verify-gate F:** **all five** pass — and gate F5 (medical-data) is a HARD BLOCKER: the
+platform is NOT considered live until F5 passes for both single and couple. Only then is
+the cutover complete and `cfwnrcogikjycjcobsay` becomes live production — at which point
+update `CLAUDE.md` §4 (swap which ref is "current live") and retire `crpsuhoixfdhjugprbuc`
+per a separate decision. **Record the F5 result (pass/fail, member IDs checked) in
+`LEARN.md` §4.**
 
 ---
 

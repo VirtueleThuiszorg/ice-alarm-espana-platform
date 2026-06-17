@@ -8,6 +8,7 @@ import { CreditCard, Loader2, Lock, Shield, ExternalLink, AlertCircle, Gift, Fla
 import { supabase } from "@/integrations/supabase/client";
 import { calculateOrder, formatPrice } from "@/config/pricing";
 import { getStoredReferralData, clearReferralData } from "@/lib/crmEvents";
+import { buildRegistrationBody } from "@/lib/registrationPayload";
 import { usePricingSettings } from "@/hooks/usePricingSettings";
 
 interface JoinPaymentStepProps {
@@ -38,7 +39,7 @@ export function JoinPaymentStep({ data, onUpdate, onPaymentInitiated }: JoinPaym
     setError(null);
     try {
       const { referralCode: partnerRef, refPostId, utmParams } = getStoredReferralData();
-      const { data: registrationResult, error: registrationError } = await supabase.functions.invoke("submit-registration", { body: { membershipType: data.membershipType, primaryMember: data.primaryMember, partnerMember: data.partnerMember, address: data.address, separateAddresses: data.separateAddresses, partnerAddress: data.partnerAddress, emergencyContacts: data.emergencyContacts, includePendant: data.includePendant, pendantCount: data.pendantCount, billingFrequency: data.billingFrequency, partnerRef, refPostId, utmParams } });
+      const { data: registrationResult, error: registrationError } = await supabase.functions.invoke("submit-registration", { body: buildRegistrationBody(data, { partnerRef, refPostId, utmParams }) });
       if (registrationError) throw new Error(registrationError.message || "Failed to submit registration");
       if (!registrationResult?.success) throw new Error(registrationResult?.error || "Registration failed");
       onUpdate({ memberId: registrationResult.memberId, orderId: registrationResult.orderNumber });
@@ -72,22 +73,7 @@ export function JoinPaymentStep({ data, onUpdate, onPaymentInitiated }: JoinPaym
     try {
       const { referralCode: partnerRef, refPostId, utmParams } = getStoredReferralData();
       const { data: registrationResult, error: registrationError } = await supabase.functions.invoke("submit-registration", {
-        body: {
-          membershipType: data.membershipType,
-          primaryMember: data.primaryMember,
-          partnerMember: data.partnerMember,
-          address: data.address,
-          separateAddresses: data.separateAddresses,
-          partnerAddress: data.partnerAddress,
-          emergencyContacts: data.emergencyContacts,
-          includePendant: data.includePendant,
-          pendantCount: data.pendantCount,
-          billingFrequency: data.billingFrequency,
-          partnerRef,
-          refPostId,
-          utmParams,
-          testMode: true
-        }
+        body: buildRegistrationBody(data, { partnerRef, refPostId, utmParams, testMode: true })
       });
 
       if (registrationError) throw new Error(registrationError.message || "Failed to submit registration");

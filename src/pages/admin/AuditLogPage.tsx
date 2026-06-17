@@ -178,14 +178,36 @@ export default function AuditLogPage() {
     return "bg-gray-500";
   };
 
-  const exportToCsv = () => {
-    if (logs.length === 0) {
+  const exportToCsv = async () => {
+    // Export the FULL filtered result set, not just the current page. Re-run the same
+    // filters as fetchLogs but without the pagination range.
+    let query = supabase
+      .from("activity_logs")
+      .select(`*, staff:staff!activity_logs_staff_id_fkey(first_name, last_name)`)
+      .order("created_at", { ascending: false });
+
+    if (dateFrom) query = query.gte("created_at", `${dateFrom}T00:00:00`);
+    if (dateTo) query = query.lte("created_at", `${dateTo}T23:59:59`);
+    if (actionFilter && actionFilter !== "all") query = query.eq("action", actionFilter);
+    if (entityTypeFilter && entityTypeFilter !== "all") query = query.eq("entity_type", entityTypeFilter);
+    if (searchQuery.trim()) {
+      query = query.or(
+        `action.ilike.%${searchQuery}%,entity_type.ilike.%${searchQuery}%,entity_id.ilike.%${searchQuery}%`
+      );
+    }
+
+    const { data: allLogs, error } = await query;
+    if (error) {
+      toast.error("Failed to export audit log");
+      return;
+    }
+    if (!allLogs || allLogs.length === 0) {
       toast.error("No data to export");
       return;
     }
 
     const headers = ["Date/Time", "Action", "Entity Type", "Entity ID", "User", "IP Address", "Old Values", "New Values"];
-    const rows = logs.map((log) => [
+    const rows = allLogs.map((log: any) => [
       log.created_at ? format(parseISO(log.created_at), "yyyy-MM-dd HH:mm:ss") : "",
       log.action,
       log.entity_type,

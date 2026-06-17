@@ -394,11 +394,9 @@ export default function PartnerDetailPage() {
             Set Pricing
           </Button>
           {partner.partner_type === "residential" && (
-            <Button variant="outline" size="sm" onClick={() => {
-              toast.info("Invoice generation coming soon");
-            }}>
+            <Button variant="outline" size="sm" disabled title="Coming soon">
               <FileText className="mr-2 h-4 w-4" />
-              Generate Invoice
+              Generate Invoice (coming soon)
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={() => {

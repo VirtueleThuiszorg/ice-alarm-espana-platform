@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { memberBasePathFor } from "@/lib/portalPath";
 import {
   Loader2, Plus, CheckCircle, Clock, AlertCircle,
   User, Calendar, Search, MoreHorizontal, Phone,
@@ -89,6 +90,10 @@ interface Member {
 
 export default function TasksPage() {
   const { t } = useTranslation();
+  // This page is shared (re-exported) by both /admin and /call-centre. Keep member
+  // links inside the portal the user is actually in, instead of hardcoding /admin.
+  const location = useLocation();
+  const memberBasePath = memberBasePathFor(location.pathname);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -464,8 +469,8 @@ export default function TasksPage() {
                     )}
                     <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
                       {task.member && (
-                        <Link 
-                          to={`/admin/members/${task.member.id}`}
+                        <Link
+                          to={`${memberBasePath}/members/${task.member.id}`}
                           className="flex items-center gap-1 hover:text-primary"
                         >
                           <User className="w-3 h-3" />
@@ -519,7 +524,7 @@ export default function TasksPage() {
                       )}
                       {task.member && (
                         <DropdownMenuItem asChild>
-                          <Link to={`/admin/members/${task.member.id}`}>
+                          <Link to={`${memberBasePath}/members/${task.member.id}`}>
                             View Member
                           </Link>
                         </DropdownMenuItem>

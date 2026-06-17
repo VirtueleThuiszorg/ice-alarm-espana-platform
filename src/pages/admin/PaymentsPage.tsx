@@ -62,6 +62,10 @@ export default function PaymentsPage() {
         query = query.eq("payment_type", typeFilter as "registration" | "subscription" | "device" | "shipping" | "order");
       }
 
+      if (searchQuery.trim()) {
+        query = query.ilike("invoice_number", `%${searchQuery.trim()}%`);
+      }
+
       const { data: payments, count, error } = await query;
       if (error) throw error;
 
@@ -234,10 +238,10 @@ export default function PaymentsPage() {
                     </TableCell>
                     <TableCell>
                       {payment.invoice_number ? (
-                        <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
-                          <FileText className="mr-1 h-4 w-4" />
+                        <span className="inline-flex items-center gap-1 font-mono text-sm">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
                           {payment.invoice_number}
-                        </Button>
+                        </span>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}

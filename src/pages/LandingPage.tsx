@@ -139,7 +139,7 @@ export default function LandingPage() {
             <div className="relative">
               <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-primary/10 aspect-[4/3] bg-muted">
                 <ImageWithPlaceholder
-                  imageUrl={heroImage.imageUrl}
+                  imageUrl={heroImage.imageUrl || "/images/homepage1.png"}
                   altText={heroImage.altText || "Happy multigenerational family enjoying peace of mind with Care Conneqt protection"}
                   placeholderText="Hero Image"
                   placeholderSubtext="Coming Soon"

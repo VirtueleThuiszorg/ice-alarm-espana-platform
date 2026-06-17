@@ -58,13 +58,15 @@ Portals: **admin, call-centre, client, partner, staff** (+ auth, blog, join, roo
 
 ## 4. Infrastructure & secrets
 
-- **Supabase projects (migration in progress — verified 2026-06-16):**
-  - **`crpsuhoixfdhjugprbuc` = CURRENT LIVE PRODUCTION** (Lovable-managed; what Vercel
-    serves; members live here). **Source of truth until cutover.** Treat with full
-    production caution.
-  - **`cfwnrcogikjycjcobsay` = NEW TARGET / future production** — Lee-owned account
-    (`wakemanlee20@`). **Schema applied 2026-06-16 (123 migrations); no data yet.** Data
-    copy is the next step; not yet live. The local repo is currently linked to this ref.
+- **Supabase projects (cutover COMPLETE — verified 2026-06-17):**
+  - **`cfwnrcogikjycjcobsay` = CURRENT LIVE PRODUCTION** — Lee-owned account
+    (`wakemanlee20@`); what Vercel serves. **Cutover completed 2026-06-17:** schema
+    (126 migrations) + all 91 edge functions deployed; Lee bootstrapped as `super_admin`
+    (`staff.id 84ccfc96-aeb0-4c75-a1b0-450c9f78d989`). The local repo is linked to this
+    ref. **Source of truth.** Treat with full production caution.
+  - **`crpsuhoixfdhjugprbuc` = OLD production (Lovable-managed) — no longer served.** Kept
+    as a fallback during stabilisation. **Safe to delete only once Lee confirms the new
+    site is stable — do NOT delete yet.**
   - **`pduhccavshrhfkfbjgmj` = DEAD ICE ref. Never touch / never resurrect** — pushing to
     it would write into the old ICE production DB.
 - **Always confirm the link target before `supabase db push` / `functions deploy`** — the
@@ -112,11 +114,11 @@ Portals: **admin, call-centre, client, partner, staff** (+ auth, blog, join, roo
 
 - **Small, reversible commits — one logical change at a time.** Never batch unrelated
   fixes.
-- **Never push migrations or deploy functions without confirming the link target matches
-  the CORRECT project for the current migration step (see §4).** During the clean-start
-  migration the target is `cfwnrcogikjycjcobsay`; after cutover it becomes the live
-  production project. Verify `supabase/.temp/project-ref` before any `db push` /
-  `functions deploy`.
+- **Never push migrations or deploy functions without confirming the link target is
+  `cfwnrcogikjycjcobsay` (see §4).** Since the 2026-06-17 cutover this ref **is live
+  production** — every `db push` / `functions deploy` hits real production, so verify
+  `supabase/.temp/project-ref` first and treat each one with full production caution.
+  Never target the old `crpsuhoixfdhjugprbuc` or the dead `pduhccavshrhfkfbjgmj`.
 - This was a **rebrand, not a rewrite**: features/logic/schema stay intact. ICE→Care
   leftovers are flagged, **not silently renamed** — see §11 and §12.
 - Audits drift (a Feb 2026 audit went un-actioned). Re-audit each quarter; keep this

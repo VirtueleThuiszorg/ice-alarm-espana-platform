@@ -61,6 +61,16 @@ session*, driven by this routine, not a live background process.
 
 > Format: `### YYYY-MM-DD — short title` then 1–3 lines. Never delete entries.
 
+### 2026-06-17 — CLAUDE.md §4/§6 updated to post-cutover reality (live ref swapped)
+§4 now names `cfwnrcogikjycjcobsay` as CURRENT LIVE PRODUCTION (cutover complete: 126
+migrations + 91 edge functions deployed; Lee = super_admin). `crpsuhoixfdhjugprbuc`
+downgraded to OLD production — no longer served, kept as fallback, NOT to be deleted until
+Lee confirms the new site is stable. `pduhccavshrhfkfbjgmj` unchanged (dead ICE, never touch).
+§6 link-target rule rewritten: the only valid `db push`/`functions deploy` target is now
+`cfwnrcogikjycjcobsay`, and it IS live production — full prod caution on every push.
+NOTE: §3 size table is now stale (says 89 edge functions / 123 migrations; real = 91 / 126)
+— left for the next §3 reconcile pass, not touched in this docs-only edit.
+
 ### 2026-06-17 — CUTOVER COMPLETE: cfwnrcogikjycjcobsay is live; first super_admin bootstrapped
 Live deploy executed end-to-end against `cfwnrcogikjycjcobsay`: (1) link + secrets audited
 (only 4 self-gen secrets set; provider secrets still Lee's to add); (2) 11 branches merged to

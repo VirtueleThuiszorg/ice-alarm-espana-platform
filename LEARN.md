@@ -61,6 +61,19 @@ session*, driven by this routine, not a live background process.
 
 > Format: `### YYYY-MM-DD — short title` then 1–3 lines. Never delete entries.
 
+### 2026-06-17 — Staffing & rota documented (CUTOVER Step C3); night-cover SPOF flagged
+Added Step C3: shift patterns (Mary supervisor mornings; Carmen rotating; Albert afternoons;
+Travis nights; Lee super_admin + on-call catch-all). **Verified** `sos-escalation-runner`
+orders on-call staff by `escalation_priority` ASCENDING (lower=first), so Lee the backstop
+needs the HIGHEST priority + `is_on_call=true`. **🔴 Risk flagged:** night shift (23:00–07:00)
+has a single primary (Travis) with Lee as only backup — single point of failure on the most
+safety-critical hours; recommend cross-training a 2nd night operator post-launch. Lee is sole
+fallback for all uncovered shifts (OK for launch). Verify-gate C3: an uncovered/unanswered
+night SOS must escalate to Lee (shift-monitor WhatsApp + escalation chain) AND Lee can take
+the call — confirm Lee's mobile receives the alerts. Also fixed a merge-hygiene issue: editing
+LEARN/CUTOVER on main reintroduced add/add conflicts vs logo-fraunces/admin-bootstrap, so those
+branch copies were removed (docs now solely on main) — dry-run re-confirmed all 8 merge clean.
+
 ### 2026-06-17 — Staff setup documented (CUTOVER Step C2) + GDPR audit-log TODO
 Added Step C2 to CUTOVER_RUNBOOK: Lee (super_admin via bootstrap) → invites Mary
 (`call_centre_supervisor`, L3 escalation + rota/holidays) → Carmen/Albert/Travis

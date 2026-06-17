@@ -160,6 +160,47 @@ billing or settings).
 
 ---
 
+## Step C3 — Staffing & rota / on-call coverage
+
+Configure shifts in the admin **Rota** (`staff_shifts`) and set the on-call/escalation
+fields on each `staff` row (`is_on_call`, `escalation_priority`).
+
+> **Escalation ordering (verified):** `sos-escalation-runner` selects on-call fallback staff
+> with `is_on_call=true` ordered by `escalation_priority` **ASCENDING** (lower number =
+> reached first). So the catch-all backstop must have the **highest** `escalation_priority`.
+
+### Roles & shift patterns
+
+| Person | Role | Shift pattern | On-call / escalation |
+|---|---|---|---|
+| **Lee** | `super_admin` **+ on-call fallback operator** | Covers ANY uncovered shift (incl. nights when Travis is off) | `is_on_call=true`, **highest** `escalation_priority` (final catch-all). Must be able to **receive & take an SOS** when no scheduled operator is present. |
+| **Mary** | `call_centre_supervisor` | **Mornings 07:00–15:00**, 4-on / 2-off | Escalation **L3** (supervisor tier); manages shifts / holidays / covers |
+| **Carmen** | `call_centre` | Rotating: **2× mornings (07:00–15:00) + 2× afternoons (15:00–23:00) + 2 off** | operator |
+| **Albert** | `call_centre` | **Afternoons 15:00–23:00**, 4-on / 2-off | operator |
+| **Travis** | `call_centre` | **Nights 23:00–07:00** (primary, sole night operator) | operator |
+
+### ⚠️ Coverage risks (flag prominently)
+
+- 🔴 **Night shift (23:00–07:00) has ONE primary operator (Travis); Lee is the only
+  backup.** This is a **single point of failure on the most safety-critical hours.**
+  **Recommend cross-training a second night-capable operator post-launch.**
+- 🟠 **Lee is the sole fallback for ALL uncovered shifts.** Sustainable for launch; revisit
+  as alert volume grows (Lee cannot be the permanent catch-all at scale).
+- 🟢 **Active safety nets for a no-show:** `staff-shift-monitor` (2-min heartbeat →
+  WhatsApp alert) and the SOS escalation chain. **Confirm Lee's mobile number receives the
+  shift-monitor + escalation WhatsApp alerts** (in `system_settings` / staff `personal_mobile`).
+
+**Verify-gate C3 (BLOCKING for night cover):** simulate an **uncovered / unanswered SOS at
+night** — fire a test SOS with no scheduled operator accepting it, and confirm:
+1. `staff-shift-monitor` flags the no-show and WhatsApps Lee.
+2. The escalation chain walks to the on-call fallback and **reaches Lee** (highest
+   `escalation_priority`, `is_on_call=true`).
+3. **Lee can actually take/accept the call** (browser softphone or dialed leg).
+If escalation does not reach Lee, the night safety net is broken — **STOP, do not go live
+on nights** until fixed.
+
+---
+
 ## Step D — Deploy edge functions to `cfwnrcogikjycjcobsay`
 
 > **This is where the Isabella settings gate goes live.** Confirm link target first:

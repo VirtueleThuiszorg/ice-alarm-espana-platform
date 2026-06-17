@@ -61,6 +61,26 @@ session*, driven by this routine, not a live background process.
 
 > Format: `### YYYY-MM-DD — short title` then 1–3 lines. Never delete entries.
 
+### 2026-06-17 — CUTOVER COMPLETE: cfwnrcogikjycjcobsay is live; first super_admin bootstrapped
+Live deploy executed end-to-end against `cfwnrcogikjycjcobsay`: (1) link + secrets audited
+(only 4 self-gen secrets set; provider secrets still Lee's to add); (2) 11 branches merged to
+main (0 conflicts, 349 tests pass); (3) `db push` (pricing_source + bootstrap_first_admin);
+(4) all edge functions deployed; (5) `git push origin main` → Vercel prod deploy. Step 6:
+`bootstrap_first_admin` returned `staff.id 84ccfc96-aeb0-4c75-a1b0-450c9f78d989` — Lee
+(lee@careconneqt.com) is now **super_admin**. The bootstrap is **self-disabled**: its guard
+(`IF EXISTS (... role='super_admin') THEN RAISE`) now refuses every further call, so it can't
+be used to escalate later.
+Hotfix this session: `bootstrap_first_admin` originally wrote `staff.is_active`, which is a
+GENERATED column (`GENERATED ALWAYS AS (status='active') STORED`) → "cannot insert a non-DEFAULT
+value". Migration `20260617130000` drives the SOURCE column instead (`status='active'` in both
+INSERT and ON CONFLICT UPDATE) so is_active computes true on both new-row and promote paths.
+Decisions left OPEN by Lee: payments deferred (add Stripe from admin later), Twilio on TRIAL
+(gate F8 open). Provider secrets (LOVABLE_API_KEY, Twilio set, RESEND/GMAIL, Google OAuth) still
+missing — chat/AI, email, SOS won't work until added in the Supabase dashboard (runtime, no
+redeploy needed). TODO follow-up: CLAUDE.md §4 still calls crpsuhoixfdhjugprbuc "CURRENT LIVE
+PRODUCTION" — now stale; swap the live ref to cfwnrcogikjycjcobsay and decide the old project's
+fate once smoke-test gates (Step F) pass.
+
 ### 2026-06-17 — Cutover ORDER is strict: Vercel auto-deploys main (CUTOVER Step E)
 Vercel auto-deploys production from `main`, so merging the 9 feature branches is the trigger
 that ships the new frontend. Mandatory order (now prominent in Step E): (1) set secrets —

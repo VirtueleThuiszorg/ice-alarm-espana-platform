@@ -61,6 +61,19 @@ session*, driven by this routine, not a live background process.
 
 > Format: `### YYYY-MM-DD — short title` then 1–3 lines. Never delete entries.
 
+### 2026-06-17 — Staff setup documented (CUTOVER Step C2) + GDPR audit-log TODO
+Added Step C2 to CUTOVER_RUNBOOK: Lee (super_admin via bootstrap) → invites Mary
+(`call_centre_supervisor`, L3 escalation + rota/holidays) → Carmen/Albert/Travis
+(`call_centre`, full member view+edit incl. medical/contacts, NO finance/settings), all via
+staff-send-invite → staff-validate-invite → staff-complete-invite. Verify-gate C2 checks each
+role's surface. `call_centre_supervisor` confirmed a real app_role (added via ALTER TYPE).
+**⚠️ TODO before go-live (GDPR):** operators have full read+write to medical_information and
+emergency_contacts — CONFIRM that both **viewing AND editing** medical/contact data is
+**audit-logged per operator** (who/when/what, into activity_logs or equivalent). Full
+operator access to special-category health data without per-operator access logging is a GDPR
+exposure. Verify the member-detail Medical/Contacts tabs and any RPC writes emit audit rows;
+if not, add audit logging before launch.
+
 ### 2026-06-17 — Branch stack mapped (MERGE_ORDER.md) + frontend-polish + Step F5 gate
 8 feature branches open; isabella-gate already merged to main (eab298b). Conflict dry-run
 (`git merge --no-commit --no-ff` per branch, then abort): **all merge into main with ZERO

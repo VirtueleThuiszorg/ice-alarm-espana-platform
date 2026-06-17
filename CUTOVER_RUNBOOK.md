@@ -114,6 +114,52 @@ into the admin portal reaches admin pages.
 
 ---
 
+## Step C2 — Staff setup & provisioning
+
+Provision the launch team **in this order**. `app_role` enum =
+`super_admin | admin | call_centre_supervisor | call_centre` (+ `partner`, `member`).
+
+**Invite flow (all staff after Lee):** an admin/supervisor triggers `staff-send-invite`
+(creates the invite token + emails a link) → invitee opens the link, which calls
+`staff-validate-invite` (checks the token) → invitee sets their password via
+`staff-complete-invite` (creates the auth user + the `public.staff` row with the assigned
+role). No manual SQL needed after the first admin.
+
+1. **Lee → `super_admin`** — via the one-shot bootstrap from Step C
+   (`bootstrap_first_admin`, self-disabling). This is the only account NOT created by an
+   invite. After this, Lee can issue invites.
+
+2. **Lee invites Mary → `call_centre_supervisor`** — `staff-send-invite` (role
+   `call_centre_supervisor`) → Mary completes via validate/complete-invite. Supervisor
+   capabilities: sits in the **L3 escalation tier** (set `staff.escalation_priority` and
+   `is_on_call=true` so SOS L3 reaches her — see `sos-escalation-runner`), and can manage
+   **rota / shifts / holidays / shift-covers**.
+
+3. **Lee or Mary invite Carmen, Albert, Travis → `call_centre`** — `staff-send-invite`
+   (role `call_centre`) ×3 → each completes via validate/complete-invite. Operator
+   capabilities: **view + edit member records incl. medical info and emergency contacts**,
+   handle the alerts/SOS queue, messages, tasks, tickets, leads — but **NO billing/finance
+   and NO system-settings access**.
+
+**Verify-gate C2 — role-surface check (do for each persona after they log in):**
+- **Operators (Carmen/Albert/Travis, `call_centre`):**
+  - ✅ CAN open a member's **Medical** and **Emergency Contacts** tabs and edit them.
+  - ✅ CAN open the alerts queue / SOS takeover and **resolve an alert**.
+  - ❌ CANNOT see **/admin/finance, /admin/payments, /admin/subscriptions, /admin/commissions**
+    (billing/finance) or **/admin/settings** (system settings) — these should 404/redirect
+    to unauthorized, not render.
+- **Supervisor (Mary, `call_centre_supervisor`):**
+  - ✅ all operator surfaces, PLUS can manage **rota/shifts** and **approve/deny holidays**
+    and **shift-covers**.
+  - ✅ appears in the SOS **L3** escalation path (priority + on-call set).
+- **Lee (`super_admin`):** full admin incl. finance + settings.
+
+If an operator can reach finance/settings, RBAC is misconfigured — **STOP and fix the
+`ProtectedRoute requireAdmin` / role checks before go-live** (operators must not see
+billing or settings).
+
+---
+
 ## Step D — Deploy edge functions to `cfwnrcogikjycjcobsay`
 
 > **This is where the Isabella settings gate goes live.** Confirm link target first:

@@ -4,6 +4,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { sendEmail } from "../_shared/email.ts";
 import { checkRateLimit, getClientIp } from "../_shared/rate-limit.ts";
 import { registrationSchema, validateRequest } from "../_shared/validation.ts";
+import { calculateOrder, buildPricingConfig, type PricingConfig } from "../_shared/pricing-calc.ts";
 
 
 
@@ -183,16 +184,16 @@ interface RegistrationRequest {
   testMode?: boolean; // If true, skip Stripe and mark everything as completed
 }
 
-// Pricing constants (NET prices)
-const PRICING = {
-  single: { monthlyNet: 24.99 },  // 10% IVA
-  couple: { monthlyNet: 34.99 },  // 10% IVA
-  annualMonths: 10,               // Pay for 10 months (2 free)
-  pendantNet: 125.00,             // 21% IVA
+// Fallback only — pricing is sourced from the DB (pricing_plans + pricing_settings). If the
+// DB has no plans we FAIL CLOSED (throw) rather than charge from this. Mirrors the seed.
+const PRICING_FALLBACK: PricingConfig = {
+  single: { monthlyNet: 24.99, annualMonths: 10, subscriptionTaxRate: 0.10 },
+  couple: { monthlyNet: 34.99, annualMonths: 10, subscriptionTaxRate: 0.10 },
+  pendantNet: 125.00,
   pendantTaxRate: 0.21,
-  subscriptionTaxRate: 0.10,
-  registrationFee: 59.99,         // No IVA
-  shipping: 14.99,                // IVA included
+  shipping: 14.99,
+  registrationBase: 59.99,
+  registrationTaxRate: 0,
 };
 
 serve(async (req) => {
@@ -236,50 +237,39 @@ serve(async (req) => {
     const registrationFeeDiscount = parseFloat(settingsMap.registration_fee_discount || "0");
     const activeGateway = settingsMap.settings_active_payment_gateway || "stripe";
 
-    // Calculate pricing with correct IVA rates
-    const monthlyNetPrice = body.membershipType === "single"
-      ? PRICING.single.monthlyNet
-      : PRICING.couple.monthlyNet;
-
-    // Subscription: net price × months (10 for annual, 1 for monthly) + 10% IVA
-    const subscriptionNet = body.billingFrequency === "monthly"
-      ? monthlyNetPrice
-      : monthlyNetPrice * PRICING.annualMonths;
-    const subscriptionTax = subscriptionNet * PRICING.subscriptionTaxRate;
-    const subscriptionFinal = subscriptionNet + subscriptionTax;
-
-    // FIXED: Respect user's pendantCount (1-4), with validation
-    // Only apply defaults if pendantCount is not provided or invalid
-    let pendantCount = 0;
-    if (body.includePendant) {
-      const requestedCount = body.pendantCount;
-
-      // Validate: pendantCount must be between 1 and 4
-      if (typeof requestedCount === 'number' && requestedCount >= 1 && requestedCount <= 4) {
-        pendantCount = Math.floor(requestedCount); // Ensure integer
-      } else {
-        // Apply defaults only if invalid or missing
-        pendantCount = body.membershipType === "couple" ? 2 : 1;
-      }
-
-      console.log(`Pendant count: requested=${requestedCount}, validated=${pendantCount}`);
+    // ── SINGLE SOURCE OF TRUTH: fetch canonical pricing from the DB. ──
+    // Server-authoritative: we recompute the total here from DB prices and the request
+    // options ONLY. No client-supplied total is ever read. FAIL CLOSED if pricing is missing.
+    const [{ data: planRows, error: planErr }, { data: priceSettingRows }] = await Promise.all([
+      supabase.from("pricing_plans").select("plan_key, monthly_net, annual_months, subscription_tax_rate, is_active"),
+      supabase.from("pricing_settings").select("key, value"),
+    ]);
+    if (planErr || !planRows || planRows.length === 0) {
+      throw new Error("Pricing not configured (pricing_plans empty) — refusing to compute a charge");
     }
+    const pricingConfig = buildPricingConfig(
+      (planRows as any[]).filter((p) => p.is_active !== false),
+      (priceSettingRows as any[]) || [],
+      PRICING_FALLBACK,
+    );
 
-    const pendantNet = pendantCount * PRICING.pendantNet;
-    const pendantTax = pendantNet * PRICING.pendantTaxRate;
-    const pendantFinal = pendantNet + pendantTax;
+    const order = calculateOrder(pricingConfig, {
+      membershipType: body.membershipType,
+      billingFrequency: body.billingFrequency,
+      includePendant: !!body.includePendant,
+      pendantCount: body.pendantCount,
+      includeShipping: true,
+      registrationFeeEnabled,
+      registrationFeeDiscount,
+    });
 
-    // Registration: apply enabled/discount settings
-    let registrationFee = 0;
-    if (registrationFeeEnabled) {
-      registrationFee = PRICING.registrationFee * (1 - registrationFeeDiscount / 100);
-    }
-
-    // Shipping: IVA included (only if pendant ordered)
-    const shipping = pendantCount > 0 ? PRICING.shipping : 0;
-
-    // Totals
-    const total = subscriptionFinal + pendantFinal + registrationFee + shipping;
+    const {
+      subscriptionNet, subscriptionTax, subscriptionFinal,
+      pendantNet, pendantTax, pendantFinal, pendantCount,
+      registrationFee, shipping,
+      grandTotal: total,
+    } = order;
+    console.log(`Server-computed total €${total.toFixed(2)} (pendantCount=${pendantCount}) from DB pricing`);
 
     // ─── ATOMIC DATABASE TRANSACTION ────────────────────────────────────
     // All database inserts wrapped in a single Postgres transaction.
@@ -312,8 +302,8 @@ serve(async (req) => {
       registrationFeeEnabled,
       shipping,
       total,
-      subscriptionTaxRate: PRICING.subscriptionTaxRate,
-      pendantTaxRate: PRICING.pendantTaxRate,
+      subscriptionTaxRate: pricingConfig[body.membershipType as "single" | "couple"].subscriptionTaxRate,
+      pendantTaxRate: pricingConfig.pendantTaxRate,
     };
 
     const { data: result, error: rpcError } = await supabase.rpc(

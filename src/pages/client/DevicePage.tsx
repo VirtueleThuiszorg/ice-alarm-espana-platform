@@ -22,10 +22,13 @@ import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useDeviceRealtime } from "@/hooks/useDeviceRealtime";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { usePricing } from "@/hooks/usePricing";
+import { formatPrice, getPendantFinalPrice, getShippingCost } from "@/config/pricing";
 
 export default function DevicePage() {
   const { t } = useTranslation();
   const { memberId } = useAuth();
+  usePricing(); // hydrate pricing from DB
   const navigate = useNavigate();
   const { data: device, isLoading: deviceLoading } = useMemberDevice();
   const { data: subscription, isLoading: subLoading } = useMemberSubscription();
@@ -177,8 +180,8 @@ export default function DevicePage() {
               </div>
               <div>
                 <p className="font-semibold text-lg">{t('device.iceAlarmGpsPendant', 'Care Conneqt GPS Pendant')}</p>
-                <p className="text-2xl font-bold text-primary">€151.25</p>
-                <p className="text-sm text-muted-foreground">+ €14.99 {t('landing.shipping')}</p>
+                <p className="text-2xl font-bold text-primary">{formatPrice(getPendantFinalPrice(1))}</p>
+                <p className="text-sm text-muted-foreground">+ {formatPrice(getShippingCost())} {t('landing.shipping')}</p>
               </div>
             </div>
 

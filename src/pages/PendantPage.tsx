@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { usePublicTestimonials } from "@/hooks/useTestimonials";
+import { usePricing } from "@/hooks/usePricing";
+import { formatPrice, getSubscriptionMonthlyFinal, getSubscriptionFinalPrice } from "@/config/pricing";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +35,7 @@ import { useWebsiteImagesBatch } from "@/hooks/useWebsiteImage";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 
 export default function PendantPage() {
+  usePricing(); // hydrate pricing from DB
   const { t, i18n } = useTranslation();
   const { settings: companySettings } = useCompanySettings();
   const { data: dbTestimonials } = usePublicTestimonials("pendant");
@@ -216,7 +219,7 @@ export default function PendantPage() {
               </div>
 
               <p className="text-muted-foreground">
-                {t("pendant.hero.startingFrom")} <span className="font-bold text-foreground">€27.49{t("pendant.hero.perMonth")}</span> {t("pendant.hero.plusPendant")}
+                {t("pendant.hero.startingFrom")} <span className="font-bold text-foreground">{formatPrice(getSubscriptionMonthlyFinal("single"))}{t("pendant.hero.perMonth")}</span> {t("pendant.hero.plusPendant")}
               </p>
             </div>
           </div>
@@ -376,11 +379,11 @@ export default function PendantPage() {
                 <p className="text-sm text-muted-foreground mb-6">{t("pendant.pricing.single.subtitle")}</p>
                 <div className="space-y-2 mb-6">
                   <div>
-                    <span className="text-2xl font-bold">€27.49</span>
+                    <span className="text-2xl font-bold">{formatPrice(getSubscriptionMonthlyFinal("single"))}</span>
                     <span className="text-muted-foreground">{t("pendant.pricing.single.perMonth")}</span>
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    or <span className="font-medium text-foreground">€274.89{t("pendant.pricing.single.perYear")}</span>
+                    or <span className="font-medium text-foreground">{formatPrice(getSubscriptionFinalPrice("single", "annual"))}{t("pendant.pricing.single.perYear")}</span>
                     <Badge variant="secondary" className="ml-2">{t("pendant.pricing.single.save")}</Badge>
                   </div>
                 </div>
@@ -398,11 +401,11 @@ export default function PendantPage() {
                 <p className="text-sm text-muted-foreground mb-6">{t("pendant.pricing.couple.subtitle")}</p>
                 <div className="space-y-2 mb-6">
                   <div>
-                    <span className="text-2xl font-bold">€38.49</span>
+                    <span className="text-2xl font-bold">{formatPrice(getSubscriptionMonthlyFinal("couple"))}</span>
                     <span className="text-muted-foreground">{t("pendant.pricing.couple.perMonth")}</span>
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    or <span className="font-medium text-foreground">€384.89{t("pendant.pricing.couple.perYear")}</span>
+                    or <span className="font-medium text-foreground">{formatPrice(getSubscriptionFinalPrice("couple", "annual"))}{t("pendant.pricing.couple.perYear")}</span>
                     <Badge variant="secondary" className="ml-2">{t("pendant.pricing.couple.save")}</Badge>
                   </div>
                 </div>

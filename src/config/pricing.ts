@@ -1,263 +1,122 @@
-// Centralized pricing configuration for Care Conneqt
-// All prices are in EUR
+// Pricing for Care Conneqt — frontend entry point.
+//
+// SINGLE SOURCE OF TRUTH = the DB (pricing_plans + pricing_settings). The pure math lives in
+// supabase/functions/_shared/pricing-calc.ts and is shared with the charge path
+// (submit-registration). This module keeps the long-standing helper signatures
+// (getSubscriptionMonthlyFinal(type), calculateOrder(options), …) but they read an
+// "active config" that usePricing() hydrates from the DB at runtime. Until hydrated (and on
+// fetch failure) the active config is DEFAULT_PRICING_CONFIG, which mirrors the DB seed —
+// so prices are correct even before the network call, and the seed-parity test locks
+// DEFAULT == migration seed. See PRICING_REFACTOR_PLAN.md.
 
-export const PRICING = {
-  // Subscription prices (NET prices, before IVA)
-  subscription: {
-    single: {
-      monthlyNet: 24.99,    // Net price per month
-      annualMonths: 10,      // Pay for 10 months, get 12 (2 months free)
-    },
-    couple: {
-      monthlyNet: 34.99,    // Net price per month  
-      annualMonths: 10,      // Pay for 10 months, get 12 (2 months free)
-    },
-    taxRate: 0.10,           // 10% IVA for subscriptions
-  },
-  
-  // One-time fees
-  registration: {
-    amount: 59.99,           // Registration fee (no IVA)
-    taxRate: 0,              // No IVA on registration fee
-  },
-  
-  pendant: {
-    unitPriceNet: 125.00,    // Net price per pendant
-    taxRate: 0.21,           // 21% IVA for products
-  },
-  
-  shipping: {
-    amount: 14.99,           // Shipping cost (IVA included)
-    taxIncluded: true,       // No additional IVA
-  },
-} as const;
+import {
+  type PricingConfig,
+  type MembershipType,
+  type BillingFrequency,
+  type OrderOptions,
+  type OrderCalculation,
+  buildPricingConfig as buildPricingConfigPure,
+  calculateOrder as calcOrder,
+  getSubscriptionNetPrice as calcSubNet,
+  getSubscriptionFinalPrice as calcSubFinal,
+  getSubscriptionMonthlyFinal as calcSubMonthlyFinal,
+  getSubscriptionTax as calcSubTax,
+  getAnnualSavings as calcAnnualSavings,
+  getPendantFinalPrice as calcPendantFinal,
+  getPendantTax as calcPendantTax,
+  getPendantNetPrice as calcPendantNet,
+  formatPrice as fmt,
+} from "../../supabase/functions/_shared/pricing-calc";
 
-// ============ HELPER FUNCTIONS ============
+export type { PricingConfig, MembershipType, BillingFrequency, OrderOptions, OrderCalculation };
 
-export type MembershipType = 'single' | 'couple';
-export type BillingFrequency = 'monthly' | 'annual';
+/** Fallback / seed-mirror. The DB is authoritative; this only applies before hydration. */
+export const DEFAULT_PRICING_CONFIG: PricingConfig = {
+  single: { monthlyNet: 24.99, annualMonths: 10, subscriptionTaxRate: 0.10 },
+  couple: { monthlyNet: 34.99, annualMonths: 10, subscriptionTaxRate: 0.10 },
+  pendantNet: 125.00,
+  pendantTaxRate: 0.21,
+  shipping: 14.99,
+  registrationBase: 59.99,
+  registrationTaxRate: 0,
+};
 
-/**
- * Get the NET subscription price (before IVA)
- */
-export function getSubscriptionNetPrice(
-  type: MembershipType, 
-  frequency: BillingFrequency
-): number {
-  const plan = PRICING.subscription[type];
-  if (frequency === 'monthly') {
-    return plan.monthlyNet;
-  }
-  // Annual = monthly × 10 (2 months free)
-  return plan.monthlyNet * plan.annualMonths;
+// ── active config (hydrated from DB by usePricing) ──
+let activeConfig: PricingConfig = DEFAULT_PRICING_CONFIG;
+export function setPricingConfig(config: PricingConfig): void { activeConfig = config; }
+export function getActivePricingConfig(): PricingConfig { return activeConfig; }
+export function buildPricingConfig(
+  plans: Parameters<typeof buildPricingConfigPure>[0],
+  settings: Parameters<typeof buildPricingConfigPure>[1],
+): PricingConfig {
+  return buildPricingConfigPure(plans, settings, DEFAULT_PRICING_CONFIG);
 }
 
-/**
- * Get the subscription IVA amount
- */
-export function getSubscriptionTax(
-  type: MembershipType, 
-  frequency: BillingFrequency
-): number {
-  const net = getSubscriptionNetPrice(type, frequency);
-  return net * PRICING.subscription.taxRate;
+// ── helpers — same signatures as before, now config-driven ──
+export const formatPrice = fmt;
+export function getSubscriptionNetPrice(type: MembershipType, freq: BillingFrequency): number {
+  return calcSubNet(activeConfig, type, freq);
 }
-
-/**
- * Get the FINAL subscription price (including IVA)
- */
-export function getSubscriptionFinalPrice(
-  type: MembershipType, 
-  frequency: BillingFrequency
-): number {
-  const net = getSubscriptionNetPrice(type, frequency);
-  const tax = net * PRICING.subscription.taxRate;
-  return net + tax;
+export function getSubscriptionFinalPrice(type: MembershipType, freq: BillingFrequency): number {
+  return calcSubFinal(activeConfig, type, freq);
 }
-
-/**
- * Get the monthly equivalent of the final price (for display)
- */
+export function getSubscriptionTax(type: MembershipType, freq: BillingFrequency): number {
+  return calcSubTax(activeConfig, type, freq);
+}
 export function getSubscriptionMonthlyFinal(type: MembershipType): number {
-  const net = PRICING.subscription[type].monthlyNet;
-  return net * (1 + PRICING.subscription.taxRate);
+  return calcSubMonthlyFinal(activeConfig, type);
 }
-
-/**
- * Get the annual savings when paying annually
- */
 export function getAnnualSavings(type: MembershipType): number {
-  const monthlyFinal = getSubscriptionMonthlyFinal(type);
-  const annualFinal = getSubscriptionFinalPrice(type, 'annual');
-  return (monthlyFinal * 12) - annualFinal; // 2 months savings
+  return calcAnnualSavings(activeConfig, type);
 }
-
-/**
- * Get the NET pendant price
- */
-export function getPendantNetPrice(quantity: number = 1): number {
-  return PRICING.pendant.unitPriceNet * quantity;
+export function getPendantNetPrice(quantity = 1): number {
+  return calcPendantNet(activeConfig, quantity);
 }
-
-/**
- * Get the pendant IVA amount
- */
-export function getPendantTax(quantity: number = 1): number {
-  return getPendantNetPrice(quantity) * PRICING.pendant.taxRate;
+export function getPendantTax(quantity = 1): number {
+  return calcPendantTax(activeConfig, quantity);
 }
-
-/**
- * Get the FINAL pendant price (including IVA)
- */
-export function getPendantFinalPrice(quantity: number = 1): number {
-  const net = getPendantNetPrice(quantity);
-  return net * (1 + PRICING.pendant.taxRate);
+export function getPendantFinalPrice(quantity = 1): number {
+  return calcPendantFinal(activeConfig, quantity);
 }
-
-/**
- * Get the registration fee (no IVA)
- */
-export function getRegistrationFee(): number {
-  return PRICING.registration.amount;
-}
-
-/**
- * Get shipping cost (IVA already included)
- */
-export function getShippingCost(): number {
-  return PRICING.shipping.amount;
-}
-
-/**
- * Calculate full order breakdown
- */
-export interface OrderCalculation {
-  // Subscription
-  subscriptionNet: number;
-  subscriptionTax: number;
-  subscriptionFinal: number;
-  
-  // Pendant
-  pendantNet: number;
-  pendantTax: number;
-  pendantFinal: number;
-  pendantCount: number;
-  
-  // Registration
-  registrationFee: number;
-  registrationFeeOriginal: number;
-  registrationFeeDiscount: number; // percentage applied
-  registrationFeeEnabled: boolean;
-  
-  // Shipping
-  shipping: number;
-  
-  // Totals
-  subtotalNet: number;
-  totalTax: number;
-  grandTotal: number;
-}
-
-export interface OrderOptions {
-  membershipType: MembershipType;
-  billingFrequency: BillingFrequency;
-  includePendant: boolean;
-  pendantCount?: number;
-  includeShipping?: boolean;
-  // Registration fee settings
-  registrationFeeEnabled?: boolean;
-  registrationFeeDiscount?: number; // 0-100
-}
-
+export function getRegistrationFee(): number { return activeConfig.registrationBase; }
+export function getShippingCost(): number { return activeConfig.shipping; }
 export function calculateOrder(options: OrderOptions): OrderCalculation {
-  const { 
-    membershipType, 
-    billingFrequency, 
-    includePendant, 
-    includeShipping = true,
-    registrationFeeEnabled = true,
-    registrationFeeDiscount = 0,
-  } = options;
-  
-  // Determine pendant count
-  let pendantCount = 0;
-  if (includePendant) {
-    pendantCount = options.pendantCount ?? (membershipType === 'couple' ? 2 : 1);
-  }
-  
-  // Subscription
-  const subscriptionNet = getSubscriptionNetPrice(membershipType, billingFrequency);
-  const subscriptionTax = subscriptionNet * PRICING.subscription.taxRate;
-  const subscriptionFinal = subscriptionNet + subscriptionTax;
-  
-  // Pendant
-  const pendantNet = getPendantNetPrice(pendantCount);
-  const pendantTax = pendantNet * PRICING.pendant.taxRate;
-  const pendantFinal = pendantNet + pendantTax;
-  
-  // Registration (no IVA) - apply enabled/discount settings
-  const registrationFeeOriginal = PRICING.registration.amount;
-  let registrationFee = 0;
-  if (registrationFeeEnabled) {
-    registrationFee = registrationFeeOriginal * (1 - registrationFeeDiscount / 100);
-  }
-  
-  // Shipping (IVA included, only if pendant ordered)
-  const shipping = (includePendant && includeShipping) ? PRICING.shipping.amount : 0;
-  
-  // Totals
-  const subtotalNet = subscriptionNet + pendantNet + registrationFee;
-  const totalTax = subscriptionTax + pendantTax;
-  const grandTotal = subscriptionFinal + pendantFinal + registrationFee + shipping;
-  
-  return {
-    subscriptionNet,
-    subscriptionTax,
-    subscriptionFinal,
-    pendantNet,
-    pendantTax,
-    pendantFinal,
-    pendantCount,
-    registrationFee,
-    registrationFeeOriginal,
-    registrationFeeDiscount,
-    registrationFeeEnabled,
-    shipping,
-    subtotalNet,
-    totalTax,
-    grandTotal,
-  };
+  return calcOrder(activeConfig, options);
 }
 
-// ============ DISPLAY HELPERS ============
-
-/**
- * Format price for display
- */
-export function formatPrice(amount: number): string {
-  return `€${amount.toFixed(2)}`;
-}
-
-/**
- * Get formatted monthly display prices (with IVA)
- */
 export function getDisplayPrices() {
   return {
     single: {
-      monthly: formatPrice(getSubscriptionMonthlyFinal('single')),      // €27.49
-      annual: formatPrice(getSubscriptionFinalPrice('single', 'annual')), // €274.89
-      annualSavings: formatPrice(getAnnualSavings('single')),           // ~€55
+      monthly: formatPrice(getSubscriptionMonthlyFinal("single")),
+      annual: formatPrice(getSubscriptionFinalPrice("single", "annual")),
+      annualSavings: formatPrice(getAnnualSavings("single")),
     },
     couple: {
-      monthly: formatPrice(getSubscriptionMonthlyFinal('couple')),      // €38.49
-      annual: formatPrice(getSubscriptionFinalPrice('couple', 'annual')), // €384.89
-      annualSavings: formatPrice(getAnnualSavings('couple')),           // ~€77
+      monthly: formatPrice(getSubscriptionMonthlyFinal("couple")),
+      annual: formatPrice(getSubscriptionFinalPrice("couple", "annual")),
+      annualSavings: formatPrice(getAnnualSavings("couple")),
     },
     pendant: {
-      net: formatPrice(PRICING.pendant.unitPriceNet),                   // €125.00
-      final: formatPrice(getPendantFinalPrice(1)),                      // €151.25
+      net: formatPrice(getPendantNetPrice(1)),
+      final: formatPrice(getPendantFinalPrice(1)),
     },
-    registration: formatPrice(PRICING.registration.amount),              // €59.99
-    shipping: formatPrice(PRICING.shipping.amount),                      // €14.99
+    registration: formatPrice(activeConfig.registrationBase),
+    shipping: formatPrice(activeConfig.shipping),
   };
 }
+
+/**
+ * Legacy compatibility shim for the old `PRICING` object shape (a few callers read
+ * PRICING.registration.amount etc.). Mirrors DEFAULT — operational flags/base only. New
+ * code should use the config-driven helpers / usePricing() instead.
+ */
+export const PRICING = {
+  subscription: {
+    single: { monthlyNet: DEFAULT_PRICING_CONFIG.single.monthlyNet, annualMonths: DEFAULT_PRICING_CONFIG.single.annualMonths },
+    couple: { monthlyNet: DEFAULT_PRICING_CONFIG.couple.monthlyNet, annualMonths: DEFAULT_PRICING_CONFIG.couple.annualMonths },
+    taxRate: DEFAULT_PRICING_CONFIG.single.subscriptionTaxRate,
+  },
+  registration: { amount: DEFAULT_PRICING_CONFIG.registrationBase, taxRate: DEFAULT_PRICING_CONFIG.registrationTaxRate },
+  pendant: { unitPriceNet: DEFAULT_PRICING_CONFIG.pendantNet, taxRate: DEFAULT_PRICING_CONFIG.pendantTaxRate },
+  shipping: { amount: DEFAULT_PRICING_CONFIG.shipping, taxIncluded: true },
+} as const;

@@ -61,6 +61,21 @@ session*, driven by this routine, not a live background process.
 
 > Format: `### YYYY-MM-DD — short title` then 1–3 lines. Never delete entries.
 
+### 2026-06-17 — Branch stack mapped (MERGE_ORDER.md) + frontend-polish + Step F5 gate
+8 feature branches open; isabella-gate already merged to main (eab298b). Conflict dry-run
+(`git merge --no-commit --no-ff` per branch, then abort): **all merge into main with ZERO
+conflicts, and no two pending branches touch the same file** — fully independent. Wrote
+MERGE_ORDER.md (purpose + smoke-test need + safe order per branch). **Real hazard = scattered
+planning docs:** LEARN.md + BRAND_ASSETS.md committed only on `feat/logo-fraunces`,
+CUTOVER_RUNBOOK.md only on `feat/admin-bootstrap`, the rest untracked — merging those two
+branches can abort with "untracked working tree file would be overwritten" if untracked copies
+exist. Recommended: consolidate planning docs to main in one commit before those merges.
+Also this round: `feat/frontend-polish` (pendant image 404→public/assets, legal i18n keys en+es,
+#pricing scroll-to-hash, Products i18n, Notify-Me→leads capture; suite 265 green) and added
+CUTOVER_RUNBOOK Step F5 BLOCKING medical-data gate (on admin-bootstrap, commit da86fbc) —
+result to be recorded post-cutover. NB: LEARN.md itself currently lives only on logo-fraunces
+(part of the fragmentation above).
+
 ### 2026-06-16 — Brand display font Poppins → Fraunces (logo wordmark + headings)
 Wordmark "Care Conneqt" in `logo.tsx` now uses Fraunces (`font-display`, weight ~600);
 **the two-interlocking-C icon SVG was NOT touched** (paths pixel-identical). Added Fraunces

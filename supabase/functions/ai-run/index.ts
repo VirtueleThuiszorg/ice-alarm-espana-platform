@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { functionKeyForTrigger, isIsabellaFunctionAllowed } from "../_shared/isabella-gate.ts";
+import { decideVerification, applyEscalation, verificationDirective } from "../_shared/verification-gate.ts";
 
 
 
@@ -1045,6 +1046,14 @@ You are speaking directly with ${member?.first_name || "this member"}. Use their
       const memberId = context?.memberId;
       const callDirection = context?.callDirection || "inbound";
 
+      // CODE-ENFORCED non-negotiables #6 (no verification on outbound) and #7 (force
+      // escalate after 2 failed verification attempts). Not left to the model.
+      const verificationDecision = decideVerification({
+        callDirection: callDirection === "outbound" ? "outbound" : "inbound",
+        riskLevel: context?.riskLevel === "high" ? "high" : "low",
+        failedAttempts: Number(context?.verificationFailedAttempts) || 0,
+      });
+
       // Voice-specific language instruction
       const languageInstruction = userLanguage === "es" 
         ? "\n\n**IMPORTANTE**: La llamada es en ESPAÑOL. DEBES responder completamente en español. Usa un tono cálido y conversacional."
@@ -1139,7 +1148,7 @@ When discussing emergency contacts, use the EXACT names listed above - never inv
       const messages = [
         { 
           role: "system", 
-          content: systemPrompt + voiceInstructions + memberContext + languageInstruction
+          content: systemPrompt + voiceInstructions + memberContext + languageInstruction + verificationDirective(verificationDecision)
         },
         ...conversationHistory.map((msg: { role: string; content: string }) => ({
           role: msg.role,
@@ -1198,6 +1207,9 @@ When discussing emergency contacts, use the EXACT names listed above - never inv
         .replace(/\n{2,}/g, " ")
         .replace(/\n/g, " ")
         .trim();
+
+      // #7: force the escalation marker if policy requires it (code, not the model).
+      responseContent = applyEscalation(responseContent, verificationDecision.forceEscalate);
 
       console.log("Voice AI Response:", responseContent);
 

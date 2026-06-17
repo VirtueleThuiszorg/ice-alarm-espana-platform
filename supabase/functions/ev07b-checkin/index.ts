@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { authenticateEv07bRequest } from "../_shared/ev07b-auth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
@@ -47,27 +48,42 @@ serve(async (req) => {
   }
 
   try {
-    // Validate API key
+    // Authenticate ingress. Transition-safe: accept HMAC (preferred) OR legacy x-api-key.
+    // Read the RAW body first — HMAC is computed over the exact bytes.
+    const rawBody = await req.text();
     const apiKey = req.headers.get("x-api-key");
     const expectedKey = Deno.env.get("EV07B_CHECKIN_KEY");
+    const hmacSecret = Deno.env.get("EV07B_HMAC_SECRET");
+    // Flip to true once both gps-gateway and this function are confirmed on HMAC.
+    const enforceHmacOnly = Deno.env.get("EV07B_ENFORCE_HMAC") === "true";
 
-    if (!expectedKey) {
-      console.error("EV07B_CHECKIN_KEY not configured");
+    if (!expectedKey && !hmacSecret) {
+      console.error("Neither EV07B_CHECKIN_KEY nor EV07B_HMAC_SECRET configured");
       return new Response(
         JSON.stringify({ success: false, error: "Server configuration error" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (!apiKey || apiKey !== expectedKey) {
+    const auth = await authenticateEv07bRequest({
+      apiKey,
+      expectedApiKey: expectedKey,
+      signature: req.headers.get("x-ev07b-signature"),
+      timestamp: req.headers.get("x-ev07b-timestamp"),
+      rawBody,
+      hmacSecret,
+      enforceHmacOnly,
+    });
+    if (!auth.ok) {
+      console.warn(`[ev07b-checkin] auth rejected: ${auth.reason}`);
       return new Response(
-        JSON.stringify({ success: false, error: "Invalid or missing API key" }),
+        JSON.stringify({ success: false, error: "Invalid or missing credentials" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     // Parse request body
-    const body: CheckinPayload = await req.json();
+    const body: CheckinPayload = JSON.parse(rawBody);
 
     if (!body.imei) {
       return new Response(

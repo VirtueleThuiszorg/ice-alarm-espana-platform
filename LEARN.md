@@ -61,6 +61,14 @@ session*, driven by this routine, not a live background process.
 
 > Format: `### YYYY-MM-DD — short title` then 1–3 lines. Never delete entries.
 
+### 2026-06-17 — Staff test-accounts documented + no-test-password go-live gate
+CUTOVER Step C2 now lists the 5 test accounts (lee/mary/carmen/albert/travis@careconneqt.com,
+temp `Test@1234`, TESTING ONLY, created post-bootstrap on the deployed project) so Lee can
+verify role boundaries (operators: medical+alerts, NOT finance/settings; supervisor: rota;
+admin: all — verify-gate C2). Added Step F7 as a HARD BLOCKER: no account may use a test/
+shared password at go-live; real staff are created via the invite flow (each sets their own
+strong password). Verify-gate F bumped to "all seven" (F5 + F7 blocking).
+
 ### 2026-06-17 — Public nav/footer audit (no separate branch needed)
 Public nav/footer audited 2026-06-16 — all targets correct; only defect was header #pricing
 not scrolling cross-page, already fixed on `feat/frontend-polish`. No separate nav branch

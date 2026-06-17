@@ -141,6 +141,21 @@ role). No manual SQL needed after the first admin.
    handle the alerts/SOS queue, messages, tasks, tickets, leads — but **NO billing/finance
    and NO system-settings access**.
 
+**Test phase (after bootstrap, on the DEPLOYED project — TESTING ONLY):** create these
+accounts so Lee can log in as each role and verify the access boundaries below:
+
+| Email | Role | Temp password |
+|---|---|---|
+| `lee@careconneqt.com` | `super_admin` (via the bootstrap fn) | `Test@1234` |
+| `mary@careconneqt.com` | `call_centre_supervisor` | `Test@1234` |
+| `carmen@careconneqt.com` | `call_centre` | `Test@1234` |
+| `albert@careconneqt.com` | `call_centre` | `Test@1234` |
+| `travis@careconneqt.com` | `call_centre` | `Test@1234` |
+
+> 🔴 `Test@1234` is a SHARED TEST password — **pre-launch verification only**. It must NOT
+> survive to go-live (see the **Step F blocking gate**). Real staff accounts are created via
+> the invite flow above, where each person sets their own strong password.
+
 **Verify-gate C2 — role-surface check (do for each persona after they log in):**
 - **Operators (Carmen/Albert/Travis, `call_centre`):**
   - ✅ CAN open a member's **Medical** and **Emergency Contacts** tabs and edit them.
@@ -278,8 +293,18 @@ Run against the live (new) environment:
    - **Especially: header "Pricing" must scroll to the `#pricing` section when clicked from
      a NON-home page** (this is the cross-page hash-scroll fixed in `feat/frontend-polish`;
      audit 2026-06-16 confirmed all other targets correct). Record the result.
+7. **🔴 BLOCKING — no test/shared password on the live system.** Before ANY real member is
+   onboarded, every test account from Step C2 must be remediated: delete the test accounts
+   OR have each real staff member re-created via the invite flow (`staff-send-invite` →
+   `staff-complete-invite`) so they set their own strong password. **No account may still
+   use `Test@1234` (or any shared password) at go-live.** Verify, e.g.:
+   - Confirm no staff member can authenticate with `Test@1234` (try each test email).
+   - Confirm the real staff accounts were created via invites (each has a unique,
+     self-set password).
+   If any account still uses the test password, **STOP — do not onboard real members.**
 
-**Verify-gate F:** **all six** pass — and gate F5 (medical-data) is a HARD BLOCKER: the
+**Verify-gate F:** **all seven** pass — and gates F5 (medical-data) and F7 (no test
+passwords) are HARD BLOCKERS: the
 platform is NOT considered live until F5 passes for both single and couple. Only then is
 the cutover complete and `cfwnrcogikjycjcobsay` becomes live production — at which point
 update `CLAUDE.md` §4 (swap which ref is "current live") and retire `crpsuhoixfdhjugprbuc`

@@ -8,8 +8,11 @@
 | Theme color (meta/manifest) | — | `#1e5a9c` |
 
 ## Typography
-- **Headings:** Poppins (400/600/700) — Google Fonts
-- **Body:** Open Sans (400/500/600) — Google Fonts
+- **Display / headings & logo wordmark:** Fraunces (400/600/700, opsz 9–144) — Google Fonts.
+  Tailwind token `font-display`; applied to `h1–h6` and the "Care Conneqt" wordmark (~600).
+- **Body:** Open Sans (400/500/600) — Google Fonts. (Tagline "Connected Health" stays sans.)
+- *Changed 2026-06-16 from Poppins → Fraunces for display/headings; Poppins still loaded for
+  any legacy `font-['Poppins']` usages.*
 
 ## Logo
 - Canonical vector source: `src/assets/care-conneqt-logo.svg`

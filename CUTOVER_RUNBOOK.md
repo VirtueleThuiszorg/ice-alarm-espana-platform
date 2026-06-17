@@ -268,8 +268,18 @@ Run against the live (new) environment:
    If any of these is missing, the medical-data fix is NOT working — **STOP, do not go
    live.** This is the regression that shipped before (`FRONTEND_GAPS.md`): medical info
    entered at signup was silently dropped from the member record.
+6. **Public nav/footer link check (after `feat/frontend-polish` is merged + deployed).**
+   Click EVERY public **header** and **footer** link from at least TWO different pages
+   (the **home page** and a **sub-page** e.g. `/products` or `/contact`) and confirm each
+   lands/scrolls correctly:
+   - Header: How It Works, Products, Pricing, Partners, Contact, Member Login, Start Your
+     Protection, logo.
+   - Footer: How It Works, Pricing, Partners, Terms, Privacy, Help, Call Now.
+   - **Especially: header "Pricing" must scroll to the `#pricing` section when clicked from
+     a NON-home page** (this is the cross-page hash-scroll fixed in `feat/frontend-polish`;
+     audit 2026-06-16 confirmed all other targets correct). Record the result.
 
-**Verify-gate F:** **all five** pass — and gate F5 (medical-data) is a HARD BLOCKER: the
+**Verify-gate F:** **all six** pass — and gate F5 (medical-data) is a HARD BLOCKER: the
 platform is NOT considered live until F5 passes for both single and couple. Only then is
 the cutover complete and `cfwnrcogikjycjcobsay` becomes live production — at which point
 update `CLAUDE.md` §4 (swap which ref is "current live") and retire `crpsuhoixfdhjugprbuc`

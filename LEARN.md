@@ -61,6 +61,11 @@ session*, driven by this routine, not a live background process.
 
 > Format: `### YYYY-MM-DD — short title` then 1–3 lines. Never delete entries.
 
+### 2026-06-17 — Public nav/footer audit (no separate branch needed)
+Public nav/footer audited 2026-06-16 — all targets correct; only defect was header #pricing
+not scrolling cross-page, already fixed on `feat/frontend-polish`. No separate nav branch
+needed (`feat/nav-links` dropped). Added a Step F nav-link visual check to CUTOVER_RUNBOOK.
+
 ### 2026-06-17 — Staffing & rota documented (CUTOVER Step C3); night-cover SPOF flagged
 Added Step C3: shift patterns (Mary supervisor mornings; Carmen rotating; Albert afternoons;
 Travis nights; Lee super_admin + on-call catch-all). **Verified** `sos-escalation-runner`

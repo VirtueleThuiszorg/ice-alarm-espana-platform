@@ -240,13 +240,31 @@ on nights** until fixed.
 
 ## Step E — Repoint Vercel and redeploy
 
-Update the Vercel project env to the **new** project, then redeploy.
+> ## 🔴 CRITICAL — Vercel AUTO-DEPLOYS production from the `main` branch.
+> Merging the feature branches to `main` **immediately triggers a production deploy**. So the
+> cutover order is **strict and non-negotiable**:
+>
+> 1. **Set all secrets** on `cfwnrcogikjycjcobsay` — env (Step A) **and** `system_settings` (Step B).
+> 2. **Deploy edge functions** to `cfwnrcogikjycjcobsay` (Step D).
+> 3. **Switch Vercel env vars** (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PROJECT_ID`,
+>    `VITE_SUPABASE_PUBLISHABLE_KEY`) from the OLD project to `cfwnrcogikjycjcobsay`.
+> 4. **ONLY THEN merge the 9 feature branches to `main`** — this triggers Vercel's automatic
+>    production deploy, now correctly pointed at the fully-wired new backend.
+> 5. **Smoke-test** (Step F).
+>
+> ⛔ **Do NOT merge to `main` before steps 1–3.** If you do, Vercel auto-deploys the new
+> frontend against the OLD / unwired backend (wrong DB, missing secrets/functions) — a
+> live-site outage on a life-safety service.
+
+Update the Vercel project env to the **new** project (step 3 above), then let the merge
+(step 4) trigger the deploy:
 
 - `VITE_SUPABASE_URL` → `https://cfwnrcogikjycjcobsay.supabase.co`
 - `VITE_SUPABASE_PROJECT_ID` (a.k.a. PROJECT_ID) → `cfwnrcogikjycjcobsay`
 - `VITE_SUPABASE_PUBLISHABLE_KEY` (anon/publishable key) → new project's anon key
 - (Confirm the exact var names against `src/integrations/supabase/client.ts` before editing.)
-- Redeploy `main` on Vercel (production builds from GitHub).
+- The production deploy fires automatically on the `main` merge (step 4) — no manual redeploy
+  needed, but you can trigger a redeploy in Vercel if env vars changed without a new commit.
 
 **Verify-gate E:** the live site's network calls hit `cfwnrcogikjycjcobsay.supabase.co`;
 auth/login works against the new project.

@@ -61,6 +61,17 @@ session*, driven by this routine, not a live background process.
 
 > Format: `### YYYY-MM-DD — short title` then 1–3 lines. Never delete entries.
 
+### 2026-06-17 — Cutover ORDER is strict: Vercel auto-deploys main (CUTOVER Step E)
+Vercel auto-deploys production from `main`, so merging the 9 feature branches is the trigger
+that ships the new frontend. Mandatory order (now prominent in Step E): (1) set secrets —
+env (Step A) + system_settings (Step B); (2) deploy edge functions (Step D); (3) switch
+Vercel env vars (VITE_SUPABASE_URL/PROJECT_ID/PUBLISHABLE_KEY) to cfwnrcogikjycjcobsay;
+(4) ONLY THEN merge branches to main → auto-deploy against the wired-up backend; (5) smoke-test.
+⛔ Merging before steps 1-3 deploys the new frontend against the old/unwired backend — outage.
+Also done this session: set self-generated secrets on cfwnrcogikjycjcobsay (WEBHOOK_SECRET,
+EV07B_CHECKIN_KEY, EV07B_HMAC_SECRET, SITE_URL=https://care-conneqt-platform.vercel.app);
+provider secrets remain Lee's to enter.
+
 ### 2026-06-17 — Pre-client BLOCKING gates added to CUTOVER Step F (F8, F9)
 F8: **Twilio must be PAID before any real client** — a trial account only reaches
 pre-verified numbers, so the SOS/emergency path can't contact real members' emergency

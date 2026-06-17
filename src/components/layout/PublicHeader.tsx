@@ -12,7 +12,7 @@ export function PublicHeader() {
   const navItems = [
     { to: "/how-it-works", label: t("navigation.howItWorks") },
     { to: "/products", label: t("navigation.products") },
-    { to: "/#pricing", label: t("navigation.pricing"), isAnchor: true },
+    { to: "/pricing", label: t("navigation.pricing") },
     { to: "/partner", label: t("navigation.partners") },
     { to: "/contact", label: t("navigation.contact") },
   ];

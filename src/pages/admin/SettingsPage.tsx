@@ -31,6 +31,7 @@ import { DocumentationSettingsTab } from "@/components/admin/settings/Documentat
 import { CommunicationsTab } from "@/components/admin/settings/CommunicationsTab";
 import { DevicesSettingsTab } from "@/components/admin/settings/DevicesSettingsTab";
 import { PRICING } from "@/config/pricing";
+import { PricingPlansEditor } from "@/components/admin/PricingPlansEditor";
 
 interface SystemSetting {
   key: string;
@@ -529,7 +530,8 @@ export default function SettingsPage() {
         </TabsContent>
 
         {/* Pricing Tab */}
-        <TabsContent value="pricing">
+        <TabsContent value="pricing" className="space-y-6">
+          <PricingPlansEditor />
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

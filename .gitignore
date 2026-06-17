@@ -33,3 +33,6 @@ Thumbs.db
 .sentryclirc
 .vercel
 supabase/.temp/
+
+# Claude Code local settings
+.claude/

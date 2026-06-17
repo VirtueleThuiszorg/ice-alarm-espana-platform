@@ -44,9 +44,16 @@ are injected automatically — do **not** set them.
 | Email — Resend | `RESEND_API_KEY`, `SENDER_EMAIL`, `SENDER_NAME` |
 | Email — Gmail | `GMAIL_APP_PASSWORD` |
 | Google OAuth | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
-| EV07B pendant | `EV07B_CHECKIN_KEY` |
+| EV07B pendant | `EV07B_CHECKIN_KEY`, `EV07B_HMAC_SECRET` |
 | Webhooks | `WEBHOOK_SECRET` |
 | URLs | `SITE_URL`, `RENDER_WORKER_URL` |
+
+> **`EV07B_HMAC_SECRET` (added by `feat/sos-hardening`):** set the **SAME value** on BOTH the
+> gps-gateway service AND this Supabase project — the HMAC signature won't verify if they
+> differ. **Leave `EV07B_ENFORCE_HMAC` unset / `false`** during cutover: the ingress accepts
+> either HMAC or the legacy `x-api-key` during the transition, so a real pendant is never
+> locked out. Only set `EV07B_ENFORCE_HMAC=true` AFTER a real pendant request is confirmed
+> verifying via HMAC post-deploy.
 
 **Verify-gate A:** `supabase secrets list` shows every var above present (names only;
 values are hidden). No deploy yet.

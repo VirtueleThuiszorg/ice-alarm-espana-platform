@@ -3010,8 +3010,27 @@
     "messages": "messages",
     "failedToLoad": "Failed to load shift history"
   },
+  "products": {
+    "title": "Our Products",
+    "subtitle": "Connected health devices that keep you safe and your family informed. All integrated into the Care Conneqt platform.",
+    "loadError": "Unable to load products. Please try again later.",
+    "comingSoon": "Coming Soon",
+    "learnMore": "Learn more",
+    "notifyMe": "Notify Me",
+    "notify": {
+      "title": "Get notified",
+      "description": "Enter your email and we'll let you know when {{product}} is available.",
+      "emailLabel": "Email address",
+      "submit": "Notify me",
+      "success": "Thanks! We'll be in touch when it's ready.",
+      "error": "Something went wrong. Please try again."
+    }
+  },
   "legal": {
     "terms": {
+      "title": "Terms of Service",
+      "company": "Care Conneqt — Connected Health. Human Care.",
+      "lastUpdated": "Last updated: June 2026",
       "importantWarning": "IMPORTANT: PLEASE READ THESE TERMS CAREFULLY BEFORE USING OUR SERVICES.",
       "emergencyWarning": "THIS IS A PERSONAL EMERGENCY RESPONSE SERVICE, NOT A SUBSTITUTE FOR EMERGENCY SERVICES (112). IN A LIFE-THREATENING EMERGENCY, ALWAYS CALL 112 DIRECTLY IF POSSIBLE.",
       "s1Title": "1. Agreement to Terms",
@@ -3320,6 +3339,9 @@
       "tagline": "Care Conneqt — Keeping You Connected, Keeping You Safe"
     },
     "privacy": {
+      "title": "Privacy Policy",
+      "company": "Care Conneqt — Connected Health. Human Care.",
+      "lastUpdated": "Last updated: June 2026",
       "s1Title": "1. Who We Are",
       "s1p1": "<strong>Care Conneqt</strong> (\"we\", \"us\", \"our\") operates the personal emergency response service available at careconneqt.es.",
       "s1p2": "<strong>Data Controller:</strong><br/>Care Conneqt<br/>Email: info@careconneqt.es",

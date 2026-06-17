@@ -3002,8 +3002,27 @@
     "messages": "mensajes",
     "failedToLoad": "Error al cargar historial de turnos"
   },
+  "products": {
+    "title": "Nuestros Productos",
+    "subtitle": "Dispositivos de salud conectada que le mantienen seguro e informan a su familia. Todo integrado en la plataforma Care Conneqt.",
+    "loadError": "No se pudieron cargar los productos. Inténtelo de nuevo más tarde.",
+    "comingSoon": "Próximamente",
+    "learnMore": "Más información",
+    "notifyMe": "Avísame",
+    "notify": {
+      "title": "Recibir aviso",
+      "description": "Introduzca su correo y le avisaremos cuando {{product}} esté disponible.",
+      "emailLabel": "Correo electrónico",
+      "submit": "Avísame",
+      "success": "¡Gracias! Le avisaremos cuando esté listo.",
+      "error": "Algo salió mal. Inténtelo de nuevo."
+    }
+  },
   "legal": {
     "terms": {
+      "title": "Términos del Servicio",
+      "company": "Care Conneqt — Salud Conectada. Cuidado Humano.",
+      "lastUpdated": "Última actualización: junio de 2026",
       "importantWarning": "IMPORTANTE: POR FAVOR LEA ESTOS TÉRMINOS DETENIDAMENTE ANTES DE UTILIZAR NUESTROS SERVICIOS.",
       "emergencyWarning": "ESTE ES UN SERVICIO DE RESPUESTA DE EMERGENCIA PERSONAL, NO UN SUSTITUTO DE LOS SERVICIOS DE EMERGENCIA (112). EN UNA EMERGENCIA QUE AMENACE LA VIDA, LLAME SIEMPRE AL 112 DIRECTAMENTE SI ES POSIBLE.",
       "s1Title": "1. Aceptación de los Términos",
@@ -3312,6 +3331,9 @@
       "tagline": "Care Conneqt — Manteniéndole Conectado, Manteniéndole Seguro"
     },
     "privacy": {
+      "title": "Política de Privacidad",
+      "company": "Care Conneqt — Salud Conectada. Cuidado Humano.",
+      "lastUpdated": "Última actualización: junio de 2026",
       "s1Title": "1. Quiénes Somos",
       "s1p1": "<strong>Care Conneqt</strong> (\"nosotros\", \"nuestro\") opera el servicio de respuesta de emergencia personal disponible en careconneqt.es.",
       "s1p2": "<strong>Responsable del Tratamiento:</strong><br/>Care Conneqt<br/>Email: info@careconneqt.es",

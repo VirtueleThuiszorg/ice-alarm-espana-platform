@@ -5,7 +5,8 @@ import { PublicHeader } from "@/components/layout/PublicHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, Bell, MapPin, Pill, Activity } from "lucide-react";
+import { Loader2, ArrowRight, MapPin, Pill, Activity } from "lucide-react";
+import { NotifyInterestDialog } from "@/components/products/NotifyInterestDialog";
 
 const categoryIcons: Record<string, typeof MapPin> = {
   Emergency: MapPin,
@@ -37,17 +38,16 @@ export default function ProductsPage() {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <h1 className="text-4xl md:text-5xl font-bold mb-4 font-[Poppins]">
-              Our Products
+              {t("products.title", "Our Products")}
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Connected health devices that keep you safe and your family informed.
-              All integrated into the Care Conneqt platform.
+              {t("products.subtitle", "Connected health devices that keep you safe and your family informed. All integrated into the Care Conneqt platform.")}
             </p>
           </div>
 
           {error && (
             <p className="text-center text-destructive mb-8">
-              Unable to load products. Please try again later.
+              {t("products.loadError", "Unable to load products. Please try again later.")}
             </p>
           )}
 
@@ -79,7 +79,7 @@ export default function ProductsPage() {
                       </div>
                       {isComingSoon && (
                         <Badge className="absolute top-4 right-4 bg-brand-teal text-white border-0 text-sm px-3 py-1" style={{ backgroundColor: "hsl(185, 75%, 45%)" }}>
-                          Coming Soon
+                          {t("products.comingSoon", "Coming Soon")}
                         </Badge>
                       )}
                       {product.category && (
@@ -97,16 +97,14 @@ export default function ProductsPage() {
                       </p>
                       <div className="flex items-center justify-between">
                         {isComingSoon ? (
-                          <Button variant="outline" size="sm" className="gap-2">
-                            <Bell className="h-4 w-4" /> Notify Me
-                          </Button>
+                          <NotifyInterestDialog productName={name} />
                         ) : (
                           <>
                             {price && (
                               <span className="text-lg font-bold text-primary">{price}</span>
                             )}
                             <Button variant="ghost" size="sm" className="gap-1 text-primary">
-                              Learn more <ArrowRight className="h-4 w-4" />
+                              {t("products.learnMore", "Learn more")} <ArrowRight className="h-4 w-4" />
                             </Button>
                           </>
                         )}

@@ -5,6 +5,7 @@ import { PublicHeader } from "@/components/layout/PublicHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { NotifyInterestDialog } from "@/components/products/NotifyInterestDialog";
 import {
   Loader2, ArrowLeft, Check, Bell, ArrowRight,
   MapPin, Pill, Activity,
@@ -125,9 +126,7 @@ export default function ProductDetailPage() {
               )}
 
               {isComingSoon ? (
-                <Button size="lg" className="w-full md:w-auto gap-2" style={{ backgroundColor: "hsl(185, 75%, 45%)" }}>
-                  <Bell className="h-5 w-5" /> Register Interest
-                </Button>
+                <NotifyInterestDialog productName={name} size="default" variant="default" />
               ) : (
                 <Link to="/join">
                   <Button size="lg" className="w-full md:w-auto gap-2">

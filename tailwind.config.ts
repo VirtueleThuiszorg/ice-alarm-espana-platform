@@ -86,7 +86,7 @@ export default {
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
         // Brand display/heading font (matches the logo wordmark).
-        display: ["Fraunces", "Georgia", "serif"],
+        display: ["DM Sans", "system-ui", "sans-serif"],
       },
       keyframes: {
         "accordion-down": {

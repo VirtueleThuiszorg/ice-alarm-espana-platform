@@ -145,8 +145,17 @@ Portals: **admin, call-centre, client, partner, staff** (+ auth, blog, join, roo
 
 ## 9. Brand
 
-- **Deep Blue `#1e5a9c` / HSL `215 85% 35%`**, Teal secondary, Poppins + Open Sans,
-  two-C interlocking logo. Defined in `BRAND_ASSETS.md`.
+- **⚠️ Two brand marks currently coexist (verified against code 2026-07-14):**
+  - **Shipped icon/favicon set = new "v" mark** (`public/icon.svg` + favicon/PWA PNGs,
+    committed `b805825`): indigo `#3B3B7A` (HSL `240 35% 35%`) left arm, orange `#F7941E`
+    (HSL `33 93% 54%`) right arm + dot, on cream `#FAF6F0` (HSL `36 50% 96%`).
+  - **App theme + in-app two-C logo = still legacy palette:** Deep Blue `#1e5a9c` /
+    HSL `215 85% 35%` + Teal `185 75% 45%` (`src/index.css`, `manifest.json`, `index.html`,
+    `public/sw.js`, `src/components/ui/logo.tsx`, `src/assets/care-conneqt-logo.svg`).
+  - These do **not** match — the icon set was rebranded, the theme/logo were not.
+    Reconciling the code/theme is an open decision (audit material), **not** yet done.
+- Fonts: DM Sans (display/headings) + Open Sans (body); Poppins still loaded for legacy
+  usages. Full detail + colour tables in `BRAND_ASSETS.md`.
 - Functional alert tokens (`--alert-sos`, `--alert-fall`, etc.) are **states, not
   brand** — leave them.
 

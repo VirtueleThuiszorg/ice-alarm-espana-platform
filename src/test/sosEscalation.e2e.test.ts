@@ -5,18 +5,19 @@
 // Encodes the ladder in docs/SOS_ESCALATION_SPEC.md: a pendant SOS with NO operator
 // acknowledgement must escalate through each tier and reach a human on schedule.
 //
-// ─── Why this test FAILS right now, and why that is the point ──────────────────
+// ─── What binds this test to reality (STEP 2A red → STEP 2B green) ─────────────
 // The escalation LOGIC lives in supabase/functions/sos-escalation-runner/index.ts and is
-// correct — but nothing invokes it. There is no `cron.schedule(...)` for it anywhere in
-// supabase/migrations (only `ev07b-offline-monitor` and `shift-daily-reminders` are
-// scheduled). See SOS_ESCALATION_SPEC.md §(b) for the file:line proof.
+// correct. STEP 2A proved it never ran: there was no `cron.schedule(...)` for it, so every
+// tier assertion failed (the intended red). STEP 2B wired it — see
+// supabase/migrations/20260716120000_sos_escalation_cron.sql.
 //
-// This test does NOT hard-code "unscheduled". It DISCOVERS the schedule from the real
-// migration SQL at runtime (`discoverEscalationSchedule`), and only ticks the runner if a
-// schedule exists — exactly as production would. Because none exists today, the runner
-// never ticks, no human is ever dialled, and every tier assertion fails. That failure IS
-// the proof of the gap. STEP 2B (wiring the cron) will make discovery succeed → the runner
-// ticks → the same assertions go green. Do NOT edit this test to force a pass.
+// This test does NOT hard-code the outcome. It DISCOVERS the pg_cron wake from the real
+// migration SQL at runtime (`discoverEscalationSchedule`) and only sweeps the runner if a
+// wake exists AND the effective cadence is sub-minute — exactly as production behaves. The
+// cadence it reasons about (ESCALATION_TICK_MS) is imported from the same shared module the
+// runner uses, so it cannot drift from production. Remove the wake, or coarsen the cadence,
+// and this test goes red again. Do NOT edit this test to force a pass — its green is only
+// valid because escalation genuinely fires at the spec cadence.
 //
 // Runner unavailable to import directly: it targets Deno (`Deno.serve`, `Deno.env`,
 // `npm:@supabase/supabase-js`) and cannot load under vitest/node. Per CLAUDE.md this loop
@@ -28,6 +29,12 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+// The runner's REAL sweep cadence lives in this shared module and is imported by the runner
+// itself — so the number the test reasons about is the number production uses (not a copy).
+import {
+  ESCALATION_TICK_MS,
+  ESCALATION_MAX_RUNTIME_MS,
+} from "../../supabase/functions/_shared/escalation-loop";
 
 // ─── Ladder constants — mirrored from sos-escalation-runner/index.ts:24-40 ─────
 const NORMAL_TIMINGS: Record<number, number> = { 1: 15_000, 2: 30_000, 3: 60_000, 4: 90_000, 5: 120_000 };
@@ -143,13 +150,15 @@ function cronExprToMs(expr: string): number | null {
     return n * unit;
   }
   const fields = s.split(/\s+/);
-  // 6-field form puts seconds first: `*/10 * * * * *`
+  // 6-field form puts seconds first: `* * * * * *` (every 1s) or `*/10 * * * * *`.
   if (fields.length === 6) {
+    if (fields[0] === "*") return 1_000;
     const sec = fields[0].match(/^\*\/(\d+)$/);
     if (sec) return Number(sec[1]) * 1_000;
   }
-  // 5-field form, minute granularity: `*/2 * * * *`
+  // 5-field form, minute granularity: `* * * * *` (every 60s) or `*/2 * * * *`.
   if (fields.length === 5) {
+    if (fields[0] === "*") return 60_000;
     const min = fields[0].match(/^\*\/(\d+)$/);
     if (min) return Number(min[1]) * 60_000;
   }
@@ -197,14 +206,20 @@ function freshWorldWithSos(): World {
   };
 }
 
-// Drive the fake clock from the SOS to `untilMs`, invoking the runner ONLY on the discovered
-// cadence — i.e. only if a pg_cron job actually calls it. No schedule ⇒ zero ticks ⇒ RED.
-function simulateUnacknowledgedSos(schedule: DiscoveredSchedule, untilMs: number): World {
+// Drive the fake clock from the SOS to `untilMs`. In production a per-minute pg_cron WAKE
+// (re)starts the runner, which sweeps at its internal ESCALATION_TICK_MS cadence. So the runner
+// sweeps at `effectiveCadenceMs` ONLY while a wake exists. No wake ⇒ zero sweeps ⇒ RED. A cadence
+// coarser than the ladder ⇒ tiers missed ⇒ RED. Both failure modes are exactly what we want to catch.
+function simulateUnacknowledgedSos(
+  wakeScheduled: boolean,
+  effectiveCadenceMs: number,
+  untilMs: number,
+): World {
   const world = freshWorldWithSos();
-  if (!schedule.scheduled || schedule.intervalMs == null) {
-    return world; // runner is never invoked in production, so it is never invoked here
-  }
-  for (let t = schedule.intervalMs; t <= untilMs; t += schedule.intervalMs) {
+  // Guard mirrors reality: the sweep loop runs only if a wake fires it AND the cadence is tight
+  // enough to be a real safety net. Either failing means escalation does not genuinely fire.
+  if (!wakeScheduled || effectiveCadenceMs > 15_000) return world;
+  for (let t = effectiveCadenceMs; t <= untilMs; t += effectiveCadenceMs) {
     runnerTick(world, t);
   }
   return world;
@@ -219,46 +234,53 @@ function reachedHuman(world: World, level: number): boolean {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 describe("SOS escalation E2E — pendant SOS, no operator acknowledgement", () => {
-  const schedule = discoverEscalationSchedule("sos-escalation-runner");
+  const wake = discoverEscalationSchedule("sos-escalation-runner");
+  const effectiveCadenceMs = ESCALATION_TICK_MS; // the runner's real sweep cadence (escalation-loop.ts)
   const RUN_UNTIL_MS = 130_000; // past level 5 (120s), per NORMAL ladder
 
-  // The binding, un-fakeable assertion: production must actually invoke the runner.
-  it("the escalation runner is scheduled to fire automatically (pg_cron → net.http_post)", () => {
+  // The binding, un-fakeable assertion: a pg_cron job must actually invoke the runner.
+  it("a pg_cron wake actually invokes the escalation runner (→ net.http_post)", () => {
     expect(
-      schedule.scheduled,
+      wake.scheduled,
       "sos-escalation-runner has NO cron schedule in supabase/migrations — the auto-escalation " +
-        "safety net never fires. This is the gap STEP 2B must close (SOS_ESCALATION_SPEC.md §b).",
+        "safety net never fires (SOS_ESCALATION_SPEC.md §b).",
     ).toBe(true);
   });
 
-  it("the scheduled cadence is tight enough to hit the 30s first-callout (SPEC §c item 1)", () => {
-    // A 1-minute+ cadence would miss the 15/30/45/60s rungs and risk tier-skipping (SPEC §c item 2).
-    expect(schedule.intervalMs, "no schedule ⇒ no cadence to check").not.toBeNull();
-    expect(schedule.intervalMs!).toBeLessThanOrEqual(15_000);
+  it("the wake arrives before the internal loop's coverage lapses (no blackout window)", () => {
+    // The runner self-loops for ESCALATION_MAX_RUNTIME_MS then stops; the next per-minute wake must
+    // arrive within one tick of that, or there is an uncovered gap every cycle. (SPEC §c item 1.)
+    expect(wake.intervalMs, "no wake ⇒ no cadence to check").not.toBeNull();
+    expect(wake.intervalMs!).toBeLessThanOrEqual(ESCALATION_MAX_RUNTIME_MS + ESCALATION_TICK_MS);
+  });
+
+  it("the effective sweep cadence is sub-minute — meets the 30s first callout (SPEC §c item 1)", () => {
+    // A minute-granular cadence would miss the 15/30/45/60s rungs and risk tier-skipping (SPEC §c item 2).
+    expect(effectiveCadenceMs).toBeLessThanOrEqual(15_000);
   });
 
   it("level 2 (30s) calls on-shift staff — a human is dialled", () => {
-    const world = simulateUnacknowledgedSos(schedule, RUN_UNTIL_MS);
+    const world = simulateUnacknowledgedSos(wake.scheduled, effectiveCadenceMs, RUN_UNTIL_MS);
     expect(reachedHuman(world, 2)).toBe(true);
   });
 
   it("level 3 (60s) calls the supervisor — a human is dialled", () => {
-    const world = simulateUnacknowledgedSos(schedule, RUN_UNTIL_MS);
+    const world = simulateUnacknowledgedSos(wake.scheduled, effectiveCadenceMs, RUN_UNTIL_MS);
     expect(reachedHuman(world, 3)).toBe(true);
   });
 
   it("level 4 (90s) calls an admin — a human is dialled", () => {
-    const world = simulateUnacknowledgedSos(schedule, RUN_UNTIL_MS);
+    const world = simulateUnacknowledgedSos(wake.scheduled, effectiveCadenceMs, RUN_UNTIL_MS);
     expect(reachedHuman(world, 4)).toBe(true);
   });
 
   it("level 5 (120s) calls emergency contacts — a human is dialled", () => {
-    const world = simulateUnacknowledgedSos(schedule, RUN_UNTIL_MS);
+    const world = simulateUnacknowledgedSos(wake.scheduled, effectiveCadenceMs, RUN_UNTIL_MS);
     expect(reachedHuman(world, 5)).toBe(true);
   });
 
   it("every human tier (2→5) is reached in order, none skipped", () => {
-    const world = simulateUnacknowledgedSos(schedule, RUN_UNTIL_MS);
+    const world = simulateUnacknowledgedSos(wake.scheduled, effectiveCadenceMs, RUN_UNTIL_MS);
     for (const level of HUMAN_LEVELS) {
       expect(reachedHuman(world, level), `tier ${level} never reached a human`).toBe(true);
     }

@@ -157,3 +157,35 @@ it is *not* the escalation ladder and does **not** call staff/supervisor/admin.
 
 **No gaps were filled with assumptions.** Where the intended interval is not pinned by code (item 1), this
 doc says so and defers the decision to the wiring loop rather than inventing a number.
+
+---
+
+## (d) RESOLUTION — STEP 2B (wiring loop)
+
+Implemented on branch `sos/wire-escalation-cron`; **behind the human gate — not merged.**
+
+- **Scheduling (gap in §b) — DONE.** [`20260716120000_sos_escalation_cron.sql`](../supabase/migrations/20260716120000_sos_escalation_cron.sql)
+  schedules `sos-escalation-runner` and `staff-shift-monitor` via `cron.schedule` → `net.http_post`,
+  the pattern from §b. Idempotent (unschedule-guarded) and reversible (down commands in the header).
+- **Item 1 (sub-minute cadence) — RESOLVED without depending on pg_cron sub-minute support.** A
+  **per-minute wake** (`* * * * *`) invokes the runner, which drives
+  [`_shared/escalation-loop.ts`](../supabase/functions/_shared/escalation-loop.ts):
+  `ESCALATION_TICK_MS = 10s`, `ESCALATION_MAX_RUNTIME_MS = 55s` → **effective ~10s cadence**, and the
+  next wake restarts a crashed loop within a minute. Cadence is **measured** in
+  [`src/test/escalationLoop.test.ts`](../src/test/escalationLoop.test.ts) (deterministic fake-clock:
+  exact 10s spacing; real-timer: never faster than tick). The runner imports the same constant the
+  E2E test reasons about, so the proven cadence is the production cadence.
+- **Item 2 (tier-skipping) — mitigated by cadence, logic unchanged.** With ~10s sweeps the runner
+  steps 1→2→3→4→5 cleanly. The next-level selection in `sos-escalation-runner/index.ts` was left
+  as-is (the human gate reviews escalation-logic changes); coarse-invocation skipping is now
+  prevented by the tight cadence + the E2E "none skipped" assertion.
+- **Item 3 (UTC vs Madrid) — FIXED.** Both runners now derive shift from one DST-correct helper,
+  [`_shared/shift-time.ts`](../supabase/functions/_shared/shift-time.ts) (Europe/Madrid), proven
+  across both DST boundaries by [`src/test/shiftTime.test.ts`](../src/test/shiftTime.test.ts).
+- **Item 4 (`is_unresponsive`) — unchanged;** the E2E encodes the normal ladder for the pendant path.
+- **Fail-loud (GOALS G2) — DONE.** Structured JSON logs per sweep; a LOUD `system.runner_failure`
+  admin alert (`notify-admin`, always-on, not toggle-gated) on any sweep/fatal error; plus a
+  **dead-man's-switch** — the runner writes a heartbeat and `staff-shift-monitor` alerts if it goes
+  stale (>3 min), catching "the escalation cron silently died".
+- **Inbound <1s latency — still not measured.** No timing instrumentation/harness exists; the E2E
+  keeps that assertion **skipped with a TODO** rather than assert a fabricated number (GOALS G5).

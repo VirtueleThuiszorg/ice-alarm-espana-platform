@@ -72,7 +72,7 @@ serve(async (req) => {
       }
     }
 
-    let result: any = null;
+    let result: unknown = null;
     let errorMessage: string | null = null;
 
     try {

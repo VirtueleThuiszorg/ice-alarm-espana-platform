@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { 
@@ -44,6 +45,10 @@ import { useOrderActions } from "@/hooks/useOrderActions";
 
 const ITEMS_PER_PAGE = 20;
 
+type OrderRow = Tables<"orders"> & {
+  member: Pick<Tables<"members">, "id" | "first_name" | "last_name" | "email"> | null;
+};
+
 export default function OrdersPage() {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
@@ -75,7 +80,7 @@ export default function OrdersPage() {
       const { data: orders, count, error } = await query;
       if (error) throw error;
 
-      return { orders: orders || [], totalCount: count || 0 };
+      return { orders: (orders || []) as unknown as OrderRow[], totalCount: count || 0 };
     },
   });
 
@@ -166,7 +171,7 @@ export default function OrdersPage() {
                   </TableCell>
                 </TableRow>
               ) : data?.orders && data.orders.length > 0 ? (
-                data.orders.map((order: any) => (
+                data.orders.map((order) => (
                   <TableRow 
                     key={order.id} 
                     className="cursor-pointer hover:bg-muted/50"

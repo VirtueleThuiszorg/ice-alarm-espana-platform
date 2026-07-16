@@ -40,7 +40,7 @@ export interface SocialPostResearch {
   id: string;
   created_at: string;
   post_id: string;
-  sources: any[];
+  sources: unknown[];
   key_points: string | null;
   compliance_notes: string | null;
 }
@@ -134,7 +134,7 @@ export function useSocialPosts(statusFilter?: SocialPostStatus | "all") {
         language: post.language,
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: i18n.t("mediaManager.toasts.errorCreatingDraft"),
         description: error.message,
@@ -167,7 +167,7 @@ export function useSocialPosts(statusFilter?: SocialPostStatus | "all") {
         has_image: !!post.image_url,
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: i18n.t("mediaManager.toasts.errorUpdatingDraft"),
         description: error.message,
@@ -201,7 +201,7 @@ export function useSocialPosts(statusFilter?: SocialPostStatus | "all") {
       // Audit log
       logSocialPostActivity("approved", post.id, { status: "draft" }, { status: "approved" });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: i18n.t("mediaManager.toasts.errorApprovingPost"),
         description: error.message,
@@ -234,7 +234,7 @@ export function useSocialPosts(statusFilter?: SocialPostStatus | "all") {
       toast({ title: i18n.t("mediaManager.toasts.postReadyForRetry"), description: i18n.t("mediaManager.toasts.postReadyForRetryDesc") });
       logSocialPostActivity("retry_requested", post.id, { status: "failed" }, { status: "approved" });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: i18n.t("mediaManager.toasts.errorPreparingRetry"),
         description: error.message,
@@ -283,7 +283,7 @@ export function useSocialPosts(statusFilter?: SocialPostStatus | "all") {
         facebook_post_id: data.facebook_post_id,
       });
     },
-    onError: (error: any, postId: string) => {
+    onError: (error: Error, postId: string) => {
       queryClient.invalidateQueries({ queryKey: ["social-posts"] });
       toast({ title: i18n.t("mediaManager.toasts.publishingFailed"), description: error.message, variant: "destructive" });
       // Log publish failure
@@ -305,7 +305,7 @@ export function useSocialPosts(statusFilter?: SocialPostStatus | "all") {
       queryClient.invalidateQueries({ queryKey: ["social-post-metrics"] });
       toast({ title: i18n.t("mediaManager.toasts.postDeleted"), description: i18n.t("mediaManager.toasts.postDeletedDesc") });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: i18n.t("mediaManager.toasts.errorDeletingPost"),
         description: error.message,

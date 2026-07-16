@@ -189,7 +189,7 @@ export default function MemberDetailPage() {
 
       {/* Member Header */}
       <MemberHeader
-        member={member as any}
+        member={member}
         subscription={subscription}
         hasDevice={!!device}
         onEdit={() => setActiveTab("profile")}

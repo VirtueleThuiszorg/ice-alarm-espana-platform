@@ -50,7 +50,7 @@ interface Device {
   collected_at: string | null;
   live_at: string | null;
   management_mode: string | null;
-  provisioning_checklist: Record<string, any> | null;
+  provisioning_checklist: Record<string, { completed?: boolean }> | null;
 }
 
 interface DeviceTabProps {
@@ -398,7 +398,7 @@ export function DeviceTab({ memberId }: DeviceTabProps) {
             {(() => {
               const checklist = device.provisioning_checklist || {};
               const steps = Object.values(checklist);
-              const completed = steps.filter((s: any) => s?.completed).length;
+              const completed = steps.filter((s) => s?.completed).length;
               const total = 14;
               const percent = Math.round((completed / total) * 100);
               return (

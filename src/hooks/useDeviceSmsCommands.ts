@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 
 export interface SmsCommandEntry {
@@ -11,6 +12,13 @@ export interface SmsCommandEntry {
   received_at?: string;
   status: "sent" | "delivered" | "failed" | "timeout";
 }
+
+// `sms_command_log` is a Json column not reflected in the generated Supabase
+// types, so these local shapes describe how it is read and written.
+type DeviceWithSmsLog = { sms_command_log?: SmsCommandEntry[] | null };
+type DeviceSmsLogUpdate = TablesUpdate<"devices"> & {
+  sms_command_log?: SmsCommandEntry[];
+};
 
 export interface SmsCommandDefinition {
   key: string;
@@ -94,8 +102,8 @@ export function useDeviceSmsCommands(deviceId: string) {
       .eq("id", deviceId)
       .single();
 
-    if (!error && (data as any)?.sms_command_log) {
-      setCommandLog((data as any).sms_command_log as SmsCommandEntry[]);
+    if (!error && (data as DeviceWithSmsLog | null)?.sms_command_log) {
+      setCommandLog((data as DeviceWithSmsLog).sms_command_log as SmsCommandEntry[]);
     }
   }, [deviceId]);
 
@@ -126,7 +134,7 @@ export function useDeviceSmsCommands(deviceId: string) {
           entry.status = "delivered";
           entry.response = data?.message || "Command sent successfully";
         }
-      } catch (err: any) {
+      } catch {
         // If edge function fails (e.g. not deployed), log locally in manual mode
         entry.status = "sent";
         entry.response = "SMS queued — send manually if Twilio is not configured";
@@ -139,12 +147,12 @@ export function useDeviceSmsCommands(deviceId: string) {
         .eq("id", deviceId)
         .single();
 
-      const existingLog = ((device as any)?.sms_command_log as SmsCommandEntry[] | null) || [];
+      const existingLog = ((device as DeviceWithSmsLog | null)?.sms_command_log as SmsCommandEntry[] | null) || [];
       const updatedLog = [...existingLog, entry];
 
       await supabase
         .from("devices")
-        .update({ sms_command_log: updatedLog } as any)
+        .update({ sms_command_log: updatedLog } as DeviceSmsLogUpdate)
         .eq("id", deviceId);
 
       return entry;
@@ -164,7 +172,7 @@ export function useDeviceSmsCommands(deviceId: string) {
     mutationFn: async () => {
       await supabase
         .from("devices")
-        .update({ sms_command_log: [] } as any)
+        .update({ sms_command_log: [] } as DeviceSmsLogUpdate)
         .eq("id", deviceId);
     },
     onSuccess: () => {

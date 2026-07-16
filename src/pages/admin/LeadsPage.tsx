@@ -18,6 +18,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
@@ -89,7 +90,13 @@ interface RegistrationDraft {
   first_name: string | null;
   last_name: string | null;
   current_step: number;
-  wizard_data: any;
+  wizard_data: {
+    membershipType?: string;
+    billingFrequency?: string;
+    includePendant?: boolean;
+    address?: { city?: string } | null;
+    emergencyContacts?: unknown[];
+  } | null;
   source: string;
   status: string;
   converted_member_id: string | null;
@@ -195,7 +202,7 @@ export default function LeadsPage() {
     if (error) {
       console.error('Error fetching drafts:', error);
     } else {
-      setDrafts(data as RegistrationDraft[] || []);
+      setDrafts((data as unknown as RegistrationDraft[]) || []);
     }
     setDraftsLoading(false);
   };
@@ -209,7 +216,7 @@ export default function LeadsPage() {
   };
 
   const updateLeadStatus = async (leadId: string, status: string) => {
-    const updateData: any = { status };
+    const updateData: TablesUpdate<"leads"> = { status };
     if (status === 'contacted') {
       updateData.contacted_at = new Date().toISOString();
     }

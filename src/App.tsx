@@ -23,7 +23,7 @@ import i18n from "@/i18n";
  * new HTML with updated chunk hashes. A sessionStorage flag prevents
  * infinite reload loops.
  */
-function lazyWithRetry(importFn: () => Promise<{ default: React.ComponentType<any> }>) {
+function lazyWithRetry(importFn: () => Promise<{ default: React.ComponentType }>) {
   return lazy(() =>
     importFn().catch((error: unknown) => {
       const key = "chunk-reload-" + window.location.pathname;

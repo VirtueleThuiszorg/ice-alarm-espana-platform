@@ -86,7 +86,7 @@ export default function ShiftNotesPage() {
 
       if (error) throw error;
 
-      const formattedNotes: ShiftNote[] = (data || []).map((note: any) => ({
+      const formattedNotes: ShiftNote[] = (data || []).map((note) => ({
         id: note.id,
         noteContent: note.note_content,
         requiresFollowup: note.requires_followup,
@@ -116,7 +116,7 @@ export default function ShiftNotesPage() {
 
       if (error) throw error;
 
-      setMembers((data || []).map((m: any) => ({
+      setMembers((data || []).map((m) => ({
         id: m.id,
         name: `${m.first_name} ${m.last_name}`,
       })));

@@ -147,9 +147,10 @@ Deno.serve(async (req) => {
         }
 
         results.push({ post_id: post.id, metrics });
-      } catch (err: any) {
+      } catch (err) {
         console.error(`Error fetching metrics for post ${post.id}:`, err);
-        const isTokenExpired = err?.code === 190 || err?.type === "token_expired";
+        const fbErr = err as { code?: number; type?: string };
+        const isTokenExpired = fbErr?.code === 190 || fbErr?.type === "token_expired";
         results.push({ 
           post_id: post.id, 
           metrics: { reactions_total: 0, reactions_breakdown: {}, comments_count: 0, shares_count: 0, impressions: 0 },
@@ -197,8 +198,8 @@ async function fetchFacebookMetrics(
     // Check for token expiry (OAuth error code 190)
     if (engagementData.error.code === 190) {
       const error = new Error(engagementData.error.message || "Facebook token expired");
-      (error as any).code = 190;
-      (error as any).type = "token_expired";
+      (error as { code?: number }).code = 190;
+      (error as { type?: string }).type = "token_expired";
       throw error;
     }
     throw new Error(engagementData.error.message || "Facebook API error");
@@ -220,7 +221,7 @@ async function fetchFacebookMetrics(
   }
 
   // Try to get reaction breakdown
-  let reactionsBreakdown: Record<string, number> = {};
+  const reactionsBreakdown: Record<string, number> = {};
   try {
     const reactionsUrl = `https://graph.facebook.com/${apiVersion}/${facebookPostId}/reactions?summary=total_count&access_token=${accessToken}`;
     const reactionsRes = await fetch(reactionsUrl);

@@ -74,7 +74,7 @@ export default function MembersPage() {
       .order('last_name', { ascending: true });
 
     if (!error && data) {
-      const formattedMembers = data.map((member: any) => ({
+      const formattedMembers = data.map((member) => ({
         ...member,
         subscription: member.subscriptions?.[0] || null,
         device: member.devices?.[0] || null

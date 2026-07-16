@@ -134,7 +134,7 @@ export default function MemberUpdatePage() {
         medications: data.medical?.medications?.join(", ") || "",
       });
       setFormContacts(
-        data.emergencyContacts?.map((c: any) => ({
+        data.emergencyContacts?.map((c: EmergencyContact) => ({
           ...c,
           email: c.email || "",
           notes: c.notes || "",
@@ -158,7 +158,7 @@ export default function MemberUpdatePage() {
         memberUpdates.nie_dni = formMember.nie_dni;
       }
 
-      const medicalUpdates: Record<string, any> = {};
+      const medicalUpdates: Record<string, unknown> = {};
       if (formMedical.blood_type) medicalUpdates.blood_type = formMedical.blood_type;
       if (formMedical.doctor_name) medicalUpdates.doctor_name = formMedical.doctor_name;
       if (formMedical.doctor_phone) medicalUpdates.doctor_phone = formMedical.doctor_phone;
@@ -186,7 +186,7 @@ export default function MemberUpdatePage() {
 
       setStatus("submitted");
       toast.success(t("memberUpdate.updateSuccess", "Thank you! Your information has been updated."));
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error submitting update:", error);
       toast.error(t("common.error", "An error occurred"));
     } finally {
@@ -210,7 +210,7 @@ export default function MemberUpdatePage() {
     ]);
   };
 
-  const updateContact = (index: number, field: keyof EmergencyContact, value: any) => {
+  const updateContact = <K extends keyof EmergencyContact>(index: number, field: K, value: EmergencyContact[K]) => {
     setFormContacts(prev => prev.map((c, i) => (i === index ? { ...c, [field]: value } : c)));
   };
 

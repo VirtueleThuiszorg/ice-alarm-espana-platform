@@ -1,15 +1,24 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { getShiftContext } from "../_shared/shift-time.ts";
 
 /**
  * Staff Shift Monitor
  *
- * Runs every 2 minutes via pg_cron. Performs three checks:
+ * Runs every 2 minutes via pg_cron (migration 20260716120000_sos_escalation_cron.sql).
+ * Performs three checks:
  * 1. No-show: scheduled staff who haven't signed in after grace period
  * 2. No coverage: nobody on duty at all
  * 3. Disconnected: on-duty staff whose heartbeat has gone stale
+ *
+ * It ALSO acts as the dead-man's-switch for sos-escalation-runner: if that runner's heartbeat is
+ * stale, this fires a LOUD admin alert — catching the "escalation cron silently died" nightmare
+ * (GOALS G2). Shift math uses the shared, timezone-correct helper so it can never diverge from the
+ * escalation runner (HAZARD 2 fix).
  */
+
+const FN = "staff-shift-monitor";
 
 // Grace period after shift start before alerting (in minutes)
 const NO_SHOW_GRACE_MINUTES = 5;
@@ -17,21 +26,39 @@ const NO_SHOW_GRACE_MINUTES = 5;
 // Heartbeat staleness threshold (in seconds) — 90s means 3 missed 30s heartbeats
 const HEARTBEAT_STALE_SECONDS = 90;
 
-// Shift schedule (Madrid timezone)
+// Dead-man's-switch for sos-escalation-runner.
+const ESCALATION_HEARTBEAT_KEY = "ops_sos_escalation_last_run_at";
+const ESCALATION_STALE_MS = 180_000; // 3 min: tolerates one missed per-minute wake
+const ESCALATION_STALE_DEDUP_KEY = "ops_sos_escalation_stale_last_alert_at";
+const ESCALATION_STALE_DEDUP_MS = 1_800_000; // re-alert at most every 30 min
+
+// Shift schedule labels (Madrid timezone) — used for the shift_time in notifications.
 const SHIFTS = {
   morning: { start: 7, end: 15 },
   afternoon: { start: 15, end: 23 },
   night: { start: 23, end: 7 },
 } as const;
 
-function getCurrentShiftType(hour: number): string {
-  if (hour >= 7 && hour < 15) return "morning";
-  if (hour >= 15 && hour < 23) return "afternoon";
-  return "night";
+/** Structured, PII-free log line. */
+function log(entry: Record<string, unknown>): void {
+  console.log(JSON.stringify({ fn: FN, ts: new Date().toISOString(), ...entry }));
 }
 
-function getShiftStartHour(shiftType: string): number {
-  return SHIFTS[shiftType as keyof typeof SHIFTS]?.start ?? 0;
+/** Fire a LOUD admin alert about a runner failure. Best-effort; never throws. */
+async function fireRunnerFailureAlert(
+  baseUrl: string,
+  serviceKey: string,
+  detail: Record<string, unknown>,
+): Promise<void> {
+  try {
+    await fetch(`${baseUrl}/functions/v1/notify-admin`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+      body: JSON.stringify({ event_type: "system.runner_failure", entity_type: "runner", payload: detail }),
+    });
+  } catch (err) {
+    log({ event: "runner_failure_alert_send_failed", error: err instanceof Error ? err.message : String(err) });
+  }
 }
 
 serve(async (req) => {
@@ -40,40 +67,19 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const baseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const supabase = createClient(baseUrl, serviceKey);
 
-    const baseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    // Get current time in Madrid
+    // Shift context from the shared, DST-correct helper (Europe/Madrid) — identical to the math
+    // sos-escalation-runner uses, so the two safety runners agree on "current shift".
     const now = new Date();
-    const madridFormatter = new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Europe/Madrid",
-      hour: "numeric",
-      minute: "numeric",
-      hour12: false,
-    });
-    const madridParts = madridFormatter.formatToParts(now);
-    const madridHour = parseInt(madridParts.find((p) => p.type === "hour")?.value || "0");
-    const madridMinute = parseInt(madridParts.find((p) => p.type === "minute")?.value || "0");
-
-    const currentShift = getCurrentShiftType(madridHour);
-    const shiftStartHour = getShiftStartHour(currentShift);
-
-    // Calculate minutes since shift started
-    let minutesSinceShiftStart: number;
-    if (currentShift === "night" && madridHour < 7) {
-      // After midnight in night shift
-      minutesSinceShiftStart = (madridHour + 24 - 23) * 60 + madridMinute;
-    } else {
-      minutesSinceShiftStart = (madridHour - shiftStartHour) * 60 + madridMinute;
-    }
-
-    const today = new Date().toISOString().split("T")[0];
+    const shiftCtx = getShiftContext(now.getTime());
+    const currentShift = shiftCtx.shiftType;
+    const minutesSinceShiftStart = shiftCtx.minutesSinceShiftStart;
+    const today = shiftCtx.shiftDate;
 
     const stats = {
       noShowAlerts: 0,
@@ -339,26 +345,78 @@ serve(async (req) => {
       }
     }
 
+    // ================================================================
+    // DEAD-MAN'S-SWITCH: is sos-escalation-runner still firing?
+    // A silently dead escalation cron is the nightmare (GOALS G2). Its runner writes a heartbeat
+    // each invocation; if that heartbeat is missing or stale, escalation is NOT running — alert LOUD.
+    // ================================================================
+    let escalationRunnerStale = false;
+    try {
+      const { data: hb } = await supabase
+        .from("system_settings")
+        .select("value")
+        .eq("key", ESCALATION_HEARTBEAT_KEY)
+        .maybeSingle();
+
+      const lastRunMs = hb?.value ? new Date(hb.value).getTime() : null;
+      const ageMs = lastRunMs == null ? Infinity : now.getTime() - lastRunMs;
+
+      if (ageMs > ESCALATION_STALE_MS) {
+        escalationRunnerStale = true;
+
+        // Dedup: only re-alert every ESCALATION_STALE_DEDUP_MS.
+        const { data: lastAlert } = await supabase
+          .from("system_settings")
+          .select("value")
+          .eq("key", ESCALATION_STALE_DEDUP_KEY)
+          .maybeSingle();
+        const lastAlertMs = lastAlert?.value ? new Date(lastAlert.value).getTime() : null;
+        const sinceLastAlert = lastAlertMs == null ? Infinity : now.getTime() - lastAlertMs;
+
+        log({
+          event: "escalation_runner_stale",
+          last_run_at: hb?.value ?? null,
+          age_s: ageMs === Infinity ? null : Math.round(ageMs / 1000),
+          will_alert: sinceLastAlert > ESCALATION_STALE_DEDUP_MS,
+        });
+
+        if (sinceLastAlert > ESCALATION_STALE_DEDUP_MS) {
+          await fireRunnerFailureAlert(baseUrl, serviceKey, {
+            runner: "sos-escalation-runner",
+            scope: "heartbeat_stale",
+            last_run_at: hb?.value ?? "never",
+            age_s: ageMs === Infinity ? "unknown" : Math.round(ageMs / 1000),
+          });
+          await supabase
+            .from("system_settings")
+            .upsert({ key: ESCALATION_STALE_DEDUP_KEY, value: now.toISOString() }, { onConflict: "key" });
+        }
+      }
+    } catch (hbErr) {
+      log({ event: "heartbeat_check_failed", error: hbErr instanceof Error ? hbErr.message : String(hbErr) });
+    }
+
     const result = {
       success: true,
       timestamp: now.toISOString(),
       currentShift,
       minutesSinceShiftStart,
+      escalationRunnerStale,
       stats,
     };
 
-    console.log("Staff shift monitor completed:", result);
+    log({ event: "completed", currentShift, minutesSinceShiftStart, escalationRunnerStale, ...stats });
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Staff shift monitor error:", error);
+    const message = error instanceof Error ? error.message : "Unknown error";
+    log({ event: "fatal", error: message });
+    // Fatal error in the night-cover safety net must be LOUD, not swallowed.
+    await fireRunnerFailureAlert(baseUrl, serviceKey, { runner: FN, scope: "fatal", error: message });
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      }),
+      JSON.stringify({ success: false, error: message }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

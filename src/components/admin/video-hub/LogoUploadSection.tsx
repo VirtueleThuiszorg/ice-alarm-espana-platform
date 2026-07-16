@@ -66,9 +66,9 @@ export function LogoUploadSection({
 
       onLogoChange(urlData.publicUrl);
       toast.success(t("videoHub.logo.uploaded"));
-    } catch (error: any) {
+    } catch (error) {
       console.error("Upload error:", error);
-      toast.error(error.message || t("videoHub.logo.uploadFailed"));
+      toast.error((error instanceof Error ? error.message : undefined) || t("videoHub.logo.uploadFailed"));
     } finally {
       setIsUploading(false);
       // Reset input

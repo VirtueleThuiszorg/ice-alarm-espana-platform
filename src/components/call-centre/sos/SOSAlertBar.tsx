@@ -36,7 +36,9 @@ function ElapsedCounter({ since }: { since: string }) {
 // Play alarm sound using Web Audio API
 function playAlarmSound() {
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const ctx = new (window.AudioContext ||
+      (window as typeof window & { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext)();
 
     // Three ascending tones
     for (let i = 0; i < 3; i++) {

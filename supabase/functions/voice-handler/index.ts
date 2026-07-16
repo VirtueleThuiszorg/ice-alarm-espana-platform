@@ -166,7 +166,12 @@ Deno.serve(async (req) => {
         );
 
         // Look up member
-        let member: any = null;
+        let member: {
+          id: string;
+          first_name?: string | null;
+          last_name?: string | null;
+          preferred_language?: string | null;
+        } | null = null;
         const { data: m1 } = await sb
           .from("members")
           .select("id, first_name, last_name, preferred_language")
@@ -406,7 +411,7 @@ Deno.serve(async (req) => {
             .eq("id", convId)
             .maybeSingle();
           if (existing) {
-            const upd: any = {
+            const upd: Record<string, unknown> = {
               source: "mixed",
               last_channel: "voice",
               last_message_at: new Date().toISOString(),
@@ -418,7 +423,7 @@ Deno.serve(async (req) => {
           }
         }
         if (!convId) {
-          const ins: any = {
+          const ins: Record<string, unknown> = {
             member_id: member?.id || null,
             language: lang === "es" ? "es" : "en",
             source: conversationParam ? "mixed" : "voice",
@@ -471,7 +476,7 @@ Deno.serve(async (req) => {
               started_at: new Date().toISOString(),
               status: "initiated",
             });
-          } catch {}
+          } catch { /* best-effort: ignore */ }
         }
 
         if (convId && member?.id) {
@@ -511,7 +516,7 @@ Deno.serve(async (req) => {
               content: lang === "es" ? greetEs : greetEn,
               meta: { callSid, type: "greeting" },
             });
-          } catch {}
+          } catch { /* best-effort: ignore */ }
         }
 
         const txUrl = convId
@@ -577,7 +582,7 @@ Deno.serve(async (req) => {
               confidence: confidence ? parseFloat(confidence) : null,
             },
           });
-        } catch {}
+        } catch { /* best-effort: ignore */ }
       }
 
       let lang = session.language;
@@ -703,7 +708,7 @@ Deno.serve(async (req) => {
             content: reply,
             meta: { callSid },
           });
-        } catch {}
+        } catch { /* best-effort: ignore */ }
       }
 
       const nextUrl = `${baseUrl}/functions/v1/${FN}?action=transcription${convId ? "&conversation_id=" + encodeURIComponent(convId) : ""}`;
@@ -718,7 +723,7 @@ Deno.serve(async (req) => {
       let cSid = url.searchParams.get("callSid") || "";
       try {
         cSid = (fd.get("CallSid") as string) || cSid;
-      } catch {}
+      } catch { /* best-effort: ignore */ }
 
       const { data: session } = await sb
         .from("voice_call_sessions")

@@ -304,7 +304,7 @@ export default function AdminDashboard() {
           <CardContent>
             {alertsData && alertsData.length > 0 ? (
               <div className="space-y-3">
-                {alertsData.slice(0, 4).map((alert: any) => (
+                {alertsData.slice(0, 4).map((alert) => (
                   <div
                     key={alert.id}
                     className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
@@ -355,7 +355,7 @@ export default function AdminDashboard() {
           <CardContent>
             {activityData && activityData.length > 0 ? (
               <div className="space-y-3">
-                {activityData.map((activity: any) => (
+                {activityData.map((activity) => (
                   <div
                     key={activity.id}
                     className="flex items-start gap-3 pb-3 border-b last:border-0"

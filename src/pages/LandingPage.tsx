@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, Phone, Shield, Heart, Users, Check, Star, MapPin, Zap, Radio, Battery, AlertCircle, MessageCircle, Bot, ShieldCheck, Monitor, Headphones, Send } from "lucide-react";
+import { ArrowRight, Phone, Shield, Heart, Users, Check, Star, MapPin, Radio, AlertCircle, MessageCircle, Bot, ShieldCheck, Monitor, Headphones, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

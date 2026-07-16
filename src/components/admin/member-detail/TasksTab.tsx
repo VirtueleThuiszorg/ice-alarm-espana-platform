@@ -168,7 +168,7 @@ export function TasksTab({ memberId }: TasksTabProps) {
     form.reset({
       title: task.title,
       description: task.description || "",
-      priority: task.priority as any,
+      priority: task.priority as TaskFormValues["priority"],
       assigned_to: "", // We'd need the ID here
       due_date: task.due_date ? format(new Date(task.due_date), "yyyy-MM-dd'T'HH:mm") : "",
     });

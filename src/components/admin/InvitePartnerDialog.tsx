@@ -66,10 +66,10 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
       queryClient.invalidateQueries({ queryKey: ["partner-global-stats"] });
       resetForm();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: t("partnerInvite.dialog.error", "Failed to send invitation"),
-        description: error.message,
+        description: error instanceof Error ? error.message : String(error),
         variant: "destructive",
       });
     } finally {

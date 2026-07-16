@@ -14,7 +14,7 @@ export function AISimulatorTab({ agent }: AISimulatorTabProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [context, setContext] = useState('{\n  "test": true\n}');
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<unknown>(null);
   const runAgent = useRunAgent();
 
   const handleRun = async () => {

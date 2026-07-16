@@ -6,6 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
+interface RunLog {
+  id: string;
+  run_type: string;
+  started_at: string;
+  totals: { enriched?: number; rated?: number; sent?: number } | null;
+  dry_run: boolean | null;
+}
+
 export function OutreachAnalyticsTab() {
   const { t } = useTranslation();
   const [stats, setStats] = useState({
@@ -15,7 +23,7 @@ export function OutreachAnalyticsTab() {
     repliesReceived: 0,
     conversions: 0,
   });
-  const [runLogs, setRunLogs] = useState<any[]>([]);
+  const [runLogs, setRunLogs] = useState<RunLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -44,7 +52,7 @@ export function OutreachAnalyticsTab() {
           .select("*")
           .order("started_at", { ascending: false })
           .limit(10);
-        setRunLogs(logs || []);
+        setRunLogs((logs as unknown as RunLog[]) || []);
       } finally {
         setIsLoading(false);
       }

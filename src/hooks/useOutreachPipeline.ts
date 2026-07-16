@@ -16,7 +16,7 @@ export interface PipelineRunResult {
     sent: number;
     followups: number;
   };
-  steps: Record<string, any>;
+  steps: Record<string, unknown>;
   errors?: string[];
 }
 

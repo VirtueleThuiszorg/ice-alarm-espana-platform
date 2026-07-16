@@ -297,11 +297,11 @@ export default function PartnersQAPage() {
       icon: Shield,
       test: async () => {
         // Check RLS policies exist for partner tables
-        const tables = ["partner_invites", "partner_attributions", "partner_commissions"];
+        const tables = ["partner_invites", "partner_attributions", "partner_commissions"] as const;
         const results: string[] = [];
-        
+
         for (const table of tables) {
-          const { error } = await supabase.from(table as any).select("id").limit(1);
+          const { error } = await supabase.from(table).select("id").limit(1);
           if (!error) {
             results.push(`${table}: ✓`);
           }
@@ -326,13 +326,13 @@ export default function PartnersQAPage() {
     try {
       const result = await testCase.test();
       setTestResults((prev) => ({ ...prev, [testCase.id]: result }));
-    } catch (error: any) {
+    } catch (error) {
       setTestResults((prev) => ({
         ...prev,
         [testCase.id]: {
           status: "failed",
           message: "Test threw an exception",
-          details: error.message,
+          details: error instanceof Error ? error.message : String(error),
         },
       }));
     } finally {

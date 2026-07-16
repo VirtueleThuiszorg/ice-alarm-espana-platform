@@ -74,12 +74,12 @@ export function CourtesyCallsCard({ memberId }: CourtesyCallsCardProps) {
       if (memberError) throw memberError;
 
       setIsEnabled(member?.courtesy_calls_enabled ?? true);
-      setFrequency((member as any)?.courtesy_call_frequency || "monthly");
+      setFrequency(member?.courtesy_call_frequency || "monthly");
       setNextCallDate(member?.next_courtesy_call_date || null);
 
       // Calculate next call date if not set
       if (!member?.next_courtesy_call_date && member?.created_at) {
-        const freq = (member as any)?.courtesy_call_frequency || "monthly";
+        const freq = member?.courtesy_call_frequency || "monthly";
         const nextDate = calculateNextCallDate(freq);
         setNextCallDate(nextDate.toISOString().split("T")[0]);
       }
@@ -130,10 +130,10 @@ export function CourtesyCallsCard({ memberId }: CourtesyCallsCardProps) {
       
       const { error } = await supabase
         .from("members")
-        .update({ 
+        .update({
           courtesy_call_frequency: newFrequency,
           next_courtesy_call_date: newNextDate.toISOString().split("T")[0]
-        } as any)
+        })
         .eq("id", memberId);
 
       if (error) throw error;

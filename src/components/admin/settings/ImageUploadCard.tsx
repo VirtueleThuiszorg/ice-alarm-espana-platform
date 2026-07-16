@@ -130,10 +130,10 @@ export function ImageUploadCard({
       setSelectedFile(null);
       setPreviewUrl(null);
       onImageUpdated();
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Upload failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : String(error),
         variant: "destructive",
       });
     } finally {
@@ -164,10 +164,10 @@ export function ImageUploadCard({
       setSelectedFile(null);
       setPreviewUrl(null);
       onImageUpdated();
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Reset failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : String(error),
         variant: "destructive",
       });
     } finally {

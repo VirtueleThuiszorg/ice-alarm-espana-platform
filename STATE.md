@@ -13,16 +13,23 @@
 
 ---
 
-## 0. Full suite results (run 2026-06-18, this branch)
+## 0. Full suite results (gates re-run 2026-07-16 on `chore/lint-zero-and-test-hygiene`)
 
 | Gate | Result | Evidence |
 |---|---|---|
 | **Typecheck** (`tsc --noEmit`) | ✅ **0 errors** | exit 0 |
-| **Lint** (`eslint .`) | 🔴 **345 errors + 62 warnings** (407 problems) | mostly `no-explicit-any` in edge fns (`stripe-webhook` ×7, `voice-handler`, `submit-registration`, `youtube-publish`…), empty blocks in `voice-handler`, `require()` in `tailwind.config.ts:136`. **Fails GOALS bar #2 (0 lint warnings).** |
-| **Build** (`vite build`) | ✅ **succeeds** | `✓ built in 1m14s`; only the >600 kB chunk-size warning (`index-*.js` 984 kB). |
-| **Tests** (`vitest run`) | 🟡 **349 pass / 1 suite fails** | 19 of 20 test files pass. `src/test/crmEvents.test.ts` **fails to load**: `Error: supabaseUrl is required` (`src/integrations/supabase/client.ts:11`) — a test-hygiene defect, but it means the referral logic it covers is **not currently proven**. |
+| **Lint** (`eslint .`) | ✅ **0 errors** (62 warnings) | Cleanup PR `chore/lint-zero-and-test-hygiene` fixed all 345 errors (318 `no-explicit-any` + 27 misc), type-only, verified by tsc 0 + suite green + build green. Remaining 62 are pre-existing `react-hooks/exhaustive-deps` + `react-refresh` **warnings** (deferred — fixing exhaustive-deps changes dependency arrays = a behavior change, notably on the SOS-path `useAlerts` effect). `render-worker` (separate package) excluded from root lint. |
+| **Build** (`vite build`) | ✅ **succeeds** | `✓ built in ~1m20s`; only the >600 kB chunk-size warning. |
+| **Tests** (`vitest run`) | ✅ **all green** | 20/20 files, 362 tests pass. `crmEvents.test.ts` load failure (`supabaseUrl is required`) FIXED via a dummy Supabase env in `vitest.config.ts` (test-only, non-secret) — referral logic now proven. |
 
-**Test surface reality:** 20 Vitest **unit** files in `src/test/`. **Zero** edge-function tests, **zero** RLS/isolation tests, **zero** Playwright/E2E. The CI gates CLAUDE.md declares (RLS isolation, webhook contract, E2E checkout→activation & SOS→operator, CVE scan) have **no corresponding files**.
+**Test surface reality:** 23 Vitest files in `src/test/`. Still **zero** RLS/isolation tests and **zero** Playwright/E2E harness. The SOS escalation ladder now has a suite-level E2E encoding (`sosEscalation.e2e.test.ts`) plus edge-logic tests (`escalationLoop.test.ts`, `shiftTime.test.ts`) that exercise shared edge modules under vitest — but the mandated Playwright E2E paths (checkout→activation, SOS→operator UI) and the RLS-isolation/webhook-contract suites still have no corresponding files.
+
+> **Two stacked PRs.** The escalation safety fix is a **tiny 11-file PR (PR-B)** on top of a
+> mechanical cleanup PR (**PR-A** `chore: repo-wide lint + type + test-env cleanup` — `no-explicit-any`
+> typing, `crmEvents`/`supabaseUrl` test-env, lint config; no escalation logic). **Merge order: PR-A
+> first, then PR-B.** Rebased on PR-A, PR-B is green by itself: **typecheck 0 · lint 0 errors
+> (62 pre-existing warnings) · build green · 384 tests pass / 1 skipped**. The escalation fix adds
+> zero lint errors of its own.
 
 ---
 
@@ -37,10 +44,10 @@
 | Ingress auth (HMAC / api-key transition) | ✅ | `src/test/ev07bAuth.test.ts` (9) + `src/test/hmac.test.ts` (8) — **17 pass**. Tests `_shared/ev07b-auth.ts` + `_shared/hmac.ts` (edge WebCrypto ↔ gateway Node parity). **This is the only proven SOS piece.** |
 | HMAC **enforcement** | 🟡 | Permissive: `EV07B_ENFORCE_HMAC` defaults **false** (`ev07b-sos-alert/index.ts:53`) → accepts HMAC **OR** legacy `x-api-key`. Strict mode is off until the flag is set. |
 | `emergency-contact-notify` (Twilio SMS) | 🟡 | Real Twilio send (`index.ts:137-166`), logs `alert_communications`. No test. |
-| **Auto-escalation runner** (levels 2–5: staff→supervisor→admin→contact voice calls) | 🔴 | `sos-escalation-runner` code is real & complete, header says "every 10s via cron" — **but NO `cron.schedule` invokes it.** Only cron jobs in all migrations: `ev07b-offline-monitor` (2 min) + `shift-daily-reminders` (daily). **The automatic human-callout safety net never fires on its own.** |
-| **Shift monitor** (night-cover SPOF net) | 🔴 | `staff-shift-monitor` header claims "every 2 min via pg_cron" — **also unscheduled.** Dead unless called manually. |
+| **Auto-escalation runner** (levels 2–5: staff→supervisor→admin→contact voice calls) | ✅ | **VERIFIED WORKING** by `src/test/sosEscalation.e2e.test.ts` (a pendant SOS with no ack reaches every human tier 2→5) + `src/test/escalationLoop.test.ts` (cadence). Now scheduled: `20260716120000_sos_escalation_cron.sql` runs a **per-minute pg_cron wake** that drives an internal sweep loop (`_shared/escalation-loop.ts`, `ESCALATION_TICK_MS=10s`, `MAX_RUNTIME=55s`) → **effective ~10s cadence** meeting the 15/30/45/60/90s ladder (HAZARD 1 resolved without relying on pg_cron sub-minute support). Runner writes a heartbeat + logs structured JSON + fires a LOUD `system.runner_failure` admin alert on any sweep/fatal error (GOALS G2). |
+| **Shift monitor** (night-cover SPOF net) | ✅ | **VERIFIED WORKING** (scheduled `*/2 * * * *` in the same migration; asserted by `sosEscalation.e2e.test.ts`). Also now the **dead-man's-switch** for the escalation runner: alerts LOUD if that runner's heartbeat goes stale (>3 min). |
 | Realtime → operator screen | 🟡 | `alerts` in realtime publication (`20260121143325:391`); `src/hooks/useAlerts.ts:338-406` subscribes, plays sound/toast/notification on INSERT. `SOSAlertPage`/`CallCentreDashboard` + `sos-conference-*` all real. No click-through/test proof. |
-| **Latency < 1 s (target)** | 🔴/⬜ | **Measured nowhere.** No `performance.now`/timing assertion in the path. The plan's <1s target has no instrumentation and no test. |
+| **Latency < 1 s (target)** | 🟡/⬜ | **Escalation *cadence* is now measured** (`escalationLoop.test.ts`: sweeps honour the ~10s tick). The **inbound** SOS latency (pendant press → operator-visible alert < 1s) is still **not measured** — there is no timing instrumentation in `ev07b-sos-alert` and no local/deployed harness to time it, so `sosEscalation.e2e.test.ts` keeps that assertion **skipped with a TODO** rather than assert a fabricated number (GOALS G5). Owed follow-up: an ingress-latency probe. |
 
 ---
 
@@ -91,7 +98,7 @@
 - **Cross-cutting utils** — `sanitize.test.ts`, `validation.test.ts`, `sentry.test.ts`, `error-boundary.test.tsx`, `rateLimiter.test.ts`.
 
 ### 🔴 BROKEN
-- **SOS auto-escalation & shift-monitor** — real code, **no cron** → never fire automatically (§1).
+- ~~**SOS auto-escalation & shift-monitor** — real code, no cron → never fire automatically~~ **→ RESOLVED (§1):** both scheduled via pg_cron at spec cadence; escalation proven by `sosEscalation.e2e.test.ts`. Also fixed the UTC-vs-Madrid timezone divergence between the two runners (both now use `_shared/shift-time.ts`, DST-correct, proven by `shiftTime.test.ts`). **Behind the human gate — pending Lee's review of the escalation path.**
 - **Webhook-only activation** — 3 client-side activation paths (§2).
 - **Lint gate** — 345 errors + 62 warnings (§0).
 - **`crmEvents.test.ts`** — fails to load (`supabaseUrl required`); referral attribution therefore unproven.
@@ -131,7 +138,7 @@
 | #5 Clara queries as the user | 🔴 AI executor uses service role |
 | #6 Clara hard-blocked tools unreachable in code | ✅ holds (closed allowlist; tools absent) |
 | #7 Clara red-lines (no medical advice, never resolve SOS) | 🟡 escalate can't touch alerts (good); red-lines not test-proven |
-| #8 SOS never mocked + always E2E-tested | 🔴 not mocked ✅ but **no E2E test** |
+| #8 SOS never mocked + always E2E-tested | 🟡 not mocked ✅; **escalation E2E now exists** (`sosEscalation.e2e.test.ts`) ✅; inbound <1s latency still unmeasured 🔴 |
 | #9 No secrets in git | ✅ holds (secrets in env/`system_settings`) |
 | #10 No new tests skipped / zero-test code | 🔴 vast UNVERIFIED surface; 1 failing suite |
 | Bar: typecheck 0 | ✅ | Bar: lint 0 | 🔴 | Bar: proven-not-claimed | 🔴 |
@@ -139,3 +146,41 @@
 **Bottom line:** the app **builds and type-checks**, and a focused set of safety/gate/pricing/auth-logic units is genuinely proven. But the two paths that *must not break* — **SOS→operator** and **checkout→activation** — have **no end-to-end proof**, tenant **isolation is untested**, and there are **concrete BROKEN items** (unscheduled escalation cron, three webhook-only bypasses, AI on the forbidden Lovable gateway, a failing test suite, a failing lint gate). Treat SOS and Payments as **not production-safe** until their E2E/contract/isolation tests exist and the BROKEN items are fixed under the human gate.
 
 *See `RECONCILE.md` for the Isabella/Clara decision, the scope-creep keep/archive list, and the full plan-vs-reality divergences.*
+
+---
+
+## 6. Next — tracked follow-ups (from the 2026-06-18 governance reconcile)
+
+> Lee's three decisions are applied: **AI = Isabella** (not Clara) · **stay single-app** (monorepo
+> target abandoned) · **archive the growth tooling** (partner/commission included — Lee confirmed no
+> real commissions are being earned). These follow-ups fall out of those decisions. **None were done
+> in the docs-only reconcile loop.**
+
+### AI / Isabella
+- **Canonical spelling = `Isabella`.** Code is inconsistent — fix `Isabel` → `Isabella` in
+  `supabase/functions/ai-run/index.ts:28` (chat system prompt) and
+  `src/components/admin/settings/VoiceSettingsSection.tsx:37-38` (voice greeting). Voice handler
+  (`isabella-voice-handler:93-94`) already says "Isabella". *(Code change — not this loop.)*
+- 🔴 **HIGH PRIORITY — migrate Isabella off the Lovable gateway to the Anthropic API.** Golden-rule
+  violation: `ai-run` POSTs to `https://ai.gateway.lovable.dev/v1/chat/completions`
+  (`ai-run/index.ts:801,984,1165,1437`, model `google/gemini-3-flash-preview`). Owed **regardless of
+  the name**. Also address rule #5 (Isabella must "query as the user", not the service role).
+
+### Scope — archive candidates (DEFERRED, per RECONCILE.md §2 / plan §11)
+- Label-only for now (no code moved/deleted): **YouTube**, **Facebook**, **AI outreach**,
+  **content/media generation**, **video-render**, and the **partner/commission portal**
+  (ARCHIVE CANDIDATE — Lee 2026-06-18: no live commissions; flip to KEEP if that changes).
+- **Migration-shrink bonus:** archiving the above removes **most of the 11 non-core functions** on the
+  Lovable gateway, reducing the Anthropic migration to **Isabella core** (`ai-run`,
+  `ai-execute-action`, `ai-dispatch-events`, `isabella-voice-handler`).
+
+### Critical-path gaps (the real WP targets — see plan §12 reframe)
+- **SOS:** ✅ **DONE (pending human gate):** `sos-escalation-runner` + `staff-shift-monitor` scheduled
+  via pg_cron at spec cadence (`20260716120000_sos_escalation_cron.sql`); escalation proven by
+  `sosEscalation.e2e.test.ts`; UTC/Madrid tz divergence fixed. ⬜ **Still owed:** an **inbound <1s
+  latency** probe (the E2E keeps that assertion skipped with a TODO — see §1).
+- **Payments:** add webhook contract + checkout→activation E2E; **close the 3 client-side activation
+  bypasses** (`PaymentStep.tsx`, `ResidentialDashboard.tsx`, `submit-registration` `testMode`).
+- **Auth/RLS:** add the **tenant-isolation test suite** (negative assertions) — golden rule #2.
+- **Lint gate:** 345 errors + 62 warnings → 0 (GOALS bar).
+- **Failing suite:** fix `src/test/crmEvents.test.ts` (`supabaseUrl required`) so referral logic is proven.

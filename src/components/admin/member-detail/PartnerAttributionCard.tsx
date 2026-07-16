@@ -59,7 +59,13 @@ export function PartnerAttributionCard({ memberId }: PartnerAttributionCardProps
     return null; // Don't show card if no attribution
   }
 
-  const partner = attribution.partners as any;
+  const partner = attribution.partners as unknown as {
+    id: string;
+    contact_name: string | null;
+    company_name: string | null;
+    email: string | null;
+    referral_code: string | null;
+  } | null;
 
   return (
     <Card className="border-primary/20 bg-primary/5">

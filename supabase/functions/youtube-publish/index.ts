@@ -4,7 +4,14 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 
 
 
-async function refreshTokenIfNeeded(supabase: any, integration: any): Promise<string> {
+async function refreshTokenIfNeeded(
+  supabase: ReturnType<typeof createClient>,
+  integration: {
+    expires_at: string;
+    access_token_encrypted: string;
+    refresh_token_encrypted: string;
+  }
+): Promise<string> {
   const expiresAt = new Date(integration.expires_at);
   const now = new Date();
   

@@ -14,6 +14,20 @@ import {
  * admin-edited prices. Falls back to DEFAULT_PRICING_CONFIG (== seed) on error/empty so the
  * UI never renders blank prices. Returns the config for reactive consumers.
  */
+// Row shapes for the pricing tables (not yet in the generated Supabase types).
+interface PricingPlanRow {
+  plan_key: string;
+  monthly_net: number;
+  annual_months: number;
+  subscription_tax_rate: number;
+  is_active?: boolean | null;
+}
+
+interface PricingSettingRow {
+  key: string;
+  value: number;
+}
+
 export function usePricing() {
   const query = useQuery({
     queryKey: ["pricing-config"],
@@ -27,8 +41,8 @@ export function usePricing() {
         sb.from("pricing_plans").select("plan_key, monthly_net, annual_months, subscription_tax_rate, is_active"),
         sb.from("pricing_settings").select("key, value"),
       ]);
-      const plans = (plansRes.data as any[] | null) ?? [];
-      const settings = (settingsRes.data as any[] | null) ?? [];
+      const plans = (plansRes.data as PricingPlanRow[] | null) ?? [];
+      const settings = (settingsRes.data as PricingSettingRow[] | null) ?? [];
       if (plansRes.error || settingsRes.error || plans.length === 0) {
         return DEFAULT_PRICING_CONFIG;
       }

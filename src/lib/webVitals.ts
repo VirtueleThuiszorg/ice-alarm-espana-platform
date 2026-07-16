@@ -24,7 +24,7 @@ export function observeWebVitals(onMetric: MetricCallback) {
   try {
     const lcpObserver = new PerformanceObserver((list) => {
       const entries = list.getEntries();
-      const lastEntry = entries[entries.length - 1] as any;
+      const lastEntry = entries[entries.length - 1];
       if (lastEntry) {
         const value = lastEntry.startTime;
         onMetric({
@@ -45,7 +45,7 @@ export function observeWebVitals(onMetric: MetricCallback) {
   try {
     const fidObserver = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
-        const value = (entry as any).processingStart - entry.startTime;
+        const value = (entry as PerformanceEventTiming).processingStart - entry.startTime;
         onMetric({
           name: "FID",
           value,
@@ -65,8 +65,9 @@ export function observeWebVitals(onMetric: MetricCallback) {
     let clsValue = 0;
     const clsObserver = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
-        if (!(entry as any).hadRecentInput) {
-          clsValue += (entry as any).value;
+        const layoutShift = entry as PerformanceEntry & { hadRecentInput: boolean; value: number };
+        if (!layoutShift.hadRecentInput) {
+          clsValue += layoutShift.value;
         }
       }
       onMetric({

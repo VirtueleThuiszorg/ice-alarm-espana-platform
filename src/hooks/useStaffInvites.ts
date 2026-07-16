@@ -3,19 +3,49 @@ import { supabase } from "@/integrations/supabase/client";
 import type { StaffInvite } from "@/types/staff";
 import { toast } from "sonner";
 
+// `staff_invites` is not present in the generated Supabase types, so this
+// façade exposes only the query/mutation builder methods used below.
+const staffInvitesDb = supabase as unknown as {
+  from: (table: string) => {
+    select: (columns: string) => {
+      eq: (
+        column: string,
+        value: unknown,
+      ) => {
+        order: (
+          column: string,
+          options: { ascending: boolean },
+        ) => {
+          limit: (count: number) => {
+            maybeSingle: () => Promise<{ data: StaffInvite | null; error: unknown }>;
+          };
+        };
+      };
+    };
+    update: (values: Record<string, unknown>) => {
+      eq: (
+        column: string,
+        value: unknown,
+      ) => {
+        eq: (column: string, value: unknown) => Promise<{ error: unknown }>;
+      };
+    };
+  };
+};
+
 export function useStaffInvite(staffId: string | undefined) {
   return useQuery({
     queryKey: ["staff-invite", staffId],
     queryFn: async () => {
       if (!staffId) return null;
 
-      const { data, error } = await (supabase
-        .from("staff_invites" as any)
+      const { data, error } = await staffInvitesDb
+        .from("staff_invites")
         .select("*")
         .eq("staff_id", staffId)
         .order("created_at", { ascending: false })
         .limit(1)
-        .maybeSingle());
+        .maybeSingle();
 
       if (error) throw error;
       return data as StaffInvite | null;
@@ -64,11 +94,11 @@ export function useRevokeInvite() {
 
   return useMutation({
     mutationFn: async ({ inviteId, staffId }: { inviteId: string; staffId: string }) => {
-      const { error } = await (supabase
-        .from("staff_invites" as any)
+      const { error } = await staffInvitesDb
+        .from("staff_invites")
         .update({ status: "revoked", revoked_at: new Date().toISOString() })
         .eq("id", inviteId)
-        .eq("status", "pending"));
+        .eq("status", "pending");
 
       if (error) throw error;
       return { inviteId, staffId };

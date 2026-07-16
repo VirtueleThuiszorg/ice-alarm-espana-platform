@@ -150,7 +150,7 @@ export function PublishingHistorySection() {
             <Label className="text-xs">{t("mediaStrategy.platform")}</Label>
             <Select
               value={filters.platform || "all"}
-              onValueChange={(v) => setFilters((f) => ({ ...f, platform: v === "all" ? undefined : v as any }))}
+              onValueChange={(v) => setFilters((f) => ({ ...f, platform: v === "all" ? undefined : v as HistoryFilters["platform"] }))}
             >
               <SelectTrigger className="w-32 h-9">
                 <SelectValue />

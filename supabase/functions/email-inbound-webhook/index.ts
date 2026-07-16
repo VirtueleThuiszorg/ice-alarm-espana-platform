@@ -149,10 +149,10 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ success: true, inbound_id: inboundLog?.id }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error in email-inbound-webhook:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message || "Internal server error" }),
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

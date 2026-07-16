@@ -405,11 +405,11 @@ export async function isIsabellaFunctionEnabled(functionKey: string): Promise<bo
 }
 
 /** Get the config JSON for a specific Isabella function */
-export async function getIsabellaFunctionConfig(functionKey: string): Promise<Record<string, any> | null> {
+export async function getIsabellaFunctionConfig(functionKey: string): Promise<Record<string, unknown> | null> {
   const { data } = await supabase
     .from("isabella_settings")
     .select("config")
     .eq("function_key", functionKey)
     .single();
-  return (data?.config as Record<string, any>) ?? null;
+  return (data?.config as Record<string, unknown>) ?? null;
 }

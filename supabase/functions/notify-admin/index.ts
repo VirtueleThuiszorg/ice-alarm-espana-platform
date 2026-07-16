@@ -5,7 +5,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 
 
 interface NotifyPayload {
-  event_type: "sale.paid" | "partner.joined" | "hot.sales" | "test" | "ev07b.alert" | "shift.no_show" | "shift.no_coverage" | "shift.disconnected" | "system.runner_failure";
+  event_type: "sale.paid" | "partner.joined" | "hot.sales" | "test" | "ev07b.alert" | "shift.no_show" | "shift.no_coverage" | "shift.disconnected" | "system.runner_failure" | "escalation.call_failed";
   entity_type?: string;
   entity_id?: string;
   payload: {
@@ -16,6 +16,10 @@ interface NotifyPayload {
     last_run_at?: string;
     age_s?: number | string;
     sweep_index?: number;
+    // Escalation-call-failed fields (escalation.call_failed)
+    escalation_level?: number;
+    target_type?: string;
+    phone_masked?: string;
     customer_name?: string;
     language?: string;
     amount?: number;
@@ -140,6 +144,24 @@ ${detail}
 ➡️ Escalation/monitoring may be DOWN. Investigate immediately.`;
 }
 
+const ESCALATION_TARGET_LABELS: Record<string, string> = {
+  mobile_call: "staff/supervisor/admin mobile",
+  emergency_contact_call: "emergency contact",
+  browser_alert: "browser alert",
+};
+
+function formatEscalationCallFailedMessage(payload: NotifyPayload["payload"], timestamp: string): string {
+  const level = payload.escalation_level ?? "?";
+  const who = ESCALATION_TARGET_LABELS[payload.target_type || ""] || payload.target_type || "target";
+  const member = payload.member_name || "a member";
+  return `🆘 SOS ESCALATION CALL FAILED
+📞 Level ${level} call did NOT connect — ${who} (${payload.phone_masked || "number hidden"})
+👤 Member: ${member}
+🚨 A rung of the SOS ladder did not reach a human. Check the alert and call manually NOW.
+🕒 ${timestamp}
+➡️ Admin: /admin/alerts/${payload.alert_id || ""}`;
+}
+
 function formatEV07BAlertMessage(payload: NotifyPayload["payload"], timestamp: string): string {
   const alertInfo = ALERT_TYPE_LABELS[payload.alert_type || ""] || { emoji: "🔔", label: "DEVICE ALERT" };
   const memberName = payload.member_name || "Unknown member";
@@ -260,6 +282,11 @@ serve(async (req) => {
           // not gated by a per-admin toggle.
           shouldSend = true;
           message = formatRunnerFailureMessage(payload, timestamp);
+          break;
+        case "escalation.call_failed":
+          // Life-safety: a rung of the SOS ladder failed to reach a human — always loud.
+          shouldSend = true;
+          message = formatEscalationCallFailedMessage(payload, timestamp);
           break;
         case "test":
           shouldSend = true;

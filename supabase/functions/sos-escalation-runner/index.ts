@@ -36,11 +36,25 @@ import {
   ESCALATION_TICK_MS,
   ESCALATION_MAX_RUNTIME_MS,
 } from "../_shared/escalation-loop.ts";
+import { decideLevelOutcome, type CallOutcome } from "../_shared/escalation-outcome.ts";
 
 const FN = "sos-escalation-runner";
 
 /** Heartbeat key read by staff-shift-monitor's dead-man's-switch. */
 const HEARTBEAT_KEY = "ops_sos_escalation_last_run_at";
+
+/**
+ * How long past L5's timeout to keep retrying the terminal tier (emergency contacts) before the
+ * runner gives up re-dialling. L2–L4 need no explicit bound — they advance when the next tier's
+ * ladder timeout elapses (bounded-retry-then-advance; see _shared/escalation-outcome.ts).
+ */
+const L5_RETRY_GRACE_MS = 120_000;
+
+/** Mask a phone number for logs/alerts — keep only the last 4 digits. */
+function maskPhone(phone: string): string {
+  const s = String(phone);
+  return s.length <= 4 ? "••••" : `••••${s.slice(-4)}`;
+}
 
 // Normal timings (ms)
 const NORMAL_TIMINGS: Record<number, number> = {
@@ -84,6 +98,45 @@ async function fireRunnerFailureAlert(
   } catch (err) {
     // Last-resort: at least make the failure of the failure-alert visible in logs.
     log({ event: "runner_failure_alert_send_failed", error: err instanceof Error ? err.message : String(err) });
+  }
+}
+
+/**
+ * Fire a LOUD admin alert that an SOS-ladder rung did not connect to a human. Best-effort — never
+ * throws, never stops the escalation loop (mirrors fireRunnerFailureAlert). GOALS G2.
+ */
+async function fireEscalationCallFailed(
+  baseUrl: string,
+  serviceKey: string,
+  detail: {
+    alert_id: string;
+    member_id: string;
+    member_name: string;
+    escalation_level: number;
+    target_type: string;
+    phone: string;
+  },
+): Promise<void> {
+  try {
+    await fetch(`${baseUrl}/functions/v1/notify-admin`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+      body: JSON.stringify({
+        event_type: "escalation.call_failed",
+        entity_type: "alert",
+        entity_id: detail.alert_id,
+        payload: {
+          alert_id: detail.alert_id,
+          member_id: detail.member_id,
+          member_name: detail.member_name,
+          escalation_level: detail.escalation_level,
+          target_type: detail.target_type,
+          phone_masked: maskPhone(detail.phone),
+        },
+      }),
+    });
+  } catch (err) {
+    log({ event: "call_failed_alert_send_failed", error: err instanceof Error ? err.message : String(err) });
   }
 }
 
@@ -132,6 +185,7 @@ async function runEscalationSweep(
   sb: SupabaseClient,
   creds: TwilioCredentials,
   baseUrl: string,
+  serviceKey: string,
   nowMs: number,
 ): Promise<{ processed: number; total: number }> {
   const { data: alerts } = await sb
@@ -162,18 +216,16 @@ async function runEscalationSweep(
 
     if (nextLevel === 0 || nextLevel <= currentLevel) continue;
 
-    // Check if this level was already attempted
-    const { data: existingEsc } = await sb
+    // Prior attempts at this level (may be several — one row per target, plus retries).
+    const { data: priorEscs } = await sb
       .from("alert_escalations")
-      .select("id, responded")
+      .select("responded, call_placed")
       .eq("alert_id", alert.id)
-      .eq("escalation_level", nextLevel)
-      .maybeSingle();
-
-    if (existingEsc) {
-      if (existingEsc.responded) break; // Stop escalating if responded
-      continue; // Already attempted this level
-    }
+      .eq("escalation_level", nextLevel);
+    const priors = priorEscs ?? [];
+    if (priors.some((e) => e.responded)) break;                // acknowledged → stop escalating (UNCHANGED)
+    if (priors.some((e) => e.call_placed === true)) continue;  // tier already reached a human → don't redial
+    const priorAttemptExists = priors.length > 0;              // earlier FAILED attempt(s) at this tier
 
     // Get member name
     const { data: member } = await sb
@@ -185,12 +237,13 @@ async function runEscalationSweep(
 
     log({ event: "escalating", alert_id: alert.id, level: nextLevel, elapsed_s: Math.round(elapsed / 1000) });
 
-    // Level 1: Browser alert (handled client-side)
+    // Level 1: Browser alert (handled client-side) — delivered to the dashboard, so "reached".
     if (nextLevel === 1) {
       await sb.from("alert_escalations").insert({
         alert_id: alert.id,
         escalation_level: 1,
         target_type: "browser_alert",
+        call_placed: true,
       });
       await sb.from("alerts").update({ escalation_level_reached: 1 }).eq("id", alert.id);
       processed++;
@@ -208,37 +261,38 @@ async function runEscalationSweep(
       .eq("shift_type", shiftType)
       .maybeSingle();
 
-    // Level 2: On-shift staff (chain primary/backup first, then fallback)
+    // Place a call to one target, record the REAL per-target outcome (call_placed), and remember it
+    // so the level decision below knows whether ANY human was actually reached this sweep.
+    const outcomes: CallOutcome[] = [];
+    const attempt = async (targetType: string, phone: string, staffId: string | null): Promise<boolean> => {
+      const callSid = await placeEscalationCall(creds, baseUrl, phone, alert.id, memberName, alert.alert_type);
+      const connected = callSid !== null;
+      await sb.from("alert_escalations").insert({
+        alert_id: alert.id,
+        escalation_level: nextLevel,
+        target_type: targetType,
+        target_staff_id: staffId,
+        target_phone: phone,
+        call_placed: connected,
+      });
+      outcomes.push({ targetType, phone, staffId, connected });
+      return connected;
+    };
+
+    // Level 2: On-shift staff (chain primary/backup first, then on-call fallback — stop at first connect)
     if (nextLevel === 2) {
       let called = false;
 
-      // Try chain primary first
       if (chain?.primary_staff_id) {
         const { data: primary } = await sb.from("staff").select("id, personal_mobile").eq("id", chain.primary_staff_id).maybeSingle();
-        if (primary?.personal_mobile) {
-          const callSid = await placeEscalationCall(creds, baseUrl, primary.personal_mobile, alert.id, memberName, alert.alert_type);
-          await sb.from("alert_escalations").insert({
-            alert_id: alert.id, escalation_level: 2, target_type: "mobile_call",
-            target_staff_id: primary.id, target_phone: primary.personal_mobile,
-          });
-          if (callSid) called = true;
-        }
+        if (primary?.personal_mobile && (await attempt("mobile_call", primary.personal_mobile, primary.id))) called = true;
       }
 
-      // Try chain backup
       if (!called && chain?.backup_staff_id) {
         const { data: backup } = await sb.from("staff").select("id, personal_mobile").eq("id", chain.backup_staff_id).maybeSingle();
-        if (backup?.personal_mobile) {
-          const callSid = await placeEscalationCall(creds, baseUrl, backup.personal_mobile, alert.id, memberName, alert.alert_type);
-          await sb.from("alert_escalations").insert({
-            alert_id: alert.id, escalation_level: 2, target_type: "mobile_call",
-            target_staff_id: backup.id, target_phone: backup.personal_mobile,
-          });
-          if (callSid) called = true;
-        }
+        if (backup?.personal_mobile && (await attempt("mobile_call", backup.personal_mobile, backup.id))) called = true;
       }
 
-      // Fallback: on-call staff by escalation_priority
       if (!called) {
         const { data: staffList } = await sb
           .from("staff")
@@ -251,38 +305,23 @@ async function runEscalationSweep(
 
         for (const staff of staffList || []) {
           if (!staff.personal_mobile) continue;
-          const callSid = await placeEscalationCall(creds, baseUrl, staff.personal_mobile, alert.id, memberName, alert.alert_type);
-          await sb.from("alert_escalations").insert({
-            alert_id: alert.id, escalation_level: 2, target_type: "mobile_call",
-            target_staff_id: staff.id, target_phone: staff.personal_mobile,
-          });
-          if (callSid) break;
+          if (await attempt("mobile_call", staff.personal_mobile, staff.id)) break;
         }
       }
-
-      await sb.from("alerts").update({ escalation_level_reached: 2 }).eq("id", alert.id);
-      processed++;
-      continue;
     }
 
-    // Level 3: Supervisors (chain supervisor first, then fallback)
-    if (nextLevel === 3) {
+    // Level 3: Supervisors (chain supervisor first, then all supervisors)
+    else if (nextLevel === 3) {
       let called = false;
 
-      // Try chain supervisor
       if (chain?.supervisor_staff_id) {
         const { data: supervisor } = await sb.from("staff").select("id, personal_mobile").eq("id", chain.supervisor_staff_id).maybeSingle();
         if (supervisor?.personal_mobile) {
-          await placeEscalationCall(creds, baseUrl, supervisor.personal_mobile, alert.id, memberName, alert.alert_type);
-          await sb.from("alert_escalations").insert({
-            alert_id: alert.id, escalation_level: 3, target_type: "mobile_call",
-            target_staff_id: supervisor.id, target_phone: supervisor.personal_mobile,
-          });
+          await attempt("mobile_call", supervisor.personal_mobile, supervisor.id);
           called = true;
         }
       }
 
-      // Fallback: all supervisors
       if (!called) {
         const { data: supervisors } = await sb
           .from("staff")
@@ -294,21 +333,13 @@ async function runEscalationSweep(
 
         for (const sup of supervisors || []) {
           if (!sup.personal_mobile) continue;
-          await placeEscalationCall(creds, baseUrl, sup.personal_mobile, alert.id, memberName, alert.alert_type);
-          await sb.from("alert_escalations").insert({
-            alert_id: alert.id, escalation_level: 3, target_type: "mobile_call",
-            target_staff_id: sup.id, target_phone: sup.personal_mobile,
-          });
+          await attempt("mobile_call", sup.personal_mobile, sup.id);
         }
       }
-
-      await sb.from("alerts").update({ escalation_level_reached: 3 }).eq("id", alert.id);
-      processed++;
-      continue;
     }
 
     // Level 4: Admins
-    if (nextLevel === 4) {
+    else if (nextLevel === 4) {
       const { data: admins } = await sb
         .from("staff")
         .select("id, personal_mobile")
@@ -319,23 +350,12 @@ async function runEscalationSweep(
 
       for (const admin of admins || []) {
         if (!admin.personal_mobile) continue;
-        await placeEscalationCall(creds, baseUrl, admin.personal_mobile, alert.id, memberName, alert.alert_type);
-        await sb.from("alert_escalations").insert({
-          alert_id: alert.id,
-          escalation_level: 4,
-          target_type: "mobile_call",
-          target_staff_id: admin.id,
-          target_phone: admin.personal_mobile,
-        });
+        await attempt("mobile_call", admin.personal_mobile, admin.id);
       }
-
-      await sb.from("alerts").update({ escalation_level_reached: 4 }).eq("id", alert.id);
-      processed++;
-      continue;
     }
 
     // Level 5: Emergency contacts
-    if (nextLevel === 5) {
+    else if (nextLevel === 5) {
       const { data: contacts } = await sb
         .from("emergency_contacts")
         .select("id, phone, contact_name")
@@ -345,18 +365,40 @@ async function runEscalationSweep(
 
       for (const contact of contacts || []) {
         if (!contact.phone) continue;
-        await placeEscalationCall(creds, baseUrl, contact.phone, alert.id, memberName, alert.alert_type);
-        await sb.from("alert_escalations").insert({
-          alert_id: alert.id,
-          escalation_level: 5,
-          target_type: "emergency_contact_call",
-          target_phone: contact.phone,
-        });
+        await attempt("emergency_contact_call", contact.phone, null);
       }
-
-      await sb.from("alerts").update({ escalation_level_reached: 5 }).eq("id", alert.id);
-      processed++;
     }
+
+    // Decide what the level's results mean. Advance ONLY if a human was actually reached; otherwise
+    // fire the LOUD alert (once per tier) and let the ladder retry/advance (bounded). No timing/tier
+    // change — this only replaces the old unconditional "mark reached". See escalation-outcome.ts.
+    const decision = decideLevelOutcome({
+      level: nextLevel,
+      outcomes,
+      priorAttemptExists,
+      elapsedMs: elapsed,
+      timings,
+      l5RetryGraceMs: L5_RETRY_GRACE_MS,
+    });
+
+    if (decision.fireCallFailedAlert) {
+      const failed = outcomes.find((o) => !o.connected);
+      log({ event: "escalation_call_failed", alert_id: alert.id, level: nextLevel, targets: outcomes.length });
+      await fireEscalationCallFailed(baseUrl, serviceKey, {
+        alert_id: alert.id,
+        member_id: alert.member_id,
+        member_name: memberName,
+        escalation_level: nextLevel,
+        target_type: failed?.targetType ?? "mobile_call",
+        phone: failed?.phone ?? "",
+      });
+    }
+
+    if (decision.markReached) {
+      await sb.from("alerts").update({ escalation_level_reached: nextLevel }).eq("id", alert.id);
+    }
+
+    processed++;
   }
 
   return { processed, total: alerts.length };
@@ -390,7 +432,7 @@ Deno.serve(async (req) => {
       tickMs: ESCALATION_TICK_MS,
       maxRuntimeMs: ESCALATION_MAX_RUNTIME_MS,
       sweep: async (nowMs) => {
-        const r = await runEscalationSweep(sb, creds, baseUrl, nowMs);
+        const r = await runEscalationSweep(sb, creds, baseUrl, serviceKey, nowMs);
         totalProcessed += r.processed;
       },
       log,

@@ -139,3 +139,39 @@
 **Bottom line:** the app **builds and type-checks**, and a focused set of safety/gate/pricing/auth-logic units is genuinely proven. But the two paths that *must not break* — **SOS→operator** and **checkout→activation** — have **no end-to-end proof**, tenant **isolation is untested**, and there are **concrete BROKEN items** (unscheduled escalation cron, three webhook-only bypasses, AI on the forbidden Lovable gateway, a failing test suite, a failing lint gate). Treat SOS and Payments as **not production-safe** until their E2E/contract/isolation tests exist and the BROKEN items are fixed under the human gate.
 
 *See `RECONCILE.md` for the Isabella/Clara decision, the scope-creep keep/archive list, and the full plan-vs-reality divergences.*
+
+---
+
+## 6. Next — tracked follow-ups (from the 2026-06-18 governance reconcile)
+
+> Lee's three decisions are applied: **AI = Isabella** (not Clara) · **stay single-app** (monorepo
+> target abandoned) · **archive the growth tooling** (partner/commission included — Lee confirmed no
+> real commissions are being earned). These follow-ups fall out of those decisions. **None were done
+> in the docs-only reconcile loop.**
+
+### AI / Isabella
+- **Canonical spelling = `Isabella`.** Code is inconsistent — fix `Isabel` → `Isabella` in
+  `supabase/functions/ai-run/index.ts:28` (chat system prompt) and
+  `src/components/admin/settings/VoiceSettingsSection.tsx:37-38` (voice greeting). Voice handler
+  (`isabella-voice-handler:93-94`) already says "Isabella". *(Code change — not this loop.)*
+- 🔴 **HIGH PRIORITY — migrate Isabella off the Lovable gateway to the Anthropic API.** Golden-rule
+  violation: `ai-run` POSTs to `https://ai.gateway.lovable.dev/v1/chat/completions`
+  (`ai-run/index.ts:801,984,1165,1437`, model `google/gemini-3-flash-preview`). Owed **regardless of
+  the name**. Also address rule #5 (Isabella must "query as the user", not the service role).
+
+### Scope — archive candidates (DEFERRED, per RECONCILE.md §2 / plan §11)
+- Label-only for now (no code moved/deleted): **YouTube**, **Facebook**, **AI outreach**,
+  **content/media generation**, **video-render**, and the **partner/commission portal**
+  (ARCHIVE CANDIDATE — Lee 2026-06-18: no live commissions; flip to KEEP if that changes).
+- **Migration-shrink bonus:** archiving the above removes **most of the 11 non-core functions** on the
+  Lovable gateway, reducing the Anthropic migration to **Isabella core** (`ai-run`,
+  `ai-execute-action`, `ai-dispatch-events`, `isabella-voice-handler`).
+
+### Critical-path gaps (the real WP targets — see plan §12 reframe)
+- **SOS:** add an E2E test with **measured <1s** latency; **schedule `sos-escalation-runner` +
+  `staff-shift-monitor` via pg_cron** (currently unscheduled → auto-escalation never fires).
+- **Payments:** add webhook contract + checkout→activation E2E; **close the 3 client-side activation
+  bypasses** (`PaymentStep.tsx`, `ResidentialDashboard.tsx`, `submit-registration` `testMode`).
+- **Auth/RLS:** add the **tenant-isolation test suite** (negative assertions) — golden rule #2.
+- **Lint gate:** 345 errors + 62 warnings → 0 (GOALS bar).
+- **Failing suite:** fix `src/test/crmEvents.test.ts` (`supabaseUrl required`) so referral logic is proven.

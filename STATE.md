@@ -24,12 +24,11 @@
 
 **Test surface reality:** 23 Vitest files in `src/test/`. Still **zero** RLS/isolation tests and **zero** Playwright/E2E harness. The SOS escalation ladder now has a suite-level E2E encoding (`sosEscalation.e2e.test.ts`) plus edge-logic tests (`escalationLoop.test.ts`, `shiftTime.test.ts`) that exercise shared edge modules under vitest — but the mandated Playwright E2E paths (checkout→activation, SOS→operator UI) and the RLS-isolation/webhook-contract suites still have no corresponding files.
 
-> **Repo-wide lint debt + `crmEvents` test-env** live in the separate cleanup PR
-> **#5 `chore/lint-zero-and-test-hygiene`** (repo-wide `no-explicit-any` etc. — no escalation logic).
-> The escalation PR is **stacked on #5** and is therefore **independently green on its own branch**
-> (typecheck 0 · lint **0 errors** · build green · **384 tests pass / 1 skipped**, verified on the
-> single branch — not a throwaway merge). **Required merge order: #5 first, then the escalation PR.**
-> The escalation fix itself adds zero lint errors.
+> **Single standalone PR.** The repo-wide lint cleanup (`no-explicit-any` etc., type-only) and the
+> `crmEvents` test-env fix are **folded into the escalation PR** so it passes every gate **BY ITSELF**
+> with no prerequisite merge: **typecheck 0 · lint 0 errors (62 pre-existing warnings) · build green ·
+> 384 tests pass / 1 skipped**, verified on the one branch. The former separate cleanup PR #5 was
+> closed (its commit lives in this branch's history). The escalation fix itself adds zero lint errors.
 
 ---
 

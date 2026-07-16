@@ -24,8 +24,24 @@ const EMAIL_SUBJECTS: Record<string, string> = {
   reauthentication: 'Your Care Conneqt verification code',
 }
 
+// Structure of the verified auth webhook payload we read from.
+interface AuthWebhookPayload {
+  run_id: string
+  version: string
+  type?: string
+  data: {
+    action_type: string
+    email: string
+    url?: string
+    token?: string
+    new_email?: string
+    callback_url?: string
+    [key: string]: unknown
+  }
+}
+
 // Template mapping
-const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
+const EMAIL_TEMPLATES: Record<string, React.ComponentType<Record<string, unknown>>> = {
   signup: SignupEmail,
   invite: InviteEmail,
   magiclink: MagicLinkEmail,
@@ -141,7 +157,7 @@ async function handleWebhook(req: Request): Promise<Response> {
   }
 
   // Verify signature + timestamp, then parse payload.
-  let payload: any
+  let payload: AuthWebhookPayload
   let run_id = ''
   try {
     const verified = await verifyWebhookRequest({
@@ -149,7 +165,7 @@ async function handleWebhook(req: Request): Promise<Response> {
       secret: apiKey,
       parser: parseEmailWebhookPayload,
     })
-    payload = verified.payload
+    payload = verified.payload as AuthWebhookPayload
     run_id = payload.run_id
   } catch (error) {
     if (error instanceof WebhookError) {

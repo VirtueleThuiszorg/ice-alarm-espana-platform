@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useAddPartnerMember } from "@/hooks/usePartnerMembers";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesInsert } from "@/integrations/supabase/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -90,7 +91,7 @@ export function ResidentialDashboard({
           email: newResident.email.trim() || null,
           phone: newResident.phone.trim() || null,
           status: "active",
-        } as any)
+        } as unknown as TablesInsert<"members">)
         .select()
         .single();
 

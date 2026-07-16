@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
     };
 
     for (const member of members || []) {
-      const frequency = (member as any).courtesy_call_frequency || "monthly";
+      const frequency = (member as { courtesy_call_frequency?: string }).courtesy_call_frequency || "monthly";
       const nextCallDate = member.next_courtesy_call_date;
 
       // Check if we should generate a task based on frequency

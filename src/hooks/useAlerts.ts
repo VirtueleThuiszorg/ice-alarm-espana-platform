@@ -66,10 +66,64 @@ export interface EnrichedAlert {
   }[];
 }
 
+// Shapes of the enriched query rows at their points of use. Fields the mapping
+// relies on being present are typed non-null here (the loaded records supply them).
+interface AlertDetailMember {
+  id: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  email: string;
+  photo_url: string;
+  preferred_language: string;
+  date_of_birth: string;
+  address_line_1: string;
+  address_line_2: string | null;
+  city: string;
+  province: string;
+  special_instructions: string;
+}
+
+interface AlertDetailDevice {
+  id: string;
+  status: string;
+  battery_level: number;
+  last_checkin_at: string | null;
+  imei: string;
+}
+
+interface EmergencyContactRow {
+  id: string;
+  contact_name: string;
+  relationship: string;
+  phone: string;
+  email: string;
+  speaks_spanish: boolean;
+  priority_order: number;
+}
+
+interface PreviousAlertRow {
+  id: string;
+  alert_type: EnrichedAlert["type"];
+  received_at: string;
+  resolved_at: string | null;
+}
+
+interface AlertListRow {
+  id: string;
+  alert_type: EnrichedAlert["type"];
+  status: EnrichedAlert["status"];
+  location_address: string;
+  location_lat: number | null;
+  location_lng: number | null;
+  received_at: string | null;
+  member: { first_name: string; last_name: string } | null;
+}
+
 // Audio notification
 const playAlertSound = () => {
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const audioContext = new (window.AudioContext || (window as Window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
     
@@ -144,8 +198,8 @@ export function useAlerts() {
         supabase.from("alerts").select("id, alert_type, received_at, resolved_at").eq("member_id", alert.member_id).neq("id", alertId).order("received_at", { ascending: false }).limit(5),
       ]);
 
-      const member = alert.member as any;
-      const device = alert.device as any;
+      const member = alert.member as unknown as AlertDetailMember | null;
+      const device = alert.device as unknown as AlertDetailDevice | null;
       const medical = medicalData.data;
       const contacts = contactsData.data || [];
       const subscription = subscriptionData.data;
@@ -189,7 +243,7 @@ export function useAlerts() {
           lastCheckin: device.last_checkin_at ? new Date(device.last_checkin_at) : undefined,
           imei: device.imei,
         } : undefined,
-        emergencyContacts: contacts.map((c: any) => ({
+        emergencyContacts: (contacts as unknown as EmergencyContactRow[]).map((c) => ({
           id: c.id,
           name: c.contact_name,
           relationship: c.relationship,
@@ -202,7 +256,7 @@ export function useAlerts() {
           planType: subscription.plan_type,
           hasPendant: subscription.has_pendant,
         } : undefined,
-        previousAlerts: previousAlerts.map((a: any) => ({
+        previousAlerts: (previousAlerts as unknown as PreviousAlertRow[]).map((a) => ({
           id: a.id,
           type: a.alert_type,
           receivedAt: new Date(a.received_at),
@@ -234,7 +288,7 @@ export function useAlerts() {
 
       if (error) throw error;
 
-      const enrichedAlerts: EnrichedAlert[] = (data || []).map((alert: any) => {
+      const enrichedAlerts: EnrichedAlert[] = ((data || []) as unknown as AlertListRow[]).map((alert) => {
         const member = alert.member;
         return {
           id: alert.id,

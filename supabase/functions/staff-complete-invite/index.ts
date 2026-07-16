@@ -76,7 +76,9 @@ serve(async (req: Request) => {
     }
 
     // 3. Set the password on the auth user
-    const { error: passwordError } = await (adminClient.auth.admin as any).updateUser(
+    const { error: passwordError } = await (adminClient.auth.admin as unknown as {
+      updateUser: (id: string, attrs: { password: string }) => Promise<{ error: { message: string } | null }>;
+    }).updateUser(
       staffRecord.user_id,
       { password }
     );

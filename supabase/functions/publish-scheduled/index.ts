@@ -148,7 +148,11 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const result: { slot_id: string; blog?: any; facebook?: any } = { slot_id: slot.id };
+      const result: {
+        slot_id: string;
+        blog?: { success: boolean; slug?: string; error?: string };
+        facebook?: { success: boolean; post_id?: string; error?: string };
+      } = { slot_id: slot.id };
       const postText = slot.generated_post_text || "";
       const imageUrl = slot.generated_image_url;
 

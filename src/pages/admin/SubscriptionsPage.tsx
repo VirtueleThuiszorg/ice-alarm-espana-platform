@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -54,6 +55,10 @@ import { useTranslation } from "react-i18next";
 
 const ITEMS_PER_PAGE = 20;
 
+type SubscriptionRow = Tables<"subscriptions"> & {
+  member: Pick<Tables<"members">, "id" | "first_name" | "last_name" | "email"> | null;
+};
+
 export default function SubscriptionsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -67,7 +72,7 @@ export default function SubscriptionsPage() {
   // Confirmation dialog state
   const [confirmAction, setConfirmAction] = useState<{
     type: "pause" | "resume" | "cancel";
-    subscription: any;
+    subscription: SubscriptionRow;
   } | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -98,10 +103,10 @@ export default function SubscriptionsPage() {
       if (error) throw error;
 
       // Client-side search by member name
-      let filtered = subscriptions || [];
+      let filtered = (subscriptions || []) as unknown as SubscriptionRow[];
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        filtered = filtered.filter((s: any) =>
+        filtered = filtered.filter((s) =>
           s.member?.first_name?.toLowerCase().includes(q) ||
           s.member?.last_name?.toLowerCase().includes(q) ||
           s.member?.email?.toLowerCase().includes(q)
@@ -139,7 +144,7 @@ export default function SubscriptionsPage() {
     },
   });
 
-  const handleAction = (type: "pause" | "resume" | "cancel", subscription: any) => {
+  const handleAction = (type: "pause" | "resume" | "cancel", subscription: SubscriptionRow) => {
     setConfirmAction({ type, subscription });
   };
 
@@ -279,7 +284,7 @@ export default function SubscriptionsPage() {
                   </TableCell>
                 </TableRow>
               ) : data?.subscriptions && data.subscriptions.length > 0 ? (
-                data.subscriptions.map((sub: any) => (
+                data.subscriptions.map((sub) => (
                   <TableRow
                     key={sub.id}
                     className="cursor-pointer hover:bg-muted/50"

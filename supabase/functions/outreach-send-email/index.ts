@@ -2,6 +2,24 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { outreachSendEmailSchema, validateRequest } from "../_shared/validation.ts";
 
+interface EmailDraft {
+  id: string;
+  crm_lead_id: string;
+  campaign_id?: string | null;
+  subject?: string | null;
+  body_text?: string | null;
+  body_html?: string | null;
+}
+
+interface CrmLead {
+  id: string;
+  email?: string | null;
+  company_name?: string | null;
+  do_not_contact?: boolean | null;
+  bounce_count?: number | null;
+  email_count?: number | null;
+}
+
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
@@ -18,9 +36,9 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     // Get settings
-    const settingsMap: Record<string, any> = {};
+    const settingsMap: Record<string, unknown> = {};
     const { data: allSettings } = await supabase.from("outreach_settings").select("setting_key, setting_value");
-    if (allSettings) allSettings.forEach((s: any) => { settingsMap[s.setting_key] = s.setting_value; });
+    if (allSettings) allSettings.forEach((s: { setting_key: string; setting_value: unknown }) => { settingsMap[s.setting_key] = s.setting_value; });
 
     const dailySendLimit = (typeof settingsMap.daily_send_limit === "number" ? settingsMap.daily_send_limit : 20) || 20;
     const warmupMode = settingsMap.warmup_mode === true;
@@ -54,15 +72,15 @@ Deno.serve(async (req) => {
     }
 
     // Get CRM leads for email addresses
-    const crmLeadIds = drafts.map((d: any) => d.crm_lead_id);
+    const crmLeadIds = drafts.map((d: EmailDraft) => d.crm_lead_id);
     const { data: crmLeads } = await supabase.from("outreach_crm_leads").select("id, email, company_name, do_not_contact").in("id", crmLeadIds);
-    const crmMap: Record<string, any> = {};
-    if (crmLeads) crmLeads.forEach((l: any) => { crmMap[l.id] = l; });
+    const crmMap: Record<string, CrmLead> = {};
+    if (crmLeads) crmLeads.forEach((l: CrmLead) => { crmMap[l.id] = l; });
 
     // Check suppression list
-    const emails = (crmLeads || []).filter((l: any) => l.email).map((l: any) => l.email.toLowerCase());
+    const emails = (crmLeads || []).filter((l: CrmLead) => l.email).map((l: CrmLead) => l.email!.toLowerCase());
     const { data: suppressed } = await supabase.from("outreach_suppression").select("email").in("email", emails);
-    const suppressedSet = new Set((suppressed || []).map((s: any) => s.email.toLowerCase()));
+    const suppressedSet = new Set((suppressed || []).map((s: { email: string }) => s.email.toLowerCase()));
 
     const draftsToSend = drafts.slice(0, remaining);
     let sentCount = 0;

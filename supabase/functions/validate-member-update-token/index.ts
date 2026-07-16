@@ -106,7 +106,7 @@ const handler = async (req: Request): Promise<Response> => {
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error in validate-member-update-token:", error);
     return new Response(
       JSON.stringify({ valid: false, error: "server_error" }),

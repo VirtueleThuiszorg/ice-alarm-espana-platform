@@ -168,8 +168,18 @@ export default function SLADashboardPage() {
 
       if (error) throw error;
 
-      const enriched: AlertWithResponse[] = (data || []).map((alert: any) => {
-        const member = alert.member as any;
+      type SlaAlertRow = {
+        id: string;
+        alert_type: string;
+        received_at: string | null;
+        claimed_at: string | null;
+        status: string | null;
+        resolved_at: string | null;
+        member_id: string;
+        member: { first_name: string; last_name: string } | null;
+      };
+      const enriched: AlertWithResponse[] = ((data || []) as unknown as SlaAlertRow[]).map((alert) => {
+        const member = alert.member;
         let responseTimeSeconds: number | null = null;
         let withinSla = true;
 

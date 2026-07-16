@@ -200,10 +200,10 @@ export default function PartnerOnboarding() {
                     }).catch(() => {});
 
                     setSubmitted(true);
-                  } catch (error: any) {
+                  } catch (error) {
                     console.error("Error submitting partner application:", error);
                     toast.error(
-                      error?.message?.includes("duplicate")
+                      error instanceof Error && error.message.includes("duplicate")
                         ? "An application with this email already exists."
                         : "Failed to submit application. Please try again."
                     );

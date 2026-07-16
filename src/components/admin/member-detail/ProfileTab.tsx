@@ -47,8 +47,27 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
+interface ProfileTabMember {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  status: string;
+  address_line_1: string;
+  address_line_2: string | null;
+  city: string;
+  province: string;
+  postal_code: string;
+  country: string;
+  preferred_language: string | null;
+  date_of_birth: string | null;
+  nie_dni: string | null;
+  special_instructions: string | null;
+}
+
 interface ProfileTabProps {
-  member: any;
+  member: ProfileTabMember;
   onUpdate: () => void;
 }
 
@@ -70,8 +89,8 @@ export function ProfileTab({ member, onUpdate }: ProfileTabProps) {
       province: member.province || "",
       postal_code: member.postal_code || "",
       country: member.country || "Spain",
-      preferred_language: member.preferred_language || "en",
-      status: member.status || "active",
+      preferred_language: (member.preferred_language as ProfileFormValues["preferred_language"]) || "en",
+      status: (member.status as ProfileFormValues["status"]) || "active",
       special_instructions: member.special_instructions || "",
     },
   });

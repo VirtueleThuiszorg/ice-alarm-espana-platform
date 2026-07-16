@@ -184,11 +184,11 @@ export function useBrandedImageGenerator() {
       }
 
       return imageUrl;
-    } catch (error: any) {
+    } catch (error) {
       console.error("Image generation error:", error);
       toast({
         title: i18n.t("ai.brandedImageFailed"),
-        description: error.message || i18n.t("ai.generationFailed"),
+        description: (error instanceof Error ? error.message : "") || i18n.t("ai.generationFailed"),
         variant: "destructive",
       });
       return null;

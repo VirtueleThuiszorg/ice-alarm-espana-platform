@@ -93,7 +93,7 @@ export function PaidSalesFeed() {
         }
 
         // Check for partner attribution
-        const memberId = (payment.members as any)?.id;
+        const memberId = (payment.members as unknown as PaidSale["member"])?.id;
         if (memberId) {
           const { data: attr } = await supabase
             .from("partner_attributions")
@@ -102,7 +102,7 @@ export function PaidSalesFeed() {
             .maybeSingle();
 
           if (attr) {
-            const partner = attr.partners as any;
+            const partner = attr.partners as unknown as { contact_name: string | null; company_name: string | null } | null;
             attribution = {
               partner_id: attr.partner_id,
               partner_name: partner?.contact_name || partner?.company_name || "Partner",
@@ -115,7 +115,7 @@ export function PaidSalesFeed() {
           amount: payment.amount,
           paid_at: payment.paid_at!,
           order_id: payment.order_id,
-          member: payment.members as any,
+          member: payment.members as unknown as PaidSale["member"],
           order: orderInfo,
           products_summary: productsSummary,
           attribution,

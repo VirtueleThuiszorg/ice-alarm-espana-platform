@@ -65,8 +65,8 @@ interface Device {
   speaker_volume: number | null;
   mic_volume: number | null;
   management_mode: string | null;
-  provisioning_checklist: Record<string, any> | null;
-  sms_command_log: Record<string, any>[] | null;
+  provisioning_checklist: Record<string, { completed?: boolean }> | null;
+  sms_command_log: Record<string, unknown>[] | null;
   member: {
     id: string;
     first_name: string;
@@ -203,7 +203,7 @@ export default function DeviceDetailPage() {
   // Calculate provisioning progress
   const provisioningChecklist = device.provisioning_checklist || {};
   const provisioningSteps = Object.values(provisioningChecklist);
-  const completedSteps = provisioningSteps.filter((s: any) => s?.completed).length;
+  const completedSteps = provisioningSteps.filter((s) => s?.completed).length;
   const totalSteps = 14;
   const provisioningPercent = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
 

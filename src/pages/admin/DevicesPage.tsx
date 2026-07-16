@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -65,6 +66,10 @@ import { AddDeviceModal } from "@/components/admin/products/AddDeviceModal";
 
 const ITEMS_PER_PAGE = 20;
 
+type DeviceRow = Tables<"devices"> & {
+  member: Pick<Tables<"members">, "id" | "first_name" | "last_name" | "email"> | null;
+};
+
 export default function DevicesPage() {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
@@ -72,7 +77,7 @@ export default function DevicesPage() {
   const [assignmentFilter, setAssignmentFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [addModalOpen, setAddModalOpen] = useState(false);
-  const [deviceToDelete, setDeviceToDelete] = useState<any>(null);
+  const [deviceToDelete, setDeviceToDelete] = useState<DeviceRow | null>(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -126,7 +131,7 @@ export default function DevicesPage() {
       const { data: devices, count, error } = await query;
       if (error) throw error;
 
-      return { devices: devices || [], totalCount: count || 0 };
+      return { devices: (devices || []) as unknown as DeviceRow[], totalCount: count || 0 };
     },
   });
 
@@ -313,7 +318,7 @@ export default function DevicesPage() {
                   </TableCell>
                 </TableRow>
               ) : data?.devices && data.devices.length > 0 ? (
-                data.devices.map((device: any) => (
+                data.devices.map((device) => (
                   <TableRow 
                     key={device.id} 
                     className="cursor-pointer hover:bg-muted/50"

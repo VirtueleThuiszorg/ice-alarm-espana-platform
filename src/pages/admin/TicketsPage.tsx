@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import {
   Loader2, Send, Ticket, Search, User, Clock, 
@@ -197,19 +198,19 @@ export default function AdminTicketsPage() {
     if (!selectedTicket) return;
 
     try {
-      const updateData: Record<string, any> = { [field]: value };
+      const updateData: Record<string, string | null> = { [field]: value };
       if (field === "status" && (value === "resolved" || value === "closed")) {
         updateData.resolved_at = new Date().toISOString();
       }
 
       const { error } = await supabase
         .from("internal_tickets")
-        .update(updateData)
+        .update(updateData as TablesUpdate<"internal_tickets">)
         .eq("id", selectedTicket.id);
 
       if (error) throw error;
 
-      setSelectedTicket({ ...selectedTicket, ...updateData });
+      setSelectedTicket({ ...selectedTicket, ...updateData } as TicketType);
       fetchTickets();
       toast.success("Ticket updated");
     } catch (error) {

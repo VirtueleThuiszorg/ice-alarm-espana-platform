@@ -1,7 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { STALE_TIMES } from "@/config/constants";
+import type { Json } from "@/integrations/supabase/types";
 import type { StaffActivityLog } from "@/types/staff";
+
+type StaffActivityRow = StaffActivityLog & {
+  performer?: { first_name: string; last_name: string } | null;
+};
 
 export function useStaffActivity(staffId: string | undefined) {
   return useQuery({
@@ -21,7 +26,7 @@ export function useStaffActivity(staffId: string | undefined) {
 
       if (error) throw error;
 
-      return (data || []).map((entry: any) => ({
+      return ((data || []) as unknown as StaffActivityRow[]).map((entry) => ({
         ...entry,
         performed_by_name: entry.performer
           ? `${entry.performer.first_name} ${entry.performer.last_name}`
@@ -65,9 +70,9 @@ export function useLogStaffActivity() {
         .insert({
           staff_id: staffId,
           action,
-          details: (details || {}) as any,
+          details: (details || {}) as Json,
           performed_by: performerStaffId,
-        } as any)
+        })
         .select()
         .single();
 

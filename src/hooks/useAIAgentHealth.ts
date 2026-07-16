@@ -89,7 +89,7 @@ export function useAIAgentHealth(enabled: boolean = true) {
         isChecking: false,
         errorMessage: null,
       });
-    } catch (error: any) {
+    } catch (error) {
       const elapsed = Math.round(performance.now() - startTime);
 
       if (!isMountedRef.current) return;
@@ -101,9 +101,9 @@ export function useAIAgentHealth(enabled: boolean = true) {
         lastCheckedAt: new Date(),
         isChecking: false,
         errorMessage:
-          error.name === "AbortError"
+          error instanceof Error && error.name === "AbortError"
             ? "Health check timed out"
-            : error.message || "Unknown error",
+            : (error instanceof Error ? error.message : "") || "Unknown error",
       });
     }
   }, []);

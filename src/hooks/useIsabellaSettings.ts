@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { STALE_TIMES, INTERVALS } from "@/config/constants";
 
 import { toast } from "sonner";
@@ -11,7 +12,7 @@ export interface IsabellaSetting {
   enabled: boolean;
   enabled_at: string | null;
   enabled_by: string | null;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -53,7 +54,7 @@ export function useUpdateIsabellaSetting() {
 
   return useMutation({
     mutationFn: async ({ id, enabled, staffId }: { id: string; enabled: boolean; staffId?: string }) => {
-      const updates: Record<string, any> = { enabled };
+      const updates: TablesUpdate<"isabella_settings"> = { enabled };
       if (enabled) {
         updates.enabled_at = new Date().toISOString();
         if (staffId) updates.enabled_by = staffId;

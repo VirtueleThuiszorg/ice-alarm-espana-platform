@@ -294,7 +294,7 @@ export default function SOSAlertPage() {
         alertType={activeAlert.alert_type}
         memberId={activeAlert.member_id}
         receivedAt={activeAlert.received_at}
-        isUnresponsive={!!(activeAlert as any).is_unresponsive}
+        isUnresponsive={!!(activeAlert as { is_unresponsive?: boolean }).is_unresponsive}
       />
 
       {/* Main three-column layout */}

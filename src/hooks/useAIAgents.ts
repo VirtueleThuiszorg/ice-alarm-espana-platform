@@ -20,7 +20,7 @@ export interface AIAgentConfig {
   system_instruction: string;
   business_context: string | null;
   tool_policy: Record<string, boolean>;
-  language_policy: Record<string, any>;
+  language_policy: Record<string, unknown>;
   read_permissions: string[];
   write_permissions: string[];
   triggers: string[];
@@ -45,8 +45,8 @@ export interface AIRun {
   id: string;
   agent_id: string;
   trigger_event_id: string | null;
-  input_context: Record<string, any>;
-  output: Record<string, any>;
+  input_context: Record<string, unknown>;
+  output: Record<string, unknown>;
   model_used: string | null;
   tokens_used: number | null;
   duration_ms: number | null;
@@ -59,11 +59,11 @@ export interface AIAction {
   id: string;
   run_id: string;
   action_type: string;
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
   status: "proposed" | "approved" | "executed" | "rejected";
   executed_at: string | null;
   executed_by: string | null;
-  result: Record<string, any> | null;
+  result: Record<string, unknown> | null;
   error_message: string | null;
   created_at: string;
 }
@@ -73,7 +73,7 @@ export interface AIEvent {
   event_type: string;
   entity_type: string | null;
   entity_id: string | null;
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
   processed: boolean;
   processed_at: string | null;
   created_at: string;
@@ -375,7 +375,7 @@ export function useRunAgent() {
   return useMutation({
     mutationFn: async ({ agentKey, context, simulationMode = false }: { 
       agentKey: string; 
-      context?: Record<string, any>;
+      context?: Record<string, unknown>;
       simulationMode?: boolean;
     }) => {
       const { data, error } = await supabase.functions.invoke("ai-run", {

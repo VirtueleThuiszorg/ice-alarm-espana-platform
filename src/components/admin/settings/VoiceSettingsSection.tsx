@@ -119,10 +119,10 @@ export function VoiceSettingsSection() {
         description: "Changes apply immediately to incoming calls.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Error saving voice settings",
-        description: error?.message || "Unknown error",
+        description: (error instanceof Error ? error.message : undefined) || "Unknown error",
         variant: "destructive",
       });
     },

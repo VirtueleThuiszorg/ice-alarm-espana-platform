@@ -6,6 +6,7 @@ import {
   Bell, CheckCircle, FileText, CreditCard, Settings,
   Smartphone, AlertTriangle, ThumbsUp
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +24,7 @@ interface Interaction {
   id: string;
   interaction_type: string;
   description: string | null;
-  metadata: any;
+  metadata: { duration?: string | number } | null;
   created_at: string | null;
   staff: {
     first_name: string;
@@ -31,7 +32,7 @@ interface Interaction {
   } | null;
 }
 
-const interactionConfig: Record<string, { icon: any; label: string; color: string }> = {
+const interactionConfig: Record<string, { icon: LucideIcon; label: string; color: string }> = {
   call_inbound: { icon: Phone, label: "Inbound Call", color: "text-blue-500" },
   call_outbound: { icon: Phone, label: "Outbound Call", color: "text-green-500" },
   sms_sent: { icon: MessageSquare, label: "SMS Sent", color: "text-purple-500" },
@@ -79,7 +80,7 @@ export function ActivityTab({ memberId }: ActivityTabProps) {
         .limit(100);
 
       if (error) throw error;
-      setInteractions(data || []);
+      setInteractions((data as unknown as Interaction[]) || []);
     } catch (error) {
       console.error("Error fetching interactions:", error);
       toast.error("Failed to load activity timeline");

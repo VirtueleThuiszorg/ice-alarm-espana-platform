@@ -12,19 +12,30 @@ import { useOutreachPipeline } from "@/hooks/useOutreachPipeline";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
+import type { Tables } from "@/integrations/supabase/types";
 
 interface LeadDetailDialogProps {
-  lead: any | null;
+  lead: Tables<"outreach_crm_leads"> | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+type EnrichmentValue =
+  | { description?: string; services?: string | string[]; why_fit?: string; recommended_approach?: string }
+  | string
+  | null;
+
+type DraftPreview = Pick<
+  Tables<"outreach_email_drafts">,
+  "id" | "subject" | "body_text" | "status" | "draft_type" | "sequence_number" | "created_at"
+>;
 
 export function OutreachLeadDetailDialog({ lead, open, onOpenChange }: LeadDetailDialogProps) {
   const { t, i18n } = useTranslation();
   const dateLocale = i18n.language === "es" ? es : enGB;
   const { generateDrafts, isDrafting, sendEmails, isSending } = useOutreachPipeline();
   const queryClient = useQueryClient();
-  const [drafts, setDrafts] = useState<any[]>([]);
+  const [drafts, setDrafts] = useState<DraftPreview[]>([]);
 
   useEffect(() => {
     if (!lead?.id || !open) { setDrafts([]); return; }
@@ -38,7 +49,7 @@ export function OutreachLeadDetailDialog({ lead, open, onOpenChange }: LeadDetai
 
   if (!lead) return null;
 
-  const enrichment = lead.enrichment_data || lead.research_summary;
+  const enrichment = ((lead as { enrichment_data?: unknown }).enrichment_data || lead.research_summary) as EnrichmentValue;
 
   const handleMarkDNC = async () => {
     await supabase.from("outreach_crm_leads").update({ do_not_contact: true, status: "closed" }).eq("id", lead.id);
@@ -65,8 +76,8 @@ export function OutreachLeadDetailDialog({ lead, open, onOpenChange }: LeadDetai
     // Approve all drafts for this lead
     const { data: drafts } = await supabase.from("outreach_email_drafts").select("id").eq("crm_lead_id", lead.id).eq("status", "draft");
     if (drafts && drafts.length > 0) {
-      await supabase.from("outreach_email_drafts").update({ status: "approved" }).in("id", drafts.map((d: any) => d.id));
-      await sendEmails(drafts.map((d: any) => d.id));
+      await supabase.from("outreach_email_drafts").update({ status: "approved" }).in("id", drafts.map((d) => d.id));
+      await sendEmails(drafts.map((d) => d.id));
     } else {
       toast({ title: t("outreach.leadDetail.noDraftsToSend"), description: t("outreach.leadDetail.generateFirst"), variant: "destructive" });
     }

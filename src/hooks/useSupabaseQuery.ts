@@ -155,9 +155,28 @@ export function useSupabaseMutation<
   const { table, queryKey } = options;
   const queryClient = useQueryClient();
 
+  // The table name is only known at runtime, so the strongly-typed client
+  // cannot be used directly. This façade exposes just the builder methods used
+  // here, keeping the row payload typed as the caller-supplied `T`.
+  const db = supabase as unknown as {
+    from: (table: string) => {
+      insert: (values: unknown) => {
+        select: () => { single: () => Promise<{ data: T; error: unknown }> };
+      };
+      update: (values: unknown) => {
+        eq: (column: string, value: unknown) => {
+          select: () => { single: () => Promise<{ data: T; error: unknown }> };
+        };
+      };
+      delete: () => {
+        eq: (column: string, value: unknown) => Promise<{ error: unknown }>;
+      };
+    };
+  };
+
   const insertMutation = useMutation({
     mutationFn: async (values: Partial<T>) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from(table)
         .insert(values)
         .select()
@@ -184,7 +203,7 @@ export function useSupabaseMutation<
       id: string;
       data: Partial<T>;
     }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from(table)
         .update(values)
         .eq("id", id)
@@ -206,7 +225,7 @@ export function useSupabaseMutation<
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from(table).delete().eq("id", id);
+      const { error } = await db.from(table).delete().eq("id", id);
 
       if (error) throw error;
     },

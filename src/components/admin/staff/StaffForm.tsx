@@ -90,9 +90,9 @@ export function StaffForm({ onSuccess, onCancel }: StaffFormProps) {
 
       toast.success("Staff member created. Send them an invitation from their profile.");
       onSuccess();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error creating staff member:", error);
-      toast.error(error.message || "Failed to create staff member");
+      toast.error((error instanceof Error ? error.message : undefined) || "Failed to create staff member");
     } finally {
       setIsSubmitting(false);
     }

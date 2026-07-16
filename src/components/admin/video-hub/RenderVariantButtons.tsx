@@ -54,9 +54,9 @@ export function RenderVariantButtons({
         toast.success(data?.message || t("videoHub.variants.queued", { format }));
         onRenderQueued?.();
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Render variant error:", error);
-      toast.error(error?.message || t("videoHub.create.renderFailed"));
+      toast.error((error instanceof Error ? error.message : undefined) || t("videoHub.create.renderFailed"));
     } finally {
       setRenderingFormat(null);
     }

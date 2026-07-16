@@ -78,7 +78,7 @@ describe("server-compute — the total is derived, a tampered client total is im
     const legit = calculateOrder(c, { membershipType: "single", billingFrequency: "monthly", includePendant: false });
     // A malicious client tries to smuggle a total — the function signature has no such input,
     // and the result is identical to the legit computation.
-    const tampered = calculateOrder(c, { membershipType: "single", billingFrequency: "monthly", includePendant: false, grandTotal: 0.01, total: 0.01 } as any);
+    const tampered = calculateOrder(c, { membershipType: "single", billingFrequency: "monthly", includePendant: false, grandTotal: 0.01, total: 0.01 } as Parameters<typeof calculateOrder>[1]);
     expect(tampered.grandTotal).toBe(legit.grandTotal);
     expect(tampered.grandTotal).not.toBe(0.01);
   });

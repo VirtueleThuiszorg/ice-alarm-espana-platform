@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { useOutreachCRMLeads } from "@/hooks/useOutreachCRMLeads";
+import type { CRMLeadStatus } from "@/hooks/useOutreachCRMLeads";
+import type { Tables } from "@/integrations/supabase/types";
 import { OutreachLeadDetailDialog } from "./OutreachLeadDetailDialog";
 
 const PIPELINE_STAGES = [
@@ -19,7 +21,7 @@ const PIPELINE_STAGES = [
 export function OutreachCRMTab() {
   const { t } = useTranslation();
   const { leads, isLoading, updateStatus } = useOutreachCRMLeads();
-  const [selectedLead, setSelectedLead] = useState<any | null>(null);
+  const [selectedLead, setSelectedLead] = useState<Tables<"outreach_crm_leads"> | null>(null);
 
   const getLeadsByStatus = (status: string) => {
     return leads?.filter(l => l.status === status) || [];
@@ -91,7 +93,7 @@ export function OutreachCRMTab() {
                             <Select
                               value={lead.status}
                               onValueChange={(newStatus) => {
-                                updateStatus({ leadId: lead.id, status: newStatus as any });
+                                updateStatus({ leadId: lead.id, status: newStatus as CRMLeadStatus });
                               }}
                             >
                               <SelectTrigger className="h-6 w-6 p-0 border-0" onClick={(e) => e.stopPropagation()}>

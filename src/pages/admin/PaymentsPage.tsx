@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -33,6 +34,10 @@ import {
 import { format } from "date-fns";
 
 const ITEMS_PER_PAGE = 20;
+
+type PaymentRow = Tables<"payments"> & {
+  member: Pick<Tables<"members">, "id" | "first_name" | "last_name" | "email"> | null;
+};
 
 export default function PaymentsPage() {
   const { t } = useTranslation();
@@ -69,7 +74,7 @@ export default function PaymentsPage() {
       const { data: payments, count, error } = await query;
       if (error) throw error;
 
-      return { payments: payments || [], totalCount: count || 0 };
+      return { payments: (payments || []) as unknown as PaymentRow[], totalCount: count || 0 };
     },
   });
 
@@ -117,7 +122,7 @@ export default function PaymentsPage() {
             return;
           }
           const headers = ["Member", "Email", "Amount", "Type", "Method", "Status", "Date", "Invoice"];
-          const rows = data.payments.map((p: any) => [
+          const rows = data.payments.map((p) => [
             p.member ? `${p.member.first_name} ${p.member.last_name}` : "Unknown",
             p.member?.email || "",
             `€${Number(p.amount).toFixed(2)}`,
@@ -210,7 +215,7 @@ export default function PaymentsPage() {
                   </TableCell>
                 </TableRow>
               ) : data?.payments && data.payments.length > 0 ? (
-                data.payments.map((payment: any) => (
+                data.payments.map((payment) => (
                   <TableRow 
                     key={payment.id} 
                     className="cursor-pointer hover:bg-muted/50"

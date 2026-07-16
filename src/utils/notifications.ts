@@ -22,7 +22,7 @@ export async function createNotification({
   entityId?: string;
 }) {
   try {
-    await (supabase.from("notification_log") as any).insert({
+    await supabase.from("notification_log").insert({
       admin_user_id: adminUserId,
       event_type: eventType,
       message,

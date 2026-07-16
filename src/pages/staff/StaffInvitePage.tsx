@@ -245,9 +245,9 @@ export default function StaffInvitePage() {
       setTimeout(() => {
         window.location.href = redirectTo;
       }, 2500);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error completing invite:", error);
-      toast.error(error.message || t("common.error", "An error occurred"));
+      toast.error(error instanceof Error ? error.message : t("common.error", "An error occurred"));
       setStatus("valid");
     }
   };

@@ -588,7 +588,7 @@ interface PostCardProps {
 function PostCard({ post, onEdit, onTogglePublish, onDelete, isBusy }: PostCardProps) {
   const excerptText =
     post.excerpt ||
-    (post.content ? post.content.slice(0, 120).replace(/[#*_`>\[\]]/g, "") + "..." : "No content yet");
+    (post.content ? post.content.slice(0, 120).replace(/[#*_`>[\]]/g, "") + "..." : "No content yet");
 
   return (
     <Card

@@ -70,12 +70,12 @@ export function useFeedback() {
 
         setIsSubmitting(false);
         return true;
-      } catch (error: any) {
+      } catch (error) {
         console.error("Failed to submit feedback:", error);
         toast({
           title: t("feedback.errorTitle", "Feedback submission failed"),
           description:
-            error.message ||
+            (error instanceof Error ? error.message : "") ||
             t("feedback.errorDescription", "Please try again later."),
           variant: "destructive",
         });

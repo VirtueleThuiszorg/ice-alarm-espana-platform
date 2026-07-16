@@ -274,7 +274,6 @@ Deno.serve(async (req) => {
     // ───────────────────────── STEP 2: PUBLISH TO FACEBOOK ─────────────────────────
     const imageUrl = post.image_url;
     let fbResponse: Response;
-    let fbResult: any;
 
     // Prepare Facebook message (optionally include blog URL)
     let fbMessage = postText;
@@ -304,7 +303,7 @@ Deno.serve(async (req) => {
       fbResponse = await fetch(`https://graph.facebook.com/v24.0/${pageId}/feed`, { method: "POST", body: params });
     }
 
-    fbResult = await fbResponse.json();
+    const fbResult = await fbResponse.json();
 
     if (!fbResponse.ok) {
       // Update social post with error but keep blog post

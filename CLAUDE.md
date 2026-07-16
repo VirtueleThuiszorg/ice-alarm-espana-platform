@@ -1,190 +1,46 @@
-# CLAUDE.md — Care Conneqt Platform
+# CLAUDE.md — operating rules for this repo
 
-> Operating instructions for Claude Code. **This file steers every session — keep it true.**
-> Last reconciled against code: **2026-06-16** (from `AUDIT_REPORT_2026-06.md`).
-> If a figure here ever disagrees with the code, the code wins — fix this file.
+You are building the Care Conneqt platform. Read `care-conneqt-master-build-plan.md` for the full plan, and `GOALS.md` for the standing acceptance criteria every loop is measured against. This file is the set of rules you must never break. If a request conflicts with these, stop and flag it.
 
----
+## What this is
+A direct-to-consumer connected-care business in Spain: 4 devices (Vivago SOS watch/pendant, glucose monitor, Dosell dispenser, family health pack) sold with a recurring monitoring subscription. **One Vite SPA on one Supabase backend**, with the two surfaces separated by route group inside the single app: the client surface (`src/pages/{client,join}` + marketing) and the staff/admin surface (`src/pages/{admin,call-centre,staff,partner}`). One AI assistant, Isabella. This is a life-safety product — a real SOS must reach a real operator.
 
-## 0. Documentation protocol (always on)
+## Golden rules (never break)
+1. **One Supabase project.** Never introduce a second database or sync layer.
+2. **RLS on every table.** No table ships without Row-Level Security and a test proving isolation.
+3. **No client-writable roles or tiers.** Roles (today: `staff.role` / `app_role` enum — there is no `user_roles` table) are assigned by trigger/admin only. Subscription plan/status (today: `subscriptions.status` / `plan_type` / `billing_frequency` — there is no `subscription_tier` column) changes only via the payment webhook. Never let a user set their own role or plan.
+4. **Payments activate via webhook only.** A member is activated by the payment webhook (`stripe-webhook` / `mollie-webhook`), never by client-side code or onboarding forms.
+5. **Isabella queries as the user**, never with the service role for user-facing reads. Her data access is whatever RLS allows — nothing more.
+6. **Isabella's hard-blocked tools are unreachable in code**, not just discouraged in the prompt: `update_user_role`, `manage_alert` escalate/resolve, `admit_resident`, `discharge_resident`, `toggle_user_status`. She may read, never execute these.
+7. **Isabella red-lines:** never give medical advice or a diagnosis; never triage/dismiss/resolve an SOS; never invent or alter a health reading; always escalate uncertainty to a human.
+8. **The SOS path is never mocked** and always has an end-to-end test. Target: pendant press → operator screen < 1 second.
+9. **No secrets in git.** Env / Supabase secrets only. Maintain `.env.example`. Never commit `.env`.
+10. **No new tests skipped.** Every work package ends with its tests green. Zero-test code does not merge.
 
-**Follow `LEARN.md` every session — it is the rule-set for keeping these docs true.**
+## Do not do
+- Do not reintroduce Lovable anything (`lovable-tagger`, `.lovable/`, Lovable AI gateway). AI runs on the Anthropic API.
+- Do not build a password/credential vault. Team secrets live in 1Password/Bitwarden.
+- Do not create per-entity one-off functions (e.g. `import-mary-shifts`). Write generic, parameterized code.
+- Do not add agent-to-agent handoffs or extra AI personas. There is one Isabella.
+- Do not `console.log` auth state or PII in production code.
+- Do not add a dependency with a known critical CVE.
 
-- **At session start:** read the doc set listed in `LEARN.md`, then report (a) anything
-  that drifted since last session, (b) any doc that now contradicts the code, and
-  (c) 1–3 suggested improvements. Do this *without being asked*.
-- **At task end (definition of done):** update the *affected* docs only — not all of
-  them. A changed figure → fix it here in §3; a finished launch item →
-  `LAUNCH_CHECKLIST.md`; a new gotcha or decision → append to `LEARN.md`.
-- **Hard rule:** only write a fact that is verified in code or the live environment.
-  Never aspirational. Append history; don't overwrite it. Flag §12 decisions for Lee.
+## How to work
+- Work **one work package at a time** (WP0–WP9 in the plan). Do not start a WP whose dependencies aren't green.
+- Before editing the schema, read the current migration set; keep it clean — no accreted patch-on-patch policies.
+- Prefer small, reviewable commits. Explain what each migration changes and why.
+- When porting from the old repos (read-only reference), port deliberately — copy the good part, leave the debris.
+- If a spec is ambiguous (esp. Vivago/Dosell device APIs), stop and ask rather than guessing an integration.
 
----
+## Stack
+Single Vite + React 18 + TypeScript SPA (npm, **not** a pnpm monorepo) · Tailwind + shadcn/ui in `src/components/ui` · Supabase (Postgres/Auth/Edge Functions/Realtime), one project · Stripe + Mollie (SEPA + cards, webhook-driven) · AI is Isabella (**currently on the Lovable gateway — Anthropic API migration owed, see STATE.md**) · Vercel deploy · Sentry.
 
-## 1. What this is
+## Looping discipline
+- Run one work package as one `/goal` loop; its stop condition IS the WP's Definition of Done plus **every criterion in GOALS.md** (the five non-negotiables + the engineering bar) holding. Cap turns.
+- **Highest professional standard is the bar, defined concretely (plan §16):** proven not claimed (no feature "done" without a test or click-through) · zero type errors, zero lint warnings, no dead code · critical-path tests green · RLS + isolation test on every new table · one concern per branch/PR, no God commits · STATE.md updated honestly · WCAG AA + scalable fonts · observable, no PII/auth logs · consistent with existing `src/components` and shared modules (no duplicate parallel implementations) · migrations reversible. If any item fails, keep looping — do not stop.
+- Success criteria must be deterministic. "Clean"/"good"/"polished" are never stop criteria. Vague quality words don't count; the §16 checklist does.
+- A `/loop 10m` may handle PRs and CI — but never auto-merge changes to the SOS path, Stripe activation, or RLS policies. Flag those for the human.
+- The human gate is mandatory before merge on: the SOS/alert path, Stripe activation, RLS policies, and Isabella's tool permissions.
 
-Care Conneqt is a nurse-led remote-care / personal-emergency-response platform for
-older and vulnerable people, primarily expats in Spain, expanding under a Netherlands
-parent group. It is the rebranded successor to **ICE Alarm España** (same code, schema,
-and features — only branding and infrastructure changed in the rebrand).
-
-Tagline: **"Connected Health. Human Care."** It is a **live life-safety service** —
-treat changes to alerting, Isabella, payments, and the EV07B pendant path with
-corresponding caution.
-
-## 2. Stack (real, as of 2026-06-16)
-
-- **Front end:** React + Vite + TypeScript + Tailwind + shadcn/ui
-- **Back end:** Supabase Cloud — Postgres + 89 edge functions + auth
-- **Services:** `gps-gateway/` (Node TCP bridge, GT06 parser, port 5001 → EV07B endpoints);
-  `render-worker/` (Docker, Remotion + FFmpeg video) — *still ICE-branded, see §11*
-- **Voice:** Twilio · **Payments:** Stripe + Mollie · **AI (Isabella):** Gemini via the
-  Lovable API gateway (`LOVABLE_API_KEY`)
-- **Hosting:** Vercel. `main` → production. **Vercel builds from GitHub, not local.**
-
-## 3. Size (real figures — the old CLAUDE.md was wrong)
-
-| Asset | Count |
-|---|---|
-| Pages | 107 |
-| Components | 290 |
-| Hooks | 92 |
-| Edge functions | **89** (89 deployable dirs under `supabase/functions/`, excluding `_shared`; was 87 on 2026-06-16) |
-| Migrations | 123 (2026-01-21 → 2026-04-20) |
-| Total TS/TSX LOC | ~154,758 |
-| Tests | 226 (225 passing — see §7) |
-
-Portals: **admin, call-centre, client, partner, staff** (+ auth, blog, join, root pages).
-
-## 4. Infrastructure & secrets
-
-- **Supabase projects (cutover COMPLETE — verified 2026-06-17):**
-  - **`cfwnrcogikjycjcobsay` = CURRENT LIVE PRODUCTION** — Lee-owned account
-    (`wakemanlee20@`); what Vercel serves. **Cutover completed 2026-06-17:** schema
-    (126 migrations) + all 91 edge functions deployed; Lee bootstrapped as `super_admin`
-    (`staff.id 84ccfc96-aeb0-4c75-a1b0-450c9f78d989`). The local repo is linked to this
-    ref. **Source of truth.** Treat with full production caution.
-  - **`crpsuhoixfdhjugprbuc` = OLD production (Lovable-managed) — no longer served.** Kept
-    as a fallback during stabilisation. **Safe to delete only once Lee confirms the new
-    site is stable — do NOT delete yet.**
-  - **`pduhccavshrhfkfbjgmj` = DEAD ICE ref. Never touch / never resurrect** — pushing to
-    it would write into the old ICE production DB.
-- **Always confirm the link target before `supabase db push` / `functions deploy`** — the
-  three refs above are easy to confuse; verify `supabase/.temp/project-ref` first.
-- `supabase/config.toml` has **no pinned `project_id`** — the link lives in gitignored
-  `supabase/.temp/`. Pinning it is a backlog item.
-- **Secrets posture (reconciled — the old "all keys in `.env`" claim was wrong):**
-  - **In env (`Deno.env.get`):** Twilio, Resend/Gmail, Google OAuth, Supabase
-    service-role, `LOVABLE_API_KEY`, `EV07B_CHECKIN_KEY`, `WEBHOOK_SECRET`.
-  - **In the DB (`system_settings` table, by design):** Stripe + Mollie keys (plus Twilio
-    duplicates, Facebook tokens, and company info), written by the public `save-api-keys`
-    function. Security rests on RLS on that table — **keep it locked to service-role.**
-  - **AI: runs via the Lovable gateway using `LOVABLE_API_KEY` only** (env). **No Gemini /
-    direct-provider key is read by any function** (verified 2026-06-16 — the earlier
-    "Gemini key in `system_settings`" claim was wrong). `ai-run` + 13 other functions all
-    POST to `https://ai.gateway.lovable.dev/v1/chat/completions`.
-    - **Planned follow-up (AFTER cutover):** swap `ai-run` and the 13 other
-      `ai.gateway.lovable.dev` callers to call **Claude directly (Anthropic API)** via a
-      shared `_shared/ai-gateway.ts` helper. **Keep `LOVABLE_API_KEY` working through
-      cutover so Isabella is not broken** — the provider swap is a separate code task, not
-      part of the clean-start cutover.
-  - No hardcoded secrets exist in the repo. Keep it that way.
-- **No staging environment** — production + Vercel PR previews only.
-
-## 5. Isabella — the safety-critical bit
-
-- State lives in DB table **`public.isabella_settings`**, column **`enabled`**
-  (default `false`), seeded in migration `20260213142641_*.sql`.
-- **50 functions defined in code**, **19 seeded to the DB**, **1 enabled by default**
-  (`chat_widget`). The admin UI (`src/pages/admin/IsabellaOperationsPage.tsx`,
-  `FUNCTION_KEY_MAP`) lists all 50; toggling is runtime via
-  `src/hooks/useIsabellaSettings.ts`.
-- **⚠️ VERIFIED 2026-06-16 (`CRITICAL_VERIFICATION_2026-06.md`): the per-function
-  `isabella_settings.enabled` toggles are NOT enforced at execution.** `ai-run`,
-  `ai-execute-action`, and `ai-dispatch-events` do not read `isabella_settings` at all —
-  the table is referenced only in frontend code, with no shared server-side gate. So the
-  "one-click pause" guarantee does **not** hold for the 50 admin toggles. A *separate*,
-  coarser flag — `ai_agents.enabled` (agent-level) — IS partly checked
-  (`ai-run/index.ts:839`, `ai-dispatch-events/index.ts:159`), but it is bypassed for the
-  `chat_widget` and `voice_call` sources and is not the same as the Isabella toggles.
-  **Treat the admin per-function switches as advisory until enforcement is added.** Still
-  confirm the *production* enabled-set before relying on the counts above.
-
-## 6. Working rules
-
-- **Small, reversible commits — one logical change at a time.** Never batch unrelated
-  fixes.
-- **Never push migrations or deploy functions without confirming the link target is
-  `cfwnrcogikjycjcobsay` (see §4).** Since the 2026-06-17 cutover this ref **is live
-  production** — every `db push` / `functions deploy` hits real production, so verify
-  `supabase/.temp/project-ref` first and treat each one with full production caution.
-  Never target the old `crpsuhoixfdhjugprbuc` or the dead `pduhccavshrhfkfbjgmj`.
-- This was a **rebrand, not a rewrite**: features/logic/schema stay intact. ICE→Care
-  leftovers are flagged, **not silently renamed** — see §11 and §12.
-- Audits drift (a Feb 2026 audit went un-actioned). Re-audit each quarter; keep this
-  file and `LAUNCH_CHECKLIST.md` current.
-
-## 7. Tests
-
-- Run with `npx vitest run`. **226 tests, 225 passing** as of 2026-06-16.
-- The suite was previously **non-functional** because a duplicate copy of the repo
-  nested in the parent directory hijacked Vitest's root resolution. Fixed 2026-06-16 by
-  de-nesting; old copy parked at `~/care-conneqt-platform-OLD`.
-- The 1 known failure (`src/test/crmEvents.test.ts`) is a test-hygiene issue — it builds
-  the real Supabase client without a URL instead of mocking it. Not a code defect.
-- There is **no `typecheck` npm script** (run `tsc --noEmit` directly). `eslint .`
-  reports ~400 problems, mostly `no-explicit-any` in `supabase/functions/**`.
-
-## 8. i18n
-
-- Locales present: **`en` and `es` only.** Spanish is a genuine, ~99.8%-complete
-  translation (not an English fallback).
-- 8 `subscription.*` keys are missing from `es.json` (member-facing billing copy).
-- **No `nl` (Dutch) locale exists yet** — despite the Netherlands parent. Add when the
-  Dutch UI is needed.
-
-## 9. Brand
-
-- **⚠️ Two brand marks currently coexist (verified against code 2026-07-14):**
-  - **Shipped icon/favicon set = new "v" mark** (`public/icon.svg` + favicon/PWA PNGs,
-    committed `b805825`): indigo `#3B3B7A` (HSL `240 35% 35%`) left arm, orange `#F7941E`
-    (HSL `33 93% 54%`) right arm + dot, on cream `#FAF6F0` (HSL `36 50% 96%`).
-  - **App theme + in-app two-C logo = still legacy palette:** Deep Blue `#1e5a9c` /
-    HSL `215 85% 35%` + Teal `185 75% 45%` (`src/index.css`, `manifest.json`, `index.html`,
-    `public/sw.js`, `src/components/ui/logo.tsx`, `src/assets/care-conneqt-logo.svg`).
-  - These do **not** match — the icon set was rebranded, the theme/logo were not.
-    Reconciling the code/theme is an open decision (audit material), **not** yet done.
-- Fonts: DM Sans (display/headings) + Open Sans (body); Poppins still loaded for legacy
-  usages. Full detail + colour tables in `BRAND_ASSETS.md`.
-- Functional alert tokens (`--alert-sos`, `--alert-fall`, etc.) are **states, not
-  brand** — leave them.
-
-## 10. Launch
-
-- **Public launch target: 1 August 2026.** ICE → Care Conneqt migration runs May–July.
-- 4-step rollout: **(1) Rebrand → (2) Internal team launch → (3) Beta to selected
-  existing clients (no new hardware) → (4) Full rollout with pendants/devices.**
-- See `LAUNCH_CHECKLIST.md` for the live blocker list.
-
-## 11. Known ICE→Care leftovers (member/SEO-facing = fix; internal = documented debt)
-
-**Fix before launch (member/SEO-facing):**
-- Old coral `#E74C3C` in all six transactional email templates, `OnboardingTour.tsx`,
-  `useBrandedImageGenerator.ts`, and `tailwind.config.ts` glow shadows (`4 78% 57%`).
-- `public/robots.txt` sitemap still points at `icealarm.es`.
-- `ai-run/index.ts` system prompt still says "ICE ALARM SERVICE KNOWLEDGE".
-- `render-worker` still branded "ICE Alarm Video Hub" (`IceAlarmVideo` component,
-  Docker image `ice-video-render-worker`).
-- Unfilled placeholders: `vercel.json` sitemap (`YOUR_SUPABASE_PROJECT_REF`), six email
-  template logo URLs, `index.html` preconnects.
-
-**Documented continuity (do NOT change without a decision — see §12):**
-- `ICE-` order-number prefix (live order numbering).
-- `X-ICE-*` email headers (matched send + inbound — rename only as a pair).
-- `iceAlarm*` i18n / localStorage keys (display values already say "Care Conneqt").
-
-## 12. Decisions that need Lee, not Claude Code
-
-Flag and ask — never silently resolve: the `ICE-` order prefix, the `X-ICE-*` headers,
-whether to migrate the `iceAlarm*` keys or keep them as permanent continuity, and
-anything touching legal entity / domains / Dutch product scope.
+## Quality gates (CI, must be green to merge)
+typecheck · lint · RLS isolation tests · webhook contract tests · E2E on checkout→activation and SOS→operator · no known-critical CVEs.

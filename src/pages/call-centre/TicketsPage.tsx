@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import {
   Loader2, Plus, Send, Ticket, Search, User, Clock, 
@@ -237,7 +238,9 @@ export default function TicketsPage() {
         created_by: currentStaffId!,
       };
       
-      const { error } = await supabase.from("internal_tickets").insert(insertData as any);
+      const { error } = await supabase
+        .from("internal_tickets")
+        .insert(insertData as Database["public"]["Tables"]["internal_tickets"]["Insert"]);
 
       if (error) throw error;
 

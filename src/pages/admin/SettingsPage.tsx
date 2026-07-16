@@ -285,10 +285,10 @@ export default function SettingsPage() {
 
       setTimeout(() => setRecentlySavedSection(null), 1200);
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
         title: "Error saving settings",
-        description: error?.message || "Unknown error",
+        description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive",
       });
     },
@@ -447,9 +447,10 @@ export default function SettingsPage() {
         setTwilioTestStatus("error");
         setTwilioTestMessage(data.error || "Connection test failed");
       }
-    } catch (error: any) {
+    } catch (error) {
       setTwilioTestStatus("error");
-      setTwilioTestMessage(error?.message || "Failed to test connection");
+      const message = error instanceof Error ? error.message : String(error);
+      setTwilioTestMessage(message || "Failed to test connection");
     }
   };
 

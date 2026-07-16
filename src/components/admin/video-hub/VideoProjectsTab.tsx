@@ -104,9 +104,9 @@ export function VideoProjectsTab({ searchQuery, filters, onCreateNew, onEditProj
       } else {
         toast.success(t("videoHub.projects.approved"));
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Approve error:", error);
-      toast.error(error?.message || t("videoHub.create.renderFailed"));
+      toast.error((error instanceof Error ? error.message : undefined) || t("videoHub.create.renderFailed"));
       setIsRendering(null);
     }
   }, [updateProjectStatus, latestRenderByProject, t]);
@@ -128,9 +128,9 @@ export function VideoProjectsTab({ searchQuery, filters, onCreateNew, onEditProj
       } else {
         toast.success(data?.message || t("videoHub.create.renderQueued"));
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Retry render error:", error);
-      toast.error(error?.message || t("videoHub.create.renderFailed"));
+      toast.error((error instanceof Error ? error.message : undefined) || t("videoHub.create.renderFailed"));
     } finally {
       setIsRendering(null);
     }

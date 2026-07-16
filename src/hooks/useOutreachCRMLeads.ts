@@ -9,7 +9,7 @@ interface Filters {
   pipeline?: string;
 }
 
-type CRMLeadStatus = "new" | "contacted" | "replied" | "interested" | "converted" | "closed";
+export type CRMLeadStatus = "new" | "contacted" | "replied" | "interested" | "converted" | "closed";
 
 export function useOutreachCRMLeads(filters?: Filters) {
   const queryClient = useQueryClient();

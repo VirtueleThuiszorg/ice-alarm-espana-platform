@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Enums } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import i18next from "i18next";
 
@@ -32,6 +33,11 @@ export interface NewDeviceInput {
 }
 
 export type DeviceStatusFilter = "all" | "in_stock" | "allocated" | "live" | "with_staff" | "faulty" | "reserved";
+
+// The query joins member data under `members`; flattened to `member` below.
+type DeviceStockRow = Omit<DeviceStock, "member"> & {
+  members: DeviceStock["member"];
+};
 
 export function useDeviceStock(statusFilter: DeviceStatusFilter = "all") {
   return useQuery({
@@ -70,7 +76,7 @@ export function useDeviceStock(statusFilter: DeviceStatusFilter = "all") {
       if (error) throw error;
 
       // Transform the response to flatten member data
-      return (data || []).map((device: any) => ({
+      return ((data || []) as unknown as DeviceStockRow[]).map((device) => ({
         ...device,
         member: device.members || null,
       })) as DeviceStock[];
@@ -122,7 +128,7 @@ export function useUpdateDeviceStatus() {
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const { data, error } = await supabase
         .from("devices")
-        .update({ status: status as any })
+        .update({ status: status as Enums<"device_status"> })
         .eq("id", id)
         .select()
         .single();

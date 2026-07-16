@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -57,6 +58,11 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const ITEMS_PER_PAGE = 20;
 
+type MemberRow = Tables<"members"> & {
+  subscriptions: Pick<Tables<"subscriptions">, "plan_type" | "status">[];
+  devices: Pick<Tables<"devices">, "id" | "status">[];
+};
+
 export default function MembersPage() {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
@@ -84,7 +90,7 @@ export default function MembersPage() {
 
       toast.success(t("admin.members.deleteSuccess", { name: memberToDelete.name }));
       queryClient.invalidateQueries({ queryKey: ["admin-members"] });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error deleting member:", error);
       toast.error(t("admin.members.deleteError"));
     } finally {
@@ -119,10 +125,10 @@ export default function MembersPage() {
       if (error) throw error;
 
       // Filter by plan type client-side since it's in a related table
-      let filteredMembers = members || [];
+      let filteredMembers = (members || []) as unknown as MemberRow[];
       if (planFilter !== "all") {
-        filteredMembers = filteredMembers.filter((m: any) => 
-          m.subscriptions?.some((s: any) => s.plan_type === planFilter && s.status === "active")
+        filteredMembers = filteredMembers.filter((m) =>
+          m.subscriptions?.some((s) => s.plan_type === planFilter && s.status === "active")
         );
       }
 
@@ -145,8 +151,8 @@ export default function MembersPage() {
     }
   };
 
-  const getPlanBadge = (subscriptions: any[]) => {
-    const activeSub = subscriptions?.find((s: any) => s.status === "active");
+  const getPlanBadge = (subscriptions: MemberRow["subscriptions"]) => {
+    const activeSub = subscriptions?.find((s) => s.status === "active");
     if (!activeSub) return <Badge variant="outline">{t("admin.members.noPlan")}</Badge>;
     return (
       <Badge variant="secondary" className="capitalize">
@@ -163,7 +169,7 @@ export default function MembersPage() {
     }
 
     const headers = ["ID", "First Name", "Last Name", "Email", "Phone", "City", "Status", "Created At"];
-    const rows = members.map((m: any) => [
+    const rows = members.map((m) => [
       m.id,
       m.first_name,
       m.last_name,
@@ -292,7 +298,7 @@ export default function MembersPage() {
                   </TableCell>
                 </TableRow>
               ) : data?.members && data.members.length > 0 ? (
-                data.members.map((member: any) => (
+                data.members.map((member) => (
                   <TableRow 
                     key={member.id} 
                     className="cursor-pointer hover:bg-muted/50"
@@ -306,7 +312,7 @@ export default function MembersPage() {
                     <TableCell>{getPlanBadge(member.subscriptions)}</TableCell>
                     <TableCell>{getStatusBadge(member.status)}</TableCell>
                     <TableCell>
-                      {member.devices?.some((d: any) => d.status === "active") ? (
+                      {member.devices?.some((d) => d.status === "active") ? (
                         <Badge variant="outline" className="bg-alert-resolved/10 text-alert-resolved border-alert-resolved/20">
                           {t("admin.members.assigned")}
                         </Badge>

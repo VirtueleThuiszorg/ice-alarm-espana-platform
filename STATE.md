@@ -13,14 +13,14 @@
 
 ---
 
-## 0. Full suite results (run 2026-06-18, this branch)
+## 0. Full suite results (gates re-run 2026-07-16 on `chore/lint-zero-and-test-hygiene`)
 
 | Gate | Result | Evidence |
 |---|---|---|
 | **Typecheck** (`tsc --noEmit`) | ✅ **0 errors** | exit 0 |
-| **Lint** (`eslint .`) | 🔴 **345 errors + 62 warnings** (407 problems) | mostly `no-explicit-any` in edge fns (`stripe-webhook` ×7, `voice-handler`, `submit-registration`, `youtube-publish`…), empty blocks in `voice-handler`, `require()` in `tailwind.config.ts:136`. **Fails GOALS bar #2 (0 lint warnings).** |
-| **Build** (`vite build`) | ✅ **succeeds** | `✓ built in 1m14s`; only the >600 kB chunk-size warning (`index-*.js` 984 kB). |
-| **Tests** (`vitest run`) | 🟡 **349 pass / 1 suite fails** | 19 of 20 test files pass. `src/test/crmEvents.test.ts` **fails to load**: `Error: supabaseUrl is required` (`src/integrations/supabase/client.ts:11`) — a test-hygiene defect, but it means the referral logic it covers is **not currently proven**. |
+| **Lint** (`eslint .`) | ✅ **0 errors** (62 warnings) | Cleanup PR `chore/lint-zero-and-test-hygiene` fixed all 345 errors (318 `no-explicit-any` + 27 misc), type-only, verified by tsc 0 + suite green + build green. Remaining 62 are pre-existing `react-hooks/exhaustive-deps` + `react-refresh` **warnings** (deferred — fixing exhaustive-deps changes dependency arrays = a behavior change, notably on the SOS-path `useAlerts` effect). `render-worker` (separate package) excluded from root lint. |
+| **Build** (`vite build`) | ✅ **succeeds** | `✓ built in ~1m20s`; only the >600 kB chunk-size warning. |
+| **Tests** (`vitest run`) | ✅ **all green** | 20/20 files, 362 tests pass. `crmEvents.test.ts` load failure (`supabaseUrl is required`) FIXED via a dummy Supabase env in `vitest.config.ts` (test-only, non-secret) — referral logic now proven. |
 
 **Test surface reality:** 20 Vitest **unit** files in `src/test/`. **Zero** edge-function tests, **zero** RLS/isolation tests, **zero** Playwright/E2E. The CI gates CLAUDE.md declares (RLS isolation, webhook contract, E2E checkout→activation & SOS→operator, CVE scan) have **no corresponding files**.
 

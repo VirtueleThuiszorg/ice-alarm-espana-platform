@@ -17,7 +17,7 @@ import { toast } from "@/hooks/use-toast";
 
 interface SettingRow {
   setting_key: string;
-  setting_value: any;
+  setting_value: unknown;
 }
 
 export function OutreachControlPanel() {
@@ -29,13 +29,13 @@ export function OutreachControlPanel() {
     queryFn: async () => {
       const { data, error } = await supabase.from("outreach_settings").select("setting_key, setting_value");
       if (error) throw error;
-      const map: Record<string, any> = {};
+      const map: Record<string, unknown> = {};
       (data || []).forEach((r: SettingRow) => { map[r.setting_key] = r.setting_value; });
       return map;
     },
   });
 
-  const updateSetting = async (key: string, value: any) => {
+  const updateSetting = async (key: string, value: unknown) => {
     await supabase.from("outreach_settings").upsert(
       { setting_key: key, setting_value: JSON.parse(JSON.stringify(value)), updated_at: new Date().toISOString() },
       { onConflict: "setting_key" }
@@ -161,11 +161,11 @@ export function OutreachControlPanel() {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label>{t("outreach.control.dailySendLimit")}</Label>
-              <Input type="number" value={settings.daily_send_limit || 20} onChange={(e) => updateSetting("daily_send_limit", parseInt(e.target.value) || 20)} />
+              <Input type="number" value={(settings.daily_send_limit as number) || 20} onChange={(e) => updateSetting("daily_send_limit", parseInt(e.target.value) || 20)} />
             </div>
             <div className="space-y-2">
               <Label>{t("outreach.control.minScoreToSend", "Min AI Score to Send (1.0–5.0)")}</Label>
-              <Input type="number" step="0.1" min={1} max={5} value={settings.min_score_to_send || 3.5} onChange={(e) => updateSetting("min_score_to_send", parseFloat(e.target.value) || 3.5)} />
+              <Input type="number" step="0.1" min={1} max={5} value={(settings.min_score_to_send as number) || 3.5} onChange={(e) => updateSetting("min_score_to_send", parseFloat(e.target.value) || 3.5)} />
             </div>
           </div>
           <div className="flex items-center justify-between py-2">

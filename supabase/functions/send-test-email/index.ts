@@ -6,9 +6,17 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 
 const SINGLETON_ID = "00000000-0000-0000-0000-000000000001";
 
+interface EmailSettings {
+  gmail_smtp_user?: string | null;
+  gmail_smtp_host?: string | null;
+  from_name?: string | null;
+  from_email?: string | null;
+  [key: string]: unknown;
+}
+
 // Send test email via Gmail SMTP
 async function sendTestViaGmailSMTP(
-  settings: any,
+  settings: EmailSettings,
   toEmail: string,
   htmlContent: string
 ): Promise<{ success: boolean; error?: string }> {
@@ -57,10 +65,10 @@ async function sendTestViaGmailSMTP(
     });
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Gmail SMTP error:", error);
 
-    const message = error?.message || "SMTP connection failed";
+    const message = error instanceof Error ? error.message : "SMTP connection failed";
 
     // Common Gmail auth failure: wrong app password, 2FA disabled, or user mismatch.
     if (typeof message === "string" && message.includes("535") && message.includes("BadCredentials")) {
@@ -68,7 +76,7 @@ async function sendTestViaGmailSMTP(
         success: false,
         error:
           "Gmail rejected the credentials (535 BadCredentials). Please verify: (1) the account " +
-          `\"${settings.gmail_smtp_user}\"` +
+          `"${settings.gmail_smtp_user}"` +
           " has 2-Step Verification enabled, (2) you generated a fresh App Password, and (3) the App Password belongs to THIS exact account (not an alias / different Gmail).",
       };
     }
@@ -79,7 +87,7 @@ async function sendTestViaGmailSMTP(
 
 // Send test email via Resend
 async function sendTestViaResend(
-  settings: any,
+  settings: EmailSettings,
   toEmail: string,
   htmlContent: string
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
@@ -275,10 +283,10 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ success: true, message_id: sendResult.messageId, provider }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error in send-test-email:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Internal server error" }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

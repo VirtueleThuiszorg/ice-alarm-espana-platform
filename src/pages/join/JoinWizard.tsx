@@ -159,7 +159,7 @@ export default function JoinWizard() {
     switch (currentStep) {
       case 1:
         return !!wizardData.membershipType;
-      case 2:
+      case 2: {
         const primaryValid = !!(
           wizardData.primaryMember.firstName &&
           wizardData.primaryMember.lastName &&
@@ -178,7 +178,8 @@ export default function JoinWizard() {
           return primaryValid && partnerValid;
         }
         return primaryValid;
-      case 3:
+      }
+      case 3: {
         const primaryAddressValid = !!(
           wizardData.address.addressLine1 &&
           wizardData.address.city &&
@@ -195,6 +196,7 @@ export default function JoinWizard() {
           return primaryAddressValid && partnerAddressValid;
         }
         return primaryAddressValid;
+      }
       case 4:
         return wizardData.emergencyContacts.length >= 1;
       case 5:

@@ -44,6 +44,37 @@ interface BillingHealth {
   atRiskCount: number;
 }
 
+type MemberJoin = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+} | null;
+
+interface OverdueSubscriptionRow {
+  id: string;
+  member_id: string;
+  plan_type: string;
+  amount: number;
+  renewal_date: string;
+  status: string | null;
+  billing_frequency: string;
+  member: MemberJoin;
+}
+
+interface FailedPaymentRow {
+  id: string;
+  member_id: string;
+  amount: number;
+  payment_method: string;
+  payment_type: string;
+  status: string | null;
+  created_at: string | null;
+  notes: string | null;
+  member: MemberJoin;
+}
+
 export function useBillingReminders() {
   const [overdueSubscriptions, setOverdueSubscriptions] = useState<OverdueSubscription[]>([]);
   const [failedPayments, setFailedPayments] = useState<FailedPayment[]>([]);
@@ -68,7 +99,7 @@ export function useBillingReminders() {
 
       if (error) throw error;
 
-      const mapped: OverdueSubscription[] = (data || []).map((sub: any) => ({
+      const mapped: OverdueSubscription[] = ((data || []) as unknown as OverdueSubscriptionRow[]).map((sub) => ({
         id: sub.id,
         member_id: sub.member_id,
         plan_type: sub.plan_type,
@@ -116,7 +147,7 @@ export function useBillingReminders() {
 
       if (error) throw error;
 
-      const mapped: FailedPayment[] = (data || []).map((payment: any) => ({
+      const mapped: FailedPayment[] = ((data || []) as unknown as FailedPaymentRow[]).map((payment) => ({
         id: payment.id,
         member_id: payment.member_id,
         amount: payment.amount,

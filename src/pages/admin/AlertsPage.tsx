@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
 import { INTERVALS } from "@/config/constants";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -80,6 +81,11 @@ const alertTypeIcons: Record<string, React.ElementType> = {
   manual: Phone,
 };
 
+type AlertRow = Tables<"alerts"> & {
+  member: Pick<Tables<"members">, "id" | "first_name" | "last_name" | "email" | "phone"> | null;
+  claimed_staff: Pick<Tables<"staff">, "first_name" | "last_name"> | null;
+};
+
 export default function AlertsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -91,14 +97,14 @@ export default function AlertsPage() {
 
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedAlert, setSelectedAlert] = useState<any>(null);
+  const [selectedAlert, setSelectedAlert] = useState<AlertRow | null>(null);
   const [editStatus, setEditStatus] = useState("");
   const [editNotes, setEditNotes] = useState("");
   const [editIsFalseAlarm, setEditIsFalseAlarm] = useState(false);
 
   // Delete dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [alertToDelete, setAlertToDelete] = useState<any>(null);
+  const [alertToDelete, setAlertToDelete] = useState<AlertRow | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-alerts", statusFilter, typeFilter, page],
@@ -124,13 +130,13 @@ export default function AlertsPage() {
       const { data: alerts, count, error } = await query;
       if (error) throw error;
 
-      return { alerts: alerts || [], totalCount: count || 0 };
+      return { alerts: (alerts || []) as unknown as AlertRow[], totalCount: count || 0 };
     },
     refetchInterval: INTERVALS.DASHBOARD_REFRESH,
   });
 
   const updateAlertMutation = useMutation({
-    mutationFn: async ({ alertId, updates }: { alertId: string; updates: Record<string, any> }) => {
+    mutationFn: async ({ alertId, updates }: { alertId: string; updates: TablesUpdate<"alerts"> }) => {
       const { error } = await supabase
         .from("alerts")
         .update(updates)
@@ -165,7 +171,7 @@ export default function AlertsPage() {
     },
   });
 
-  const handleEditClick = (alert: any) => {
+  const handleEditClick = (alert: AlertRow) => {
     setSelectedAlert(alert);
     setEditStatus(alert.status);
     setEditNotes(alert.resolution_notes || "");
@@ -176,8 +182,8 @@ export default function AlertsPage() {
   const handleSaveEdit = () => {
     if (!selectedAlert) return;
 
-    const updates: Record<string, any> = {
-      status: editStatus,
+    const updates: TablesUpdate<"alerts"> = {
+      status: editStatus as AlertRow["status"],
       resolution_notes: editNotes || null,
       is_false_alarm: editIsFalseAlarm,
     };
@@ -189,7 +195,7 @@ export default function AlertsPage() {
     updateAlertMutation.mutate({ alertId: selectedAlert.id, updates });
   };
 
-  const handleQuickResolve = (alert: any) => {
+  const handleQuickResolve = (alert: AlertRow) => {
     updateAlertMutation.mutate({
       alertId: alert.id,
       updates: {
@@ -199,21 +205,21 @@ export default function AlertsPage() {
     });
   };
 
-  const handleQuickEscalate = (alert: any) => {
+  const handleQuickEscalate = (alert: AlertRow) => {
     updateAlertMutation.mutate({
       alertId: alert.id,
       updates: { status: "escalated" },
     });
   };
 
-  const handleToggleFalseAlarm = (alert: any) => {
+  const handleToggleFalseAlarm = (alert: AlertRow) => {
     updateAlertMutation.mutate({
       alertId: alert.id,
       updates: { is_false_alarm: !alert.is_false_alarm },
     });
   };
 
-  const handleDeleteClick = (alert: any) => {
+  const handleDeleteClick = (alert: AlertRow) => {
     setAlertToDelete(alert);
     setDeleteDialogOpen(true);
   };
@@ -345,7 +351,7 @@ export default function AlertsPage() {
                   </TableCell>
                 </TableRow>
               ) : data?.alerts && data.alerts.length > 0 ? (
-                data.alerts.map((alert: any) => (
+                data.alerts.map((alert) => (
                   <TableRow
                     key={alert.id}
                     className={`cursor-pointer hover:bg-muted/50 ${

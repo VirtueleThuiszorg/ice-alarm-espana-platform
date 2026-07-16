@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
-import { toast as _toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
@@ -65,8 +64,8 @@ export function MemberQuickSearch({ onSelectMember }: MemberQuickSearchProps) {
 
         if (error) throw error;
 
-        const formattedResults: MemberSearchResult[] = (members || []).map((m: any) => {
-          const activeSubscription = m.subscriptions?.find((s: any) => s.status === 'active');
+        const formattedResults: MemberSearchResult[] = (members || []).map((m) => {
+          const activeSubscription = m.subscriptions?.find((s) => s.status === 'active');
           return {
             id: m.id,
             firstName: m.first_name,

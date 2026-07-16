@@ -33,9 +33,26 @@ function replaceVariables(text: string, variables: Record<string, string>): stri
   return result;
 }
 
+interface ResendSettings {
+  from_name?: string | null;
+  from_email?: string | null;
+  reply_to_email?: string | null;
+  [key: string]: unknown;
+}
+
+interface ResendPayload {
+  from: string;
+  to: string[];
+  subject: string;
+  html: string;
+  headers: Record<string, string>;
+  text?: string;
+  reply_to?: string;
+}
+
 // Send email via Resend
 async function sendViaResend(
-  settings: any,
+  settings: ResendSettings,
   to: string,
   subject: string,
   html: string,
@@ -53,7 +70,7 @@ async function sendViaResend(
   const fromName = settings.from_name || "Care Conneqt";
   const fromEmail = settings.from_email || "onboarding@resend.dev";
 
-  const emailPayload: any = {
+  const emailPayload: ResendPayload = {
     from: `${fromName} <${fromEmail}>`,
     to: [to],
     subject,
@@ -327,10 +344,10 @@ const handler = async (req: Request): Promise<Response> => {
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error in send-email:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message || "Internal server error" }),
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
+import type { Enums } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -46,9 +47,9 @@ export function useAgentHandoff() {
           .insert({
             title: `AI Escalation: ${reason.substring(0, 100)}`,
             description: `A conversation has been escalated from the AI assistant.\n\nReason: ${reason}\nConversation ID: ${conversationId}`,
-            category: "ai_escalation" as any,
+            category: "ai_escalation" as Enums<"ticket_category">,
             priority: "medium",
-            status: "open" as any,
+            status: "open",
             created_by: user?.id ?? "",
             ticket_number: `ESC-${Date.now()}`,
           })
@@ -83,14 +84,14 @@ export function useAgentHandoff() {
         });
 
         return ticket?.id || null;
-      } catch (error: any) {
+      } catch (error) {
         console.error("Handoff request failed:", error);
         setState((prev) => ({ ...prev, isLoading: false }));
 
         toast({
           title: t("chat.escalationErrorTitle", "Escalation failed"),
           description:
-            error.message ||
+            (error instanceof Error ? error.message : "") ||
             t(
               "chat.escalationErrorDescription",
               "Could not escalate the conversation. Please try again."
@@ -172,14 +173,14 @@ export function useAgentHandoff() {
             "The conversation has been returned to AI handling."
           ),
         });
-      } catch (error: any) {
+      } catch (error) {
         console.error("Resolve handoff failed:", error);
         setState((prev) => ({ ...prev, isLoading: false }));
 
         toast({
           title: t("chat.resolveErrorTitle", "Resolution failed"),
           description:
-            error.message ||
+            (error instanceof Error ? error.message : "") ||
             t(
               "chat.resolveErrorDescription",
               "Could not resolve the escalation. Please try again."

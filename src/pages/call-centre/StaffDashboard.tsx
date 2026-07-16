@@ -259,7 +259,7 @@ export default function StaffDashboard() {
       .order('received_at', { ascending: false })
       .limit(5);
 
-    setActiveAlerts((data as any[]) || []);
+    setActiveAlerts((data as unknown as ActiveAlert[]) || []);
   };
 
   const fetchUnreadMessages = async () => {
@@ -289,7 +289,7 @@ export default function StaffDashboard() {
       .order('created_at', { ascending: false })
       .limit(5);
 
-    setRecentMessages((data as any[]) || []);
+    setRecentMessages((data as unknown as Message[]) || []);
   };
 
   const fetchMyTasks = async () => {
@@ -313,7 +313,7 @@ export default function StaffDashboard() {
       .order('due_date', { ascending: true })
       .limit(5);
 
-    setMyTasks((data as any[]) || []);
+    setMyTasks((data as unknown as Task[]) || []);
     setMyTasksCount(count || 0);
   };
 
@@ -333,7 +333,7 @@ export default function StaffDashboard() {
       .order('created_at', { ascending: false })
       .limit(5);
 
-    setShiftNotes((data as any[]) || []);
+    setShiftNotes((data as unknown as ShiftNote[]) || []);
   };
 
   const fetchBirthdays = async () => {
@@ -362,7 +362,7 @@ export default function StaffDashboard() {
       .limit(5);
 
     if (!error && data) {
-      setCourtesyCalls((data as any[]) || []);
+      setCourtesyCalls((data as unknown as CourtesyCall[]) || []);
     }
   };
 

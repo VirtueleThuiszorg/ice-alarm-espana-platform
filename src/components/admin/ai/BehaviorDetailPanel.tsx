@@ -43,6 +43,7 @@ import {
 } from "@/hooks/useAIAgents";
 import type { AIAgent, AIAgentConfig } from "@/hooks/useAIAgents";
 import { useIsabellaSettings, useUpdateIsabellaSetting } from "@/hooks/useIsabellaSettings";
+import type { IsabellaSetting } from "@/hooks/useIsabellaSettings";
 import { useAuth } from "@/contexts/AuthContext";
 import type { LucideIcon } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -302,7 +303,7 @@ function ToolsTab({ agent, config }: { agent: AIAgent; config: AIAgentConfig }) 
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Select value={mode} onValueChange={(v: any) => setMode(v)}>
+                    <Select value={mode} onValueChange={(v) => setMode(v as AIAgent["mode"])}>
                         <SelectTrigger className="w-56">
                             <SelectValue />
                         </SelectTrigger>
@@ -585,7 +586,7 @@ function FunctionsTab({ section }: { section: BehaviorSection }) {
     const updateSetting = useUpdateIsabellaSetting();
     const { user } = useAuth();
 
-    const settingsMap = (settings || []).reduce<Record<string, any>>((acc, s) => {
+    const settingsMap = (settings || []).reduce<Record<string, IsabellaSetting>>((acc, s) => {
         acc[s.function_key] = s;
         return acc;
     }, {});
@@ -750,7 +751,7 @@ function SimulatorTab({ agent }: { agent: AIAgent }) {
             });
             setOutput(JSON.stringify(result, null, 2));
             toast({ title: t("ai.simulationComplete", "Simulation completed") });
-        } catch (err: any) {
+        } catch (err) {
             if (err instanceof SyntaxError) {
                 toast({ title: t("ai.behaviors.invalidJson", "Invalid JSON"), description: err.message, variant: "destructive" });
             } else {

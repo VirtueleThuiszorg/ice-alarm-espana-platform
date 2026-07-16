@@ -15,9 +15,9 @@ Deno.serve(async (req) => {
     if (!lovableApiKey) throw new Error("LOVABLE_API_KEY not configured");
 
     // Get settings
-    const settingsMap: Record<string, any> = {};
+    const settingsMap: Record<string, unknown> = {};
     const { data: allSettings } = await supabase.from("outreach_settings").select("setting_key, setting_value");
-    if (allSettings) allSettings.forEach((s: any) => { settingsMap[s.setting_key] = s.setting_value; });
+    if (allSettings) allSettings.forEach((s: { setting_key: string; setting_value: unknown }) => { settingsMap[s.setting_key] = s.setting_value; });
 
     const followupSchedule = (Array.isArray(settingsMap.followup_schedule) ? settingsMap.followup_schedule : [2, 5, 10]) as number[];
     const maxFollowups = followupSchedule.length;
@@ -41,9 +41,9 @@ Deno.serve(async (req) => {
     }
 
     // Check suppression
-    const emails = leads.filter((l: any) => l.email).map((l: any) => l.email.toLowerCase());
+    const emails = leads.filter((l: { email?: string | null }) => l.email).map((l: { email?: string | null }) => l.email!.toLowerCase());
     const { data: suppressed } = await supabase.from("outreach_suppression").select("email").in("email", emails);
-    const suppressedSet = new Set((suppressed || []).map((s: any) => s.email.toLowerCase()));
+    const suppressedSet = new Set((suppressed || []).map((s: { email: string }) => s.email.toLowerCase()));
 
     let followupCount = 0;
     const errors: string[] = [];

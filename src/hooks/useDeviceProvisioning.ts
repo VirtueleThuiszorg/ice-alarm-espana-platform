@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 
 export interface ProvisioningStep {
@@ -20,6 +21,13 @@ export interface ProvisioningStepState {
 }
 
 export type ProvisioningChecklist = Record<string, ProvisioningStepState>;
+
+// `provisioning_checklist` is a Json column not reflected in the generated
+// Supabase types, so these local shapes describe how it is read and written.
+type DeviceWithChecklist = { provisioning_checklist?: ProvisioningChecklist | null };
+type DeviceProvisioningUpdate = TablesUpdate<"devices"> & {
+  provisioning_checklist?: ProvisioningChecklist;
+};
 
 /**
  * The 14-step EV-07B provisioning checklist definition.
@@ -80,8 +88,8 @@ export function useDeviceProvisioning(deviceId: string) {
       .eq("id", deviceId)
       .single();
 
-    if (!error && (data as any)?.provisioning_checklist) {
-      const existing = (data as any).provisioning_checklist as ProvisioningChecklist;
+    if (!error && (data as DeviceWithChecklist | null)?.provisioning_checklist) {
+      const existing = (data as DeviceWithChecklist).provisioning_checklist as ProvisioningChecklist;
       // Merge with default to ensure all steps exist
       const merged = createEmptyChecklist();
       Object.keys(existing).forEach((key) => {
@@ -111,7 +119,7 @@ export function useDeviceProvisioning(deviceId: string) {
       // Check if this is the final step
       const allCompleted = PROVISIONING_STEPS.every((s) => updated[s.key]?.completed);
 
-      const updateData: Record<string, any> = {
+      const updateData: DeviceProvisioningUpdate = {
         provisioning_checklist: updated,
       };
 
@@ -122,7 +130,7 @@ export function useDeviceProvisioning(deviceId: string) {
 
       const { error } = await supabase
         .from("devices")
-        .update(updateData as any)
+        .update(updateData)
         .eq("id", deviceId);
 
       if (error) throw error;
@@ -154,7 +162,7 @@ export function useDeviceProvisioning(deviceId: string) {
         .update({
           provisioning_checklist: updated,
           configuration_status: "pending",
-        } as any)
+        } as DeviceProvisioningUpdate)
         .eq("id", deviceId);
 
       if (error) throw error;
@@ -179,7 +187,7 @@ export function useDeviceProvisioning(deviceId: string) {
         .update({
           provisioning_checklist: empty,
           configuration_status: "pending",
-        } as any)
+        } as DeviceProvisioningUpdate)
         .eq("id", deviceId);
 
       if (error) throw error;

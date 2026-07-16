@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ArrowLeft, Loader2, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,11 @@ import {
  * OrdersPage (the list linked to a route that did not exist). No mutations here —
  * order actions remain on the list page.
  */
+type OrderRow = Tables<"orders"> & {
+  order_items: Tables<"order_items">[];
+  member: Pick<Tables<"members">, "id" | "first_name" | "last_name" | "email" | "phone"> | null;
+};
+
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -35,7 +41,7 @@ export default function OrderDetailPage() {
         .eq("id", id as string)
         .single();
       if (error) throw error;
-      return data as any;
+      return data as unknown as OrderRow;
     },
     enabled: !!id,
   });
@@ -131,7 +137,7 @@ export default function OrderDetailPage() {
             </TableHeader>
             <TableBody>
               {(order.order_items ?? []).length > 0 ? (
-                order.order_items.map((item: any) => (
+                order.order_items.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>{item.description}</TableCell>
                     <TableCell className="text-right">{item.quantity}</TableCell>

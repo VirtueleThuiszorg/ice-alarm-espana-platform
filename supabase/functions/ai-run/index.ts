@@ -11,7 +11,7 @@ interface AgentConfig {
   system_instruction: string;
   business_context: string;
   tool_policy: Record<string, boolean>;
-  language_policy: Record<string, any>;
+  language_policy: Record<string, unknown>;
   read_permissions: string[];
   write_permissions: string[];
   triggers: string[];
@@ -20,7 +20,7 @@ interface AgentConfig {
 interface AgentRun {
   agentKey: string;
   eventId?: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   simulationMode?: boolean;
 }
 
@@ -1098,7 +1098,7 @@ REMEMBER: Every word you write will be spoken aloud. Write as you would naturall
 `;
 
       // Use customer service prompt as base for voice calls
-      let systemPrompt = CUSTOMER_SERVICE_CHAT_PROMPT;
+      const systemPrompt = CUSTOMER_SERVICE_CHAT_PROMPT;
 
       // Fetch member data if available
       let memberContext = "";
@@ -1300,12 +1300,12 @@ When discussing emergency contacts, use the EXACT names listed above - never inv
     }
 
     // Build context based on read permissions
-    const enrichedContext: Record<string, any> = { ...context };
-    
+    const enrichedContext: Record<string, unknown> = { ...context };
+
     // Normalize permissions to array format (handle legacy object format)
-    const readPermissions = Array.isArray(config.read_permissions) 
-      ? config.read_permissions 
-      : (config.read_permissions as any)?.tables || [];
+    const readPermissions = Array.isArray(config.read_permissions)
+      ? config.read_permissions
+      : (config.read_permissions as unknown as { tables?: string[] })?.tables || [];
     
     // Load relevant data based on permissions (limited for performance)
     for (const permission of readPermissions) {
@@ -1377,9 +1377,9 @@ When discussing emergency contacts, use the EXACT names listed above - never inv
     const docsText = documentation?.map(d => `[${d.category}/${d.title}]: ${d.content}`).join("\n\n") || "";
     
     // Normalize write permissions to array format
-    const writePermissions = Array.isArray(config.write_permissions) 
-      ? config.write_permissions 
-      : (config.write_permissions as any)?.tables || [];
+    const writePermissions = Array.isArray(config.write_permissions)
+      ? config.write_permissions
+      : (config.write_permissions as unknown as { tables?: string[] })?.tables || [];
     
     const systemPrompt = `${config.system_instruction}
 
@@ -1485,7 +1485,7 @@ If no action is needed, respond with {"actions": [], "analysis": "your analysis 
     const tokensUsed = aiResult.usage?.total_tokens || 0;
 
     // Parse the AI response
-    let parsedOutput: { actions: any[]; analysis?: string } = { actions: [] };
+    let parsedOutput: { actions: unknown[]; analysis?: string } = { actions: [] };
     try {
       // Try to extract JSON from the response
       const jsonMatch = responseContent.match(/\{[\s\S]*\}/);

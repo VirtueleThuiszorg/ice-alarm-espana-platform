@@ -17,6 +17,17 @@ import { configToForm, formToConfig, formToDbRows, type PricingForm } from "@/li
  * of truth read by the public site AND the charge path). Live preview shows exactly what
  * members will see/pay from the EDITED values before saving.
  */
+
+// pricing_plans / pricing_settings are not present in the generated Supabase types yet,
+// so we access them through a narrow structural shim instead of `any`.
+type PricingQueryResult = Promise<{ error: { message: string } | null }>;
+interface PricingTableClient {
+  from: (table: string) => {
+    update: (values: Record<string, unknown>) => { eq: (column: string, value: unknown) => PricingQueryResult };
+    upsert: (values: Record<string, unknown>, options: { onConflict: string }) => PricingQueryResult;
+  };
+}
+
 export function PricingPlansEditor() {
   const { config, isLoading } = usePricing();
   const queryClient = useQueryClient();
@@ -40,7 +51,7 @@ export function PricingPlansEditor() {
     setSaving(true);
     try {
       const { plans, settings } = formToDbRows(form);
-      const sb = supabase as any;
+      const sb = supabase as unknown as PricingTableClient;
       for (const p of plans) {
         const { error } = await sb.from("pricing_plans")
           .update({ monthly_net: p.monthly_net, annual_months: p.annual_months, subscription_tax_rate: p.subscription_tax_rate })

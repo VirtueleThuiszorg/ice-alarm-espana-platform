@@ -9,6 +9,7 @@ import {
   FileText, Stethoscope, CreditCard, HeadphonesIcon, 
   CalendarCheck, AlertCircle, Lock
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -66,7 +67,7 @@ interface Note {
   } | null;
 }
 
-const noteTypeConfig: Record<string, { icon: any; label: string; color: string }> = {
+const noteTypeConfig: Record<string, { icon: LucideIcon; label: string; color: string }> = {
   general: { icon: FileText, label: "General", color: "bg-secondary" },
   medical: { icon: Stethoscope, label: "Medical", color: "bg-red-500/10 text-red-500" },
   payment: { icon: CreditCard, label: "Payment", color: "bg-green-500/10 text-green-500" },
@@ -140,7 +141,7 @@ export function NotesTab({ memberId }: NotesTabProps) {
   const openEditDialog = (note: Note) => {
     setEditingNote(note);
     form.reset({
-      note_type: note.note_type as any,
+      note_type: note.note_type as NoteFormValues["note_type"],
       content: note.content,
       is_pinned: note.is_pinned ?? false,
       is_private: note.is_private ?? false,

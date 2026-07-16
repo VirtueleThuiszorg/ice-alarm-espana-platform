@@ -5,7 +5,7 @@
  * bundle for users who haven't opted in to notifications.
  */
 
-let messagingInstance: any = null;
+let messagingInstance: import("firebase/messaging").Messaging | null = null;
 
 async function getFirebaseConfig() {
   const config = {

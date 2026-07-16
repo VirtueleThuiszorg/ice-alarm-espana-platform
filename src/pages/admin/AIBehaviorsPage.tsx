@@ -214,13 +214,13 @@ export default function AIBehaviorsPage() {
     const isLoading = agentsLoading || settingsLoading;
 
     // Build settings lookup
-    const settingsMap = (settings || []).reduce<Record<string, any>>((acc, s) => {
+    const settingsMap = (settings || []).reduce<Record<string, NonNullable<typeof settings>[number]>>((acc, s) => {
         acc[s.function_key] = s;
         return acc;
     }, {});
 
     // Build agent lookup
-    const agentMap = (agents || []).reduce<Record<string, any>>((acc, a) => {
+    const agentMap = (agents || []).reduce<Record<string, NonNullable<typeof agents>[number]>>((acc, a) => {
         acc[a.agent_key] = a;
         return acc;
     }, {});

@@ -97,7 +97,7 @@ serve(async (req) => {
 
     switch (event.type) {
       case "checkout.session.completed": {
-        const session = event.data.object as any;
+        const session = event.data.object as Stripe.Checkout.Session;
         console.log("Checkout completed:", session.id);
 
         const orderId = session.metadata?.order_id;
@@ -146,7 +146,7 @@ serve(async (req) => {
       }
 
       case "payment_intent.succeeded": {
-        const paymentIntent = event.data.object as any;
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
         console.log("Payment succeeded:", paymentIntent.id);
 
         await supabase
@@ -160,7 +160,7 @@ serve(async (req) => {
       }
 
       case "payment_intent.payment_failed": {
-        const paymentIntent = event.data.object as any;
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
         console.log("Payment failed:", paymentIntent.id);
 
         await supabase
@@ -174,7 +174,7 @@ serve(async (req) => {
       }
 
       case "customer.subscription.updated": {
-        const subscription = event.data.object as any;
+        const subscription = event.data.object as Stripe.Subscription;
         console.log("Subscription updated:", subscription.id);
 
         const statusMap: Record<string, string> = {
@@ -194,7 +194,7 @@ serve(async (req) => {
       }
 
       case "customer.subscription.deleted": {
-        const subscription = event.data.object as any;
+        const subscription = event.data.object as Stripe.Subscription;
         console.log("Subscription deleted:", subscription.id);
 
         await supabase
@@ -205,7 +205,7 @@ serve(async (req) => {
       }
 
       case "invoice.paid": {
-        const invoice = event.data.object as any;
+        const invoice = event.data.object as Stripe.Invoice;
         console.log("Invoice paid:", invoice.id);
 
         if (invoice.subscription) {
@@ -233,7 +233,7 @@ serve(async (req) => {
       }
 
       case "invoice.payment_failed": {
-        const invoice = event.data.object as any;
+        const invoice = event.data.object as Stripe.Invoice;
         console.log("Invoice payment failed:", invoice.id);
 
         if (invoice.subscription) {

@@ -152,7 +152,7 @@ export default function ShiftHistoryPage() {
     if (error) throw error;
 
     setShiftNotes(
-      (data || []).map((note: any) => ({
+      (data || []).map((note) => ({
         id: note.id,
         noteContent: note.note_content,
         requiresFollowup: note.requires_followup,
@@ -181,7 +181,7 @@ export default function ShiftHistoryPage() {
     if (error) throw error;
 
     setAlertsHandled(
-      (data || []).map((alert: any) => ({
+      (data || []).map((alert) => ({
         id: alert.id,
         alertType: alert.alert_type,
         status: alert.status,
@@ -209,7 +209,7 @@ export default function ShiftHistoryPage() {
     if (error) throw error;
 
     setMessageThreads(
-      (data || []).map((conv: any) => ({
+      (data || []).map((conv) => ({
         id: conv.id,
         subject: conv.subject || "No Subject",
         lastMessageAt: new Date(conv.last_message_at),
@@ -285,7 +285,7 @@ export default function ShiftHistoryPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Select value={dateRange} onValueChange={(v) => setDateRange(v as any)}>
+            <Select value={dateRange} onValueChange={(v) => setDateRange(v as "7days" | "30days" | "90days")}>
               <SelectTrigger className="w-[140px]">
                 <Filter className="w-4 h-4 mr-2" />
                 <SelectValue />

@@ -133,9 +133,9 @@ export function DevicesSettingsTab({ isSaving }: DevicesSettingsTabProps) {
           count: data.connectedDevices ?? 0,
         })
       );
-    } catch (error: any) {
+    } catch (error) {
       setTestStatus("error");
-      setTestMessage(error.message || "Connection failed");
+      setTestMessage((error instanceof Error ? error.message : undefined) || "Connection failed");
     }
   };
 

@@ -1,6 +1,31 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
+interface CrmLead {
+  id: string;
+  raw_lead_id?: string | null;
+  campaign_id?: string | null;
+  company_name?: string | null;
+  contact_name?: string | null;
+  category?: string | null;
+  location?: string | null;
+  website_url?: string | null;
+  research_summary?: string | null;
+  unsubscribe_token?: string | null;
+  email_count?: number | null;
+}
+
+interface Campaign {
+  id: string;
+  name?: string | null;
+  default_language?: string | null;
+  email_tone?: string | null;
+  outreach_goal?: string | null;
+  target_description?: string | null;
+  messaging_tone?: string | null;
+  max_emails_per_lead?: number | null;
+}
+
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
@@ -27,9 +52,9 @@ Deno.serve(async (req) => {
     }
 
     // Get settings
-    const settingsMap: Record<string, any> = {};
+    const settingsMap: Record<string, unknown> = {};
     const { data: allSettings } = await supabase.from("outreach_settings").select("setting_key, setting_value");
-    if (allSettings) allSettings.forEach((s: any) => { settingsMap[s.setting_key] = s.setting_value; });
+    if (allSettings) allSettings.forEach((s: { setting_key: string; setting_value: unknown }) => { settingsMap[s.setting_key] = s.setting_value; });
 
     const senderName = (typeof settingsMap.sender_name === "string" ? settingsMap.sender_name : "Care Conneqt") || "Care Conneqt";
     const autoApprove = !settingsMap.auto_sending_enabled ? false : settingsMap.auto_sending_enabled === true;
@@ -53,34 +78,34 @@ Deno.serve(async (req) => {
     }
 
     // Filter out leads that already have a draft
-    const leadIds_all = leads.map((l: any) => l.id);
+    const leadIds_all = leads.map((l: CrmLead) => l.id);
     const { data: existingDrafts } = await supabase.from("outreach_email_drafts").select("crm_lead_id").in("crm_lead_id", leadIds_all);
-    const alreadyDrafted = new Set((existingDrafts || []).map((d: any) => d.crm_lead_id));
-    const leadsNeedingDrafts = leads.filter((l: any) => !alreadyDrafted.has(l.id));
+    const alreadyDrafted = new Set((existingDrafts || []).map((d: { crm_lead_id: string }) => d.crm_lead_id));
+    const leadsNeedingDrafts = leads.filter((l: CrmLead) => !alreadyDrafted.has(l.id));
 
     if (leadsNeedingDrafts.length === 0) {
       return new Response(JSON.stringify({ drafted: 0, message: "All leads already have drafts" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Get enrichment data from raw leads
-    const rawLeadIds = leadsNeedingDrafts.filter((l: any) => l.raw_lead_id).map((l: any) => l.raw_lead_id);
-    let enrichmentMap: Record<string, any> = {};
+    const rawLeadIds = leadsNeedingDrafts.filter((l: CrmLead) => l.raw_lead_id).map((l: CrmLead) => l.raw_lead_id);
+    const enrichmentMap: Record<string, unknown> = {};
     if (rawLeadIds.length > 0) {
       const { data: rawLeads } = await supabase.from("outreach_raw_leads").select("id, enrichment_data").in("id", rawLeadIds);
-      if (rawLeads) rawLeads.forEach((r: any) => { enrichmentMap[r.id] = r.enrichment_data; });
+      if (rawLeads) rawLeads.forEach((r: { id: string; enrichment_data: unknown }) => { enrichmentMap[r.id] = r.enrichment_data; });
     }
 
     // Get campaign settings for each lead
     const campaignIds = [...new Set(
-      leadsNeedingDrafts.filter((l: any) => l.campaign_id).map((l: any) => l.campaign_id)
+      leadsNeedingDrafts.filter((l: CrmLead) => l.campaign_id).map((l: CrmLead) => l.campaign_id)
     )];
-    let campaignsMap: Record<string, any> = {};
+    const campaignsMap: Record<string, Campaign> = {};
     if (campaignIds.length > 0) {
       const { data: campaigns } = await supabase
         .from("outreach_campaigns")
         .select("id, name, default_language, email_tone, outreach_goal, target_description, messaging_tone, max_emails_per_lead")
         .in("id", campaignIds);
-      if (campaigns) campaigns.forEach((c: any) => { campaignsMap[c.id] = c; });
+      if (campaigns) campaigns.forEach((c: Campaign) => { campaignsMap[c.id] = c; });
     }
 
     // Get unsubscribe base URL

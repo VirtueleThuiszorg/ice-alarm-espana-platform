@@ -72,10 +72,10 @@ export function RepurposeDialog({ open, onOpenChange, post }: RepurposeDialogPro
         title: i18n.t("mediaManager.repurpose.success"),
         description: i18n.t("mediaManager.repurpose.successDesc"),
       });
-    } catch (err: any) {
+    } catch (err) {
       toast({
         title: i18n.t("common.error"),
-        description: err.message,
+        description: err instanceof Error ? err.message : String(err),
         variant: "destructive",
       });
     } finally {

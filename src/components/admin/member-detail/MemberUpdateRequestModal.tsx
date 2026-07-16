@@ -133,7 +133,7 @@ export function MemberUpdateRequestModal({ open, onOpenChange, member }: MemberU
 
       toast.success(t("crm.updateRequestSent", "Update request sent successfully"));
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error sending update request:", error);
       toast.error(t("crm.updateRequestFailed", "Failed to send update request"));
     } finally {

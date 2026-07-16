@@ -103,7 +103,13 @@ serve(async (req: Request): Promise<Response> => {
     const notifications: { partner_id: string; method: string; success: boolean }[] = [];
 
     for (const sub of subscriptions) {
-      const partner = sub.partner as any;
+      const partner = sub.partner as {
+        id: string;
+        email?: string | null;
+        contact_name?: string | null;
+        preferred_language?: string | null;
+        alert_visibility_enabled?: boolean | null;
+      };
       
       // Skip if partner doesn't have alert visibility enabled
       if (!partner.alert_visibility_enabled) {

@@ -97,7 +97,7 @@ export function CallCentreHeader() {
     const newValue = !isOnDuty;
 
     // Optimistic update
-    queryClient.setQueryData(["staff-info", user?.id], (old: any) =>
+    queryClient.setQueryData(["staff-info", user?.id], (old: typeof staffInfo) =>
       old ? { ...old, is_on_call: newValue } : old
     );
 
@@ -108,7 +108,7 @@ export function CallCentreHeader() {
 
     if (error) {
       // Revert optimistic update
-      queryClient.setQueryData(["staff-info", user?.id], (old: any) =>
+      queryClient.setQueryData(["staff-info", user?.id], (old: typeof staffInfo) =>
         old ? { ...old, is_on_call: !newValue } : old
       );
       toast.error("Failed to update duty status");

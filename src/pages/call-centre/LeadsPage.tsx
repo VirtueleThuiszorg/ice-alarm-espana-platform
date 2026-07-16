@@ -110,7 +110,7 @@ export default function CallCentreLeadsPage() {
   };
 
   const updateLeadStatus = async (leadId: string, status: string) => {
-    const updateData: any = { status };
+    const updateData: { status: string; contacted_at?: string; assigned_to?: string } = { status };
     if (status === 'contacted') {
       updateData.contacted_at = new Date().toISOString();
     }

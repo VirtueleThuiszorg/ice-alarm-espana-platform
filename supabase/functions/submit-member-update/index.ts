@@ -200,10 +200,10 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ success: true, message: "Profile updated successfully" }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error in submit-member-update:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message || "server_error" }),
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : "server_error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

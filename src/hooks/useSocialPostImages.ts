@@ -47,10 +47,10 @@ export function useSocialPostImages() {
         .getPublicUrl(filename);
 
       return urlData.publicUrl;
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: i18n.t("mediaManager.upload.uploadFailed"),
-        description: error.message,
+        description: error instanceof Error ? error.message : String(error),
         variant: "destructive",
       });
       return null;
@@ -71,10 +71,10 @@ export function useSocialPostImages() {
 
       if (error) throw error;
       return true;
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: i18n.t("mediaManager.upload.deleteFailed"),
-        description: error.message,
+        description: error instanceof Error ? error.message : String(error),
         variant: "destructive",
       });
       return false;

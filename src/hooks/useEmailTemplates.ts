@@ -52,7 +52,7 @@ export function useEmailTemplates() {
 
       if (error) throw error;
 
-      return (data || []).map((t: any) => ({
+      return ((data || []) as unknown as EmailTemplate[]).map((t) => ({
         ...t,
         variables: Array.isArray(t.variables) ? t.variables : [],
       }));

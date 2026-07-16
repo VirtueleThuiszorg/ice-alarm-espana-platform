@@ -207,7 +207,7 @@ export default function AuditLogPage() {
     }
 
     const headers = ["Date/Time", "Action", "Entity Type", "Entity ID", "User", "IP Address", "Old Values", "New Values"];
-    const rows = allLogs.map((log: any) => [
+    const rows = allLogs.map((log) => [
       log.created_at ? format(parseISO(log.created_at), "yyyy-MM-dd HH:mm:ss") : "",
       log.action,
       log.entity_type,

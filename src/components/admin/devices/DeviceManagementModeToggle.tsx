@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -21,7 +22,7 @@ export function DeviceManagementModeToggle({ deviceId, currentMode }: DeviceMana
       const newMode = isApiMode ? "manual" : "api";
       const { error } = await supabase
         .from("devices")
-        .update({ management_mode: newMode } as any)
+        .update({ management_mode: newMode } as TablesUpdate<"devices">)
         .eq("id", deviceId);
 
       if (error) throw error;

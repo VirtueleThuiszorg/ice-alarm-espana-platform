@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import {
   ChevronLeft, ChevronRight, Wand2, Save, Loader2, Plus, Trash2,
   Layout, Zap, AlertCircle
@@ -14,8 +16,10 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useVideoTemplates } from "@/hooks/useVideoTemplates";
+import type { VideoTemplate } from "@/hooks/useVideoTemplates";
 import { useVideoProjects, VideoProject } from "@/hooks/useVideoProjects";
 import { useVideoBrandSettings } from "@/hooks/useVideoBrandSettings";
+import type { VideoBrandSettings } from "@/hooks/useVideoBrandSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -45,6 +49,86 @@ interface ValidationErrors {
   language?: string;
   format?: string;
   duration?: string;
+}
+
+interface ProjectData {
+  name: string;
+  template_id: string;
+  format: string;
+  duration: number;
+  language: string;
+  headline: string;
+  bullets: string[];
+  ctaText: string;
+  contactLine: string;
+  includeDisclaimer: boolean;
+  backgroundUrl: string;
+  productIcons: string[];
+}
+
+type SetProjectData = Dispatch<SetStateAction<ProjectData>>;
+type BrandSettings = VideoBrandSettings | null | undefined;
+
+interface TemplateSelectionStepProps {
+  templates: VideoTemplate[] | undefined;
+  templatesLoading: boolean;
+  projectData: ProjectData;
+  setProjectData: SetProjectData;
+  validationErrors: ValidationErrors;
+  touched: Set<string>;
+  onBlur: (field: string) => void;
+  t: TFunction;
+}
+
+interface FormatDurationStepProps {
+  projectData: ProjectData;
+  setProjectData: SetProjectData;
+  selectedTemplate: VideoTemplate | null | undefined;
+  validationErrors: ValidationErrors;
+  t: TFunction;
+}
+
+interface ContentStepProps {
+  projectData: ProjectData;
+  setProjectData: SetProjectData;
+  settings: BrandSettings;
+  addBullet: () => void;
+  removeBullet: (index: number) => void;
+  updateBullet: (index: number, value: string) => void;
+  validationErrors: ValidationErrors;
+  touched: Set<string>;
+  onBlur: (field: string) => void;
+  t: TFunction;
+}
+
+interface AssetsStepProps {
+  projectData: ProjectData;
+  setProjectData: SetProjectData;
+  settings: BrandSettings;
+  t: TFunction;
+}
+
+interface PreviewStepProps {
+  projectData: ProjectData;
+  settings: BrandSettings;
+  validationErrors: ValidationErrors;
+  isValid: boolean;
+  t: TFunction;
+}
+
+interface QuickSetupStepProps {
+  projectData: ProjectData;
+  setProjectData: SetProjectData;
+  settings: BrandSettings;
+  templates: VideoTemplate[] | undefined;
+  templatesLoading: boolean;
+  addBullet: () => void;
+  removeBullet: (index: number) => void;
+  updateBullet: (index: number, value: string) => void;
+  validationErrors: ValidationErrors;
+  touched: Set<string>;
+  onBlur: (field: string) => void;
+  t: TFunction;
 }
 
 // Only two creation paths: Template (default) and Quick
@@ -355,9 +439,9 @@ export function VideoCreateTab({ onComplete, editingProject, initialTemplateId, 
 
       toast.success(data?.message || t("videoHub.create.renderQueued"));
       onComplete();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Render error:", error);
-      toast.error(error?.message || t("videoHub.create.renderFailed"));
+      toast.error((error instanceof Error ? error.message : undefined) || t("videoHub.create.renderFailed"));
     } finally {
       setIsRendering(false);
     }
@@ -642,7 +726,7 @@ export function VideoCreateTab({ onComplete, editingProject, initialTemplateId, 
 // ========== STEP COMPONENTS ==========
 
 // Template Selection Step
-function TemplateSelectionStep({ templates, templatesLoading, projectData, setProjectData, validationErrors, touched, onBlur, t }: any) {
+function TemplateSelectionStep({ templates, templatesLoading, projectData, setProjectData, validationErrors, touched, onBlur, t }: TemplateSelectionStepProps) {
   return (
     <div className="space-y-4">
       <div className="mb-4">
@@ -667,7 +751,7 @@ function TemplateSelectionStep({ templates, templatesLoading, projectData, setPr
         {templatesLoading ? (
           <p>{t("common.loading")}</p>
         ) : (
-          templates?.map((template: any) => (
+          templates?.map((template) => (
             <Card
               key={template.id}
               className={`cursor-pointer transition-all hover:border-primary ${projectData.template_id === template.id ? "border-2 border-primary" : ""
@@ -714,7 +798,7 @@ function TemplateSelectionStep({ templates, templatesLoading, projectData, setPr
 }
 
 // Format & Duration Step
-function FormatDurationStep({ projectData, setProjectData, selectedTemplate, validationErrors, t }: any) {
+function FormatDurationStep({ projectData, setProjectData, selectedTemplate, validationErrors, t }: FormatDurationStepProps) {
   const allowedFormats = selectedTemplate?.allowed_formats || ["9:16", "16:9", "1:1"];
   const allowedDurations = selectedTemplate?.allowed_durations || [10, 15, 30, 60];
 
@@ -800,7 +884,7 @@ function FormatDurationStep({ projectData, setProjectData, selectedTemplate, val
 }
 
 // Content Step
-function ContentStep({ projectData, setProjectData, settings, addBullet, removeBullet, updateBullet, validationErrors, touched, onBlur, t }: any) {
+function ContentStep({ projectData, setProjectData, settings, addBullet, removeBullet, updateBullet, validationErrors, touched, onBlur, t }: ContentStepProps) {
   const filledBulletCount = projectData.bullets.filter((b: string) => b.trim()).length;
 
   return (
@@ -925,7 +1009,7 @@ function ContentStep({ projectData, setProjectData, settings, addBullet, removeB
 }
 
 // Assets Step
-function AssetsStep({ projectData, setProjectData, settings, t }: any) {
+function AssetsStep({ projectData, setProjectData, settings, t }: AssetsStepProps) {
   return (
     <div className="space-y-6">
       <Card>
@@ -1000,7 +1084,7 @@ function AssetsStep({ projectData, setProjectData, settings, t }: any) {
 }
 
 // Preview Step
-function PreviewStep({ projectData, settings, validationErrors, isValid, t }: any) {
+function PreviewStep({ projectData, settings, validationErrors, isValid, t }: PreviewStepProps) {
   const errorCount = Object.keys(validationErrors).length;
 
   // Map field names to human-readable labels
@@ -1110,7 +1194,7 @@ function PreviewStep({ projectData, settings, validationErrors, isValid, t }: an
 }
 
 // Quick Setup Step (streamlined essentials)
-function QuickSetupStep({ projectData, setProjectData, settings, templates, templatesLoading: _templatesLoading, addBullet, removeBullet, updateBullet, validationErrors, touched, onBlur, t }: any) {
+function QuickSetupStep({ projectData, setProjectData, settings, templates, templatesLoading: _templatesLoading, addBullet, removeBullet, updateBullet, validationErrors, touched, onBlur, t }: QuickSetupStepProps) {
   const filledBulletCount = projectData.bullets.filter((b: string) => b.trim()).length;
 
   return (
@@ -1138,7 +1222,7 @@ function QuickSetupStep({ projectData, setProjectData, settings, templates, temp
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="_none">{t("videoHub.create.selectTemplate", "Select template (optional)")}</SelectItem>
-              {templates?.map((template: any) => (
+              {templates?.map((template) => (
                 <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
               ))}
             </SelectContent>

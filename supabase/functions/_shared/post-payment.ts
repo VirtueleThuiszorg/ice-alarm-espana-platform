@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { sendEmail } from "./email.ts";
 import { buildMemberWelcomeEmail } from "./welcome-email.ts";
 
@@ -20,7 +21,7 @@ interface PostPaymentParams {
  * device allocation, CRM/AI events, admin notification, and welcome email.
  */
 export async function handleSuccessfulPayment(
-  supabase: any,
+  supabase: SupabaseClient,
   params: PostPaymentParams
 ) {
   const {
@@ -166,11 +167,16 @@ export async function handleSuccessfulPayment(
       .eq("order_id", orderId);
 
     const productsSummary =
-      orderItems?.map((i: any) => `${i.quantity}x ${i.description}`).join(", ") || "N/A";
+      orderItems?.map((i: { quantity?: number | null; description?: string | null }) => `${i.quantity}x ${i.description}`).join(", ") || "N/A";
 
-    const partnerData = attribution?.partners as any;
+    const partnerData = attribution?.partners as { contact_name?: string | null; company_name?: string | null } | null;
     const partnerName = partnerData?.contact_name || partnerData?.company_name || null;
-    const memberData = orderData?.members as any;
+    const memberData = orderData?.members as {
+      first_name?: string | null;
+      last_name?: string | null;
+      email?: string | null;
+      preferred_language?: string | null;
+    } | null;
 
     // CRM event
     await supabase.from("crm_events").insert({

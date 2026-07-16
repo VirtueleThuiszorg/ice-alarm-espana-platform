@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { JoinWizardData, MedicalDetails } from "@/types/wizard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -121,8 +122,7 @@ function MedicalForm({
 }: {
   values: MedicalDetails;
   onChange: (field: string, value: string | string[]) => void;
-  // deno-lint-ignore no-explicit-any
-  t: any;
+  t: TFunction;
 }) {
   const [newAllergy, setNewAllergy] = useState("");
   const [newMedication, setNewMedication] = useState("");

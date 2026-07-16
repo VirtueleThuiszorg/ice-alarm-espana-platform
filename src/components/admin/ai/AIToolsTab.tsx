@@ -53,7 +53,7 @@ export function AIToolsTab({ agent, config }: AIToolsTabProps) {
           <CardTitle>{t("ai.operatingMode", "Operating Mode")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Select value={mode} onValueChange={(v: any) => setMode(v)}>
+          <Select value={mode} onValueChange={(v) => setMode(v as AIAgent["mode"])}>
             <SelectTrigger className="w-64"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="advise_only">{t("ai.modes.adviseOnly", "Advise Only")}</SelectItem>

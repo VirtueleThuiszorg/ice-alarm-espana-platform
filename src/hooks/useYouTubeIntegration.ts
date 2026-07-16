@@ -73,7 +73,7 @@ export function useYouTubeIntegration() {
         }
       }, 500);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: i18n.t("videoHub.youtube.toasts.connectionFailed"),
         description: error?.message || i18n.t("videoHub.youtube.toasts.connectionFailedDesc"),
@@ -95,7 +95,7 @@ export function useYouTubeIntegration() {
         description: i18n.t("videoHub.youtube.toasts.disconnectedDesc"),
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: i18n.t("videoHub.youtube.toasts.disconnectFailed"),
         description: error?.message || i18n.t("videoHub.youtube.toasts.disconnectFailedDesc"),
@@ -127,7 +127,7 @@ export function useYouTubeIntegration() {
         description: i18n.t("videoHub.youtube.toasts.videoPublishedDesc"),
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: i18n.t("videoHub.youtube.toasts.publishFailed"),
         description: error?.message || i18n.t("videoHub.youtube.toasts.publishFailedDesc"),

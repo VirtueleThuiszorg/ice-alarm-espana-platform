@@ -69,7 +69,7 @@ export function sanitizeFormValues<T extends Record<string, unknown>>(
   for (const key in result) {
     const val = result[key];
     if (typeof val === "string") {
-      (result as any)[key] = sanitizeText(val);
+      (result as Record<string, unknown>)[key] = sanitizeText(val);
     }
   }
   return result;

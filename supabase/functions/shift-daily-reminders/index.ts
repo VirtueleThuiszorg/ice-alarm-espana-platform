@@ -32,7 +32,15 @@ serve(async (req) => {
     }
 
     // 3. Insert ai_events for each shift reminder
-    const events = (shifts || []).map((shift: any) => ({
+    const events = (shifts || []).map((shift: {
+      id: string;
+      staff_id: string;
+      staff?: { first_name?: string; last_name?: string; phone?: string } | null;
+      shift_date: string;
+      shift_type: string;
+      start_time: string;
+      end_time: string;
+    }) => ({
       event_type: "shift.daily_reminder",
       entity_type: "staff_shift",
       entity_id: shift.id,

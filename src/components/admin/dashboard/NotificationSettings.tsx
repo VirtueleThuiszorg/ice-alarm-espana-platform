@@ -139,13 +139,13 @@ export function NotificationSettings() {
 
       if (error) throw error;
 
-      if (data?.results?.some((r: any) => r.status === "sent")) {
+      if (data?.results?.some((r: { status: string }) => r.status === "sent")) {
         toast.success("Test WhatsApp sent successfully!");
       } else {
         toast.warning("No WhatsApp sent. Check your Twilio configuration.");
       }
-    } catch (error: any) {
-      toast.error(`Test failed: ${error.message}`);
+    } catch (error) {
+      toast.error(`Test failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsTesting(false);
       queryClient.invalidateQueries({ queryKey: ["notification-log"] });

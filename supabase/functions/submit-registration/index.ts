@@ -248,8 +248,8 @@ serve(async (req) => {
       throw new Error("Pricing not configured (pricing_plans empty) — refusing to compute a charge");
     }
     const pricingConfig = buildPricingConfig(
-      (planRows as any[]).filter((p) => p.is_active !== false),
-      (priceSettingRows as any[]) || [],
+      (planRows as Array<{ plan_key: string; monthly_net: number; annual_months: number; subscription_tax_rate: number; is_active?: boolean | null }>).filter((p) => p.is_active !== false),
+      (priceSettingRows as Array<{ key: string; value: number }>) || [],
       PRICING_FALLBACK,
     );
 

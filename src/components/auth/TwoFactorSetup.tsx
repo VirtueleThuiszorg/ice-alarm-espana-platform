@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import type { Factor } from "@supabase/supabase-js";
 import { useTwoFactorAuth } from "@/hooks/useTwoFactorAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,11 +26,12 @@ export function TwoFactorSetup() {
   const { getFactors, enroll, verify, unenroll, isEnrolling, isVerifying, error } =
     useTwoFactorAuth();
 
-  const [factors, setFactors] = useState<{ verified: any[]; unverified: any[] }>({
+  const [factors, setFactors] = useState<{ verified: Factor[]; unverified: Factor[] }>({
     verified: [],
     unverified: [],
   });
-  const [enrollmentData, setEnrollmentData] = useState<any>(null);
+  const [enrollmentData, setEnrollmentData] =
+    useState<Awaited<ReturnType<typeof enroll>>>(null);
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
   const [verifyCode, setVerifyCode] = useState("");
   const [loading, setLoading] = useState(true);

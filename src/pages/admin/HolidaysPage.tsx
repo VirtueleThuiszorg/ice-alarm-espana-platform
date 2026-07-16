@@ -37,6 +37,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { STALE_TIMES } from "@/config/constants";
 import {
   useAllHolidays,
@@ -57,7 +58,7 @@ export default function HolidaysPage() {
   const [rejectNotes, setRejectNotes] = useState("");
   const [coverDialogOpen, setCoverDialogOpen] = useState(false);
   const [coverHolidayId, setCoverHolidayId] = useState<string | null>(null);
-  const [coverShifts, setCoverShifts] = useState<any[]>([]);
+  const [coverShifts, setCoverShifts] = useState<Tables<"staff_shifts">[]>([]);
   const [coverAssignments, setCoverAssignments] = useState<Record<string, string>>({});
 
   const { data: currentStaff } = useCurrentStaff();

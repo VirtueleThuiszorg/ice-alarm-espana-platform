@@ -33,6 +33,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { STALE_TIMES } from "@/config/constants";
 import { useStaffShifts, useOnShiftNow, useShiftMutations } from "@/hooks/useStaffShifts";
+import type { StaffShift } from "@/hooks/useStaffShifts";
 import { useCurrentStaff } from "@/hooks/useCurrentStaff";
 import { useEscalationChains, useEscalationChainMutations } from "@/hooks/useEscalationChain";
 import { SHIFT_TYPES, SHIFT_TYPE_OPTIONS } from "@/config/shifts";
@@ -80,7 +81,7 @@ export default function RotaPage() {
   const { t } = useTranslation();
   const [weekOffset, setWeekOffset] = useState(0);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [editingShift, setEditingShift] = useState<any>(null);
+  const [editingShift, setEditingShift] = useState<StaffShift | null>(null);
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [escalationDialogOpen, setEscalationDialogOpen] = useState(false);
   const [escalationDate, setEscalationDate] = useState("");
@@ -159,7 +160,7 @@ export default function RotaPage() {
 
   // Group shifts: { [staffId]: { [dateStr]: ShiftType[] } }
   const shiftGrid = useMemo(() => {
-    const grid: Record<string, Record<string, any[]>> = {};
+    const grid: Record<string, Record<string, StaffShift[]>> = {};
     for (const s of staffList) {
       grid[s.id] = {};
       for (const d of weekDays) {
@@ -205,7 +206,7 @@ export default function RotaPage() {
     setAddDialogOpen(true);
   };
 
-  const openEditDialog = (shift: any) => {
+  const openEditDialog = (shift: StaffShift) => {
     setEditingShift(shift);
     setSelectedDate(shift.shift_date);
     setSelectedStaffId(shift.staff_id);
@@ -261,7 +262,14 @@ export default function RotaPage() {
 
     // Map day offsets
     const prevStart = addDays(weekStart, -7);
-    const newShifts = prevShifts.map((ps: any) => {
+    const newShifts = prevShifts.map((ps: {
+      staff_id: string;
+      shift_type: string;
+      start_time: string;
+      end_time: string;
+      notes: string | null;
+      shift_date?: string;
+    }) => {
       const prevDate = new Date(ps.shift_date || prevStart);
       const dayOfWeek = (prevDate.getDay() + 6) % 7; // 0=Mon
       const newDate = formatDateKey(addDays(weekStart, dayOfWeek));
@@ -276,7 +284,9 @@ export default function RotaPage() {
       };
     });
 
-    await bulkCreateShifts.mutateAsync(newShifts);
+    await bulkCreateShifts.mutateAsync(
+      newShifts as Parameters<typeof bulkCreateShifts.mutateAsync>[0]
+    );
     setCopyDialogOpen(false);
   };
 
@@ -431,7 +441,7 @@ export default function RotaPage() {
                         className={`px-1 py-1.5 text-center ${isToday(day) ? "bg-primary/5" : ""}`}
                       >
                         <div className="flex flex-wrap gap-1 justify-center min-h-[28px]">
-                          {cellShifts.map((shift: any) => (
+                          {cellShifts.map((shift) => (
                             <ShiftBadge
                               key={shift.id}
                               type={shift.shift_type}

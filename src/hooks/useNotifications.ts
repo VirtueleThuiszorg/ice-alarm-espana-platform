@@ -59,7 +59,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   // Fetch unread count
   const fetchUnreadCount = useCallback(async () => {
     try {
-      let query = (supabase.from("notification_log") as any)
+      let query = supabase.from("notification_log")
         .select("id", { count: "exact", head: true })
         .neq("status", "read");
 
@@ -80,7 +80,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     async (pageNum: number = 0, append: boolean = false) => {
       setIsLoading(true);
       try {
-        let query = (supabase.from("notification_log") as any)
+        let query = supabase.from("notification_log")
           .select("*")
           .order("created_at", { ascending: false })
           .range(pageNum * pageSize, (pageNum + 1) * pageSize - 1);
@@ -123,7 +123,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   // Mark a single notification as read
   const markAsRead = useCallback(async (notificationId: string) => {
     try {
-      const { error } = await (supabase.from("notification_log") as any)
+      const { error } = await supabase.from("notification_log")
         .update({ status: "read" })
         .eq("id", notificationId);
 
@@ -142,7 +142,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   // Mark all notifications as read
   const markAllAsRead = useCallback(async () => {
     try {
-      let query = (supabase.from("notification_log") as any)
+      let query = supabase.from("notification_log")
         .update({ status: "read" })
         .neq("status", "read");
 

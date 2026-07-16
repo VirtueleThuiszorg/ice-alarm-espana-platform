@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { STALE_TIMES } from "@/config/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -62,7 +63,7 @@ export default function KnowledgeBasePage() {
         .from("documentation")
         .select("id, title, slug, category, content, tags, language, updated_at")
         .eq("status", "published")
-        .in("category", ["user_guide", "faq", "general", "device"] as any)
+        .in("category", ["user_guide", "faq", "general", "device"] as unknown as Array<Database["public"]["Enums"]["documentation_category"]>)
         .order("importance", { ascending: false });
 
       if (error) throw error;

@@ -43,8 +43,8 @@ Deno.serve(async (req) => {
     }
 
     // Extract key identifiable info from wizard data for quick access
-    const wd = wizardData as Record<string, any>;
-    const pm = wd?.primaryMember || {};
+    const wd = wizardData as Record<string, unknown>;
+    const pm = (wd?.primaryMember || {}) as Record<string, unknown>;
     const email = pm?.email || null;
     const phone = pm?.phone || null;
     const firstName = pm?.firstName || null;

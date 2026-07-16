@@ -5,10 +5,17 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 
 
 interface NotifyPayload {
-  event_type: "sale.paid" | "partner.joined" | "hot.sales" | "test" | "ev07b.alert" | "shift.no_show" | "shift.no_coverage" | "shift.disconnected";
+  event_type: "sale.paid" | "partner.joined" | "hot.sales" | "test" | "ev07b.alert" | "shift.no_show" | "shift.no_coverage" | "shift.disconnected" | "system.runner_failure";
   entity_type?: string;
   entity_id?: string;
   payload: {
+    // Runner-failure fields (system.runner_failure)
+    runner?: string;
+    scope?: string;
+    error?: string;
+    last_run_at?: string;
+    age_s?: number | string;
+    sweep_index?: number;
     customer_name?: string;
     language?: string;
     amount?: number;
@@ -118,6 +125,19 @@ function formatShiftDisconnectedMessage(payload: NotifyPayload["payload"], times
 📅 ${shiftLabel} shift
 🕒 ${timestamp}
 ➡️ Action: Check staff member's status and ensure coverage`;
+}
+
+function formatRunnerFailureMessage(payload: NotifyPayload["payload"], timestamp: string): string {
+  const runner = payload.runner || "unknown runner";
+  const scope = payload.scope || "failure";
+  const detail = payload.scope === "heartbeat_stale"
+    ? `Last run: ${payload.last_run_at || "never"} (age ${payload.age_s ?? "?"}s)`
+    : `Error: ${payload.error || "unknown"}`;
+  return `🆘 SAFETY RUNNER FAILURE
+⚙️ ${runner} — ${scope}
+${detail}
+🕒 ${timestamp}
+➡️ Escalation/monitoring may be DOWN. Investigate immediately.`;
 }
 
 function formatEV07BAlertMessage(payload: NotifyPayload["payload"], timestamp: string): string {
@@ -234,6 +254,12 @@ serve(async (req) => {
         case "shift.disconnected":
           shouldSend = settings.whatsapp_shift_alerts === true;
           message = formatShiftDisconnectedMessage(payload, timestamp);
+          break;
+        case "system.runner_failure":
+          // Life-safety: a dead escalation/monitor runner is maximally critical — always loud,
+          // not gated by a per-admin toggle.
+          shouldSend = true;
+          message = formatRunnerFailureMessage(payload, timestamp);
           break;
         case "test":
           shouldSend = true;

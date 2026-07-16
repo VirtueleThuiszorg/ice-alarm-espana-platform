@@ -47,8 +47,8 @@ export function useTwoFactorAuth() {
       });
       if (enrollError) throw enrollError;
       return data as TOTPFactor;
-    } catch (e: any) {
-      setError(e.message || "Failed to start 2FA enrollment");
+    } catch (e) {
+      setError((e instanceof Error ? e.message : "") || "Failed to start 2FA enrollment");
       return null;
     } finally {
       setIsEnrolling(false);
@@ -74,8 +74,8 @@ export function useTwoFactorAuth() {
       if (verifyError) throw verifyError;
 
       return true;
-    } catch (e: any) {
-      setError(e.message || "Invalid verification code");
+    } catch (e) {
+      setError((e instanceof Error ? e.message : "") || "Invalid verification code");
       return false;
     } finally {
       setIsVerifying(false);
@@ -91,8 +91,8 @@ export function useTwoFactorAuth() {
       });
       if (unenrollError) throw unenrollError;
       return true;
-    } catch (e: any) {
-      setError(e.message || "Failed to disable 2FA");
+    } catch (e) {
+      setError((e instanceof Error ? e.message : "") || "Failed to disable 2FA");
       return false;
     }
   };

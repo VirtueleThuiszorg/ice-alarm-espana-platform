@@ -75,8 +75,8 @@ export function VideoSettingsTab() {
     try {
       await updateSettings(formData);
       toast.success(t("videoHub.settings.saved"));
-    } catch (error: any) {
-      toast.error(error?.message || t("common.error", "Failed to save settings"));
+    } catch (error) {
+      toast.error((error instanceof Error ? error.message : undefined) || t("common.error", "Failed to save settings"));
     }
   };
 

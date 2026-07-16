@@ -8,11 +8,11 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { HeaderChatButton } from "@/components/chat/HeaderChatButton";
 import { PublicMobileNav } from "@/components/layout/PublicMobileNav";
 import { SEOHead } from "@/components/seo/SEOHead";
-import { useBlogPost } from "@/hooks/useBlogPosts";
+import { useBlogPost, type BlogPost } from "@/hooks/useBlogPosts";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // JSON-LD structured data component
-function ArticleSchema({ post, canonicalUrl }: { post: any; canonicalUrl: string }) {
+function ArticleSchema({ post, canonicalUrl }: { post: BlogPost; canonicalUrl: string }) {
   const schema = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",

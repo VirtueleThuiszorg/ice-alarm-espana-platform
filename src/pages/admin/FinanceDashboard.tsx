@@ -792,7 +792,7 @@ export default function FinanceDashboard() {
           <CardContent>
             {recentPayments && recentPayments.length > 0 ? (
               <div className="space-y-3">
-                {recentPayments.map((payment: any) => (
+                {recentPayments.map((payment) => (
                   <div key={payment.id} className="flex items-center justify-between py-2 border-b last:border-0">
                     <div>
                       <p className="font-medium text-sm">
@@ -831,7 +831,7 @@ export default function FinanceDashboard() {
           <CardContent>
             {recentOrders && recentOrders.length > 0 ? (
               <div className="space-y-3">
-                {recentOrders.map((order: any) => (
+                {recentOrders.map((order) => (
                   <div key={order.id} className="flex items-center justify-between py-2 border-b last:border-0">
                     <div>
                       <p className="font-medium text-sm">

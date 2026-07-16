@@ -44,10 +44,10 @@ export function FailedActionsCard() {
         title: i18n.t("dashboard.failedActions.retryStarted"),
         description: action.title,
       });
-    } catch (err: any) {
+    } catch (err) {
       toast({
         title: i18n.t("common.error"),
-        description: err.message,
+        description: err instanceof Error ? err.message : String(err),
         variant: "destructive",
       });
     } finally {
@@ -67,10 +67,10 @@ export function FailedActionsCard() {
         title: i18n.t("dashboard.failedActions.retryAllStarted"),
         description: i18n.t("dashboard.failedActions.retryAllDesc", { count: failedCount }),
       });
-    } catch (err: any) {
+    } catch (err) {
       toast({
         title: i18n.t("common.error"),
-        description: err.message,
+        description: err instanceof Error ? err.message : String(err),
         variant: "destructive",
       });
     } finally {

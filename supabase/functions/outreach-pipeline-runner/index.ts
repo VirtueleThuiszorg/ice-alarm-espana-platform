@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
-async function callFunction(supabaseUrl: string, authKey: string, fnName: string, body: any): Promise<any> {
+async function callFunction(supabaseUrl: string, authKey: string, fnName: string, body: unknown): Promise<{ [key: string]: unknown }> {
   const resp = await fetch(`${supabaseUrl}/functions/v1/${fnName}`, {
     method: "POST",
     headers: {
@@ -27,14 +27,14 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     // Get automation settings
-    const settingsMap: Record<string, any> = {};
+    const settingsMap: Record<string, unknown> = {};
     const { data: allSettings } = await supabase.from("outreach_settings").select("setting_key, setting_value");
-    if (allSettings) allSettings.forEach((s: any) => { settingsMap[s.setting_key] = s.setting_value; });
+    if (allSettings) allSettings.forEach((s: { setting_key: string; setting_value: unknown }) => { settingsMap[s.setting_key] = s.setting_value; });
 
     const dryRun = settingsMap.dry_run_mode === true;
     const startedAt = new Date().toISOString();
 
-    const stepsResult: Record<string, any> = {};
+    const stepsResult: Record<string, { [key: string]: unknown }> = {};
     const errors: string[] = [];
 
     // Step 1: Enrich (if enabled)

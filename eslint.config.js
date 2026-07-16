@@ -6,7 +6,9 @@ import unusedImports from "eslint-plugin-unused-imports";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist"] },
+  // `render-worker` is a separate package (its own package.json / tsconfig / Dockerfile) and
+  // must be linted by its own toolchain — the root config mis-parses its Remotion JSX-in-.ts.
+  { ignores: ["dist", "render-worker"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

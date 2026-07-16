@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Upload, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesInsert } from "@/integrations/supabase/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -76,7 +77,7 @@ export function BulkImeiImportModal({ open, onOpenChange }: BulkImeiImportModalP
 
       const { data, error } = await supabase
         .from("devices")
-        .insert(rows as any)
+        .insert(rows as unknown as TablesInsert<"devices">[])
         .select("id");
 
       if (error) {
@@ -85,7 +86,7 @@ export function BulkImeiImportModal({ open, onOpenChange }: BulkImeiImportModalP
           for (const row of rows) {
             const { error: singleError } = await supabase
               .from("devices")
-              .insert(row as any)
+              .insert(row as unknown as TablesInsert<"devices">)
               .select("id");
 
             if (singleError) {

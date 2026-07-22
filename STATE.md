@@ -13,6 +13,28 @@
 
 ---
 
+## Stage 0 — Prod backend verification (2026-07-22, LAUNCH_SCOPE.md §0)
+
+> Read-only pass on `crpsuhoixfdhjugprbuc`. **Nothing on prod was changed.** Statuses:
+> ✅ VERIFIED · ⚠️ DRIFT · ⛔ BLOCKED-needs-Lee.
+
+| # | Item | Status | Finding |
+|---|---|---|---|
+| 1 | Linked project ref = `crpsuhoixfdhjugprbuc` | ⛔ BLOCKED | Repo is **not linked** to any project — `supabase/.temp/project-ref` is absent and `supabase/config.toml` has no `project_id`. Cannot confirm/assert the ref without CLI auth + `supabase link`. |
+| 2 | Local vs remote migration diff (`supabase migration list`) | ⛔ BLOCKED | Needs an authenticated CLI against prod. Local set = **127** migrations (measured). Remote state unverified. |
+| 3 | Deployed edge functions vs repo dirs | ⛔ BLOCKED (repo side ✅) | Repo has **91** function dirs excl `_shared` (measured). Remote deployed list needs auth to diff. |
+| 4 | Postgres logs / advisor — ~694-errors/day spike root cause | ⛔ BLOCKED | Logs/advisor require dashboard or authenticated CLI access. Not reachable from this environment. |
+| 5 | `.env.example` completeness vs `Deno.env.get` / `import.meta.env` | ✅ VERIFIED + FIXED | **Frontend** (`import.meta.env.VITE_*`): all 13 referenced keys already present — complete. **Edge functions** (`Deno.env.get`): 25 distinct keys referenced; `.env.example` documented **none** of the server secrets (only VITE_*). **Fixed:** added an "Edge Function secrets" section (SITE_URL, WEBHOOK_SECRET, Resend/Gmail, 9× Twilio, 3× EV07B, Google OAuth, RENDER_WORKER_URL, LOVABLE_API_KEY). Excluded by design: `SUPABASE_URL/ANON_KEY/SERVICE_ROLE_KEY` (runtime auto-injected) and Stripe/Mollie keys (stored in `system_settings`, entered via Admin → Settings, not env). |
+
+**⛔ BLOCKED — what Lee must provide to finish Stage 0 (items 1–4):**
+a **Supabase personal access token** exported as `SUPABASE_ACCESS_TOKEN` (or an interactive
+`supabase login`) for an account with access to the **LifeLink Sync** org, then
+`supabase link --project-ref crpsuhoixfdhjugprbuc`. With that, items 1–4 (migration diff,
+function diff, and the Postgres error-spike root cause) can be run read-only. The Supabase CLI
+itself is available in-environment (`npx supabase` 2.109.1); only auth is missing.
+
+---
+
 ## 0. Full suite results (gates re-run 2026-07-16 on `chore/lint-zero-and-test-hygiene`)
 
 | Gate | Result | Evidence |

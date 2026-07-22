@@ -9,14 +9,14 @@
 
 ### Domain & email  *(added 2026-07-22)*
 - [ ] **Launch domain owned + DNS controlled + attached to Vercel + email SPF/DKIM verified.**
-  - **Status 2026-07-22:** `careconneqt.es` is **NOT** currently under Lee's
-    ownership/control.
-  - The repo currently uses `careconneqt.es` in `public/robots.txt` (sitemap URL)
-    and the `auth-email-hook` sender domain — **left as-is** as the intended
-    value, but **the value may change** if a different domain is secured.
-  - **Email sending from `@careconneqt.es` cannot be verified** until domain
-    control exists (SPF/DKIM/DMARC + Resend/Gmail domain verification).
-  - **Development continues on the `*.vercel.app` URL** until the domain is live.
+  - **Status 2026-07-22:** `careconneqt.es` is **owned by a known partner**.
+    Attaching it to Vercel + DNS + email verification (SPF/DKIM/DMARC and
+    Resend/Gmail domain verification) is a **final, coordinated go-live step** —
+    done together with the partner at cutover, not before.
+  - Until then the repo uses `careconneqt.es` in `public/robots.txt` (sitemap)
+    and the `auth-email-hook` sender domain as the intended value; **email
+    sending from `@careconneqt.es` remains unverified**, and **development
+    continues on the `*.vercel.app` URL**.
 
 ### Payments  *(human gate — CLAUDE.md)*
 - [ ] Stripe + Mollie **live** keys entered in Admin → Settings; webhook secret set.

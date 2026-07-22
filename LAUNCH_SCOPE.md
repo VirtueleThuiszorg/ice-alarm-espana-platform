@@ -54,6 +54,15 @@
   member dashboard. The three hardcoded copies (pricing.ts, submit-registration
   literals, marketing JSX literals) are deleted. Admin gets a pricing editor —
   **no deploy ever needed to change a price again.**
+- **Final pricing figures (LOCKED 2026-07-22):**
+  - **Pendant device — one-time: €125.00 net + 21% IVA = €151.25 gross.**
+  - Single plan: €24.99 net + 10% = **€27.49/mo**. Couple: €34.99 net + 10% = **€38.49/mo**.
+  - Annual: `annualMonths = 10`.
+- **Every figure — device net, both plan nets, both tax rates (0.21 / 0.10), and
+  the annual ratio — MUST be admin-editable with zero deploys.** Any hardcoded
+  figure remaining anywhere is a **Prompt-4 gap** (grep-verified in the review).
+- **Join / checkout: per-line IVA display** (device 21%, plan 10%) + correct
+  combined total, all IVA-inclusive with the **"IVA incluido"** label, EN/ES/NL.
 - **↑ These pricing/IVA rules are the acceptance criteria for the Prompt 4
   (pricing-to-DB) review.**
 - Other devices (glucose monitor, medication dispenser, family pack, etc.)

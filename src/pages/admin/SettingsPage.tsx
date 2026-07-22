@@ -91,17 +91,6 @@ export default function SettingsPage() {
     address: "Calle Principal 1, Albox, 04800 Almería",
   });
 
-  // Pricing settings state (stored WITHOUT settings_ prefix in your codebase)
-  const [pricingSettings, setPricingSettings] = useState({
-    single_monthly: "27.49",
-    single_annual: "274.89",
-    couple_monthly: "38.49",
-    couple_annual: "384.89",
-    registration_fee: "59.99",
-    pendant_price: "151.25",
-    shipping: "14.99",
-  });
-
   // Registration fee settings state
   const [registrationFeeSettings, setRegistrationFeeSettings] = useState({
     enabled: true,
@@ -190,17 +179,6 @@ export default function SettingsPage() {
       emergency_phone: settingsMap[KEY.EMERGENCY_PHONE] || prev.emergency_phone,
       support_email: settingsMap[KEY.SUPPORT_EMAIL] || prev.support_email,
       address: settingsMap[KEY.ADDRESS] || prev.address,
-    }));
-
-    // Pricing
-    setPricingSettings((prev) => ({
-      single_monthly: settingsMap.single_monthly || prev.single_monthly,
-      single_annual: settingsMap.single_annual || prev.single_annual,
-      couple_monthly: settingsMap.couple_monthly || prev.couple_monthly,
-      couple_annual: settingsMap.couple_annual || prev.couple_annual,
-      registration_fee: settingsMap.registration_fee || prev.registration_fee,
-      pendant_price: settingsMap.pendant_price || prev.pendant_price,
-      shipping: settingsMap.shipping || prev.shipping,
     }));
 
     // Active gateway
@@ -302,11 +280,6 @@ export default function SettingsPage() {
       [KEY.SUPPORT_EMAIL]: companySettings.support_email,
       [KEY.ADDRESS]: companySettings.address,
     });
-  };
-
-  const handleSavePricing = () => {
-    // pricing keys in your DB are currently WITHOUT settings_ prefix
-    saveMutation.mutate({ ...pricingSettings });
   };
 
   const handleSaveRegistrationFee = () => {
@@ -533,104 +506,10 @@ export default function SettingsPage() {
         {/* Pricing Tab */}
         <TabsContent value="pricing" className="space-y-6">
           <PricingPlansEditor />
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Pricing Configuration
-              </CardTitle>
-              <CardDescription>Configure membership and product pricing (prices include IVA)</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div>
-                  <h4 className="font-medium mb-3">Membership Fees</h4>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>Single Monthly (€)</Label>
-                      <Input
-                        value={pricingSettings.single_monthly}
-                        onChange={(e) => setPricingSettings((prev) => ({ ...prev, single_monthly: e.target.value }))}
-                        type="number"
-                        step="0.01"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Single Annual (€)</Label>
-                      <Input
-                        value={pricingSettings.single_annual}
-                        onChange={(e) => setPricingSettings((prev) => ({ ...prev, single_annual: e.target.value }))}
-                        type="number"
-                        step="0.01"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Couple Monthly (€)</Label>
-                      <Input
-                        value={pricingSettings.couple_monthly}
-                        onChange={(e) => setPricingSettings((prev) => ({ ...prev, couple_monthly: e.target.value }))}
-                        type="number"
-                        step="0.01"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Couple Annual (€)</Label>
-                      <Input
-                        value={pricingSettings.couple_annual}
-                        onChange={(e) => setPricingSettings((prev) => ({ ...prev, couple_annual: e.target.value }))}
-                        type="number"
-                        step="0.01"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h4 className="font-medium mb-3">One-time Fees</h4>
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <div className="space-y-2">
-                      <Label>Registration Fee (€)</Label>
-                      <Input
-                        value={pricingSettings.registration_fee}
-                        onChange={(e) => setPricingSettings((prev) => ({ ...prev, registration_fee: e.target.value }))}
-                        type="number"
-                        step="0.01"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Pendant Device (€)</Label>
-                      <Input
-                        value={pricingSettings.pendant_price}
-                        onChange={(e) => setPricingSettings((prev) => ({ ...prev, pendant_price: e.target.value }))}
-                        type="number"
-                        step="0.01"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Shipping (€)</Label>
-                      <Input
-                        value={pricingSettings.shipping}
-                        onChange={(e) => setPricingSettings((prev) => ({ ...prev, shipping: e.target.value }))}
-                        type="number"
-                        step="0.01"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <Button onClick={handleSavePricing} disabled={saveMutation.isPending}>
-                  {saveMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4 mr-2" />
-                  )}
-                  Save Pricing
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Legacy hardcoded "Pricing Configuration" card removed (LAUNCH_SCOPE §1):
+              it duplicated pricing with hardcoded GROSS literals writing to a separate
+              settings store the charge path never reads. The canonical single source of
+              truth is <PricingPlansEditor /> above (pricing_plans / pricing_settings). */}
 
           {/* Registration Fee Settings Card */}
           <Card className="mt-6">

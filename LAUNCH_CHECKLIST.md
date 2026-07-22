@@ -40,6 +40,12 @@
 - [ ] Real launch-critical imagery in place (no placeholders on landing + pendant) —
       IMAGE_SPEC.md / FRONTEND_REDESIGN.md §5.
 - [ ] Public output free of ICE leftovers and unverifiable claims (LAUNCH_SCOPE §7).
+- [ ] Favicon + meta + OG branded (LAUNCH_SCOPE §7): repo icon set is the Care Conneqt
+      "v" mark (favicon.ico/16/32/48, icon-192/512, apple-touch, icon.svg) and og-image.png
+      is the two-C wordmark — both on-brand, no ICE. `index.html` `<title>`, meta description,
+      og:site_name/og:title/og:image and twitter:* are Care Conneqt. **Verify on the DEPLOYED
+      site after a fresh Vercel build** — a stale deploy or cached service worker can still
+      serve the pre-rebrand icon (SW `CACHE_VERSION` bumped to v4 to force invalidation).
 
 ## Rollout stages (see LAUNCH_SCOPE.md §10)
 Stage 0 backend → Stage 1 scope locked → Stage 2 docs → Stage 3 pricing-to-DB →

@@ -29,6 +29,15 @@
 - [ ] Isabella tool-permission gate verified (hard-blocked tools unreachable).
 - [ ] Twilio on a **PAID** plan (trial can't reach real emergency contacts).
 - [ ] No test/shared passwords on any account at go-live.
+- [ ] **Rotate the `service_role` key and the Supabase access token** (both were
+      exposed during dev). Then update **all** references to the new values:
+      the Vault secret `service_role_key` (`vault.create_secret` / rotate),
+      the `SUPABASE_ACCESS_TOKEN` GitHub Actions secret (used by
+      `deploy-functions.yml`), and any other env reference — and **verify the
+      crons still fire** afterwards (`sos-escalation-runner`, `staff-shift-monitor`,
+      `ev07b-offline-monitor`, `shift-daily-reminders` post to their functions
+      without a `service_role_key missing from Vault` warning). Dev continues on
+      the current keys by Lee's decision; rotation is a **final go-live step**.
 
 ### Backend  *(Stage 0 — STATE.md)*
 - [ ] Supabase Stage 0 verification complete on `crpsuhoixfdhjugprbuc`

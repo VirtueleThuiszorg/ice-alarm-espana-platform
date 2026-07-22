@@ -22,23 +22,8 @@ import { getDeclaredRoutes, routeExists } from "./helpers/routes";
  * Key format: `${route} :: ${check}` or `* :: ${check}` (applies to every route).
  */
 const KNOWN_ISSUES: Record<string, string> = {
-  // Missing i18n keys — the same keys fire for en/es/nl because they are absent
-  // from en.json itself, so nl (which falls back to en) inherits the gap. Each
-  // is mirrored in FINDINGS.md; remove the entry once the keys are added.
-  "/ :: render": "missing i18n key: help.title — FINDINGS.md F1",
-  "/pricing :: render":
-    "missing i18n keys: pricing.oneTime/pendant/shipping/registration, landing.save — FINDINGS.md F2",
-  "/help :: render":
-    "missing i18n keys: help.heading/subheading/searchPlaceholder/allCategories/userGuide/faq/general/device/footer/contactUs — FINDINGS.md F3",
-  "/terms :: render":
-    "missing i18n keys: legal.footer.termsOfService, legal.footer.privacyPolicy — FINDINGS.md F4",
-  "/privacy :: render":
-    "missing i18n keys: legal.footer.termsOfService, legal.footer.privacyPolicy — FINDINGS.md F5",
-  "/login :: render": "missing i18n key: validation.passwordMin — FINDINGS.md F6",
-  "/partner :: render":
-    "missing i18n keys: partnerOnboarding.* (15 keys, howItWorks/steps/commission/region/howHeard) — FINDINGS.md F7",
-  "/partner/login :: render":
-    "missing i18n keys: partnerLogin.title, partnerLogin.subtitle — FINDINGS.md F8",
+  // F1–F8 missing i18n keys are now ADDED (en/es/nl) in this PR, so the render
+  // checks run and pass — no render entries remain here.
 
   // No-op-button heuristic false positives: handlers verified present in source,
   // but their effect is not DOM-observable under the anon/empty backend (form

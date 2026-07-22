@@ -1,4 +1,4 @@
-Sitemap: https://care-conneqt-platform.vercel.app/sitemap.xml
+Sitemap: https://careconneqt.es/sitemap.xml
 
 User-agent: Googlebot
 Allow: /

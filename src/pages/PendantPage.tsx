@@ -427,16 +427,9 @@ export default function PendantPage() {
               {t("pendant.testimonials.badge", "Trusted by Thousands")}
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">{t("pendant.testimonials.title")}</h2>
-            <div className="flex items-center justify-center gap-2 text-muted-foreground">
-              <div className="flex">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-5 w-5 fill-amber-400 text-amber-400" />
-                ))}
-              </div>
-              <span className="font-medium text-foreground">4.9/5</span>
-              <span>•</span>
-              <span>{t("pendant.testimonials.reviewCount", "2,000+ verified reviews")}</span>
-            </div>
+            {/* Hardcoded "4.9/5" / "2,000+ verified reviews" ratings removed
+                (LAUNCH_SCOPE §7 — no unverifiable claims). Reinstate only with a
+                real, sourced rating once verifiable review data exists. */}
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">

@@ -46,6 +46,8 @@ const KNOWN_ISSUES: Record<string, string> = {
   // filter). NOT dead buttons. See FINDINGS.md "button-check false positives".
   "/how-it-works :: dead-buttons":
     "FAQ AccordionTrigger ('What if it's 3am?') is real; expand not caught by the click heuristic — FINDINGS.md B1",
+  "/pendant :: dead-buttons":
+    "FAQ AccordionTriggers (real); expand not caught by the click heuristic — FINDINGS.md B1",
   "/contact :: dead-buttons": "'Send Message' is a real form onSubmit — FINDINGS.md B1",
   "/partner :: dead-buttons":
     "'Register Your Interest' is a real form onSubmit — FINDINGS.md B1",

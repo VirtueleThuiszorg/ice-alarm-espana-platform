@@ -56,9 +56,8 @@ import { PartnerLayout } from "@/components/layout/PartnerLayout";
 // Public Pages - Lazy loaded
 const Index = lazyWithRetry(() => import("./pages/Index"));
 const ContactPage = lazyWithRetry(() => import("./pages/ContactPage"));
-const ProductsPage = lazyWithRetry(() => import("./pages/ProductsPage"));
+const PendantPage = lazyWithRetry(() => import("./pages/PendantPage"));
 const PricingPage = lazyWithRetry(() => import("./pages/PricingPage"));
-const ProductDetailPage = lazyWithRetry(() => import("./pages/ProductDetailPage"));
 const TermsPage = lazyWithRetry(() => import("./pages/TermsPage"));
 const PrivacyPage = lazyWithRetry(() => import("./pages/PrivacyPage"));
 const BlogListPage = lazyWithRetry(() => import("./pages/blog/BlogListPage"));
@@ -335,9 +334,12 @@ const App = () => {
                     <Route path="/" element={<Index />} />
                     <Route path="/how-it-works" element={<HowItWorksPage />} />
                     <Route path="/pricing" element={<PricingPage />} />
-                    <Route path="/products" element={<ProductsPage />} />
-                    <Route path="/products/:slug" element={<ProductDetailPage />} />
-                    <Route path="/pendant" element={<Navigate to="/products/pendant" replace />} />
+                    {/* Pendant-first launch (LAUNCH_SCOPE §2): /pendant is the one public
+                        product page; the multi-device catalog is hidden — /products and
+                        /products/:slug redirect to it. Restore the catalog routes in phase 2. */}
+                    <Route path="/pendant" element={<PendantPage />} />
+                    <Route path="/products" element={<Navigate to="/pendant" replace />} />
+                    <Route path="/products/:slug" element={<Navigate to="/pendant" replace />} />
                     <Route path="/contact" element={<ContactPage />} />
                     <Route path="/terms" element={<TermsPage />} />
                     <Route path="/privacy" element={<PrivacyPage />} />

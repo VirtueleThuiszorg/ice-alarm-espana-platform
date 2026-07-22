@@ -50,6 +50,7 @@ simply not DOM-observable under the audit's anon/empty backend. These are annota
 | Route | Button(s) | Why it's a false positive |
 |---|---|---|
 | `/how-it-works` | "What if it's 3am?" | Radix `AccordionTrigger` — real; the expand animation isn't caught by the click-snapshot heuristic's timing. |
+| `/pendant` | FAQ questions ×3 | Radix `AccordionTrigger`s on the pendant page (routed to `PendantPage` at launch) — same heuristic limitation. |
 | `/contact` | "Send Message" | `<form onSubmit={handleSubmit}>` — needs filled fields + a live provider to produce a visible result. |
 | `/partner` | "Register Your Interest" | Partner-onboarding `onSubmit` handler — same as above. |
 | `/help` | "general", "device" | Category filters (`setSelectedCategory`) over an article list that is empty because the backend is a placeholder — filtering nothing changes nothing. |

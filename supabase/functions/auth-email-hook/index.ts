@@ -52,9 +52,9 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<Record<string, unknown
 
 // Configuration
 const SITE_NAME = "Care Conneqt"
-const SENDER_DOMAIN = "notify.icehealthsync.com"
-const ROOT_DOMAIN = "icehealthsync.com"
-const FROM_DOMAIN = "icehealthsync.com" // Domain shown in From address (may be root or sender subdomain)
+const SENDER_DOMAIN = "notify.careconneqt.es"
+const ROOT_DOMAIN = "careconneqt.es"
+const FROM_DOMAIN = "careconneqt.es" // Domain shown in From address (may be root or sender subdomain)
 
 // Sample data for preview mode ONLY (not used in actual email sending).
 // URLs are baked in at scaffold time from the project's real data.

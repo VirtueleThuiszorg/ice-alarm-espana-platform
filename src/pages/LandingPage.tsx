@@ -12,8 +12,6 @@ import { PublicHeader } from "@/components/layout/PublicHeader";
 import { useWebsiteImagesBatch } from "@/hooks/useWebsiteImage";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { supabase } from "@/integrations/supabase/client";
-import { useProductCatalog, getLocalizedField } from "@/hooks/useProductCatalog";
-import { Bell, Pill, Activity } from "lucide-react";
 import { BlogCard } from "@/components/blog/BlogCard";
 import { useBlogPosts } from "@/hooks/useBlogPosts";
 import { usePublicTestimonials } from "@/hooks/useTestimonials";
@@ -33,8 +31,6 @@ export default function LandingPage() {
   const { settings: companySettings } = useCompanySettings();
   const { data: dbTestimonials } = usePublicTestimonials("landing");
   const { data: isabellaAgent } = useAIAgent("customer_service_expert");
-  const { data: catalogProducts } = useProductCatalog();
-  const locale = i18n.language?.split("-")[0] || "en";
 
   // Batch fetch all images in a single query
   const { getImage, isLoading: imagesLoading } = useWebsiteImagesBatch(["homepage_hero", "homepage_pendant_promo"]);
@@ -368,68 +364,9 @@ export default function LandingPage() {
             </Card>
           </div>
 
-          {/* Our Products — DB-driven */}
-          {catalogProducts && catalogProducts.length > 0 && (
-            <div className="mt-16">
-              <h3 className="text-2xl font-bold text-center mb-8 font-[Poppins]">Our Products</h3>
-              <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-                {catalogProducts.map((product) => {
-                  const isComingSoon = product.status === "coming_soon";
-                  const prodName = getLocalizedField(product.name_i18n, locale) as string ?? product.name;
-                  const shortDesc = getLocalizedField(product.short_description_i18n, locale) as string ?? "";
-                  const price = product.selling_price_net > 0
-                    ? `€${(product.selling_price_net * (1 + product.selling_tax_rate)).toFixed(2)}`
-                    : null;
-                  const IconMap: Record<string, typeof MapPin> = { Emergency: MapPin, Medication: Pill, "Health Monitoring": Activity };
-                  const Icon = IconMap[product.category ?? ""] ?? MapPin;
-
-                  return (
-                    <Link key={product.id} to={`/products/${product.slug}`} className="group">
-                      <Card className={`h-full overflow-hidden transition-all duration-300 group-hover:shadow-xl group-hover:-translate-y-1 ${isComingSoon ? "opacity-90" : "border-primary/30"}`}>
-                        <div className="relative">
-                          <div className={`aspect-[4/3] bg-gradient-to-br from-muted/50 to-muted flex items-center justify-center overflow-hidden ${isComingSoon ? "grayscale-[30%]" : ""}`}>
-                            {product.hero_image_url ? (
-                              <img src={product.hero_image_url} alt={prodName} className="w-full h-full object-cover" loading="lazy" />
-                            ) : (
-                              <Icon className="h-16 w-16 text-muted-foreground/40" />
-                            )}
-                          </div>
-                          {isComingSoon && (
-                            <Badge className="absolute top-3 right-3 text-white border-0 text-xs px-3 py-1" style={{ backgroundColor: "hsl(185, 75%, 45%)" }}>
-                              Coming Soon
-                            </Badge>
-                          )}
-                        </div>
-                        <CardContent className="p-5">
-                          <h4 className="font-bold text-lg mb-1 group-hover:text-primary transition-colors font-[Poppins]">{prodName}</h4>
-                          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{shortDesc}</p>
-                          {isComingSoon ? (
-                            <Button variant="outline" size="sm" className="gap-2 w-full">
-                              <Bell className="h-4 w-4" /> Notify Me
-                            </Button>
-                          ) : (
-                            <div className="flex items-center justify-between">
-                              {price && <span className="font-bold text-primary">{price}</span>}
-                              <Button variant="ghost" size="sm" className="gap-1 text-primary ml-auto">
-                                {t('landing.learnMore')} <ArrowRight className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  );
-                })}
-              </div>
-              <div className="text-center mt-8">
-                <Link to="/products">
-                  <Button variant="outline" className="gap-2">
-                    View all products <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          )}
+          {/* Multi-device catalog hidden for the pendant-first launch (LAUNCH_SCOPE §2).
+              Non-pendant products are deactivated in the DB; /products redirects to
+              /pendant. Restore this section + nav link when phase 2 un-hides the catalog. */}
         </div>
       </section>
 

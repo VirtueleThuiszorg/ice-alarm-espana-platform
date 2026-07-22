@@ -34,10 +34,13 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npm run dev -- --host 127.0.0.1 --port ${PORT}`,
+    // Audit the PRODUCTION build (what users get, per LAUNCH_SCOPE §7 "grep the
+    // built output") served by `vite preview`. Bundled assets load in ~1s vs the
+    // ~14s/page an unbundled dev server costs on a fresh context per test.
+    command: `npm run build && npm run preview -- --host 127.0.0.1 --port ${PORT}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 180_000,
     env: {
       // Anon/placeholder Supabase — the client constructs but data calls fail fast.
       // Provider-dependent assertions are marked as expected-skips, never green.

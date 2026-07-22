@@ -33,12 +33,14 @@ export async function gotoAudited(page: Page, path: string, lng: Lang = "en") {
     (window as unknown as { __I18N_MISSING__: string[] }).__I18N_MISSING__ = [];
   }, lng);
 
-  await page.goto(path, { waitUntil: "domcontentloaded" });
-  // Let Suspense resolve the lazy route and React paint.
-  await page.waitForSelector("#main-content", { timeout: 20_000 });
-  // Best-effort settle. Data calls hit a placeholder Supabase and fail fast, so a
-  // short budget is enough; we never block the audit on it.
-  await page.waitForLoadState("networkidle", { timeout: 3_500 }).catch(() => {});
+  // 'commit' returns as soon as navigation commits; we then wait on the app's own
+  // readiness signal (#main-content mounts after Suspense resolves the lazy route).
+  // Waiting on domcontentloaded/load instead would block on the full cold boot
+  // (~13s: large bundle + synchronous ~528KB i18n JSON parse) with no benefit.
+  await page.goto(path, { waitUntil: "commit" });
+  await page.waitForSelector("#main-content", { timeout: 30_000 });
+  // Brief settle so children + footer render and missing i18n keys are collected.
+  await page.waitForTimeout(700);
 }
 
 export interface Anchor {
@@ -109,19 +111,21 @@ export interface DeadButton {
 }
 
 /**
- * Heuristic no-op button detector. For each visible, enabled button not on the
- * allowlist: snapshot (url, dialog/toast presence, DOM size), click, wait, and
- * re-snapshot. A button that changed NOTHING observable is reported as a
- * probable dead handler. Re-navigates before each click to isolate effects.
+ * Heuristic no-op button detector. Boots the page ONCE (the app cold-boots in
+ * ~13s, so per-button navigation is impractical), then clicks each visible,
+ * enabled, non-allowlisted button and checks whether anything observable changed
+ * (url / dialog / toast / aria-expanded / DOM size). A button that changed
+ * NOTHING is reported as a probable dead handler. Presses Escape after each
+ * click and re-navigates only if a click caused navigation, to limit state bleed.
  *
- * This is intentionally conservative — it under-reports rather than flags
- * legitimately-interactive controls.
+ * Intentionally conservative — it under-reports rather than flag legitimately
+ * interactive controls.
  */
 export async function findNoOpButtons(
   page: Page,
   path: string,
   lng: Lang,
-  max = 25
+  max = 20
 ): Promise<DeadButton[]> {
   const snapshot = () =>
     page.evaluate(() => ({
@@ -135,11 +139,12 @@ export async function findNoOpButtons(
     }));
 
   await gotoAudited(page, path, lng);
-  const count = await page.locator("button:visible").count();
+  const startUrl = page.url();
+  const count = Math.min(await page.locator("button:visible").count(), max);
   const dead: DeadButton[] = [];
 
-  for (let i = 0; i < Math.min(count, max); i++) {
-    await gotoAudited(page, path, lng);
+  for (let i = 0; i < count; i++) {
+    if (page.url() !== startUrl) await gotoAudited(page, path, lng);
     const buttons = page.locator("button:visible");
     if (i >= (await buttons.count())) break;
     const btn = buttons.nth(i);
@@ -158,8 +163,8 @@ export async function findNoOpButtons(
     if (BUTTON_NOOP_ALLOWLIST.some((re) => re.test(name))) continue;
 
     const before = await snapshot();
-    await btn.click({ trial: false, timeout: 3000 }).catch(() => {});
-    await page.waitForTimeout(600);
+    await btn.click({ trial: false, timeout: 2500 }).catch(() => {});
+    await page.waitForTimeout(500);
     const after = await snapshot();
 
     const changed =
@@ -170,6 +175,10 @@ export async function findNoOpButtons(
       Math.abs(before.domSize - after.domSize) > 40;
 
     if (!changed) dead.push({ index: i, name: name || "(unnamed)" });
+
+    // Best-effort: close any opened overlay so the next button's index is stable.
+    await page.keyboard.press("Escape").catch(() => {});
+    await page.waitForTimeout(100);
   }
 
   return dead;

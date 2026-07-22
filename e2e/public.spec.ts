@@ -22,7 +22,23 @@ import { getDeclaredRoutes, routeExists } from "./helpers/routes";
  * Key format: `${route} :: ${check}` or `* :: ${check}` (applies to every route).
  */
 const KNOWN_ISSUES: Record<string, string> = {
-  // --- populated from the first harness run; see FINDINGS.md ---
+  // Missing i18n keys — the same keys fire for en/es/nl because they are absent
+  // from en.json itself, so nl (which falls back to en) inherits the gap. Each
+  // is mirrored in FINDINGS.md; remove the entry once the keys are added.
+  "/ :: render": "missing i18n key: help.title — FINDINGS.md F1",
+  "/pricing :: render":
+    "missing i18n keys: pricing.oneTime/pendant/shipping/registration, landing.save — FINDINGS.md F2",
+  "/help :: render":
+    "missing i18n keys: help.heading/subheading/searchPlaceholder/allCategories/userGuide/faq/general/device/footer/contactUs — FINDINGS.md F3",
+  "/terms :: render":
+    "missing i18n keys: legal.footer.termsOfService, legal.footer.privacyPolicy — FINDINGS.md F4",
+  "/privacy :: render":
+    "missing i18n keys: legal.footer.termsOfService, legal.footer.privacyPolicy — FINDINGS.md F5",
+  "/login :: render": "missing i18n key: validation.passwordMin — FINDINGS.md F6",
+  "/partner :: render":
+    "missing i18n keys: partnerOnboarding.* (15 keys, howItWorks/steps/commission/region/howHeard) — FINDINGS.md F7",
+  "/partner/login :: render":
+    "missing i18n keys: partnerLogin.title, partnerLogin.subtitle — FINDINGS.md F8",
 };
 
 const PUBLIC_ROUTES: { path: string; name: string }[] = [
@@ -46,7 +62,14 @@ const LANGS: Lang[] = ["en", "es", "nl"];
 const declared = getDeclaredRoutes();
 
 function knownIssue(route: string, check: string): string | undefined {
-  return KNOWN_ISSUES[`${route} :: ${check}`] ?? KNOWN_ISSUES[`* :: ${check}`];
+  // Exact match, then an all-language `render` fallback (a route's missing keys
+  // are the same across en/es/nl), then a wildcard-route fallback.
+  const renderFallback = check.startsWith("render-") ? `${route} :: render` : undefined;
+  return (
+    KNOWN_ISSUES[`${route} :: ${check}`] ??
+    (renderFallback ? KNOWN_ISSUES[renderFallback] : undefined) ??
+    KNOWN_ISSUES[`* :: ${check}`]
+  );
 }
 
 for (const { path, name } of PUBLIC_ROUTES) {

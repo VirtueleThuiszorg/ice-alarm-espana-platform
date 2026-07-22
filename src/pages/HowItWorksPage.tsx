@@ -223,7 +223,7 @@ export default function HowItWorksPage() {
               <InfoNote>{t("howItWorksPage.step1.note")}</InfoNote>
             </TimelineStep>
 
-            {/* Step 2: Isabella Answers */}
+            {/* Step 2: We Answer */}
             <TimelineStep
               time={t("howItWorksPage.step2.time")}
               title={t("howItWorksPage.step2.title")}
@@ -236,11 +236,11 @@ export default function HowItWorksPage() {
                 {t("howItWorksPage.step2.description")}
               </p>
               <blockquote className="border-l-4 border-blue-400 pl-4 py-3 mb-1 bg-blue-50 dark:bg-blue-950/30 rounded-r-lg italic text-foreground">
-                {t("howItWorksPage.step2.isabellaQuote")}
+                {t("howItWorksPage.step2.responseQuote")}
               </blockquote>
-              {t("howItWorksPage.step2.isabellaQuoteTranslation") && (
+              {t("howItWorksPage.step2.responseQuoteTranslation") && (
                 <p className="text-sm text-foreground/60 mb-4 pl-4">
-                  {t("howItWorksPage.step2.isabellaQuoteTranslation")}
+                  {t("howItWorksPage.step2.responseQuoteTranslation")}
                 </p>
               )}
               <ul className="space-y-2 mt-4">
@@ -367,7 +367,7 @@ export default function HowItWorksPage() {
                 </DetailItem>
               </ul>
               <blockquote className="border-l-4 border-blue-400 pl-4 py-3 mb-4 bg-blue-50 dark:bg-blue-950/30 rounded-r-lg italic text-foreground">
-                {t("howItWorksPage.step6.isabellaQuote")}
+                {t("howItWorksPage.step6.responseQuote")}
               </blockquote>
               <InfoNote>{t("howItWorksPage.step6.note")}</InfoNote>
             </TimelineStep>

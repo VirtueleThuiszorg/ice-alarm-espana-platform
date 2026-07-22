@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, Phone, Shield, Heart, Users, Check, Star, MapPin, Radio, AlertCircle, MessageCircle, Bot, ShieldCheck, Monitor, Headphones, Send } from "lucide-react";
+import { ArrowRight, Phone, Shield, Heart, Users, Check, Star, MapPin, Radio, AlertCircle, MessageCircle, ShieldCheck, Monitor, Headphones, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { BlogCard } from "@/components/blog/BlogCard";
 import { useBlogPosts } from "@/hooks/useBlogPosts";
 import { usePublicTestimonials } from "@/hooks/useTestimonials";
-import { useAIAgent } from "@/hooks/useAIAgents";
 import { usePricing } from "@/hooks/usePricing";
 import { formatPrice, getSubscriptionMonthlyFinal, getSubscriptionFinalPrice } from "@/config/pricing";
 import {
@@ -30,7 +29,6 @@ export default function LandingPage() {
   const { t, i18n } = useTranslation();
   const { settings: companySettings } = useCompanySettings();
   const { data: dbTestimonials } = usePublicTestimonials("landing");
-  const { data: isabellaAgent } = useAIAgent("customer_service_expert");
 
   // Batch fetch all images in a single query
   const { getImage, isLoading: imagesLoading } = useWebsiteImagesBatch(["homepage_hero", "homepage_pendant_promo"]);
@@ -160,19 +158,15 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Floating Isabella card */}
+              {/* Floating response card */}
               <div className="absolute -top-4 -right-4 bg-card rounded-2xl shadow-xl p-4 border animate-fade-up hidden md:block" style={{ animationDelay: '0.2s' }}>
                 <div className="flex items-center gap-3">
                   <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center overflow-hidden">
-                    {isabellaAgent?.avatar_url ? (
-                      <img src={isabellaAgent.avatar_url} alt="Isabella" className="h-full w-full object-cover" />
-                    ) : (
-                      <Bot className="h-6 w-6 text-primary" />
-                    )}
+                    <ShieldCheck className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">Isabella</p>
-                    <p className="text-sm text-muted-foreground">{t("landing.floatingIsabella")}</p>
+                    <p className="text-lg font-bold leading-tight">{t("landing.floatingResponse")}</p>
+                    <p className="text-sm text-muted-foreground">{t("landing.floatingResponseDesc")}</p>
                   </div>
                 </div>
               </div>
@@ -199,7 +193,7 @@ export default function LandingPage() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { icon: Bot, titleKey: "landing.featureIsabella", descKey: "landing.featureIsabellaDesc", num: "01" },
+              { icon: ShieldCheck, titleKey: "landing.featureMonitoring", descKey: "landing.featureMonitoringDesc", num: "01" },
               { icon: Users, titleKey: "landing.featureTeam", descKey: "landing.featureTeamDesc", num: "02" },
               { icon: MapPin, titleKey: "landing.featureGps", descKey: "landing.featureGpsDesc", num: "03" },
               { icon: Monitor, titleKey: "landing.featureDashboard", descKey: "landing.featureDashboardDesc", num: "04" },

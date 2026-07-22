@@ -54,7 +54,7 @@ export default function PartnerOnboarding() {
                 {t("partnerOnboarding.successTitle", "Thank You for Your Interest!")}
               </CardTitle>
               <CardDescription>
-                {t("partnerOnboarding.successDesc", "Isabella will send you an email shortly with full details about our partner programme, including what you can earn and a link to complete your registration.")}
+                {t("partnerOnboarding.successDesc", "Our team will send you an email shortly with full details about our partner programme, including what you can earn and a link to complete your registration.")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -79,7 +79,7 @@ export default function PartnerOnboarding() {
               {t("partnerOnboarding.title", "Become an Care Conneqt Partner")}
             </h1>
             <p className="text-xl text-muted-foreground">
-              {t("partnerOnboarding.subtitle", "Help protect the people in your community — register your interest and Isabella will be in touch with everything you need to know.")}
+              {t("partnerOnboarding.subtitle", "Help protect the people in your community — register your interest and our team will be in touch with everything you need to know.")}
             </p>
           </div>
 
@@ -111,7 +111,7 @@ export default function PartnerOnboarding() {
                     <span className="text-lg font-bold text-primary">1</span>
                   </div>
                   <h3 className="font-semibold">{t("partnerOnboarding.step1Title", "Register")}</h3>
-                  <p className="text-sm text-muted-foreground">{t("partnerOnboarding.step1Desc", "Fill in the form below and Isabella will send you your unique partner link.")}</p>
+                  <p className="text-sm text-muted-foreground">{t("partnerOnboarding.step1Desc", "Fill in the form below and our team will send you your unique partner link.")}</p>
                 </div>
                 <div className="text-center space-y-2">
                   <div className="mx-auto rounded-full bg-primary/10 p-3 w-fit">

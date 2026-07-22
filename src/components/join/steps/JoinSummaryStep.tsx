@@ -37,6 +37,11 @@ export function JoinSummaryStep({ data, onUpdate }: JoinSummaryStepProps) {
     registrationFeeDiscount
   });
 
+  // Per-line IVA rates, derived from the DB-sourced order (no hardcoded rates):
+  // subscription carries 10%, the device 21% (LAUNCH_SCOPE §1).
+  const subRate = order.subscriptionNet > 0 ? Math.round((order.subscriptionTax / order.subscriptionNet) * 100) : 0;
+  const pendantRate = order.pendantNet > 0 ? Math.round((order.pendantTax / order.pendantNet) * 100) : 0;
+
   return (
     <div className="space-y-6">
       <div className="text-center space-y-2">
@@ -78,8 +83,8 @@ export function JoinSummaryStep({ data, onUpdate }: JoinSummaryStepProps) {
       </div>
 
       <Card><CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><CreditCard className="h-4 w-4" />{t("joinWizard.summary.orderSummary")}</CardTitle></CardHeader><CardContent className="space-y-4">
-        <div className="flex justify-between items-start"><div><p className="font-medium">{data.membershipType === "single" ? t("joinWizard.summary.individual") : t("joinWizard.summary.couple")} {t("joinWizard.summary.membership")}</p><p className="text-sm text-muted-foreground">{data.billingFrequency === "monthly" ? t("joinWizard.summary.monthlySubscription") : t("joinWizard.summary.annualSubscription")}</p></div><p className="font-medium">{formatPrice(order.subscriptionFinal)}</p></div>
-        {order.pendantCount > 0 && <div className="flex justify-between items-start"><div><p className="font-medium flex items-center gap-2"><Smartphone className="h-4 w-4" />{t("joinWizard.summary.gpsSafetyPendant")}{order.pendantCount > 1 && <span>× {order.pendantCount}</span>}</p><p className="text-sm text-muted-foreground">{t("joinWizard.summary.oneTimePurchaseIva")}</p></div><p className="font-medium">{formatPrice(order.pendantFinal)}</p></div>}
+        <div className="flex justify-between items-start"><div><p className="font-medium">{data.membershipType === "single" ? t("joinWizard.summary.individual") : t("joinWizard.summary.couple")} {t("joinWizard.summary.membership")}</p><p className="text-sm text-muted-foreground">{data.billingFrequency === "monthly" ? t("joinWizard.summary.monthlySubscription") : t("joinWizard.summary.annualSubscription")}</p>{subRate > 0 && <p className="text-xs text-muted-foreground">{t("joinWizard.summary.inclIvaRate", { rate: subRate })}</p>}</div><p className="font-medium">{formatPrice(order.subscriptionFinal)}</p></div>
+        {order.pendantCount > 0 && <div className="flex justify-between items-start"><div><p className="font-medium flex items-center gap-2"><Smartphone className="h-4 w-4" />{t("joinWizard.summary.gpsSafetyPendant")}{order.pendantCount > 1 && <span>× {order.pendantCount}</span>}</p><p className="text-sm text-muted-foreground">{pendantRate > 0 ? t("joinWizard.summary.oneTimePurchaseInclIva", { rate: pendantRate }) : t("joinWizard.summary.oneTimePurchase")}</p></div><p className="font-medium">{formatPrice(order.pendantFinal)}</p></div>}
         {order.shipping > 0 && <div className="flex justify-between items-start"><div><p className="font-medium">{t("joinWizard.summary.shipping")}</p><p className="text-sm text-muted-foreground">{t("joinWizard.summary.deliveryAddress")}</p></div><p className="font-medium">{formatPrice(order.shipping)}</p></div>}
         {/* Registration Fee - with discount display */}
         {order.registrationFeeEnabled && (
@@ -112,6 +117,7 @@ export function JoinSummaryStep({ data, onUpdate }: JoinSummaryStepProps) {
           </div>
         )}
         <Separator /><div className="flex justify-between text-lg font-bold"><span>{t("joinWizard.summary.totalDueToday")}</span><span className="text-primary">{formatPrice(order.grandTotal)}</span></div>
+        {order.totalTax > 0 && <p className="text-xs text-muted-foreground text-right">{t("joinWizard.summary.ivaIncludedTotal", { amount: formatPrice(order.totalTax) })}</p>}
         {data.billingFrequency === "monthly" && <p className="text-sm text-muted-foreground text-center">{t("joinWizard.summary.thenMonthly", { amount: formatPrice(monthlyFinal) })}</p>}
       </CardContent></Card>
 

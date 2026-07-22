@@ -4,7 +4,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { sendEmail } from "../_shared/email.ts";
 import { checkRateLimit, getClientIp } from "../_shared/rate-limit.ts";
 import { registrationSchema, validateRequest } from "../_shared/validation.ts";
-import { calculateOrder, buildPricingConfig, type PricingConfig } from "../_shared/pricing-calc.ts";
+import { calculateOrder, buildPricingConfig } from "../_shared/pricing-calc.ts";
 
 
 
@@ -184,18 +184,6 @@ interface RegistrationRequest {
   testMode?: boolean; // If true, skip Stripe and mark everything as completed
 }
 
-// Fallback only — pricing is sourced from the DB (pricing_plans + pricing_settings). If the
-// DB has no plans we FAIL CLOSED (throw) rather than charge from this. Mirrors the seed.
-const PRICING_FALLBACK: PricingConfig = {
-  single: { monthlyNet: 24.99, annualMonths: 10, subscriptionTaxRate: 0.10 },
-  couple: { monthlyNet: 34.99, annualMonths: 10, subscriptionTaxRate: 0.10 },
-  pendantNet: 125.00,
-  pendantTaxRate: 0.21,
-  shipping: 14.99,
-  registrationBase: 59.99,
-  registrationTaxRate: 0,
-};
-
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
@@ -247,10 +235,14 @@ serve(async (req) => {
     if (planErr || !planRows || planRows.length === 0) {
       throw new Error("Pricing not configured (pricing_plans empty) — refusing to compute a charge");
     }
+    // STRICT / FAIL CLOSED: no hardcoded fallback is passed, so buildPricingConfig
+    // THROWS if any required plan (single/couple) or setting (pendant_net,
+    // pendant_tax_rate, shipping_amount, registration_base, registration_tax_rate)
+    // is missing from the DB — the charge path can never fall back to baked-in
+    // prices (golden rule #4). Display surfaces keep their own display fallback.
     const pricingConfig = buildPricingConfig(
       (planRows as Array<{ plan_key: string; monthly_net: number; annual_months: number; subscription_tax_rate: number; is_active?: boolean | null }>).filter((p) => p.is_active !== false),
       (priceSettingRows as Array<{ key: string; value: number }>) || [],
-      PRICING_FALLBACK,
     );
 
     const order = calculateOrder(pricingConfig, {

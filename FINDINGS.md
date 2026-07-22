@@ -40,6 +40,30 @@ NL note below — so it falls back to en and inherits the gap).
 **Fix:** add the missing keys to `src/i18n/locales/en.json` **and** `es.json` (and
 `nl.json` once NL is wired). These are static UI labels, not data-driven content.
 
+## Button-check false positives (B1) — heuristic limitation, NOT dead buttons
+
+The no-op-button heuristic flagged buttons on `/contact`, `/partner`, `/help`, and
+`/join`. Each was investigated in source and has a **real handler** — the effect is
+simply not DOM-observable under the audit's anon/empty backend. These are annotated
+`test.fixme` (`… :: dead-buttons`) and are **not** defects:
+
+| Route | Button(s) | Why it's a false positive |
+|---|---|---|
+| `/how-it-works` | "What if it's 3am?" | Radix `AccordionTrigger` — real; the expand animation isn't caught by the click-snapshot heuristic's timing. |
+| `/contact` | "Send Message" | `<form onSubmit={handleSubmit}>` — needs filled fields + a live provider to produce a visible result. |
+| `/partner` | "Register Your Interest" | Partner-onboarding `onSubmit` handler — same as above. |
+| `/help` | "general", "device" | Category filters (`setSelectedCategory`) over an article list that is empty because the backend is a placeholder — filtering nothing changes nothing. |
+| `/join` | "Plan" step nav, Back on step 1 | Wizard nav handlers that are legitimately no-ops for the *current* step. |
+
+The Isabella chat widget's "Call and Speak" (seen on `/how-it-works` and every page)
+is now allowlisted — the widget is out of audit scope (LAUNCH_SCOPE §2).
+
+**Takeaway:** the no-op detector is a best-effort heuristic. It is reliable for
+plain navigation/toggle buttons (it passed cleanly on 9/14 routes) but cannot judge
+form-submit or data-dependent buttons without a live backend and seeded input. A
+future improvement is a seeded-backend fixture so these can be asserted for real
+rather than skipped.
+
 ## Cross-cutting notes (not per-route failures)
 
 - **NL is not implemented.** `src/i18n/index.ts` sets `supportedLngs: ["en","es"]`

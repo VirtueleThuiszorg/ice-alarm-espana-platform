@@ -11,6 +11,10 @@ export const FORBIDDEN_BRAND_STRINGS = ["icealarm", "icehealthsync", "ICE Alarm"
  */
 export const BUTTON_NOOP_ALLOWLIST: RegExp[] = [
   /accept|reject|manage cookies|cookie/i, // GDPR banner — state lives outside the DOM we snapshot
+  // Isabella chat widget — the one intentional AI surface (LAUNCH_SCOPE §2); it is
+  // explicitly out of scope for the public-page audit, and its actions (open modal /
+  // start a call) are not reliably DOM-observable here.
+  /call and speak|call me|isabella|open chat|chat with|close chat/i,
 ];
 
 export type Lang = "en" | "es" | "nl";

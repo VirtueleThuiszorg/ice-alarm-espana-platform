@@ -39,6 +39,20 @@ const KNOWN_ISSUES: Record<string, string> = {
     "missing i18n keys: partnerOnboarding.* (15 keys, howItWorks/steps/commission/region/howHeard) — FINDINGS.md F7",
   "/partner/login :: render":
     "missing i18n keys: partnerLogin.title, partnerLogin.subtitle — FINDINGS.md F8",
+
+  // No-op-button heuristic false positives: handlers verified present in source,
+  // but their effect is not DOM-observable under the anon/empty backend (form
+  // submits need filled fields + a live provider; data filters have no rows to
+  // filter). NOT dead buttons. See FINDINGS.md "button-check false positives".
+  "/how-it-works :: dead-buttons":
+    "FAQ AccordionTrigger ('What if it's 3am?') is real; expand not caught by the click heuristic — FINDINGS.md B1",
+  "/contact :: dead-buttons": "'Send Message' is a real form onSubmit — FINDINGS.md B1",
+  "/partner :: dead-buttons":
+    "'Register Your Interest' is a real form onSubmit — FINDINGS.md B1",
+  "/help :: dead-buttons":
+    "'general'/'device' are category filters over an empty (dead-backend) article list — FINDINGS.md B1",
+  "/join :: dead-buttons":
+    "step-nav / Back on step 1 are handled but no-op by design under audit state — FINDINGS.md B1",
 };
 
 const PUBLIC_ROUTES: { path: string; name: string }[] = [

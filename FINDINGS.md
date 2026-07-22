@@ -21,12 +21,16 @@ defect is fixed and its check goes green.
 
 ## Failures (known defects → `test.fixme` with reason)
 
-All current failures are **missing i18n translation keys**. Because each key is
-absent from `en.json` (the fallback), it renders as the raw key on the page and the
-same key is reported for `en`, `es`, and `nl` (nl is not a wired language — see the
-NL note below — so it falls back to en and inherits the gap).
+> **✅ F1–F8 RESOLVED in the AI-strip PR (`feat/public-ai-strip`).** All keys below
+> were added to `en.json`, `es.json`, and `nl.json`; their render checks now run and
+> pass. NL is now a wired language (`supportedLngs: ["en","es","nl"]`, full `nl.json`).
+> The table is kept for the record.
 
-| # | Route | Check | Missing keys |
+These were **missing i18n translation keys** — each absent from `en.json` (the
+fallback), so it rendered as the raw key and the same key was reported for `en`,
+`es`, and `nl`.
+
+| # | Route | Check | Missing keys (now added) |
 |---|---|---|---|
 | F1 | `/` (landing) | render (en/es/nl) | `help.title` |
 | F2 | `/pricing` | render (en/es/nl) | `pricing.oneTime`, `pricing.pendant`, `pricing.shipping`, `pricing.registration`, `landing.save` |

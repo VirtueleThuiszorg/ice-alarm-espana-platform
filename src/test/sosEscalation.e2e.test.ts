@@ -172,10 +172,14 @@ function discoverEscalationSchedule(fnName: string): DiscoveredSchedule {
   for (const file of files) {
     const sql = readFileSync(`${migrationsDir}/${file}`, "utf8");
     // Locate each cron.schedule(...) block and check whether its body posts to this function.
-    const scheduleRe = /cron\.schedule\s*\(\s*'([^']+)'\s*,\s*'([^']+)'\s*,([\s\S]*?)\$\$\s*\)/g;
+    // The body is dollar-quoted; the tag may be $$ or a named tag like $CRON$ (the fixed
+    // Vault/hardcoded-URL crons use $CRON$ with a nested $inner$ DO block). Capture the
+    // opening tag and match its close via backreference; the non-greedy body stops at the
+    // matching close (a different inner tag like $inner$ does not terminate it).
+    const scheduleRe = /cron\.schedule\s*\(\s*'([^']+)'\s*,\s*'([^']+)'\s*,\s*(\$[A-Za-z]*\$)([\s\S]*?)\3\s*\)/g;
     let m: RegExpExecArray | null;
     while ((m = scheduleRe.exec(sql)) !== null) {
-      const [, , cronExpr, body] = m;
+      const [, , cronExpr, , body] = m;
       if (body.includes(`/functions/v1/${fnName}`)) {
         return { scheduled: true, cronExpr, intervalMs: cronExprToMs(cronExpr) };
       }

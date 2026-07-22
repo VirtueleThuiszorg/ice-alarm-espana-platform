@@ -63,6 +63,18 @@ session*, driven by this routine, not a live background process.
 
 > Format: `### YYYY-MM-DD — short title` then 1–3 lines. Never delete entries.
 
+### 2026-07-22 — Stage 0 verified: prod functions stale since 2026-04-20; 721/day cron spike
+Tokened read-only pass on `crpsuhoixfdhjugprbuc` (parallel session). Findings: **5 migrations
+unapplied** (incl. `pricing_source` → gates Prompt 4), **2 functions never deployed**, and **all
+89 deployed functions stale from a single 2026-04-20 deploy**. Reconciliation of the earlier
+"2026-06-17 CUTOVER COMPLETE — all functions deployed" entry: that deploy targeted the
+now-**CANCELLED** `cfwnrcogikjycjcobsay`, NOT current prod — so current prod has had no function
+deploy since 2026-04-20 (hence a CI deploy pipeline is now a hard blocker). Error spike root cause
+**confirmed empirically = ~721/day** from the two applied GUC crons (`ev07b-offline-monitor`
+720/day + `shift-daily-reminders` 1/day) throwing on un-guarded `current_setting('app.settings.*')`.
+Remediation: `STAGE_0B_PLAN.md` + PR #16 (Vault + hardcoded URL + guard, corrective migration,
+deploy CI). STATE.md Stage 0 items 1–4 flipped BLOCKED → VERIFIED.
+
 ### 2026-07-22 — LAUNCH_SCOPE locked; docs truth pass (Stage 2)
 Pendant-first launch scope committed as `LAUNCH_SCOPE.md` (canonical, added to §1 table).
 Locked decisions now reflected in the docs that own them: **(backend)** the one true backend is

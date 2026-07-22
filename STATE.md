@@ -18,20 +18,23 @@
 > Read-only pass on `crpsuhoixfdhjugprbuc`. **Nothing on prod was changed.** Statuses:
 > ✅ VERIFIED · ⚠️ DRIFT · ⛔ BLOCKED-needs-Lee.
 
+> **Items 1–4 COMPLETED 2026-07-22** by a parallel tokened session (read-only on prod);
+> findings folded in below. Remediation is **Stage 0b** — plan `STAGE_0B_PLAN.md` (PR #14),
+> repo fix PR #16 — human-gated, not yet run on prod.
+
 | # | Item | Status | Finding |
 |---|---|---|---|
-| 1 | Linked project ref = `crpsuhoixfdhjugprbuc` | ⛔ BLOCKED | Repo is **not linked** to any project — `supabase/.temp/project-ref` is absent and `supabase/config.toml` has no `project_id`. Cannot confirm/assert the ref without CLI auth + `supabase link`. |
-| 2 | Local vs remote migration diff (`supabase migration list`) | ⛔ BLOCKED | Needs an authenticated CLI against prod. Local set = **127** migrations (measured). Remote state unverified. |
-| 3 | Deployed edge functions vs repo dirs | ⛔ BLOCKED (repo side ✅) | Repo has **91** function dirs excl `_shared` (measured). Remote deployed list needs auth to diff. |
-| 4 | Postgres logs / advisor — ~694-errors/day spike root cause | ⛔ BLOCKED | Logs/advisor require dashboard or authenticated CLI access. Not reachable from this environment. |
+| 1 | Linked project ref = `crpsuhoixfdhjugprbuc` | ✅ VERIFIED | Confirmed: prod is `crpsuhoixfdhjugprbuc` (tokened session, read-only). |
+| 2 | Local vs remote migration diff (`supabase migration list`) | ✅ VERIFIED — **DRIFT** | **5 migrations unapplied on prod** (matches `STAGE_0B_PLAN.md` §2): `bootstrap_first_admin`, `pricing_source`, `fix_bootstrap_first_admin_is_active`, `sos_escalation_cron`, `deactivate_non_pendant_products`. `pricing_source` unapplied ⇒ Prompt 4 review is gated on the Stage-0b push. |
+| 3 | Deployed edge functions vs repo dirs | ✅ VERIFIED — **DRIFT** | **2 functions never deployed**; **all 89 deployed functions are stale from a single 2026-04-20 deploy.** (Reconciles the 2026-06-17 "cutover deploy" LEARN entry: that deploy targeted the now-**CANCELLED** `cfwnrcogikjycjcobsay`, not current prod — so current prod hasn't been redeployed since 2026-04-20.) Remediation: full redeploy + CI pipeline (PR #16 / plan §3). |
+| 4 | Postgres error-spike root cause | ✅ VERIFIED | **~721 errors/day = the two APPLIED GUC crons** throwing "unrecognized configuration parameter": `ev07b-offline-monitor` (`*/2 * * * *` ⇒ 720/day) + `shift-daily-reminders` (daily ⇒ 1/day) = **721/day**. Root cause (the un-guarded `current_setting('app.settings.*')`) **confirmed empirically.** Fix in PR #16 (Vault key + hardcoded public URL + missing-secret guard). *(The unapplied `sos_escalation_cron`'s 2 crons are not yet on prod, so they don't contribute to the spike — but carry the same bug, fixed in place in PR #16.)* |
 | 5 | `.env.example` completeness vs `Deno.env.get` / `import.meta.env` | ✅ VERIFIED + FIXED | **Frontend** (`import.meta.env.VITE_*`): all 13 referenced keys already present — complete. **Edge functions** (`Deno.env.get`): 25 distinct keys referenced; `.env.example` documented **none** of the server secrets (only VITE_*). **Fixed:** added an "Edge Function secrets" section (SITE_URL, WEBHOOK_SECRET, Resend/Gmail, 9× Twilio, 3× EV07B, Google OAuth, RENDER_WORKER_URL, LOVABLE_API_KEY). Excluded by design: `SUPABASE_URL/ANON_KEY/SERVICE_ROLE_KEY` (runtime auto-injected) and Stripe/Mollie keys (stored in `system_settings`, entered via Admin → Settings, not env). |
 
-**⛔ BLOCKED — what Lee must provide to finish Stage 0 (items 1–4):**
-a **Supabase personal access token** exported as `SUPABASE_ACCESS_TOKEN` (or an interactive
-`supabase login`) for an account with access to the **LifeLink Sync** org, then
-`supabase link --project-ref crpsuhoixfdhjugprbuc`. With that, items 1–4 (migration diff,
-function diff, and the Postgres error-spike root cause) can be run read-only. The Supabase CLI
-itself is available in-environment (`npx supabase` 2.109.1); only auth is missing.
+**✅ Stage 0 diagnosis COMPLETE — remediation pending (Stage 0b, human-gated).** The prod
+execution (apply 5 migrations, redeploy all functions, fix the crons, verify) runs from the
+**tokened terminal session**, or from this sandbox once `SUPABASE_ACCESS_TOKEN` is injected
+here (it is **not** present in this sandbox as of 2026-07-22). Ordered steps + verification:
+`STAGE_0B_PLAN.md`; repo fix (cron + deploy CI): PR #16.
 
 ### ⚠️ Launch domain & email — NOT verified (2026-07-22)
 

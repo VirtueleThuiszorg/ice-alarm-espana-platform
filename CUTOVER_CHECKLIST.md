@@ -1,5 +1,9 @@
 # CUTOVER_CHECKLIST.md — one-page tick-list
 
+> ⛔ **CANCELLED 2026-07-22 (LAUNCH_SCOPE.md §0).** The cutover to `cfwnrcogikjycjcobsay`
+> is not happening; the one true backend remains **`crpsuhoixfdhjugprbuc`**. Historical
+> reference only — do not execute.
+>
 > Condensed from `CUTOVER_RUNBOOK.md` (the runbook is the source of truth; this is the
 > quick-reference). Target: `cfwnrcogikjycjcobsay`. Schema already pushed (123 migrations).
 

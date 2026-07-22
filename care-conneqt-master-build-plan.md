@@ -37,7 +37,7 @@ A focused direct-to-consumer connected-care business in Spain, selling four prod
 |---|---|
 | Renovate vs rebuild | **Evolved the existing app** (rebranded ICE/Lovable base) — *not* the greenfield rebuild originally planned. Reconciled to reality 2026-06-18. |
 | Repo | **Single Vite SPA, npm** (not a monorepo); existing git history retained. |
-| Backend | **One Supabase project** (`cfwnrcogikjycjcobsay`). One identity plane, one data plane. |
+| Backend | **One Supabase project** (`crpsuhoixfdhjugprbuc` — care-conneqt-prod, LifeLink Sync org, Pro; LOCKED 2026-07-22 per LAUNCH_SCOPE.md §0). One identity plane, one data plane. *The planned migration to `cfwnrcogikjycjcobsay` is **CANCELLED**.* |
 | Surfaces | **One app, route-group separation:** client (`src/pages/{client,join}` + marketing) vs staff/admin (`src/pages/{admin,call-centre,staff,partner}`). |
 | HR / workforce | **Consolidated into the one backend**, walled by role (not a separate DB). |
 | Payments | **Stripe + Mollie** — Products/Prices, subscriptions, SEPA + cards, Customer Portal, webhook-driven. |
@@ -216,7 +216,7 @@ Staff: **Nurse** (summarize/draft) · **Alarm operator** (retrieve profile + log
 - **AI outreach** (`outreach-*` + `rate-outreach-leads` fns + AIOutreachPage)
 - **Content/media generation** (`generate-content-plan`, `generate-slot-content`, `media-draft`, `repurpose-content`, `publish-scheduled`, `generate-ai-image` + MediaManagerPage/BlogManagerPage)
 - **Video render** (`video-render-*` fns + `render-worker/` service + VideoHubPage)
-- **Partner / commission portal** — **ARCHIVE CANDIDATE** (Lee confirmed 2026-06-18: **no** real commissions currently earned): `process-commissions`, `partner-*` fns, CommissionsPage/PartnersQAPage/PartnerPricingSettingsPage and the whole `/partner/*` portal (9 routes). *If commissions go live before archiving, flip to KEEP + ring-fence + test.*
+- **Partner / commission portal** — **KEEP / LIVE AT LAUNCH** (~~ARCHIVE CANDIDATE 2026-06-18~~ **REVERSED 2026-07-22 per LAUNCH_SCOPE.md §4**): the whole `/partner/*` portal (9 routes), `partner-*` fns, CommissionsPage/PartnersQAPage/PartnerPricingSettingsPage, and `process-commissions` are **in scope from day one** — we recruit partners at launch. **Commission payouts are MANUAL for launch** (admin "Mark Paid" + hand-done bank transfer); automated payouts are phase 2. Ring-fence + test the commission flow end to end before launch.
 
 > **Bonus:** archiving the growth tooling above removes **most of the 11 non-core functions** currently
 > calling the Lovable gateway — shrinking the owed Anthropic migration down to **Isabella core**
@@ -245,7 +245,7 @@ Staff: **Nurse** (summarize/draft) · **Alarm operator** (retrieve profile + log
 | **WP8 — Hardening** | **Lint gate green (0 warnings)**, critical-path coverage, a11y, GDPR/retention, runbooks, chunk-size. | Quality gates §13 all green |
 | **WP9 — Launch** | Domain verification (Resend), Stripe/Mollie live keys, monitoring dashboards, go-live checklist §15. | Checklist green; on-call ready |
 
-*Scope note: growth tooling (YouTube/Facebook/outreach/content/video/partner — §11 archive candidates) is **out of the WP path** until Lee un-archives it.*
+*Scope note: growth tooling (YouTube/Facebook/outreach/content/video — §11 archive candidates) is **out of the WP path** until Lee un-archives it. The **partner portal is NOT archived** — it is live at launch (LAUNCH_SCOPE.md §4).*
 
 ---
 

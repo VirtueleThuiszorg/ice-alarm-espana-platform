@@ -13,6 +13,28 @@
 
 ---
 
+## Stage 0 — Prod backend verification (2026-07-22, LAUNCH_SCOPE.md §0)
+
+> Read-only pass on `crpsuhoixfdhjugprbuc`. **Nothing on prod was changed.** Statuses:
+> ✅ VERIFIED · ⚠️ DRIFT · ⛔ BLOCKED-needs-Lee.
+
+| # | Item | Status | Finding |
+|---|---|---|---|
+| 1 | Linked project ref = `crpsuhoixfdhjugprbuc` | ⛔ BLOCKED | Repo is **not linked** to any project — `supabase/.temp/project-ref` is absent and `supabase/config.toml` has no `project_id`. Cannot confirm/assert the ref without CLI auth + `supabase link`. |
+| 2 | Local vs remote migration diff (`supabase migration list`) | ⛔ BLOCKED | Needs an authenticated CLI against prod. Local set = **127** migrations (measured). Remote state unverified. |
+| 3 | Deployed edge functions vs repo dirs | ⛔ BLOCKED (repo side ✅) | Repo has **91** function dirs excl `_shared` (measured). Remote deployed list needs auth to diff. |
+| 4 | Postgres logs / advisor — ~694-errors/day spike root cause | ⛔ BLOCKED | Logs/advisor require dashboard or authenticated CLI access. Not reachable from this environment. |
+| 5 | `.env.example` completeness vs `Deno.env.get` / `import.meta.env` | ✅ VERIFIED + FIXED | **Frontend** (`import.meta.env.VITE_*`): all 13 referenced keys already present — complete. **Edge functions** (`Deno.env.get`): 25 distinct keys referenced; `.env.example` documented **none** of the server secrets (only VITE_*). **Fixed:** added an "Edge Function secrets" section (SITE_URL, WEBHOOK_SECRET, Resend/Gmail, 9× Twilio, 3× EV07B, Google OAuth, RENDER_WORKER_URL, LOVABLE_API_KEY). Excluded by design: `SUPABASE_URL/ANON_KEY/SERVICE_ROLE_KEY` (runtime auto-injected) and Stripe/Mollie keys (stored in `system_settings`, entered via Admin → Settings, not env). |
+
+**⛔ BLOCKED — what Lee must provide to finish Stage 0 (items 1–4):**
+a **Supabase personal access token** exported as `SUPABASE_ACCESS_TOKEN` (or an interactive
+`supabase login`) for an account with access to the **LifeLink Sync** org, then
+`supabase link --project-ref crpsuhoixfdhjugprbuc`. With that, items 1–4 (migration diff,
+function diff, and the Postgres error-spike root cause) can be run read-only. The Supabase CLI
+itself is available in-environment (`npx supabase` 2.109.1); only auth is missing.
+
+---
+
 ## 0. Full suite results (gates re-run 2026-07-16 on `chore/lint-zero-and-test-hygiene`)
 
 | Gate | Result | Evidence |
@@ -152,9 +174,10 @@
 ## 6. Next — tracked follow-ups (from the 2026-06-18 governance reconcile)
 
 > Lee's three decisions are applied: **AI = Isabella** (not Clara) · **stay single-app** (monorepo
-> target abandoned) · **archive the growth tooling** (partner/commission included — Lee confirmed no
-> real commissions are being earned). These follow-ups fall out of those decisions. **None were done
-> in the docs-only reconcile loop.**
+> target abandoned) · **archive the growth tooling** (YouTube/Facebook/outreach/content/video).
+> **Partner/commission portal REVERSED to KEEP/LIVE 2026-07-22 (LAUNCH_SCOPE.md §4)** — it is in
+> scope from day one, with **manual commission payouts** for launch. These follow-ups fall out of
+> those decisions. **None were done in the docs-only reconcile loop.**
 
 ### AI / Isabella
 - **Canonical spelling = `Isabella`.** Code is inconsistent — fix `Isabel` → `Isabella` in
@@ -168,8 +191,12 @@
 
 ### Scope — archive candidates (DEFERRED, per RECONCILE.md §2 / plan §11)
 - Label-only for now (no code moved/deleted): **YouTube**, **Facebook**, **AI outreach**,
-  **content/media generation**, **video-render**, and the **partner/commission portal**
-  (ARCHIVE CANDIDATE — Lee 2026-06-18: no live commissions; flip to KEEP if that changes).
+  **content/media generation**, **video-render**.
+- **Partner/commission portal — KEEP / LIVE AT LAUNCH** (~~archive candidate 2026-06-18~~ **reversed
+  2026-07-22, LAUNCH_SCOPE.md §4**): live from day one, **manual commission payouts** for launch
+  (admin "Mark Paid" + hand-done transfer); automated payouts are phase 2. Verify the commission
+  flow end to end (referral → click → attribution → signup → payment → commission → release →
+  approve → Mark Paid) before launch.
 - **Migration-shrink bonus:** archiving the above removes **most of the 11 non-core functions** on the
   Lovable gateway, reducing the Anthropic migration to **Isabella core** (`ai-run`,
   `ai-execute-action`, `ai-dispatch-events`, `isabella-voice-handler`).

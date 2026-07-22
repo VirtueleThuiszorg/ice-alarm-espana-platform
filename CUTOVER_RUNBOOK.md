@@ -1,5 +1,11 @@
 # CUTOVER_RUNBOOK.md — clean start on `cfwnrcogikjycjcobsay`
 
+> ⛔ **CANCELLED 2026-07-22 (LAUNCH_SCOPE.md §0).** This cutover is **not happening.**
+> The one true backend is and remains **`crpsuhoixfdhjugprbuc`** (care-conneqt-prod,
+> LifeLink Sync org, Pro). The migration to `cfwnrcogikjycjcobsay` is cancelled; that
+> project is not a target. This runbook is retained as **historical reference only** —
+> do NOT execute any step below against `cfwnrcogikjycjcobsay`.
+>
 > Gated runbook for cutting Care Conneqt over from the Lovable-managed Supabase
 > (`crpsuhoixfdhjugprbuc`, current live prod) to Lee's own project
 > (`cfwnrcogikjycjcobsay`). **Clean start — NO data migration.**

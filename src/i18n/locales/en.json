@@ -730,6 +730,7 @@
   },
   "landing": {
     "badge": "Protecting families across Spain — in English and Spanish",
+    "fromPriceIva": "From {{price}}/month · IVA included, no hidden fees",
     "heroTitle": "Live Independently.",
     "heroTitleHighlight": "We're Always Here.",
     "heroDescription": "Personal emergency monitoring for seniors living in Spain. Press one button and our 24/7 monitoring service responds in seconds — in English or Spanish.",

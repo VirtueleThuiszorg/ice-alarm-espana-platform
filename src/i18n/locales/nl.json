@@ -730,6 +730,7 @@
   },
   "landing": {
     "badge": "Families beschermen in heel Spanje — in het Engels en Spaans",
+    "fromPriceIva": "Vanaf {{price}}/maand · incl. btw, geen verborgen kosten",
     "heroTitle": "Leef zelfstandig.",
     "heroTitleHighlight": "Wij zijn er altijd.",
     "heroDescription": "Persoonlijke noodbewaking voor senioren in Spanje. Druk op één knop en onze 24/7-bewakingsdienst reageert binnen enkele seconden — in het Engels of Spaans.",

@@ -730,6 +730,7 @@
   },
   "landing": {
     "badge": "Protegiendo familias en toda España — en inglés y español",
+    "fromPriceIva": "Desde {{price}}/mes · IVA incluido, sin costes ocultos",
     "heroTitle": "Viva con Independencia.",
     "heroTitleHighlight": "Siempre Estamos Aquí.",
     "heroDescription": "Monitorización personal de emergencias para personas mayores en España. Pulse un botón y nuestro servicio de monitorización 24/7 responde en segundos — en inglés o español.",

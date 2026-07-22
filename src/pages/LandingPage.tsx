@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Logo } from "@/components/ui/logo";
+import { ResponseRipple } from "@/components/ui/response-ripple";
 import { ImageWithPlaceholder } from "@/components/ui/image-placeholder";
 import { Link, useSearchParams } from "react-router-dom";
 import { extractUtmParams, storeReferralData } from "@/lib/crmEvents";
@@ -37,6 +38,9 @@ export default function LandingPage() {
 
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [searchParams] = useSearchParams();
+
+  // DB-sourced "from" price for the hero trust strip (IVA included), reflects admin edits.
+  const fromPrice = formatPrice(getSubscriptionMonthlyFinal("single"));
 
   // Fetch latest blog posts for homepage section
   const { data: latestPosts } = useBlogPosts(3);
@@ -106,6 +110,11 @@ export default function LandingPage() {
                 </Button>
               </div>
 
+              {/* DB-sourced price + IVA reassurance, right under the CTA */}
+              <p className="text-base">
+                <span className="font-semibold text-foreground">{t("landing.fromPriceIva", { price: fromPrice })}</span>
+              </p>
+
               {/* Trust indicators */}
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-3 pt-4">
                 <div className="flex items-center gap-2 text-sm">
@@ -130,8 +139,8 @@ export default function LandingPage() {
             </div>
 
             {/* Right Image */}
-            <div className="relative">
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-primary/10 aspect-[4/3] bg-muted">
+            <div className="relative isolate">
+              <div className="relative z-10 rounded-3xl overflow-hidden shadow-2xl shadow-primary/10 aspect-[4/3] bg-muted">
                 <ImageWithPlaceholder
                   imageUrl={heroImage.imageUrl || "/images/homepage1.png"}
                   altText={heroImage.altText || "Happy multigenerational family enjoying peace of mind with Care Conneqt protection"}
@@ -146,7 +155,7 @@ export default function LandingPage() {
               </div>
 
               {/* Floating 24/7 card */}
-              <div className="absolute -bottom-6 -left-6 bg-card rounded-2xl shadow-xl p-4 border animate-fade-up hidden md:block">
+              <div className="absolute z-20 -bottom-6 -left-6 bg-card rounded-2xl shadow-xl p-4 border animate-fade-up hidden md:block">
                 <div className="flex items-center gap-3">
                   <div className="h-12 w-12 rounded-xl bg-alert-resolved/20 flex items-center justify-center">
                     <ShieldCheck className="h-6 w-6 text-alert-resolved" />
@@ -159,7 +168,7 @@ export default function LandingPage() {
               </div>
 
               {/* Floating response card */}
-              <div className="absolute -top-4 -right-4 bg-card rounded-2xl shadow-xl p-4 border animate-fade-up hidden md:block" style={{ animationDelay: '0.2s' }}>
+              <div className="absolute z-20 -top-4 -right-4 bg-card rounded-2xl shadow-xl p-4 border animate-fade-up hidden md:block" style={{ animationDelay: '0.2s' }}>
                 <div className="flex items-center gap-3">
                   <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center overflow-hidden">
                     <ShieldCheck className="h-6 w-6 text-primary" />
@@ -171,8 +180,8 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              <div className="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] rounded-full border border-primary/10" />
-              <div className="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] rounded-full border border-primary/5" />
+              {/* Signature response-ripple: "press once, help radiates out" (FRONTEND_REDESIGN §3) */}
+              <ResponseRipple animate className="absolute z-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] opacity-90" />
             </div>
           </div>
         </div>

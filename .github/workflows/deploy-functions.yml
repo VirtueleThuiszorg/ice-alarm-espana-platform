@@ -1,0 +1,45 @@
+name: Deploy Edge Functions
+
+# Keeps deployed Supabase Edge Functions in lock-step with `main` so they can
+# never silently drift/go stale (STAGE_0B_PLAN.md §3). Deploys on every push to
+# main that touches functions or their config. Migrations are intentionally NOT
+# auto-applied here — schema changes stay manual under the human gate.
+#
+# Required repo secrets:
+#   SUPABASE_ACCESS_TOKEN  — a personal access token for the LifeLink Sync org
+#   SUPABASE_PROJECT_REF   — crpsuhoixfdhjugprbuc
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/functions/**"
+      - "supabase/config.toml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-functions-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy functions to prod
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy all edge functions
+        # `deploy` (no function name) deploys every function under
+        # supabase/functions and honours per-function verify_jwt in config.toml
+        # (e.g. the SOS ingress functions that must stay verify_jwt=false).
+        run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}

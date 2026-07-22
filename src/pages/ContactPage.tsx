@@ -166,7 +166,7 @@ export default function ContactPage() {
               </Card>
             </div>
 
-            {/* AI Chat + Contact Form - Right Column */}
+            {/* Chat + Contact Form - Right Column */}
             <div className="lg:col-span-2 space-y-6">
               <InlineAIChat />
               <Card>

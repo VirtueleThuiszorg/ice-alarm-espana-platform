@@ -4,11 +4,13 @@ import LanguageDetector from "i18next-browser-languagedetector";
 
 import en from "./locales/en.json";
 import es from "./locales/es.json";
+import nl from "./locales/nl.json";
 
-// Load both languages immediately for instant switching
+// Load all languages immediately for instant switching
 const resources = {
   en: { translation: en },
   es: { translation: es },
+  nl: { translation: nl },
 };
 
 // Audit hook: when the page-audit harness sets window.__AUDIT__ before boot,
@@ -25,7 +27,7 @@ i18n
   .init({
     resources,
     fallbackLng: "en",
-    supportedLngs: ["en", "es"],
+    supportedLngs: ["en", "es", "nl"],
     saveMissing: auditMode,
     missingKeyHandler: auditMode
       ? (_lngs, _ns, key) => {

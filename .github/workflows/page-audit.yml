@@ -1,0 +1,53 @@
+name: Page Audit
+
+# Per-page audit harness for public routes (LAUNCH_SCOPE.md §8).
+# Runs "green or annotated": known defects are registered as test.fixme with a
+# reason in e2e/public.spec.ts and mirrored in FINDINGS.md, so a real regression
+# (a NEW failure) is what turns this red.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit-public-pages:
+    name: Audit public pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run page audit
+        run: npm run audit:pages
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: page-audit-report
+          path: |
+            e2e/.report/
+            playwright-report/
+            test-results/
+          retention-days: 14
+          if-no-files-found: ignore

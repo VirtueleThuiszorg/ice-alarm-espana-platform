@@ -35,12 +35,12 @@ itself is available in-environment (`npx supabase` 2.109.1); only auth is missin
 
 ### ⚠️ Launch domain & email — NOT verified (2026-07-22)
 
-The launch domain **`careconneqt.es` is not currently under Lee's ownership/control**. The
-repo uses it in `public/robots.txt` (sitemap) and the `auth-email-hook` sender domain — left
-as-is as the *intended* value, but **the value may change** once a domain is secured.
-**Email sending from `@careconneqt.es` cannot be verified** (no SPF/DKIM/DMARC, no
-Resend/Gmail domain verification) until domain control exists. **Development continues on the
-`*.vercel.app` URL.** Tracked as a HARD launch blocker in `LAUNCH_CHECKLIST.md`.
+The launch domain **`careconneqt.es` is owned by a known partner**. Attaching it to Vercel +
+DNS + email verification (SPF/DKIM/DMARC, Resend/Gmail domain verification) is a **final,
+coordinated go-live step** done with the partner at cutover — not before. The repo uses it in
+`public/robots.txt` (sitemap) and the `auth-email-hook` sender domain as the *intended* value;
+until cutover **email sending from `@careconneqt.es` remains unverified** and **development
+continues on the `*.vercel.app` URL**. Tracked as a HARD launch blocker in `LAUNCH_CHECKLIST.md`.
 
 ---
 

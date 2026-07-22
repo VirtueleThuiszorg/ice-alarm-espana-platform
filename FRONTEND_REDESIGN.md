@@ -1,6 +1,7 @@
 # FRONTEND_REDESIGN.md — public site redesign brief (Stage 4b)
 
-> **Status: DRAFT for Lee's sign-off.** Decided 2026-07-22. Direction chosen:
+> **Status: APPROVED (2026-07-22).** Execution remains gated on the AI-strip PR
+> merging + Lee's screenshot sign-off checkpoint (§6). Decided 2026-07-22. Direction chosen:
 > **warm-and-human primary, premium-product accents** (Lee delegated the call).
 > This doc owns the redesign: direction, principles, page map, imagery, and the
 > CC execution prompt. Runs AFTER the AI-strip PR merges (content final first).

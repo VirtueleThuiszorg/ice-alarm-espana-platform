@@ -3,7 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" href="/icon-512.png">
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#1e5a9c" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -21,22 +24,16 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Poppins:wght@400;600;700&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
     <!-- Preconnect to critical domains for faster loading -->
-    <!-- Supabase project: cfwnrcogikjycjcobsay -->
-    <link rel="preconnect" href="https://cfwnrcogikjycjcobsay.supabase.co" crossorigin />
-    <link rel="dns-prefetch" href="https://cfwnrcogikjycjcobsay.supabase.co" />
-    <link rel="preconnect" href="https://cfwnrcogikjycjcobsay.supabase.co/storage/v1" crossorigin />
-    <link rel="dns-prefetch" href="https://cfwnrcogikjycjcobsay.supabase.co/storage/v1" />
-
-    <!-- Preload hero images for instant display -->
-    <!-- TODO: Re-upload hero/pendant/avatar images to the NEW Supabase storage bucket and update these URLs -->
-    <!--
-    <link rel="preload" as="image" href="https://cfwnrcogikjycjcobsay.supabase.co/storage/v1/object/public/website-images/homepage_hero.png" fetchpriority="high" />
-    <link rel="preload" as="image" href="https://cfwnrcogikjycjcobsay.supabase.co/storage/v1/object/public/website-images/pendant_hero.png" fetchpriority="high" />
-    <link rel="preload" as="image" href="https://cfwnrcogikjycjcobsay.supabase.co/storage/v1/object/public/ai-agent-avatars/customer_service_expert.png" fetchpriority="high" />
-    -->
+    <!-- Supabase project (LOCKED): crpsuhoixfdhjugprbuc — care-conneqt-prod (LAUNCH_SCOPE.md §0).
+         Previously pointed at the CANCELLED migration-target project; corrected here. -->
+    <link rel="preconnect" href="https://crpsuhoixfdhjugprbuc.supabase.co" crossorigin />
+    <link rel="dns-prefetch" href="https://crpsuhoixfdhjugprbuc.supabase.co" />
+    <link rel="preconnect" href="https://crpsuhoixfdhjugprbuc.supabase.co/storage/v1" crossorigin />
+    <link rel="dns-prefetch" href="https://crpsuhoixfdhjugprbuc.supabase.co/storage/v1" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Care Conneqt" />
     <meta property="og:url" content="https://care-conneqt-platform.vercel.app" />
     <meta property="og:image" content="/og-image.png">
     <meta property="og:title" content="Care Conneqt - Connected Health. Human Care.">

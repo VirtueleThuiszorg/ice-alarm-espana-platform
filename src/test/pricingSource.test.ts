@@ -91,6 +91,49 @@ describe("server-compute — the total is derived, a tampered client total is im
   });
 });
 
+describe("fail-closed — server builder (no fallback) refuses partial pricing (golden rule #4)", () => {
+  it("builds cleanly from complete seed rows with no fallback", () => {
+    const config = buildPricingConfig(SEED_PLANS, SEED_SETTINGS);
+    expect(config).toEqual(DEFAULT_PRICING_CONFIG);
+  });
+
+  it("throws when a plan row is missing (e.g. only 'single', no 'couple')", () => {
+    const onlySingle = SEED_PLANS.filter((p) => p.plan_key === "single");
+    expect(() => buildPricingConfig(onlySingle, SEED_SETTINGS)).toThrow(/couple.*plan/i);
+  });
+
+  it("throws when pricing_plans is empty", () => {
+    expect(() => buildPricingConfig([], SEED_SETTINGS)).toThrow(/plan/i);
+  });
+
+  it.each([
+    "pendant_net",
+    "pendant_tax_rate",
+    "shipping_amount",
+    "registration_base",
+    "registration_tax_rate",
+  ])("throws when required setting '%s' is missing", (missing) => {
+    const partial = SEED_SETTINGS.filter((s) => s.key !== missing);
+    expect(() => buildPricingConfig(SEED_PLANS, partial)).toThrow(new RegExp(missing));
+  });
+
+  it("never substitutes a hardcoded price — a missing pendant_net cannot produce €125", () => {
+    const partial = SEED_SETTINGS.filter((s) => s.key !== "pendant_net");
+    // Prior behaviour silently used the 125.00 fallback; strict mode must throw instead.
+    expect(() => buildPricingConfig(SEED_PLANS, partial)).toThrow(/refusing to compute a charge/i);
+  });
+
+  it("accepts a zero-valued setting (registration_tax_rate = 0 is present, not missing)", () => {
+    const config = buildPricingConfig(SEED_PLANS, SEED_SETTINGS);
+    expect(config.registrationTaxRate).toBe(0);
+  });
+
+  it("still honours an explicit fallback for display surfaces (partial rows → fallback)", () => {
+    const config = buildPricingConfig([], [], DEFAULT_PRICING_CONFIG);
+    expect(config).toEqual(DEFAULT_PRICING_CONFIG);
+  });
+});
+
 describe("editor I/O — form ↔ config ↔ DB rows", () => {
   it("configToForm → formToConfig round-trips", () => {
     const form = configToForm(DEFAULT_PRICING_CONFIG);

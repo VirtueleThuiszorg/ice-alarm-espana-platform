@@ -141,27 +141,47 @@ export function formatPrice(amount: number): string {
   return `€${amount.toFixed(2)}`;
 }
 
-/** Build a PricingConfig from raw DB rows (pricing_plans + pricing_settings). */
+/**
+ * Build a PricingConfig from raw DB rows (pricing_plans + pricing_settings).
+ *
+ * `fallback` is OPTIONAL and its presence selects the mode:
+ *  - WITH a fallback (frontend display via usePricing): any value the DB has not
+ *    yet supplied falls back to the provided config, so the UI can still render
+ *    before/without a full DB load.
+ *  - WITHOUT a fallback (server charge path, submit-registration): the builder is
+ *    STRICT and FAILS CLOSED — any missing plan or setting throws rather than
+ *    substituting a hardcoded price. This upholds golden rule #4 (never charge
+ *    from client/hardcoded prices): a partially-configured pricing table can
+ *    never silently produce a charge from baked-in numbers.
+ */
 export function buildPricingConfig(
   plans: Array<{ plan_key: string; monthly_net: number; annual_months: number; subscription_tax_rate: number }>,
   settings: Array<{ key: string; value: number }>,
-  fallback: PricingConfig,
+  fallback?: PricingConfig,
 ): PricingConfig {
   const planByKey = new Map(plans.map((p) => [p.plan_key, p]));
   const s = new Map(settings.map((x) => [x.key, Number(x.value)]));
   const plan = (key: MembershipType): PlanConfig => {
     const row = planByKey.get(key);
-    return row
-      ? { monthlyNet: Number(row.monthly_net), annualMonths: Number(row.annual_months), subscriptionTaxRate: Number(row.subscription_tax_rate) }
-      : fallback[key];
+    if (row) {
+      return { monthlyNet: Number(row.monthly_net), annualMonths: Number(row.annual_months), subscriptionTaxRate: Number(row.subscription_tax_rate) };
+    }
+    if (fallback) return fallback[key];
+    throw new Error(`Pricing not configured: missing '${key}' plan — refusing to compute a charge`);
+  };
+  const setting = (key: string, pick: (f: PricingConfig) => number): number => {
+    const v = s.get(key);
+    if (v !== undefined) return v;
+    if (fallback) return pick(fallback);
+    throw new Error(`Pricing not configured: missing setting '${key}' — refusing to compute a charge`);
   };
   return {
     single: plan("single"),
     couple: plan("couple"),
-    pendantNet: s.get("pendant_net") ?? fallback.pendantNet,
-    pendantTaxRate: s.get("pendant_tax_rate") ?? fallback.pendantTaxRate,
-    shipping: s.get("shipping_amount") ?? fallback.shipping,
-    registrationBase: s.get("registration_base") ?? fallback.registrationBase,
-    registrationTaxRate: s.get("registration_tax_rate") ?? fallback.registrationTaxRate,
+    pendantNet: setting("pendant_net", (f) => f.pendantNet),
+    pendantTaxRate: setting("pendant_tax_rate", (f) => f.pendantTaxRate),
+    shipping: setting("shipping_amount", (f) => f.shipping),
+    registrationBase: setting("registration_base", (f) => f.registrationBase),
+    registrationTaxRate: setting("registration_tax_rate", (f) => f.registrationTaxRate),
   };
 }

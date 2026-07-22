@@ -34,6 +34,11 @@ export function JoinPaymentStep({ data, onUpdate, onPaymentInitiated }: JoinPaym
   });
   const total = order.grandTotal;
 
+  // Per-line IVA rates, derived from the DB-sourced order (no hardcoded rates):
+  // subscription carries 10%, the device 21% (LAUNCH_SCOPE §1).
+  const subRate = order.subscriptionNet > 0 ? Math.round((order.subscriptionTax / order.subscriptionNet) * 100) : 0;
+  const pendantRate = order.pendantNet > 0 ? Math.round((order.pendantTax / order.pendantNet) * 100) : 0;
+
   const handlePayment = async () => {
     setIsProcessing(true);
     setError(null);
@@ -106,8 +111,8 @@ export function JoinPaymentStep({ data, onUpdate, onPaymentInitiated }: JoinPaym
     <div className="space-y-6">
       <div className="text-center mb-8"><h2 className="text-2xl font-bold mb-2">{t("joinWizard.payment.title")}</h2><p className="text-muted-foreground">{t("joinWizard.payment.subtitle")}</p></div>
       <Card><CardHeader><CardTitle className="text-lg">{t("joinWizard.payment.orderSummary")}</CardTitle></CardHeader><CardContent className="space-y-3">
-        <div className="flex justify-between"><span className="text-muted-foreground">{data.membershipType === "couple" ? "Couple" : "Individual"} Membership{data.billingFrequency === "annual" && " (Annual)"}</span><span>{formatPrice(order.subscriptionFinal)}</span></div>
-        {order.pendantCount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">EV-07B Pendant {order.pendantCount > 1 && `(×${order.pendantCount})`}</span><span>{formatPrice(order.pendantFinal)}</span></div>}
+        <div className="flex justify-between"><span className="text-muted-foreground">{data.membershipType === "couple" ? "Couple" : "Individual"} Membership{data.billingFrequency === "annual" && " (Annual)"}{subRate > 0 && ` · ${t("joinWizard.summary.inclIvaRate", { rate: subRate })}`}</span><span>{formatPrice(order.subscriptionFinal)}</span></div>
+        {order.pendantCount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">EV-07B Pendant {order.pendantCount > 1 && `(×${order.pendantCount})`}{pendantRate > 0 && ` · ${t("joinWizard.summary.inclIvaRate", { rate: pendantRate })}`}</span><span>{formatPrice(order.pendantFinal)}</span></div>}
         {order.shipping > 0 && <div className="flex justify-between"><span className="text-muted-foreground">{t("joinWizard.summary.shipping")}</span><span>{formatPrice(order.shipping)}</span></div>}
         {/* Registration Fee - with discount display */}
         {order.registrationFeeEnabled && (
@@ -134,7 +139,7 @@ export function JoinPaymentStep({ data, onUpdate, onPaymentInitiated }: JoinPaym
             </span>
           </div>
         )}
-        <div className="border-t pt-3 mt-3"><div className="flex justify-between text-lg font-bold"><span>{t("joinWizard.payment.totalDueToday")}</span><span className="text-primary">{formatPrice(total)}</span></div></div>
+        <div className="border-t pt-3 mt-3"><div className="flex justify-between text-lg font-bold"><span>{t("joinWizard.payment.totalDueToday")}</span><span className="text-primary">{formatPrice(total)}</span></div>{order.totalTax > 0 && <p className="text-xs text-muted-foreground text-right mt-1">{t("joinWizard.summary.ivaIncludedTotal", { amount: formatPrice(order.totalTax) })}</p>}</div>
       </CardContent></Card>
       {error && <Card className="border-destructive bg-destructive/10"><CardContent className="pt-6 flex items-start gap-3"><AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" /><div><p className="font-medium text-destructive">{t("joinWizard.payment.paymentError")}</p><p className="text-sm text-muted-foreground">{error}</p></div></CardContent></Card>}
 

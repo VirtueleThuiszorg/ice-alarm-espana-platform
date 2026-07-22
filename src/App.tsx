@@ -52,6 +52,7 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { CallCentreLayout } from "@/components/layout/CallCentreLayout";
 import { ClientLayout } from "@/components/layout/ClientLayout";
 import { PartnerLayout } from "@/components/layout/PartnerLayout";
+import { PublicThemeLayout } from "@/components/layout/PublicThemeLayout";
 
 // Public Pages - Lazy loaded
 const Index = lazyWithRetry(() => import("./pages/Index"));
@@ -330,7 +331,10 @@ const App = () => {
               <Suspense fallback={<PageLoader />}>
                 <div id="main-content">
                   <Routes>
-                    {/* Public Routes */}
+                    {/* Public Routes — wrapped in PublicThemeLayout so the Stage 4b
+                        warm "v"-mark theme (.theme-public) scopes to public/join/auth
+                        pages only; admin/staff/client-dashboard keep legacy tokens. */}
+                    <Route element={<PublicThemeLayout />}>
                     <Route path="/" element={<Index />} />
                     <Route path="/how-it-works" element={<HowItWorksPage />} />
                     <Route path="/pricing" element={<PricingPage />} />
@@ -356,6 +360,7 @@ const App = () => {
                     <Route path="/unauthorized" element={<Unauthorized />} />
                     <Route path="/help" element={<KnowledgeBasePage />} />
                     <Route path="/member-update" element={<MemberUpdatePage />} />
+                    </Route>{/* end PublicThemeLayout */}
 
                     {/* Admin Dashboard Routes - Require Admin Role */}
                     <Route

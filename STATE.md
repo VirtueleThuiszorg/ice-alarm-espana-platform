@@ -36,6 +36,70 @@ execution (apply 5 migrations, redeploy all functions, fix the crons, verify) ru
 here (it is **not** present in this sandbox as of 2026-07-22). Ordered steps + verification:
 `STAGE_0B_PLAN.md`; repo fix (cron + deploy CI): PR #16.
 
+### Stage 0b — EXECUTED 2026-07-22 (two prod pushes, tokened session)
+
+> **Evidence discipline (GOALS G5):** two tiers below. **Code-verified** = provable from
+> this repo (definitive). **Reported** = stated complete by Lee's tokened Stage-0b run;
+> the raw `cron.job_run_details` / error-count output has **not** been folded into the repo,
+> so those lines are NOT yet stamped VERIFIED. Attach the run-log to close them.
+
+- **Migrations applied — reported COMPLETE.** All 5 Stage-0 drift migrations plus, in a
+  **second push**, the 2 SOS cron migrations (`20260716120000_sos_escalation_cron.sql`)
+  that the first push missed.
+- **Functions deployed — reported COMPLETE:** 91 edge functions deployed (clears the
+  "all stale from 2026-04-20" drift; the deploy also now runs in CI via
+  `deploy-functions.yml`).
+- **Cron auth pattern — CODE-VERIFIED (definitive).** All four scheduled jobs, in their
+  final applied state, post via the **Vault pattern** (`vault.decrypted_secrets` →
+  `service_role_key`, hardcoded public URL `crpsuhoixfdhjugprbuc`, `RAISE WARNING`+`RETURN`
+  guard if the secret is missing). **No live cron code references `current_setting('app.settings.*')`**
+  — that string survives only in explanatory comments (verified by grep across
+  `supabase/migrations/`). Job-by-job:
+  | Cron | Cadence | Scheduled by | Auth |
+  |---|---|---|---|
+  | `sos-escalation-runner` | `* * * * *` | `20260716120000_sos_escalation_cron.sql` | Vault ✓ |
+  | `staff-shift-monitor` | `*/2 * * * *` | `20260716120000_sos_escalation_cron.sql` | Vault ✓ |
+  | `ev07b-offline-monitor` | `*/2 * * * *` | re-scheduled by `20260723120000_fix_cron_url_and_auth.sql` | Vault ✓ |
+  | `shift-daily-reminders` | daily | re-scheduled by `20260723120000_fix_cron_url_and_auth.sql` | Vault ✓ |
+  This **answers the item-1 question directly**: `sos_escalation_cron` was written with the
+  Vault pattern from the start (never the `app.settings` GUC), so the PR #16 Vault fix
+  covers it. The old `app.settings` definitions of `ev07b-offline-monitor` /
+  `shift-daily-reminders` are superseded (same jobname re-scheduled) by the corrective
+  migration — so the ~721/day "unrecognized configuration parameter" spike is **eliminated
+  by design**.
+- **Crons active + firing (net.http_post 200, no `app.settings` error) — REPORTED, not yet
+  stamped.** Lee's run reports all 4 active and succeeding. To mark VERIFIED, attach the
+  output of, over the last hour:
+  `SELECT jobname, status, return_message, start_time FROM cron.job_run_details ORDER BY start_time DESC LIMIT 40;`
+  and the Postgres error count (should be **0** app.settings errors, down from ~721/day).
+- **24h clean-run clock — STARTED 2026-07-22** (Stage-0b completion). **Go/no-go:** cron
+  *configuration* is **GO** (code-verified correct). The launch-checklist tick stays open
+  until the T+24h check shows **zero** `app.settings` errors and successful cron runs in
+  `cron.job_run_details` — a runtime observation window this sandbox cannot watch (no prod
+  SQL access; outbound to prod is blocked by the network policy). Re-check ~2026-07-23.
+
+### Favicon "old ICE icon on prod" — root cause = STALE DEPLOY / CDN cache (2026-07-22)
+
+Reported: production serves the old icon at `/favicon.ico` even loaded directly (not a
+browser cache). **Investigated repo + build side (could not fetch the live site — the
+sandbox network policy 403s outbound to `*.vercel.app`).** Findings:
+
+- **Repo and build output are CORRECT.** `dist/` is byte-identical to `public/` for every
+  icon (sha256 MATCH on favicon.ico/16/32/48, icon-192/512, apple-touch); the built
+  `favicon.ico` is the Care Conneqt "v" mark (`sha256 d8e3315f…`, 5687 B). `main`'s
+  `index.html` has the correct `<link rel="icon">` set (#23) and **zero** references to the
+  cancelled project. So nothing in git or the build is the old ICE image.
+- **Therefore the wrong file is introduced at deploy/serve time**, consistent with the
+  Stage-0 finding that prod hadn't been redeployed since **2026-04-20** (pre-rebrand;
+  the rebrand landed in `b805825`). Same stale-deploy story as the broken sign-in.
+- **Fix (Lee's side — the real remedy):** redeploy current `main` to Vercel, then purge the
+  Vercel edge cache for `/favicon.ico` and the icon paths (favicon.ico is served from a fixed
+  path and CDNs pin it hard). **Diff to confirm:** `curl -s https://<prod-url>/favicon.ico | sha256sum`
+  must equal `d8e3315f327b38a58f59ecfd5ac6521455368adf7c35e5ccb8dc08695d60d4d1`. If it
+  differs, the deploy is still stale; if it matches, it was edge cache.
+- **Repo hardening (this branch):** `vercel.json` now sets a short, must-revalidate
+  `Cache-Control` on the icon paths so a future icon swap can't be pinned stale by the CDN.
+
 ### ⚠️ Launch domain & email — NOT verified (2026-07-22)
 
 The launch domain **`careconneqt.es` is owned by a known partner**. Attaching it to Vercel +

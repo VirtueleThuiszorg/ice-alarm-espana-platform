@@ -1,0 +1,114 @@
+import { test, expect } from "@playwright/test";
+import {
+  gotoAudited,
+  findDeadAnchors,
+  collectInternalHrefs,
+  findBrandLeaks,
+  collectMissingI18nKeys,
+  findNoOpButtons,
+  type Lang,
+} from "./helpers/pageAudit";
+import { getDeclaredRoutes, routeExists } from "./helpers/routes";
+
+/**
+ * Per-page audit for PUBLIC routes (LAUNCH_SCOPE.md §8).
+ *
+ * Each check that FAILS today because of a KNOWN DEFECT is registered in
+ * KNOWN_ISSUES below and skipped via test.fixme() with its reason — so the suite
+ * runs "green or annotated", never falsely green (GOALS.md G5). Every entry here
+ * is mirrored in FINDINGS.md. Remove an entry when the underlying defect is fixed
+ * and the check goes green.
+ *
+ * Key format: `${route} :: ${check}` or `* :: ${check}` (applies to every route).
+ */
+const KNOWN_ISSUES: Record<string, string> = {
+  // --- populated from the first harness run; see FINDINGS.md ---
+};
+
+const PUBLIC_ROUTES: { path: string; name: string }[] = [
+  { path: "/", name: "landing" },
+  { path: "/pendant", name: "pendant" },
+  { path: "/how-it-works", name: "how-it-works" },
+  { path: "/pricing", name: "pricing" },
+  { path: "/contact", name: "contact" },
+  { path: "/help", name: "help" },
+  { path: "/blog", name: "blog" },
+  { path: "/terms", name: "terms" },
+  { path: "/privacy", name: "privacy" },
+  { path: "/join", name: "join-step1" },
+  { path: "/login", name: "login" },
+  { path: "/partner", name: "partner" },
+  { path: "/partner/join", name: "partner-join" },
+  { path: "/partner/login", name: "partner-login" },
+];
+
+const LANGS: Lang[] = ["en", "es", "nl"];
+const declared = getDeclaredRoutes();
+
+function knownIssue(route: string, check: string): string | undefined {
+  return KNOWN_ISSUES[`${route} :: ${check}`] ?? KNOWN_ISSUES[`* :: ${check}`];
+}
+
+for (const { path, name } of PUBLIC_ROUTES) {
+  test.describe(`${name} (${path})`, () => {
+    test("no dead anchors (href='#')", async ({ page }) => {
+      const reason = knownIssue(path, "dead-anchors");
+      test.fixme(!!reason, reason);
+      await gotoAudited(page, path, "en");
+      const dead = await findDeadAnchors(page);
+      expect(
+        dead,
+        `Dead anchors found:\n${dead.map((d) => `  "${d.text}" -> ${d.href}`).join("\n")}`
+      ).toEqual([]);
+    });
+
+    test("internal links resolve to a declared route", async ({ page }) => {
+      const reason = knownIssue(path, "internal-links");
+      test.fixme(!!reason, reason);
+      await gotoAudited(page, path, "en");
+      const hrefs = await collectInternalHrefs(page);
+      const broken = hrefs.filter((h) => !routeExists(h, declared));
+      expect(broken, `Links to nonexistent routes:\n  ${broken.join("\n  ")}`).toEqual([]);
+    });
+
+    test("no forbidden brand strings in rendered output", async ({ page }) => {
+      const reason = knownIssue(path, "brand");
+      test.fixme(!!reason, reason);
+      await gotoAudited(page, path, "en");
+      const hits = await findBrandLeaks(page);
+      expect(
+        hits,
+        `Forbidden brand strings:\n${hits.map((h) => `  ${h.term}: "${h.sample}"`).join("\n")}`
+      ).toEqual([]);
+    });
+
+    for (const lng of LANGS) {
+      test(`renders in ${lng} with zero missing i18n keys`, async ({ page }) => {
+        const reason = knownIssue(path, `render-${lng}`);
+        test.fixme(!!reason, reason);
+        await gotoAudited(page, path, lng);
+
+        // The page rendered real content (not a blank/crashed shell).
+        const bodyText = await page.evaluate(() => document.body.innerText || "");
+        expect(bodyText.trim().length, "page rendered no visible text").toBeGreaterThan(30);
+
+        const missing = await collectMissingI18nKeys(page);
+        expect(
+          missing,
+          `Missing i18n keys in ${lng}:\n  ${missing.slice(0, 40).join("\n  ")}`
+        ).toEqual([]);
+      });
+    }
+
+    test("every visible button has an effect (no no-op handlers)", async ({ page }) => {
+      const reason = knownIssue(path, "dead-buttons");
+      test.fixme(!!reason, reason);
+      test.slow(); // re-navigates per button
+      const dead = await findNoOpButtons(page, path, "en");
+      expect(
+        dead,
+        `Buttons with no observable effect:\n${dead.map((d) => `  [#${d.index}] "${d.name}"`).join("\n")}`
+      ).toEqual([]);
+    });
+  });
+}

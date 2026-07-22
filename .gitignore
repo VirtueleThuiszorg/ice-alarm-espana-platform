@@ -36,3 +36,8 @@ supabase/.temp/
 
 # Claude Code local settings
 .claude/
+
+# Playwright audit
+e2e/.report/
+test-results/
+playwright-report/

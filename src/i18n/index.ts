@@ -11,6 +11,13 @@ const resources = {
   es: { translation: es },
 };
 
+// Audit hook: when the page-audit harness sets window.__AUDIT__ before boot,
+// collect every missing translation key so specs can assert zero. No-op in
+// production (the flag is never set there). See e2e/helpers/pageAudit.ts.
+const auditMode =
+  typeof window !== "undefined" &&
+  (window as unknown as { __AUDIT__?: boolean }).__AUDIT__ === true;
+
 // Initialize i18n synchronously to prevent race conditions
 i18n
   .use(LanguageDetector)
@@ -19,6 +26,13 @@ i18n
     resources,
     fallbackLng: "en",
     supportedLngs: ["en", "es"],
+    saveMissing: auditMode,
+    missingKeyHandler: auditMode
+      ? (_lngs, _ns, key) => {
+          const w = window as unknown as { __I18N_MISSING__?: string[] };
+          (w.__I18N_MISSING__ ||= []).push(key);
+        }
+      : undefined,
     interpolation: {
       escapeValue: false,
     },

@@ -152,9 +152,10 @@
 ## 6. Next — tracked follow-ups (from the 2026-06-18 governance reconcile)
 
 > Lee's three decisions are applied: **AI = Isabella** (not Clara) · **stay single-app** (monorepo
-> target abandoned) · **archive the growth tooling** (partner/commission included — Lee confirmed no
-> real commissions are being earned). These follow-ups fall out of those decisions. **None were done
-> in the docs-only reconcile loop.**
+> target abandoned) · **archive the growth tooling** (YouTube/Facebook/outreach/content/video).
+> **Partner/commission portal REVERSED to KEEP/LIVE 2026-07-22 (LAUNCH_SCOPE.md §4)** — it is in
+> scope from day one, with **manual commission payouts** for launch. These follow-ups fall out of
+> those decisions. **None were done in the docs-only reconcile loop.**
 
 ### AI / Isabella
 - **Canonical spelling = `Isabella`.** Code is inconsistent — fix `Isabel` → `Isabella` in
@@ -168,8 +169,12 @@
 
 ### Scope — archive candidates (DEFERRED, per RECONCILE.md §2 / plan §11)
 - Label-only for now (no code moved/deleted): **YouTube**, **Facebook**, **AI outreach**,
-  **content/media generation**, **video-render**, and the **partner/commission portal**
-  (ARCHIVE CANDIDATE — Lee 2026-06-18: no live commissions; flip to KEEP if that changes).
+  **content/media generation**, **video-render**.
+- **Partner/commission portal — KEEP / LIVE AT LAUNCH** (~~archive candidate 2026-06-18~~ **reversed
+  2026-07-22, LAUNCH_SCOPE.md §4**): live from day one, **manual commission payouts** for launch
+  (admin "Mark Paid" + hand-done transfer); automated payouts are phase 2. Verify the commission
+  flow end to end (referral → click → attribution → signup → payment → commission → release →
+  approve → Mark Paid) before launch.
 - **Migration-shrink bonus:** archiving the above removes **most of the 11 non-core functions** on the
   Lovable gateway, reducing the Anthropic migration to **Isabella core** (`ai-run`,
   `ai-execute-action`, `ai-dispatch-events`, `isabella-voice-handler`).

@@ -17,7 +17,8 @@ Each kind of fact has ONE canonical home. Update the home, not five copies.
 | Doc | Owns |
 |---|---|
 | `CLAUDE.md` | Stack, real size figures, infra/secrets, Isabella state, working rules, brand, known leftovers, the §0 protocol hook |
-| `LAUNCH_CHECKLIST.md` | Every blocker/task to launch, ticked only when verified; rollout stages |
+| `LAUNCH_SCOPE.md` | **The pendant-first launch scope (LOCKED 2026-07-22): backend decision, what is public vs hidden, pricing model, languages, member self-service, partner-portal reversal, per-page audit rule, the staged plan.** Canonical — other docs link here, they do not copy from here. |
+| `LAUNCH_CHECKLIST.md` | Every blocker/task to launch, ticked only when verified; rollout stages. **⚠️ NOT PRESENT in the repo as of 2026-07-22** — launch tasks currently live in `LAUNCH_SCOPE.md` §10 and `CUTOVER_CHECKLIST.md`. Create it or retire this row. |
 | `LEARN.md` (this file) | The doc protocol, the learnings log, the improvement backlog |
 | `AUDIT_REPORT_2026-06.md` | Point-in-time audit snapshot — **frozen, never edited** (new audits get new dated files) |
 | `BRAND_ASSETS.md` | Colours, fonts, logo |
@@ -60,6 +61,24 @@ session*, driven by this routine, not a live background process.
 ## 4. Learnings log (append-only, newest at top)
 
 > Format: `### YYYY-MM-DD — short title` then 1–3 lines. Never delete entries.
+
+### 2026-07-22 — LAUNCH_SCOPE locked; docs truth pass (Stage 2)
+Pendant-first launch scope committed as `LAUNCH_SCOPE.md` (canonical, added to §1 table).
+Locked decisions now reflected in the docs that own them: **(backend)** the one true backend is
+`crpsuhoixfdhjugprbuc` (care-conneqt-prod, LifeLink Sync org, Pro) — the `cfwnrcogikjycjcobsay`
+cutover is **CANCELLED** (`qkfvojbcxaptufsepupo` to be deleted); updated CLAUDE.md Stack + master
+plan §Architecture, and banner-cancelled CUTOVER_RUNBOOK.md/CUTOVER_CHECKLIST.md. **(partner)** the
+2026-06-18 archive-candidate label on the partner/commission portal is **REVERSED** — live at
+launch, **manual commission payouts**; fixed master plan §11 + STATE.md §6. **(pricing)** DB-backed
+single source of truth — single €24.99 + couple €34.99 net + 10% IVA, monthly/annual toggle
+(LAUNCH_SCOPE §1; note STATE.md §2 already shows `submit-registration` computes server-authoritative
+totals from DB `pricing_plans`/`pricing_settings`, so this is largely built). **(languages)** EN/ES/NL
+full coverage at launch. **(member self-service)** real Stripe/Mollie-backed billing (update payment
+method, switch plan, invoices, cancel) is launch scope, not stubs.
+Two drifts flagged, not resolved: `LAUNCH_CHECKLIST.md` does **not exist** (so LAUNCH_SCOPE could not
+be linked from it — annotated the §1 table instead); and CLAUDE.md has no "§4 backend" section (the
+golden-rule/§-numbering that LEARN §2 and old notes reference is stale) — backend fact recorded in
+the Stack line, its true home today.
 
 ### 2026-06-17 — CLAUDE.md §4/§6 updated to post-cutover reality (live ref swapped)
 §4 now names `cfwnrcogikjycjcobsay` as CURRENT LIVE PRODUCTION (cutover complete: 126

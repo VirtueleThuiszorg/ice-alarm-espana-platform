@@ -30,15 +30,32 @@
   - Single: **€24.99/mo + 10% IVA = €27.49** displayed (IVA incluido)
   - Couple: **€34.99/mo + 10% IVA = €38.49** displayed (IVA incluido)
 - **Billing frequency: monthly AND annual, customer chooses via a toggle** on
-  the pricing display and in the join flow. Annual ratio to be confirmed from
-  the existing `pricing.ts` ratio (flag for Lee if it differs from 10× monthly).
-- **Pricing moves to the database (single source of truth).** Net price, tax
-  rate, and annual ratio stored in DB (pricing_plans / system_settings —
-  implementer's choice, one place only), read by: the public site, the join
-  wizard, `submit-registration` (the charged amount), and the member dashboard.
-  The three hardcoded copies (pricing.ts, submit-registration literals,
-  marketing JSX literals) are deleted. Admin gets a pricing editor — **no
-  deploy ever needed to change a price again.**
+  the pricing display and in the join flow. **Annual ratio CONFIRMED = 10**
+  (`annualMonths = 10`: the annual price equals 10× the monthly net — pay 10
+  months, get 12), Lee 2026-07-22.
+- **IVA is PER LINE ITEM, not one global rate (CORRECTED 2026-07-22, Lee):**
+  - **Subscription plans → 10% IVA.** Single **€24.99 net → €27.49 gross/mo**;
+    couple **€34.99 net → €38.49 gross/mo** (prices unchanged).
+  - **Device / product sales (the pendant, etc.) → 21% IVA.**
+  - Therefore the pricing model **MUST store `tax_rate` on each line item**
+    (plans carry `0.10`, products carry `0.21`). **A single global tax setting
+    is WRONG** and must not be used.
+  - The **join flow + checkout must show each line with its own IVA** and a
+    correct combined total. All prices displayed **IVA-inclusive** with an
+    **"IVA incluido"** label (translated EN/ES/NL).
+  - **Landing "21% IVA" copy fix:** where the current copy applies 21% to the
+    *subscription* it is WRONG (must be 10%); where it describes the *device* it
+    stays 21% but must say so clearly. (Fix rides with Prompt 4 — same files as
+    the DB pricing wiring.)
+- **Pricing moves to the database (single source of truth).** Net price,
+  **per-line `tax_rate`**, and annual ratio stored in DB (pricing_plans /
+  system_settings — implementer's choice, one place only), read by: the public
+  site, the join wizard, `submit-registration` (the charged amount), and the
+  member dashboard. The three hardcoded copies (pricing.ts, submit-registration
+  literals, marketing JSX literals) are deleted. Admin gets a pricing editor —
+  **no deploy ever needed to change a price again.**
+- **↑ These pricing/IVA rules are the acceptance criteria for the Prompt 4
+  (pricing-to-DB) review.**
 - Other devices (glucose monitor, medication dispenser, family pack, etc.)
   remain in the `products` table, **deactivated/hidden**, ready for phase 2.
 

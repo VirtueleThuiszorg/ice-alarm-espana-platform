@@ -33,6 +33,15 @@ a **Supabase personal access token** exported as `SUPABASE_ACCESS_TOKEN` (or an 
 function diff, and the Postgres error-spike root cause) can be run read-only. The Supabase CLI
 itself is available in-environment (`npx supabase` 2.109.1); only auth is missing.
 
+### ⚠️ Launch domain & email — NOT verified (2026-07-22)
+
+The launch domain **`careconneqt.es` is not currently under Lee's ownership/control**. The
+repo uses it in `public/robots.txt` (sitemap) and the `auth-email-hook` sender domain — left
+as-is as the *intended* value, but **the value may change** once a domain is secured.
+**Email sending from `@careconneqt.es` cannot be verified** (no SPF/DKIM/DMARC, no
+Resend/Gmail domain verification) until domain control exists. **Development continues on the
+`*.vercel.app` URL.** Tracked as a HARD launch blocker in `LAUNCH_CHECKLIST.md`.
+
 ---
 
 ## 0. Full suite results (gates re-run 2026-07-16 on `chore/lint-zero-and-test-hygiene`)

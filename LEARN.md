@@ -18,7 +18,8 @@ Each kind of fact has ONE canonical home. Update the home, not five copies.
 |---|---|
 | `CLAUDE.md` | Stack, real size figures, infra/secrets, Isabella state, working rules, brand, known leftovers, the §0 protocol hook |
 | `LAUNCH_SCOPE.md` | **The pendant-first launch scope (LOCKED 2026-07-22): backend decision, what is public vs hidden, pricing model, languages, member self-service, partner-portal reversal, per-page audit rule, the staged plan.** Canonical — other docs link here, they do not copy from here. |
-| `LAUNCH_CHECKLIST.md` | Every blocker/task to launch, ticked only when verified; rollout stages. **⚠️ NOT PRESENT in the repo as of 2026-07-22** — launch tasks currently live in `LAUNCH_SCOPE.md` §10 and `CUTOVER_CHECKLIST.md`. Create it or retire this row. |
+| `LAUNCH_CHECKLIST.md` | Every blocker/task to launch, ticked only when verified; rollout stages. **Created 2026-07-22** (hard blockers: domain/email, payments, safety, backend, content). |
+| `FRONTEND_REDESIGN.md` | The public-site redesign brief (Stage 4b): direction, tokens usage, page map, imagery brief, execution prompt. Runs only after the AI-strip PR merges + Lee's visual sign-off. |
 | `LEARN.md` (this file) | The doc protocol, the learnings log, the improvement backlog |
 | `AUDIT_REPORT_2026-06.md` | Point-in-time audit snapshot — **frozen, never edited** (new audits get new dated files) |
 | `BRAND_ASSETS.md` | Colours, fonts, logo |

@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Plus, 
-  CheckCircle, 
-  AlertTriangle, 
-  Clock, 
+  Plus,
+  CheckCircle,
+  AlertTriangle,
+  Clock,
   User,
-  Flag
+  Flag,
+  Pencil,
+  Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,6 +24,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -39,6 +51,7 @@ interface ShiftNote {
   requiresFollowup: boolean;
   followupCompleted: boolean;
   createdAt: Date;
+  staffId: string | null;
   staffName: string;
   memberName?: string;
   memberId?: string;
@@ -55,11 +68,41 @@ export default function ShiftNotesPage() {
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
   const [filter, setFilter] = useState<"all" | "followup" | "completed">("all");
   const [members, setMembers] = useState<{ id: string; name: string }[]>([]);
+  const [currentStaffId, setCurrentStaffId] = useState<string | null>(null);
+  const [editingNote, setEditingNote] = useState<ShiftNote | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [noteToDelete, setNoteToDelete] = useState<ShiftNote | null>(null);
 
   useEffect(() => {
     fetchNotes();
     fetchMembers();
+
+    // Keep the list live: notes added/edited/deleted by other operators
+    // appear without a reload.
+    const channel = supabase
+      .channel("call-centre-shift-notes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "shift_notes" }, () => {
+        fetchNotes();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
+
+  useEffect(() => {
+    const fetchCurrentStaff = async () => {
+      if (!user?.id) return;
+      const { data } = await supabase
+        .from("staff")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setCurrentStaffId(data?.id ?? null);
+    };
+    fetchCurrentStaff();
+  }, [user?.id]);
 
   const fetchNotes = async () => {
     setIsLoading(true);
@@ -72,6 +115,7 @@ export default function ShiftNotesPage() {
           requires_followup,
           followup_completed,
           created_at,
+          staff_id,
           staff:staff_id (
             first_name,
             last_name
@@ -92,6 +136,7 @@ export default function ShiftNotesPage() {
         requiresFollowup: note.requires_followup,
         followupCompleted: note.followup_completed,
         createdAt: new Date(note.created_at),
+        staffId: note.staff_id,
         staffName: note.staff ? `${note.staff.first_name} ${note.staff.last_name}` : "Unknown",
         memberName: note.member ? `${note.member.first_name} ${note.member.last_name}` : undefined,
         memberId: note.member_id,
@@ -179,6 +224,59 @@ export default function ShiftNotesPage() {
     } catch (error) {
       console.error("Error updating note:", error);
       toast({ title: t("common.error", "Error"), description: t("shiftNotes.failedToUpdate", "Failed to update note"), variant: "destructive" });
+    }
+  };
+
+  const openEditDialog = (note: ShiftNote) => {
+    setEditingNote(note);
+    setEditContent(note.noteContent);
+  };
+
+  const handleEditNote = async () => {
+    if (!editingNote || editingNote.staffId !== currentStaffId) return;
+    if (!editContent.trim()) {
+      toast({ title: t("common.error", "Error"), description: t("shiftNotes.noteRequired", "Note content is required"), variant: "destructive" });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("shift_notes")
+        .update({ note_content: editContent })
+        .eq("id", editingNote.id)
+        .eq("staff_id", currentStaffId);
+
+      if (error) throw error;
+
+      setNotes(notes.map(note =>
+        note.id === editingNote.id ? { ...note, noteContent: editContent } : note
+      ));
+      setEditingNote(null);
+      toast({ title: t("shiftNotes.noteUpdated", "Note updated") });
+    } catch (error) {
+      console.error("Error updating note:", error);
+      toast({ title: t("common.error", "Error"), description: t("shiftNotes.failedToUpdate", "Failed to update note"), variant: "destructive" });
+    }
+  };
+
+  const handleDeleteNote = async () => {
+    if (!noteToDelete || noteToDelete.staffId !== currentStaffId) return;
+
+    try {
+      const { error } = await supabase
+        .from("shift_notes")
+        .delete()
+        .eq("id", noteToDelete.id)
+        .eq("staff_id", currentStaffId);
+
+      if (error) throw error;
+
+      setNotes(notes.filter(note => note.id !== noteToDelete.id));
+      setNoteToDelete(null);
+      toast({ title: t("shiftNotes.noteDeleted", "Note deleted") });
+    } catch (error) {
+      console.error("Error deleting note:", error);
+      toast({ title: t("common.error", "Error"), description: t("shiftNotes.failedToDelete", "Failed to delete note"), variant: "destructive" });
     }
   };
 
@@ -339,15 +437,39 @@ export default function ShiftNotesPage() {
                       <p className="text-sm">{note.noteContent}</p>
                     </div>
                     
-                    {note.requiresFollowup && (
-                      <div className="flex items-center gap-2">
-                        <Checkbox 
-                          checked={note.followupCompleted}
-                          onCheckedChange={(checked) => handleToggleFollowup(note.id, checked as boolean)}
-                        />
-                        <Label className="text-xs text-muted-foreground">{t("shiftNotes.done", "Done")}</Label>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-3">
+                      {note.requiresFollowup && (
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            checked={note.followupCompleted}
+                            onCheckedChange={(checked) => handleToggleFollowup(note.id, checked as boolean)}
+                          />
+                          <Label className="text-xs text-muted-foreground">{t("shiftNotes.done", "Done")}</Label>
+                        </div>
+                      )}
+                      {currentStaffId && note.staffId === currentStaffId && (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            aria-label={t("shiftNotes.editNote", "Edit note")}
+                            onClick={() => openEditDialog(note)}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            aria-label={t("shiftNotes.deleteNote", "Delete note")}
+                            onClick={() => setNoteToDelete(note)}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -355,6 +477,50 @@ export default function ShiftNotesPage() {
           )}
         </div>
       </ScrollArea>
+
+      {/* Edit Note Dialog (author-only) */}
+      <Dialog open={!!editingNote} onOpenChange={(open) => !open && setEditingNote(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("shiftNotes.editShiftNote", "Edit Shift Note")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div>
+              <Label>{t("shiftNotes.note", "Note")}</Label>
+              <Textarea
+                placeholder={t("shiftNotes.notePlaceholder", "Enter shift note...")}
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="min-h-[120px]"
+              />
+            </div>
+            <Button onClick={handleEditNote} className="w-full">
+              {t("shiftNotes.saveChanges", "Save Changes")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Note Confirmation (author-only) */}
+      <AlertDialog open={!!noteToDelete} onOpenChange={(open) => !open && setNoteToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("shiftNotes.deleteConfirmTitle", "Delete this note?")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("shiftNotes.deleteConfirmDesc", "This will permanently delete the shift note. This action cannot be undone.")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel", "Cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleDeleteNote}
+            >
+              {t("common.delete", "Delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

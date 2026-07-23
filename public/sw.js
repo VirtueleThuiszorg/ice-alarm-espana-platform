@@ -3,7 +3,7 @@
 /*  Cache-first for statics, network-first for API, offline fallback  */
 /* ================================================================== */
 
-const CACHE_VERSION = "care-conneqt-v5";
+const CACHE_VERSION = "care-conneqt-v6";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 
@@ -18,6 +18,10 @@ const PRE_CACHE = [
 
 /* ---- Patterns ---- */
 const STATIC_EXTENSIONS = /\.(js|css|woff2?|ttf|eot|otf|png|jpe?g|gif|svg|ico|webp|avif)$/i;
+// Brand identity assets must NEVER be pinned by a stale cache: the tab icon is
+// what users (and Lee) see. Served network-first with HTTP-cache revalidation;
+// the SW cache is only an offline fallback for these.
+const ICON_PATHS = /^\/(favicon(-\d+x\d+)?\.(ico|png)|icon(-\d+)?\.(png|svg)|apple-touch-icon\.png|og-image\.png|manifest\.json)$/i;
 const SUPABASE_HOST = "supabase.co";
 
 /* ================================================================== */
@@ -27,7 +31,12 @@ const SUPABASE_HOST = "supabase.co";
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
-      return cache.addAll(PRE_CACHE).catch((err) => {
+      // cache: "reload" bypasses the browser's HTTP cache. Without it, addAll()
+      // is satisfied by whatever the HTTP cache holds — which is how every
+      // previous CACHE_VERSION bump re-baked the STALE favicon into the "new"
+      // cache (the old icon was pinned by long CDN headers on old deploys).
+      const requests = PRE_CACHE.map((url) => new Request(url, { cache: "reload" }));
+      return cache.addAll(requests).catch((err) => {
         // Non-critical: some assets may not exist yet during first deploy
         console.warn("[SW] Pre-cache partial failure:", err);
       });
@@ -78,6 +87,16 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // --- Icons / manifest: network-first, revalidating the HTTP cache too ---
+  // These are un-hashed fixed paths, so cache-first would pin an old brand
+  // icon forever (the "tab loads the right logo then switches back" bug: the
+  // network gave the fresh icon, then the SW answered a later request with
+  // the stale cached one). Offline still falls back to the last cached copy.
+  if (url.origin === self.location.origin && ICON_PATHS.test(url.pathname)) {
+    event.respondWith(networkFirst(request, STATIC_CACHE, { revalidate: true }));
+    return;
+  }
+
   // --- Other static assets (images, fonts): cache-first ---
   if (STATIC_EXTENSIONS.test(url.pathname)) {
     event.respondWith(cacheFirst(request, STATIC_CACHE));
@@ -120,10 +139,13 @@ async function cacheFirst(request, cacheName) {
 
 /**
  * Network-first: try the network, fall back to cache.
+ * { revalidate: true } additionally bypasses the browser HTTP cache
+ * (cache: "no-cache" → conditional request to the server/CDN), so a
+ * long-lived stale HTTP-cache entry can't masquerade as "the network".
  */
-async function networkFirst(request, cacheName) {
+async function networkFirst(request, cacheName, { revalidate = false } = {}) {
   try {
-    const response = await fetch(request);
+    const response = await fetch(request, revalidate ? { cache: "no-cache" } : undefined);
     if (response.ok) {
       const cache = await caches.open(cacheName);
       cache.put(request, response.clone());

@@ -151,10 +151,10 @@ export function MemberUpdateRequestModal({ open, onOpenChange, member }: MemberU
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case "profile": return "bg-blue-100 text-blue-800";
-      case "medical": return "bg-red-100 text-red-800";
-      case "contacts": return "bg-green-100 text-green-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "profile": return "bg-blue-500/10 text-blue-600 dark:text-blue-400";
+      case "medical": return "bg-red-500/10 text-red-600 dark:text-red-400";
+      case "contacts": return "bg-green-500/10 text-green-600 dark:text-green-400";
+      default: return "bg-muted text-muted-foreground";
     }
   };
 

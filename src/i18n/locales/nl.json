@@ -2879,7 +2879,9 @@
     "success": "Registratie succesvol voltooid!",
     "pleaseLogin": "Log eerst in",
     "pleaseLoginFirst": "Gelieve",
-    "toComplete": "om uw registratie te voltooien"
+    "toComplete": "om uw registratie te voltooien",
+    "noMembershipFound": "We konden geen lidmaatschap vinden voor dit e-mailadres. Word lid van Care Conneqt om te beginnen.",
+    "emailNotConfirmed": "Bevestig eerst uw e-mailadres — controleer uw inbox voor de bevestigingslink."
   },
   "contact": {
     "hero": {

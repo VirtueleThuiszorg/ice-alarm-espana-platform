@@ -2871,7 +2871,9 @@
     "success": "¡Registro completado exitosamente!",
     "pleaseLogin": "Por favor inicie sesión primero",
     "pleaseLoginFirst": "Por favor",
-    "toComplete": "para completar su registro"
+    "toComplete": "para completar su registro",
+    "noMembershipFound": "No encontramos una membresía para este correo. Únase a Care Conneqt para empezar.",
+    "emailNotConfirmed": "Confirme primero su correo electrónico — busque el enlace de confirmación en su bandeja de entrada."
   },
   "contact": {
     "hero": {

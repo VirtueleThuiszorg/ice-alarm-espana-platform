@@ -68,12 +68,12 @@ interface Note {
 }
 
 const noteTypeConfig: Record<string, { icon: LucideIcon; label: string; color: string }> = {
-  general: { icon: FileText, label: "General", color: "bg-secondary" },
-  medical: { icon: Stethoscope, label: "Medical", color: "bg-red-500/10 text-red-500" },
-  payment: { icon: CreditCard, label: "Payment", color: "bg-green-500/10 text-green-500" },
-  support: { icon: HeadphonesIcon, label: "Support", color: "bg-blue-500/10 text-blue-500" },
-  followup: { icon: CalendarCheck, label: "Follow-up", color: "bg-yellow-500/10 text-yellow-500" },
-  complaint: { icon: AlertCircle, label: "Complaint", color: "bg-orange-500/10 text-orange-500" },
+  general: { icon: FileText, label: "General", color: "bg-secondary text-secondary-foreground" },
+  medical: { icon: Stethoscope, label: "Medical", color: "bg-red-500/10 text-red-600 dark:text-red-400" },
+  payment: { icon: CreditCard, label: "Payment", color: "bg-green-500/10 text-green-600 dark:text-green-400" },
+  support: { icon: HeadphonesIcon, label: "Support", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+  followup: { icon: CalendarCheck, label: "Follow-up", color: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400" },
+  complaint: { icon: AlertCircle, label: "Complaint", color: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
 };
 
 interface NotesTabProps {

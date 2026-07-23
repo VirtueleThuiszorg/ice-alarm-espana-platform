@@ -478,7 +478,7 @@ export default function StaffDashboard() {
         ))}
       </div>
 
-      {/* Priority Row: Active Alerts + EV-07B Fleet */}
+      {/* Members Row 1: Active Alerts + Courtesy Calls */}
       <div className="grid md:grid-cols-2 gap-4">
         {/* Active Alerts */}
         <Card className={`shadow-sm ${activeAlerts.length > 0 ? 'border-destructive/30' : ''}`}>
@@ -523,18 +523,6 @@ export default function StaffDashboard() {
           </CardContent>
         </Card>
 
-        {/* EV-07B Fleet — Compact combined view */}
-        <div className="space-y-4">
-          <EV07BLiveStatusCard />
-          <div className="grid grid-cols-2 gap-4">
-            <DeviceOfflineAlertsCard />
-            <DeviceIssuesQueue />
-          </div>
-        </div>
-      </div>
-
-      {/* Action Row: Courtesy Calls + Tasks */}
-      <div className="grid md:grid-cols-2 gap-4">
         {/* Courtesy Calls */}
         <Card className="shadow-sm">
           <CardHeader className="pb-2 pt-4 px-4">
@@ -610,6 +598,10 @@ export default function StaffDashboard() {
           </CardContent>
         </Card>
 
+      </div>
+
+      {/* Members Row 2: Tasks + Messages */}
+      <div className="grid md:grid-cols-2 gap-4">
         {/* My Tasks */}
         <Card className="shadow-sm">
           <CardHeader className="pb-2 pt-4 px-4">
@@ -653,10 +645,6 @@ export default function StaffDashboard() {
             )}
           </CardContent>
         </Card>
-      </div>
-
-      {/* Comms Row: Messages + Leads */}
-      <div className="grid md:grid-cols-2 gap-4">
         {/* Recent Messages */}
         <Card className="shadow-sm">
           <CardHeader className="pb-2 pt-4 px-4">
@@ -701,19 +689,13 @@ export default function StaffDashboard() {
           </CardContent>
         </Card>
 
+      </div>
+
+      {/* Members Row 3: Leads + Birthdays */}
+      <div className="grid md:grid-cols-2 gap-4">
         {/* Leads Widget */}
         <LeadsWidget variant="staff" />
-      </div>
 
-      {/* Rota & Holidays Row */}
-      <div className="grid md:grid-cols-3 gap-4">
-        <MyShiftsWidget staffId={staffId || undefined} />
-        <MyHolidaysWidget staffId={staffId || undefined} />
-        <PendingCoversWidget staffId={staffId || undefined} />
-      </div>
-
-      {/* Info Row: Birthdays + Shift Notes */}
-      <div className="grid md:grid-cols-3 gap-4">
         {/* Today's Birthdays */}
         <Card className="shadow-sm">
           <CardHeader className="pb-2 pt-4 px-4">
@@ -773,9 +755,26 @@ export default function StaffDashboard() {
             )}
           </CardContent>
         </Card>
+      </div>
 
-        {/* Shift Notes — spans 2 columns */}
-        <Card className="shadow-sm md:col-span-2">
+      {/* Devices Row: EV-07B fleet health */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <EV07BLiveStatusCard />
+        <div className="grid grid-cols-2 gap-4">
+          <DeviceOfflineAlertsCard />
+          <DeviceIssuesQueue />
+        </div>
+      </div>
+
+      {/* Personal Row: my rota & holidays */}
+      <div className="grid md:grid-cols-3 gap-4">
+        <MyShiftsWidget staffId={staffId || undefined} />
+        <MyHolidaysWidget staffId={staffId || undefined} />
+        <PendingCoversWidget staffId={staffId || undefined} />
+      </div>
+
+      {/* Team shift notes — full width */}
+      <Card className="shadow-sm">
           <CardHeader className="pb-2 pt-4 px-4">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold">{t('staffDashboard.todaysShiftNotes')}</CardTitle>
@@ -811,7 +810,6 @@ export default function StaffDashboard() {
             )}
           </CardContent>
         </Card>
-      </div>
     </div>
   );
 }

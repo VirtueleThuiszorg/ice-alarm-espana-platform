@@ -39,10 +39,19 @@
       without a `service_role_key missing from Vault` warning). Dev continues on
       the current keys by Lee's decision; rotation is a **final go-live step**.
 
-### Backend  *(Stage 0 — STATE.md)*
-- [ ] Supabase Stage 0 verification complete on `crpsuhoixfdhjugprbuc`
-      (migration diff, deployed-function diff, Postgres error-spike root cause) —
-      **needs a `SUPABASE_ACCESS_TOKEN`** for the LifeLink Sync org.
+### Backend  *(Stage 0 / 0b — STATE.md)*
+- [x] Supabase Stage 0 verification complete on `crpsuhoixfdhjugprbuc`
+      (migration diff, deployed-function diff, Postgres error-spike root cause).
+- [x] Stage 0b executed 2026-07-22 (two pushes): all drift migrations + the 2 SOS
+      cron migrations applied; **91 functions deployed**; all 4 crons re-scheduled on the
+      Vault pattern (**code-verified**: no live cron references `app.settings`).
+- [x] **Crons confirmed firing on prod (2026-07-22 ~17:47 UTC).** `cron.job_run_details`:
+      all 4 jobs `status=succeeded`, **no `app.settings` error** — `sos-escalation-runner`
+      (1 min), `ev07b-offline-monitor` (2 min), `staff-shift-monitor`, `shift-daily-reminders`.
+      The ~721/day error spike is **RESOLVED**. (Evidence in STATE.md → Stage 0b.)
+- [ ] **24h clean-run confirmation** — re-check `cron.job_run_details` + error count at
+      **T+24h (~2026-07-23)** to confirm the clean run held for a full day, then this line
+      closes. (Clock started 2026-07-22 ~17:47 UTC.)
 - [ ] Empty project `qkfvojbcxaptufsepupo` deleted.
 
 ### Content & brand
@@ -52,9 +61,14 @@
 - [ ] Favicon + meta + OG branded (LAUNCH_SCOPE §7): repo icon set is the Care Conneqt
       "v" mark (favicon.ico/16/32/48, icon-192/512, apple-touch, icon.svg) and og-image.png
       is the two-C wordmark — both on-brand, no ICE. `index.html` `<title>`, meta description,
-      og:site_name/og:title/og:image and twitter:* are Care Conneqt. **Verify on the DEPLOYED
-      site after a fresh Vercel build** — a stale deploy or cached service worker can still
-      serve the pre-rebrand icon (SW `CACHE_VERSION` bumped to v4 to force invalidation).
+      og:site_name/og:title/og:image and twitter:* are Care Conneqt.
+      **Prod still serves the OLD icon (2026-07-22) — root cause is a stale deploy / CDN
+      cache, NOT the repo** (STATE.md "Favicon" note: `dist/favicon.ico` sha256
+      `d8e3315f…` = the "v" mark). To clear: **redeploy current `main`, then purge the
+      Vercel edge cache**; confirm with
+      `curl -s https://<prod-url>/favicon.ico | sha256sum` == `d8e3315f327b38a58f59ecfd5ac6521455368adf7c35e5ccb8dc08695d60d4d1`.
+      (SW `CACHE_VERSION` v4 clears browser cache; `vercel.json` now short-caches icon paths
+      so future swaps propagate.)
 
 ## Rollout stages (see LAUNCH_SCOPE.md §10)
 Stage 0 backend → Stage 1 scope locked → Stage 2 docs → Stage 3 pricing-to-DB →

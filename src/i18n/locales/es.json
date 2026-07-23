@@ -730,6 +730,21 @@
   },
   "landing": {
     "badge": "Protegiendo familias en toda España — en inglés y español",
+    "fromPriceIva": "Desde {{price}}/mes · IVA incluido, sin costes ocultos",
+    "pendantSection": {
+      "title": "Diseñado para llevarlo puesto, no para esconderlo",
+      "description": "Un colgante discreto lo hace todo: púlsalo y nuestro equipo estará contigo en segundos. Resistente al agua, con localización GPS, detección automática de caídas y días de batería.",
+      "waterproofTitle": "Resistente al agua (IP67)",
+      "waterproofDesc": "Llévalo en la ducha o en el jardín: certificación IP67 contra agua y polvo.",
+      "gpsTitle": "Localización GPS",
+      "gpsDesc": "Sabemos dónde estás en cuanto llamas, en casa o fuera.",
+      "fallTitle": "Detección automática de caídas",
+      "fallDesc": "Una caída fuerte avisa a nuestro equipo aunque no puedas pulsar el botón.",
+      "batteryTitle": "Días de batería",
+      "batteryDesc": "Batería de larga duración, con avisos de batería baja para ti y nuestro equipo.",
+      "priceLine": "Colgante {{device}} pago único · membresía desde {{monthly}}/mes, IVA incluido",
+      "learnMore": "Más información sobre el colgante"
+    },
     "heroTitle": "Viva con Independencia.",
     "heroTitleHighlight": "Siempre Estamos Aquí.",
     "heroDescription": "Monitorización personal de emergencias para personas mayores en España. Pulse un botón y nuestro servicio de monitorización 24/7 responde en segundos — en inglés o español.",

@@ -730,6 +730,21 @@
   },
   "landing": {
     "badge": "Protecting families across Spain — in English and Spanish",
+    "fromPriceIva": "From {{price}}/month · IVA included, no hidden fees",
+    "pendantSection": {
+      "title": "Designed to be worn, not hidden",
+      "description": "One discreet pendant does it all — press it and our team is with you in seconds. Waterproof, GPS-located, with automatic fall detection and days of battery life.",
+      "waterproofTitle": "Waterproof (IP67)",
+      "waterproofDesc": "Wear it in the shower or the garden — rated IP67 against water and dust.",
+      "gpsTitle": "GPS location",
+      "gpsDesc": "We can see where you are the moment you call, at home or out and about.",
+      "fallTitle": "Automatic fall detection",
+      "fallDesc": "A hard fall alerts our team even if you can't press the button yourself.",
+      "batteryTitle": "Days of battery",
+      "batteryDesc": "Long battery life, with low-battery alerts sent to you and our team.",
+      "priceLine": "Pendant {{device}} one-off · membership from {{monthly}}/month, IVA included",
+      "learnMore": "Learn more about the pendant"
+    },
     "heroTitle": "Live Independently.",
     "heroTitleHighlight": "We're Always Here.",
     "heroDescription": "Personal emergency monitoring for seniors living in Spain. Press one button and our 24/7 monitoring service responds in seconds — in English or Spanish.",

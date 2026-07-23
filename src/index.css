@@ -173,6 +173,71 @@
 }
 
 /* ———————————————————————————————————————————————————————————————
+   Stage 4b — PUBLIC SURFACE theme (FRONTEND_REDESIGN.md §2–3)
+   Warm "v"-mark palette (indigo / orange / cream, BRAND_ASSETS.md), scoped to
+   the public marketing + join + auth routes via <PublicThemeLayout> ("theme-public").
+   Admin / call-centre / client-dashboard keep the legacy tokens above, untouched.
+   Direction chosen by Lee 2026-07-22: warm-and-human primary, premium accents.
+   All pairs meet WCAG AA; semantic red stays reserved for SOS/emergency only.
+   ——————————————————————————————————————————————————————————————— */
+@layer base {
+  .theme-public {
+    --background: 36 50% 97%;            /* warm cream / paper */
+    --foreground: 240 30% 18%;           /* deep indigo ink */
+
+    --card: 40 56% 99%;                  /* lifted warm white */
+    --card-foreground: 240 30% 18%;
+    --popover: 40 56% 99%;
+    --popover-foreground: 240 30% 18%;
+
+    --primary: 240 35% 35%;              /* indigo — CTAs / primary buttons */
+    --primary-foreground: 40 56% 99%;
+
+    --secondary: 36 34% 92%;             /* warm sand */
+    --secondary-foreground: 240 30% 22%;
+
+    --muted: 36 30% 93%;
+    --muted-foreground: 240 12% 38%;     /* AA on cream */
+
+    --accent: 33 80% 92%;                /* soft orange tint — subtle bg / hover */
+    --accent-foreground: 24 75% 26%;
+
+    --destructive: 0 84% 55%;            /* semantic red — SOS/emergency only */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 36 24% 86%;
+    --input: 36 24% 86%;
+    --ring: 240 35% 40%;                 /* visible indigo focus ring */
+
+    --radius: 1rem;                      /* softer, rounded-not-childish */
+
+    /* Deliberate warm accent (vivid orange) — used SPARINGLY: ripple, highlights,
+       small emphasis. Not a button background (white-on-orange fails AA). */
+    --brand-accent: 33 93% 54%;
+    --brand-accent-foreground: 24 80% 15%;
+    --brand-ink: 240 35% 35%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(240 35% 35%) 0%, hsl(255 30% 46%) 100%);
+    --gradient-warm: linear-gradient(160deg, hsl(36 55% 97%) 0%, hsl(33 60% 93%) 100%);
+    --shadow-glow: 0 0 40px hsl(33 93% 54% / 0.18);
+  }
+
+  /* 18px body floor for the public audience (§3): bare paragraphs/list text.
+     Component utilities can still opt into larger sizes explicitly. */
+  .theme-public {
+    font-size: 1.0625rem;
+    line-height: 1.6;
+  }
+}
+
+/* Signature "response ripple" — one gentle expansion, hero only; disabled under
+   reduced-motion (arcs stay static). Keyframe lives here; component in ui/. */
+@keyframes response-ripple {
+  0%   { transform: scale(0.55); opacity: 0.85; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+
+/* ———————————————————————————————————————————————————————————————
    ICE v1 component layer, animations & utilities — preserved verbatim
    ——————————————————————————————————————————————————————————————— */
 

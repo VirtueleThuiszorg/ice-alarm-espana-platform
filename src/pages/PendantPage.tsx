@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PublicHeader } from "@/components/layout/PublicHeader";
 import { Logo } from "@/components/ui/logo";
+import { ResponseRipple } from "@/components/ui/response-ripple";
 import { ImageWithPlaceholder } from "@/components/ui/image-placeholder";
 import {
   Accordion,
@@ -144,14 +145,18 @@ export default function PendantPage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Product Image */}
             <div className="relative order-2 lg:order-1">
-              <div className="relative mx-auto max-w-md">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent rounded-3xl blur-3xl -z-10" />
-                <div className="aspect-square overflow-hidden rounded-2xl shadow-2xl bg-muted">
+              <div className="relative isolate mx-auto max-w-md">
+                {/* Signature ripple — help radiates out from the pendant */}
+                <ResponseRipple animate className="absolute z-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] max-w-none opacity-70 pointer-events-none" />
+                {/* Interim product image: public/assets/pendant-product.png (real, plain
+                    white-bg shot); a DB `pendant_hero` image, if set, wins. Better warm
+                    product photography owed — PLACEHOLDERS.md. */}
+                <div className="relative z-10 aspect-square overflow-hidden rounded-2xl shadow-2xl bg-white">
                   <ImageWithPlaceholder
-                    imageUrl={pendantHeroImage.imageUrl}
-                    altText={pendantHeroImage.altText || "Care Conneqt GPS Personal Pendant"}
+                    imageUrl={pendantHeroImage.imageUrl || "/assets/pendant-product.png"}
+                    altText={pendantHeroImage.altText || "Care Conneqt SOS pendant with its charging cradle"}
+                    imgClassName="object-contain p-8"
                     placeholderText="Product Image"
-                    placeholderSubtext="Coming Soon"
                     priority={true}
                     width={500}
                     height={500}
@@ -159,7 +164,7 @@ export default function PendantPage() {
                   />
                 </div>
                 {/* Trust Badge */}
-                <div className="absolute -bottom-4 -right-4 bg-card rounded-xl shadow-xl p-3 border">
+                <div className="absolute z-20 -bottom-4 -right-4 bg-card rounded-xl shadow-xl p-3 border">
                   <div className="flex items-center gap-2">
                     <div className="h-10 w-10 rounded-full bg-status-active/20 flex items-center justify-center">
                       <Shield className="h-5 w-5 text-status-active" />
@@ -345,12 +350,13 @@ export default function PendantPage() {
               </div>
             </div>
             <div className="relative">
-              <div className="aspect-square max-w-sm mx-auto overflow-hidden rounded-2xl shadow-xl bg-muted">
+              {/* Interim: reuse the product shot until a dedicated specs image is supplied (PLACEHOLDERS.md) */}
+              <div className="aspect-square max-w-sm mx-auto overflow-hidden rounded-2xl shadow-xl bg-white">
                 <ImageWithPlaceholder
-                  imageUrl={pendantSpecsImage.imageUrl}
-                  altText={pendantSpecsImage.altText || "Care Conneqt Pendant Specifications"}
+                  imageUrl={pendantSpecsImage.imageUrl || "/assets/pendant-product.png"}
+                  altText={pendantSpecsImage.altText || "Care Conneqt SOS pendant"}
+                  imgClassName="object-contain p-8"
                   placeholderText="Specifications Image"
-                  placeholderSubtext="Coming Soon"
                 />
               </div>
             </div>

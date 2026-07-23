@@ -730,6 +730,21 @@
   },
   "landing": {
     "badge": "Families beschermen in heel Spanje — in het Engels en Spaans",
+    "fromPriceIva": "Vanaf {{price}}/maand · incl. btw, geen verborgen kosten",
+    "pendantSection": {
+      "title": "Gemaakt om te dragen, niet om te verbergen",
+      "description": "Eén discrete hanger doet alles: druk erop en ons team is binnen enkele seconden bij u. Waterdicht, met gps-locatie, automatische valdetectie en dagenlange batterij.",
+      "waterproofTitle": "Waterdicht (IP67)",
+      "waterproofDesc": "Draag hem onder de douche of in de tuin — IP67-gecertificeerd tegen water en stof.",
+      "gpsTitle": "Gps-locatie",
+      "gpsDesc": "We zien waar u bent zodra u belt, thuis of onderweg.",
+      "fallTitle": "Automatische valdetectie",
+      "fallDesc": "Een zware val waarschuwt ons team, ook als u zelf niet op de knop kunt drukken.",
+      "batteryTitle": "Dagenlang batterij",
+      "batteryDesc": "Lange batterijduur, met meldingen bij lage batterij voor u en ons team.",
+      "priceLine": "Hanger {{device}} eenmalig · lidmaatschap vanaf {{monthly}}/maand, incl. btw",
+      "learnMore": "Meer over de hanger"
+    },
     "heroTitle": "Leef zelfstandig.",
     "heroTitleHighlight": "Wij zijn er altijd.",
     "heroDescription": "Persoonlijke noodbewaking voor senioren in Spanje. Druk op één knop en onze 24/7-bewakingsdienst reageert binnen enkele seconden — in het Engels of Spaans.",

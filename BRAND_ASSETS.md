@@ -1,18 +1,19 @@
 # Care Conneqt — Brand Assets Reference
 
+> ⚠️ **SUPERSEDED for logo/mark/icons by `BRAND_IDENTITY.md` (2026-07-22).** There is now
+> **one** mark — the interlocking **two-C** logo — and the whole favicon/app-icon set is
+> generated from it. The old indigo/orange **"v" mark is RETIRED**; the "two coexisting marks"
+> and "interim two-mark rule" notes below are historical. This file is kept for the fuller
+> palette/typography reference; `BRAND_IDENTITY.md` wins on the mark and icons.
+
 ## Colors
 
-> ⚠️ **Two colour systems currently coexist** (verified against code 2026-07-14). The
-> shipped **icon/favicon mark** uses the indigo/orange palette below; the **app theme
-> (CSS/Tailwind) and the in-app two-C logo** still use the legacy deep-blue/teal palette.
-> These do **not** match. See "Logo" and the mismatch note at the bottom.
-
-**Shipped icon mark** (`public/icon.svg` + favicon/PWA PNG set, committed `b805825`):
+**~~Retired "v" icon mark~~** (indigo/orange; replaced 2026-07-22 by the two-C mark):
 | Element | Hex | HSL |
 |---|---|---|
-| Left arm (indigo/navy) | `#3B3B7A` | `240 35% 35%` |
-| Right arm + dot (orange) | `#F7941E` | `33 93% 54%` |
-| Background (cream) | `#FAF6F0` | `36 50% 96%` |
+| ~~Left arm (indigo/navy)~~ | `#3B3B7A` | `240 35% 35%` |
+| ~~Right arm + dot (orange)~~ | `#F7941E` | `33 93% 54%` |
+| Background (cream, still the brand bg) | `#FAF6F0` | `36 50% 96%` |
 
 **Legacy app theme tokens** (still live in `src/index.css` / manifest — unchanged):
 | Token | HSL | Hex |
@@ -58,12 +59,26 @@
 - Marketing previews kept out of `public/` in `docs/brand/` (`favicon-preview.png`,
   `favicon-tab-preview.png`) so they don't deploy.
 
-## ⚠️ Known brand mismatch (audit material, not yet actioned)
-The favicon/PWA icon set was rebranded to the indigo/orange "v" mark, but the app theme
-(`src/index.css`, `public/manifest.json`, `index.html`, `public/sw.js`) and the in-app
-two-C logo (`src/components/ui/logo.tsx`, `src/assets/care-conneqt-logo.svg`) still use
-the legacy deep-blue `#1e5a9c` / teal palette. Reconciling the code/theme is a separate
-decision, not part of this docs update.
+## Interim two-mark rule (DECIDED 2026-07-22 — Lee)
+Both marks are **kept** for now, each with a defined role. This is the interim
+rule until the Stage 4b redesign (`FRONTEND_REDESIGN.md`) decides the logo
+treatment properly:
+
+| Mark | Where it is used |
+|---|---|
+| **"v" mark** (indigo `#3B3B7A` / orange `#F7941E` on cream `#FAF6F0`) | Icon / favicon set only — `favicon.ico`, `favicon-16/32/48`, `icon-192/512`, `apple-touch-icon`, `icon.svg`. |
+| **Two-C wordmark** (teal `hsl(185 75% 45%)` / deep blue `hsl(215 85% 35%)`) | `og-image.png` (social) + in-app headers / the `Logo` component (`src/components/ui/logo.tsx`). |
+
+Do not "fix" the palette divergence between the two marks ad hoc — full
+reconciliation to a single system is owned by the Stage 4b redesign.
+
+## ⚠️ Palette divergence (context for the Stage 4b reconciliation)
+The favicon "v" mark uses the warm indigo/orange/cream palette; the app theme
+(`src/index.css`, `public/manifest.json`, `index.html`, `public/sw.js`) and the
+two-C wordmark still use the legacy deep-blue `#1e5a9c` / teal palette. Under the
+interim rule above this is intentional and staged; the Stage 4b redesign resolves
+it (note: the "v" mark's warm palette is closer to that redesign's
+"warm-and-human" direction than the legacy clinical blue).
 
 ## Tagline
 "Connected Health. Human Care."

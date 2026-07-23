@@ -25,6 +25,7 @@ import {
   FileText,
 } from "lucide-react";
 import { FalseAlarmMonitor } from "@/components/admin/FalseAlarmMonitor";
+import { SOSDrillControls } from "@/components/admin/SOSDrillControls";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -286,6 +287,8 @@ export default function AlertsPage() {
             {t("adminAlerts.subtitle", "View and manage all alert records.")}
           </p>
         </div>
+        {/* Admin-only SOS drill: safe, ladder-suppressed test alerts for live drills */}
+        <SOSDrillControls />
       </div>
 
       {/* Tab Toggle */}

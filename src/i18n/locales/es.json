@@ -4863,7 +4863,16 @@
     "handledBy": "Gestionada Por",
     "loading": "Cargando alertas...",
     "unknown": "Desconocido",
-    "noAlerts": "No se encontraron alertas"
+    "noAlerts": "No se encontraron alertas",
+    "drill": {
+      "create": "Crear alerta de simulacro",
+      "cleanup": "Limpiar simulacros",
+      "confirmTitle": "¿Iniciar un simulacro de SOS?",
+      "confirmBody": "Esto crea una alerta SOS de PRUEBA (claramente etiquetada 🧪 SIMULACRO) en la cola real. Está suprimida del escalado: no se enviarán llamadas, SMS ni notificaciones a nadie. Los operadores conectados SÍ la verán y oirán — avise al equipo de que es un simulacro. Resuélvala como falsa alarma al terminar y luego use Limpiar.",
+      "confirmAction": "Crear alerta de simulacro",
+      "created": "Alerta de simulacro creada — ya está activa en la cola del centro de llamadas. No se enviarán llamadas ni notificaciones.",
+      "cleaned": "Datos del simulacro eliminados ({{count}} alerta(s))."
+    }
   },
   "adminMemberDetail": {
     "title": "Detalles del Miembro",

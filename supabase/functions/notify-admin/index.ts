@@ -5,7 +5,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 
 
 interface NotifyPayload {
-  event_type: "sale.paid" | "partner.joined" | "hot.sales" | "test" | "ev07b.alert" | "shift.no_show" | "shift.no_coverage" | "shift.disconnected" | "system.runner_failure" | "escalation.call_failed";
+  event_type: "sale.paid" | "partner.joined" | "hot.sales" | "test" | "ev07b.alert" | "shift.no_show" | "shift.no_coverage" | "shift.disconnected" | "system.runner_failure" | "escalation.call_failed" | "escalation.manual";
   entity_type?: string;
   entity_id?: string;
   payload: {
@@ -150,6 +150,16 @@ const ESCALATION_TARGET_LABELS: Record<string, string> = {
   browser_alert: "browser alert",
 };
 
+function formatManualEscalationMessage(payload: NotifyPayload["payload"], timestamp: string): string {
+  const member = payload.member_name || "a member";
+  const by = (payload as Record<string, unknown>).escalated_by_name || "an operator";
+  return `🚨 ALERT MANUALLY ESCALATED
+👤 Member: ${member} (${payload.alert_type || "alert"})
+🙋 Escalated by: ${by} — they need admin help with this alert NOW.
+🕒 ${timestamp}
+➡️ Admin: /admin/alerts/${payload.alert_id || ""}`;
+}
+
 function formatEscalationCallFailedMessage(payload: NotifyPayload["payload"], timestamp: string): string {
   const level = payload.escalation_level ?? "?";
   const who = ESCALATION_TARGET_LABELS[payload.target_type || ""] || payload.target_type || "target";
@@ -287,6 +297,11 @@ serve(async (req) => {
           // Life-safety: a rung of the SOS ladder failed to reach a human — always loud.
           shouldSend = true;
           message = formatEscalationCallFailedMessage(payload, timestamp);
+          break;
+        case "escalation.manual":
+          // Life-safety: an operator is asking for admin help on a live alert — always loud.
+          shouldSend = true;
+          message = formatManualEscalationMessage(payload, timestamp);
           break;
         case "test":
           shouldSend = true;

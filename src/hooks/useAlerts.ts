@@ -5,6 +5,7 @@ import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { Tables } from "@/integrations/supabase/types";
 import { useBrowserNotifications } from "./useBrowserNotifications";
 import { acceptAlertOwnership } from "@/lib/alertOwnership";
+import { resolveAlertViaFunction } from "@/lib/alertResolution";
 
 type Alert = Tables<"alerts">;
 
@@ -353,18 +354,13 @@ export function useAlerts() {
     }
   };
 
-  const resolveAlert = async (alertId: string, notes: string) => {
+  const resolveAlert = async (alertId: string, notes: string, isFalseAlarm = false) => {
     try {
-      const { error } = await supabase
-        .from("alerts")
-        .update({
-          status: "resolved",
-          resolved_at: new Date().toISOString(),
-          resolution_notes: notes,
-        })
-        .eq("id", alertId);
-
-      if (error) throw error;
+      // WP-B: single resolve path — the edge function does the full close-out
+      // for SOS alerts (conference teardown, notifications, courtesy call) and
+      // a plain resolve for the rest. No more direct status writes.
+      const result = await resolveAlertViaFunction(alertId, { notes, isFalseAlarm });
+      if (!result.ok) throw new Error(result.error);
 
       setAlerts(prev => prev.filter(alert => alert.id !== alertId));
       toast({ title: "Alert resolved", description: "The alert has been marked as resolved" });

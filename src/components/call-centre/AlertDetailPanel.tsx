@@ -101,7 +101,7 @@ interface AlertDetailPanelProps {
       resolvedAt?: Date;
     }[];
   } | null;
-  onResolve: (alertId: string, notes: string) => void;
+  onResolve: (alertId: string, notes: string, isFalseAlarm: boolean) => void;
   onEscalate: (alertId: string) => void;
 }
 
@@ -124,6 +124,7 @@ export function AlertDetailPanel({
 }: AlertDetailPanelProps) {
   const { t } = useTranslation();
   const [notes, setNotes] = useState("");
+  const [isFalseAlarm, setIsFalseAlarm] = useState(false);
   const [emergencyServicesCalled, setEmergencyServicesCalled] = useState(false);
   const [nextOfKinNotified, setNextOfKinNotified] = useState(false);
   const [showPreviousAlerts, setShowPreviousAlerts] = useState(false);
@@ -274,7 +275,7 @@ export function AlertDetailPanel({
       toast({ title: t("callCentre.alert.notesRequired", "Notes required"), description: t("callCentre.alert.addResolutionNotes", "Please add resolution notes"), variant: "destructive" });
       return;
     }
-    onResolve(alert.id, notes);
+    onResolve(alert.id, notes, isFalseAlarm);
     onClose();
   };
 
@@ -750,12 +751,20 @@ export function AlertDetailPanel({
                 <Label htmlFor="emergency" className="text-sm">{t("callCentre.alert.emergencyServicesCalled", "Emergency services (112) called")}</Label>
               </div>
               <div className="flex items-center gap-2">
-                <Checkbox 
-                  id="kin" 
+                <Checkbox
+                  id="kin"
                   checked={nextOfKinNotified}
                   onCheckedChange={(checked) => setNextOfKinNotified(checked as boolean)}
                 />
                 <Label htmlFor="kin" className="text-sm">{t("callCentre.alert.nextOfKinNotified", "Next of kin notified")}</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="false-alarm"
+                  checked={isFalseAlarm}
+                  onCheckedChange={(checked) => setIsFalseAlarm(checked as boolean)}
+                />
+                <Label htmlFor="false-alarm" className="text-sm">{t("callCentre.alert.falseAlarm", "False alarm")}</Label>
               </div>
             </div>
 

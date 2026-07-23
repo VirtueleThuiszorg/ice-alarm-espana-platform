@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveAlertViaFunction } from "@/lib/alertResolution";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -92,18 +93,12 @@ export function DeviceOfflineAlertsCard() {
     refetchInterval: 30000,
   });
 
-  // Close alert mutation
+  // Close alert mutation — WP-B: through the single resolve path (a no-op
+  // teardown for device-offline alerts; keeps every resolve on one code path).
   const closeAlertMutation = useMutation({
     mutationFn: async (alertId: string) => {
-      const { error } = await supabase
-        .from("alerts")
-        .update({
-          status: "resolved",
-          resolved_at: new Date().toISOString(),
-        })
-        .eq("id", alertId);
-
-      if (error) throw error;
+      const result = await resolveAlertViaFunction(alertId);
+      if (!result.ok) throw new Error(result.error);
     },
     onSuccess: () => {
       toast.success(t("callCentre.offlineAlerts.alertClosed", "Alert closed"));

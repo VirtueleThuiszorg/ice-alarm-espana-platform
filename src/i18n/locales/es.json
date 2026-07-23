@@ -1505,7 +1505,8 @@
       "emergencyServicesCalled": "Servicios de emergencia (112) llamados",
       "nextOfKinNotified": "Familiar más cercano notificado",
       "escalate": "Escalar",
-      "resolveAlert": "Resolver Alerta"
+      "resolveAlert": "Resolver Alerta",
+      "falseAlarm": "Falsa alarma"
     },
     "quickSearch": {
       "title": "Búsqueda Rápida de Miembros",

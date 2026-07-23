@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveAlertViaFunction } from "@/lib/alertResolution";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, Wifi, WifiOff, User, Check, Clock } from "lucide-react";
@@ -68,18 +69,12 @@ export function DeviceAlertsPanel() {
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
-  // Close alert mutation
+  // Close alert mutation — WP-B: through the single resolve path (a no-op
+  // teardown for device alerts; keeps every resolve on one code path).
   const closeAlertMutation = useMutation({
     mutationFn: async (alertId: string) => {
-      const { error } = await supabase
-        .from("alerts")
-        .update({
-          status: "resolved",
-          resolved_at: new Date().toISOString(),
-        })
-        .eq("id", alertId);
-
-      if (error) throw error;
+      const result = await resolveAlertViaFunction(alertId);
+      if (!result.ok) throw new Error(result.error);
     },
     onSuccess: () => {
       toast.success(t("adminEV07B.alerts.alertClosed"));

@@ -91,8 +91,8 @@ export default function CallCentreDashboard() {
     }
   };
 
-  const handleResolveAlert = async (alertId: string, notes: string) => {
-    await resolveAlert(alertId, notes);
+  const handleResolveAlert = async (alertId: string, notes: string, isFalseAlarm: boolean) => {
+    await resolveAlert(alertId, notes, isFalseAlarm);
     setSelectedAlert(null);
     setIsDetailOpen(false);
   };

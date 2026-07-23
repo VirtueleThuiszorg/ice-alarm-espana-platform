@@ -6,6 +6,7 @@ import { Tables } from "@/integrations/supabase/types";
 import { useBrowserNotifications } from "./useBrowserNotifications";
 import { acceptAlertOwnership } from "@/lib/alertOwnership";
 import { resolveAlertViaFunction } from "@/lib/alertResolution";
+import { escalateAlertViaFunction } from "@/lib/alertEscalation";
 
 type Alert = Tables<"alerts">;
 
@@ -372,18 +373,26 @@ export function useAlerts() {
 
   const escalateAlert = async (alertId: string) => {
     try {
-      const { error } = await supabase
-        .from("alerts")
-        .update({ status: "escalated" })
-        .eq("id", alertId);
+      // WP-C: real escalation — audit row + admin WhatsApp via the edge
+      // function. The success toast below is only allowed to claim "admin
+      // notified" when the function CONFIRMED at least one send (GOALS G2).
+      const result = await escalateAlertViaFunction(alertId);
+      if (!result.ok) throw new Error(result.error);
 
-      if (error) throw error;
-
-      setAlerts(prev => prev.map(alert => 
+      setAlerts(prev => prev.map(alert =>
         alert.id === alertId ? { ...alert, status: "escalated" as const } : alert
       ));
 
-      toast({ title: "Alert escalated", description: "Admin has been notified" });
+      if (result.notified) {
+        toast({ title: "Alert escalated", description: "Admin has been notified" });
+      } else {
+        // Escalated, but the notification did NOT confirm — say so, loudly.
+        toast({
+          title: "Escalated — but admin NOT confirmed notified",
+          description: "The admin notification could not be confirmed. Contact an admin directly now.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error("Error escalating alert:", error);
       toast({ title: "Error", description: "Failed to escalate alert", variant: "destructive" });

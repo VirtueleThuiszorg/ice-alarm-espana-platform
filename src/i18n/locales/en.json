@@ -4871,7 +4871,9 @@
     "handledBy": "Handled By",
     "loading": "Loading alerts...",
     "unknown": "Unknown",
-    "noAlerts": "No alerts found"
+    "noAlerts": "No alerts found",
+    "escalatedNotified": "Alert escalated — admin notified.",
+    "escalatedNotNotified": "Escalated, but the admin notification could NOT be confirmed — contact an admin directly."
   },
   "adminMemberDetail": {
     "title": "Member Details",

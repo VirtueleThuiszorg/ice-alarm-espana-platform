@@ -4871,7 +4871,9 @@
     "handledBy": "Handled By",
     "loading": "Loading alerts...",
     "unknown": "Unknown",
-    "noAlerts": "No alerts found"
+    "noAlerts": "No alerts found",
+    "escalatedNotified": "Melding geëscaleerd — beheerder op de hoogte gebracht.",
+    "escalatedNotNotified": "Geëscaleerd, maar de melding aan de beheerder kon NIET worden bevestigd — neem direct contact op met een beheerder."
   },
   "adminMemberDetail": {
     "title": "Member Details",

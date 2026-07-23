@@ -5,6 +5,9 @@ interface ResponseRippleProps {
   /** When true, the arcs play one gentle staggered expansion (hero only).
    *  Automatically suppressed under prefers-reduced-motion. */
   animate?: boolean;
+  /** Draw the solid centre dot (the "press" origin). Off for background/divider
+   *  use, where a filled disc would compete with foreground content. */
+  showCore?: boolean;
 }
 
 /**
@@ -14,7 +17,7 @@ interface ResponseRippleProps {
  * it with a text-* class (typically the warm brand accent). Reduced-motion is
  * respected via Tailwind's `motion-safe` variant.
  */
-export function ResponseRipple({ className, animate = false }: ResponseRippleProps) {
+export function ResponseRipple({ className, animate = false, showCore = true }: ResponseRippleProps) {
   const rings = [30, 54, 78, 100];
   return (
     <svg
@@ -37,7 +40,7 @@ export function ResponseRipple({ className, animate = false }: ResponseRipplePro
           className={cn(animate && "motion-safe:animate-[response-ripple_3.2s_ease-out_infinite]")}
         />
       ))}
-      <circle cx="100" cy="100" r="13" fill="currentColor" />
+      {showCore && <circle cx="100" cy="100" r="13" fill="currentColor" />}
     </svg>
   );
 }

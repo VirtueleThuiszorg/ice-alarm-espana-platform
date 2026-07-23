@@ -281,7 +281,7 @@ export default function LandingPage() {
       </section>
 
       {/* Premium Pendant Section (FRONTEND_REDESIGN §4) — product shot + benefits + CTA to /pendant */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-4 relative overflow-hidden">
         <div className="container mx-auto">
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
             {/* Product shot */}

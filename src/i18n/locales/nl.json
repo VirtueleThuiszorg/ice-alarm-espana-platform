@@ -4870,7 +4870,16 @@
     "handledBy": "Handled By",
     "loading": "Loading alerts...",
     "unknown": "Unknown",
-    "noAlerts": "No alerts found"
+    "noAlerts": "No alerts found",
+    "drill": {
+      "create": "Oefenmelding aanmaken",
+      "cleanup": "Oefeningen opruimen",
+      "confirmTitle": "Een SOS-oefening starten?",
+      "confirmBody": "Dit maakt een TEST-SOS-melding aan (duidelijk gelabeld 🧪 OEFENING) in de echte wachtrij. Escalatie is onderdrukt: er worden geen oproepen, sms'jes of meldingen naar wie dan ook verstuurd. Ingelogde medewerkers zien en horen de melding WEL — waarschuw het team dat het een oefening is. Sluit af als vals alarm en gebruik daarna Opruimen.",
+      "confirmAction": "Oefenmelding aanmaken",
+      "created": "Oefenmelding aangemaakt — deze staat nu live in de wachtrij. Er worden geen oproepen of meldingen verstuurd.",
+      "cleaned": "Oefendata verwijderd ({{count}} melding(en))."
+    }
   },
   "adminMemberDetail": {
     "title": "Member Details",

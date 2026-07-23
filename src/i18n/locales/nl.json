@@ -1540,8 +1540,77 @@
       "noMembers": "No members found",
       "plan": "Plan",
       "device": "Device",
-      "noDevice": "No device"
+      "noDevice": "No device",
+      "statusFilter": "Status",
+      "planFilter": "Plan",
+      "callMember": "Lid bellen",
+      "sendMessage": "Bericht versturen",
+      "viewProfile": "Profiel bekijken"
     }
+  },
+  "callCentreMessages": {
+    "title": "Berichten",
+    "subtitle": "Beheer gesprekken met leden",
+    "newConversation": "Nieuw gesprek",
+    "startNewConversation": "Nieuw gesprek starten",
+    "startNewConversationDesc": "Maak een nieuw gesprek aan met een lid of medewerker",
+    "memberTab": "Lid",
+    "staffTab": "Medewerker",
+    "selectMember": "Lid selecteren",
+    "selectMemberPlaceholder": "Selecteer een lid...",
+    "selectStaffMembers": "Medewerker(s) selecteren",
+    "noOtherStaff": "Geen andere medewerkers beschikbaar",
+    "subject": "Onderwerp",
+    "subjectPlaceholderStaff": "bijv. Dienstoverdracht, Escalatie...",
+    "subjectPlaceholderMember": "bijv. Betalingsvraag, Hulp bij apparaat...",
+    "priority": "Prioriteit",
+    "message": "Bericht",
+    "messagePlaceholder": "Typ uw bericht...",
+    "createConversation": "Gesprek aanmaken",
+    "filterAll": "Alle",
+    "filterUnread": "Ongelezen",
+    "filterMine": "Aan mij toegewezen",
+    "filterUnassigned": "Niet toegewezen",
+    "filterStaff": "Medewerkers",
+    "filterResolved": "Opgelost",
+    "searchPlaceholder": "Gesprekken zoeken...",
+    "noConversations": "Geen gesprekken gevonden",
+    "staffChat": "Teamchat",
+    "staffBadge": "Medewerkers",
+    "noSubject": "Geen onderwerp",
+    "assignTo": "Toewijzen aan...",
+    "unassigned": "Niet toegewezen",
+    "internalNote": "Interne notitie",
+    "internalNotePlaceholder": "Voeg een interne notitie toe...",
+    "replyPlaceholder": "Typ uw antwoord...",
+    "selectConversation": "Selecteer een gesprek",
+    "selectConversationHint": "Kies een gesprek uit de lijst om de berichten te bekijken",
+    "status": {
+      "open": "Open",
+      "pending": "In afwachting",
+      "resolved": "Opgelost",
+      "closed": "Gesloten"
+    },
+    "priorityLabels": {
+      "low": "Laag",
+      "normal": "Normaal",
+      "high": "Hoog",
+      "urgent": "Urgent"
+    },
+    "toasts": {
+      "loadFailed": "Gesprekken laden mislukt",
+      "selectStaffRequired": "Selecteer ten minste één medewerker",
+      "selectMemberRequired": "Selecteer een lid",
+      "fillRequired": "Vul alle verplichte velden in",
+      "created": "Gesprek aangemaakt",
+      "createFailed": "Gesprek aanmaken mislukt",
+      "sendFailed": "Bericht verzenden mislukt",
+      "updateFailed": "Gesprek bijwerken mislukt"
+    }
+  },
+  "callCentreLeads": {
+    "title": "Leads",
+    "subtitle": "Aanvragen via het contactformulier van potentiële leden"
   },
   "admin": {
     "members": {
@@ -2103,6 +2172,7 @@
   "leads": {
     "newLeads": "New Leads",
     "searchPlaceholder": "Search by name, email, phone...",
+    "statusFilter": "Status",
     "loading": "Loading leads...",
     "noLeads": "No leads found",
     "markContacted": "Mark Contacted",
@@ -2143,6 +2213,7 @@
     "createDesc": "Submit a ticket to admin for help or questions",
     "titleField": "Title",
     "titlePlaceholder": "Brief description of the issue...",
+    "categoryLabel": "Categorie",
     "category": {
       "pendantHelp": "Pendant Help",
       "technicalIssue": "Technical Issue",
@@ -5429,7 +5500,16 @@
     "statusRequested": "Requested",
     "statusApproved": "Approved",
     "statusRejected": "Rejected",
-    "statusCancelled": "Cancelled"
+    "statusCancelled": "Cancelled",
+    "toasts": {
+      "requestSubmitted": "Verlofaanvraag ingediend",
+      "requestFailed": "Verlofaanvraag indienen mislukt",
+      "approved": "Verlof goedgekeurd",
+      "rejected": "Verlof afgewezen",
+      "reviewFailed": "Verlof beoordelen mislukt",
+      "cancelled": "Verlof geannuleerd",
+      "cancelFailed": "Verlof annuleren mislukt"
+    }
   },
   "shifts": {
     "morning": "Morning",
@@ -5444,7 +5524,14 @@
     "statusPending": "Pending",
     "statusAccepted": "Accepted",
     "statusDeclined": "Declined",
-    "statusExpired": "Expired"
+    "statusExpired": "Expired",
+    "toasts": {
+      "requestSent": "Vervangingsverzoek verzonden",
+      "requestFailed": "Vervanging aanvragen mislukt",
+      "accepted": "Vervanging geaccepteerd",
+      "declined": "Vervanging geweigerd",
+      "respondFailed": "Reageren op vervangingsverzoek mislukt"
+    }
   },
   "shiftNotes": {
     "title": "Shift Notes",
@@ -5472,7 +5559,16 @@
     "failedToAdd": "Failed to add note",
     "markedCompleted": "Marked as completed",
     "markedPending": "Marked as pending",
-    "failedToUpdate": "Failed to update note"
+    "failedToUpdate": "Failed to update note",
+    "editNote": "Notitie bewerken",
+    "editShiftNote": "Dienstnotitie bewerken",
+    "saveChanges": "Wijzigingen opslaan",
+    "noteUpdated": "Notitie bijgewerkt",
+    "deleteNote": "Notitie verwijderen",
+    "deleteConfirmTitle": "Deze notitie verwijderen?",
+    "deleteConfirmDesc": "De dienstnotitie wordt permanent verwijderd. Deze actie kan niet ongedaan worden gemaakt.",
+    "noteDeleted": "Notitie verwijderd",
+    "failedToDelete": "Kon de notitie niet verwijderen"
   },
   "staffPreferences": {
     "title": "My Profile & Preferences",

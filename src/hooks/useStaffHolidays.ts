@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { STALE_TIMES } from "@/config/constants";
 import type { HolidayStatus } from "@/config/shifts";
 import { toast } from "sonner";
+import i18n from "@/i18n";
 
 export interface StaffHoliday {
   id: string;
@@ -150,10 +151,10 @@ export function useHolidayMutations() {
       queryClient.invalidateQueries({ queryKey: ["my-holiday-balance"] });
       queryClient.invalidateQueries({ queryKey: ["all-holidays"] });
       queryClient.invalidateQueries({ queryKey: ["all-holiday-balances"] });
-      toast.success("Holiday request submitted");
+      toast.success(i18n.t("holidays.toasts.requestSubmitted"));
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to submit holiday request");
+      toast.error(error.message || i18n.t("holidays.toasts.requestFailed"));
     },
   });
 
@@ -211,10 +212,14 @@ export function useHolidayMutations() {
       queryClient.invalidateQueries({ queryKey: ["my-holiday-balance"] });
       queryClient.invalidateQueries({ queryKey: ["all-holidays"] });
       queryClient.invalidateQueries({ queryKey: ["all-holiday-balances"] });
-      toast.success(`Holiday ${variables.status}`);
+      toast.success(
+        variables.status === "approved"
+          ? i18n.t("holidays.toasts.approved")
+          : i18n.t("holidays.toasts.rejected")
+      );
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to review holiday");
+      toast.error(error.message || i18n.t("holidays.toasts.reviewFailed"));
     },
   });
 
@@ -234,10 +239,10 @@ export function useHolidayMutations() {
       queryClient.invalidateQueries({ queryKey: ["my-holiday-balance"] });
       queryClient.invalidateQueries({ queryKey: ["all-holidays"] });
       queryClient.invalidateQueries({ queryKey: ["all-holiday-balances"] });
-      toast.success("Holiday cancelled");
+      toast.success(i18n.t("holidays.toasts.cancelled"));
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to cancel holiday");
+      toast.error(error.message || i18n.t("holidays.toasts.cancelFailed"));
     },
   });
 

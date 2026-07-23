@@ -144,7 +144,7 @@ export default function MembersPage() {
             <div className="flex gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Status" />
+                  <SelectValue placeholder={t("callCentre.members.statusFilter", "Status")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t("callCentre.members.allStatus", "All Status")}</SelectItem>
@@ -155,7 +155,7 @@ export default function MembersPage() {
               </Select>
               <Select value={planFilter} onValueChange={setPlanFilter}>
                 <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Plan" />
+                  <SelectValue placeholder={t("callCentre.members.planFilter", "Plan")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t("callCentre.members.allPlans", "All Plans")}</SelectItem>
@@ -235,7 +235,7 @@ export default function MembersPage() {
                           variant="ghost" 
                           size="icon"
                           onClick={(e) => handleCall(member.phone, e)}
-                          title="Call member"
+                          title={t("callCentre.members.callMember", "Call member")}
                         >
                           <Phone className="h-4 w-4" />
                         </Button>
@@ -243,7 +243,7 @@ export default function MembersPage() {
                           variant="ghost" 
                           size="icon"
                           onClick={(e) => handleMessage(member.id, e)}
-                          title="Send message"
+                          title={t("callCentre.members.sendMessage", "Send message")}
                         >
                           <MessageSquare className="h-4 w-4" />
                         </Button>
@@ -251,7 +251,7 @@ export default function MembersPage() {
                           variant="ghost" 
                           size="icon"
                           onClick={(e) => { e.stopPropagation(); navigate(`/call-centre/members/${member.id}`); }}
-                          title="View profile"
+                          title={t("callCentre.members.viewProfile", "View profile")}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>

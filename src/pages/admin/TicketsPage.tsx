@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import type { TablesUpdate } from "@/integrations/supabase/types";
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import { memberBasePathFor } from "@/lib/portalPath";
 import { toast } from "sonner";
 import {
-  Loader2, Send, Ticket, Search, User, Clock, 
+  Loader2, Plus, Send, Ticket, Search, User, Clock,
   AlertTriangle, HelpCircle, ExternalLink, CheckCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -60,24 +70,45 @@ interface Staff {
   last_name: string;
 }
 
+interface Member {
+  id: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+}
+
 export default function AdminTicketsPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  // This page is shared (re-exported) by both /admin and /call-centre. Keep member
+  // links inside the portal the user is actually in, instead of hardcoding /admin.
+  const location = useLocation();
+  const memberBasePath = memberBasePathFor(location.pathname);
   const [tickets, setTickets] = useState<TicketType[]>([]);
   const [filteredTickets, setFilteredTickets] = useState<TicketType[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [staffList, setStaffList] = useState<Staff[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<TicketType | null>(null);
   const [currentStaffId, setCurrentStaffId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [filter, setFilter] = useState("open");
   const [searchQuery, setSearchQuery] = useState("");
   const [replyMessage, setReplyMessage] = useState("");
+  const [newTicket, setNewTicket] = useState({
+    title: "",
+    description: "",
+    category: "pendant_help",
+    priority: "normal",
+    memberId: "",
+  });
 
   useEffect(() => {
     fetchCurrentStaff();
     fetchStaff();
+    fetchMembers();
   }, [user?.id]);
 
   useEffect(() => {
@@ -129,6 +160,15 @@ export default function AdminTicketsPage() {
     setStaffList(data || []);
   };
 
+  const fetchMembers = async () => {
+    const { data } = await supabase
+      .from("members")
+      .select("id, first_name, last_name, phone")
+      .eq("status", "active")
+      .order("last_name");
+    setMembers(data || []);
+  };
+
   const fetchTickets = async () => {
     try {
       const { data, error } = await supabase
@@ -169,6 +209,9 @@ export default function AdminTicketsPage() {
         break;
       case "my-assigned":
         filtered = filtered.filter(t => t.assigned_to === currentStaffId);
+        break;
+      case "my-tickets":
+        filtered = filtered.filter(t => t.created_by === currentStaffId);
         break;
       case "unassigned":
         filtered = filtered.filter(t => !t.assigned_to);
@@ -216,6 +259,41 @@ export default function AdminTicketsPage() {
     } catch (error) {
       console.error("Error updating ticket:", error);
       toast.error("Failed to update ticket");
+    }
+  };
+
+  const createTicket = async () => {
+    if (!newTicket.title.trim() || !newTicket.description.trim()) {
+      toast.error(t("tickets.fillTitleAndDescription", "Please fill in title and description"));
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      const insertData = {
+        title: newTicket.title,
+        description: newTicket.description,
+        category: newTicket.category,
+        priority: newTicket.priority,
+        member_id: newTicket.memberId || null,
+        created_by: currentStaffId!,
+      };
+
+      const { error } = await supabase
+        .from("internal_tickets")
+        .insert(insertData as TablesInsert<"internal_tickets">);
+
+      if (error) throw error;
+
+      toast.success(t("tickets.created", "Ticket created successfully"));
+      setIsDialogOpen(false);
+      setNewTicket({ title: "", description: "", category: "pendant_help", priority: "normal", memberId: "" });
+      fetchTickets();
+    } catch (error) {
+      console.error("Error creating ticket:", error);
+      toast.error(t("tickets.failedToCreate", "Failed to create ticket"));
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -317,6 +395,96 @@ export default function AdminTicketsPage() {
            <h1 className="text-2xl font-bold">{t("adminTickets.title", "Staff Support Tickets")}</h1>
            <p className="text-muted-foreground">{t("adminTickets.subtitle", "Manage internal support tickets from staff")}</p>
          </div>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              {t("tickets.newTicket", "New Ticket")}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{t("tickets.createTicket", "Create Support Ticket")}</DialogTitle>
+              <DialogDescription>{t("tickets.createDesc", "Submit a ticket to admin for help or questions")}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">{t("tickets.titleField", "Title")} *</label>
+                <Input
+                  placeholder={t("tickets.titlePlaceholder", "Brief description of the issue...")}
+                  value={newTicket.title}
+                  onChange={(e) => setNewTicket({ ...newTicket, title: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">{t("tickets.categoryLabel", "Category")}</label>
+                  <Select value={newTicket.category} onValueChange={(v) => setNewTicket({ ...newTicket, category: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pendant_help">{t("tickets.category.pendantHelp", "Pendant Help")}</SelectItem>
+                      <SelectItem value="technical_issue">{t("tickets.category.technicalIssue", "Technical Issue")}</SelectItem>
+                      <SelectItem value="member_query">{t("tickets.category.memberQuery", "Member Query")}</SelectItem>
+                      <SelectItem value="billing_question">{t("tickets.category.billingQuestion", "Billing Question")}</SelectItem>
+                      <SelectItem value="general">{t("tickets.category.general", "General")}</SelectItem>
+                      <SelectItem value="other">{t("tickets.category.other", "Other")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">{t("tickets.priorityLabel", "Priority")}</label>
+                  <Select value={newTicket.priority} onValueChange={(v) => setNewTicket({ ...newTicket, priority: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">{t("tickets.priority.low", "Low")}</SelectItem>
+                      <SelectItem value="normal">{t("tickets.priority.normal", "Normal")}</SelectItem>
+                      <SelectItem value="high">{t("tickets.priority.high", "High")}</SelectItem>
+                      <SelectItem value="urgent">{t("tickets.priority.urgent", "Urgent")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">{t("tickets.relatedMember", "Related Member (Optional)")}</label>
+                <Select
+                  value={newTicket.memberId || "none"}
+                  onValueChange={(v) => setNewTicket({ ...newTicket, memberId: v === "none" ? "" : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("tickets.selectMember", "Select a member...")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t("tickets.none", "None")}</SelectItem>
+                    {members.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.first_name} {m.last_name} - {m.phone}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">{t("common.description", "Description")} *</label>
+                <Textarea
+                  placeholder={t("tickets.descriptionPlaceholder", "Describe the issue in detail...")}
+                  className="min-h-[120px]"
+                  value={newTicket.description}
+                  onChange={(e) => setNewTicket({ ...newTicket, description: e.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={createTicket} disabled={isSending}>
+                {isSending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {t("tickets.submit", "Submit Ticket")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Filters */}
@@ -340,6 +508,7 @@ export default function AdminTicketsPage() {
               )}
             </TabsTrigger>
             <TabsTrigger value="my-assigned">Assigned to Me</TabsTrigger>
+            <TabsTrigger value="my-tickets">{t("tickets.myTickets", "My Tickets")}</TabsTrigger>
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="resolved">Resolved</TabsTrigger>
           </TabsList>
@@ -512,7 +681,7 @@ export default function AdminTicketsPage() {
                             </div>
                           </div>
                           <Button variant="outline" size="sm" asChild>
-                            <Link to={`/admin/members/${selectedTicket.member.id}`}>
+                            <Link to={`${memberBasePath}/members/${selectedTicket.member.id}`}>
                               <ExternalLink className="h-4 w-4 mr-1" />
                               View CRM
                             </Link>

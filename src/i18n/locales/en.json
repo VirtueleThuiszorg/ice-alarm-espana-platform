@@ -1540,8 +1540,77 @@
       "noMembers": "No members found",
       "plan": "Plan",
       "device": "Device",
-      "noDevice": "No device"
+      "noDevice": "No device",
+      "statusFilter": "Status",
+      "planFilter": "Plan",
+      "callMember": "Call member",
+      "sendMessage": "Send message",
+      "viewProfile": "View profile"
     }
+  },
+  "callCentreMessages": {
+    "title": "Messages",
+    "subtitle": "Manage member conversations",
+    "newConversation": "New Conversation",
+    "startNewConversation": "Start New Conversation",
+    "startNewConversationDesc": "Create a new conversation with a member or staff",
+    "memberTab": "Member",
+    "staffTab": "Staff",
+    "selectMember": "Select Member",
+    "selectMemberPlaceholder": "Select a member...",
+    "selectStaffMembers": "Select Staff Member(s)",
+    "noOtherStaff": "No other staff members available",
+    "subject": "Subject",
+    "subjectPlaceholderStaff": "e.g., Shift handover, Escalation...",
+    "subjectPlaceholderMember": "e.g., Payment inquiry, Device help...",
+    "priority": "Priority",
+    "message": "Message",
+    "messagePlaceholder": "Type your message...",
+    "createConversation": "Create Conversation",
+    "filterAll": "All",
+    "filterUnread": "Unread",
+    "filterMine": "Assigned to Me",
+    "filterUnassigned": "Unassigned",
+    "filterStaff": "Staff",
+    "filterResolved": "Resolved",
+    "searchPlaceholder": "Search conversations...",
+    "noConversations": "No conversations found",
+    "staffChat": "Staff Chat",
+    "staffBadge": "Staff",
+    "noSubject": "No subject",
+    "assignTo": "Assign to...",
+    "unassigned": "Unassigned",
+    "internalNote": "Internal Note",
+    "internalNotePlaceholder": "Add an internal note...",
+    "replyPlaceholder": "Type your reply...",
+    "selectConversation": "Select a conversation",
+    "selectConversationHint": "Choose a conversation from the list to view messages",
+    "status": {
+      "open": "Open",
+      "pending": "Pending",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "priorityLabels": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "toasts": {
+      "loadFailed": "Failed to load conversations",
+      "selectStaffRequired": "Please select at least one staff member",
+      "selectMemberRequired": "Please select a member",
+      "fillRequired": "Please fill in all required fields",
+      "created": "Conversation created",
+      "createFailed": "Failed to create conversation",
+      "sendFailed": "Failed to send message",
+      "updateFailed": "Failed to update conversation"
+    }
+  },
+  "callCentreLeads": {
+    "title": "Leads",
+    "subtitle": "Contact form enquiries from potential members"
   },
   "admin": {
     "members": {
@@ -2103,6 +2172,7 @@
   "leads": {
     "newLeads": "New Leads",
     "searchPlaceholder": "Search by name, email, phone...",
+    "statusFilter": "Status",
     "loading": "Loading leads...",
     "noLeads": "No leads found",
     "markContacted": "Mark Contacted",
@@ -2143,6 +2213,7 @@
     "createDesc": "Submit a ticket to admin for help or questions",
     "titleField": "Title",
     "titlePlaceholder": "Brief description of the issue...",
+    "categoryLabel": "Category",
     "category": {
       "pendantHelp": "Pendant Help",
       "technicalIssue": "Technical Issue",
@@ -5429,7 +5500,16 @@
     "statusRequested": "Requested",
     "statusApproved": "Approved",
     "statusRejected": "Rejected",
-    "statusCancelled": "Cancelled"
+    "statusCancelled": "Cancelled",
+    "toasts": {
+      "requestSubmitted": "Holiday request submitted",
+      "requestFailed": "Failed to submit holiday request",
+      "approved": "Holiday approved",
+      "rejected": "Holiday rejected",
+      "reviewFailed": "Failed to review holiday",
+      "cancelled": "Holiday cancelled",
+      "cancelFailed": "Failed to cancel holiday"
+    }
   },
   "shifts": {
     "morning": "Morning",
@@ -5444,7 +5524,14 @@
     "statusPending": "Pending",
     "statusAccepted": "Accepted",
     "statusDeclined": "Declined",
-    "statusExpired": "Expired"
+    "statusExpired": "Expired",
+    "toasts": {
+      "requestSent": "Cover request sent",
+      "requestFailed": "Failed to request cover",
+      "accepted": "Cover accepted",
+      "declined": "Cover declined",
+      "respondFailed": "Failed to respond to cover request"
+    }
   },
   "shiftNotes": {
     "title": "Shift Notes",
@@ -5472,7 +5559,16 @@
     "failedToAdd": "Failed to add note",
     "markedCompleted": "Marked as completed",
     "markedPending": "Marked as pending",
-    "failedToUpdate": "Failed to update note"
+    "failedToUpdate": "Failed to update note",
+    "editNote": "Edit note",
+    "editShiftNote": "Edit Shift Note",
+    "saveChanges": "Save Changes",
+    "noteUpdated": "Note updated",
+    "deleteNote": "Delete note",
+    "deleteConfirmTitle": "Delete this note?",
+    "deleteConfirmDesc": "This will permanently delete the shift note. This action cannot be undone.",
+    "noteDeleted": "Note deleted",
+    "failedToDelete": "Failed to delete note"
   },
   "staffPreferences": {
     "title": "My Profile & Preferences",

@@ -254,7 +254,7 @@ export default function CallCentreMessagesPage() {
       setConversations(conversationsWithDetails as Conversation[]);
     } catch (error) {
       console.error("Error fetching conversations:", error);
-      toast.error("Failed to load conversations");
+      toast.error(t("callCentreMessages.toasts.loadFailed", "Failed to load conversations"));
     } finally {
       setIsLoading(false);
     }
@@ -367,15 +367,15 @@ export default function CallCentreMessagesPage() {
 
     // Validation
     if (isStaffConversation && newConversation.staffParticipants.length === 0) {
-      toast.error("Please select at least one staff member");
+      toast.error(t("callCentreMessages.toasts.selectStaffRequired", "Please select at least one staff member"));
       return;
     }
     if (!isStaffConversation && !newConversation.memberId) {
-      toast.error("Please select a member");
+      toast.error(t("callCentreMessages.toasts.selectMemberRequired", "Please select a member"));
       return;
     }
     if (!newConversation.subject.trim() || !newConversation.message.trim()) {
-      toast.error("Please fill in all required fields");
+      toast.error(t("callCentreMessages.toasts.fillRequired", "Please fill in all required fields"));
       return;
     }
 
@@ -411,13 +411,13 @@ export default function CallCentreMessagesPage() {
 
       if (msgError) throw msgError;
 
-      toast.success("Conversation created");
+      toast.success(t("callCentreMessages.toasts.created", "Conversation created"));
       setIsDialogOpen(false);
       setNewConversation({ type: "member", memberId: "", staffParticipants: [], subject: "", message: "", priority: "normal" });
       fetchConversations();
     } catch (error) {
       console.error("Error creating conversation:", error);
-      toast.error("Failed to create conversation");
+      toast.error(t("callCentreMessages.toasts.createFailed", "Failed to create conversation"));
     } finally {
       setIsSending(false);
     }
@@ -465,13 +465,13 @@ export default function CallCentreMessagesPage() {
       fetchConversations();
     } catch (error) {
       console.error("Error sending message:", error);
-      toast.error("Failed to send message");
+      toast.error(t("callCentreMessages.toasts.sendFailed", "Failed to send message"));
     } finally {
       setIsSending(false);
     }
   };
 
-  const updateConversation = async (field: string, value: string) => {
+  const updateConversation = async (field: string, value: string | null) => {
     if (!selectedConversation) return;
 
     try {
@@ -486,20 +486,20 @@ export default function CallCentreMessagesPage() {
       fetchConversations();
     } catch (error) {
       console.error("Error updating conversation:", error);
-      toast.error("Failed to update conversation");
+      toast.error(t("callCentreMessages.toasts.updateFailed", "Failed to update conversation"));
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "open":
-        return <Badge className="bg-blue-500">Open</Badge>;
+        return <Badge className="bg-blue-500">{t("callCentreMessages.status.open", "Open")}</Badge>;
       case "pending":
-        return <Badge variant="secondary">Pending</Badge>;
+        return <Badge variant="secondary">{t("callCentreMessages.status.pending", "Pending")}</Badge>;
       case "resolved":
-        return <Badge className="bg-green-600">Resolved</Badge>;
+        return <Badge className="bg-green-600">{t("callCentreMessages.status.resolved", "Resolved")}</Badge>;
       case "closed":
-        return <Badge variant="outline">Closed</Badge>;
+        return <Badge variant="outline">{t("callCentreMessages.status.closed", "Closed")}</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
@@ -508,13 +508,13 @@ export default function CallCentreMessagesPage() {
   const getPriorityBadge = (priority: string | null) => {
     switch (priority) {
       case "urgent":
-        return <Badge variant="destructive">Urgent</Badge>;
+        return <Badge variant="destructive">{t("callCentreMessages.priorityLabels.urgent", "Urgent")}</Badge>;
       case "high":
-        return <Badge className="bg-orange-500">High</Badge>;
+        return <Badge className="bg-orange-500">{t("callCentreMessages.priorityLabels.high", "High")}</Badge>;
       case "normal":
         return null;
       case "low":
-        return <Badge variant="outline">Low</Badge>;
+        return <Badge variant="outline">{t("callCentreMessages.priorityLabels.low", "Low")}</Badge>;
       default:
         return null;
     }
@@ -543,13 +543,13 @@ export default function CallCentreMessagesPage() {
             <DialogTrigger asChild>
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
-                New Conversation
+                {t("callCentreMessages.newConversation", "New Conversation")}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Start New Conversation</DialogTitle>
-                <DialogDescription>Create a new conversation with a member or staff</DialogDescription>
+                <DialogTitle>{t("callCentreMessages.startNewConversation", "Start New Conversation")}</DialogTitle>
+                <DialogDescription>{t("callCentreMessages.startNewConversationDesc", "Create a new conversation with a member or staff")}</DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 {/* Conversation Type Selector */}
@@ -557,11 +557,11 @@ export default function CallCentreMessagesPage() {
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="member" className="flex items-center gap-2">
                       <User className="h-4 w-4" />
-                      Member
+                      {t("callCentreMessages.memberTab", "Member")}
                     </TabsTrigger>
                     <TabsTrigger value="staff" className="flex items-center gap-2">
                       <Users className="h-4 w-4" />
-                      Staff
+                      {t("callCentreMessages.staffTab", "Staff")}
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
@@ -569,13 +569,13 @@ export default function CallCentreMessagesPage() {
                 {/* Member Selection */}
                 {newConversation.type === "member" && (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Select Member</label>
+                    <label className="text-sm font-medium">{t("callCentreMessages.selectMember", "Select Member")}</label>
                     <Select
                       value={newConversation.memberId}
                       onValueChange={(v) => setNewConversation({ ...newConversation, memberId: v })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a member..." />
+                        <SelectValue placeholder={t("callCentreMessages.selectMemberPlaceholder", "Select a member...")} />
                       </SelectTrigger>
                       <SelectContent>
                         {members.map((member) => (
@@ -591,7 +591,7 @@ export default function CallCentreMessagesPage() {
                 {/* Staff Selection (Multi-select) */}
                 {newConversation.type === "staff" && (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Select Staff Member(s)</label>
+                    <label className="text-sm font-medium">{t("callCentreMessages.selectStaffMembers", "Select Staff Member(s)")}</label>
                     <div className="border rounded-md max-h-[200px] overflow-auto">
                       {staffList.filter(s => s.id !== currentStaffId).map((staff) => (
                         <label
@@ -618,22 +618,22 @@ export default function CallCentreMessagesPage() {
                         </label>
                       ))}
                       {staffList.filter(s => s.id !== currentStaffId).length === 0 && (
-                        <p className="p-3 text-sm text-muted-foreground">No other staff members available</p>
+                        <p className="p-3 text-sm text-muted-foreground">{t("callCentreMessages.noOtherStaff", "No other staff members available")}</p>
                       )}
                     </div>
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Subject</label>
+                  <label className="text-sm font-medium">{t("callCentreMessages.subject", "Subject")}</label>
                   <Input
-                    placeholder={newConversation.type === "staff" ? "e.g., Shift handover, Escalation..." : "e.g., Payment inquiry, Device help..."}
+                    placeholder={newConversation.type === "staff" ? t("callCentreMessages.subjectPlaceholderStaff", "e.g., Shift handover, Escalation...") : t("callCentreMessages.subjectPlaceholderMember", "e.g., Payment inquiry, Device help...")}
                     value={newConversation.subject}
                     onChange={(e) => setNewConversation({ ...newConversation, subject: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Priority</label>
+                  <label className="text-sm font-medium">{t("callCentreMessages.priority", "Priority")}</label>
                   <Select
                     value={newConversation.priority}
                     onValueChange={(v) => setNewConversation({ ...newConversation, priority: v })}
@@ -642,17 +642,17 @@ export default function CallCentreMessagesPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="normal">Normal</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="urgent">Urgent</SelectItem>
+                      <SelectItem value="low">{t("callCentreMessages.priorityLabels.low", "Low")}</SelectItem>
+                      <SelectItem value="normal">{t("callCentreMessages.priorityLabels.normal", "Normal")}</SelectItem>
+                      <SelectItem value="high">{t("callCentreMessages.priorityLabels.high", "High")}</SelectItem>
+                      <SelectItem value="urgent">{t("callCentreMessages.priorityLabels.urgent", "Urgent")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Message</label>
+                  <label className="text-sm font-medium">{t("callCentreMessages.message", "Message")}</label>
                   <Textarea
-                    placeholder="Type your message..."
+                    placeholder={t("callCentreMessages.messagePlaceholder", "Type your message...")}
                     className="min-h-[100px]"
                     value={newConversation.message}
                     onChange={(e) => setNewConversation({ ...newConversation, message: e.target.value })}
@@ -662,7 +662,7 @@ export default function CallCentreMessagesPage() {
               <DialogFooter>
                 <Button onClick={createConversation} disabled={isSending}>
                   {isSending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create Conversation
+                  {t("callCentreMessages.createConversation", "Create Conversation")}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -673,28 +673,28 @@ export default function CallCentreMessagesPage() {
         <div className="flex items-center gap-4">
           <Tabs value={filter} onValueChange={setFilter} className="flex-1">
             <TabsList>
-              <TabsTrigger value="all">All</TabsTrigger>
+              <TabsTrigger value="all">{t("callCentreMessages.filterAll", "All")}</TabsTrigger>
               <TabsTrigger value="unread" className="flex items-center gap-1">
-                Unread
+                {t("callCentreMessages.filterUnread", "Unread")}
                 {unreadCount > 0 && (
                   <Badge variant="destructive" className="h-5 w-5 p-0 flex items-center justify-center text-xs">
                     {unreadCount}
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="mine">Assigned to Me</TabsTrigger>
-              <TabsTrigger value="unassigned">Unassigned</TabsTrigger>
+              <TabsTrigger value="mine">{t("callCentreMessages.filterMine", "Assigned to Me")}</TabsTrigger>
+              <TabsTrigger value="unassigned">{t("callCentreMessages.filterUnassigned", "Unassigned")}</TabsTrigger>
               <TabsTrigger value="staff" className="flex items-center gap-1">
                 <Users className="h-4 w-4" />
-                Staff
+                {t("callCentreMessages.filterStaff", "Staff")}
               </TabsTrigger>
-              <TabsTrigger value="resolved">Resolved</TabsTrigger>
+              <TabsTrigger value="resolved">{t("callCentreMessages.filterResolved", "Resolved")}</TabsTrigger>
             </TabsList>
           </Tabs>
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search conversations..."
+              placeholder={t("callCentreMessages.searchPlaceholder", "Search conversations...")}
               className="pl-9"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -711,7 +711,7 @@ export default function CallCentreMessagesPage() {
             {filteredConversations.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                <p>No conversations found</p>
+                <p>{t("callCentreMessages.noConversations", "No conversations found")}</p>
               </div>
             ) : (
               filteredConversations.map((conv) => (
@@ -733,9 +733,9 @@ export default function CallCentreMessagesPage() {
                           <>
                             <Users className="h-4 w-4 text-blue-500 shrink-0" />
                             <span className="font-medium truncate">
-                              {conv.participants_info?.map(p => p.first_name).join(", ") || "Staff Chat"}
+                              {conv.participants_info?.map(p => p.first_name).join(", ") || t("callCentreMessages.staffChat", "Staff Chat")}
                             </span>
-                            <Badge variant="outline" className="text-xs shrink-0">Staff</Badge>
+                            <Badge variant="outline" className="text-xs shrink-0">{t("callCentreMessages.staffBadge", "Staff")}</Badge>
                           </>
                         ) : (
                           <span className="font-medium truncate">
@@ -743,7 +743,7 @@ export default function CallCentreMessagesPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground truncate">{conv.subject || "No subject"}</p>
+                      <p className="text-sm text-muted-foreground truncate">{conv.subject || t("callCentreMessages.noSubject", "No subject")}</p>
                       <p className="text-xs text-muted-foreground truncate mt-1">{conv.last_message_preview}</p>
                     </div>
                     <div className="text-xs text-muted-foreground flex-shrink-0">
@@ -778,7 +778,7 @@ export default function CallCentreMessagesPage() {
                         </Link>
                       </Button>
                     </div>
-                    <p className="text-sm text-muted-foreground">{selectedConversation.subject || "No subject"}</p>
+                    <p className="text-sm text-muted-foreground">{selectedConversation.subject || t("callCentreMessages.noSubject", "No subject")}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <a href={`tel:${selectedConversation.member?.phone}`}>
@@ -802,10 +802,10 @@ export default function CallCentreMessagesPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="open">Open</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="resolved">Resolved</SelectItem>
-                      <SelectItem value="closed">Closed</SelectItem>
+                      <SelectItem value="open">{t("callCentreMessages.status.open", "Open")}</SelectItem>
+                      <SelectItem value="pending">{t("callCentreMessages.status.pending", "Pending")}</SelectItem>
+                      <SelectItem value="resolved">{t("callCentreMessages.status.resolved", "Resolved")}</SelectItem>
+                      <SelectItem value="closed">{t("callCentreMessages.status.closed", "Closed")}</SelectItem>
                     </SelectContent>
                   </Select>
                   <Select
@@ -816,21 +816,21 @@ export default function CallCentreMessagesPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="normal">Normal</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="urgent">Urgent</SelectItem>
+                      <SelectItem value="low">{t("callCentreMessages.priorityLabels.low", "Low")}</SelectItem>
+                      <SelectItem value="normal">{t("callCentreMessages.priorityLabels.normal", "Normal")}</SelectItem>
+                      <SelectItem value="high">{t("callCentreMessages.priorityLabels.high", "High")}</SelectItem>
+                      <SelectItem value="urgent">{t("callCentreMessages.priorityLabels.urgent", "Urgent")}</SelectItem>
                     </SelectContent>
                   </Select>
                   <Select
                     value={selectedConversation.assigned_to || "unassigned"}
-                    onValueChange={(v) => updateConversation("assigned_to", v === "unassigned" ? "" : v)}
+                    onValueChange={(v) => updateConversation("assigned_to", v === "unassigned" ? null : v)}
                   >
                     <SelectTrigger className="w-44">
-                      <SelectValue placeholder="Assign to..." />
+                      <SelectValue placeholder={t("callCentreMessages.assignTo", "Assign to...")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      <SelectItem value="unassigned">{t("callCentreMessages.unassigned", "Unassigned")}</SelectItem>
                       {staffList.map((staff) => (
                         <SelectItem key={staff.id} value={staff.id}>
                           {staff.first_name} {staff.last_name}
@@ -865,7 +865,7 @@ export default function CallCentreMessagesPage() {
                         {msg.message_type === "system" && (
                           <div className="flex items-center gap-1 mb-1">
                             <StickyNote className="h-3 w-3" />
-                            <span className="text-xs font-medium">Internal Note</span>
+                            <span className="text-xs font-medium">{t("callCentreMessages.internalNote", "Internal Note")}</span>
                           </div>
                         )}
                         <p className="text-sm whitespace-pre-wrap">
@@ -897,12 +897,12 @@ export default function CallCentreMessagesPage() {
                     onClick={() => setIsInternalNote(!isInternalNote)}
                   >
                     <StickyNote className="h-4 w-4 mr-1" />
-                    Internal Note
+                    {t("callCentreMessages.internalNote", "Internal Note")}
                   </Button>
                 </div>
                 <div className="flex gap-2">
                   <Textarea
-                    placeholder={isInternalNote ? "Add an internal note..." : "Type your reply..."}
+                    placeholder={isInternalNote ? t("callCentreMessages.internalNotePlaceholder", "Add an internal note...") : t("callCentreMessages.replyPlaceholder", "Type your reply...")}
                     className={cn(
                       "min-h-[80px] resize-none",
                       isInternalNote && "border-yellow-400 focus-visible:ring-yellow-400"
@@ -930,8 +930,8 @@ export default function CallCentreMessagesPage() {
             <div className="flex-1 flex items-center justify-center text-muted-foreground">
               <div className="text-center">
                 <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                <p className="text-lg font-medium">Select a conversation</p>
-                <p className="text-sm">Choose a conversation from the list to view messages</p>
+                <p className="text-lg font-medium">{t("callCentreMessages.selectConversation", "Select a conversation")}</p>
+                <p className="text-sm">{t("callCentreMessages.selectConversationHint", "Choose a conversation from the list to view messages")}</p>
               </div>
             </div>
           )}

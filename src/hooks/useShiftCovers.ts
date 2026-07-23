@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { STALE_TIMES } from "@/config/constants";
 import type { CoverStatus } from "@/config/shifts";
 import { toast } from "sonner";
+import i18n from "@/i18n";
 
 export interface ShiftCover {
   id: string;
@@ -144,10 +145,10 @@ export function useShiftCoverMutations() {
       queryClient.invalidateQueries({ queryKey: ["my-pending-covers"] });
       queryClient.invalidateQueries({ queryKey: ["all-covers"] });
       queryClient.invalidateQueries({ queryKey: ["covers-for-holiday"] });
-      toast.success("Cover request sent");
+      toast.success(i18n.t("covers.toasts.requestSent"));
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to request cover");
+      toast.error(error.message || i18n.t("covers.toasts.requestFailed"));
     },
   });
 
@@ -212,10 +213,14 @@ export function useShiftCoverMutations() {
       queryClient.invalidateQueries({ queryKey: ["staff-shifts"] });
       queryClient.invalidateQueries({ queryKey: ["my-shifts"] });
       queryClient.invalidateQueries({ queryKey: ["on-shift-now"] });
-      toast.success(`Cover ${variables.status}`);
+      toast.success(
+        variables.status === "accepted"
+          ? i18n.t("covers.toasts.accepted")
+          : i18n.t("covers.toasts.declined")
+      );
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to respond to cover request");
+      toast.error(error.message || i18n.t("covers.toasts.respondFailed"));
     },
   });
 

@@ -49,7 +49,7 @@ export function PendingCoversWidget({ staffId }: PendingCoversWidgetProps) {
                       <p className="text-xs text-muted-foreground">
                         {format(new Date(cover.shift.shift_date + "T12:00:00"), "EEE d MMM")} —{" "}
                         <Badge className={`${config.bgClass} ${config.textClass} border-0 text-xs`}>
-                          {config.label}
+                          {t(config.labelKey, config.label)}
                         </Badge>
                       </p>
                     )}

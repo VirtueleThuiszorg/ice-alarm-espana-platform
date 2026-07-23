@@ -190,36 +190,40 @@
     --popover: 40 56% 99%;
     --popover-foreground: 240 30% 18%;
 
-    --primary: 240 35% 35%;              /* indigo — CTAs / primary buttons */
+    /* MOCK (teal brand tie-in): brand PRIMARY = logo blue #0D4CA5; teal = secondary
+       accent (ripple + soft tints); orange reserved for CTAs (see --cta). */
+    --primary: 215 85% 35%;              /* logo blue — brand primary / structure */
     --primary-foreground: 40 56% 99%;
 
     --secondary: 36 34% 92%;             /* warm sand */
-    --secondary-foreground: 240 30% 22%;
+    --secondary-foreground: 215 60% 24%;
 
     --muted: 36 30% 93%;
     --muted-foreground: 240 12% 38%;     /* AA on cream */
 
-    --accent: 33 80% 92%;                /* soft orange tint — subtle bg / hover */
-    --accent-foreground: 24 75% 26%;
+    --accent: 185 45% 92%;               /* soft TEAL tint — subtle bg / hover */
+    --accent-foreground: 190 80% 22%;
 
     --destructive: 0 84% 55%;            /* semantic red — SOS/emergency only */
     --destructive-foreground: 0 0% 100%;
 
     --border: 36 24% 86%;
     --input: 36 24% 86%;
-    --ring: 240 35% 40%;                 /* visible indigo focus ring */
+    --ring: 215 85% 40%;                 /* blue focus ring */
 
     --radius: 1rem;                      /* softer, rounded-not-childish */
 
-    /* Deliberate warm accent (vivid orange) — used SPARINGLY: ripple, highlights,
-       small emphasis. Not a button background (white-on-orange fails AA). */
-    --brand-accent: 33 93% 54%;
-    --brand-accent-foreground: 24 80% 15%;
-    --brand-ink: 240 35% 35%;
+    /* Secondary accent = TEAL (deliberate): ripple, small highlights. */
+    --brand-accent: 185 75% 45%;
+    --brand-accent-foreground: 0 0% 100%;
+    --brand-ink: 215 85% 35%;
+    /* CTA = orange (dark ink for AA on the vivid orange). */
+    --cta: 33 93% 54%;
+    --cta-foreground: 240 30% 16%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(240 35% 35%) 0%, hsl(255 30% 46%) 100%);
-    --gradient-warm: linear-gradient(160deg, hsl(36 55% 97%) 0%, hsl(33 60% 93%) 100%);
-    --shadow-glow: 0 0 40px hsl(33 93% 54% / 0.18);
+    --gradient-primary: linear-gradient(135deg, hsl(215 85% 35%) 0%, hsl(190 75% 42%) 100%);
+    --gradient-warm: linear-gradient(160deg, hsl(36 55% 97%) 0%, hsl(185 40% 94%) 100%);
+    --shadow-glow: 0 0 40px hsl(185 75% 45% / 0.20);
   }
 
   /* 18px body floor for the public audience (§3): bare paragraphs/list text.

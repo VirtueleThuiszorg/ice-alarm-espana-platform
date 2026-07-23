@@ -208,7 +208,7 @@ export default function PendantPage() {
               </ul>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Button size="lg" className="h-14 px-8 text-lg shadow-lg" asChild>
+                <Button size="lg" className="btn-cta h-14 px-8 text-lg shadow-lg" asChild>
                   <Link to="/join">
                     {t("pendant.hero.cta")}
                     <ArrowRight className="ml-2 h-5 w-5" />

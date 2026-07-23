@@ -2880,7 +2880,9 @@
     "success": "Registration completed successfully!",
     "pleaseLogin": "Please log in first",
     "pleaseLoginFirst": "Please",
-    "toComplete": "to complete your registration"
+    "toComplete": "to complete your registration",
+    "noMembershipFound": "We couldn't find a membership for this email. Join Care Conneqt to get started.",
+    "emailNotConfirmed": "Please confirm your email first — check your inbox for the confirmation link."
   },
   "contact": {
     "hero": {

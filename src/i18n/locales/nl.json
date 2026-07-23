@@ -2572,6 +2572,8 @@
       "phoneOnlyDesc": "Gebruik onze mobiele app op uw smartphone om verbinding te maken met ons noodresponscentrum.",
       "requiresSmartphone": "Vereist een smartphone met de app geïnstalleerd",
       "featureComparison": "Functievergelijking",
+      "bothInclude": "Beide bevatten",
+      "onlyPendant": "Alleen de hanger",
       "feature": "Functie",
       "features": {
         "emergencyResponse": "24/7-noodrespons",

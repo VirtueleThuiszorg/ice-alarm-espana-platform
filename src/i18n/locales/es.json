@@ -2564,6 +2564,8 @@
       "phoneOnlyDesc": "Use nuestra aplicación móvil en su smartphone para conectarse con nuestro centro de respuesta de emergencia.",
       "requiresSmartphone": "Requiere smartphone con aplicación instalada",
       "featureComparison": "Comparación de características",
+      "bothInclude": "Ambos incluyen",
+      "onlyPendant": "Solo el colgante",
       "feature": "Característica",
       "features": {
         "emergencyResponse": "Respuesta de emergencia 24/7",

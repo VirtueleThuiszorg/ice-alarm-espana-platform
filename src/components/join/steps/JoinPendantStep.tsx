@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { useTranslation } from "react-i18next";
 import { JoinWizardData } from "@/types/wizard";
 import { Label } from "@/components/ui/label";
@@ -19,15 +20,19 @@ export function JoinPendantStep({ data, onUpdate }: JoinPendantStepProps) {
   const defaultCount = data.membershipType === "couple" ? 2 : 1;
   const currentCount = data.pendantCount || defaultCount;
 
+  // Shared rows (✓/✓) first, then pendant-only rows (✓/✗). Phone Only = using your own
+  // smartphone/app: it can place an emergency call and do two-way voice, but has no GPS
+  // pendant hardware, fall detection, waterproofing, physical SOS button, and needs a phone
+  // on a smartphone (not the pendant's own 4G). Values confirmed by Lee 2026-07-22.
   const features = [
-    { nameKey: "joinWizard.device.features.emergencyResponse", pendant: true, phoneOnly: true },
-    { nameKey: "joinWizard.device.features.gpsTracking", pendant: true, phoneOnly: true },
-    { nameKey: "joinWizard.device.features.fallDetection", pendant: true, phoneOnly: false },
-    { nameKey: "joinWizard.device.features.waterproof", pendant: true, phoneOnly: false },
-    { nameKey: "joinWizard.device.features.sosButton", pendant: true, phoneOnly: true },
-    { nameKey: "joinWizard.device.features.twoWayVoice", pendant: true, phoneOnly: true },
-    { nameKey: "joinWizard.device.features.noSmartphone", pendant: true, phoneOnly: false },
-    { nameKey: "joinWizard.device.features.works4g", pendant: true, phoneOnly: false },
+    { nameKey: "joinWizard.device.features.emergencyResponse", pendant: true, phoneOnly: true, group: "shared" },
+    { nameKey: "joinWizard.device.features.twoWayVoice", pendant: true, phoneOnly: true, group: "shared" },
+    { nameKey: "joinWizard.device.features.gpsTracking", pendant: true, phoneOnly: false, group: "pendant" },
+    { nameKey: "joinWizard.device.features.fallDetection", pendant: true, phoneOnly: false, group: "pendant" },
+    { nameKey: "joinWizard.device.features.waterproof", pendant: true, phoneOnly: false, group: "pendant" },
+    { nameKey: "joinWizard.device.features.sosButton", pendant: true, phoneOnly: false, group: "pendant" },
+    { nameKey: "joinWizard.device.features.noSmartphone", pendant: true, phoneOnly: false, group: "pendant" },
+    { nameKey: "joinWizard.device.features.works4g", pendant: true, phoneOnly: false, group: "pendant" },
   ];
 
   const pendantFeatures = [
@@ -133,13 +138,25 @@ export function JoinPendantStep({ data, onUpdate }: JoinPendantStepProps) {
             <table className="w-full text-sm">
               <thead><tr className="border-b"><th className="text-left py-2 font-medium">{t("joinWizard.device.feature")}</th><th className="text-center py-2 font-medium">{t("joinWizard.device.gpsPendant")}</th><th className="text-center py-2 font-medium">{t("joinWizard.device.phoneOnly")}</th></tr></thead>
               <tbody>
-                {features.map((feature) => (
-                  <tr key={feature.nameKey} className="border-b last:border-0">
-                    <td className="py-2">{t(feature.nameKey)}</td>
-                    <td className="text-center py-2">{feature.pendant ? <Check className="h-5 w-5 text-status-active mx-auto" /> : <X className="h-5 w-5 text-muted-foreground mx-auto" />}</td>
-                    <td className="text-center py-2">{feature.phoneOnly ? <Check className="h-5 w-5 text-status-active mx-auto" /> : <X className="h-5 w-5 text-muted-foreground mx-auto" />}</td>
-                  </tr>
-                ))}
+                {features.map((feature, i) => {
+                  const startsGroup = i === 0 || features[i - 1].group !== feature.group;
+                  return (
+                    <Fragment key={feature.nameKey}>
+                      {startsGroup && (
+                        <tr>
+                          <td colSpan={3} className="pt-4 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            {feature.group === "shared" ? t("joinWizard.device.bothInclude") : t("joinWizard.device.onlyPendant")}
+                          </td>
+                        </tr>
+                      )}
+                      <tr className="border-b last:border-0">
+                        <td className="py-2">{t(feature.nameKey)}</td>
+                        <td className="text-center py-2">{feature.pendant ? <Check className="h-5 w-5 text-status-active mx-auto" /> : <X className="h-5 w-5 text-muted-foreground mx-auto" />}</td>
+                        <td className="text-center py-2">{feature.phoneOnly ? <Check className="h-5 w-5 text-status-active mx-auto" /> : <X className="h-5 w-5 text-muted-foreground mx-auto" />}</td>
+                      </tr>
+                    </Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>

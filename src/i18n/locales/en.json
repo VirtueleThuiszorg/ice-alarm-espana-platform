@@ -2572,6 +2572,8 @@
       "phoneOnlyDesc": "Use our mobile app on your smartphone to connect with our emergency response center.",
       "requiresSmartphone": "Requires smartphone with app installed",
       "featureComparison": "Feature Comparison",
+      "bothInclude": "Both include",
+      "onlyPendant": "Only the pendant",
       "feature": "Feature",
       "features": {
         "emergencyResponse": "24/7 Emergency Response",

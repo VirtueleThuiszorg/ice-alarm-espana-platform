@@ -123,6 +123,39 @@ continues on the `*.vercel.app` URL**. Tracked as a HARD launch blocker in `LAUN
 
 ---
 
+## SOS/alerts safety reconciliation — STAGE_SOS_FIX.md (status 2026-07-23)
+
+> The "two ownership paths" defect class (queue wrote `claimed_by` unguarded; SOS page wrote
+> `accepted_by_staff_id` guarded — the two surfaces could disagree about who owns a live SOS)
+> is being retired WP by WP. Every WP ships with a single-write-path source-scan invariant,
+> race tests, and a truthful-UI check. **All SOS-path merges are human-gated (Lee, live drill).**
+
+| WP | What | State | Proof |
+|---|---|---|---|
+| WP-A unified ownership | One guarded write path (`src/lib/alertOwnership.ts`, canonical `accepted_by_staff_id`, legacy mirror kept for SLA/history readers); queue claim now lands on the SOS page as active | ✅ **MERGED** #35 | `alertOwnership.test.ts` (9): write-path, shared-state derivation, 2-operator race, source-scan invariant |
+| SOS drill | Admin-only `sos-drill` fn + dashboard controls: level-5 ladder-inert drill alert (contact-less internal member, no outbound HTTP), auto cleanup — lets Lee exercise the live path safely | ✅ **MERGED** #37 | `sosDrill.test.ts` (9): ladder-inert proof vs runner source, no-outbound scan, admin-only |
+| WP-B single resolve path | Every resolve goes through `sos-alert-resolve` (now alert-type-aware; notes mandatory for SOS; false-alarm flag; Isabella log + contact SMS gated on real SOS) via `src/lib/alertResolution.ts` | ✅ **MERGED** #36 | `alertResolution.test.ts` (10) incl. source-scan: no direct resolved-status writes |
+| WP-C real escalation | `sos-alert-escalate` fn: status + `alert_escalations` audit row (`escalated_by`) + real admin notify; **toast says "Admin has been notified" only after a confirmed send** (was a hardcoded lie) | 🟡 **PR #39 open — GATED** | `alertEscalation.test.ts` (11): notified never invented, table-aware source scan, runner harmless-slot proof |
+| WP-D emergency button | Dead "Call Emergency Services" button → real `tel:112` link with the number visibly rendered (Lee's decision) | 🟡 **PR #40 open — GATED, stacked on #39** | `emergencyButton.test.ts` (3) |
+| WP-E/F/G (queue checkboxes, small defects, dead SOSTakeoverScreen) | Not started | ⬜ | — |
+
+**Found & flagged during this work (separate, gated):**
+- 🔥 **Prod blocker:** `/complete-registration` fails RLS on a client-side `members` INSERT (correctly
+  denied by design — no member INSERT policy exists). Fix = server-side linking fn, **zero policy
+  changes** — **PR #38 open**. `completeRegistration.test.ts` (11) locks the security properties.
+- 🔴 Partner `ResidentialDashboard` inserts members client-side — same bug class, pinned as
+  known-broken by the same test; needs its own gated WP.
+- Later-fix flags recorded in STAGE_SOS_FIX.md: member hard-DELETE → soft-delete/admin-only;
+  SubscriptionTab client-side status writes → server-side.
+
+**Call-centre upgrade buckets (non-gated, 2026-07-23):** #41 (draft — dashboard reorder
+members→devices→personal + white-on-white badge fixes, awaiting visual sign-off), #42 (i18n:
+72 keys × en/es/nl, removes hardcoded English from Messages/Leads/Members/holiday+cover toasts),
+#43 (stacked on #42 — tickets full lifecycle on call-centre, shift-note edit/delete/realtime,
+messages unassign `""`→`null` bug; `callCentreCrud.test.ts` 11 tests).
+
+---
+
 ## 0. Full suite results (gates re-run 2026-07-16 on `chore/lint-zero-and-test-hygiene`)
 
 | Gate | Result | Evidence |

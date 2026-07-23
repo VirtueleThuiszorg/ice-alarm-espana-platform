@@ -25,6 +25,15 @@
 
 ### Safety & security  *(human gate)*
 - [ ] SOS → operator path signed off (E2E, measured latency).
+  - **Status 2026-07-23 (STAGE_SOS_FIX.md):** WP-A unified ownership **merged** (#35),
+    WP-B single resolve path **merged** (#36), admin **SOS drill merged** (#37 — safe
+    live-drill tool, level-5 ladder-inert, auto cleanup). WP-C real escalation (#39)
+    and WP-D `tel:112` button (#40, stacked) are **open, gated on Lee's live drill +
+    per-PR sign-off**. Each WP carries single-write-path + race + source-scan tests.
+- [ ] **/complete-registration works on prod** — currently every signup completing there
+      fails RLS (client-side members INSERT, denied by design). Server-side fix with
+      zero policy changes is **PR #38 (open, for Lee review)**. Partner
+      ResidentialDashboard has the same bug class (flagged, separate gated fix).
 - [ ] RLS isolation tests green on every table.
 - [ ] Isabella tool-permission gate verified (hard-blocked tools unreachable).
 - [ ] Twilio on a **PAID** plan (trial can't reach real emergency contacts).

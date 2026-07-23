@@ -6,6 +6,7 @@ import { INTERVALS } from "@/config/constants";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { resolveAlertViaFunction } from "@/lib/alertResolution";
 import {
   ChevronLeft,
   ChevronRight,
@@ -182,27 +183,49 @@ export default function AlertsPage() {
   const handleSaveEdit = () => {
     if (!selectedAlert) return;
 
+    // WP-B: a transition TO resolved goes through the single resolve path so an
+    // SOS gets its full close-out. Other edits (notes, false-alarm flag,
+    // un-resolving, other statuses) remain a plain supervisory correction.
+    if (editStatus === "resolved" && selectedAlert.status !== "resolved") {
+      resolveViaFunctionMutation.mutate({
+        alertId: selectedAlert.id,
+        notes: editNotes || undefined,
+        isFalseAlarm: editIsFalseAlarm,
+      });
+      return;
+    }
+
     const updates: TablesUpdate<"alerts"> = {
       status: editStatus as AlertRow["status"],
       resolution_notes: editNotes || null,
       is_false_alarm: editIsFalseAlarm,
     };
 
-    if (editStatus === "resolved" && selectedAlert.status !== "resolved") {
-      updates.resolved_at = new Date().toISOString();
-    }
-
     updateAlertMutation.mutate({ alertId: selectedAlert.id, updates });
   };
 
+  // WP-B: resolves go through the single resolve path (sos-alert-resolve) —
+  // for an SOS this performs the full close-out instead of a bare status write.
+  const resolveViaFunctionMutation = useMutation({
+    mutationFn: async (args: { alertId: string; notes?: string; isFalseAlarm?: boolean }) => {
+      const result = await resolveAlertViaFunction(args.alertId, {
+        notes: args.notes,
+        isFalseAlarm: args.isFalseAlarm,
+      });
+      if (!result.ok) throw new Error(result.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-alerts"] });
+      toast.success(t("adminAlerts.updateSuccess", "Alert updated successfully"));
+      setEditDialogOpen(false);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message || t("adminAlerts.updateError", "Failed to update alert"));
+    },
+  });
+
   const handleQuickResolve = (alert: AlertRow) => {
-    updateAlertMutation.mutate({
-      alertId: alert.id,
-      updates: {
-        status: "resolved",
-        resolved_at: new Date().toISOString(),
-      },
-    });
+    resolveViaFunctionMutation.mutate({ alertId: alert.id });
   };
 
   const handleQuickEscalate = (alert: AlertRow) => {

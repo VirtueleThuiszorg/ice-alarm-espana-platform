@@ -57,9 +57,39 @@ Deno.serve(async (req) => {
 
     const { alert_id, resolution_notes, is_false_alarm, resolution_type } = await req.json();
 
-    if (!alert_id || !resolution_notes) {
+    if (!alert_id) {
       return new Response(
-        JSON.stringify({ error: "alert_id and resolution_notes are required" }),
+        JSON.stringify({ error: "alert_id is required" }),
+        { status: 400, headers: jh },
+      );
+    }
+
+    // WP-B: this function is now the SINGLE resolve path for EVERY alert type
+    // (queue, admin, device panels and the SOS takeover all call it), so it must
+    // know what it is resolving. SOS types keep their full close-out (notes
+    // required, contact notification, courtesy calls); non-SOS alerts get a
+    // plain resolve + the same graceful conference teardown (a no-op for them).
+    // Keep this list in sync with src/lib/alertOwnership.ts SOS_ALERT_TYPES and
+    // the sos-escalation-runner sweep.
+    const SOS_TYPES = ["sos_button", "fall_detected"];
+
+    const { data: alertRow, error: alertFetchError } = await sbAdmin
+      .from("alerts")
+      .select("id, alert_type, member_id")
+      .eq("id", alert_id)
+      .maybeSingle();
+
+    if (alertFetchError || !alertRow) {
+      return new Response(JSON.stringify({ error: "Alert not found" }), { status: 404, headers: jh });
+    }
+
+    const isSos = SOS_TYPES.includes(alertRow.alert_type);
+
+    // Resolution notes stay MANDATORY for SOS alerts (life-safety record);
+    // non-SOS quick-resolves (e.g. low battery cleared) may omit them.
+    if (isSos && !resolution_notes) {
+      return new Response(
+        JSON.stringify({ error: "resolution_notes is required for SOS alerts" }),
         { status: 400, headers: jh },
       );
     }
@@ -71,7 +101,7 @@ Deno.serve(async (req) => {
       .update({
         status: "resolved",
         resolved_at: now,
-        resolution_notes,
+        resolution_notes: resolution_notes || null,
         is_false_alarm: is_false_alarm || false,
       })
       .eq("id", alert_id);
@@ -127,18 +157,22 @@ Deno.serve(async (req) => {
       console.log(`[${FN}] Conference ${conference.id} ended, all participants marked left`);
     }
 
-    // 5. Log resolution in isabella_assessment_notes
-    await sbAdmin.from("isabella_assessment_notes").insert({
-      alert_id,
-      note_type: "triage_decision",
-      content: is_false_alarm
-        ? `Alert resolved as FALSE ALARM. Notes: ${resolution_notes}`
-        : `Alert resolved. Type: ${resolution_type || "other"}. Notes: ${resolution_notes}`,
-      is_critical: false,
-    });
+    // 5. Log resolution in isabella_assessment_notes (SOS alerts only — the
+    // Isabella feed is an SOS-takeover surface; battery/offline resolves would
+    // be noise there).
+    if (isSos) {
+      await sbAdmin.from("isabella_assessment_notes").insert({
+        alert_id,
+        note_type: "triage_decision",
+        content: is_false_alarm
+          ? `Alert resolved as FALSE ALARM. Notes: ${resolution_notes}`
+          : `Alert resolved. Type: ${resolution_type || "other"}. Notes: ${resolution_notes}`,
+        is_critical: false,
+      });
+    }
 
-    // 6. If not a false alarm, notify emergency contacts who were involved
-    if (!is_false_alarm) {
+    // 6. If an SOS and not a false alarm, notify emergency contacts who were involved
+    if (isSos && !is_false_alarm) {
       // Find contacts who were called or added to conference
       const { data: involvedContacts } = await sbAdmin
         .from("conference_participants")
@@ -209,8 +243,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 7. Auto-schedule courtesy call for the next day (if not a false alarm)
-    if (!is_false_alarm) {
+    // 7. Auto-schedule courtesy call for the next day (SOS alerts only, and not
+    // for false alarms — preserves the pre-WP-B behaviour where only SOS-page
+    // resolves created courtesy tasks).
+    if (isSos && !is_false_alarm) {
       const { data: alertForCourtesy } = await sbAdmin
         .from("alerts")
         .select("member_id")

@@ -1513,7 +1513,8 @@
       "emergencyServicesCalled": "Emergency services (112) called",
       "nextOfKinNotified": "Next of kin notified",
       "escalate": "Escalate",
-      "resolveAlert": "Resolve Alert"
+      "resolveAlert": "Resolve Alert",
+      "falseAlarm": "False alarm"
     },
     "quickSearch": {
       "title": "Quick Member Search",

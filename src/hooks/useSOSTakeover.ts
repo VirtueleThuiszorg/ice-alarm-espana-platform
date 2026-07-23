@@ -15,6 +15,7 @@ import {
   deriveActiveAlert,
   derivePendingAlerts,
 } from "@/lib/alertOwnership";
+import { resolveAlertViaFunction } from "@/lib/alertResolution";
 
 interface SOSAlert {
   id: string;
@@ -158,7 +159,8 @@ export function useSOSTakeover(): UseSOSTakeoverReturn {
     [staffId],
   );
 
-  // Resolve alert via edge function (handles conference end, notifications)
+  // Resolve alert via the shared single resolve path (WP-B) — the edge function
+  // handles conference end + notifications.
   const resolveAlert = useCallback(
     async (
       alertId: string,
@@ -166,17 +168,14 @@ export function useSOSTakeover(): UseSOSTakeoverReturn {
       isFalseAlarm: boolean,
       resolutionType?: string,
     ): Promise<boolean> => {
-      const { error } = await supabase.functions.invoke("sos-alert-resolve", {
-        body: {
-          alert_id: alertId,
-          resolution_notes: notes,
-          is_false_alarm: isFalseAlarm,
-          resolution_type: resolutionType || "other",
-        },
+      const result = await resolveAlertViaFunction(alertId, {
+        notes,
+        isFalseAlarm,
+        resolutionType: resolutionType || "other",
       });
 
-      if (error) {
-        console.error("[useSOSTakeover] Resolve error:", error);
+      if (!result.ok) {
+        console.error("[useSOSTakeover] Resolve error:", result.error);
         return false;
       }
 

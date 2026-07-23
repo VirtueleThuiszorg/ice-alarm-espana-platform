@@ -1752,7 +1752,8 @@
     "viewAll": "View All",
     "courtesyCalls": "Courtesy Calls",
     "noCourtesyCallsDue": "No courtesy calls pending",
-    "fetchError": "Failed to load dashboard data"
+    "fetchError": "Failed to load dashboard data",
+    "alreadyClaimed": "Another operator has already claimed this alert."
   },
   "leadsWidget": {
     "newLeads": "New Leads",

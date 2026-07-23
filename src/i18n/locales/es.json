@@ -1744,7 +1744,8 @@
     "viewAll": "Ver todo",
     "courtesyCalls": "Llamadas de cortesía",
     "noCourtesyCallsDue": "No hay llamadas de cortesía pendientes",
-    "fetchError": "Error al cargar los datos del panel"
+    "fetchError": "Error al cargar los datos del panel",
+    "alreadyClaimed": "Otro operador ya ha reclamado esta alerta."
   },
   "leadsWidget": {
     "newLeads": "Nuevos leads",

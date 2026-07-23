@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { acceptAlertOwnership, isSosAlertType } from "@/lib/alertOwnership";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es, enGB } from "date-fns/locale";
@@ -389,16 +390,20 @@ export default function StaffDashboard() {
   const handleClaimAlert = async (alertId: string) => {
     if (!staffId) return;
 
-    await supabase
-      .from('alerts')
-      .update({
-        status: 'in_progress',
-        claimed_by: staffId,
-        claimed_at: new Date().toISOString()
-      })
-      .eq('id', alertId);
+    // WP-A: single shared guarded write path — same field the SOS page reads.
+    const result = await acceptAlertOwnership(alertId, staffId);
+    if (!result.ok) {
+      if (result.reason === "already_accepted") {
+        toast.error(t("staffDashboard.alreadyClaimed", "Another operator has already claimed this alert."));
+        fetchActiveAlerts();
+      }
+      return;
+    }
 
-    navigate('/call-centre/alerts');
+    // SOS-type alerts go straight to the takeover screen (it will show this
+    // alert as active, because we just set accepted_by_staff_id to us).
+    const claimed = activeAlerts.find((a) => a.id === alertId);
+    navigate(isSosAlertType(claimed?.alert_type) ? '/call-centre/sos-alert' : '/call-centre/alerts');
   };
 
   const getAlertIcon = (type: string) => {

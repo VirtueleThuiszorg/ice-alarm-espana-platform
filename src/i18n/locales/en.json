@@ -2140,6 +2140,18 @@
     }
   },
   "pendant": {
+    "lifestyle": {
+      "title": "Built for real life in Spain",
+      "subtitle": "Waterproof, GPS-tracked and fall-aware — so it keeps protecting you in the garden, on a mountain path, or in the shower.",
+      "ip67Title": "Waterproof (IP67)",
+      "ip67Why": "Never take it off for a shower or a rainy walk — the protection doesn't pause.",
+      "gpsTitle": "GPS location",
+      "gpsWhy": "If you need help away from home, we know exactly where to send it.",
+      "fallTitle": "Fall detection",
+      "fallWhy": "A hard fall alerts our team automatically, even if you can't press the button.",
+      "batteryTitle": "Days of battery",
+      "batteryWhy": "Long battery life with low-battery reminders, so it's ready when it matters."
+    },
     "nav": {
       "home": "Home",
       "features": "Features",

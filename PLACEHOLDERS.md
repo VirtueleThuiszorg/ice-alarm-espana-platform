@@ -11,9 +11,15 @@ a real image under that key replaces the placeholder automatically (no code chan
 | # | Where | DB image key | Slot brief (§5) | Status |
 |---|---|---|---|---|
 | 1 | Landing hero | `homepage_hero` | Warm lifestyle, one person 60s–70s mid-activity, pendant incidental, Spain-plausible | ✅ real image present in store |
-| 2 | Landing "premium pendant" section + Pendant page hero | `homepage_pendant_promo` → falls back to `public/assets/pendant-product.png` | EV-07B clean warm-background product shot, consumer-electronics treatment | 🟡 INTERIM — real `public/assets/pendant-product.png` wired (plain white-bg SOS-pendant-in-cradle shot); a warmer, consumer-electronics-style photo is still owed (Lee to supply) |
-| 3 | Pendant page — worn detail | (pendant page lifestyle slots) | Close crop, pendant on a real person, hand/collar context | 🟡 INTERIM — reuses `pendant-product.png` until a real worn-detail photo is supplied |
-| 4 | Pendant page — lifestyle | (pendant page lifestyle slots) | Everyday life with the pendant present but incidental | 🟡 INTERIM — reuses `pendant-product.png` until a real lifestyle photo is supplied |
+| 2 | Pendant page hero | `public/pendant1.webp` | Pendant + cradle, warm home context | ✅ REAL — `pendant1.webp` (optimised from Lee's `pendant1.png`, 8MB→31KB). Landing section still uses `homepage_pendant_promo` → `pendant-product.png` fallback. |
+| 3 | Pendant page — worn lifestyle band | `public/pendant2.webp` | Pendant worn, active life (mountain trail, golden hour) | ✅ REAL — `pendant2.webp` (optimised, 1.9MB→148KB) |
+| 4 | Pendant page — specs / at-home reassurance | `public/pendant3.webp` | Pendant worn at home, Spanish kitchen | ✅ REAL — `pendant3.webp` (optimised, 7.9MB→95KB) |
+
+**Image optimisation (2026-07-22):** Lee's three source PNGs (`pendant1/2/3.png`, 1.4/1.9/**7.9**MB)
+were re-encoded to WebP at display dimensions — **31KB / 148KB / 95KB** (all well under the
+500KB target; ~275KB total vs ~11MB). The heavy source PNGs were removed from `public/`. A tiny
+AI-artifact sparkle in `pendant1`'s corner was cropped out. Landing hero (`homepage_hero`) already
+has a real image in the DB store.
 
 Notes:
 - Placeholder captions in-app are prefixed `PLACEHOLDER-` and read "Real photo to be

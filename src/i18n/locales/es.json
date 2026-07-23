@@ -2132,6 +2132,18 @@
     }
   },
   "pendant": {
+    "lifestyle": {
+      "title": "Pensado para la vida real en España",
+      "subtitle": "Resistente al agua, con GPS y detección de caídas: sigue protegiéndote en el jardín, en la montaña o en la ducha.",
+      "ip67Title": "Resistente al agua (IP67)",
+      "ip67Why": "No hace falta quitárselo en la ducha ni bajo la lluvia: la protección no se detiene.",
+      "gpsTitle": "Localización GPS",
+      "gpsWhy": "Si necesitas ayuda fuera de casa, sabemos exactamente dónde enviarla.",
+      "fallTitle": "Detección de caídas",
+      "fallWhy": "Una caída fuerte avisa a nuestro equipo automáticamente, aunque no puedas pulsar el botón.",
+      "batteryTitle": "Días de batería",
+      "batteryWhy": "Batería de larga duración con avisos de batería baja, lista cuando importa."
+    },
     "nav": {
       "home": "Inicio",
       "features": "Características",

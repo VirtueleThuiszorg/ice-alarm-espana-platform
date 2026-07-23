@@ -2213,6 +2213,7 @@
     "createDesc": "Submit a ticket to admin for help or questions",
     "titleField": "Title",
     "titlePlaceholder": "Brief description of the issue...",
+    "categoryLabel": "Category",
     "category": {
       "pendantHelp": "Pendant Help",
       "technicalIssue": "Technical Issue",
@@ -5554,7 +5555,16 @@
     "failedToAdd": "Failed to add note",
     "markedCompleted": "Marked as completed",
     "markedPending": "Marked as pending",
-    "failedToUpdate": "Failed to update note"
+    "failedToUpdate": "Failed to update note",
+    "editNote": "Edit note",
+    "editShiftNote": "Edit Shift Note",
+    "saveChanges": "Save Changes",
+    "noteUpdated": "Note updated",
+    "deleteNote": "Delete note",
+    "deleteConfirmTitle": "Delete this note?",
+    "deleteConfirmDesc": "This will permanently delete the shift note. This action cannot be undone.",
+    "noteDeleted": "Note deleted",
+    "failedToDelete": "Failed to delete note"
   },
   "staffPreferences": {
     "title": "My Profile & Preferences",

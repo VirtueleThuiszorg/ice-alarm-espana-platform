@@ -2205,6 +2205,7 @@
     "createDesc": "Envíe un ticket para obtener ayuda o hacer preguntas",
     "titleField": "Título",
     "titlePlaceholder": "Breve descripción del problema...",
+    "categoryLabel": "Categoría",
     "category": {
       "pendantHelp": "Ayuda con Colgante",
       "technicalIssue": "Problema Técnico",
@@ -5546,7 +5547,16 @@
     "failedToAdd": "Error al añadir la nota",
     "markedCompleted": "Marcado como completado",
     "markedPending": "Marcado como pendiente",
-    "failedToUpdate": "Error al actualizar la nota"
+    "failedToUpdate": "Error al actualizar la nota",
+    "editNote": "Editar nota",
+    "editShiftNote": "Editar Nota de Turno",
+    "saveChanges": "Guardar Cambios",
+    "noteUpdated": "Nota actualizada",
+    "deleteNote": "Eliminar nota",
+    "deleteConfirmTitle": "¿Eliminar esta nota?",
+    "deleteConfirmDesc": "La nota de turno se eliminará de forma permanente. Esta acción no se puede deshacer.",
+    "noteDeleted": "Nota eliminada",
+    "failedToDelete": "Error al eliminar la nota"
   },
   "staffPreferences": {
     "title": "Mi Perfil y Preferencias",

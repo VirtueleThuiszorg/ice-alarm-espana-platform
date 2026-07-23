@@ -471,7 +471,7 @@ export default function CallCentreMessagesPage() {
     }
   };
 
-  const updateConversation = async (field: string, value: string) => {
+  const updateConversation = async (field: string, value: string | null) => {
     if (!selectedConversation) return;
 
     try {
@@ -824,7 +824,7 @@ export default function CallCentreMessagesPage() {
                   </Select>
                   <Select
                     value={selectedConversation.assigned_to || "unassigned"}
-                    onValueChange={(v) => updateConversation("assigned_to", v === "unassigned" ? "" : v)}
+                    onValueChange={(v) => updateConversation("assigned_to", v === "unassigned" ? null : v)}
                   >
                     <SelectTrigger className="w-44">
                       <SelectValue placeholder={t("callCentreMessages.assignTo", "Assign to...")} />

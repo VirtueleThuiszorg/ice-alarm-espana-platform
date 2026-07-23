@@ -2880,7 +2880,9 @@
     "success": "Registratie succesvol voltooid!",
     "pleaseLogin": "Log eerst in",
     "pleaseLoginFirst": "Gelieve",
-    "toComplete": "om uw registratie te voltooien"
+    "toComplete": "om uw registratie te voltooien",
+    "noMembershipFound": "We konden geen lidmaatschap vinden voor dit e-mailadres. Word lid van Care Conneqt om te beginnen.",
+    "emailNotConfirmed": "Bevestig eerst uw e-mailadres — controleer uw inbox voor de bevestigingslink."
   },
   "contact": {
     "hero": {
@@ -4874,6 +4876,15 @@
     "noAlerts": "No alerts found",
     "escalatedNotified": "Melding geëscaleerd — beheerder op de hoogte gebracht.",
     "escalatedNotNotified": "Geëscaleerd, maar de melding aan de beheerder kon NIET worden bevestigd — neem direct contact op met een beheerder."
+    "drill": {
+      "create": "Oefenmelding aanmaken",
+      "cleanup": "Oefeningen opruimen",
+      "confirmTitle": "Een SOS-oefening starten?",
+      "confirmBody": "Dit maakt een TEST-SOS-melding aan (duidelijk gelabeld 🧪 OEFENING) in de echte wachtrij. Escalatie is onderdrukt: er worden geen oproepen, sms'jes of meldingen naar wie dan ook verstuurd. Ingelogde medewerkers zien en horen de melding WEL — waarschuw het team dat het een oefening is. Sluit af als vals alarm en gebruik daarna Opruimen.",
+      "confirmAction": "Oefenmelding aanmaken",
+      "created": "Oefenmelding aangemaakt — deze staat nu live in de wachtrij. Er worden geen oproepen of meldingen verstuurd.",
+      "cleaned": "Oefendata verwijderd ({{count}} melding(en))."
+    }
   },
   "adminMemberDetail": {
     "title": "Member Details",

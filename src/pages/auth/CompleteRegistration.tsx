@@ -77,25 +77,45 @@ export default function CompleteRegistration() {
 
     setIsLoading(true);
     try {
-      const { error } = await supabase.from("members").insert({
-        user_id: user.id,
-        email: user.email!,
-        first_name: values.first_name,
-        last_name: values.last_name,
-        phone: values.phone,
-        date_of_birth: values.date_of_birth,
-        nie_dni: values.nie_dni || null,
-        address_line_1: values.address_line_1,
-        address_line_2: values.address_line_2 || null,
-        city: values.city,
-        province: values.province,
-        postal_code: values.postal_code,
-        preferred_language: values.preferred_language,
-        special_instructions: values.special_instructions || null,
+      // Members are created ONLY by the paid join flow (server-side, golden
+      // rule #4). This page LINKS the logged-in user to their existing member
+      // record via the edge function — a direct client INSERT into members is
+      // (correctly) blocked by RLS and broke production signups.
+      const { data, error } = await supabase.functions.invoke("complete-member-registration", {
+        body: {
+          profile: {
+            first_name: values.first_name,
+            last_name: values.last_name,
+            phone: values.phone,
+            date_of_birth: values.date_of_birth,
+            nie_dni: values.nie_dni || null,
+            address_line_1: values.address_line_1,
+            address_line_2: values.address_line_2 || null,
+            city: values.city,
+            province: values.province,
+            postal_code: values.postal_code,
+            preferred_language: values.preferred_language,
+            special_instructions: values.special_instructions || null,
+          },
+        },
       });
 
       if (error) {
-        toast.error(error.message);
+        toast.error(error.message || t("errors.unexpectedError"));
+        return;
+      }
+      if (data?.email_not_confirmed) {
+        toast.error(t("registration.emailNotConfirmed", "Please confirm your email first — check your inbox for the confirmation link."));
+        return;
+      }
+      if (data?.no_membership) {
+        // No member record for this email: membership comes from the join flow.
+        toast.info(t("registration.noMembershipFound", "We couldn't find a membership for this email. Join Care Conneqt to get started."));
+        navigate("/join");
+        return;
+      }
+      if (data?.error) {
+        toast.error(String(data.error));
         return;
       }
 

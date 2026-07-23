@@ -2880,7 +2880,9 @@
     "success": "Registration completed successfully!",
     "pleaseLogin": "Please log in first",
     "pleaseLoginFirst": "Please",
-    "toComplete": "to complete your registration"
+    "toComplete": "to complete your registration",
+    "noMembershipFound": "We couldn't find a membership for this email. Join Care Conneqt to get started.",
+    "emailNotConfirmed": "Please confirm your email first — check your inbox for the confirmation link."
   },
   "contact": {
     "hero": {
@@ -4874,6 +4876,15 @@
     "noAlerts": "No alerts found",
     "escalatedNotified": "Alert escalated — admin notified.",
     "escalatedNotNotified": "Escalated, but the admin notification could NOT be confirmed — contact an admin directly."
+    "drill": {
+      "create": "Create drill alert",
+      "cleanup": "Clean up drills",
+      "confirmTitle": "Start an SOS drill?",
+      "confirmBody": "This creates a TEST SOS alert (clearly labelled 🧪 DRILL) in the live queue. It is escalation-suppressed: no calls, SMS or notifications will be sent to anyone. Logged-in operators WILL see and hear it — warn the team it's a drill. Resolve it as a false alarm when done, then use Clean up.",
+      "confirmAction": "Create drill alert",
+      "created": "Drill alert created — it is now live in the call-centre queue. No calls or notifications will fire.",
+      "cleaned": "Drill data removed ({{count}} alert(s))."
+    }
   },
   "adminMemberDetail": {
     "title": "Member Details",

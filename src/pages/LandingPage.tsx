@@ -287,12 +287,15 @@ export default function LandingPage() {
             {/* Product shot */}
             <div className="relative isolate order-1 lg:order-none">
               <ResponseRipple showCore={false} className="absolute z-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] max-w-none opacity-40 pointer-events-none" />
-              <div className="relative z-10 rounded-3xl overflow-hidden shadow-2xl shadow-primary/10 aspect-square bg-card">
+              {/* Interim product image: public/assets/pendant-product.png (real, but a
+                  plain white-bg shot). Better warm product photography owed — LAUNCH_CHECKLIST
+                  / PLACEHOLDERS.md. A DB `homepage_pendant_promo` image, if set, wins. */}
+              <div className="relative z-10 rounded-3xl overflow-hidden shadow-2xl shadow-primary/10 aspect-square bg-white">
                 <ImageWithPlaceholder
-                  imageUrl={pendantPromoImage.imageUrl}
-                  altText={pendantPromoImage.altText || "PLACEHOLDER- Care Conneqt EV-07B pendant, clean product shot"}
-                  placeholderText="PLACEHOLDER- Pendant product shot"
-                  placeholderSubtext="Real photo to be supplied"
+                  imageUrl={pendantPromoImage.imageUrl || "/assets/pendant-product.png"}
+                  altText={pendantPromoImage.altText || "Care Conneqt SOS pendant with its charging cradle"}
+                  imgClassName="object-contain p-8"
+                  placeholderText="Pendant product shot"
                   width={640}
                   height={640}
                   isLoadingUrl={imagesLoading}

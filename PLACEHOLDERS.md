@@ -11,9 +11,9 @@ a real image under that key replaces the placeholder automatically (no code chan
 | # | Where | DB image key | Slot brief (§5) | Status |
 |---|---|---|---|---|
 | 1 | Landing hero | `homepage_hero` | Warm lifestyle, one person 60s–70s mid-activity, pendant incidental, Spain-plausible | ✅ real image present in store |
-| 2 | Landing "premium pendant" section + Pendant page hero | `homepage_pendant_promo` | EV-07B clean warm-background product shot, consumer-electronics treatment | ⛔ PLACEHOLDER — real photo owed |
-| 3 | Pendant page — worn detail | (pendant page lifestyle slots) | Close crop, pendant on a real person, hand/collar context | ⛔ PLACEHOLDER — real photo owed |
-| 4 | Pendant page — lifestyle | (pendant page lifestyle slots) | Everyday life with the pendant present but incidental | ⛔ PLACEHOLDER — real photo owed |
+| 2 | Landing "premium pendant" section + Pendant page hero | `homepage_pendant_promo` → falls back to `public/assets/pendant-product.png` | EV-07B clean warm-background product shot, consumer-electronics treatment | 🟡 INTERIM — real `public/assets/pendant-product.png` wired (plain white-bg SOS-pendant-in-cradle shot); a warmer, consumer-electronics-style photo is still owed (Lee to supply) |
+| 3 | Pendant page — worn detail | (pendant page lifestyle slots) | Close crop, pendant on a real person, hand/collar context | 🟡 INTERIM — reuses `pendant-product.png` until a real worn-detail photo is supplied |
+| 4 | Pendant page — lifestyle | (pendant page lifestyle slots) | Everyday life with the pendant present but incidental | 🟡 INTERIM — reuses `pendant-product.png` until a real lifestyle photo is supplied |
 
 Notes:
 - Placeholder captions in-app are prefixed `PLACEHOLDER-` and read "Real photo to be

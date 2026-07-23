@@ -148,14 +148,13 @@ export default function PendantPage() {
               <div className="relative isolate mx-auto max-w-md">
                 {/* Signature ripple — help radiates out from the pendant */}
                 <ResponseRipple animate className="absolute z-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] max-w-none opacity-70 pointer-events-none" />
-                {/* Interim product image: public/assets/pendant-product.png (real, plain
-                    white-bg shot); a DB `pendant_hero` image, if set, wins. Better warm
-                    product photography owed — PLACEHOLDERS.md. */}
-                <div className="relative z-10 aspect-square overflow-hidden rounded-2xl shadow-2xl bg-white">
+                {/* Hero shot: the pendant + cradle in a warm Spanish home (pendant1.webp,
+                    optimised). A DB `pendant_hero` image, if set, wins. */}
+                <div className="relative z-10 aspect-square overflow-hidden rounded-2xl shadow-2xl bg-muted">
                   <ImageWithPlaceholder
-                    imageUrl={pendantHeroImage.imageUrl || "/assets/pendant-product.png"}
-                    altText={pendantHeroImage.altText || "Care Conneqt SOS pendant with its charging cradle"}
-                    imgClassName="object-contain p-8"
+                    imageUrl="/pendant1.webp"
+                    altText={pendantHeroImage.altText || "The Care Conneqt pendant on its charging cradle in a sunlit home"}
+                    imgClassName="object-cover"
                     placeholderText="Product Image"
                     priority={true}
                     width={500}
@@ -320,6 +319,49 @@ export default function PendantPage() {
         </div>
       </section>
 
+      {/* Life, uninterrupted — worn-lifestyle band (pendant2.webp) + why-it-matters benefits */}
+      <section className="py-20 px-4 relative overflow-hidden">
+        <div className="container mx-auto">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+            <div className="relative isolate order-2 lg:order-1">
+              <ResponseRipple showCore={false} className="absolute z-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[115%] h-[115%] max-w-none opacity-30 pointer-events-none" />
+              <div className="relative z-10 aspect-[4/5] overflow-hidden rounded-3xl shadow-2xl shadow-primary/10 bg-muted">
+                <ImageWithPlaceholder
+                  imageUrl="/pendant2.webp"
+                  altText="A Care Conneqt member hiking a Spanish mountain trail wearing the pendant"
+                  imgClassName="object-cover"
+                  width={800}
+                  height={1000}
+                />
+              </div>
+            </div>
+            <div className="space-y-6 order-1 lg:order-2">
+              <h2 className="text-3xl md:text-4xl font-bold">{t("pendant.lifestyle.title")}</h2>
+              <p className="text-lg text-muted-foreground">{t("pendant.lifestyle.subtitle")}</p>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {[
+                  { icon: Droplets, tk: "pendant.lifestyle.ip67Title", wk: "pendant.lifestyle.ip67Why" },
+                  { icon: MapPin, tk: "pendant.lifestyle.gpsTitle", wk: "pendant.lifestyle.gpsWhy" },
+                  { icon: AlertTriangle, tk: "pendant.lifestyle.fallTitle", wk: "pendant.lifestyle.fallWhy" },
+                  { icon: Battery, tk: "pendant.lifestyle.batteryTitle", wk: "pendant.lifestyle.batteryWhy" },
+                ].map((b) => {
+                  const Icon = b.icon;
+                  return (
+                    <div key={b.tk} className="rounded-2xl border bg-card p-4">
+                      <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
+                        <Icon className="h-5 w-5 text-primary" />
+                      </div>
+                      <h3 className="font-semibold">{t(b.tk)}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed mt-1">{t(b.wk)}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Specifications */}
       <section className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto">
@@ -350,12 +392,12 @@ export default function PendantPage() {
               </div>
             </div>
             <div className="relative">
-              {/* Interim: reuse the product shot until a dedicated specs image is supplied (PLACEHOLDERS.md) */}
-              <div className="aspect-square max-w-sm mx-auto overflow-hidden rounded-2xl shadow-xl bg-white">
+              {/* Warm at-home shot (pendant3.webp): the pendant worn during everyday life */}
+              <div className="aspect-square max-w-sm mx-auto overflow-hidden rounded-2xl shadow-xl bg-muted">
                 <ImageWithPlaceholder
-                  imageUrl={pendantSpecsImage.imageUrl || "/assets/pendant-product.png"}
-                  altText={pendantSpecsImage.altText || "Care Conneqt SOS pendant"}
-                  imgClassName="object-contain p-8"
+                  imageUrl="/pendant3.webp"
+                  altText={pendantSpecsImage.altText || "A Care Conneqt member wearing the pendant at home in Spain"}
+                  imgClassName="object-cover"
                   placeholderText="Specifications Image"
                 />
               </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,16 @@ export default function JoinWizard() {
   const [wizardData, setWizardData] = useState<JoinWizardData>(initialJoinWizardData);
   const [stepValidation, setStepValidation] = useState<Record<number, boolean>>({});
   const [isSubmitting] = useState(false);
+  const contentTopRef = useRef<HTMLDivElement>(null);
+
+  // On step change, bring the top of the wizard content into view (smooth, respecting
+  // reduced-motion). Steps change via state (route stays /join), so ScrollToTop doesn't
+  // fire — without this the user is left mid-page after Next/Back.
+  useEffect(() => {
+    const reduce = typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    contentTopRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  }, [currentStep]);
 
   // Company settings for dynamic phone/email
   const { settings: companySettings } = useCompanySettings();
@@ -377,6 +387,8 @@ export default function JoinWizard() {
       </header>
 
       <main className="container max-w-4xl py-8 px-4">
+        {/* Scroll anchor for step changes; scroll-mt clears the sticky header */}
+        <div ref={contentTopRef} className="scroll-mt-24" aria-hidden="true" />
         {currentStep < 9 && (
           <>
             {/* Progress Bar */}

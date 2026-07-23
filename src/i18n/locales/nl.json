@@ -2140,6 +2140,18 @@
     }
   },
   "pendant": {
+    "lifestyle": {
+      "title": "Gemaakt voor het echte leven in Spanje",
+      "subtitle": "Waterdicht, met gps en valdetectie — zo blijft het u beschermen in de tuin, op een bergpad of onder de douche.",
+      "ip67Title": "Waterdicht (IP67)",
+      "ip67Why": "Nooit afdoen onder de douche of bij regen: de bescherming stopt niet.",
+      "gpsTitle": "Gps-locatie",
+      "gpsWhy": "Hulp nodig buitenshuis? Dan weten we precies waar we die heen moeten sturen.",
+      "fallTitle": "Valdetectie",
+      "fallWhy": "Een zware val waarschuwt ons team automatisch, ook als u niet op de knop kunt drukken.",
+      "batteryTitle": "Dagenlang batterij",
+      "batteryWhy": "Lange batterijduur met meldingen bij lage batterij, klaar wanneer het telt."
+    },
     "nav": {
       "home": "Home",
       "features": "Kenmerken",
@@ -2560,6 +2572,8 @@
       "phoneOnlyDesc": "Gebruik onze mobiele app op uw smartphone om verbinding te maken met ons noodresponscentrum.",
       "requiresSmartphone": "Vereist een smartphone met de app geïnstalleerd",
       "featureComparison": "Functievergelijking",
+      "bothInclude": "Beide bevatten",
+      "onlyPendant": "Alleen de hanger",
       "feature": "Functie",
       "features": {
         "emergencyResponse": "24/7-noodrespons",

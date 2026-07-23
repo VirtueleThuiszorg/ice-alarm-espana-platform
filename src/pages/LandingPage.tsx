@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, Phone, Shield, Heart, Users, Check, Star, MapPin, Radio, AlertCircle, MessageCircle, ShieldCheck, Monitor, Headphones, Send } from "lucide-react";
+import { ArrowRight, Phone, Shield, Heart, Users, Check, Star, MapPin, Radio, AlertCircle, MessageCircle, ShieldCheck, Monitor, Headphones, Send, Droplets, Battery, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,7 @@ import { BlogCard } from "@/components/blog/BlogCard";
 import { useBlogPosts } from "@/hooks/useBlogPosts";
 import { usePublicTestimonials } from "@/hooks/useTestimonials";
 import { usePricing } from "@/hooks/usePricing";
-import { formatPrice, getSubscriptionMonthlyFinal, getSubscriptionFinalPrice } from "@/config/pricing";
+import { formatPrice, getSubscriptionMonthlyFinal, getSubscriptionFinalPrice, getPendantFinalPrice } from "@/config/pricing";
 import {
   Dialog,
   DialogContent,
@@ -39,8 +39,9 @@ export default function LandingPage() {
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [searchParams] = useSearchParams();
 
-  // DB-sourced "from" price for the hero trust strip (IVA included), reflects admin edits.
+  // DB-sourced prices (IVA included), reflect admin edits.
   const fromPrice = formatPrice(getSubscriptionMonthlyFinal("single"));
+  const pendantPrice = formatPrice(getPendantFinalPrice(1));
 
   // Fetch latest blog posts for homepage section
   const { data: latestPosts } = useBlogPosts(3);
@@ -276,6 +277,68 @@ export default function LandingPage() {
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
+        </div>
+      </section>
+
+      {/* Premium Pendant Section (FRONTEND_REDESIGN §4) — product shot + benefits + CTA to /pendant */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+            {/* Product shot */}
+            <div className="relative isolate order-1 lg:order-none">
+              <ResponseRipple showCore={false} className="absolute z-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] max-w-none opacity-40 pointer-events-none" />
+              <div className="relative z-10 rounded-3xl overflow-hidden shadow-2xl shadow-primary/10 aspect-square bg-card">
+                <ImageWithPlaceholder
+                  imageUrl={pendantPromoImage.imageUrl}
+                  altText={pendantPromoImage.altText || "PLACEHOLDER- Care Conneqt EV-07B pendant, clean product shot"}
+                  placeholderText="PLACEHOLDER- Pendant product shot"
+                  placeholderSubtext="Real photo to be supplied"
+                  width={640}
+                  height={640}
+                  isLoadingUrl={imagesLoading}
+                />
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="space-y-6">
+              <h2 className="text-3xl md:text-4xl font-bold">{t("landing.pendantSection.title")}</h2>
+              <p className="text-lg text-muted-foreground">{t("landing.pendantSection.description")}</p>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                {[
+                  { icon: Droplets, titleKey: "landing.pendantSection.waterproofTitle", descKey: "landing.pendantSection.waterproofDesc" },
+                  { icon: MapPin, titleKey: "landing.pendantSection.gpsTitle", descKey: "landing.pendantSection.gpsDesc" },
+                  { icon: Activity, titleKey: "landing.pendantSection.fallTitle", descKey: "landing.pendantSection.fallDesc" },
+                  { icon: Battery, titleKey: "landing.pendantSection.batteryTitle", descKey: "landing.pendantSection.batteryDesc" },
+                ].map((b) => {
+                  const Icon = b.icon;
+                  return (
+                    <div key={b.titleKey} className="flex gap-3 rounded-2xl border bg-card p-4">
+                      <div className="h-11 w-11 shrink-0 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Icon className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">{t(b.titleKey)}</h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{t(b.descKey)}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <p className="text-base">
+                <span className="font-semibold text-foreground">{t("landing.pendantSection.priceLine", { device: pendantPrice, monthly: fromPrice })}</span>
+              </p>
+
+              <Button asChild size="lg" className="h-14 px-8 text-lg">
+                <Link to="/pendant">
+                  {t("landing.pendantSection.learnMore")}
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+            </div>
+          </div>
         </div>
       </section>
 

@@ -94,7 +94,7 @@ export default function LandingPage() {
               </p>
 
               <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
-                <Button size="lg" className="h-14 px-8 text-lg shadow-lg transition-all bg-[hsl(var(--cta))] text-[hsl(var(--cta-foreground))] hover:bg-[hsl(30_92%_48%)]" asChild>
+                <Button size="lg" className="btn-cta h-14 px-8 text-lg shadow-lg transition-all" asChild>
                   <Link to="/join">
                     {t("landing.startProtection")}
                     <ArrowRight className="ml-2 h-5 w-5" />

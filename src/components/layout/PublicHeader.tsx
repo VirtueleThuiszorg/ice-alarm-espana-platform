@@ -55,7 +55,7 @@ export function PublicHeader() {
             <Button variant="ghost" asChild>
               <Link to="/login">{t("auth.memberLogin", { defaultValue: t("common.signIn") })}</Link>
             </Button>
-            <Button asChild>
+            <Button asChild className="btn-cta">
               <Link to="/join">{t("landing.startProtection", { defaultValue: t("common.getStarted") })}</Link>
             </Button>
           </div>

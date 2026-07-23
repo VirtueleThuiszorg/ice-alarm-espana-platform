@@ -234,6 +234,21 @@
   }
 }
 
+/* CTAs = orange (the action colour), while --primary stays the brand blue for
+   structure/links/focus. Every FILLED default button on the public surface (shadcn
+   `bg-primary`, rendered as <button> or, via asChild, <a>) becomes orange; outline/
+   ghost/secondary buttons keep the blue for hierarchy. `.btn-cta` is an explicit
+   opt-in for the same treatment. Dark ink text holds WCAG AA on the vivid orange. */
+.theme-public :is(button, a).bg-primary,
+.theme-public .btn-cta {
+  background-color: hsl(var(--cta));
+  color: hsl(var(--cta-foreground));
+}
+.theme-public :is(button, a).bg-primary:hover,
+.theme-public .btn-cta:hover {
+  background-color: hsl(30 92% 48%);
+}
+
 /* Signature "response ripple" — one gentle expansion, hero only; disabled under
    reduced-motion (arcs stay static). Keyframe lives here; component in ui/. */
 @keyframes response-ripple {

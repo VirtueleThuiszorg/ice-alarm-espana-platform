@@ -248,9 +248,16 @@ export default function CallCentreDashboard() {
             <div className="mt-auto pt-4 border-t">
               <h4 className="text-sm font-medium mb-3">{t("callCentre.quickActions.title")}</h4>
               <div className="space-y-2">
-                <Button variant="destructive" className="w-full justify-start gap-2">
-                  <PhoneCall className="h-4 w-4" />
-                  {t("callCentre.quickActions.callEmergency")}
+                {/* WP-D: previously a DEAD button (no handler) labelled as an emergency
+                    action. Now a real tel: link — tap-to-dial on dialer devices; the
+                    number itself is displayed so an operator on a non-dialer device can
+                    read it and dial on a desk phone. */}
+                <Button variant="destructive" className="w-full justify-start gap-2" asChild>
+                  <a href="tel:112">
+                    <PhoneCall className="h-4 w-4" />
+                    {t("callCentre.quickActions.callEmergency")}
+                    <span className="ml-auto font-bold tracking-widest" aria-hidden="true">112</span>
+                  </a>
                 </Button>
               </div>
             </div>

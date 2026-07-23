@@ -45,11 +45,13 @@
 - [x] Stage 0b executed 2026-07-22 (two pushes): all drift migrations + the 2 SOS
       cron migrations applied; **91 functions deployed**; all 4 crons re-scheduled on the
       Vault pattern (**code-verified**: no live cron references `app.settings`).
-- [ ] **Crons confirmed firing on prod — 24h clean-run clock (started 2026-07-22).**
-      Attach `cron.job_run_details` (last hour) + Postgres error count showing **0**
-      `app.settings` errors (was ~721/day) for `sos-escalation-runner`,
-      `staff-shift-monitor`, `ev07b-offline-monitor`, `shift-daily-reminders`. Re-check
-      ~2026-07-23. (Config is GO; this tick is the runtime confirmation.)
+- [x] **Crons confirmed firing on prod (2026-07-22 ~17:47 UTC).** `cron.job_run_details`:
+      all 4 jobs `status=succeeded`, **no `app.settings` error** — `sos-escalation-runner`
+      (1 min), `ev07b-offline-monitor` (2 min), `staff-shift-monitor`, `shift-daily-reminders`.
+      The ~721/day error spike is **RESOLVED**. (Evidence in STATE.md → Stage 0b.)
+- [ ] **24h clean-run confirmation** — re-check `cron.job_run_details` + error count at
+      **T+24h (~2026-07-23)** to confirm the clean run held for a full day, then this line
+      closes. (Clock started 2026-07-22 ~17:47 UTC.)
 - [ ] Empty project `qkfvojbcxaptufsepupo` deleted.
 
 ### Content & brand

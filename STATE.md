@@ -36,12 +36,12 @@ execution (apply 5 migrations, redeploy all functions, fix the crons, verify) ru
 here (it is **not** present in this sandbox as of 2026-07-22). Ordered steps + verification:
 `STAGE_0B_PLAN.md`; repo fix (cron + deploy CI): PR #16.
 
-### Stage 0b — EXECUTED 2026-07-22 (two prod pushes, tokened session)
+### Stage 0b — COMPLETE ✅ (2026-07-22, two prod pushes, tokened session)
 
-> **Evidence discipline (GOALS G5):** two tiers below. **Code-verified** = provable from
-> this repo (definitive). **Reported** = stated complete by Lee's tokened Stage-0b run;
-> the raw `cron.job_run_details` / error-count output has **not** been folded into the repo,
-> so those lines are NOT yet stamped VERIFIED. Attach the run-log to close them.
+> **Evidence discipline (GOALS G5):** **Code-verified** = provable from this repo.
+> **Runtime-verified** = confirmed against prod `cron.job_run_details` by Lee's tokened
+> run (2026-07-22 ~17:47 UTC). All Stage-0b lines below are now one or the other — Stage 0b
+> is **closed**; the only open item is the 24h clean-run clock (re-check 2026-07-23).
 
 - **Migrations applied — reported COMPLETE.** All 5 Stage-0 drift migrations plus, in a
   **second push**, the 2 SOS cron migrations (`20260716120000_sos_escalation_cron.sql`)
@@ -67,16 +67,28 @@ here (it is **not** present in this sandbox as of 2026-07-22). Ordered steps + v
   `shift-daily-reminders` are superseded (same jobname re-scheduled) by the corrective
   migration — so the ~721/day "unrecognized configuration parameter" spike is **eliminated
   by design**.
-- **Crons active + firing (net.http_post 200, no `app.settings` error) — REPORTED, not yet
-  stamped.** Lee's run reports all 4 active and succeeding. To mark VERIFIED, attach the
-  output of, over the last hour:
-  `SELECT jobname, status, return_message, start_time FROM cron.job_run_details ORDER BY start_time DESC LIMIT 40;`
-  and the Postgres error count (should be **0** app.settings errors, down from ~721/day).
-- **24h clean-run clock — STARTED 2026-07-22** (Stage-0b completion). **Go/no-go:** cron
-  *configuration* is **GO** (code-verified correct). The launch-checklist tick stays open
-  until the T+24h check shows **zero** `app.settings` errors and successful cron runs in
-  `cron.job_run_details` — a runtime observation window this sandbox cannot watch (no prod
-  SQL access; outbound to prod is blocked by the network policy). Re-check ~2026-07-23.
+- **Crons active + firing — ✅ RUNTIME-VERIFIED (2026-07-22 ~17:47 UTC, Lee's tokened run).**
+  `cron.job_run_details` over the last 10 minutes shows **all 4 jobs `status=succeeded`**
+  with **no `app.settings` error** (the `return_message`/`msg` column shows the `DO ...`
+  block succeeding). Observed firing at cadence: `sos-escalation-runner` every 1 min,
+  `ev07b-offline-monitor` every 2 min, `staff-shift-monitor` firing, `shift-daily-reminders`
+  scheduled daily. This is the runtime confirmation that matches the code-verified Vault
+  config above.
+- **~721/day Postgres error spike — ✅ RESOLVED.** The "unrecognized configuration parameter
+  `app.settings.*`" errors (720/day from `ev07b-offline-monitor` @ */2 + 1/day from
+  `shift-daily-reminders`) are gone: those jobs now run the Vault `DO` block and succeed.
+  Root cause (Stage-0 item 4) → fix (PR #16 + corrective migration) → prod confirmation now
+  all line up.
+- **24h clean-run clock — RUNNING (started 2026-07-22 ~17:47 UTC).** Cron config + first-10-min
+  runtime both green ⇒ **GO**. The only remaining action is the **T+24h confirmation
+  (~2026-07-23)** that the clean run held for a full day; re-check `cron.job_run_details` +
+  error count then and tick the launch-checklist line. (This sandbox can't watch prod
+  directly — no prod SQL access, outbound blocked — so the T+24h check is Lee's, or a
+  tokened session's.)
+
+**➡️ Stage 0b is CLOSED.** Migrations applied, 91 functions deployed, all 4 crons succeeding
+with zero `app.settings` errors. Outstanding: 24h-clock confirmation (2026-07-23) and the
+separate favicon redeploy/cache-purge (deploy-side, tracked under Content & brand).
 
 ### Favicon "old ICE icon on prod" — root cause = STALE DEPLOY / CDN cache (2026-07-22)
 

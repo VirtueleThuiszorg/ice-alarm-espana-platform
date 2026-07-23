@@ -240,8 +240,10 @@ export default function LandingPage() {
       </section>
 
       {/* How It Works Section — Teaser */}
-      <section id="how-it-works" className="py-20 px-4">
-        <div className="container mx-auto max-w-3xl text-center">
+      <section id="how-it-works" className="py-20 px-4 relative overflow-hidden isolate">
+        {/* Signature ripple as a section divider motif — the steps radiate outward (§3) */}
+        <ResponseRipple showCore={false} className="absolute z-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[720px] h-[720px] max-w-none opacity-40 pointer-events-none" />
+        <div className="container mx-auto max-w-3xl text-center relative z-10">
           <h2 className="text-3xl font-bold mb-4">{t("landing.howItWorks.title")}</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto mb-4">
             {t("landing.howItWorks.description")}

@@ -247,7 +247,7 @@ export default function CallCentreLeadsPage() {
           </div>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="w-36">
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder={t("leads.statusFilter", "Status")} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="new">{t("leads.status.new", "New")}</SelectItem>
@@ -439,7 +439,7 @@ export default function CallCentreLeadsPage() {
                     }}
                   >
                     <CheckCircle className="h-4 w-4 mr-2" />
-                    Mark Contacted
+                    {t("leads.markContacted", "Mark Contacted")}
                   </Button>
                 )}
               </div>

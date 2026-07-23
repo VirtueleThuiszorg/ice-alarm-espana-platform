@@ -1532,8 +1532,77 @@
       "noMembers": "No se encontraron miembros",
       "plan": "Plan",
       "device": "Dispositivo",
-      "noDevice": "Sin dispositivo"
+      "noDevice": "Sin dispositivo",
+      "statusFilter": "Estado",
+      "planFilter": "Plan",
+      "callMember": "Llamar al miembro",
+      "sendMessage": "Enviar mensaje",
+      "viewProfile": "Ver perfil"
     }
+  },
+  "callCentreMessages": {
+    "title": "Mensajes",
+    "subtitle": "Gestionar conversaciones de miembros",
+    "newConversation": "Nueva Conversación",
+    "startNewConversation": "Iniciar Nueva Conversación",
+    "startNewConversationDesc": "Crear una nueva conversación con un miembro o personal",
+    "memberTab": "Miembro",
+    "staffTab": "Personal",
+    "selectMember": "Seleccionar Miembro",
+    "selectMemberPlaceholder": "Seleccione un miembro...",
+    "selectStaffMembers": "Seleccionar Miembro(s) del Personal",
+    "noOtherStaff": "No hay otros miembros del personal disponibles",
+    "subject": "Asunto",
+    "subjectPlaceholderStaff": "p. ej., Relevo de turno, Escalado...",
+    "subjectPlaceholderMember": "p. ej., Consulta de pago, Ayuda con el dispositivo...",
+    "priority": "Prioridad",
+    "message": "Mensaje",
+    "messagePlaceholder": "Escriba su mensaje...",
+    "createConversation": "Crear Conversación",
+    "filterAll": "Todas",
+    "filterUnread": "No leídas",
+    "filterMine": "Asignadas a mí",
+    "filterUnassigned": "Sin asignar",
+    "filterStaff": "Personal",
+    "filterResolved": "Resueltas",
+    "searchPlaceholder": "Buscar conversaciones...",
+    "noConversations": "No se encontraron conversaciones",
+    "staffChat": "Chat de Personal",
+    "staffBadge": "Personal",
+    "noSubject": "Sin asunto",
+    "assignTo": "Asignar a...",
+    "unassigned": "Sin asignar",
+    "internalNote": "Nota Interna",
+    "internalNotePlaceholder": "Añadir una nota interna...",
+    "replyPlaceholder": "Escriba su respuesta...",
+    "selectConversation": "Seleccione una conversación",
+    "selectConversationHint": "Elija una conversación de la lista para ver los mensajes",
+    "status": {
+      "open": "Abierta",
+      "pending": "Pendiente",
+      "resolved": "Resuelta",
+      "closed": "Cerrada"
+    },
+    "priorityLabels": {
+      "low": "Baja",
+      "normal": "Normal",
+      "high": "Alta",
+      "urgent": "Urgente"
+    },
+    "toasts": {
+      "loadFailed": "Error al cargar las conversaciones",
+      "selectStaffRequired": "Seleccione al menos un miembro del personal",
+      "selectMemberRequired": "Seleccione un miembro",
+      "fillRequired": "Complete todos los campos obligatorios",
+      "created": "Conversación creada",
+      "createFailed": "Error al crear la conversación",
+      "sendFailed": "Error al enviar el mensaje",
+      "updateFailed": "Error al actualizar la conversación"
+    }
+  },
+  "callCentreLeads": {
+    "title": "Leads",
+    "subtitle": "Consultas del formulario de contacto de miembros potenciales"
   },
   "admin": {
     "members": {
@@ -2095,6 +2164,7 @@
   "leads": {
     "newLeads": "Nuevos Leads",
     "searchPlaceholder": "Buscar por nombre, email, teléfono...",
+    "statusFilter": "Estado",
     "loading": "Cargando leads...",
     "noLeads": "No se encontraron leads",
     "markContacted": "Marcar Contactado",
@@ -5417,7 +5487,16 @@
     "statusRequested": "Solicitada",
     "statusApproved": "Aprobada",
     "statusRejected": "Rechazada",
-    "statusCancelled": "Cancelada"
+    "statusCancelled": "Cancelada",
+    "toasts": {
+      "requestSubmitted": "Solicitud de vacaciones enviada",
+      "requestFailed": "Error al enviar la solicitud de vacaciones",
+      "approved": "Vacaciones aprobadas",
+      "rejected": "Vacaciones rechazadas",
+      "reviewFailed": "Error al revisar la solicitud de vacaciones",
+      "cancelled": "Vacaciones canceladas",
+      "cancelFailed": "Error al cancelar las vacaciones"
+    }
   },
   "shifts": {
     "morning": "Mañana",
@@ -5432,7 +5511,14 @@
     "statusPending": "Pendiente",
     "statusAccepted": "Aceptada",
     "statusDeclined": "Rechazada",
-    "statusExpired": "Expirada"
+    "statusExpired": "Expirada",
+    "toasts": {
+      "requestSent": "Solicitud de cobertura enviada",
+      "requestFailed": "Error al solicitar cobertura",
+      "accepted": "Cobertura aceptada",
+      "declined": "Cobertura rechazada",
+      "respondFailed": "Error al responder a la solicitud de cobertura"
+    }
   },
   "shiftNotes": {
     "title": "Notas de Turno",

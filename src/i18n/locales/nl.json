@@ -1752,7 +1752,8 @@
     "viewAll": "View All",
     "courtesyCalls": "Courtesy Calls",
     "noCourtesyCallsDue": "No courtesy calls pending",
-    "fetchError": "Failed to load dashboard data"
+    "fetchError": "Failed to load dashboard data",
+    "alreadyClaimed": "Een andere medewerker heeft deze melding al geclaimd."
   },
   "leadsWidget": {
     "newLeads": "New Leads",

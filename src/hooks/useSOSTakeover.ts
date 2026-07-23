@@ -9,6 +9,12 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentStaff } from "@/hooks/useCurrentStaff";
 import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+import {
+  SOS_ALERT_TYPES,
+  acceptAlertOwnership,
+  deriveActiveAlert,
+  derivePendingAlerts,
+} from "@/lib/alertOwnership";
 
 interface SOSAlert {
   id: string;
@@ -39,7 +45,8 @@ export interface UseSOSTakeoverReturn {
   ) => Promise<boolean>;
 }
 
-const SOS_TYPES: Array<"sos_button" | "fall_detected"> = ["sos_button", "fall_detected"];
+// Canonical SOS type list lives in src/lib/alertOwnership.ts (shared with the queue).
+const SOS_TYPES = SOS_ALERT_TYPES;
 
 export function useSOSTakeover(): UseSOSTakeoverReturn {
   const { data: staff } = useCurrentStaff();
@@ -58,7 +65,7 @@ export function useSOSTakeover(): UseSOSTakeoverReturn {
         .select(
           "id, alert_type, status, member_id, received_at, accepted_by_staff_id, accepted_at, conference_id, location_address, location_lat, location_lng, is_false_alarm, resolution_notes",
         )
-        .in("alert_type", SOS_TYPES)
+        .in("alert_type", [...SOS_TYPES])
         .in("status", ["incoming", "in_progress"])
         .order("received_at", { ascending: false });
 
@@ -120,54 +127,29 @@ export function useSOSTakeover(): UseSOSTakeoverReturn {
     };
   }, []);
 
-  // Split alerts
-  const activeAlert =
-    staffId
-      ? alerts.find((a) => a.accepted_by_staff_id === staffId) || null
-      : null;
-
-  const pendingAlerts = alerts.filter((a) => !a.accepted_by_staff_id);
+  // Split alerts — shared derivations (see alertOwnership.ts): the SAME fields the
+  // queue's claim now writes, so both surfaces agree on ownership by construction.
+  const activeAlert = deriveActiveAlert(alerts, staffId);
+  const pendingAlerts = derivePendingAlerts(alerts);
 
   const isTakeoverActive = activeAlert !== null;
 
-  // Accept alert with optimistic concurrency guard
+  // Accept alert via the single shared guarded write path (WP-A).
   const acceptAlert = useCallback(
     async (alertId: string): Promise<boolean> => {
       if (!staffId) return false;
 
-      const { data, error } = await supabase
-        .from("alerts")
-        .update({
-          accepted_by_staff_id: staffId,
-          accepted_at: new Date().toISOString(),
-          status: "in_progress",
-        })
-        .eq("id", alertId)
-        .is("accepted_by_staff_id", null) // Guard: only if not already accepted
-        .select()
-        .maybeSingle();
-
-      if (error) {
-        console.error("[useSOSTakeover] Accept error:", error);
+      const result = await acceptAlertOwnership(alertId, staffId);
+      if (!result.ok) {
+        // "already_accepted" = another operator won the race (possibly from the
+        // queue screen); "error" already logged inside the shared function.
         return false;
       }
 
-      if (!data) {
-        // Another staff member already accepted this alert
-        return false;
-      }
-
-      // Optimistic update
+      // Optimistic update from the row the guarded UPDATE actually returned.
       setAlerts((prev) =>
         prev.map((a) =>
-          a.id === alertId
-            ? {
-                ...a,
-                accepted_by_staff_id: staffId,
-                accepted_at: new Date().toISOString(),
-                status: "in_progress",
-              }
-            : a,
+          a.id === alertId ? { ...a, ...(result.alert as Partial<SOSAlert>) } : a,
         ),
       );
 

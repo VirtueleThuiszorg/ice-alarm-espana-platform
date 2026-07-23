@@ -4,6 +4,7 @@ import { toast } from "@/hooks/use-toast";
 import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { Tables } from "@/integrations/supabase/types";
 import { useBrowserNotifications } from "./useBrowserNotifications";
+import { acceptAlertOwnership } from "@/lib/alertOwnership";
 
 type Alert = Tables<"alerts">;
 
@@ -321,18 +322,26 @@ export function useAlerts() {
         .eq("user_id", staffData.user?.id ?? "")
         .single();
 
-      const { error } = await supabase
-        .from("alerts")
-        .update({
-          status: "in_progress",
-          claimed_by: staff?.id,
-          claimed_at: new Date().toISOString(),
-        })
-        .eq("id", alertId);
+      if (!staff?.id) throw new Error("No staff record for current user");
 
-      if (error) throw error;
+      // WP-A: single shared guarded write path (accepted_by_staff_id canonical,
+      // claimed_by mirrored) — the SOS takeover page derives ownership from the
+      // same field, so a queue claim is immediately visible there.
+      const result = await acceptAlertOwnership(alertId, staff.id);
 
-      setAlerts(prev => prev.map(alert => 
+      if (!result.ok) {
+        if (result.reason === "already_accepted") {
+          toast({
+            title: "Already claimed",
+            description: "Another operator has already claimed this alert.",
+            variant: "destructive",
+          });
+          return null;
+        }
+        throw new Error("Claim write failed");
+      }
+
+      setAlerts(prev => prev.map(alert =>
         alert.id === alertId ? { ...alert, status: "in_progress" as const } : alert
       ));
 

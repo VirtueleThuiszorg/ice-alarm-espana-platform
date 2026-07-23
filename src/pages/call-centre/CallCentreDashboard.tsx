@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, Filter, Clock, AlertTriangle, CheckCircle, PhoneCall, Volume2, VolumeX, MessageSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { useAlerts, EnrichedAlert } from "@/hooks/useAlerts";
+import { isSosAlertType } from "@/lib/alertOwnership";
 import { AlertDetailPanel } from "@/components/call-centre/AlertDetailPanel";
 import { MemberQuickSearch } from "@/components/call-centre/MemberQuickSearch";
 import { AlertCard } from "@/components/dashboard/AlertCard";
@@ -18,6 +20,7 @@ type MainTab = "alerts" | "messages";
 
 export default function CallCentreDashboard() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { alerts, isLoading, claimAlert, resolveAlert, escalateAlert } = useAlerts();
   const [mainTab, setMainTab] = useState<MainTab>("alerts");
   const [activeTab, setActiveTab] = useState<AlertTabValue>("all");
@@ -77,6 +80,12 @@ export default function CallCentreDashboard() {
   const handleClaimAlert = async (alertId: string) => {
     const enrichedAlert = await claimAlert(alertId);
     if (enrichedAlert) {
+      // WP-A: an SOS-type alert we now own belongs on the takeover screen —
+      // it appears there as active because claim set accepted_by_staff_id.
+      if (isSosAlertType(enrichedAlert.type)) {
+        navigate("/call-centre/sos-alert");
+        return;
+      }
       setSelectedAlert(enrichedAlert);
       setIsDetailOpen(true);
     }

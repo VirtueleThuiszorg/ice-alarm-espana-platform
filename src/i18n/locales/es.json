@@ -4937,8 +4937,6 @@
     "loading": "Cargando alertas...",
     "unknown": "Desconocido",
     "noAlerts": "No se encontraron alertas",
-    "escalatedNotified": "Alerta escalada — administrador notificado.",
-    "escalatedNotNotified": "Escalada, pero NO se pudo confirmar la notificación al administrador — contacte con un administrador directamente."
     "drill": {
       "create": "Crear alerta de simulacro",
       "cleanup": "Limpiar simulacros",

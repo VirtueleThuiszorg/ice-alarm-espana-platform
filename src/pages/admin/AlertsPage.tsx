@@ -7,7 +7,6 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { resolveAlertViaFunction } from "@/lib/alertResolution";
-import { escalateAlertViaFunction } from "@/lib/alertEscalation";
 import {
   ChevronLeft,
   ChevronRight,
@@ -197,13 +196,6 @@ export default function AlertsPage() {
       return;
     }
 
-    // WP-C: a transition TO escalated goes through the single escalation path
-    // (audit row + confirmed admin notification).
-    if (editStatus === "escalated" && selectedAlert.status !== "escalated") {
-      escalateViaFunctionMutation.mutate(selectedAlert.id);
-      return;
-    }
-
     const updates: TablesUpdate<"alerts"> = {
       status: editStatus as AlertRow["status"],
       resolution_notes: editNotes || null,
@@ -237,35 +229,11 @@ export default function AlertsPage() {
     resolveViaFunctionMutation.mutate({ alertId: alert.id });
   };
 
-  // WP-C: escalations go through the single escalation path (audit row +
-  // confirmed admin notification) — success toast only claims "notified" when true.
-  const escalateViaFunctionMutation = useMutation({
-    mutationFn: async (alertId: string) => {
-      const result = await escalateAlertViaFunction(alertId);
-      if (!result.ok) throw new Error(result.error);
-      return result;
-    },
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["admin-alerts"] });
-      setEditDialogOpen(false);
-      if (result.notified) {
-        toast.success(t("adminAlerts.escalatedNotified", "Alert escalated — admin notified."));
-      } else {
-        toast.error(
-          t(
-            "adminAlerts.escalatedNotNotified",
-            "Escalated, but the admin notification could NOT be confirmed — contact an admin directly.",
-          ),
-        );
-      }
-    },
-    onError: (e: Error) => {
-      toast.error(e.message || t("adminAlerts.updateError", "Failed to update alert"));
-    },
-  });
-
   const handleQuickEscalate = (alert: AlertRow) => {
-    escalateViaFunctionMutation.mutate(alert.id);
+    updateAlertMutation.mutate({
+      alertId: alert.id,
+      updates: { status: "escalated" },
+    });
   };
 
   const handleToggleFalseAlarm = (alert: AlertRow) => {

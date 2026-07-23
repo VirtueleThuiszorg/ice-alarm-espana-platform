@@ -3,7 +3,7 @@
 /*  Cache-first for statics, network-first for API, offline fallback  */
 /* ================================================================== */
 
-const CACHE_VERSION = "care-conneqt-v4";
+const CACHE_VERSION = "care-conneqt-v5";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 

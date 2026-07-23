@@ -4874,6 +4874,8 @@
     "loading": "Loading alerts...",
     "unknown": "Unknown",
     "noAlerts": "No alerts found",
+    "escalatedNotified": "Alert escalated — admin notified.",
+    "escalatedNotNotified": "Escalated, but the admin notification could NOT be confirmed — contact an admin directly."
     "drill": {
       "create": "Create drill alert",
       "cleanup": "Clean up drills",

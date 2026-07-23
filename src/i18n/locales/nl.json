@@ -4874,6 +4874,8 @@
     "loading": "Loading alerts...",
     "unknown": "Unknown",
     "noAlerts": "No alerts found",
+    "escalatedNotified": "Melding geëscaleerd — beheerder op de hoogte gebracht.",
+    "escalatedNotNotified": "Geëscaleerd, maar de melding aan de beheerder kon NIET worden bevestigd — neem direct contact op met een beheerder."
     "drill": {
       "create": "Oefenmelding aanmaken",
       "cleanup": "Oefeningen opruimen",

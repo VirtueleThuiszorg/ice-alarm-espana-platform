@@ -68,30 +68,6 @@ export function useScheduledContent(status?: "ready" | "published" | "all") {
     },
   });
 
-  // Generate content for slots
-  const generateContent = useMutation({
-    mutationFn: async (slotIds: string[]) => {
-      const { data, error } = await supabase.functions.invoke("generate-slot-content", {
-        body: { slot_ids: slotIds },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["scheduled-content"] });
-      queryClient.invalidateQueries({ queryKey: ["content-calendar"] });
-      const successCount = data.results?.filter((r: { success: boolean }) => r.success).length || 0;
-      toast({
-        title: i18n.t("mediaStrategy.contentGenerated"),
-        description: i18n.t("mediaStrategy.slotsGeneratedSuccess", { success: successCount, total: data.results?.length || 0 }),
-      });
-    },
-    onError: (err: Error) => {
-      toast({ title: i18n.t("mediaStrategy.generationFailed"), description: err.message, variant: "destructive" });
-    },
-  });
-
   // Approve a slot
   const approveSlot = useMutation({
     mutationFn: async (slotId: string) => {
@@ -223,14 +199,12 @@ export function useScheduledContent(status?: "ready" | "published" | "all") {
     items,
     isLoading,
     refetch,
-    generateContent: generateContent.mutateAsync,
     approveSlot: approveSlot.mutateAsync,
     disableSlot: disableSlot.mutateAsync,
     enableSlot: enableSlot.mutateAsync,
     updateSlot: updateSlot.mutateAsync,
     publishSlot: publishSlot.mutateAsync,
     togglePublishTarget: togglePublishTarget.mutateAsync,
-    isGenerating: generateContent.isPending,
     isApproving: approveSlot.isPending,
     isDisabling: disableSlot.isPending,
     isPublishing: publishSlot.isPending,

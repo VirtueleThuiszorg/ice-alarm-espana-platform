@@ -79,7 +79,6 @@ export function useSocialPosts(statusFilter?: SocialPostStatus | "all") {
         { event: "*", schema: "public", table: "social_posts" },
         () => {
           queryClient.invalidateQueries({ queryKey: ["social-posts"] });
-          queryClient.invalidateQueries({ queryKey: ["approved-posts"] });
           queryClient.invalidateQueries({ queryKey: ["social-post-metrics"] });
         }
       )
@@ -158,7 +157,6 @@ export function useSocialPosts(statusFilter?: SocialPostStatus | "all") {
     },
     onSuccess: (post) => {
       queryClient.invalidateQueries({ queryKey: ["social-posts"] });
-      queryClient.invalidateQueries({ queryKey: ["approved-posts"] });
       queryClient.invalidateQueries({ queryKey: ["social-post-metrics"] });
       toast({ title: i18n.t("mediaManager.toasts.draftUpdated"), description: i18n.t("mediaManager.toasts.draftUpdatedDesc") });
       // Audit log
@@ -195,7 +193,6 @@ export function useSocialPosts(statusFilter?: SocialPostStatus | "all") {
     },
     onSuccess: (post) => {
       queryClient.invalidateQueries({ queryKey: ["social-posts"] });
-      queryClient.invalidateQueries({ queryKey: ["approved-posts"] });
       queryClient.invalidateQueries({ queryKey: ["social-post-metrics"] });
       toast({ title: i18n.t("mediaManager.toasts.postApproved"), description: i18n.t("mediaManager.toasts.postApprovedDesc") });
       // Audit log
@@ -229,7 +226,6 @@ export function useSocialPosts(statusFilter?: SocialPostStatus | "all") {
     },
     onSuccess: (post) => {
       queryClient.invalidateQueries({ queryKey: ["social-posts"] });
-      queryClient.invalidateQueries({ queryKey: ["approved-posts"] });
       queryClient.invalidateQueries({ queryKey: ["social-post-metrics"] });
       toast({ title: i18n.t("mediaManager.toasts.postReadyForRetry"), description: i18n.t("mediaManager.toasts.postReadyForRetryDesc") });
       logSocialPostActivity("retry_requested", post.id, { status: "failed" }, { status: "approved" });
@@ -243,56 +239,6 @@ export function useSocialPosts(statusFilter?: SocialPostStatus | "all") {
     },
   });
 
-  // Publish to Facebook (FIXED: force Authorization header)
-  const publishMutation = useMutation({
-    mutationFn: async (id: string) => {
-      // Log publish attempt
-      logSocialPostActivity("publish_attempted", id);
-
-      // Force-get a fresh session token
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-
-      if (sessionError || !accessToken) {
-        throw new Error("Not authenticated. Please log in again.");
-      }
-
-      const { data, error } = await supabase.functions.invoke("facebook-publish", {
-        body: { post_id: id },
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      return { ...data, post_id: id };
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["social-posts"] });
-      queryClient.invalidateQueries({ queryKey: ["approved-posts"] });
-      queryClient.invalidateQueries({ queryKey: ["social-post-metrics"] });
-      toast({
-        title: i18n.t("mediaManager.toasts.publishedToFacebook"),
-        description: `Post ID: ${data.facebook_post_id}`,
-      });
-      // Log publish success
-      logSocialPostActivity("publish_success", data.post_id, undefined, {
-        facebook_post_id: data.facebook_post_id,
-      });
-    },
-    onError: (error: Error, postId: string) => {
-      queryClient.invalidateQueries({ queryKey: ["social-posts"] });
-      toast({ title: i18n.t("mediaManager.toasts.publishingFailed"), description: error.message, variant: "destructive" });
-      // Log publish failure
-      logSocialPostActivity("publish_failed", postId, undefined, {
-        error: error.message,
-      });
-    },
-  });
-
   // Delete a post
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -301,7 +247,6 @@ export function useSocialPosts(statusFilter?: SocialPostStatus | "all") {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["social-posts"] });
-      queryClient.invalidateQueries({ queryKey: ["approved-posts"] });
       queryClient.invalidateQueries({ queryKey: ["social-post-metrics"] });
       toast({ title: i18n.t("mediaManager.toasts.postDeleted"), description: i18n.t("mediaManager.toasts.postDeletedDesc") });
     },
@@ -322,13 +267,11 @@ export function useSocialPosts(statusFilter?: SocialPostStatus | "all") {
     updateDraft: updateMutation.mutateAsync,
     approvePost: approveMutation.mutateAsync,
     retryPost: retryMutation.mutateAsync,
-    publishPost: publishMutation.mutateAsync,
     deletePost: deleteMutation.mutateAsync,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isApproving: approveMutation.isPending,
     isRetrying: retryMutation.isPending,
-    isPublishing: publishMutation.isPending,
   };
 }
 

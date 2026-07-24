@@ -2,8 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Zap, Search, Star, FileText, Send, RefreshCw, Play,
-  ToggleLeft, MapPin, Shield, User, AlertTriangle,
+  Zap, Send, MapPin, Shield, User, AlertTriangle,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -11,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
 import { useOutreachPipeline } from "@/hooks/useOutreachPipeline";
 import { toast } from "@/hooks/use-toast";
 
@@ -22,7 +20,7 @@ interface SettingRow {
 
 export function OutreachControlPanel() {
   const { t } = useTranslation();
-  const { runPipeline, isRunningPipeline, enrichLeads, isEnriching, generateDrafts, isDrafting, sendEmails, isSending } = useOutreachPipeline();
+  const { sendEmails, isSending } = useOutreachPipeline();
 
   const { data: settings, isLoading, refetch } = useQuery({
     queryKey: ["outreach-all-settings"],
@@ -43,24 +41,9 @@ export function OutreachControlPanel() {
     refetch();
   };
 
-  const handleToggle = async (key: string, value: boolean) => {
-    await updateSetting(key, value);
-  };
-
-  const handleRunStep = async (step: string) => {
+  const handleSendNow = async () => {
     try {
-      switch (step) {
-        case "enrich": await enrichLeads(); break;
-        case "rate":
-          await supabase.functions.invoke("rate-outreach-leads", { body: { rate_all_new: true } });
-          toast({ title: "Rating complete" });
-          break;
-        case "draft": await generateDrafts(); break;
-        case "send": await sendEmails(); break;
-        case "pipeline":
-          await runPipeline({ enrich: true, rate: true, draft: true, send: true, followup: true });
-          break;
-      }
+      await sendEmails();
     } catch (e) {
       toast({ title: "Error", description: e instanceof Error ? e.message : "Failed", variant: "destructive" });
     }
@@ -69,14 +52,6 @@ export function OutreachControlPanel() {
   if (isLoading || !settings) {
     return <div className="flex items-center justify-center p-8"><div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>;
   }
-
-  const automationToggles = [
-    { key: "auto_enrichment_enabled", icon: Search, label: t("outreach.control.autoEnrich"), desc: t("outreach.control.autoEnrichDesc") },
-    { key: "auto_rating_enabled", icon: Star, label: t("outreach.control.autoRate"), desc: t("outreach.control.autoRateDesc") },
-    { key: "auto_drafting_enabled", icon: FileText, label: t("outreach.control.autoDraft"), desc: t("outreach.control.autoDraftDesc") },
-    { key: "auto_sending_enabled", icon: Send, label: t("outreach.control.autoSend"), desc: t("outreach.control.autoSendDesc") },
-    { key: "auto_followup_enabled", icon: RefreshCw, label: t("outreach.control.autoFollowup"), desc: t("outreach.control.autoFollowupDesc") },
-  ];
 
   return (
     <div className="space-y-6">
@@ -93,21 +68,8 @@ export function OutreachControlPanel() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3">
-            <Button variant="outline" size="sm" onClick={() => handleRunStep("enrich")} disabled={isEnriching}>
-              <Search className="mr-2 h-4 w-4" />{isEnriching ? t("outreach.control.enriching") : t("outreach.control.enrichNow")}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => handleRunStep("rate")}>
-              <Star className="mr-2 h-4 w-4" />{t("outreach.control.rateNow")}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => handleRunStep("draft")} disabled={isDrafting}>
-              <FileText className="mr-2 h-4 w-4" />{isDrafting ? t("outreach.control.drafting") : t("outreach.control.draftNow")}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => handleRunStep("send")} disabled={isSending}>
+            <Button variant="outline" size="sm" onClick={handleSendNow} disabled={isSending}>
               <Send className="mr-2 h-4 w-4" />{isSending ? t("outreach.control.sending") : t("outreach.control.sendNow")}
-            </Button>
-            <Separator orientation="vertical" className="h-8" />
-            <Button onClick={() => handleRunStep("pipeline")} disabled={isRunningPipeline}>
-              <Play className="mr-2 h-4 w-4" />{isRunningPipeline ? t("outreach.runningPipeline") : t("outreach.control.runPipelineNow")}
             </Button>
           </div>
           {settings.dry_run_mode === true && (
@@ -116,33 +78,6 @@ export function OutreachControlPanel() {
               <span>{t("outreach.control.dryRunWarning")}</span>
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Automation Toggles */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <ToggleLeft className="h-5 w-5 text-primary" />
-            <div>
-              <CardTitle className="text-lg">{t("outreach.control.automationToggles")}</CardTitle>
-              <CardDescription>{t("outreach.control.automationTogglesDesc")}</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {automationToggles.map(({ key, icon: Icon, label, desc }) => (
-            <div key={key} className="flex items-center justify-between gap-4 py-2 border-b last:border-b-0">
-              <div className="flex items-center gap-3">
-                <Icon className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <Label className="text-sm font-medium">{label}</Label>
-                  <p className="text-xs text-muted-foreground">{desc}</p>
-                </div>
-              </div>
-              <Switch checked={settings[key] === true} onCheckedChange={(v) => handleToggle(key, v)} />
-            </div>
-          ))}
         </CardContent>
       </Card>
 
@@ -181,18 +116,6 @@ export function OutreachControlPanel() {
               <p className="text-xs text-muted-foreground">{t("outreach.control.dryRunModeDesc")}</p>
             </div>
             <Switch checked={settings.dry_run_mode === true} onCheckedChange={(v) => updateSetting("dry_run_mode", v)} />
-          </div>
-          <div className="space-y-2">
-            <Label>{t("outreach.control.followupSchedule")}</Label>
-            <Input
-              value={Array.isArray(settings.followup_schedule) ? settings.followup_schedule.join(", ") : "2, 5, 10"}
-              onChange={(e) => {
-                const days = e.target.value.split(",").map((s: string) => parseInt(s.trim())).filter((n: number) => !isNaN(n));
-                updateSetting("followup_schedule", days);
-              }}
-              placeholder="2, 5, 10"
-            />
-            <p className="text-xs text-muted-foreground">{t("outreach.control.followupScheduleDesc")}</p>
           </div>
         </CardContent>
       </Card>

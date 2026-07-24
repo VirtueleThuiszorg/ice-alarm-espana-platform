@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, Upload, Star, ArrowRight, X, Loader2, Sparkles } from "lucide-react";
+import { Plus, Upload, Star, ArrowRight, X, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +44,7 @@ export function OutreachLeadsTab() {
     campaign: "all",
   });
 
-  const { leads, isLoading, qualifyLeads, rejectLeads, isQualifying, rateLeads, isRating } =
+  const { leads, isLoading, qualifyLeads, rejectLeads, isQualifying } =
     useOutreachRawLeads(filters);
   const { campaigns } = useOutreachCampaigns();
   const { settings, usage } = useOutreachCaps();
@@ -82,16 +82,6 @@ export function OutreachLeadsTab() {
       await rejectLeads(selectedLeads);
       setSelectedLeads([]);
     }
-  };
-
-  const handleRateSelected = async () => {
-    if (selectedLeads.length > 0) {
-      await rateLeads({ leadIds: selectedLeads });
-    }
-  };
-
-  const handleRateAllNew = async () => {
-    await rateLeads({ rateAllNew: true });
   };
 
   const getStatusBadge = (status: string) => {
@@ -155,7 +145,6 @@ export function OutreachLeadsTab() {
   };
 
   // Count unrated new leads
-  const unratedNewCount = leads?.filter((l) => l.status === "new" && l.ai_score === null).length || 0;
 
   return (
     <>
@@ -179,24 +168,6 @@ export function OutreachLeadsTab() {
               </CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRateAllNew}
-                disabled={isRating || unratedNewCount === 0}
-              >
-                {isRating ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Sparkles className="mr-2 h-4 w-4" />
-                )}
-                {t("outreach.leads.rateAllNew")}
-                {unratedNewCount > 0 && (
-                  <Badge variant="secondary" className="ml-2">
-                    {unratedNewCount}
-                  </Badge>
-                )}
-              </Button>
               <Button variant="outline" size="sm" onClick={() => setShowImportModal(true)}>
                 <Upload className="mr-2 h-4 w-4" />
                 {t("outreach.leads.importLeads")}
@@ -268,14 +239,6 @@ export function OutreachLeadsTab() {
               <span className="text-sm font-medium">
                 {selectedLeads.length} {t("common.selected")}
               </span>
-              <Button size="sm" variant="outline" onClick={handleRateSelected} disabled={isRating}>
-                {isRating ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Sparkles className="mr-2 h-4 w-4" />
-                )}
-                {t("outreach.leads.rateSelected")}
-              </Button>
               <Button size="sm" onClick={handleMoveQualified} disabled={isQualifying}>
                 {isQualifying ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

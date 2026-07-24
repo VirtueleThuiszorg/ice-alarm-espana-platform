@@ -9,19 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Save, Check, Send, Search, Sparkles, Image as ImageIcon, Play, Trash2, Edit, Eye, RefreshCw, AlertCircle, Wand2, Settings, HelpCircle } from "lucide-react";
+import { Loader2, Save, Check, Image as ImageIcon, Trash2, Edit, Eye, RefreshCw, AlertCircle, Settings, HelpCircle } from "lucide-react";
 import { format } from "date-fns";
 import { es, enGB } from "date-fns/locale";
 import { useSocialPosts, useSocialPost, SocialPost, SocialPostStatus, CreateSocialPostData } from "@/hooks/useSocialPosts";
 import { useSocialPostImages } from "@/hooks/useSocialPostImages";
-import { useMediaDraft, MediaDraftOutput } from "@/hooks/useMediaDraft";
-import { useBrandedImageGenerator } from "@/hooks/useBrandedImageGenerator";
-import { useAIImageGenerator, IMAGE_STYLE_OPTIONS, ImageStyle } from "@/hooks/useAIImageGenerator";
-import { useApprovedPosts, usePostMetrics } from "@/hooks/usePostMetrics";
+import { usePostMetrics } from "@/hooks/usePostMetrics";
 import { checkPostCompliance, ComplianceWarning } from "@/lib/complianceChecker";
 import { ComplianceWarningDialog } from "@/components/admin/media/ComplianceWarningDialog";
 import { PostMetricsBar } from "@/components/admin/media/PostMetricsBar";
-import { ReadyToPublishSection } from "@/components/admin/media/ReadyToPublishSection";
 import { PostPreviewDialog } from "@/components/admin/media/PostPreviewDialog";
 import { PublishedPostsSection } from "@/components/admin/media/PublishedPostsSection";
 import { MediaStrategySection } from "@/components/admin/media/strategy/MediaStrategySection";
@@ -46,7 +42,6 @@ export default function MediaManagerPage() {
   const [statusFilter, setStatusFilter] = useState<SocialPostStatus | "all">("all");
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [previewPost, setPreviewPost] = useState<SocialPost | null>(null);
-  const [publishingFromQueue, setPublishingFromQueue] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
@@ -58,23 +53,15 @@ export default function MediaManagerPage() {
   const [language, setLanguage] = useState<"en" | "es" | "both">("both");
   const [postText, setPostText] = useState("");
   const [imageUrl, setImageUrl] = useState("");
-  const [aiOutput, setAiOutput] = useState<MediaDraftOutput | null>(null);
   const [complianceWarnings, setComplianceWarnings] = useState<ComplianceWarning[]>([]);
   const [showComplianceDialog, setShowComplianceDialog] = useState(false);
-  const [imageStyle, setImageStyle] = useState<ImageStyle>("senior_active");
   // Partner distribution state (derived: partner_enabled = audience !== "none")
   const [partnerAudience, setPartnerAudience] = useState<"none" | "all" | "selected">("none");
   const [partnerSelectedIds, setPartnerSelectedIds] = useState<string[]>([]);
 
-  const { posts, isLoading, createDraft, updateDraft, approvePost, retryPost, publishPost, deletePost, isCreating, isUpdating, isApproving, isRetrying, isPublishing } = useSocialPosts(statusFilter);
+  const { posts, isLoading, createDraft, updateDraft, approvePost, retryPost, deletePost, isCreating, isUpdating, isApproving, isRetrying } = useSocialPosts(statusFilter);
   const { data: selectedPost } = useSocialPost(selectedPostId);
   const { uploadImage, isUploading } = useSocialPostImages();
-  const { generateDraft, isGenerating } = useMediaDraft();
-  const { generateImage: generateBrandedImage, isGenerating: isGeneratingBrandedImage } = useBrandedImageGenerator();
-  const { generateImage: generateAIImage, isGenerating: isGeneratingAIImage } = useAIImageGenerator();
-  
-  // Ready to Publish data
-  const { data: approvedPosts = [], isLoading: isLoadingApproved } = useApprovedPosts();
   const { data: metrics, isLoading: isLoadingMetrics } = usePostMetrics();
 
   // Load selected post into form
@@ -182,90 +169,6 @@ export default function MediaManagerPage() {
     setDeleteTargetId(null);
   };
 
-  // AI workflow handlers
-  const handleResearch = async () => {
-    try {
-      const output = await generateDraft({
-        topic,
-        goal,
-        target_audience: audience,
-        language,
-        post_id: selectedPostId || undefined,
-        workflow_type: "research",
-      });
-      if (output) {
-        setAiOutput(output);
-      }
-    } catch (error) {
-      console.error("Research error:", error);
-    }
-  };
-
-  // Helper: apply AI output to post text based on selected language
-  const applyAIOutput = (output: MediaDraftOutput) => {
-    setAiOutput(output);
-    if (language === "en") {
-      setPostText(output.post_en);
-    } else if (language === "es") {
-      setPostText(output.post_es);
-    } else {
-      setPostText(`🇬🇧 ENGLISH:\n${output.post_en}\n\n---\n\n🇪🇸 ESPAÑOL:\n${output.post_es}`);
-    }
-  };
-
-  const handleWriteDraft = async () => {
-    try {
-      const output = await generateDraft({
-        topic,
-        goal,
-        target_audience: audience,
-        language,
-        post_id: selectedPostId || undefined,
-        workflow_type: "write",
-      });
-      if (output) applyAIOutput(output);
-    } catch (error) {
-      console.error("Write draft error:", error);
-    }
-  };
-
-  const handleFullWorkflow = async () => {
-    try {
-      const output = await generateDraft({
-        topic,
-        goal,
-        target_audience: audience,
-        language,
-        post_id: selectedPostId || undefined,
-        workflow_type: "full",
-      });
-      if (output) applyAIOutput(output);
-    } catch (error) {
-      console.error("Full workflow error:", error);
-    }
-  };
-
-  // Ready to Publish handlers
-  const handlePublishFromQueue = async (postId: string) => {
-    setPublishingFromQueue(postId);
-    try {
-      await publishPost(postId);
-    } finally {
-      setPublishingFromQueue(null);
-    }
-  };
-
-  const handlePublishFromPreview = async () => {
-    if (!previewPost) return;
-    setPublishingFromQueue(previewPost.id);
-    try {
-      await publishPost(previewPost.id);
-      setPreviewPost(null);
-    } finally {
-      setPublishingFromQueue(null);
-    }
-  };
-
   const handleRetryFromPreview = async () => {
     if (!previewPost) return;
     await retryPost(previewPost.id);
@@ -315,15 +218,6 @@ export default function MediaManagerPage() {
         <>
           {/* Post Metrics Bar */}
           <PostMetricsBar metrics={metrics} isLoading={isLoadingMetrics} />
-
-          {/* Ready to Publish Section */}
-          <ReadyToPublishSection
-            posts={approvedPosts}
-            isLoading={isLoadingApproved}
-            onPreview={setPreviewPost}
-            onPublish={handlePublishFromQueue}
-            publishingId={publishingFromQueue}
-          />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Panel - Create/Edit Draft */}
@@ -393,133 +287,6 @@ export default function MediaManagerPage() {
               </Select>
             </div>
 
-            {/* AI Action Buttons */}
-            <div className="grid grid-cols-2 gap-2 pt-2">
-              <Button 
-                variant="outline" 
-                disabled={isGenerating || !topic}
-                onClick={handleResearch}
-                className="gap-2"
-              >
-                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                {t("mediaManager.research")}
-              </Button>
-              <Button 
-                variant="outline" 
-                disabled={isGenerating || !topic}
-                onClick={handleWriteDraft}
-                className="gap-2"
-              >
-                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {t("mediaManager.writeDraft")}
-              </Button>
-              <Button 
-                variant="outline" 
-                disabled={isGeneratingBrandedImage || !aiOutput?.image_text}
-                onClick={async () => {
-                  if (!aiOutput?.image_text) {
-                    return;
-                  }
-                  const url = await generateBrandedImage({
-                    imageText: {
-                      headline: aiOutput.image_text.headline,
-                      subheadline: aiOutput.image_text.subheadline,
-                      cta: aiOutput.image_text.cta || t("common.learnMore"),
-                    },
-                  });
-                  if (url) {
-                    setImageUrl(url);
-                  }
-                }}
-                className="gap-2"
-                title={!aiOutput?.image_text ? t("mediaManager.runAIFirst") : t("mediaManager.generateBrandedImage")}
-              >
-                {isGeneratingBrandedImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
-                {t("mediaManager.quickBrandImage")}
-              </Button>
-              <Button 
-                variant="outline" 
-                disabled={isGenerating || !topic}
-                onClick={handleFullWorkflow}
-                className="gap-2"
-              >
-                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-                {t("mediaManager.fullWorkflow")}
-              </Button>
-            </div>
-
-            {/* AI Image Generation Section */}
-            <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
-              <Label className="text-sm font-medium">{t("mediaManager.aiImageGeneration")}</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Select value={imageStyle} onValueChange={(v) => setImageStyle(v as ImageStyle)}>
-                  <SelectTrigger className="bg-background">
-                    <SelectValue placeholder={t("mediaManager.selectImageStyle")} />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover z-50">
-                    {IMAGE_STYLE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {t(option.labelKey)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="default"
-                  disabled={isGeneratingAIImage || (!topic && imageStyle !== "from_post_text") || (imageStyle === "from_post_text" && !postText)}
-                  onClick={async () => {
-                    const url = await generateAIImage({
-                      style: imageStyle,
-                      topic,
-                      imageText: aiOutput?.image_text,
-                      postId: selectedPostId || undefined,
-                      postText: imageStyle === "from_post_text" ? postText : undefined,
-                    });
-                    if (url) {
-                      setImageUrl(url);
-                    }
-                  }}
-                  className="gap-2"
-                  title={imageStyle === "from_post_text" && !postText ? t("mediaManager.generatePostTextFirst") : undefined}
-                >
-                  {isGeneratingAIImage ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Wand2 className="h-4 w-4" />
-                  )}
-                  {t("mediaManager.generateAIImage")}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {t("mediaManager.aiImageDescription")}
-              </p>
-            </div>
-
-            {/* AI Output Preview */}
-            {aiOutput && (
-              <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">{t("mediaManager.aiResearchSummary")}</p>
-                <p className="text-sm">{aiOutput.research.topic_insights}</p>
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {aiOutput.hashtags_en.slice(0, 5).map((tag, i) => (
-                    <Badge key={i} variant="secondary" className="text-xs">{tag}</Badge>
-                  ))}
-                </div>
-                {aiOutput.image_text && (
-                  <div className="mt-2 pt-2 border-t">
-                    <p className="text-xs font-medium text-muted-foreground">{t("mediaManager.suggestedImageText")}</p>
-                    <p className="text-sm font-semibold">{aiOutput.image_text.headline}</p>
-                    <p className="text-xs text-muted-foreground">{aiOutput.image_text.subheadline}</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {!topic && (
-              <p className="text-xs text-muted-foreground text-center">
-                {t("mediaManager.enterTopicToEnable")}
-              </p>
-            )}
           </CardContent>
         </Card>
 
@@ -616,24 +383,6 @@ export default function MediaManagerPage() {
                   <Check className="h-4 w-4" />
                 )}
                 {t("mediaManager.approve")}
-              </Button>
-              <Button
-                onClick={async () => {
-                  if (selectedPostId) {
-                    await publishPost(selectedPostId);
-                  }
-                }}
-                disabled={!selectedPostId || isPublishing || selectedPost?.status !== "approved"}
-                variant="outline"
-                className="gap-2"
-                title={selectedPost?.status !== "approved" ? t("mediaManager.mustBeApproved") : t("mediaManager.publishToFacebook")}
-              >
-                {isPublishing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-                {t("mediaManager.publish")}
               </Button>
             </div>
           </CardContent>
@@ -804,10 +553,8 @@ export default function MediaManagerPage() {
         post={previewPost}
         open={!!previewPost}
         onOpenChange={(open) => !open && setPreviewPost(null)}
-        onPublish={handlePublishFromPreview}
         onRetry={handleRetryFromPreview}
         onEdit={handleEditFromPreview}
-        isPublishing={publishingFromQueue === previewPost?.id}
         isRetrying={isRetrying}
       />
 

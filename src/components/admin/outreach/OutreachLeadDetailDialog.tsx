@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
-import { Globe, Mail, Phone, MapPin, Star, Send, XCircle, RefreshCw, FileText } from "lucide-react";
+import { Globe, Mail, Phone, MapPin, Star, Send, XCircle, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { es, enGB } from "date-fns/locale";
 import { useOutreachPipeline } from "@/hooks/useOutreachPipeline";
@@ -33,7 +33,7 @@ type DraftPreview = Pick<
 export function OutreachLeadDetailDialog({ lead, open, onOpenChange }: LeadDetailDialogProps) {
   const { t, i18n } = useTranslation();
   const dateLocale = i18n.language === "es" ? es : enGB;
-  const { generateDrafts, isDrafting, sendEmails, isSending } = useOutreachPipeline();
+  const { sendEmails, isSending } = useOutreachPipeline();
   const queryClient = useQueryClient();
   const [drafts, setDrafts] = useState<DraftPreview[]>([]);
 
@@ -64,12 +64,6 @@ export function OutreachLeadDetailDialog({ lead, open, onOpenChange }: LeadDetai
     queryClient.invalidateQueries({ queryKey: ["outreach-crm-leads"] });
     toast({ title: t("outreach.leadDetail.markedDNC") });
     onOpenChange(false);
-  };
-
-  const handleRegenerateDraft = async () => {
-    // Delete existing drafts for this lead, then generate new one
-    await supabase.from("outreach_email_drafts").delete().eq("crm_lead_id", lead.id);
-    await generateDrafts([lead.id]);
   };
 
   const handleApproveSend = async () => {
@@ -201,9 +195,6 @@ export function OutreachLeadDetailDialog({ lead, open, onOpenChange }: LeadDetai
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={handleApproveSend} disabled={isSending || lead.do_not_contact}>
               <Send className="mr-2 h-4 w-4" />{isSending ? t("outreach.leadDetail.sending") : t("outreach.leadDetail.approveSend")}
-            </Button>
-            <Button size="sm" variant="outline" onClick={handleRegenerateDraft} disabled={isDrafting}>
-              <RefreshCw className="mr-2 h-4 w-4" />{isDrafting ? t("outreach.leadDetail.generating") : t("outreach.leadDetail.regenerateDraft")}
             </Button>
             <Button size="sm" variant="destructive" onClick={handleMarkDNC} disabled={lead.do_not_contact}>
               <XCircle className="mr-2 h-4 w-4" />{t("outreach.leadDetail.markDNC")}

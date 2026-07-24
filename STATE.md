@@ -346,9 +346,22 @@ messages unassign `""`→`null` bug; `callCentreCrud.test.ts` 11 tests).
   ARCHIVE all (admin-only, none cron-scheduled); **awaiting Lee's archive/keep call**
   since the label-only deferral below was his recorded decision.
 
-### Scope — archive candidates (DEFERRED, per RECONCILE.md §2 / plan §11)
-- Label-only for now (no code moved/deleted): **YouTube**, **Facebook**, **AI outreach**,
-  **content/media generation**, **video-render**.
+### Scope — archive candidates (EXECUTED for growth fns 2026-07-24; rest still label-only)
+- ✅ **Growth-fn archive EXECUTED (PR, draft pending Lee's visual approval):** the 9
+  Lovable-gateway growth fns (facebook-publish, generate-ai-image, generate-slot-content,
+  media-draft, outreach-enrich-lead, outreach-generate-drafts, outreach-topic-insights,
+  rate-outreach-leads, repurpose-content) + their orchestrator `outreach-pipeline-runner`
+  moved to `archive/supabase-functions/` with their UI entry points removed
+  (MediaManager AI-draft/AI-image/publish flows; AIOutreach rate/enrich/draft/pipeline
+  controls). DB-CRUD features on both pages survive (drafts, approve, metrics, partner
+  distribution, strategy CRUD, lead qualify/import, CRM/campaigns/inbox, send-email).
+  Boundary pinned by `archivedFunctions.test.ts` (5); Lovable pin in
+  `lovableDebris.test.ts` shrinks to `auth-email-hook` (its migration = PR #62/#64).
+  Reinstating any fn = `git mv` back + migrate its gateway call to `_shared/anthropic.ts`.
+  Follow-up: MediaHelpDialog/OutreachHelpDialog copy still describes the archived AI
+  workflows (3-locale help-text revision once Lee confirms the archive is final);
+  deployed prod instances are inert but should be deleted at next housekeeping.
+- Still label-only (no code moved/deleted): **YouTube**, **video-render**.
 - **Partner/commission portal — KEEP / LIVE AT LAUNCH** (~~archive candidate 2026-06-18~~ **reversed
   2026-07-22, LAUNCH_SCOPE.md §4**): live from day one, **manual commission payouts** for launch
   (admin "Mark Paid" + hand-done transfer); automated payouts are phase 2. Verify the commission

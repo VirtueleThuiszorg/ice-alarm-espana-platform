@@ -43,21 +43,6 @@ const NO_DEFAULT_T = /(?<![a-zA-Z0-9_$])t\(\s*["'`]([a-zA-Z0-9_.]+)["'`]\s*\)/g;
 
 // Remaining audit batches (one PR per portal deletes its section):
 const KNOWN_MISSING = new Set([
-  // — partner portal batch —
-  "partner.commissions", "partner.commissionsDesc", "partner.pendingRelease",
-  "partner.pendingReleaseDesc", "partner.approved", "partner.approvedDesc",
-  "partner.totalPaid", "partner.lifetimeEarnings", "partner.commissionHistory",
-  "partner.allCommissions", "partner.filterByStatus", "partner.allStatus",
-  "partner.paid", "partner.noCommissions", "partner.noCommissionsDesc",
-  "partner.triggerEvent", "partner.triggered", "partner.releaseDate",
-  "partner.linkCopied", "partner.qrDownloaded", "partner.invalidFileType",
-  "partner.fileTooLarge", "partner.fileUploaded", "partner.uploadError",
-  "partner.fileDeleted", "partner.deleteError", "partner.notFound",
-  "partner.marketingTools", "partner.yourReferralLink", "partner.referralLinkDescription",
-  "partner.referralCode", "partner.yourQrCode", "partner.qrCodeDescription",
-  "partner.downloadPng", "partner.print", "partner.presentations",
-  "partner.presentationsDescription", "partner.uploadFile", "partner.copyLink",
-  "partner.openFile", "partner.noPresentations", "partner.uploadHint",
   // — admin portal batch —
   "common.deleting", "common.selected", "mediaStrategy.approve",
   "videoHub.create.template", "aiChat.openChat",

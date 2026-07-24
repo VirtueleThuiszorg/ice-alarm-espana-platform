@@ -14,7 +14,6 @@ import {
   Building2,
   Users,
   FileText,
-  Download,
   Plus,
   Upload,
   Heart,
@@ -505,53 +504,6 @@ export function CareDashboard({ partnerId, partner }: CareDashboardProps) {
             </Card>
           </div>
 
-          {/* Download Reports */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("partner.care.reports.downloadTitle", "Download Reports")}</CardTitle>
-              <CardDescription>{t("partner.care.reports.downloadDesc", "Generate PDF reports for board meetings or records")}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-3 md:grid-cols-2">
-                <Button variant="outline" className="justify-start h-auto py-4">
-                  <div className="flex items-center gap-3">
-                    <Download className="h-5 w-5" />
-                    <div className="text-left">
-                      <p className="font-medium">{t("partner.care.reports.monthlySummary", "Monthly Summary Report")}</p>
-                      <p className="text-xs text-muted-foreground">{t("partner.care.reports.monthlySummaryDesc", "Referrals, conversions, commissions")}</p>
-                    </div>
-                  </div>
-                </Button>
-                <Button variant="outline" className="justify-start h-auto py-4">
-                  <div className="flex items-center gap-3">
-                    <Download className="h-5 w-5" />
-                    <div className="text-left">
-                      <p className="font-medium">{t("partner.care.reports.impactReport", "Impact Report")}</p>
-                      <p className="text-xs text-muted-foreground">{t("partner.care.reports.impactReportDesc", "For stakeholders & board meetings")}</p>
-                    </div>
-                  </div>
-                </Button>
-                <Button variant="outline" className="justify-start h-auto py-4">
-                  <div className="flex items-center gap-3">
-                    <Download className="h-5 w-5" />
-                    <div className="text-left">
-                      <p className="font-medium">{t("partner.care.reports.commissionStatement", "Commission Statement")}</p>
-                      <p className="text-xs text-muted-foreground">{t("partner.care.reports.commissionStatementDesc", "Detailed breakdown by referral")}</p>
-                    </div>
-                  </div>
-                </Button>
-                <Button variant="outline" className="justify-start h-auto py-4">
-                  <div className="flex items-center gap-3">
-                    <Download className="h-5 w-5" />
-                    <div className="text-left">
-                      <p className="font-medium">{t("partner.care.reports.referralExport", "Referral List (CSV)")}</p>
-                      <p className="text-xs text-muted-foreground">{t("partner.care.reports.referralExportDesc", "Export all referral data")}</p>
-                    </div>
-                  </div>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
-  Loader2, Download, Plus, CreditCard, 
+  Loader2, Plus, CreditCard,
   CheckCircle, XCircle, Clock, AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -271,13 +271,12 @@ export function PaymentsTab({ memberId }: PaymentsTabProps) {
                 <TableHead>Method</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Invoice</TableHead>
-                <TableHead className="w-[80px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredPayments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     <CreditCard className="mx-auto h-8 w-8 mb-2 opacity-50" />
                     No payments found
                   </TableCell>
@@ -305,13 +304,6 @@ export function PaymentsTab({ memberId }: PaymentsTabProps) {
                     </TableCell>
                     <TableCell>
                       {payment.invoice_number || "-"}
-                    </TableCell>
-                    <TableCell>
-                      {payment.invoice_number && (
-                        <Button variant="ghost" size="icon">
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      )}
                     </TableCell>
                   </TableRow>
                 ))

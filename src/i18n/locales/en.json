@@ -601,7 +601,9 @@
     "single": "Single",
     "suspended": "Suspended",
     "call": "Call",
-    "markComplete": "Mark complete"
+    "markComplete": "Mark complete",
+    "deleting": "Deleting...",
+    "selected": "selected"
   },
   "auth": {
     "login": "Login",
@@ -2101,7 +2103,54 @@
         "purchases": "Purchases",
         "commission": "Commission"
       }
-    }
+    },
+    "commissions": "Commissions",
+    "commissionsDesc": "Track your commission earnings and payouts",
+    "viewingCommissions": "Viewing commissions for {{name}}",
+    "commissionStructure": "Commission Structure",
+    "commissionBase": "Base: €50/device",
+    "commissionTier10": "10+ /month: €55/device",
+    "commissionTier20": "20+ /month: €60/device",
+    "pendingRelease": "Pending Release",
+    "pendingReleaseDesc": "Commissions earned, not yet released",
+    "approved": "Approved",
+    "approvedDesc": "Released and awaiting payout",
+    "totalPaid": "Total Paid",
+    "lifetimeEarnings": "Lifetime earnings paid out",
+    "commissionHistory": "Commission History",
+    "allCommissions": "All your commissions",
+    "filterByStatus": "Filter by status",
+    "allStatus": "All statuses",
+    "paid": "Paid",
+    "noCommissions": "No commissions yet",
+    "noCommissionsDesc": "Commissions appear here when your referrals sign up",
+    "triggerEvent": "Trigger Event",
+    "triggered": "Triggered",
+    "releaseDate": "Release Date",
+    "linkCopied": "Link copied to clipboard",
+    "qrDownloaded": "QR code downloaded",
+    "invalidFileType": "File type not allowed. Use PDF, PowerPoint, Word or images.",
+    "fileTooLarge": "File is too large (max 50 MB)",
+    "fileUploaded": "File uploaded",
+    "uploadError": "Upload failed. Please try again.",
+    "fileDeleted": "File deleted",
+    "deleteError": "Delete failed. Please try again.",
+    "notFound": "Partner profile not found",
+    "marketingTools": "Marketing Tools",
+    "yourReferralLink": "Your Referral Link",
+    "referralLinkDescription": "Share this link to track your referrals",
+    "referralCode": "Referral code",
+    "yourQrCode": "Your QR Code",
+    "qrCodeDescription": "Let customers scan this code to open your referral link",
+    "downloadPng": "Download PNG",
+    "print": "Print",
+    "presentations": "Presentations & Materials",
+    "presentationsDescription": "Upload and share your sales materials",
+    "uploadFile": "Upload File",
+    "copyLink": "Copy link",
+    "openFile": "Open file",
+    "noPresentations": "No files uploaded yet",
+    "uploadHint": "Upload PDFs, presentations or images up to 50 MB"
   },
   "partnerSupport": {
     "title": "Partner Support",
@@ -4027,7 +4076,8 @@
       "noData": "No outreach replies to analyze yet. Insights will appear once leads start replying.",
       "addTopic": "Add as Topic",
       "suggestedAngle": "Suggested angle"
-    }
+    },
+    "approve": "Approve"
   },
   "outreach": {
     "title": "AI Outreach",
@@ -4638,7 +4688,8 @@
           "badge1": "Simple",
           "badge2": "60 Seconds"
         }
-      }
+      },
+      "template": "Template"
     },
     "scratch": {
       "colorScheme": "Color Scheme",
@@ -5851,5 +5902,8 @@
       "minute": "minute",
       "minutes": "minutes"
     }
+  },
+  "aiChat": {
+    "openChat": "Open chat"
   }
 }

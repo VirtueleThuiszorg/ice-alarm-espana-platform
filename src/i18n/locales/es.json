@@ -601,7 +601,9 @@
     "single": "Individual",
     "suspended": "Suspendido",
     "call": "Llamar",
-    "markComplete": "Marcar como completada"
+    "markComplete": "Marcar como completada",
+    "deleting": "Eliminando...",
+    "selected": "seleccionados"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -2101,7 +2103,54 @@
         "purchases": "Compras",
         "commission": "Comisión"
       }
-    }
+    },
+    "commissions": "Comisiones",
+    "commissionsDesc": "Consulta tus comisiones y pagos",
+    "viewingCommissions": "Viendo las comisiones de {{name}}",
+    "commissionStructure": "Estructura de comisiones",
+    "commissionBase": "Base: 50 €/dispositivo",
+    "commissionTier10": "10+ /mes: 55 €/dispositivo",
+    "commissionTier20": "20+ /mes: 60 €/dispositivo",
+    "pendingRelease": "Pendiente de liberación",
+    "pendingReleaseDesc": "Comisiones ganadas, aún no liberadas",
+    "approved": "Aprobadas",
+    "approvedDesc": "Liberadas y pendientes de pago",
+    "totalPaid": "Total pagado",
+    "lifetimeEarnings": "Ganancias totales pagadas",
+    "commissionHistory": "Historial de comisiones",
+    "allCommissions": "Todas tus comisiones",
+    "filterByStatus": "Filtrar por estado",
+    "allStatus": "Todos los estados",
+    "paid": "Pagadas",
+    "noCommissions": "Aún no hay comisiones",
+    "noCommissionsDesc": "Las comisiones aparecerán aquí cuando tus referidos se registren",
+    "triggerEvent": "Evento",
+    "triggered": "Generada",
+    "releaseDate": "Fecha de liberación",
+    "linkCopied": "Enlace copiado al portapapeles",
+    "qrDownloaded": "Código QR descargado",
+    "invalidFileType": "Tipo de archivo no permitido. Usa PDF, PowerPoint, Word o imágenes.",
+    "fileTooLarge": "El archivo es demasiado grande (máx. 50 MB)",
+    "fileUploaded": "Archivo subido",
+    "uploadError": "Error al subir el archivo. Inténtalo de nuevo.",
+    "fileDeleted": "Archivo eliminado",
+    "deleteError": "Error al eliminar el archivo. Inténtalo de nuevo.",
+    "notFound": "Perfil de socio no encontrado",
+    "marketingTools": "Herramientas de marketing",
+    "yourReferralLink": "Tu enlace de referido",
+    "referralLinkDescription": "Comparte este enlace para hacer seguimiento de tus referidos",
+    "referralCode": "Código de referido",
+    "yourQrCode": "Tu código QR",
+    "qrCodeDescription": "Deja que los clientes escaneen este código para abrir tu enlace de referido",
+    "downloadPng": "Descargar PNG",
+    "print": "Imprimir",
+    "presentations": "Presentaciones y materiales",
+    "presentationsDescription": "Sube y comparte tus materiales de venta",
+    "uploadFile": "Subir archivo",
+    "copyLink": "Copiar enlace",
+    "openFile": "Abrir archivo",
+    "noPresentations": "Aún no hay archivos subidos",
+    "uploadHint": "Sube PDF, presentaciones o imágenes de hasta 50 MB"
   },
   "partnerSupport": {
     "title": "Soporte para Socios",
@@ -4027,7 +4076,8 @@
       "noData": "Aún no hay respuestas de outreach para analizar. Los insights aparecerán cuando los leads empiecen a responder.",
       "addTopic": "Añadir como tema",
       "suggestedAngle": "Ángulo sugerido"
-    }
+    },
+    "approve": "Aprobar"
   },
   "outreach": {
     "title": "AI Outreach",
@@ -4638,7 +4688,8 @@
           "badge1": "Simple",
           "badge2": "60 Segundos"
         }
-      }
+      },
+      "template": "Plantilla"
     },
     "scratch": {
       "colorScheme": "Esquema de Colores",
@@ -5851,5 +5902,8 @@
       "minute": "minuto",
       "minutes": "minutos"
     }
+  },
+  "aiChat": {
+    "openChat": "Abrir chat"
   }
 }

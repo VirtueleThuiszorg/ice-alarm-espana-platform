@@ -223,8 +223,8 @@ export default function PartnerJoin() {
   const benefits = [
     {
       icon: DollarSign,
-      title: "Earn €50 per referral",
-      description: "Get paid for every customer who signs up through your referral link",
+      title: "Earn commission on every sale",
+      description: "Get paid for every customer who signs up through your referral link — your terms are confirmed by email when you're approved",
     },
     {
       icon: Send,

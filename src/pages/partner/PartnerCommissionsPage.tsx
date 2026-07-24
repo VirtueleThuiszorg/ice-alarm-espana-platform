@@ -126,12 +126,8 @@ export default function PartnerCommissionsPage() {
               <p className="font-medium text-blue-900 dark:text-blue-200 mb-2">
                 {t("partner.commissionStructure", "Commission Structure")}
               </p>
-              <div className="flex flex-wrap gap-4 text-sm text-blue-800 dark:text-blue-300">
-                <span>{t("partner.commissionBase", "Base: €50/device")}</span>
-                <span className="text-blue-400">|</span>
-                <span>{t("partner.commissionTier10", "10+ /month: €55/device")}</span>
-                <span className="text-blue-400">|</span>
-                <span>{t("partner.commissionTier20", "20+ /month: €60/device")}</span>
+              <div className="text-sm text-blue-800 dark:text-blue-300">
+                <span>{t("partner.commissionFlat", "€50 per pendant sold — flat rate, no volume tiers")}</span>
               </div>
             </div>
           </div>

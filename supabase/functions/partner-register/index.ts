@@ -241,8 +241,8 @@ serve(async (req: Request): Promise<Response> => {
       console.error("Admin notification failed (non-blocking):", notifyError);
     }
 
-    // Get base URL from request origin or use fallback
-    const origin = req.headers.get("origin") || "https://shelter-span.lovable.app";
+    // Get base URL from request origin, SITE_URL, or the canonical launch domain
+    const origin = req.headers.get("origin") || Deno.env.get("SITE_URL") || "https://careconneqt.es";
     const verificationUrl = `${origin}/partner/verify?token=${token}`;
 
     // Send verification email

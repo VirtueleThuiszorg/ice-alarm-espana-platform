@@ -5,10 +5,8 @@ const ALLOWED_ORIGINS = [
   "https://www.careconneqtespana.com",
 ];
 
-// Patterns for dynamic origins (Loveable, Vercel previews, local dev)
+// Patterns for dynamic origins (Vercel previews, local dev)
 const ALLOWED_ORIGIN_PATTERNS = [
-  /^https:\/\/[\w-]+\.lovableproject\.com$/,
-  /^https:\/\/[\w-]+\.lovable\.app$/,
   /^https:\/\/[\w-]+\.vercel\.app$/,
   /^http:\/\/localhost:\d+$/,
 ];

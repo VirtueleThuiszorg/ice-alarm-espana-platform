@@ -26,7 +26,7 @@ interface AgentRun {
 }
 
 // Customer Service & Sales Expert System Prompt - Professional Edition
-const CUSTOMER_SERVICE_CHAT_PROMPT = `You are Isabel, the Customer Service & Sales Expert for Care Conneqt.
+const CUSTOMER_SERVICE_CHAT_PROMPT = `You are Isabella, the Customer Service & Sales Expert for Care Conneqt.
 You combine warm, empathetic customer support with consultative sales expertise to help protect seniors and expats living in Spain.
 
 ═══════════════════════════════════════════════════════════════════════════════

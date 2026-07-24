@@ -245,7 +245,7 @@ messages unassign `""`→`null` bug; `callCentreCrud.test.ts` 11 tests).
 - **Webhook-only activation** — 3 client-side activation paths (§2).
 - **Lint gate** — 345 errors + 62 warnings (§0).
 - **`crmEvents.test.ts`** — fails to load (`supabaseUrl required`); referral attribution therefore unproven.
-- **AI on Lovable gateway, not Anthropic** — violates CLAUDE.md "Do not reintroduce Lovable / AI runs on the Anthropic API" (see RECONCILE.md).
+- ~~**AI on Lovable gateway, not Anthropic**~~ **→ RESOLVED for Isabella core (2026-07-24, #52):** `ai-run` runs on the Anthropic API, runtime-verified. Only the archive-candidate growth functions (outreach-*, media-*, …) still reference the gateway (see §6).
 
 ### 🟡 UNVERIFIED (code exists; nothing proves it)
 - **SOS end-to-end** (device→alert→realtime→operator) and **<1s latency** (§1).
@@ -305,7 +305,14 @@ messages unassign `""`→`null` bug; `callCentreCrud.test.ts` 11 tests).
   `supabase/functions/ai-run/index.ts:28` (chat system prompt) and
   `src/components/admin/settings/VoiceSettingsSection.tsx:37-38` (voice greeting). Voice handler
   (`isabella-voice-handler:93-94`) already says "Isabella". *(Code change — not this loop.)*
-- 🟡 **Isabella core → Anthropic API: BUILT (gated PR, 2026-07-24).** `ai-run`'s three gateway
+- ✅ **Isabella core → Anthropic API: DONE, RUNTIME-VERIFIED (2026-07-24).** Merged (#52,
+  Lee's sign-off), `ANTHROPIC_API_KEY` set on prod, `ai-run` deployed — **Lee confirmed the
+  public chat widget answers on the new transport.** Known follow-up (not a blocker):
+  responses are NON-STREAMING (whole reply at once) — the widget waited for the full
+  completion under Lovable too, but Opus 4.8 latency makes streaming worth adding; needs
+  SSE piping through the edge fn + widget incremental rendering. Also fixed: the chat
+  prompt introduced her as "Isabel" — canonical spelling **Isabella** (2026-06-18 decision)
+  now applied in `ai-run` + the voice greeting defaults. `ai-run`'s three gateway
   calls (chat widget / voice / agent) now go through `_shared/anthropic.ts` — official SDK,
   `claude-opus-4-8` default with `ISABELLA_MODEL` env override, no Lovable dependency
   (`isabellaAnthropic.test.ts`, 13 tests: zero-gateway invariant, single-transport path,

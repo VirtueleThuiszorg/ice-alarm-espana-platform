@@ -48,6 +48,8 @@
     verify_jwt = false
   [functions.partner-admin-create]
     verify_jwt = false
+  [functions.partner-apply]
+    verify_jwt = false
   [functions.partner-register]
     verify_jwt = false
   [functions.partner-verify]

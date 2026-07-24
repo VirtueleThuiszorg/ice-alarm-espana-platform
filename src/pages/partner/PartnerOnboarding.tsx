@@ -168,37 +168,33 @@ export default function PartnerOnboarding() {
                   const phone = formData.get("phone") as string;
                   const language = preferredLanguage;
 
-                  // Generate meaningful referral code
-                  const baseName = contactName.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 8);
-                  const referralCode = `${baseName}-REF`;
-
                   try {
-                    const { error } = await supabase.from("partners").insert({
-                      contact_name: contactName,
-                      email,
-                      phone,
-                      preferred_language: language,
-                      referral_code: referralCode,
-                      partner_type: "referral",
-                      status: "pending",
-                      payout_method: "bank_transfer",
-                      region: region || null,
-                      how_heard_about_us: howHeard || null,
+                    // Server-side application intake (partner-apply): an
+                    // anonymous visitor has NO RLS write path to `partners`
+                    // by design — the old direct insert here always failed.
+                    // The function whitelists fields, dedups by email,
+                    // generates the referral code, and notifies admins.
+                    const { data, error } = await supabase.functions.invoke("partner-apply", {
+                      body: {
+                        contact_name: contactName,
+                        email,
+                        phone,
+                        preferred_language: language,
+                        region: region || null,
+                        how_heard_about_us: howHeard || null,
+                      },
                     });
 
-                    if (error) throw error;
+                    if (error) {
+                      // A 409 from the function surfaces as a FunctionsHttpError;
+                      // inspect the body for the duplicate marker.
+                      const ctx = (error as { context?: Response }).context;
+                      const body = ctx ? await ctx.json().catch(() => null) : null;
+                      throw new Error(body?.duplicate ? "duplicate" : body?.error || error.message);
+                    }
+                    if (data?.error) throw new Error(data.error);
 
-                    // Notify admin (non-blocking)
-                    supabase.functions.invoke("notify-admin", {
-                      body: {
-                        event_type: "partner.joined",
-                        entity_type: "partner",
-                        payload: {
-                          contact_name: contactName,
-                        },
-                      },
-                    }).catch(() => {});
-
+                    // Admin notification now happens server-side in partner-apply.
                     setSubmitted(true);
                   } catch (error) {
                     console.error("Error submitting partner application:", error);

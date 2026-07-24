@@ -12,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
 import { Save, Eye, Building2, User, CreditCard, Languages, Home, Bell, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { REGIONS, isB2BPartnerType, getPartnerTypeLabel } from "@/config/partnerTypes";
@@ -159,17 +158,20 @@ export default function PartnerSettingsPage() {
     },
   });
 
-  // Update facility mutation
+  // Update facility mutation. SECURITY: alert_visibility_enabled is
+  // deliberately NOT written here — it gates the resident SOS-alert stream
+  // (partner-alert-notify + partner_alert_subscriptions RLS) and is
+  // admin-granted only. A DB guard trigger enforces this server-side; the
+  // admin toggle lives in PartnerOrganizationTab.
   const updateFacilityMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
         .from("partners")
         .update({
           facility_address: facilityData.facilityAddress || null,
-          facility_resident_count: facilityData.facilityResidentCount 
-            ? parseInt(facilityData.facilityResidentCount) 
+          facility_resident_count: facilityData.facilityResidentCount
+            ? parseInt(facilityData.facilityResidentCount)
             : null,
-          alert_visibility_enabled: facilityData.alertVisibilityEnabled,
         })
         .eq("id", partner!.id);
 
@@ -640,6 +642,9 @@ export default function PartnerSettingsPage() {
 
               <Separator className="my-4" />
 
+              {/* Alert visibility is READ-ONLY here: it gates access to the
+                  resident SOS-alert stream and is granted by Care Conneqt
+                  admins only (guard trigger enforces this server-side). */}
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
@@ -647,21 +652,20 @@ export default function PartnerSettingsPage() {
                     <Label className="text-base">Alert Visibility</Label>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Receive notifications when your residents trigger SOS alerts
+                    {facilityData.alertVisibilityEnabled
+                      ? "Enabled — you receive notifications when your residents trigger SOS alerts"
+                      : "Not enabled — contact Care Conneqt to enable resident alert notifications"}
                   </p>
                 </div>
-                <Switch
-                  checked={facilityData.alertVisibilityEnabled}
-                  onCheckedChange={(checked) =>
-                    setFacilityData({ ...facilityData, alertVisibilityEnabled: checked })
-                  }
-                />
+                <Badge variant={facilityData.alertVisibilityEnabled ? "default" : "outline"}>
+                  {facilityData.alertVisibilityEnabled ? "Enabled" : "Disabled"}
+                </Badge>
               </div>
 
               {facilityData.alertVisibilityEnabled && (
                 <div className="rounded-lg bg-muted p-4 text-sm">
                   <p className="text-muted-foreground">
-                    When enabled, you'll receive email notifications for alerts from your subscribed residents.
+                    You'll receive email notifications for alerts from your subscribed residents.
                     You can manage individual subscriptions on the <strong>Members</strong> page.
                   </p>
                 </div>

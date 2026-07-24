@@ -601,7 +601,9 @@
     "single": "Individual",
     "suspended": "Suspendido",
     "call": "Llamar",
-    "markComplete": "Marcar como completada"
+    "markComplete": "Marcar como completada",
+    "deleting": "Eliminando...",
+    "selected": "seleccionados"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -4074,7 +4076,8 @@
       "noData": "Aún no hay respuestas de outreach para analizar. Los insights aparecerán cuando los leads empiecen a responder.",
       "addTopic": "Añadir como tema",
       "suggestedAngle": "Ángulo sugerido"
-    }
+    },
+    "approve": "Aprobar"
   },
   "outreach": {
     "title": "AI Outreach",
@@ -4685,7 +4688,8 @@
           "badge1": "Simple",
           "badge2": "60 Segundos"
         }
-      }
+      },
+      "template": "Plantilla"
     },
     "scratch": {
       "colorScheme": "Esquema de Colores",
@@ -5898,5 +5902,8 @@
       "minute": "minuto",
       "minutes": "minutos"
     }
+  },
+  "aiChat": {
+    "openChat": "Abrir chat"
   }
 }

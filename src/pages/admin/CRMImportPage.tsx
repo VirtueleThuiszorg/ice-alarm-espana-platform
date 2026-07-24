@@ -514,22 +514,22 @@ export default function CRMImportPage() {
 
       {/* Import Results */}
       {importComplete && importResults && (
-        <Card className="border-green-200 bg-green-50">
+        <Card className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3 mb-4">
-              <CheckCircle2 className="h-8 w-8 text-green-600" />
-              <h3 className="text-lg font-medium text-green-800">Import Complete</h3>
+              <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+              <h3 className="text-lg font-medium text-green-800 dark:text-green-200">Import Complete</h3>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-white rounded-lg">
-                <p className="text-2xl font-bold text-green-600">{importResults.imported}</p>
+              <div className="text-center p-4 bg-card border rounded-lg">
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{importResults.imported}</p>
                 <p className="text-sm text-muted-foreground">Imported</p>
               </div>
-              <div className="text-center p-4 bg-white rounded-lg">
-                <p className="text-2xl font-bold text-red-600">{importResults.failed}</p>
+              <div className="text-center p-4 bg-card border rounded-lg">
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{importResults.failed}</p>
                 <p className="text-sm text-muted-foreground">Failed</p>
               </div>
-              <div className="text-center p-4 bg-white rounded-lg">
+              <div className="text-center p-4 bg-card border rounded-lg">
                 <p className="text-2xl font-bold text-muted-foreground">{importResults.skipped}</p>
                 <p className="text-sm text-muted-foreground">Skipped</p>
               </div>

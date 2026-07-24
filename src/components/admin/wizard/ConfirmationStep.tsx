@@ -1,7 +1,6 @@
 import { WizardData } from "@/pages/admin/AddMemberWizard";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Check, Mail, Package, Phone, FileText, Download } from "lucide-react";
+import { Check, Mail, Package, Phone, FileText } from "lucide-react";
 
 interface ConfirmationStepProps {
   data: WizardData;
@@ -89,17 +88,6 @@ export function ConfirmationStep({ data }: ConfirmationStepProps) {
         })}
       </div>
 
-      {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-3 justify-center">
-        <Button variant="outline" className="gap-2">
-          <Download className="h-4 w-4" />
-          Download Contract
-        </Button>
-        <Button variant="outline" className="gap-2">
-          <Mail className="h-4 w-4" />
-          Resend Welcome Email
-        </Button>
-      </div>
     </div>
   );
 }

@@ -95,12 +95,12 @@ export function JoinSummaryStep({ data, onUpdate }: JoinSummaryStepProps) {
                 {order.registrationFeeDiscount === 100 && (
                   <Badge className="bg-status-active/20 text-status-active border-0 gap-1">
                     <Gift className="h-3 w-3" />
-                    {t("common.free") || "FREE"}
+                    {t("common.free")}
                   </Badge>
                 )}
                 {order.registrationFeeDiscount > 0 && order.registrationFeeDiscount < 100 && (
                   <Badge className="bg-status-active/20 text-status-active border-0">
-                    {order.registrationFeeDiscount}% {t("common.off") || "off"}
+                    {order.registrationFeeDiscount}% {t("common.off")}
                   </Badge>
                 )}
               </p>
@@ -111,7 +111,7 @@ export function JoinSummaryStep({ data, onUpdate }: JoinSummaryStepProps) {
                 <p className="text-sm text-muted-foreground line-through">{formatPrice(order.registrationFeeOriginal)}</p>
               )}
               <p className="font-medium">
-                {order.registrationFeeDiscount === 100 ? (t("common.free") || "FREE") : formatPrice(order.registrationFee)}
+                {order.registrationFeeDiscount === 100 ? (t("common.free")) : formatPrice(order.registrationFee)}
               </p>
             </div>
           </div>

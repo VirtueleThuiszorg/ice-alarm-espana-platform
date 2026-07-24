@@ -108,8 +108,7 @@ export default function StaffLogin() {
         if (["admin", "super_admin"].includes(staffData.role)) {
           await refreshAuth();
           toast.info(
-            t("auth.twoFactorRequired") ||
-              "Two-factor authentication is required for admin accounts. Please set it up now."
+            t("auth.twoFactorRequired")
           );
           navigate("/admin/settings?setup2fa=true");
           return;
@@ -127,7 +126,7 @@ export default function StaffLogin() {
 
   const handleTotpVerify = async () => {
     if (!totpFactorId || !totpCode || totpCode.length !== 6) {
-      toast.error(t("auth.twoFactorInvalid") || "Please enter a 6-digit code");
+      toast.error(t("auth.twoFactorCodeLength"));
       return;
     }
 
@@ -150,7 +149,7 @@ export default function StaffLogin() {
       });
 
       if (verifyError) {
-        toast.error(t("auth.twoFactorInvalid") || "Invalid verification code");
+        toast.error(t("auth.twoFactorInvalid"));
         setTotpCode("");
         return;
       }
@@ -187,12 +186,12 @@ export default function StaffLogin() {
             </div>
             <CardTitle className="text-2xl">
               {needs2FA
-                ? (t("auth.twoFactorTitle") || "Two-Factor Authentication")
+                ? (t("auth.twoFactorTitle"))
                 : t("auth.staffLogin")}
             </CardTitle>
             <CardDescription>
               {needs2FA
-                ? (t("auth.twoFactorDesc") || "Enter the 6-digit code from your authenticator app")
+                ? (t("auth.twoFactorDesc"))
                 : t("auth.staffLoginDesc")}
             </CardDescription>
           </CardHeader>
@@ -201,7 +200,7 @@ export default function StaffLogin() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="totp-code">
-                    {t("auth.verificationCode") || "Verification Code"}
+                    {t("auth.verificationCode")}
                   </Label>
                   <Input
                     id="totp-code"
@@ -230,10 +229,10 @@ export default function StaffLogin() {
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t("auth.verifying") || "Verifying..."}
+                      {t("auth.verifying")}
                     </>
                   ) : (
-                    t("auth.verify") || "Verify"
+                    t("auth.verify")
                   )}
                 </Button>
 
@@ -248,7 +247,7 @@ export default function StaffLogin() {
                     supabase.auth.signOut();
                   }}
                 >
-                  {t("common.cancel") || "Cancel"}
+                  {t("common.cancel")}
                 </Button>
               </div>
             ) : (

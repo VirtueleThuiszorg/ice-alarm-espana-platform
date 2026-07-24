@@ -17,6 +17,18 @@
     and the `auth-email-hook` sender domain as the intended value; **email
     sending from `@careconneqt.es` remains unverified**, and **development
     continues on the `*.vercel.app` URL**.
+- [ ] **Email transport = Resend on the verified `careconneqt.es` domain** *(Lee,
+      2026-07-24)*. The shared helper (`_shared/email.ts`) is provider-aware and
+      honours `email_settings.provider` — all ~10 transactional functions inherit
+      through it (test-pinned in `emailTransport.test.ts`). Cutover steps, in order:
+      1. verify `careconneqt.es` in Resend (SPF/DKIM DNS, with the domain partner);
+      2. `supabase secrets set RESEND_API_KEY=... --project-ref crpsuhoixfdhjugprbuc`;
+      3. set `email_settings.from_email` to a `@careconneqt.es` address and flip
+         `provider` to `resend` in Admin → Settings → Email;
+      4. redeploy the email functions; smoke-test an invite + a recovery email.
+      Until this ticks, **development email runs on Gmail SMTP** (`GMAIL_APP_PASSWORD`,
+      dedicated Care Conneqt Gmail — interim only: ~500/day cap, no bounce webhooks,
+      no custom-domain DKIM; not acceptable at go-live).
 
 ### Payments  *(human gate — CLAUDE.md)*
 - [ ] Stripe + Mollie **live** keys entered in Admin → Settings; webhook secret set.
@@ -36,7 +48,11 @@
       ResidentialDashboard has the same bug class (flagged, separate gated fix).
 - [ ] RLS isolation tests green on every table.
 - [ ] Isabella tool-permission gate verified (hard-blocked tools unreachable).
-- [ ] Twilio on a **PAID** plan (trial can't reach real emergency contacts).
+- [ ] Twilio on a **PAID** plan — **the emergency-critical channel** *(Lee,
+      2026-07-24)*: `emergency-contact-notify` sends SMS first, email second; a
+      trial account can't reach unverified numbers, so real emergency contacts
+      would silently get nothing. Email (whatever the provider) is never the
+      channel an SOS depends on.
 - [ ] No test/shared passwords on any account at go-live.
 - [ ] **Rotate the `service_role` key and the Supabase access token** (both were
       exposed during dev). Then update **all** references to the new values:

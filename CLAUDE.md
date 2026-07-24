@@ -33,7 +33,7 @@ A direct-to-consumer connected-care business in Spain: 4 devices (Vivago SOS wat
 - If a spec is ambiguous (esp. Vivago/Dosell device APIs), stop and ask rather than guessing an integration.
 
 ## Stack
-Single Vite + React 18 + TypeScript SPA (npm, **not** a pnpm monorepo) · Tailwind + shadcn/ui in `src/components/ui` · Supabase (Postgres/Auth/Edge Functions/Realtime), one project — **`crpsuhoixfdhjugprbuc`** (care-conneqt-prod, LifeLink Sync org, Pro; LOCKED 2026-07-22, LAUNCH_SCOPE.md §0). The planned `cfwnrcogikjycjcobsay` migration is **CANCELLED**; the `qkfvojbcxaptufsepupo` project is to be deleted. · Stripe + Mollie (SEPA + cards, webhook-driven) · AI is Isabella (**currently on the Lovable gateway — Anthropic API migration owed, see STATE.md**) · Vercel deploy · Sentry.
+Single Vite + React 18 + TypeScript SPA (npm, **not** a pnpm monorepo) · Tailwind + shadcn/ui in `src/components/ui` · Supabase (Postgres/Auth/Edge Functions/Realtime), one project — **`crpsuhoixfdhjugprbuc`** (care-conneqt-prod, LifeLink Sync org, Pro; LOCKED 2026-07-22, LAUNCH_SCOPE.md §0). The planned `cfwnrcogikjycjcobsay` migration is **CANCELLED**; the `qkfvojbcxaptufsepupo` project is to be deleted. · Stripe + Mollie (SEPA + cards, webhook-driven) · AI is Isabella on the **Anthropic API** (`claude-opus-4-8` via `_shared/anthropic.ts`, `ISABELLA_MODEL` overridable; core migrated 2026-07-24 — only the archive-candidate growth fns still touch Lovable) · Vercel deploy · Sentry.
 
 ## Looping discipline
 - Run one work package as one `/goal` loop; its stop condition IS the WP's Definition of Done plus **every criterion in GOALS.md** (the five non-negotiables + the engineering bar) holding. Cap turns.

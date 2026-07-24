@@ -323,8 +323,21 @@ messages unassign `""`→`null` bug; `callCentreCrud.test.ts` 11 tests).
   safety surface byte-identical). **Live once merged + `ANTHROPIC_API_KEY` secret set +
   `ai-run` redeployed.** Root cause of the 2026-07-24 chat outage was the unset
   `LOVABLE_API_KEY` — the migration removes that failure mode. Still owed: rule #5
-  (Isabella must "query as the user", not the service role), and the ~11 non-core growth
-  functions (outreach-*, media-*, …) remain on the Lovable gateway — archive candidates.
+  (Isabella must "query as the user", not the service role).
+- **Lovable-debris containment (2026-07-24, goal item 2).** Audit of all 13 remaining
+  Lovable-referencing functions delivered (report in session). Executed so far:
+  **PR #61** — dead `shelter-span.lovable.app` fallbacks fixed in `partner-register` +
+  `send-member-update-request` (→ `careconneqt.es`), `*.lovable.app` CORS origin patterns
+  dropped from `_shared/cors.ts`, zero-invoker `outreach-followup-runner` deleted;
+  **PR #62 (stacked, AUTH-CRITICAL — review carefully)** — `auth-email-hook` rewritten from
+  `@lovable.dev/email-js`+`webhooks-js` onto the standard Supabase send-email hook
+  (standardwebhooks + `SEND_EMAIL_HOOK_SECRET`) sending via the shared Gmail SMTP module;
+  same templates, cutover steps in the PR. `lovableDebris.test.ts` pins the exact remaining
+  Lovable surface: the **9 gateway growth fns** (facebook-publish, generate-ai-image,
+  generate-slot-content, media-draft, outreach-enrich-lead, outreach-generate-drafts,
+  outreach-topic-insights, rate-outreach-leads, repurpose-content) — recommendation
+  ARCHIVE all (admin-only, none cron-scheduled); **awaiting Lee's archive/keep call**
+  since the label-only deferral below was his recorded decision.
 
 ### Scope — archive candidates (DEFERRED, per RECONCILE.md §2 / plan §11)
 - Label-only for now (no code moved/deleted): **YouTube**, **Facebook**, **AI outreach**,

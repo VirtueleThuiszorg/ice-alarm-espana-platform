@@ -79,6 +79,18 @@
       (SW `CACHE_VERSION` v4 clears browser cache; `vercel.json` now short-caches icon paths
       so future swaps propagate.)
 
+### Pre-launch polish (Stage 8 broken-items sweep)  *(added 2026-07-24, goal loop)*
+- [ ] **nl locale: legacy English values replaced with real Dutch** — 52 keys in
+      `shifts.*` / `leads.*` / `covers.*` / `callCentre.members.*` were English pasted
+      into `nl.json`. Fixed (formal-u register) in **PR #56**; regression-guarded by
+      `nlTranslations.test.ts` (any nl value byte-identical to en in those namespaces
+      fails, two legitimate "Status" identicals pinned). Tick when merged.
+- [ ] **Portal-wide page-audit sweep (all portals × en/es/nl)** — inventory taken
+      2026-07-24 (16 dead buttons, ~66 missing-key sites, 1 contrast issue, 0 broken
+      links; see goal-loop item-3 report). Fixes land one PR per portal; gated overlaps
+      (call-centre emergency button = WP-D reland, client emergency contact button,
+      SubscriptionTab payment buttons) stay held for Lee.
+
 ## Rollout stages (see LAUNCH_SCOPE.md §10)
 Stage 0 backend → Stage 1 scope locked → Stage 2 docs → Stage 3 pricing-to-DB →
 Stage 4 public frontend (hide/strip/brand) → **Stage 4b redesign (FRONTEND_REDESIGN.md,

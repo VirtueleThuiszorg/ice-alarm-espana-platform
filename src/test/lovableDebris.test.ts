@@ -24,18 +24,12 @@ const FN_DIR = join(ROOT, "supabase/functions");
 
 // Functions still allowed to reference Lovable, pending Lee's archive/migrate
 // decisions. Remove entries as their PRs land — a stale entry fails the suite.
-const PINNED_LOVABLE_FNS = new Set([
-  // auth-email-hook: MIGRATED 2026-07-24 (standardwebhooks + Gmail SMTP)
-  // gateway growth fns — recommended ARCHIVE (report 2026-07-24):
-  "facebook-publish",
-  "generate-ai-image",
-  "generate-slot-content",
-  "media-draft",
-  "outreach-enrich-lead",
-  "outreach-generate-drafts",
-  "outreach-topic-insights",
-  "rate-outreach-leads",
-  "repurpose-content",
+// The 9 gateway growth fns moved to archive/supabase-functions/ (which this
+// suite does not scan — archivedFunctions.test.ts owns that boundary).
+const PINNED_LOVABLE_FNS = new Set<string>([
+  // EMPTY since 2026-07-24: auth-email-hook migrated (standardwebhooks + Gmail
+  // SMTP, #62/#64); the 9 gateway growth fns archived (#65). Any function
+  // referencing Lovable from here on fails the suite outright.
 ]);
 
 function lovableReferencingFns(): Map<string, string[]> {

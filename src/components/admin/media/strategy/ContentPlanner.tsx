@@ -5,14 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Calendar, Loader2, Wand2, Trash2, AlertCircle, Sparkles } from "lucide-react";
+import { Calendar, Loader2, Wand2, Trash2, AlertCircle } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { format, addDays, parseISO } from "date-fns";
 import { es, enGB } from "date-fns/locale";
 import { useContentCalendar } from "@/hooks/useContentCalendar";
-import { useScheduledContent } from "@/hooks/useScheduledContent";
 import { MediaGoal, MediaAudience, MediaTopic, MediaImageStyle, MediaScheduleSettings } from "@/hooks/useMediaStrategy";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -51,11 +49,9 @@ export function ContentPlanner({
   const [endDate, setEndDate] = useState(format(addDays(new Date(), 30), "yyyy-MM-dd"));
   const [isGenerating, setIsGenerating] = useState(false);
   const [preview, setPreview] = useState<PlannedSlot[]>([]);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
 
   const { items, isLoading, bulkInsert, clearCalendar, isBulkInserting, isClearing } = useContentCalendar(startDate, endDate);
-  const { generateContent, isGenerating: isGeneratingContent } = useScheduledContent();
 
   const activeGoals = goals.filter((g) => g.is_active);
   const activeAudiences = audiences.filter((a) => a.is_active);
@@ -127,36 +123,7 @@ export function ContentPlanner({
   const handleConfirmClear = async () => {
     await clearCalendar({ start: startDate, end: endDate });
     setPreview([]);
-    setSelectedIds(new Set());
     setClearConfirmOpen(false);
-  };
-
-  const handleSelectSlot = (id: string, checked: boolean) => {
-    const newSet = new Set(selectedIds);
-    if (checked) {
-      newSet.add(id);
-    } else {
-      newSet.delete(id);
-    }
-    setSelectedIds(newSet);
-  };
-
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      const plannedItems = items.filter((i) => i.status === "planned");
-      setSelectedIds(new Set(plannedItems.map((i) => i.id)));
-    } else {
-      setSelectedIds(new Set());
-    }
-  };
-
-  const handleGenerateContent = async () => {
-    if (selectedIds.size === 0) {
-      toast({ title: t("mediaStrategy.selectSlots"), description: t("mediaStrategy.selectSlotsToGenerate"), variant: "destructive" });
-      return;
-    }
-    await generateContent(Array.from(selectedIds));
-    setSelectedIds(new Set());
   };
 
   const goalsMap = new Map(goals.map((g) => [g.id, g]));
@@ -211,18 +178,10 @@ export function ContentPlanner({
             </Button>
           )}
           {items.length > 0 && preview.length === 0 && (
-            <>
-              <Button onClick={handleClearCalendar} disabled={isClearing} variant="outline" className="text-destructive">
-                {isClearing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
-                {t("mediaStrategy.clearCalendar")}
-              </Button>
-              {selectedIds.size > 0 && (
-                <Button onClick={handleGenerateContent} disabled={isGeneratingContent} className="gap-2">
-                  {isGeneratingContent ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                  {t("mediaStrategy.generateContent")} ({selectedIds.size})
-                </Button>
-              )}
-            </>
+            <Button onClick={handleClearCalendar} disabled={isClearing} variant="outline" className="text-destructive">
+              {isClearing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              {t("mediaStrategy.clearCalendar")}
+            </Button>
           )}
         </div>
 
@@ -250,14 +209,6 @@ export function ContentPlanner({
             <Table>
               <TableHeader>
                 <TableRow>
-                  {preview.length === 0 && (
-                    <TableHead className="w-12">
-                      <Checkbox
-                        checked={selectedIds.size > 0 && selectedIds.size === items.filter((i) => i.status === "planned").length}
-                        onCheckedChange={handleSelectAll}
-                      />
-                    </TableHead>
-                  )}
                   <TableHead>{t("mediaStrategy.dateTime")}</TableHead>
                   <TableHead>{t("mediaStrategy.goal")}</TableHead>
                   <TableHead>{t("mediaStrategy.audience")}</TableHead>
@@ -272,20 +223,9 @@ export function ContentPlanner({
                   const audience = item.audience_id ? audiencesMap.get(item.audience_id) : null;
                   const topic = item.topic_id ? topicsMap.get(item.topic_id) : null;
                   const style = item.image_style_id ? stylesMap.get(item.image_style_id) : null;
-                  const isPlannedItem = "id" in item && item.status === "planned";
 
                   return (
                     <TableRow key={"id" in item ? item.id : `preview-${idx}`}>
-                      {preview.length === 0 && (
-                        <TableCell>
-                          {isPlannedItem && "id" in item && (
-                            <Checkbox
-                              checked={selectedIds.has(item.id)}
-                              onCheckedChange={(checked) => handleSelectSlot(item.id, !!checked)}
-                            />
-                          )}
-                        </TableCell>
-                      )}
                       <TableCell className="font-medium">
                         <div>
                           <p>{format(parseISO(item.scheduled_date), "EEE, MMM d", { locale: dateLocale })}</p>

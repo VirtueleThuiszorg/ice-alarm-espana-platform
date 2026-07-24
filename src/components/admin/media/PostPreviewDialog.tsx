@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Send, Edit, ImageOff, RefreshCw, AlertCircle } from "lucide-react";
+import { Loader2, Edit, ImageOff, RefreshCw, AlertCircle } from "lucide-react";
 import { SocialPost } from "@/hooks/useSocialPosts";
 import { cn } from "@/lib/utils";
 
@@ -19,10 +19,8 @@ interface PostPreviewDialogProps {
   post: SocialPost | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onPublish: () => void;
   onRetry?: () => void;
   onEdit: () => void;
-  isPublishing: boolean;
   isRetrying?: boolean;
 }
 
@@ -30,17 +28,14 @@ export function PostPreviewDialog({
   post,
   open,
   onOpenChange,
-  onPublish,
   onRetry,
   onEdit,
-  isPublishing,
   isRetrying,
 }: PostPreviewDialogProps) {
   const { t } = useTranslation();
 
   if (!post) return null;
 
-  const canPublish = post.status === "approved";
   const isFailed = post.status === "failed";
 
   return (
@@ -138,7 +133,7 @@ export function PostPreviewDialog({
             <Edit className="h-4 w-4 mr-2" />
             {t("mediaManager.preview.editFirst")}
           </Button>
-          {isFailed && onRetry ? (
+          {isFailed && onRetry && (
             <Button
               onClick={onRetry}
               disabled={isRetrying}
@@ -150,23 +145,6 @@ export function PostPreviewDialog({
                 <RefreshCw className="h-4 w-4 mr-2" />
               )}
               {t("mediaManager.actions.retry")}
-            </Button>
-          ) : (
-            <Button
-              onClick={onPublish}
-              disabled={!canPublish || isPublishing}
-              title={
-                !canPublish
-                  ? t("mediaManager.mustBeApproved")
-                  : t("mediaManager.preview.publishNow")
-              }
-            >
-              {isPublishing ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4 mr-2" />
-              )}
-              {t("mediaManager.preview.publishNow")}
             </Button>
           )}
         </DialogFooter>

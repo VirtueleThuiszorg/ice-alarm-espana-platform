@@ -20,25 +20,11 @@
     verify_jwt = false
   [functions.facebook-metrics]
     verify_jwt = false
-  [functions.facebook-publish]
-    verify_jwt = false
   [functions.facebook-unpublish]
-    verify_jwt = false
-  [functions.generate-ai-image]
     verify_jwt = false
   [functions.generate-content-plan]
     verify_jwt = false
   [functions.generate-courtesy-calls]
-    verify_jwt = false
-  [functions.generate-slot-content]
-    verify_jwt = false
-  [functions.media-draft]
-    verify_jwt = false
-  [functions.outreach-enrich-lead]
-    verify_jwt = false
-  [functions.outreach-generate-drafts]
-    verify_jwt = false
-  [functions.outreach-pipeline-runner]
     verify_jwt = false
   [functions.outreach-send-email]
     verify_jwt = false
@@ -55,8 +41,6 @@
   [functions.process-commissions]
     verify_jwt = false
   [functions.publish-scheduled]
-    verify_jwt = false
-  [functions.rate-outreach-leads]
     verify_jwt = false
   [functions.save-api-keys]
     verify_jwt = false

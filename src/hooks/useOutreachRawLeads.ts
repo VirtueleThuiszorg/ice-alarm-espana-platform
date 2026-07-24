@@ -230,55 +230,6 @@ export function useOutreachRawLeads(filters?: Filters) {
     },
   });
 
-  const rateLeadsMutation = useMutation({
-    mutationFn: async ({ leadIds, rateAllNew }: { leadIds?: string[]; rateAllNew?: boolean }) => {
-      const response = await supabase.functions.invoke("rate-outreach-leads", {
-        body: {
-          lead_ids: leadIds,
-          rate_all_new: rateAllNew,
-        },
-      });
-
-      if (response.error) throw response.error;
-      return response.data as { 
-        rated: number; 
-        total?: number; 
-        queued?: number; 
-        capReached?: boolean;
-        errors?: string[] 
-      };
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["outreach-raw-leads"] });
-      queryClient.invalidateQueries({ queryKey: ["outreach-daily-usage"] });
-      
-      if (data.capReached && data.queued && data.queued > 0) {
-        toast({
-          title: i18n.t("outreach.caps.capsReachedTitle"),
-          description: i18n.t("outreach.caps.ratingCapReached", { queued: data.queued }),
-          variant: "destructive",
-        });
-      } else if (data.rated > 0) {
-        toast({
-          title: i18n.t("common.success"),
-          description: i18n.t("outreach.leads.ratingComplete", { count: data.rated }),
-        });
-      } else {
-        toast({
-          title: i18n.t("common.info"),
-          description: i18n.t("outreach.leads.noLeadsToRate"),
-        });
-      }
-    },
-    onError: (error) => {
-      toast({
-        title: i18n.t("common.error"),
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
   const qualifyLeadsMutation = useMutation({
     mutationFn: async ({ 
       leadIds, 
@@ -528,8 +479,6 @@ export function useOutreachRawLeads(filters?: Filters) {
     addLead: addLeadMutation.mutateAsync,
     isAdding: addLeadMutation.isPending,
     bulkAddLeads: bulkAddLeadsMutation.mutateAsync,
-    rateLeads: rateLeadsMutation.mutateAsync,
-    isRating: rateLeadsMutation.isPending,
     qualifyLeads: qualifyLeadsMutation.mutateAsync,
     isQualifying: qualifyLeadsMutation.isPending,
     rejectLeads: rejectLeadsMutation.mutateAsync,

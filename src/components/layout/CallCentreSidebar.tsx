@@ -71,7 +71,17 @@ export function CallCentreSidebar({ onCollapsedChange }: CallCentreSidebarProps 
   const [badges, setBadges] = useState({ alerts: 0, messages: 0 });
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, staffRole } = useAuth();
+
+  // Supervisor is the PRIMARY holiday-approvals owner; admins keep oversight.
+  const canApproveHolidays =
+    staffRole === "call_centre_supervisor" || staffRole === "admin" || staffRole === "super_admin";
+  const visibleMenuItems = canApproveHolidays
+    ? [
+        ...menuItems,
+        { icon: Palmtree, labelKey: "sidebar.holidayApprovals", path: "/call-centre/holiday-approvals" },
+      ]
+    : menuItems;
 
   // Fetch badge counts
   useEffect(() => {
@@ -194,7 +204,7 @@ export function CallCentreSidebar({ onCollapsedChange }: CallCentreSidebarProps 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3">
         <ul className="space-y-1">
-          {menuItems.map((item) => renderMenuItem(item, isMobile))}
+          {visibleMenuItems.map((item) => renderMenuItem(item, isMobile))}
         </ul>
       </nav>
 

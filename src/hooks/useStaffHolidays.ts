@@ -4,6 +4,7 @@ import { STALE_TIMES } from "@/config/constants";
 import type { HolidayStatus } from "@/config/shifts";
 import { toast } from "sonner";
 import i18n from "@/i18n";
+import { getApproverUserIds, getStaffContact, notifyUsers } from "@/lib/staffNotify";
 
 export interface StaffHoliday {
   id: string;
@@ -135,13 +136,18 @@ export function useHolidayMutations() {
         },
       });
 
-      // Insert notification log
-      await supabase.from("notification_log").insert({
-        event_type: "holiday.requested",
-        entity_type: "staff_holiday",
-        entity_id: data.id,
-        message: `Holiday requested: ${holiday.start_date} to ${holiday.end_date}`,
-        status: "sent",
+      // NEVER SILENT: notify every holiday approver (supervisor primary,
+      // admins oversight) with a TARGETED in-app notification. The old code
+      // inserted an untargeted notification_log row that RLS silently denied.
+      const [{ name: requesterName }, approverIds] = await Promise.all([
+        getStaffContact(holiday.staff_id),
+        getApproverUserIds(),
+      ]);
+      await notifyUsers(approverIds, {
+        eventType: "holiday.requested",
+        message: `${requesterName} requested holiday ${holiday.start_date} → ${holiday.end_date}${holiday.reason ? ` (${holiday.reason})` : ""}`,
+        entityType: "staff_holiday",
+        entityId: data.id,
       });
 
       return data;
@@ -196,13 +202,13 @@ export function useHolidayMutations() {
         },
       });
 
-      // Insert notification log
-      await supabase.from("notification_log").insert({
-        event_type: `holiday.${status}`,
-        entity_type: "staff_holiday",
-        entity_id: data.id,
-        message: `Holiday ${status}: ${data.start_date} to ${data.end_date}`,
-        status: "sent",
+      // NEVER SILENT: tell the requesting agent the outcome, directly.
+      const { userId: agentUserId } = await getStaffContact(data.staff_id);
+      await notifyUsers([agentUserId], {
+        eventType: `holiday.${status}`,
+        message: `Your holiday ${data.start_date} → ${data.end_date} was ${status}${review_notes ? `: ${review_notes}` : ""}`,
+        entityType: "staff_holiday",
+        entityId: data.id,
       });
 
       return data;

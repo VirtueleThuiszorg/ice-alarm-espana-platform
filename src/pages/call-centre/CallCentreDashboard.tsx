@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Filter, Clock, AlertTriangle, CheckCircle, PhoneCall, Volume2, VolumeX, MessageSquare } from "lucide-react";
+import { Search, Clock, AlertTriangle, CheckCircle, PhoneCall, Volume2, VolumeX, MessageSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -181,9 +181,6 @@ export default function CallCentreDashboard() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <Button variant="outline" size="icon">
-                  <Filter className="h-4 w-4" />
-                </Button>
               </div>
 
               <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AlertTabValue)}>

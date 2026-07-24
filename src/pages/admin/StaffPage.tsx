@@ -336,7 +336,7 @@ export default function StaffPage() {
                     </TableCell>
                     <TableCell>{getStatusBadge(member.status)}</TableCell>
                     <TableCell>
-                      {(member as { annual_holiday_days?: number | null }).annual_holiday_days ?? 22}
+                      {(member as { annual_holiday_days?: number | null }).annual_holiday_days ?? 30}
                     </TableCell>
                     <TableCell>
                       {member.hire_date

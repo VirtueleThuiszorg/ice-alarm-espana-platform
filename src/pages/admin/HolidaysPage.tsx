@@ -164,6 +164,12 @@ export default function HolidaysPage() {
         <p className="text-muted-foreground">
           {t("holidays.subtitle", "Manage holiday requests and staff leave balances.")}
         </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {t(
+            "holidays.naturalDaysNote",
+            "Allowance is in natural (calendar) days — Spanish statutory minimum: 30 días naturales per year (Estatuto de los Trabajadores, art. 38).",
+          )}
+        </p>
       </div>
 
       {/* Holiday Balance Cards */}

@@ -5499,7 +5499,8 @@
       "reviewFailed": "Error al revisar la solicitud de vacaciones",
       "cancelled": "Vacaciones canceladas",
       "cancelFailed": "Error al cancelar las vacaciones"
-    }
+    },
+    "naturalDaysNote": "El saldo se expresa en días naturales — mínimo legal en España: 30 días naturales al año (Estatuto de los Trabajadores, art. 38)."
   },
   "shifts": {
     "morning": "Mañana",

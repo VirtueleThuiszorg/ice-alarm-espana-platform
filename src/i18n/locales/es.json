@@ -1231,7 +1231,12 @@
       "locationDataAnswer": "Su ubicación solo se consulta cuando activa una alerta SOS o si el geo-cercado está habilitado. Esto ayuda a los servicios de emergencia a encontrarle rápidamente. Los datos de ubicación se cifran, almacenan de forma segura y nunca se venden ni comparten con fines publicitarios."
     },
     "emergencyNumber": "Línea de asistencia de emergencia 24/7",
-    "whatsApp": "Chatear por WhatsApp"
+    "whatsApp": "Chatear por WhatsApp",
+    "aiShort": "IA",
+    "faqShort": "Preguntas",
+    "generalEnquirySubject": "Solicitud de asistencia",
+    "upgradePlanSubject": "Solicitud de mejora de plan",
+    "updatePaymentSubject": "Actualización del método de pago"
   },
   "faq": {
     "testPendant": {
@@ -5899,5 +5904,12 @@
   },
   "aiChat": {
     "openChat": "Abrir chat"
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "markAllRead": "Marcar todo como leído",
+    "empty": "Sin notificaciones",
+    "markRead": "Marcar como leído",
+    "viewAll": "Ver todas las notificaciones"
   }
 }

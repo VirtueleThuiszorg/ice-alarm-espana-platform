@@ -1,4 +1,4 @@
-/* eslint-disable no-undef */
+ 
 // Firebase messaging service worker for background push notifications.
 // This file MUST be at the root of the public directory.
 

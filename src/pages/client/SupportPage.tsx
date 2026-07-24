@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { notifyStaffOfMemberMessage, markMemberConversationRead } from "@/utils/notifications";
 import {
   Accordion,
   AccordionContent,
@@ -105,6 +106,7 @@ export default function SupportPage() {
     { id: "location-data", category: "safety", question: t("support.faq.locationData"), answer: t("support.faq.locationDataAnswer") },
   ];
 
+  const [activeTab, setActiveTab] = useState("chat");
   const [faqSearch, setFaqSearch] = useState("");
   const [faqCategory, setFaqCategory] = useState<FaqCategory>("all");
 
@@ -151,8 +153,10 @@ export default function SupportPage() {
       const subjectMap: Record<string, string> = {
         report_issue: t("support.reportIssueSubject", "Device Issue Report"),
         request_replacement: t("support.requestReplacementSubject", "Device Replacement Request"),
+        upgrade_plan: t("support.upgradePlanSubject", "Plan Upgrade Request"),
+        update_payment: t("support.updatePaymentSubject", "Payment Method Update"),
       };
-      setNewSubject(subjectMap[action] || action.replace(/_/g, " "));
+      setNewSubject(subjectMap[action] || t("support.generalEnquirySubject", "Support Request"));
       setIsDialogOpen(true);
       // Clear the action param so it doesn't re-open on navigation
       searchParams.delete("action");
@@ -279,12 +283,9 @@ export default function SupportPage() {
 
       if (error) throw error;
 
-      await supabase
-        .from("messages")
-        .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq("conversation_id", conversationId)
-        .eq("sender_type", "staff")
-        .eq("is_read", false);
+      // Members have no UPDATE policy on messages — the old direct update
+      // was silently RLS-denied (badges never cleared). Server-side instead.
+      markMemberConversationRead(conversationId);
 
       const staffIds = data?.filter(m => m.sender_type === "staff" && m.sender_id).map(m => m.sender_id).filter((x): x is string => x !== null) || [];
       const { data: staffData } = await supabase.from("staff").select("id, first_name").in("id", staffIds);
@@ -366,10 +367,9 @@ export default function SupportPage() {
 
       if (error) throw error;
 
-      await supabase
-        .from("conversations")
-        .update({ last_message_at: new Date().toISOString() })
-        .eq("id", selectedConversation.id);
+      // Server-side notify + recency bump (members have no conversations
+      // UPDATE policy — the old direct bump was silently RLS-denied)
+      notifyStaffOfMemberMessage(selectedConversation.id, "reply", selectedConversation.subject || "");
 
       setReplyMessage("");
       fetchMessages(selectedConversation.id);
@@ -526,7 +526,7 @@ export default function SupportPage() {
             <div className="flex flex-col gap-2">
               <a 
                 href={`tel:${phoneForLink}`}
-                className="inline-flex items-center justify-center gap-2 bg-white text-primary font-semibold px-6 py-3 rounded-full hover:bg-white/90 transition-colors"
+                className="inline-flex items-center justify-center gap-2 bg-background text-foreground font-semibold px-6 py-3 rounded-full hover:bg-background/90 transition-colors"
               >
                 <Phone className="h-5 w-5" />
                 {t("common.callNow", "Call Now")}
@@ -537,12 +537,12 @@ export default function SupportPage() {
       </Card>
 
       {/* Main Content Tabs */}
-      <Tabs defaultValue="chat" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-3 h-auto p-1">
           <TabsTrigger value="chat" className="flex items-center gap-2 py-3">
             <Bot className="h-4 w-4" />
             <span className="hidden sm:inline">{t("support.aiAssistant")}</span>
-            <span className="sm:hidden">AI</span>
+            <span className="sm:hidden">{t("support.aiShort", "AI")}</span>
           </TabsTrigger>
           <TabsTrigger value="messages" className="flex items-center gap-2 py-3 relative">
             <MessageCircle className="h-4 w-4" />
@@ -557,7 +557,7 @@ export default function SupportPage() {
           <TabsTrigger value="help" className="flex items-center gap-2 py-3">
             <HelpCircle className="h-4 w-4" />
             <span className="hidden sm:inline">{t("support.helpCenter")}</span>
-            <span className="sm:hidden">FAQ</span>
+            <span className="sm:hidden">{t("support.faqShort", "FAQ")}</span>
           </TabsTrigger>
         </TabsList>
 
@@ -831,10 +831,7 @@ export default function SupportPage() {
                   <h3 className="font-semibold text-lg mb-1">{t("support.stillNeedHelp")}</h3>
                   <p className="text-muted-foreground text-sm mb-4">{t("support.stillNeedHelpDesc")}</p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <Button variant="outline" onClick={() => {
-                      const tabsList = document.querySelector('[value="chat"]') as HTMLElement;
-                      tabsList?.click();
-                    }}>
+                    <Button variant="outline" onClick={() => setActiveTab("chat")}>
                       <Bot className="mr-2 h-4 w-4" />
                       {t("support.askAI")}
                     </Button>

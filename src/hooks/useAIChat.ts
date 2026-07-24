@@ -162,22 +162,22 @@ export function useAIChat(options: UseAIChatOptions | string = {}) {
     const convId = await getOrCreateDbConversation();
     if (!convId) return;
 
-    try {
-      await supabase.from("conversation_messages").insert({
-        conversation_id: convId,
-        channel: "chat",
-        role,
-        content,
-      });
+    // supabase-js resolves with {error} rather than throwing — check both
+    // writes explicitly. Anonymous visitors are expected to be RLS-denied
+    // here (chat still works, transcript just isn't persisted), so only log.
+    const { error: msgError } = await supabase.from("conversation_messages").insert({
+      conversation_id: convId,
+      channel: "chat",
+      role,
+      content,
+    });
+    if (msgError) console.error("Failed to save chat message:", msgError.message);
 
-      // Update conversation last_message_at
-      await supabase
-        .from("conversations")
-        .update({ last_message_at: new Date().toISOString() })
-        .eq("id", convId);
-    } catch (err) {
-      console.error("Failed to save message:", err);
-    }
+    const { error: tsError } = await supabase
+      .from("conversations")
+      .update({ last_message_at: new Date().toISOString() })
+      .eq("id", convId);
+    if (tsError) console.error("Failed to bump chat conversation timestamp:", tsError.message);
   }, [getOrCreateDbConversation]);
 
   // Create welcome message helper - personalized for different user roles
@@ -279,7 +279,9 @@ export function useAIChat(options: UseAIChatOptions | string = {}) {
     setIsLoading(true);
 
     // Save user message to database (don't await to keep UI fast, ignore RLS errors for anonymous users)
-    saveMessageToDb(userMessage.content, "user").catch(() => {});
+    saveMessageToDb(userMessage.content, "user").catch((e) =>
+      console.error("saveMessageToDb failed:", e),
+    );
 
     try {
       // Build conversation history for context

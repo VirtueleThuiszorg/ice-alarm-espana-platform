@@ -169,25 +169,16 @@ export default function MedicalInfoPage() {
         allergies: allergies.length > 0 ? allergies : null,
       };
 
-      if (medicalInfo) {
-        // Update existing
-        const { error } = await supabase
-          .from("medical_information")
-          .update(medicalData)
-          .eq("member_id", memberId);
+      // Server-side save: medical_information deliberately has NO member
+      // INSERT policy, so a member's first save was always RLS-denied.
+      // member-self-service upserts the caller's OWN row (identity verified
+      // server-side) — zero policy changes.
+      const { data: result, error } = await supabase.functions.invoke("member-self-service", {
+        body: { action: "save_medical_info", ...medicalData },
+      });
 
-        if (error) throw error;
-      } else {
-        // Insert new
-        const { error } = await supabase
-          .from("medical_information")
-          .insert({
-            member_id: memberId,
-            ...medicalData,
-          });
-
-        if (error) throw error;
-      }
+      if (error) throw error;
+      if (result?.error) throw new Error(result.error);
 
       queryClient.invalidateQueries({ queryKey: ["medical-info"] });
       toast.success(t("common.success"));

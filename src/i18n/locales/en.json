@@ -1231,7 +1231,12 @@
       "locationDataAnswer": "Your location is only accessed when you trigger an SOS alert or if geo-fencing is enabled. This helps emergency services find you quickly. Location data is encrypted, stored securely, and never sold or shared for advertising."
     },
     "emergencyNumber": "24/7 emergency support line",
-    "whatsApp": "Chat on WhatsApp"
+    "whatsApp": "Chat on WhatsApp",
+    "aiShort": "AI",
+    "faqShort": "FAQ",
+    "generalEnquirySubject": "Support Request",
+    "upgradePlanSubject": "Plan Upgrade Request",
+    "updatePaymentSubject": "Payment Method Update"
   },
   "faq": {
     "testPendant": {
@@ -5899,5 +5904,12 @@
   },
   "aiChat": {
     "openChat": "Open chat"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all read",
+    "empty": "No notifications",
+    "markRead": "Mark as read",
+    "viewAll": "View all notifications"
   }
 }

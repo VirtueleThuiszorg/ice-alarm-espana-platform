@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Battery, BatteryLow, MapPin, Signal, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Battery, BatteryLow, MapPin, Clock, CheckCircle, XCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
@@ -87,14 +87,8 @@ export function DeviceStatusCard({
           />
         </div>
 
-        {/* Signal */}
-        <div className="flex items-center justify-between py-2 border-t">
-          <div className="flex items-center gap-2">
-            <Signal className="w-5 h-5 text-primary" />
-            <span className="text-sm font-medium">{t('deviceStatus.signalStrength')}</span>
-          </div>
-          <span className="text-sm text-muted-foreground">{t('deviceStatus.excellent')}</span>
-        </div>
+        {/* Signal row removed: no real signal data exists yet — showing a
+            hardcoded "Excellent" was a fake readout on a safety dashboard */}
 
         {/* Last Check-in */}
         {lastCheckIn && (

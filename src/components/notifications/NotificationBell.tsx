@@ -26,6 +26,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 interface NotificationBellProps {
   staffId: string | null;
@@ -51,6 +52,24 @@ function getNotificationLink(
   metadata: Record<string, unknown> | null,
   isStaff: boolean
 ): string | null {
+  // Members are routed FIRST — the entity_type switch below targets admin
+  // routes, and metadata.link can be staff-authored; sending a member there
+  // lands on /unauthorized.
+  if (!isStaff) {
+    if (metadata?.link && typeof metadata.link === "string" && metadata.link.startsWith("/dashboard")) {
+      return metadata.link;
+    }
+    // Member-facing links
+    switch (type) {
+      case "message":
+        return "/dashboard/messages";
+      case "alert":
+        return "/dashboard/alerts";
+      default:
+        return "/dashboard";
+    }
+  }
+
   if (metadata?.link && typeof metadata.link === "string") {
     return metadata.link;
   }
@@ -69,17 +88,6 @@ function getNotificationLink(
     }
   }
 
-  if (!isStaff) {
-    // Member-facing links
-    switch (type) {
-      case "message":
-        return "/dashboard/messages";
-      case "alert":
-        return "/dashboard/alerts";
-      default:
-        return "/dashboard";
-    }
-  }
   switch (type) {
     case "alert":
       return "/call-centre";
@@ -95,6 +103,7 @@ function getNotificationLink(
 }
 
 export function NotificationBell({ staffId }: NotificationBellProps) {
+  const { t } = useTranslation();
   const isStaff = !!staffId;
   const [isOpen, setIsOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -137,7 +146,7 @@ export function NotificationBell({ staffId }: NotificationBellProps) {
   };
 
   const handleViewAll = () => {
-    navigate(isStaff ? "/admin/notifications" : "/dashboard");
+    navigate(isStaff ? "/admin/notifications" : "/dashboard/messages");
     setIsOpen(false);
   };
 
@@ -157,11 +166,11 @@ export function NotificationBell({ staffId }: NotificationBellProps) {
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
         <div className="flex items-center justify-between p-4 border-b">
-          <h4 className="font-semibold">Notifications</h4>
+          <h4 className="font-semibold">{t("notifications.title", "Notifications")}</h4>
           {unreadCount > 0 && (
             <Button variant="ghost" size="sm" onClick={markAllAsRead}>
               <CheckCheck className="h-4 w-4 mr-1" />
-              Mark all read
+              {t("notifications.markAllRead", "Mark all read")}
             </Button>
           )}
         </div>
@@ -169,7 +178,7 @@ export function NotificationBell({ staffId }: NotificationBellProps) {
           {recentNotifications.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
               <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>No notifications</p>
+              <p>{t("notifications.empty", "No notifications")}</p>
             </div>
           ) : (
             <div className="divide-y">
@@ -211,7 +220,7 @@ export function NotificationBell({ staffId }: NotificationBellProps) {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6"
-                          title="Mark as read"
+                          title={t("notifications.markRead", "Mark as read")}
                           onClick={(e) => {
                             e.stopPropagation();
                             markAsRead(notification.id);
@@ -233,7 +242,7 @@ export function NotificationBell({ staffId }: NotificationBellProps) {
             className="w-full text-sm"
             onClick={handleViewAll}
           >
-            View all notifications
+            {t("notifications.viewAll", "View all notifications")}
           </Button>
         </div>
       </PopoverContent>

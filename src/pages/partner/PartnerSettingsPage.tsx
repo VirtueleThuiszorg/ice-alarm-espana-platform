@@ -187,7 +187,7 @@ export default function PartnerSettingsPage() {
     },
   });
 
-  // Update payout settings mutation
+  // Update payout settings mutation (payout fields only)
   const updatePayoutMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
@@ -195,7 +195,6 @@ export default function PartnerSettingsPage() {
         .update({
           payout_beneficiary_name: payoutData.payoutBeneficiaryName || null,
           payout_iban: payoutData.payoutIban || null,
-          preferred_language: payoutData.preferredLanguage,
         })
         .eq("id", partner!.id);
 
@@ -210,6 +209,30 @@ export default function PartnerSettingsPage() {
     },
     onError: (error: Error) => {
       toast.error(`Failed to update payout settings: ${error.message}`);
+    },
+  });
+
+  // Update preferences mutation (language only — never touches payout fields)
+  const updatePreferencesMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("partners")
+        .update({
+          preferred_language: payoutData.preferredLanguage,
+        })
+        .eq("id", partner!.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Preferences updated successfully!");
+      queryClient.invalidateQueries({ queryKey: ["my-partner-data"] });
+      if (partnerIdParam) {
+        queryClient.invalidateQueries({ queryKey: ["partner-data", partnerIdParam] });
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to update preferences: ${error.message}`);
     },
   });
 
@@ -766,7 +789,7 @@ export default function PartnerSettingsPage() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              updatePayoutMutation.mutate();
+              updatePreferencesMutation.mutate();
             }}
             className="space-y-4"
           >
@@ -793,9 +816,9 @@ export default function PartnerSettingsPage() {
 
             <Button
               type="submit"
-              disabled={updatePayoutMutation.isPending}
+              disabled={updatePreferencesMutation.isPending}
             >
-              {updatePayoutMutation.isPending ? (
+              {updatePreferencesMutation.isPending ? (
                 "Saving..."
               ) : (
                 <>

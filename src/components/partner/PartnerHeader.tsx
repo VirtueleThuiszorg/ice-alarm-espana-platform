@@ -63,7 +63,7 @@ export function PartnerHeader({ isAdminViewMode = false, partnerIdParam }: Partn
         .from("staff")
         .select("id, first_name, last_name, email")
         .eq("user_id", user?.id ?? "")
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data;
     },

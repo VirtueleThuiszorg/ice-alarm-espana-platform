@@ -540,7 +540,7 @@ export default function PartnerInvitesPage() {
                 <div key={i} className="h-12 bg-muted animate-pulse rounded" />
               ))}
             </div>
-          ) : invites?.length === 0 ? (
+          ) : !invites?.length ? (
             <div className="text-center py-8 text-muted-foreground">
               <Send className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No invites sent yet</p>

@@ -2148,7 +2148,19 @@
     "copyLink": "Copy link",
     "openFile": "Open file",
     "noPresentations": "No files uploaded yet",
-    "uploadHint": "Upload PDFs, presentations or images up to 50 MB"
+    "uploadHint": "Upload PDFs, presentations or images up to 50 MB",
+    "residential": {
+      "previewCsv": "Preview CSV (import coming soon)",
+      "csvPreview_one": "Preview: {{count}} resident found in the file — nothing was imported (import coming soon)",
+      "csvPreview_other": "Preview: {{count}} residents found in the file — nothing was imported (import coming soon)",
+      "csvParseError": "Failed to parse CSV file",
+      "csvReadError": "Failed to read CSV file"
+    },
+    "care": {
+      "invitesSent_one": "{{count}} invite sent",
+      "invitesSent_other": "{{count}} invites sent",
+      "sendResult": "{{sent}} sent, {{failed}} failed — failed invites were kept as drafts"
+    }
   },
   "partnerSupport": {
     "title": "Partner Support",

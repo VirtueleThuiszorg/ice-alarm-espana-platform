@@ -5,6 +5,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { Copy, Download, Printer, Upload, Trash2, ExternalLink, FileText, FileImage, File } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { isAdminRole as checkAdminRole } from "@/config/constants";
 import { usePartnerData } from "@/hooks/usePartnerData";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -34,7 +35,7 @@ const MAX_PRESENTATION_SIZE_BYTES = MAX_PRESENTATION_SIZE_MB * 1024 * 1024;
 
 export default function PartnerMarketingPage() {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, isStaff, staffRole } = useAuth();
   const [searchParams] = useSearchParams();
   const partnerIdParam = searchParams.get("partnerId");
   const queryClient = useQueryClient();
@@ -42,8 +43,9 @@ export default function PartnerMarketingPage() {
   const qrRef = useRef<HTMLDivElement>(null);
   const [uploading, setUploading] = useState(false);
 
-  // Determine if admin is viewing a specific partner
-  const isAdminViewMode = !!partnerIdParam;
+  // Determine if admin is viewing a specific partner (mirror sibling pages —
+  // the param alone must never flip a non-admin into admin view mode)
+  const isAdminViewMode = isStaff && checkAdminRole(staffRole) && !!partnerIdParam;
   const { data: partner, isLoading: partnerLoading } = usePartnerData(
     isAdminViewMode ? partnerIdParam : undefined
   );
@@ -75,8 +77,11 @@ export default function PartnerMarketingPage() {
 
   const downloadQR = () => {
     const canvas = qrRef.current?.querySelector("canvas");
-    if (!canvas) return;
-    
+    if (!canvas) {
+      toast.error("QR code not ready yet");
+      return;
+    }
+
     const url = canvas.toDataURL("image/png");
     const link = document.createElement("a");
     link.download = `${partner?.referral_code || "referral"}-qr.png`;
@@ -87,8 +92,11 @@ export default function PartnerMarketingPage() {
 
   const printQR = () => {
     const canvas = qrRef.current?.querySelector("canvas");
-    if (!canvas) return;
-    
+    if (!canvas) {
+      toast.error("QR code not ready yet");
+      return;
+    }
+
     const url = canvas.toDataURL("image/png");
     const printWindow = window.open("", "_blank");
     if (printWindow) {
@@ -107,6 +115,8 @@ export default function PartnerMarketingPage() {
       `);
       printWindow.document.close();
       printWindow.print();
+    } else {
+      toast.error("Pop-up blocked — please allow pop-ups to print");
     }
   };
 

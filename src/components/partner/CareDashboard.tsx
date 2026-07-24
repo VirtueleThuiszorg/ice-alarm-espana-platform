@@ -142,11 +142,16 @@ export function CareDashboard({ partnerId, partner }: CareDashboardProps) {
 
       if (error) throw error;
 
-      // For each invite with email, call the send edge function
+      // For each invite with email, call the send edge function and record the
+      // real outcome — invoke resolves with { error }, it does not throw.
+      let sent = 0;
+      let failed = 0;
       for (const invite of (data || [])) {
+        // No email → nothing can be dispatched from here; keep the row honest.
+        let sendFailed = !invite.invitee_email;
         if (invite.invitee_email) {
           try {
-            await supabase.functions.invoke("partner-send-invite", {
+            const response = await supabase.functions.invoke("partner-send-invite", {
               body: {
                 inviteId: invite.id,
                 channel: "email",
@@ -157,16 +162,36 @@ export function CareDashboard({ partnerId, partner }: CareDashboardProps) {
                 referralLink,
               },
             });
-          } catch (e) {
-            console.error("Failed to send invite for:", invite.invitee_email, e);
+            if (response.error) sendFailed = true;
+          } catch {
+            sendFailed = true;
           }
+        }
+
+        if (sendFailed) {
+          failed++;
+          // Roll the row back to draft so the pipeline reflects reality
+          await supabase
+            .from("partner_invites")
+            .update({ status: "draft", sent_at: null })
+            .eq("id", invite.id);
+        } else {
+          sent++;
         }
       }
 
-      return data;
+      return { sent, failed };
     },
-    onSuccess: (data) => {
-      toast.success(t("partner.care.invitesSent", { count: data?.length || 0 }));
+    onSuccess: ({ sent, failed }) => {
+      if (failed > 0) {
+        toast.warning(t("partner.care.sendResult", {
+          sent,
+          failed,
+          defaultValue: "{{sent}} sent, {{failed}} failed — failed invites were kept as drafts",
+        }));
+      } else {
+        toast.success(t("partner.care.invitesSent", { count: sent, defaultValue: "{{count}} invites sent" }));
+      }
       queryClient.invalidateQueries({ queryKey: ["partner-pipeline", partnerId] });
       queryClient.invalidateQueries({ queryKey: ["partner-stats", partnerId] });
       setBulkReferrals([{ name: "", email: "", phone: "" }]);

@@ -2517,7 +2517,8 @@
     "videoHub": "Video Hub",
     "testimonials": "Testimonials",
     "rota": "Rota",
-    "holidays": "Holidays"
+    "holidays": "Holidays",
+    "holidayApprovals": "Holiday Approvals"
   },
   "adminTestimonials": {
     "title": "Testimonials",

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAIAgent } from "@/hooks/useAIAgents";
+import { streamIsabellaChat } from "@/lib/isabellaChatStream";
 
 export interface ChatMessage {
   id: string;
@@ -288,46 +289,69 @@ export function useAIChat(options: UseAIChatOptions | string = {}) {
       }));
       conversationHistory.push({ role: "user", content: userMessage.content });
 
-      const { data, error } = await supabase.functions.invoke("ai-run", {
-        body: {
-          agentKey,
-          context: {
-            conversationId: dbConversationId,
-            userLanguage: i18n.language,
-            conversationHistory,
-            currentMessage: userMessage.content,
-            source: "chat_widget",
-            memberId: memberId || undefined,
-          },
-        },
-      });
-
-      if (error) throw error;
-
-      // Extract the response from the AI output
-      let responseText = t("chat.fallbackMessage");
-
-      if (data?.output) {
-        if (typeof data.output === "string") {
-          responseText = data.output;
-        } else if (data.output.response) {
-          responseText = data.output.response;
-        } else if (data.output.message) {
-          responseText = data.output.message;
-        } else if (data.output.analysis) {
-          responseText = data.output.analysis;
-        }
-      }
-
-      const assistantMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: responseText,
-        timestamp: new Date(),
+      const chatContext = {
+        conversationId: dbConversationId,
+        userLanguage: i18n.language,
+        conversationHistory,
+        currentMessage: userMessage.content,
+        source: "chat_widget",
+        memberId: memberId || undefined,
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
-      
+      let responseText = "";
+      const assistantId = crypto.randomUUID();
+      // Incremental rendering: first delta creates the assistant bubble,
+      // subsequent deltas grow it in place.
+      const renderPartial = (fullSoFar: string) => {
+        setMessages((prev) => {
+          const existing = prev.find((m) => m.id === assistantId);
+          if (existing) {
+            return prev.map((m) => (m.id === assistantId ? { ...m, content: fullSoFar } : m));
+          }
+          return [
+            ...prev,
+            { id: assistantId, role: "assistant" as const, content: fullSoFar, timestamp: new Date() },
+          ];
+        });
+      };
+
+      try {
+        // STREAMING path (SSE through ai-run). Throws StreamUnavailableError
+        // before any delta → we fall back below; mid-stream drops resolve
+        // with the partial the user already saw.
+        const { data: sessionData } = await supabase.auth.getSession();
+        responseText = await streamIsabellaChat({
+          agentKey,
+          context: chatContext,
+          accessToken: sessionData.session?.access_token ?? null,
+          onDelta: renderPartial,
+        });
+        renderPartial(responseText || t("chat.fallbackMessage"));
+        responseText = responseText || t("chat.fallbackMessage");
+      } catch (streamError) {
+        // FALLBACK: the original non-streaming invoke — one answer, just slower.
+        console.warn("Isabella stream unavailable, using non-streaming fallback:", streamError);
+        const { data, error } = await supabase.functions.invoke("ai-run", {
+          body: { agentKey, context: chatContext },
+        });
+
+        if (error) throw error;
+
+        responseText = t("chat.fallbackMessage");
+        if (data?.output) {
+          if (typeof data.output === "string") {
+            responseText = data.output;
+          } else if (data.output.response) {
+            responseText = data.output.response;
+          } else if (data.output.message) {
+            responseText = data.output.message;
+          } else if (data.output.analysis) {
+            responseText = data.output.analysis;
+          }
+        }
+        renderPartial(responseText);
+      }
+
       // Save assistant message to database (don't await)
       saveMessageToDb(responseText, "assistant");
     } catch (error) {

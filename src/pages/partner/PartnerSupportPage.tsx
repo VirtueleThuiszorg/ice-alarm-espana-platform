@@ -69,7 +69,7 @@ export default function PartnerSupportPage() {
     },
     {
       question: t("partnerSupport.faq5Q", "What is the commission structure?"),
-      answer: t("partnerSupport.faq5A", "Base commission is €50 per delivered device. Partners who refer 10+ customers per month earn €55 each, and 20+ per month earn €60 each."),
+      answer: t("partnerSupport.faq5A", "Commission is €50 per pendant sold — a flat rate for every sale, with no volume tiers."),
     },
     {
       question: t("partnerSupport.faq6Q", "How do I update my bank details?"),

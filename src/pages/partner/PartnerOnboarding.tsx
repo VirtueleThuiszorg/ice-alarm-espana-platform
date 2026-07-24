@@ -131,29 +131,6 @@ export default function PartnerOnboarding() {
             </CardContent>
           </Card>
 
-          {/* Commission Structure */}
-          <Card className="max-w-2xl mx-auto">
-            <CardHeader className="text-center">
-              <CardTitle className="text-xl">{t("partnerOnboarding.commissionTitle", "Commission Structure")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-3 md:grid-cols-3">
-                <div className="text-center p-4 rounded-lg border">
-                  <p className="text-2xl font-bold text-primary">€50</p>
-                  <p className="text-sm text-muted-foreground">{t("partnerOnboarding.commBase", "Per referral (base)")}</p>
-                </div>
-                <div className="text-center p-4 rounded-lg border border-primary/30 bg-primary/5">
-                  <p className="text-2xl font-bold text-primary">€55</p>
-                  <p className="text-sm text-muted-foreground">{t("partnerOnboarding.comm10", "10+ referrals/month")}</p>
-                </div>
-                <div className="text-center p-4 rounded-lg border border-primary/50 bg-primary/10">
-                  <p className="text-2xl font-bold text-primary">€60</p>
-                  <p className="text-sm text-muted-foreground">{t("partnerOnboarding.comm20", "20+ referrals/month")}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           <Card className="max-w-lg mx-auto">
             <CardContent className="pt-6">
               <form

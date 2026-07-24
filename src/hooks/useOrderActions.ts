@@ -62,39 +62,12 @@ export function useOrderActions() {
 }
 
 /**
- * Calculate commission amount based on volume bonus tiers:
- * - Base: €50
- * - 10+ deliveries this month: €55
- * - 20+ deliveries this month: €60
+ * Commission per pendant sold: €50 FLAT (Lee, 2026-07-24) — no volume
+ * tiers, no discounts for more. The emailed partner terms state exactly
+ * this, so any change here must change partner-apply's confirmation email
+ * (and vice versa); partnerFlatTerms.test.ts pins them together.
  */
-async function calculateCommissionAmount(partnerId: string): Promise<number> {
-  const BASE = 50;
-  const TIER_10 = 55;
-  const TIER_20 = 60;
-
-  try {
-    // Count deliveries this calendar month for this partner
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-
-    const { count, error } = await supabase
-      .from("partner_commissions")
-      .select("id", { count: "exact", head: true })
-      .eq("partner_id", partnerId)
-      .gte("trigger_at", monthStart);
-
-    if (error || count === null) return BASE;
-
-    // count is the number of commissions already created this month (before this one)
-    const totalThisMonth = count + 1; // include the current one being created
-
-    if (totalThisMonth >= 20) return TIER_20;
-    if (totalThisMonth >= 10) return TIER_10;
-    return BASE;
-  } catch {
-    return BASE;
-  }
-}
+const COMMISSION_PER_PENDANT_EUR = 50;
 
 async function createCommissionIfAttributed(
   orderId: string,
@@ -136,8 +109,7 @@ async function createCommissionIfAttributed(
       return;
     }
 
-    // Calculate volume-based commission amount
-    const amountEur = await calculateCommissionAmount(attribution.partner_id);
+    const amountEur = COMMISSION_PER_PENDANT_EUR;
 
     // Calculate release date (7 days from delivery)
     const releaseAt = new Date(deliveredAt);

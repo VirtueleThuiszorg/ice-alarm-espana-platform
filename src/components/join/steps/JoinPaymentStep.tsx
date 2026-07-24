@@ -122,12 +122,12 @@ export function JoinPaymentStep({ data, onUpdate, onPaymentInitiated }: JoinPaym
               {order.registrationFeeDiscount === 100 && (
                 <Badge className="bg-status-active/20 text-status-active border-0 gap-1 text-xs">
                   <Gift className="h-3 w-3" />
-                  {t("common.free") || "FREE"}
+                  {t("common.free")}
                 </Badge>
               )}
               {order.registrationFeeDiscount > 0 && order.registrationFeeDiscount < 100 && (
                 <Badge className="bg-status-active/20 text-status-active border-0 text-xs">
-                  {order.registrationFeeDiscount}% {t("common.off") || "off"}
+                  {order.registrationFeeDiscount}% {t("common.off")}
                 </Badge>
               )}
             </span>
@@ -135,7 +135,7 @@ export function JoinPaymentStep({ data, onUpdate, onPaymentInitiated }: JoinPaym
               {order.registrationFeeDiscount > 0 && (
                 <span className="text-sm text-muted-foreground line-through">{formatPrice(order.registrationFeeOriginal)}</span>
               )}
-              <span>{order.registrationFeeDiscount === 100 ? (t("common.free") || "FREE") : formatPrice(order.registrationFee)}</span>
+              <span>{order.registrationFeeDiscount === 100 ? (t("common.free")) : formatPrice(order.registrationFee)}</span>
             </span>
           </div>
         )}

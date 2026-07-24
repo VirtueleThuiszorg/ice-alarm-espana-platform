@@ -671,7 +671,15 @@
       "contactAdmin": "If you believe this is an error, please contact your administrator or try logging in with a different account.",
       "goHome": "Go to Home",
       "backToLogin": "Back to Login"
-    }
+    },
+    "twoFactorRequired": "Two-factor authentication is required for admin accounts. Please set it up now.",
+    "twoFactorCodeLength": "Please enter a 6-digit code",
+    "twoFactorInvalid": "Invalid verification code",
+    "twoFactorTitle": "Two-Factor Authentication",
+    "twoFactorDesc": "Enter the 6-digit code from your authenticator app",
+    "verificationCode": "Verification code",
+    "verifying": "Verifying...",
+    "verify": "Verify"
   },
   "navigation": {
     "home": "Home",
@@ -1111,8 +1119,6 @@
     "mo": "/mo",
     "yr": "/yr",
     "quarterly": "/quarter",
-    "cardEnding": "Visa ending in ****4242",
-    "expires": "Expires 12/26",
     "changePlanNote": "To change between Single and Couple plans, please contact our support team.",
     "contactToUpgrade": "Please contact support to upgrade your plan.",
     "contactToUpdatePayment": "Please contact support to update your payment method.",
@@ -1221,7 +1227,9 @@
       "medicalPrivacyAnswer": "Your medical information is only accessible to our trained emergency operators and the emergency services we coordinate with during an alert. It is never shared with third parties for marketing or other purposes. You control what information you add.",
       "locationData": "How is my location data used?",
       "locationDataAnswer": "Your location is only accessed when you trigger an SOS alert or if geo-fencing is enabled. This helps emergency services find you quickly. Location data is encrypted, stored securely, and never sold or shared for advertising."
-    }
+    },
+    "emergencyNumber": "24/7 emergency support line",
+    "whatsApp": "Chat on WhatsApp"
   },
   "faq": {
     "testPendant": {
@@ -1922,7 +1930,9 @@
     "nieMaxLength": "NIE/DNI must be less than 15 characters",
     "nieInvalidFormat": "Invalid NIE/DNI format",
     "notesMaxLength": "Notes must be less than 2000 characters",
-    "titleRequired": "Title is required"
+    "titleRequired": "Title is required",
+    "required": "This field is required",
+    "invalidPhone": "Please enter a valid phone number"
   },
   "errors": {
     "somethingWentWrong": "Something went wrong",

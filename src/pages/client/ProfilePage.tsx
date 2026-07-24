@@ -86,10 +86,10 @@ export default function ProfilePage() {
       }
 
       queryClient.invalidateQueries({ queryKey: ["member-profile"] });
-      toast.success(t("profile.updateSuccess") || "Profile updated successfully");
+      toast.success(t("profile.updateSuccess"));
     } catch (error) {
       console.error("Error updating profile:", error);
-      toast.error(t("profile.updateFailed") || "Failed to update profile");
+      toast.error(t("profile.updateFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -126,18 +126,18 @@ export default function ProfilePage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t("profile.title") || t("navigation.myAccount")}</h1>
-            <p className="text-muted-foreground mt-1">{t("profile.subtitle") || "Manage your personal information and preferences"}</p>
+            <p className="text-muted-foreground mt-1">{t("profile.subtitle")}</p>
           </div>
           <Button type="submit" disabled={isSaving} className="flex-shrink-0">
             {isSaving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {t("profile.saving") || "Saving..."}
+                {t("profile.saving")}
               </>
             ) : (
               <>
                 <Save className="mr-2 h-4 w-4" />
-                {t("profile.saveChanges") || "Save Changes"}
+                {t("profile.saveChanges")}
               </>
             )}
           </Button>
@@ -247,7 +247,7 @@ export default function ProfilePage() {
                         : "—"
                       }
                     </div>
-                    <p className="text-xs text-muted-foreground">{t("profile.dobReadOnly") || "Cannot be changed"}</p>
+                    <p className="text-xs text-muted-foreground">{t("profile.dobReadOnly")}</p>
                   </div>
                   <div className="space-y-2">
                     <Label className="flex items-center gap-2">
@@ -257,7 +257,7 @@ export default function ProfilePage() {
                     <div className="p-3 bg-muted/50 rounded-lg font-medium text-muted-foreground">
                       {profile?.nie_dni || "—"}
                     </div>
-                    <p className="text-xs text-muted-foreground">{t("profile.nieReadOnly") || "Cannot be changed"}</p>
+                    <p className="text-xs text-muted-foreground">{t("profile.nieReadOnly")}</p>
                   </div>
                 </div>
               </CardContent>
@@ -319,7 +319,7 @@ export default function ProfilePage() {
                     name="address_line_1"
                     render={({ field }) => (
                       <FormItem className="md:col-span-2">
-                        <FormLabel>{t("profile.addressLine1") || "Street Address"}</FormLabel>
+                        <FormLabel>{t("profile.addressLine1")}</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -332,7 +332,7 @@ export default function ProfilePage() {
                     name="address_line_2"
                     render={({ field }) => (
                       <FormItem className="md:col-span-2">
-                        <FormLabel>{t("profile.addressLine2") || "Address Line 2 (Optional)"}</FormLabel>
+                        <FormLabel>{t("profile.addressLine2")}</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -389,7 +389,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-4">{t("profile.addressEmergencyNote") || "This address is used for emergency response"}</p>
+                <p className="text-xs text-muted-foreground mt-4">{t("profile.addressEmergencyNote")}</p>
               </CardContent>
             </Card>
 

@@ -671,7 +671,15 @@
       "contactAdmin": "Si cree que esto es un error, contacte con su administrador o intente iniciar sesión con otra cuenta.",
       "goHome": "Ir al Inicio",
       "backToLogin": "Volver al Login"
-    }
+    },
+    "twoFactorRequired": "La autenticación en dos pasos es obligatoria para las cuentas de administrador. Por favor, configúrala ahora.",
+    "twoFactorCodeLength": "Introduce un código de 6 dígitos",
+    "twoFactorInvalid": "Código de verificación no válido",
+    "twoFactorTitle": "Autenticación en dos pasos",
+    "twoFactorDesc": "Introduce el código de 6 dígitos de tu aplicación de autenticación",
+    "verificationCode": "Código de verificación",
+    "verifying": "Verificando...",
+    "verify": "Verificar"
   },
   "navigation": {
     "home": "Inicio",
@@ -1110,7 +1118,13 @@
     "contactToUpdatePayment": "Contacte con soporte para actualizar su método de pago.",
     "invoiceComingSoon": "Las descargas de facturas estarán disponibles próximamente.",
     "creditCard": "Tarjeta de Crédito",
-    "bankTransfer": "Transferencia Bancaria"
+    "bankTransfer": "Transferencia Bancaria",
+    "title": "Suscripción y facturación",
+    "subtitle": "Gestiona tu plan y tus pagos",
+    "noActiveSubscription": "Sin suscripción activa",
+    "contactSupport": "Ponte en contacto con soporte para obtener información sobre tu suscripción.",
+    "upgrade": "Mejorar",
+    "upgradeDesc": "Ahorra cambiando a la facturación anual"
   },
   "support": {
     "title": "Ayuda y Soporte",
@@ -1213,7 +1227,9 @@
       "medicalPrivacyAnswer": "Su información médica solo es accesible para nuestros operadores de emergencia capacitados y los servicios de emergencia que coordinamos durante una alerta. Nunca se comparte con terceros con fines de marketing u otros propósitos. Usted controla qué información añade.",
       "locationData": "¿Cómo se usan mis datos de ubicación?",
       "locationDataAnswer": "Su ubicación solo se consulta cuando activa una alerta SOS o si el geo-cercado está habilitado. Esto ayuda a los servicios de emergencia a encontrarle rápidamente. Los datos de ubicación se cifran, almacenan de forma segura y nunca se venden ni comparten con fines publicitarios."
-    }
+    },
+    "emergencyNumber": "Línea de asistencia de emergencia 24/7",
+    "whatsApp": "Chatear por WhatsApp"
   },
   "faq": {
     "testPendant": {
@@ -1914,7 +1930,9 @@
     "nieMaxLength": "El NIE/DNI debe tener menos de 15 caracteres",
     "nieInvalidFormat": "Formato de NIE/DNI no válido",
     "notesMaxLength": "Las notas deben tener menos de 2000 caracteres",
-    "titleRequired": "El título es obligatorio"
+    "titleRequired": "El título es obligatorio",
+    "required": "Este campo es obligatorio",
+    "invalidPhone": "Introduce un número de teléfono válido"
   },
   "errors": {
     "somethingWentWrong": "Algo salió mal",

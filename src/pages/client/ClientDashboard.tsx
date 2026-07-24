@@ -281,9 +281,9 @@ export default function ClientDashboard() {
           <CardContent className="p-4 flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-alert-battery" />
             <div>
-              <p className="font-medium">{t("dashboard.noDeviceAssigned") || "No device assigned"}</p>
+              <p className="font-medium">{t("dashboard.noDeviceAssigned")}</p>
               <p className="text-sm text-muted-foreground">
-                {t("dashboard.contactSupportDevice") || "Please contact support to get your device set up."}
+                {t("dashboard.contactSupportDevice")}
               </p>
             </div>
           </CardContent>
@@ -297,17 +297,17 @@ export default function ClientDashboard() {
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold">{t("navigation.subscription") || "Subscription"}</CardTitle>
+              <CardTitle className="text-base font-semibold">{t("navigation.subscription")}</CardTitle>
               {subLoading && !isTemplatePreview ? (
                 <Skeleton className="h-5 w-16" />
               ) : displaySubscription ? (
                 <Badge variant="outline" className="bg-alert-resolved/10 text-alert-resolved border-alert-resolved/30 text-xs">
                   <CheckCircle2 className="mr-1 h-3 w-3" />
-                  {t("common.active") || "Active"}
+                  {t("common.active")}
                 </Badge>
               ) : (
                 <Badge variant="outline" className="text-xs">
-                  {t("common.inactive") || "Inactive"}
+                  {t("common.inactive")}
                 </Badge>
               )}
             </div>
@@ -322,28 +322,28 @@ export default function ClientDashboard() {
             ) : displaySubscription ? (
               <>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{t("common.plan") || "Plan"}</span>
+                  <span className="text-muted-foreground">{t("common.plan")}</span>
                   <span className="font-medium">{formatPlanType(displaySubscription.plan_type)}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{t("dashboard.nextPayment") || "Next Payment"}</span>
+                  <span className="text-muted-foreground">{t("dashboard.nextPayment")}</span>
                   <span className="font-medium flex items-center gap-1">
                     <Calendar className="h-3.5 w-3.5" />
                     {format(new Date(displaySubscription.renewal_date), "dd MMM yyyy")}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{t("common.amount") || "Amount"}</span>
+                  <span className="text-muted-foreground">{t("common.amount")}</span>
                   <span className="font-medium">€{displaySubscription.amount}{formatBillingFrequency(displaySubscription.billing_frequency)}</span>
                 </div>
               </>
             ) : (
-              <p className="text-sm text-muted-foreground">{t("dashboard.noActiveSubscription") || "No active subscription"}</p>
+              <p className="text-sm text-muted-foreground">{t("dashboard.noActiveSubscription")}</p>
             )}
             <Button variant="outline" size="sm" className="w-full mt-2" asChild>
               <Link to="/dashboard/subscription">
                 <CreditCard className="mr-2 h-4 w-4" />
-                {t("dashboard.manageSubscription") || "Manage Subscription"}
+                {t("dashboard.manageSubscription")}
                 <ArrowRight className="ml-auto h-4 w-4" />
               </Link>
             </Button>
@@ -354,9 +354,9 @@ export default function ClientDashboard() {
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold">{t("navigation.emergencyContacts") || "Emergency Contacts"}</CardTitle>
+              <CardTitle className="text-base font-semibold">{t("navigation.emergencyContacts")}</CardTitle>
               {(isTemplatePreview || (!contactsLoading && displayContacts && displayContacts.length > 0)) && (
-                <Badge variant="secondary" className="text-xs">{displayContacts?.length || 0} {t("common.contacts") || "contacts"}</Badge>
+                <Badge variant="secondary" className="text-xs">{displayContacts?.length || 0} {t("common.contacts")}</Badge>
               )}
             </div>
           </CardHeader>
@@ -375,9 +375,9 @@ export default function ClientDashboard() {
                       <span className="text-xs text-muted-foreground">{contact.relationship}</span>
                     </div>
                     {index === 0 ? (
-                      <Badge variant="secondary" className="text-xs">{t("common.primary") || "Primary"}</Badge>
+                      <Badge variant="secondary" className="text-xs">{t("common.primary")}</Badge>
                     ) : (
-                      <Badge variant="outline" className="text-xs">{index + 1}{t("common.ordinalSuffix") || "nd"}</Badge>
+                      <Badge variant="outline" className="text-xs">{index + 1}{t("common.ordinalSuffix")}</Badge>
                     )}
                   </div>
                 ))}
@@ -385,12 +385,12 @@ export default function ClientDashboard() {
             ) : (
               <div className="text-center py-4">
                 <AlertTriangle className="h-8 w-8 text-alert-battery mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">{t("dashboard.noEmergencyContacts") || "No emergency contacts added"}</p>
+                <p className="text-sm text-muted-foreground">{t("dashboard.noEmergencyContacts")}</p>
               </div>
             )}
             <Button variant="outline" size="sm" className="w-full" asChild>
               <Link to="/dashboard/contacts">
-                {t("dashboard.updateContacts") || "Update Contacts"}
+                {t("dashboard.updateContacts")}
                 <ArrowRight className="ml-auto h-4 w-4" />
               </Link>
             </Button>
@@ -401,7 +401,7 @@ export default function ClientDashboard() {
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold">{t("navigation.messages") || "Messages"}</CardTitle>
+              <CardTitle className="text-base font-semibold">{t("navigation.messages")}</CardTitle>
               {displayUnreadMsgs > 0 && (
                 <Badge className="text-xs">{displayUnreadMsgs} {t("dashboard.unread", "unread")}</Badge>
               )}
@@ -440,28 +440,28 @@ export default function ClientDashboard() {
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-primary">{displayAlertsCount || 0}</p>
-            <p className="text-xs text-muted-foreground">{t("dashboard.alertsLast30Days") || "Alerts (30 days)"}</p>
+            <p className="text-xs text-muted-foreground">{t("dashboard.alertsLast30Days")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-alert-resolved">{displayContacts?.length || 0}</p>
-            <p className="text-xs text-muted-foreground">{t("common.contacts") || "Contacts"}</p>
+            <p className="text-xs text-muted-foreground">{t("common.contacts")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold">{displayDevice?.battery_level || 0}%</p>
-            <p className="text-xs text-muted-foreground">{t("dashboard.batteryLevel") || "Battery"}</p>
+            <p className="text-xs text-muted-foreground">{t("dashboard.batteryLevel")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
             <div className="flex items-center justify-center gap-1">
               <div className={`h-2 w-2 rounded-full ${displayDevice?.status === "active" ? "bg-alert-resolved" : "bg-muted-foreground"}`} />
-              <p className="text-sm font-medium">{displayDevice?.status === "active" ? t("common.online") || "Online" : t("common.offline") || "Offline"}</p>
+              <p className="text-sm font-medium">{displayDevice?.status === "active" ? t("common.online") : t("common.offline")}</p>
             </div>
-            <p className="text-xs text-muted-foreground">{t("dashboard.deviceStatus") || "Device"}</p>
+            <p className="text-xs text-muted-foreground">{t("dashboard.deviceStatus")}</p>
           </CardContent>
         </Card>
       </div>
@@ -474,9 +474,9 @@ export default function ClientDashboard() {
               <span className="text-base">📢</span>
             </div>
             <div>
-              <h3 className="font-semibold text-sm">{t("dashboard.serviceAnnouncement") || "Service Announcement"}</h3>
+              <h3 className="font-semibold text-sm">{t("dashboard.serviceAnnouncement")}</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                {t("dashboard.announcementText") || "We've upgraded our response system! Your alerts now reach our team 30% faster. Thank you for trusting Care Conneqt with your safety."}
+                {t("dashboard.announcementText")}
               </p>
             </div>
           </div>

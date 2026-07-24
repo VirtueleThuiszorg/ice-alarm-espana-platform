@@ -83,7 +83,7 @@ export function formatRegistrationFeeDisplay(
 
   if (discount === 100) {
     return {
-      display: t("common.free") || "FREE",
+      display: t("common.free"),
       showStrikethrough: true,
       originalPrice: `€${baseAmount.toFixed(2)}`,
       isFree: true,

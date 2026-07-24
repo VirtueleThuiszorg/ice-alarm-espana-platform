@@ -25,7 +25,7 @@ const FN_DIR = join(ROOT, "supabase/functions");
 // Functions still allowed to reference Lovable, pending Lee's archive/migrate
 // decisions. Remove entries as their PRs land — a stale entry fails the suite.
 const PINNED_LOVABLE_FNS = new Set([
-  "auth-email-hook", // @lovable.dev/email-js + webhooks-js — MIGRATE (own PR)
+  // auth-email-hook: MIGRATED 2026-07-24 (standardwebhooks + Gmail SMTP)
   // gateway growth fns — recommended ARCHIVE (report 2026-07-24):
   "facebook-publish",
   "generate-ai-image",

@@ -770,28 +770,36 @@ export default function CallCentreMessagesPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <h2 className="text-lg font-semibold">
-                        {selectedConversation.member?.first_name} {selectedConversation.member?.last_name}
+                        {selectedConversation.member
+                          ? `${selectedConversation.member.first_name} ${selectedConversation.member.last_name}`
+                          : t("callCentreMessages.staffChat", "Staff Chat")}
                       </h2>
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link to={`/call-centre/members/${selectedConversation.member_id}`}>
-                          <ExternalLink className="h-4 w-4" />
-                        </Link>
-                      </Button>
+                      {selectedConversation.member_id && (
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link to={`/call-centre/members/${selectedConversation.member_id}`}>
+                            <ExternalLink className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground">{selectedConversation.subject || t("callCentreMessages.noSubject", "No subject")}</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <a href={`tel:${selectedConversation.member?.phone}`}>
-                      <Button variant="outline" size="icon">
-                        <Phone className="h-4 w-4" />
-                      </Button>
-                    </a>
-                    <a href={`mailto:${selectedConversation.member?.email}`}>
-                      <Button variant="outline" size="icon">
-                        <Mail className="h-4 w-4" />
-                      </Button>
-                    </a>
-                  </div>
+                  {/* Member action bar — staff conversations have no member_id,
+                      so these would produce /members/null and tel:undefined. */}
+                  {selectedConversation.member_id && (
+                    <div className="flex items-center gap-2">
+                      <a href={`tel:${selectedConversation.member?.phone}`}>
+                        <Button variant="outline" size="icon">
+                          <Phone className="h-4 w-4" />
+                        </Button>
+                      </a>
+                      <a href={`mailto:${selectedConversation.member?.email}`}>
+                        <Button variant="outline" size="icon">
+                          <Mail className="h-4 w-4" />
+                        </Button>
+                      </a>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-4 mt-3">
                   <Select

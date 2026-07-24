@@ -1556,7 +1556,25 @@
       "callMember": "Llamar al miembro",
       "sendMessage": "Enviar mensaje",
       "viewProfile": "Ver perfil"
-    }
+    },
+    "loadError": "No se pudieron cargar estos datos; actualice la página para reintentar"
+  },
+  "callCentreHeader": {
+    "operator": "Operador",
+    "onDuty": "De servicio",
+    "startShift": "Iniciar turno",
+    "scheduled": "Programado",
+    "onShift": "en turno",
+    "staffOnShift": "Personal actualmente en turno",
+    "role": "Operador del centro de atención",
+    "shiftHistory": "Mi historial de turnos",
+    "preferences": "Preferencias",
+    "endShift": "Finalizar turno",
+    "logOut": "Cerrar sesión",
+    "dutyUpdateFailed": "No se pudo actualizar el estado de servicio",
+    "nowOnDuty": "Ahora está de servicio",
+    "shiftEnded": "Ha finalizado su turno",
+    "shiftUpdateFailed": "No se pudo actualizar el estado de su turno; es posible que siga apareciendo como de servicio"
   },
   "callCentreMessages": {
     "title": "Mensajes",
@@ -3220,7 +3238,8 @@
     "followup": "Seguimiento",
     "completed": "Completado",
     "messages": "mensajes",
-    "failedToLoad": "Error al cargar historial de turnos"
+    "failedToLoad": "Error al cargar historial de turnos",
+    "loadFailed": "No se pudo cargar su historial de turnos. Actualice la página."
   },
   "products": {
     "title": "Nuestros Productos",

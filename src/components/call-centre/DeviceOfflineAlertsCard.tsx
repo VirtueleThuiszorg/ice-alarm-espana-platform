@@ -8,19 +8,22 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { 
-  WifiOff, 
-  User, 
+import {
+  WifiOff,
+  User,
   Phone,
   Clock,
   ArrowRight,
   Check,
   Eye,
-  CheckCircle
+  CheckCircle,
+  AlertTriangle
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { isAdminRole as checkAdminRole } from "@/config/constants";
 
 interface DeviceOfflineAlert {
   id: string;
@@ -47,6 +50,10 @@ export function DeviceOfflineAlertsCard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const { isStaff, staffRole } = useAuth();
+  // Device admin routes (/admin/*) bounce non-admin operators to /unauthorized,
+  // so only admins get the admin-navigating affordances.
+  const isAdmin = isStaff && checkAdminRole(staffRole);
 
   // Subscribe to realtime alert updates
   useEffect(() => {
@@ -66,7 +73,7 @@ export function DeviceOfflineAlertsCard() {
     };
   }, [queryClient]);
 
-  const { data: alerts, isLoading } = useQuery({
+  const { data: alerts, isLoading, isError } = useQuery({
     queryKey: ["staff-device-offline-alerts"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -164,15 +171,23 @@ export function DeviceOfflineAlertsCard() {
             </CardTitle>
             <CardDescription className="truncate">{t("callCentre.offlineAlerts.subtitle", "EV-07B devices that have gone offline")}</CardDescription>
           </div>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/admin/ev07b">
-              {t("callCentre.offlineAlerts.viewAll", "View All")} <ArrowRight className="h-4 w-4 ml-1" />
-            </Link>
-          </Button>
+          {isAdmin && (
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/admin/ev07b">
+                {t("callCentre.offlineAlerts.viewAll", "View All")} <ArrowRight className="h-4 w-4 ml-1" />
+              </Link>
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent>
-        {!hasAlerts ? (
+        {isError ? (
+          // A failed query must never render as a green all-clear.
+          <div className="text-center py-6 text-muted-foreground">
+            <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
+            <p>{t("callCentre.loadError", "Couldn't load this data — refresh to retry")}</p>
+          </div>
+        ) : !hasAlerts ? (
           <div className="text-center py-6 text-muted-foreground">
             <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
             <p>{t("callCentre.offlineAlerts.noAlerts", "No offline alerts")}</p>
@@ -240,7 +255,7 @@ export function DeviceOfflineAlertsCard() {
                             <User className="h-3.5 w-3.5" />
                           </Button>
                         )}
-                        {device && (
+                        {device && isAdmin && (
                           <Button
                             variant="ghost"
                             size="icon"

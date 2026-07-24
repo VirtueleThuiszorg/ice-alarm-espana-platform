@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { isAdminRole as checkAdminRole } from "@/config/constants";
 
 interface EV07BStats {
   total: number;
@@ -32,6 +34,10 @@ export function EV07BLiveStatusCard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const { isStaff, staffRole } = useAuth();
+  // Device admin routes (/admin/*) bounce non-admin operators to /unauthorized,
+  // so stat boxes only navigate for admins.
+  const isAdmin = isStaff && checkAdminRole(staffRole);
 
   // Subscribe to realtime device updates
   useEffect(() => {
@@ -63,7 +69,7 @@ export function EV07BLiveStatusCard() {
     };
   }, [queryClient]);
 
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats, isLoading, isError } = useQuery({
     queryKey: ["staff-ev07b-stats"],
     queryFn: async () => {
       // Get all EV-07B devices
@@ -176,67 +182,77 @@ export function EV07BLiveStatusCard() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <StatBox
-            icon={Package}
-            value={stats?.in_stock || 0}
-            label={t("callCentre.ev07b.inStock", "In Stock")}
-            className="bg-muted/50"
-            iconClassName="text-muted-foreground"
-            onClick={() => navigate("/admin/devices?status=in_stock")}
-          />
-          <StatBox
-            icon={Users}
-            value={(stats?.allocated || 0) + (stats?.with_staff || 0)}
-            label={t("callCentre.ev07b.allocated", "Allocated")}
-            className="bg-blue-500/10"
-            iconClassName="text-blue-500"
-            onClick={() => navigate("/admin/devices?status=allocated")}
-          />
-          <StatBox
-            icon={CheckCircle}
-            value={stats?.live || 0}
-            label={t("callCentre.ev07b.live", "Live")}
-            className="bg-green-500/10"
-            iconClassName="text-green-500"
-            onClick={() => navigate("/admin/devices?status=live")}
-          />
-          <StatBox
-            icon={Wifi}
-            value={stats?.online || 0}
-            label={t("callCentre.ev07b.online", "Online")}
-            className="bg-green-500/10"
-            iconClassName="text-green-500"
-          />
-        </div>
+        {isError ? (
+          // A failed query must never render as all-zero counters.
+          <div className="text-center py-6 text-muted-foreground">
+            <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
+            <p>{t("callCentre.loadError", "Couldn't load this data — refresh to retry")}</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <StatBox
+                icon={Package}
+                value={stats?.in_stock || 0}
+                label={t("callCentre.ev07b.inStock", "In Stock")}
+                className="bg-muted/50"
+                iconClassName="text-muted-foreground"
+                onClick={isAdmin ? () => navigate("/admin/devices?status=in_stock") : undefined}
+              />
+              <StatBox
+                icon={Users}
+                value={(stats?.allocated || 0) + (stats?.with_staff || 0)}
+                label={t("callCentre.ev07b.allocated", "Allocated")}
+                className="bg-blue-500/10"
+                iconClassName="text-blue-500"
+                onClick={isAdmin ? () => navigate("/admin/devices?status=allocated") : undefined}
+              />
+              <StatBox
+                icon={CheckCircle}
+                value={stats?.live || 0}
+                label={t("callCentre.ev07b.live", "Live")}
+                className="bg-green-500/10"
+                iconClassName="text-green-500"
+                onClick={isAdmin ? () => navigate("/admin/devices?status=live") : undefined}
+              />
+              <StatBox
+                icon={Wifi}
+                value={stats?.online || 0}
+                label={t("callCentre.ev07b.online", "Online")}
+                className="bg-green-500/10"
+                iconClassName="text-green-500"
+              />
+            </div>
 
-        {/* Alerts Row */}
-        <div className="grid grid-cols-2 gap-2 mt-2">
-          <StatBox
-            icon={WifiOff}
-            value={stats?.offline || 0}
-            label={t("callCentre.ev07b.offline", "Offline")}
-            className={cn(
-              (stats?.offline || 0) > 0 ? "bg-destructive/10" : "bg-muted/50"
-            )}
-            iconClassName={cn(
-              (stats?.offline || 0) > 0 ? "text-destructive" : "text-muted-foreground"
-            )}
-            onClick={() => navigate("/admin/ev07b")}
-          />
-          <StatBox
-            icon={AlertTriangle}
-            value={stats?.open_alerts || 0}
-            label={t("callCentre.ev07b.openAlerts", "Open Alerts")}
-            className={cn(
-              (stats?.open_alerts || 0) > 0 ? "bg-destructive/10" : "bg-muted/50"
-            )}
-            iconClassName={cn(
-              (stats?.open_alerts || 0) > 0 ? "text-destructive" : "text-muted-foreground"
-            )}
-            onClick={() => navigate("/admin/ev07b")}
-          />
-        </div>
+            {/* Alerts Row */}
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <StatBox
+                icon={WifiOff}
+                value={stats?.offline || 0}
+                label={t("callCentre.ev07b.offline", "Offline")}
+                className={cn(
+                  (stats?.offline || 0) > 0 ? "bg-destructive/10" : "bg-muted/50"
+                )}
+                iconClassName={cn(
+                  (stats?.offline || 0) > 0 ? "text-destructive" : "text-muted-foreground"
+                )}
+                onClick={isAdmin ? () => navigate("/admin/ev07b") : undefined}
+              />
+              <StatBox
+                icon={AlertTriangle}
+                value={stats?.open_alerts || 0}
+                label={t("callCentre.ev07b.openAlerts", "Open Alerts")}
+                className={cn(
+                  (stats?.open_alerts || 0) > 0 ? "bg-destructive/10" : "bg-muted/50"
+                )}
+                iconClassName={cn(
+                  (stats?.open_alerts || 0) > 0 ? "text-destructive" : "text-muted-foreground"
+                )}
+                onClick={isAdmin ? () => navigate("/admin/ev07b") : undefined}
+              />
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

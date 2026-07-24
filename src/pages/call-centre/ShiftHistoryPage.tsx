@@ -101,6 +101,13 @@ export default function ShiftHistoryPage() {
 
     if (error) {
       console.error("Error fetching staff:", error);
+      // Without this the page shows "Loading history…" forever — staffId
+      // stays null so fetchAllData never runs and isLoading never clears.
+      setIsLoading(false);
+      toast({
+        title: t("shiftHistory.loadFailed", "Could not load your shift history. Please refresh."),
+        variant: "destructive",
+      });
       return;
     }
 
@@ -544,7 +551,10 @@ export default function ShiftHistoryPage() {
                                 alert.status === "resolved"
                                   ? "bg-alert-resolved text-alert-resolved-foreground"
                                   : alert.status === "in_progress"
-                                  ? "bg-alert-claimed"
+                                  // bg-alert-claimed doesn't exist as a token — the phantom
+                                  // class stripped Badge's bg-primary via twMerge, leaving
+                                  // white-on-white. Use the real battery/amber token.
+                                  ? "bg-alert-battery text-alert-battery-foreground"
                                   : ""
                               }
                             >

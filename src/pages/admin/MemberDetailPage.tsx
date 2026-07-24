@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -51,16 +51,40 @@ interface Device {
   id: string;
 }
 
+// Must match the values used in this page's TabsList.
+const TAB_VALUES = [
+  "profile",
+  "medical",
+  "contacts",
+  "device",
+  "subscription",
+  "payments",
+  "messages",
+  "notes",
+  "activity",
+  "alerts",
+  "tasks",
+  "crm",
+] as const;
+
 export default function MemberDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { t } = useTranslation();
   const [member, setMember] = useState<Member | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [device, setDevice] = useState<Device | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("profile");
+  // Honour deep links like ?tab=messages (e.g. MembersPage "Send message"),
+  // read once on mount; invalid values fall back to the profile tab.
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const requested = searchParams.get("tab");
+    return requested && (TAB_VALUES as readonly string[]).includes(requested)
+      ? requested
+      : "profile";
+  });
 
   // Determine if we're in call-centre or admin context
   const isCallCentre = location.pathname.startsWith('/call-centre');

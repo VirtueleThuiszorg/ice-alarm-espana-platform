@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
-  Search,
   User,
   LogOut,
   Clock,
@@ -12,7 +12,6 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { Badge } from "@/components/ui/badge";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
@@ -43,6 +42,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export function CallCentreHeader() {
+  const { t } = useTranslation();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -111,7 +111,7 @@ export function CallCentreHeader() {
       queryClient.setQueryData(["staff-info", user?.id], (old: typeof staffInfo) =>
         old ? { ...old, is_on_call: !newValue } : old
       );
-      toast.error("Failed to update duty status");
+      toast.error(t("callCentreHeader.dutyUpdateFailed", "Failed to update duty status"));
       return;
     }
 
@@ -129,17 +129,29 @@ export function CallCentreHeader() {
     queryClient.invalidateQueries({ queryKey: ["on-shift-now"] });
 
     toast.success(
-      newValue ? "You are now on duty" : "You have ended your shift"
+      newValue
+        ? t("callCentreHeader.nowOnDuty", "You are now on duty")
+        : t("callCentreHeader.shiftEnded", "You have ended your shift")
     );
   };
 
   const handleSignOut = async () => {
-    // End shift if on duty
+    // End shift if on duty — but never block logout if the update fails.
     if (isOnDuty && staffInfo?.id) {
-      await supabase
+      const { error } = await supabase
         .from("staff")
         .update({ is_on_call: false })
         .eq("id", staffInfo.id);
+
+      if (error) {
+        console.error("Failed to end shift on sign-out:", error);
+        toast.warning(
+          t(
+            "callCentreHeader.shiftUpdateFailed",
+            "Your shift status couldn't be updated — you may still show as on duty"
+          )
+        );
+      }
 
       logActivity.mutate({
         staffId: staffInfo.id,
@@ -157,22 +169,14 @@ export function CallCentreHeader() {
 
   const displayName = staffInfo
     ? `${staffInfo.first_name} ${staffInfo.last_name}`
-    : user?.email?.split("@")[0] || "Operator";
+    : user?.email?.split("@")[0] || t("callCentreHeader.operator", "Operator");
 
   const displayEmail = staffInfo?.email || user?.email || "";
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
-      {/* Left side - Search and Shift Status */}
+      {/* Left side - Shift Status (search lives in GlobalSearch, Cmd+K) */}
       <div className="flex items-center gap-3">
-        <div className="relative w-full max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search members, alerts..."
-            className="pl-10 bg-secondary/50 border-0 focus-visible:ring-1"
-          />
-        </div>
-
         {/* Shift Status & Toggle */}
         <div className="flex items-center gap-2">
           <Button
@@ -182,19 +186,19 @@ export function CallCentreHeader() {
             className={cn(
               "gap-2 font-semibold transition-all",
               isOnDuty
-                ? "bg-green-600 hover:bg-green-700 text-white"
+                ? "bg-alert-resolved text-alert-resolved-foreground hover:bg-alert-resolved/90"
                 : "border-dashed border-orange-400 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20"
             )}
           >
             {isOnDuty ? (
               <>
                 <Shield className="h-4 w-4" />
-                On Duty
+                {t("callCentreHeader.onDuty", "On Duty")}
               </>
             ) : (
               <>
                 <ShieldOff className="h-4 w-4" />
-                Start Shift
+                {t("callCentreHeader.startShift", "Start Shift")}
               </>
             )}
           </Button>
@@ -206,7 +210,7 @@ export function CallCentreHeader() {
               className="bg-blue-500/10 text-blue-600 border-blue-500/30 text-xs"
             >
               <Clock className="w-3 h-3 mr-1" />
-              Scheduled
+              {t("callCentreHeader.scheduled", "Scheduled")}
             </Badge>
           )}
 
@@ -220,13 +224,13 @@ export function CallCentreHeader() {
                   className="gap-1.5 text-xs text-muted-foreground"
                 >
                   <Users className="h-3.5 w-3.5" />
-                  {othersOnShift.length} on shift
+                  {othersOnShift.length} {t("callCentreHeader.onShift", "on shift")}
                   <ChevronDown className="h-3 w-3" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-56 p-2" align="start">
                 <p className="text-xs font-medium text-muted-foreground mb-2 px-2">
-                  Staff Currently on Shift
+                  {t("callCentreHeader.staffOnShift", "Staff Currently on Shift")}
                 </p>
                 {othersOnShift.map((s) => (
                   <div
@@ -299,11 +303,11 @@ export function CallCentreHeader() {
                 </span>
                 <div className="flex items-center gap-1.5 mt-1">
                   <Badge variant="secondary" className="text-xs">
-                    Call Centre Operator
+                    {t("callCentreHeader.role", "Call Centre Operator")}
                   </Badge>
                   {isOnDuty && (
-                    <Badge className="bg-green-600 text-white text-xs">
-                      On Duty
+                    <Badge className="bg-alert-resolved text-alert-resolved-foreground text-xs">
+                      {t("callCentreHeader.onDuty", "On Duty")}
                     </Badge>
                   )}
                 </div>
@@ -316,7 +320,7 @@ export function CallCentreHeader() {
                 className="flex items-center cursor-pointer"
               >
                 <Clock className="w-4 h-4 mr-2" />
-                My Shift History
+                {t("callCentreHeader.shiftHistory", "My Shift History")}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
@@ -325,7 +329,7 @@ export function CallCentreHeader() {
                 className="flex items-center cursor-pointer"
               >
                 <Settings className="w-4 h-4 mr-2" />
-                Preferences
+                {t("callCentreHeader.preferences", "Preferences")}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -335,7 +339,7 @@ export function CallCentreHeader() {
                 className="text-orange-600"
               >
                 <ShieldOff className="mr-2 h-4 w-4" />
-                End Shift
+                {t("callCentreHeader.endShift", "End Shift")}
               </DropdownMenuItem>
             )}
             <DropdownMenuItem
@@ -343,7 +347,7 @@ export function CallCentreHeader() {
               className="text-destructive"
             >
               <LogOut className="mr-2 h-4 w-4" />
-              Log Out
+              {t("callCentreHeader.logOut", "Log Out")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -354,7 +358,7 @@ export function CallCentreHeader() {
           size="icon"
           onClick={handleSignOut}
           className="text-muted-foreground hover:text-destructive"
-          title="Log Out"
+          title={t("callCentreHeader.logOut", "Log Out")}
         >
           <LogOut className="h-4 w-4" />
         </Button>

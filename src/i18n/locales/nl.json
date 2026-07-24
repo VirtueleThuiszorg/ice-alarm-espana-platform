@@ -603,7 +603,8 @@
     "call": "Bellen",
     "markComplete": "Markeren als voltooid",
     "deleting": "Verwijderen...",
-    "selected": "geselecteerd"
+    "selected": "geselecteerd",
+    "view": "Bekijken"
   },
   "auth": {
     "login": "Inloggen",
@@ -872,7 +873,8 @@
     "footer": {
       "links": "Links",
       "legal": "Juridisch"
-    }
+    },
+    "ourDifference": "Ons verschil"
   },
   "membership": {
     "single": "Één persoon",
@@ -2867,7 +2869,10 @@
       "addEmergencyContact": "Voeg minstens één noodcontact toe",
       "acceptTerms": "Accepteer de servicevoorwaarden",
       "acceptPrivacy": "Geef toestemming om medische informatie te delen met hulpdiensten"
-    }
+    },
+    "paymentSuccessRecovered": "Betaling ontvangen! Uw bestelling is bevestigd.",
+    "draftSaveFailed": "We konden uw voortgang niet opslaan. U kunt doorgaan, maar sluit dit tabblad niet.",
+    "contactRequiredFields": "Vul de naam, relatie en het telefoonnummer in."
   },
   "chat": {
     "openChat": "Chat openen",

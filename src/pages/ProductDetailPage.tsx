@@ -40,7 +40,7 @@ export default function ProductDetailPage() {
         <PublicHeader />
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
           <h1 className="text-2xl font-bold">Product not found</h1>
-          <Link to="/products">
+          <Link to="/pendant">
             <Button variant="outline" className="gap-2">
               <ArrowLeft className="h-4 w-4" /> Back to Products
             </Button>
@@ -66,7 +66,7 @@ export default function ProductDetailPage() {
 
       <section className="py-12 px-4">
         <div className="container mx-auto max-w-5xl">
-          <Link to="/products" className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary mb-8 transition-colors">
+          <Link to="/pendant" className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary mb-8 transition-colors">
             <ArrowLeft className="h-4 w-4" /> All Products
           </Link>
 

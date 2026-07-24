@@ -217,7 +217,7 @@ export default function MemberUpdatePage() {
   // Render status screens
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
           <p className="mt-4 text-muted-foreground">{t("common.loading", "Loading...")}</p>
@@ -228,10 +228,10 @@ export default function MemberUpdatePage() {
 
   if (status === "invalid") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center">
-            <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <XCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">{t("memberUpdate.tokenInvalid", "Invalid Link")}</h2>
             <p className="text-muted-foreground">
               {t("memberUpdate.tokenInvalidDesc", "This link is invalid. Please contact us for assistance.")}
@@ -244,10 +244,10 @@ export default function MemberUpdatePage() {
 
   if (status === "expired") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center">
-            <AlertCircle className="h-16 w-16 text-amber-500 mx-auto mb-4" />
+            <AlertCircle className="h-16 w-16 text-alert-battery mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">{t("memberUpdate.tokenExpired", "Link Expired")}</h2>
             <p className="text-muted-foreground">
               {t("memberUpdate.tokenExpiredDesc", "This link has expired. Please contact us for a new link.")}
@@ -260,10 +260,10 @@ export default function MemberUpdatePage() {
 
   if (status === "used") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center">
-            <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <CheckCircle2 className="h-16 w-16 text-alert-resolved mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">{t("memberUpdate.tokenAlreadyUsed", "Already Submitted")}</h2>
             <p className="text-muted-foreground">
               {t("memberUpdate.tokenAlreadyUsedDesc", "This form has already been submitted. Thank you!")}
@@ -276,10 +276,10 @@ export default function MemberUpdatePage() {
 
   if (status === "submitted") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center">
-            <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <CheckCircle2 className="h-16 w-16 text-alert-resolved mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">{t("memberUpdate.updateSuccess", "Thank You!")}</h2>
             <p className="text-muted-foreground">
               {t("memberUpdate.updateSuccessDesc", "Your information has been updated successfully.")}
@@ -292,7 +292,7 @@ export default function MemberUpdatePage() {
 
   // Main form
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-background py-8 px-4">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">

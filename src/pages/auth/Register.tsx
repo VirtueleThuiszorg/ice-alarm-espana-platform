@@ -57,7 +57,7 @@ export default function Register() {
 
       if (data.user) {
         await reportEvent('new_signup', {
-          label: `New LifeLink member`,
+          label: `New Care Conneqt member`,
           metadata: { email: values.email }
         });
         await updateDailyMetrics({ newSignups: 1 });

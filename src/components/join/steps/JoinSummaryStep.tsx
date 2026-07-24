@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { JoinWizardData } from "@/types/wizard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -122,8 +123,8 @@ export function JoinSummaryStep({ data, onUpdate }: JoinSummaryStepProps) {
       </CardContent></Card>
 
       <Card className="bg-muted/30"><CardContent className="pt-6 space-y-4">
-        <div className="flex items-start space-x-3"><Checkbox id="terms" checked={data.acceptTerms} onCheckedChange={(checked) => onUpdate({ acceptTerms: checked === true })} /><div className="grid gap-1.5 leading-none"><label htmlFor="terms" className="text-sm font-medium leading-none cursor-pointer">{t("joinWizard.summary.acceptTerms")}</label><p className="text-xs text-muted-foreground">{t("joinWizard.summary.termsNote")}</p></div></div>
-        <div className="flex items-start space-x-3"><Checkbox id="privacy" checked={data.acceptPrivacy} onCheckedChange={(checked) => onUpdate({ acceptPrivacy: checked === true })} /><div className="grid gap-1.5 leading-none"><label htmlFor="privacy" className="text-sm font-medium leading-none cursor-pointer">{t("joinWizard.summary.acceptMedical")}</label><p className="text-xs text-muted-foreground">{t("joinWizard.summary.medicalNote")}</p></div></div>
+        <div className="flex items-start space-x-3"><Checkbox id="terms" checked={data.acceptTerms} onCheckedChange={(checked) => onUpdate({ acceptTerms: checked === true })} /><div className="grid gap-1.5 leading-none"><label htmlFor="terms" className="text-sm font-medium leading-none cursor-pointer">{t("joinWizard.summary.acceptTerms")} (<Link to="/terms" target="_blank" className="underline">{t("common.view", "View")}</Link>)</label><p className="text-xs text-muted-foreground">{t("joinWizard.summary.termsNote")}</p></div></div>
+        <div className="flex items-start space-x-3"><Checkbox id="privacy" checked={data.acceptPrivacy} onCheckedChange={(checked) => onUpdate({ acceptPrivacy: checked === true })} /><div className="grid gap-1.5 leading-none"><label htmlFor="privacy" className="text-sm font-medium leading-none cursor-pointer">{t("joinWizard.summary.acceptMedical")} (<Link to="/privacy" target="_blank" className="underline">{t("common.view", "View")}</Link>)</label><p className="text-xs text-muted-foreground">{t("joinWizard.summary.medicalNote")}</p></div></div>
       </CardContent></Card>
 
       <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground"><Shield className="h-4 w-4" /><span>{t("joinWizard.summary.securityNote")}</span></div>

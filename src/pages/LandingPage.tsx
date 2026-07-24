@@ -56,7 +56,7 @@ export default function LandingPage() {
       // Fire and forget - track that the referral link was viewed
       supabase.functions.invoke("track-invite-view", {
         body: { referralCode: refCode }
-      }).catch(() => {}); // Silent failure
+      }).catch((e) => console.warn("track-invite-view failed:", e));
     }
   }, [searchParams]);
 
@@ -200,7 +200,7 @@ export default function LandingPage() {
         <div className="container mx-auto">
           <div className="text-center mb-14">
             <Badge variant="outline" className="mb-4 border-primary/30 text-primary bg-primary/5 px-4 py-1.5 text-sm font-medium">
-              {t("landing.badge").includes("Protecting") ? "Our Difference" : "Nuestra Diferencia"}
+              {t("landing.ourDifference", "Our Difference")}
             </Badge>
             <h2 className="text-3xl font-bold mb-4">{t("landing.whyChoose")}</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -502,7 +502,9 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials Section */}
+      {/* Testimonials Section — only rendered when real, DB-sourced testimonials
+          exist (LAUNCH_SCOPE §7: no unverifiable claims, no fixture reviews). */}
+      {dbTestimonials && dbTestimonials.length > 0 && (
       <section className="py-20 px-4 bg-gradient-to-b from-muted/30 to-background">
         <div className="container mx-auto">
           <div className="text-center mb-12">
@@ -510,7 +512,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            {(dbTestimonials && dbTestimonials.length > 0 ? dbTestimonials : []).map((item) => {
+            {dbTestimonials.map((item) => {
               const isEs = i18n.language === "es";
               const quote = isEs ? item.quote_es : item.quote_en;
               const location = isEs ? item.location_es : item.location_en;
@@ -552,6 +554,7 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+      )}
 
       {/* Partner Programme Section */}
       <section className="py-20 px-4 bg-muted/30">
@@ -661,7 +664,13 @@ export default function LandingPage() {
             </Button>
           </div>
           <p className="text-sm text-muted-foreground mt-6">
-            {t("landing.haveQuestions")} {t("landing.callUsAnytime")}
+            {t("landing.haveQuestions")}{" "}
+            <a
+              href={`tel:${companySettings.emergency_phone.replace(/\s/g, '')}`}
+              className="text-primary hover:underline"
+            >
+              {t("landing.callUsAnytime")}
+            </a>
           </p>
         </div>
       </section>
@@ -680,7 +689,7 @@ export default function LandingPage() {
               <h4 className="font-semibold mb-4">{t("navigation.contact")}</h4>
               <ul className="space-y-2 text-sm text-sidebar-foreground/70">
                 <li><a href={`tel:${companySettings.emergency_phone.replace(/\s/g, '')}`} className="hover:text-sidebar-foreground">{t("common.callNow")}</a></li>
-                <li>{companySettings.support_email}</li>
+                <li><a href={`mailto:${companySettings.support_email}`} className="hover:text-sidebar-foreground">{companySettings.support_email}</a></li>
                 <li>{companySettings.address}</li>
               </ul>
             </div>

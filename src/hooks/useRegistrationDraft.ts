@@ -25,9 +25,10 @@ export function useRegistrationDraft() {
     setSessionId(storedSessionId);
   }, []);
 
-  // Save draft to database
-  const saveDraft = useCallback(async (currentStep: number, wizardData: JoinWizardData) => {
-    if (!sessionId) return;
+  // Save draft to database. Returns { success } so callers can decide how to
+  // surface a failure — the wizard shows a non-blocking warning and continues.
+  const saveDraft = useCallback(async (currentStep: number, wizardData: JoinWizardData): Promise<{ success: boolean }> => {
+    if (!sessionId) return { success: false };
 
     setIsSaving(true);
     try {
@@ -41,11 +42,14 @@ export function useRegistrationDraft() {
 
       if (error) {
         console.error("Failed to save draft:", error);
-      } else {
-        setLastSaved(new Date());
+        return { success: false };
       }
+
+      setLastSaved(new Date());
+      return { success: true };
     } catch (err) {
       console.error("Error saving draft:", err);
+      return { success: false };
     } finally {
       setIsSaving(false);
     }
@@ -57,8 +61,10 @@ export function useRegistrationDraft() {
 
     try {
       // Use supabase directly since we need service role for this
-      // The edge function will handle this with service role
-      await supabase.functions.invoke("save-registration-draft", {
+      // The edge function will handle this with service role.
+      // NB: invoke resolves with { error } rather than throwing — destructure
+      // it, or a failed conversion mark passes silently.
+      const { error } = await supabase.functions.invoke("save-registration-draft", {
         body: {
           sessionId,
           currentStep: 9,
@@ -67,6 +73,9 @@ export function useRegistrationDraft() {
           convertedMemberId: memberId,
         },
       });
+      if (error) {
+        console.error("Error marking draft as converted:", error);
+      }
     } catch (err) {
       console.error("Error marking draft as converted:", err);
     }

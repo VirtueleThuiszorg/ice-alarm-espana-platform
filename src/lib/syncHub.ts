@@ -25,7 +25,7 @@ const syncHub = (syncHubUrl && syncHubKey)
 export async function reportEvent(
     eventType: string,
     options?: {
-        amount?: number        // in pence e.g. 999 = £9.99
+        amount?: number        // in cents e.g. 999 = 9.99
         currency?: string      // default 'GBP'
         label?: string         // human readable description
         metadata?: Record<string, unknown>

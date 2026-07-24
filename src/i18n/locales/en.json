@@ -603,7 +603,8 @@
     "call": "Call",
     "markComplete": "Mark complete",
     "deleting": "Deleting...",
-    "selected": "selected"
+    "selected": "selected",
+    "view": "View"
   },
   "auth": {
     "login": "Login",
@@ -872,7 +873,8 @@
     "footer": {
       "links": "Links",
       "legal": "Legal"
-    }
+    },
+    "ourDifference": "Our Difference"
   },
   "membership": {
     "single": "Single Person",
@@ -2867,7 +2869,10 @@
       "addEmergencyContact": "Please add at least one emergency contact",
       "acceptTerms": "Please accept the Terms of Service",
       "acceptPrivacy": "Please consent to share medical information with emergency services"
-    }
+    },
+    "paymentSuccessRecovered": "Payment received! Your order is confirmed.",
+    "draftSaveFailed": "We couldn't save your progress — you can continue, but don't close this tab.",
+    "contactRequiredFields": "Please fill in name, relationship and phone number."
   },
   "chat": {
     "openChat": "Open chat",

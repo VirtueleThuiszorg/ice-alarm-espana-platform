@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Phone, User, AlertCircle, Edit2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface JoinContactsStepProps {
   data: JoinWizardData;
@@ -62,6 +63,7 @@ export function JoinContactsStep({ data, onUpdate }: JoinContactsStepProps) {
 
   const saveContact = () => {
     if (!contactForm.contactName || !contactForm.relationship || !contactForm.phone) {
+      toast.error(t("joinWizard.contactRequiredFields", "Please fill in name, relationship and phone number."));
       return;
     }
 

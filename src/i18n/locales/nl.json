@@ -5507,7 +5507,8 @@
       "reviewFailed": "Verlof beoordelen mislukt",
       "cancelled": "Verlof geannuleerd",
       "cancelFailed": "Verlof annuleren mislukt"
-    }
+    },
+    "naturalDaysNote": "Het tegoed is in kalenderdagen (días naturales) — Spaans wettelijk minimum: 30 kalenderdagen per jaar (Estatuto de los Trabajadores, art. 38)."
   },
   "shifts": {
     "morning": "Morning",

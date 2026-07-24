@@ -5507,7 +5507,8 @@
       "reviewFailed": "Failed to review holiday",
       "cancelled": "Holiday cancelled",
       "cancelFailed": "Failed to cancel holiday"
-    }
+    },
+    "naturalDaysNote": "Allowance is in natural (calendar) days — Spanish statutory minimum: 30 días naturales per year (Estatuto de los Trabajadores, art. 38)."
   },
   "shifts": {
     "morning": "Morning",

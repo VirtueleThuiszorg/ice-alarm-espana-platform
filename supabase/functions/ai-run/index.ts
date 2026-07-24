@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { functionKeyForTrigger, isIsabellaFunctionAllowed } from "../_shared/isabella-gate.ts";
 import { decideVerification, applyEscalation, verificationDirective } from "../_shared/verification-gate.ts";
+import { ISABELLA_MODEL, isabellaComplete, isRateLimitError, toAnthropicTurns } from "../_shared/anthropic.ts";
 
 
 
@@ -798,12 +799,12 @@ serve(async (req) => {
   const requestId = crypto.randomUUID();
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    // Fail fast with the exact config error rather than mid-conversation.
+    if (!Deno.env.get("ANTHROPIC_API_KEY")) {
+      throw new Error("ANTHROPIC_API_KEY is not configured");
     }
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
@@ -964,58 +965,29 @@ You are speaking directly with ${member?.first_name || "this member"}. Use their
         systemPrompt = MEMBER_SPECIALIST_CHAT_PROMPT + memberContext;
       }
 
-      const messages = [
-        { 
-          role: "system", 
-          content: systemPrompt + languageInstruction
-        },
-        ...conversationHistory.map((msg: { role: string; content: string }) => ({
-          role: msg.role,
-          content: msg.content
-        }))
-      ];
-
-      // If currentMessage is separate from history, add it
-      if (currentMessage && !conversationHistory.some((m: { content: string }) => m.content === currentMessage)) {
-        messages.push({ role: "user", content: currentMessage });
-      }
-
-      // Call Lovable AI for chat response
-      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages,
-          temperature: 0.7,
-          max_tokens: 500,
-        }),
-      });
-
-      if (!aiResponse.ok) {
-        const errorText = await aiResponse.text();
-        console.error("AI Gateway error:", aiResponse.status, errorText);
-        
-        if (aiResponse.status === 429) {
+      // Anthropic Messages API: system prompt is top-level, history becomes
+      // user/assistant turns (same prompt text as before — only the transport
+      // changed from the Lovable gateway).
+      let responseContent = "";
+      let chatTokens: number | null = null;
+      try {
+        const completion = await isabellaComplete({
+          system: systemPrompt + languageInstruction,
+          turns: toAnthropicTurns(conversationHistory, currentMessage),
+          maxTokens: 500,
+        });
+        responseContent = completion.text;
+        chatTokens = completion.tokensUsed;
+      } catch (aiError) {
+        console.error("Anthropic API error (chat):", aiError);
+        if (isRateLimitError(aiError)) {
           return new Response(
             JSON.stringify({ error: "Rate limit exceeded, please try again later" }),
             { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
-        if (aiResponse.status === 402) {
-          return new Response(
-            JSON.stringify({ error: "AI credits exhausted" }),
-            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        throw new Error(`AI Gateway error: ${aiResponse.status}`);
+        throw aiError;
       }
-
-      const aiResult = await aiResponse.json();
-      const responseContent = aiResult.choices?.[0]?.message?.content || "";
 
       console.log(JSON.stringify({
         event: "ai_run_success",
@@ -1023,7 +995,7 @@ You are speaking directly with ${member?.first_name || "this member"}. Use their
         agentKey,
         source: "chat_widget",
         durationMs: Date.now() - startTime,
-        tokenCount: aiResult.usage?.total_tokens || null,
+        tokenCount: chatTokens,
       }));
 
       return new Response(
@@ -1145,58 +1117,26 @@ When discussing emergency contacts, use the EXACT names listed above - never inv
         }
       }
 
-      const messages = [
-        { 
-          role: "system", 
-          content: systemPrompt + voiceInstructions + memberContext + languageInstruction + verificationDirective(verificationDecision)
-        },
-        ...conversationHistory.map((msg: { role: string; content: string }) => ({
-          role: msg.role,
-          content: msg.content
-        }))
-      ];
-
-      // Add current message if not in history
-      if (currentMessage && !conversationHistory.some((m: { content: string }) => m.content === currentMessage)) {
-        messages.push({ role: "user", content: currentMessage });
-      }
-
-      // Call Lovable AI with lower token limit for voice
-      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages,
-          temperature: 0.7,
-          max_tokens: 300, // Lower for voice - keep responses concise
-        }),
-      });
-
-      if (!aiResponse.ok) {
-        const errorText = await aiResponse.text();
-        console.error("Voice AI Gateway error:", aiResponse.status, errorText);
-        
-        if (aiResponse.status === 429) {
+      // Same prompt assembly as before (incl. the CODE-ENFORCED verification
+      // directive) — only the transport changed. Lower token limit for voice.
+      let responseContent = "";
+      try {
+        const completion = await isabellaComplete({
+          system: systemPrompt + voiceInstructions + memberContext + languageInstruction + verificationDirective(verificationDecision),
+          turns: toAnthropicTurns(conversationHistory, currentMessage),
+          maxTokens: 300, // Lower for voice - keep responses concise
+        });
+        responseContent = completion.text;
+      } catch (aiError) {
+        console.error("Anthropic API error (voice):", aiError);
+        if (isRateLimitError(aiError)) {
           return new Response(
             JSON.stringify({ error: "Rate limit exceeded" }),
             { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
-        if (aiResponse.status === 402) {
-          return new Response(
-            JSON.stringify({ error: "AI credits exhausted" }),
-            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        throw new Error(`Voice AI Gateway error: ${aiResponse.status}`);
+        throw aiError;
       }
-
-      const aiResult = await aiResponse.json();
-      let responseContent = aiResult.choices?.[0]?.message?.content || "";
 
       // Clean up any markdown or formatting that slipped through
       responseContent = responseContent
@@ -1433,56 +1373,38 @@ If no action is needed, respond with {"actions": [], "analysis": "your analysis 
       throw new Error(`Failed to create run record: ${runError.message}`);
     }
 
-    // Call Lovable AI
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage },
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
-      }),
-    });
+    // Anthropic Messages API — same prompt, same JSON-actions contract.
+    let responseContent = "";
+    let tokensUsed = 0;
+    try {
+      const completion = await isabellaComplete({
+        system: systemPrompt,
+        turns: [{ role: "user", content: userMessage }],
+        maxTokens: 2000,
+      });
+      responseContent = completion.text;
+      tokensUsed = completion.tokensUsed;
+    } catch (aiError) {
+      console.error("Anthropic API error (agent):", aiError);
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("AI Gateway error:", aiResponse.status, errorText);
-      
       // Update run with error
       await supabase
         .from("ai_runs")
         .update({
           status: "failed",
-          error_message: `AI Gateway error: ${aiResponse.status}`,
+          error_message: `Anthropic API error: ${aiError instanceof Error ? aiError.message : "unknown"}`,
           duration_ms: Date.now() - startTime,
         })
         .eq("id", runRecord.id);
 
-      if (aiResponse.status === 429) {
+      if (isRateLimitError(aiError)) {
         return new Response(
           JSON.stringify({ error: "Rate limit exceeded, please try again later" }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      if (aiResponse.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted, please add funds" }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      throw new Error(`AI Gateway error: ${aiResponse.status}`);
+      throw aiError;
     }
-
-    const aiResult = await aiResponse.json();
-    const responseContent = aiResult.choices?.[0]?.message?.content || "";
-    const tokensUsed = aiResult.usage?.total_tokens || 0;
 
     // Parse the AI response
     let parsedOutput: { actions: unknown[]; analysis?: string } = { actions: [] };
@@ -1503,7 +1425,7 @@ If no action is needed, respond with {"actions": [], "analysis": "your analysis 
       .update({
         status: "completed",
         output: parsedOutput,
-        model_used: "google/gemini-3-flash-preview",
+        model_used: ISABELLA_MODEL,
         tokens_used: tokensUsed,
         duration_ms: Date.now() - startTime,
       })

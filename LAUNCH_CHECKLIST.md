@@ -80,16 +80,28 @@
       so future swaps propagate.)
 
 ### Pre-launch polish (Stage 8 broken-items sweep)  *(added 2026-07-24, goal loop)*
-- [ ] **nl locale: legacy English values replaced with real Dutch** — 52 keys in
+- [x] **nl locale: legacy English values replaced with real Dutch** — 52 keys in
       `shifts.*` / `leads.*` / `covers.*` / `callCentre.members.*` were English pasted
-      into `nl.json`. Fixed (formal-u register) in **PR #56**; regression-guarded by
-      `nlTranslations.test.ts` (any nl value byte-identical to en in those namespaces
-      fails, two legitimate "Status" identicals pinned). Tick when merged.
-- [ ] **Portal-wide page-audit sweep (all portals × en/es/nl)** — inventory taken
-      2026-07-24 (16 dead buttons, ~66 missing-key sites, 1 contrast issue, 0 broken
-      links; see goal-loop item-3 report). Fixes land one PR per portal; gated overlaps
-      (call-centre emergency button = WP-D reland, client emergency contact button,
-      SubscriptionTab payment buttons) stay held for Lee.
+      into `nl.json`. Fixed (formal-u register), **merged in PR #56**; regression-guarded
+      by `nlTranslations.test.ts` (any nl value byte-identical to en in those namespaces
+      fails, two legitimate "Status" identicals pinned).
+- [x] **Portal-wide page-audit sweep, non-gated fixes (all portals × en/es/nl)** —
+      inventory 2026-07-24 (16 dead buttons, ~66 missing-key sites, 1 contrast issue,
+      0 broken links). All non-gated fixes are **on main**: batch 1 client/auth (#57),
+      batches 2–4 partner/admin/call-centre (#58/#59/#60, relayed to main via #63 after
+      the stacked-base misdirect). `i18nKeyCoverage.test.ts` harness pin is EMPTY —
+      every no-default `t()` key resolves in en/es/nl, and the `t(...) || "…"`
+      anti-pattern is banned repo-wide.
+- [ ] **Page-audit gated leftovers (await Lee)**: call-centre emergency button
+      (= WP-D reland, parked for live drill) · client emergency contact button
+      (`ClientLayout.tsx`, SOS-adjacent) · SubscriptionTab Create/Change-Plan buttons
+      (payments) · partner alert Acknowledge button (alerts write). Each needs Lee's
+      word before a gated PR is built/merged.
+- [ ] **Lovable exit, final slice**: `auth-email-hook` migration **on main** (#62 via
+      relay #64 — needs deploy + Send Email hook cutover, steps in PR #64); growth-fn
+      archive **PR #65 (draft)** awaiting Lee's visual approval. After #65: zero
+      Lovable references outside `archive/` (pinned by `lovableDebris.test.ts` +
+      `archivedFunctions.test.ts`).
 
 ## Rollout stages (see LAUNCH_SCOPE.md §10)
 Stage 0 backend → Stage 1 scope locked → Stage 2 docs → Stage 3 pricing-to-DB →

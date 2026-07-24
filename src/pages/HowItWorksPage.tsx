@@ -169,6 +169,12 @@ export default function HowItWorksPage() {
               <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-primary/10 aspect-[4/3] bg-muted">
                 <ImageWithPlaceholder
                   imageUrl={heroImage.imageUrl || "/images/how-it-works-hero.jpg"}
+                  {...(!heroImage.imageUrl && {
+                    sources: [
+                      { srcSet: "/images/how-it-works-hero.avif", type: "image/avif" },
+                      { srcSet: "/images/how-it-works-hero.webp", type: "image/webp" },
+                    ],
+                  })}
                   altText={
                     heroImage.altText ||
                     "Elderly woman at home protected by Care Conneqt pendant"

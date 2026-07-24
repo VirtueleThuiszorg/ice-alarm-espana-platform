@@ -328,6 +328,7 @@ export default function PendantPage() {
               <div className="relative z-10 aspect-[4/5] overflow-hidden rounded-3xl shadow-2xl shadow-primary/10 bg-muted">
                 <ImageWithPlaceholder
                   imageUrl="/pendant2.webp"
+                  sources={[{ srcSet: "/pendant2.avif", type: "image/avif" }]}
                   altText="A Care Conneqt member hiking a Spanish mountain trail wearing the pendant"
                   imgClassName="object-cover"
                   width={800}

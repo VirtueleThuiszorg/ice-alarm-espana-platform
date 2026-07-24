@@ -33,28 +33,33 @@ export default defineConfig(({ mode }) => ({
     // Optimize chunk splitting for better caching
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Core React libraries
-          "vendor-react": ["react", "react-dom", "react-router-dom"],
-          // Radix UI components
-          "vendor-ui": [
-            "@radix-ui/react-dialog",
-            "@radix-ui/react-dropdown-menu",
-            "@radix-ui/react-tabs",
-            "@radix-ui/react-select",
-            "@radix-ui/react-popover",
-            "@radix-ui/react-tooltip",
-          ],
-          // Data fetching
-          "vendor-query": ["@tanstack/react-query"],
-          // Charts (only loaded when needed)
-          "vendor-charts": ["recharts"],
-          // Supabase client
-          "vendor-supabase": ["@supabase/supabase-js"],
-          // Date utilities
-          "vendor-date": ["date-fns"],
-          // i18n
-          "vendor-i18n": ["i18next", "react-i18next", "i18next-browser-languagedetector"],
+        // Function form, NOT object form: the object form links every listed
+        // vendor chunk into the entry's preload graph, so vendor-charts
+        // (421KB of recharts) was modulepreloaded on EVERY page including
+        // /login. The function only names a chunk when a module is actually
+        // reached by an import — laziness is preserved and recharts now loads
+        // only on pages that render charts.
+        manualChunks(id: string) {
+          if (!id.includes("node_modules")) return undefined;
+          // Small utils shared by BOTH the eager entry and recharts. Without
+          // this line Rollup co-locates them inside vendor-charts, which drags
+          // the whole 420KB chart chunk into the entry preload graph via cn()/clsx.
+          if (/node_modules\/(clsx|class-variance-authority|tailwind-merge|lodash|react-is|prop-types|eventemitter3|tiny-invariant|fast-equals)\//.test(id)) return "vendor-utils";
+          if (id.includes("recharts") || id.includes("d3-")) return "vendor-charts";
+          // use-sync-external-store is a React-family shim imported by BOTH
+          // react-router-dom and react-i18next — it must live WITH react or the
+          // two vendor chunks import each other (cycle → react undefined at
+          // eval time → createContext crash on boot).
+          // i18next lives WITH react: both are eager on every page (main.tsx
+          // imports ./i18n) and separating them produced a chunk cycle
+          // (react-i18next needs react; a shared rollup facade pointed the
+          // other way) that crashed boot with "createContext of undefined".
+          if (/node_modules\/(react|react-dom|react-router|react-router-dom|scheduler|use-sync-external-store|@remix-run)\//.test(id) || id.includes("i18next")) return "vendor-react";
+          if (id.includes("@radix-ui")) return "vendor-ui";
+          if (id.includes("@tanstack")) return "vendor-query";
+          if (id.includes("@supabase")) return "vendor-supabase";
+          if (id.includes("date-fns")) return "vendor-date";
+          return undefined;
         },
       },
     },

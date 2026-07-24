@@ -143,7 +143,14 @@ export default function LandingPage() {
             <div className="relative isolate">
               <div className="relative z-10 rounded-3xl overflow-hidden shadow-2xl shadow-primary/10 aspect-[4/3] bg-muted">
                 <ImageWithPlaceholder
-                  imageUrl={heroImage.imageUrl || "/images/homepage1.png"}
+                  imageUrl={heroImage.imageUrl || "/images/homepage-hero-800.jpg"}
+                  {...(!heroImage.imageUrl && {
+                    sources: [
+                      { srcSet: "/images/homepage-hero-800.avif 800w, /images/homepage-hero-1600.avif 1600w", type: "image/avif" },
+                      { srcSet: "/images/homepage-hero-800.webp 800w, /images/homepage-hero-1600.webp 1600w", type: "image/webp" },
+                    ],
+                    sizes: "(min-width: 1024px) 50vw, 100vw",
+                  })}
                   altText={heroImage.altText || "Happy multigenerational family enjoying peace of mind with Care Conneqt protection"}
                   placeholderText="Hero Image"
                   placeholderSubtext="Coming Soon"

@@ -28,8 +28,7 @@ const INHERITORS = [
   "gdpr-delete-member",
   "partner-admin-create",
   "partner-admin-invite",
-  // partner-apply joins this list when PR #68 (flat-terms confirmation
-  // email) merges — its sendEmail import lives on that branch.
+  "partner-apply",
   "partner-register",
   "partner-send-invite",
   "send-email",

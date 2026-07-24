@@ -90,3 +90,24 @@ export async function isabellaComplete(opts: {
     tokensUsed: (response.usage?.input_tokens ?? 0) + (response.usage?.output_tokens ?? 0),
   };
 }
+
+/**
+ * Streaming variant for the public chat widget (SSE). Same model, same
+ * no-sampling-params contract as isabellaComplete — returns the SDK's
+ * MessageStream; the caller iterates text deltas and reads finalMessage()
+ * for usage. Reuses anthropicClient() so the single-construction invariant
+ * holds.
+ */
+export function isabellaStream(opts: {
+  system: string;
+  turns: Anthropic.MessageParam[];
+  maxTokens: number;
+}) {
+  const client = anthropicClient();
+  return client.messages.stream({
+    model: ISABELLA_MODEL,
+    max_tokens: opts.maxTokens,
+    system: opts.system,
+    messages: opts.turns,
+  });
+}

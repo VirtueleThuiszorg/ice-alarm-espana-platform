@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { functionKeyForTrigger, isIsabellaFunctionAllowed } from "../_shared/isabella-gate.ts";
 import { decideVerification, applyEscalation, verificationDirective } from "../_shared/verification-gate.ts";
-import { ISABELLA_MODEL, isabellaComplete, isRateLimitError, toAnthropicTurns } from "../_shared/anthropic.ts";
+import { ISABELLA_MODEL, isabellaComplete, isabellaStream, isRateLimitError, toAnthropicTurns } from "../_shared/anthropic.ts";
 
 
 
@@ -963,6 +963,56 @@ You are speaking directly with ${member?.first_name || "this member"}. Use their
 `;
 
         systemPrompt = MEMBER_SPECIALIST_CHAT_PROMPT + memberContext;
+      }
+
+      // STREAMING (opt-in): the widget sends context.stream === true and
+      // renders deltas as they arrive. The non-streaming JSON shape below
+      // remains the default so older clients and the voice/agent paths are
+      // untouched. Same system prompt, same turns, same gates either way.
+      if (context?.stream === true) {
+        const stream = isabellaStream({
+          system: systemPrompt + languageInstruction,
+          turns: toAnthropicTurns(conversationHistory, currentMessage),
+          maxTokens: 500,
+        });
+        const encoder = new TextEncoder();
+        const body = new ReadableStream<Uint8Array>({
+          async start(controller) {
+            let full = "";
+            try {
+              for await (const event of stream) {
+                if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+                  full += event.delta.text;
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta: event.delta.text })}\n\n`));
+                }
+              }
+              const final = await stream.finalMessage();
+              console.log(JSON.stringify({
+                event: "ai_run_success",
+                requestId,
+                agentKey,
+                source: "chat_widget",
+                streamed: true,
+                durationMs: Date.now() - startTime,
+                tokenCount: (final.usage?.input_tokens ?? 0) + (final.usage?.output_tokens ?? 0),
+              }));
+              // Final frame carries the full text so the client can reconcile.
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, response: full })}\n\n`));
+            } catch (streamError) {
+              console.error("Anthropic stream error (chat):", streamError);
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "stream_failed" })}\n\n`));
+            } finally {
+              controller.close();
+            }
+          },
+        });
+        return new Response(body, {
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+          },
+        });
       }
 
       // Anthropic Messages API: system prompt is top-level, history becomes

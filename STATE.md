@@ -312,7 +312,11 @@ messages unassign `""`→`null` bug; `callCentreCrud.test.ts` 11 tests).
   completion under Lovable too, but Opus 4.8 latency makes streaming worth adding; needs
   SSE piping through the edge fn + widget incremental rendering. Also fixed: the chat
   prompt introduced her as "Isabel" — canonical spelling **Isabella** (2026-06-18 decision)
-  now applied in `ai-run` + the voice greeting defaults. `ai-run`'s three gateway
+  now applied in `ai-run` + the voice greeting defaults.
+  **Operational lesson (2026-07-24, agreed with Lee):** Prompt text lives inside edge
+  functions — a merged prompt change is invisible until `ai-run` is redeployed. The
+  2026-07-24 "Isabel" confusion was deploy lag, not a missed occurrence; fixed live after
+  merge + redeploy, grep confirms zero bare "Isabel" in the repo. `ai-run`'s three gateway
   calls (chat widget / voice / agent) now go through `_shared/anthropic.ts` — official SDK,
   `claude-opus-4-8` default with `ISABELLA_MODEL` env override, no Lovable dependency
   (`isabellaAnthropic.test.ts`, 13 tests: zero-gateway invariant, single-transport path,

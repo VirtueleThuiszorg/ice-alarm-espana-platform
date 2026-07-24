@@ -566,10 +566,6 @@ export function ResidentialDashboard({
                   <CardTitle>{t("partner.residential.billing.invoiceHistory", "Invoice History")}</CardTitle>
                   <CardDescription>{t("partner.residential.billing.invoiceHistoryDesc", "Past invoices and payment status")}</CardDescription>
                 </div>
-                <Button variant="outline" size="sm">
-                  <Download className="h-4 w-4 mr-2" />
-                  {t("partner.residential.billing.downloadAll", "Download All")}
-                </Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -615,19 +611,11 @@ export function ResidentialDashboard({
               <div className="grid gap-3 md:grid-cols-2">
                 <Button variant="outline" className="justify-start" onClick={handleExportMembers}>
                   <Download className="h-4 w-4 mr-2" />
-                  {t("partner.residential.reports.monthlySummaryPdf", "Monthly Summary (PDF)")}
+                  {t("partner.residential.reports.memberDirectoryCsv", "Resident Directory (CSV)")}
                 </Button>
                 <Button variant="outline" className="justify-start" onClick={handleExportAlerts}>
                   <Download className="h-4 w-4 mr-2" />
                   {t("partner.residential.reports.alertHistoryCsv", "Alert History (CSV)")}
-                </Button>
-                <Button variant="outline" className="justify-start" onClick={handleExportMembers}>
-                  <Download className="h-4 w-4 mr-2" />
-                  {t("partner.residential.reports.memberDirectory", "Member Directory (PDF)")}
-                </Button>
-                <Button variant="outline" className="justify-start">
-                  <Download className="h-4 w-4 mr-2" />
-                  {t("partner.residential.reports.deviceStatus", "Device Status (CSV)")}
                 </Button>
               </div>
             </CardContent>

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { STALE_TIMES } from "@/config/constants";
 import type { StaffMember, StaffFilters, StaffStatus } from "@/types/staff";
 import { toast } from "sonner";
+import { extractFunctionError } from "@/lib/functionError";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -143,7 +144,7 @@ export function useCreateStaff() {
       });
 
       if (response.error) {
-        throw new Error(response.error.message || "Failed to create staff member");
+        throw new Error(await extractFunctionError(response.error, "Failed to create staff member"));
       }
 
       if (response.data?.error) {

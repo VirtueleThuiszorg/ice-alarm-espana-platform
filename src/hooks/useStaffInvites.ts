@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { StaffInvite } from "@/types/staff";
 import { toast } from "sonner";
+import { extractFunctionError } from "@/lib/functionError";
 
 // `staff_invites` is not present in the generated Supabase types, so this
 // façade exposes only the query/mutation builder methods used below.
@@ -69,7 +70,7 @@ export function useSendInvite() {
       });
 
       if (response.error) {
-        throw new Error(response.error.message || "Failed to send invitation");
+        throw new Error(await extractFunctionError(response.error, "Failed to send invitation"));
       }
 
       if (response.data?.error) {

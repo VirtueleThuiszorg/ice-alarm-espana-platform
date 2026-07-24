@@ -305,10 +305,15 @@ messages unassign `""`→`null` bug; `callCentreCrud.test.ts` 11 tests).
   `supabase/functions/ai-run/index.ts:28` (chat system prompt) and
   `src/components/admin/settings/VoiceSettingsSection.tsx:37-38` (voice greeting). Voice handler
   (`isabella-voice-handler:93-94`) already says "Isabella". *(Code change — not this loop.)*
-- 🔴 **HIGH PRIORITY — migrate Isabella off the Lovable gateway to the Anthropic API.** Golden-rule
-  violation: `ai-run` POSTs to `https://ai.gateway.lovable.dev/v1/chat/completions`
-  (`ai-run/index.ts:801,984,1165,1437`, model `google/gemini-3-flash-preview`). Owed **regardless of
-  the name**. Also address rule #5 (Isabella must "query as the user", not the service role).
+- 🟡 **Isabella core → Anthropic API: BUILT (gated PR, 2026-07-24).** `ai-run`'s three gateway
+  calls (chat widget / voice / agent) now go through `_shared/anthropic.ts` — official SDK,
+  `claude-opus-4-8` default with `ISABELLA_MODEL` env override, no Lovable dependency
+  (`isabellaAnthropic.test.ts`, 13 tests: zero-gateway invariant, single-transport path,
+  safety surface byte-identical). **Live once merged + `ANTHROPIC_API_KEY` secret set +
+  `ai-run` redeployed.** Root cause of the 2026-07-24 chat outage was the unset
+  `LOVABLE_API_KEY` — the migration removes that failure mode. Still owed: rule #5
+  (Isabella must "query as the user", not the service role), and the ~11 non-core growth
+  functions (outreach-*, media-*, …) remain on the Lovable gateway — archive candidates.
 
 ### Scope — archive candidates (DEFERRED, per RECONCILE.md §2 / plan §11)
 - Label-only for now (no code moved/deleted): **YouTube**, **Facebook**, **AI outreach**,

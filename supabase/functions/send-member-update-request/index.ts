@@ -97,7 +97,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Build the update link
-    const baseUrl = Deno.env.get("SITE_URL") || "https://shelter-span.lovable.app";
+    const baseUrl = Deno.env.get("SITE_URL") || "https://careconneqt.es";
     const updateLink = `${baseUrl}/member-update?token=${token}`;
 
     // Send bilingual email via Gmail SMTP

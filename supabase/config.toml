@@ -36,8 +36,6 @@
     verify_jwt = false
   [functions.outreach-enrich-lead]
     verify_jwt = false
-  [functions.outreach-followup-runner]
-    verify_jwt = false
   [functions.outreach-generate-drafts]
     verify_jwt = false
   [functions.outreach-pipeline-runner]

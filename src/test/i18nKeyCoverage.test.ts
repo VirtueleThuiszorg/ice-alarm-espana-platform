@@ -42,11 +42,8 @@ const LOCALES = ["en", "es", "nl"].map((l) => ({
 const NO_DEFAULT_T = /(?<![a-zA-Z0-9_$])t\(\s*["'`]([a-zA-Z0-9_.]+)["'`]\s*\)/g;
 
 // Remaining audit batches (one PR per portal deletes its section):
-const KNOWN_MISSING = new Set([
-  // — admin portal batch —
-  "common.deleting", "common.selected", "mediaStrategy.approve",
-  "videoHub.create.template", "aiChat.openChat",
-]);
+// All portal batches fixed — keep empty; a new unresolved key fails immediately.
+const KNOWN_MISSING = new Set<string>([]);
 
 function collectSourceKeys(): Map<string, string[]> {
   const found = new Map<string, string[]>(); // key -> files using it

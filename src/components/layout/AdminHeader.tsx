@@ -133,7 +133,6 @@ export function AdminHeader() {
             <DropdownMenuItem onClick={() => navigate("/admin/settings")}>
               {t("navigation.settings")}
             </DropdownMenuItem>
-            <DropdownMenuItem>{t("profile.preferences")}</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
               <LogOut className="mr-2 h-4 w-4" />

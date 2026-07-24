@@ -78,10 +78,20 @@ export function useSendInvite() {
 
       return response.data;
     },
-    onSuccess: (_data, staffId) => {
+    onSuccess: (data, staffId) => {
       queryClient.invalidateQueries({ queryKey: ["staff-invite", staffId] });
       queryClient.invalidateQueries({ queryKey: ["staff-activity", staffId] });
-      toast.success("Invitation sent successfully!");
+      if (data?.email_sent === false) {
+        // Never-silent: the invite row exists, but no email went out — the
+        // admin must know, or the staff member waits forever on nothing.
+        toast.warning(
+          `Invite created, but the email could not be sent (${data.email_error || "email transport unavailable"}). ` +
+            "Fix the email configuration and resend, or share the invite link manually.",
+          { duration: 10000 },
+        );
+      } else {
+        toast.success("Invitation sent successfully!");
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to send invitation");

@@ -307,10 +307,17 @@ messages unassign `""`→`null` bug; `callCentreCrud.test.ts` 11 tests).
   (`isabella-voice-handler:93-94`) already says "Isabella". *(Code change — not this loop.)*
 - ✅ **Isabella core → Anthropic API: DONE, RUNTIME-VERIFIED (2026-07-24).** Merged (#52,
   Lee's sign-off), `ANTHROPIC_API_KEY` set on prod, `ai-run` deployed — **Lee confirmed the
-  public chat widget answers on the new transport.** Known follow-up (not a blocker):
-  responses are NON-STREAMING (whole reply at once) — the widget waited for the full
-  completion under Lovable too, but Opus 4.8 latency makes streaming worth adding; needs
-  SSE piping through the edge fn + widget incremental rendering. Also fixed: the chat
+  public chat widget answers on the new transport.** The known streaming follow-up is
+  now built: **PR #55 (open)** restores SSE streaming — `isabellaStream()` in
+  `_shared/anthropic.ts` (SDK `messages.stream`), an opt-in `context.stream === true`
+  branch in ai-run's chat path emitting `data: {delta}` / `{done, response}` / `{error:
+  "stream_failed"}` frames (non-streaming JSON stays the default for voice/agent and
+  non-opted callers), and incremental rendering in the widget via
+  `src/lib/isabellaChatStream.ts` + `useAIChat` (falls back to the plain invoke path if
+  the stream fails before the first delta; keeps the partial if it drops mid-stream —
+  never double-answers). Tool allowlist + isabella-gate + verification-gate untouched;
+  `isabellaStreaming.test.ts` (11) + the 13 migration contracts prove it. **Live once
+  merged + `ai-run` redeployed** (deploy-lag lesson below applies). Also fixed: the chat
   prompt introduced her as "Isabel" — canonical spelling **Isabella** (2026-06-18 decision)
   now applied in `ai-run` + the voice greeting defaults.
   **Operational lesson (2026-07-24, agreed with Lee):** Prompt text lives inside edge

@@ -157,7 +157,11 @@ serve(async (req: Request) => {
       performed_by: callerStaff.id,
     });
 
-    // Send invite email
+    // Send invite email. The result is REPORTED to the caller (never-silent
+    // rule): the invite row exists either way, but the admin must know
+    // whether the email actually went out.
+    let emailSent = false;
+    let emailErrorReason: string | null = null;
     try {
       const baseUrl = req.headers.get("origin") || "https://careconneqt.es";
       const inviteLink = `${baseUrl}/staff/invite?token=${inviteToken}`;
@@ -209,11 +213,14 @@ serve(async (req: Request) => {
       const emailResult = await sendEmail(staffMember.email, emailSubject, emailContent);
 
       if (emailResult.success) {
+        emailSent = true;
         console.log("Invite email sent successfully to:", staffMember.email);
       } else {
+        emailErrorReason = emailResult.error || "unknown email error";
         console.error("Failed to send invite email:", emailResult.error);
       }
     } catch (emailError) {
+      emailErrorReason = emailError instanceof Error ? emailError.message : "unknown email error";
       console.error("Failed to send invite email:", emailError);
       // Don't fail the request — the invite record was created successfully
     }
@@ -222,7 +229,11 @@ serve(async (req: Request) => {
       JSON.stringify({
         success: true,
         invite_id: invite.id,
-        message: "Invitation sent successfully",
+        email_sent: emailSent,
+        email_error: emailErrorReason,
+        message: emailSent
+          ? "Invitation sent successfully"
+          : "Invitation created, but the email could NOT be sent",
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

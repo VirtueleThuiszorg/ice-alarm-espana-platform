@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { STALE_TIMES } from "@/config/constants";
+import { toast } from "sonner";
 
 interface FalseAlarmSummary {
   member_id: string;
@@ -86,7 +87,7 @@ export function FalseAlarmMonitor() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(10, 0, 0, 0);
 
-    await supabase.from("tasks").insert({
+    const { error } = await supabase.from("tasks").insert({
       title: `False alarm follow-up: ${memberName}`,
       description: `Follow-up call to ${memberName} regarding frequent false alarms. Check device fit, button sensitivity, and provide additional training if needed.`,
       task_type: "courtesy_call",
@@ -94,6 +95,13 @@ export function FalseAlarmMonitor() {
       member_id: memberId,
       status: "pending",
     });
+
+    if (error) {
+      console.error("Failed to schedule follow-up task:", error);
+      toast.error("Failed to schedule follow-up task");
+      return;
+    }
+    toast.success("Follow-up task scheduled");
   };
 
   const totalAlerts7d = summary.reduce((s, m) => s + m.count_7d, 0);

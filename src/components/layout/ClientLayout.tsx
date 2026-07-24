@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Logo } from "@/components/ui/logo";
@@ -76,7 +76,12 @@ export function ClientLayout() {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, user, memberId } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { signOut, user, memberId: authMemberId } = useAuth();
+
+  // Admin-view mode: staff admins open member routes with ?memberId=...
+  // (see ClientDashboard); members keep using their own memberId.
+  const memberId = searchParams.get("memberId") ?? authMemberId;
 
   // Menu structure matching Admin sidebar pattern
   const menuGroups: MenuGroup[] = [

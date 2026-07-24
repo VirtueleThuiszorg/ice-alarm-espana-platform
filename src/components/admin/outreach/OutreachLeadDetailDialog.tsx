@@ -36,15 +36,25 @@ export function OutreachLeadDetailDialog({ lead, open, onOpenChange }: LeadDetai
   const { sendEmails, isSending } = useOutreachPipeline();
   const queryClient = useQueryClient();
   const [drafts, setDrafts] = useState<DraftPreview[]>([]);
+  const [isLoadingDrafts, setIsLoadingDrafts] = useState(false);
 
   useEffect(() => {
     if (!lead?.id || !open) { setDrafts([]); return; }
+    setIsLoadingDrafts(true);
     supabase.from("outreach_email_drafts")
       .select("id, subject, body_text, status, draft_type, sequence_number, created_at")
       .eq("crm_lead_id", lead.id)
       .order("created_at", { ascending: false })
       .limit(5)
-      .then(({ data }) => setDrafts(data || []));
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("Failed to load email drafts", error);
+          setDrafts([]);
+        } else {
+          setDrafts(data || []);
+        }
+        setIsLoadingDrafts(false);
+      });
   }, [lead?.id, open]);
 
   if (!lead) return null;
@@ -52,14 +62,27 @@ export function OutreachLeadDetailDialog({ lead, open, onOpenChange }: LeadDetai
   const enrichment = ((lead as { enrichment_data?: unknown }).enrichment_data || lead.research_summary) as EnrichmentValue;
 
   const handleMarkDNC = async () => {
-    await supabase.from("outreach_crm_leads").update({ do_not_contact: true, status: "closed" }).eq("id", lead.id);
+    const { error: leadError } = await supabase
+      .from("outreach_crm_leads")
+      .update({ do_not_contact: true, status: "closed" })
+      .eq("id", lead.id);
+    if (leadError) {
+      console.error("Failed to mark lead as do-not-contact", leadError);
+      toast({ title: "Failed to mark lead as do-not-contact", variant: "destructive" });
+      return;
+    }
     if (lead.email) {
-      await supabase.from("outreach_suppression").upsert({
+      const { error: suppressionError } = await supabase.from("outreach_suppression").upsert({
         email: lead.email.toLowerCase(),
         domain: lead.email.split("@")[1] || "",
         reason: "dnc",
         source: "manual",
       }, { onConflict: "email" });
+      if (suppressionError) {
+        console.error("Failed to add lead to suppression list", suppressionError);
+        toast({ title: "Lead updated but suppression list entry failed — retry Mark DNC", variant: "destructive" });
+        return;
+      }
     }
     queryClient.invalidateQueries({ queryKey: ["outreach-crm-leads"] });
     toast({ title: t("outreach.leadDetail.markedDNC") });
@@ -163,6 +186,9 @@ export function OutreachLeadDetailDialog({ lead, open, onOpenChange }: LeadDetai
           )}
 
           {/* Email Drafts */}
+          {isLoadingDrafts && (
+            <p className="text-xs text-muted-foreground">Loading email drafts…</p>
+          )}
           {drafts.length > 0 && (
             <>
               <Separator />

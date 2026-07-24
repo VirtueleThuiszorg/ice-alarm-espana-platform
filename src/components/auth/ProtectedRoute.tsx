@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { isAdminRole as checkAdminRole } from "@/config/constants";
 import { Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -31,7 +32,7 @@ export function ProtectedRoute({
   const location = useLocation();
 
   // Check if user is admin or super_admin
-  const isAdminRole = isStaff && (staffRole === "admin" || staffRole === "super_admin");
+  const isAdminRole = isStaff && checkAdminRole(staffRole);
 
   if (isLoading) {
     return (
@@ -99,8 +100,9 @@ export function ProtectedRoute({
     return <Navigate to="/unauthorized" replace />;
   }
 
-  // Require member access
-  if (requireMember && !memberId) {
+  // Require member access — staff with an admin role may also view member
+  // routes (admin-view mode, e.g. /dashboard?memberId=...)
+  if (requireMember && !memberId && !isAdminRole) {
     // User is logged in but not a member - redirect to complete registration
     return <Navigate to="/complete-registration" replace />;
   }

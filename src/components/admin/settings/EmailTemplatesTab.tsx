@@ -262,7 +262,8 @@ export function EmailTemplatesTab() {
               Subject: {previewLanguage === "en" ? editState.subject_en : editState.subject_es}
             </DialogDescription>
           </DialogHeader>
-          <div className="border rounded-lg p-4 bg-white">
+          {/* Email HTML is theme-independent: force light rendering in dark mode too */}
+          <div className="border rounded-lg p-4 bg-white text-black">
             <div
               dangerouslySetInnerHTML={{
                 __html: DOMPurify.sanitize(

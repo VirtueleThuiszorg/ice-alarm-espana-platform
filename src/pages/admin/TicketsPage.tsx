@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { memberBasePathFor } from "@/lib/portalPath";
@@ -84,6 +84,7 @@ export default function AdminTicketsPage() {
   // links inside the portal the user is actually in, instead of hardcoding /admin.
   const location = useLocation();
   const memberBasePath = memberBasePathFor(location.pathname);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tickets, setTickets] = useState<TicketType[]>([]);
   const [filteredTickets, setFilteredTickets] = useState<TicketType[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -110,6 +111,31 @@ export default function AdminTicketsPage() {
     fetchStaff();
     fetchMembers();
   }, [user?.id]);
+
+  // Deep-link: ?action=create&member_id=...&title=... opens the create dialog
+  // prefilled (e.g. from the PaidSalesFeed follow-up button), then clears the params.
+  useEffect(() => {
+    if (searchParams.get("action") !== "create") return;
+    const memberIdParam = searchParams.get("member_id");
+    const titleParam = searchParams.get("title");
+    setNewTicket((prev) => ({
+      ...prev,
+      title: titleParam ?? prev.title,
+      memberId: memberIdParam ?? prev.memberId,
+    }));
+    setIsDialogOpen(true);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("action");
+        next.delete("member_id");
+        next.delete("title");
+        return next;
+      },
+      { replace: true }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (currentStaffId) {

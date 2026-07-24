@@ -182,7 +182,7 @@ export default function CRMContactDetailPage() {
       if (memberError) throw memberError;
 
       // Create CRM profile
-      await supabase.from("crm_profiles").insert({
+      const { error: profileError } = await supabase.from("crm_profiles").insert({
         member_id: member.id,
         stage: contact.stage || null,
         status: contact.status || null,
@@ -191,11 +191,23 @@ export default function CRMContactDetailPage() {
         groups: contact.groups || [],
       });
 
+      if (profileError) {
+        console.error("Error creating CRM profile after conversion:", profileError);
+        toast.error("Member created but CRM profile creation failed — do not re-convert; link manually");
+        return;
+      }
+
       // Link CRM contact to member
-      await supabase
+      const { error: linkError } = await supabase
         .from("crm_contacts")
         .update({ linked_member_id: member.id })
         .eq("id", contact.id);
+
+      if (linkError) {
+        console.error("Error linking CRM contact after conversion:", linkError);
+        toast.error("Member created but CRM link failed — do not re-convert; link manually");
+        return;
+      }
 
       // Create note if notes exist
       if (contact.notes) {

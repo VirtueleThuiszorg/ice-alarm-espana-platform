@@ -97,12 +97,14 @@ export function useFailedActions() {
 
   const retryAction = async (action: FailedAction) => {
     switch (action.system) {
-      case "media":
-        await supabase
+      case "media": {
+        const { error } = await supabase
           .from("social_posts")
           .update({ status: "approved", error_message: null, updated_at: new Date().toISOString() })
           .eq("id", action.entity_id);
+        if (error) throw error;
         break;
+      }
 
       case "video": {
         const { data: render } = await supabase
@@ -121,12 +123,14 @@ export function useFailedActions() {
         break;
       }
 
-      case "outreach":
-        await supabase
+      case "outreach": {
+        const { error } = await supabase
           .from("outreach_email_drafts")
           .update({ status: "approved" })
           .eq("id", action.entity_id);
+        if (error) throw error;
         break;
+      }
     }
 
     queryClient.invalidateQueries({ queryKey: ["failed-actions"] });

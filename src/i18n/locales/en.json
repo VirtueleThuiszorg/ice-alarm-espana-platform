@@ -3092,7 +3092,7 @@
       "bilingual": "Bilingual Support",
       "bilingualDesc": "Fluent English and Spanish operators who understand your needs.",
       "response": "Fast Response",
-      "responseDesc": "Average response time under 30 seconds when you need us most."
+      "responseDesc": "A real operator answers directly through your pendant — no menus, no hold queue."
     },
     "success": {
       "title": "Message Sent!",
@@ -5915,7 +5915,7 @@
       "title": "What If...?",
       "subtitle": "Real concerns, real answers.",
       "q1": "What if Maria can't speak?",
-      "a1": "Our call-centre team still receives the alert with Maria's full profile and GPS location, and can send help immediately — no voice needed. And the pendant's microphone is sensitive enough to pick up a faint voice from across the room.",
+      "a1": "Our call-centre team still receives the alert with Maria's full profile and GPS location, and can send help immediately — no voice needed. The voice channel opens by itself, so the operator can hear what is happening in the room even if Maria cannot answer.",
       "q2": "What if it's a false alarm?",
       "a2": "The operator simply asks Maria. If she says she's fine, the alert is cancelled — no fuss, no charge. We'd rather you pressed it by accident a hundred times than hesitate the one time it matters.",
       "q3": "What if it's 3am?",
@@ -5929,13 +5929,8 @@
       "primaryButton": "Protect Someone You Love",
       "secondaryButton": "Talk to Our Team",
       "trust1": "No long-term contracts",
-      "trust2": "30-day money-back guarantee",
-      "trust3": "Free next-day delivery to Spain"
-    },
-    "timeline": {
-      "seconds": "seconds",
-      "minute": "minute",
-      "minutes": "minutes"
+      "trust2": "14-day cooling-off period",
+      "trust3": "Pendant shipped within 2–3 business days"
     }
   },
   "aiChat": {

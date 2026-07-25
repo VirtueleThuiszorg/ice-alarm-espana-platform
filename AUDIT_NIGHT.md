@@ -226,6 +226,17 @@
 
 ## PROD action list for Lee (consolidated)
 
+- **Apply pending migrations** (none are applied on prod yet; all three are
+  reversible and touch no RLS policy):
+  - `20260725010000_partner_privilege_guard.sql` — BEFORE UPDATE guard making
+    privileged `partners` columns (incl. `alert_visibility_enabled`, the SOS
+    alert-stream gate) immutable for non-staff. **Security, BLOCKER 4.** (#78)
+  - `20260725120000_pendant_copy_human_first.sql` — rewrites the seeded pendant
+    short description that told the public "one button connects you to
+    Isabella". Guarded: only fires while the row still says Isabella. (#80)
+  - `20260725130000_pendant_copy_no_clinical_claim.sql` — drops the
+    "24/7 nurse-led care centre" clinical claim from the seeded pendant long
+    description (en/es). Same guard. (public-claims sweep)
 - `supabase secrets set GMAIL_APP_PASSWORD=… SENDER_EMAIL=…` (tomorrow)
 - Deploy batch: `member-self-service` (NEW, PR 1/5), `complete-member-registration`
   (NEVER deployed, #38), `ai-run` (#55), `auth-email-hook` (#62/#64 + dashboard

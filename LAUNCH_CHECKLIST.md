@@ -85,11 +85,34 @@
       **T+24h (~2026-07-23)** to confirm the clean run held for a full day, then this line
       closes. (Clock started 2026-07-22 ~17:47 UTC.)
 - [ ] Empty project `qkfvojbcxaptufsepupo` deleted.
+- [ ] **Pending migrations to apply** (none applied on prod yet; all reversible,
+      none touches an RLS policy):
+      `20260725010000_partner_privilege_guard.sql` (**security** — makes
+      privileged `partners` columns, incl. the `alert_visibility_enabled` SOS
+      alert-stream gate, immutable for non-staff; #78) ·
+      `20260725120000_pendant_copy_human_first.sql` (public pendant copy no
+      longer says the SOS button "connects you to Isabella"; #80) ·
+      `20260725130000_pendant_copy_no_clinical_claim.sql` (drops the
+      "24/7 nurse-led care centre" claim). Both copy migrations are guarded on
+      the old text, so an admin edit made in prod first is left alone.
 
 ### Content & brand
 - [ ] Real launch-critical imagery in place (no placeholders on landing + pendant) —
       IMAGE_SPEC.md / FRONTEND_REDESIGN.md §5.
 - [ ] Public output free of ICE leftovers and unverifiable claims (LAUNCH_SCOPE §7).
+      **Claims sweep run 2026-07-25** across every public namespace × en/es/nl.
+      Four claims contradicted our own repo and are now corrected and pinned by
+      `publicClaims.test.ts`: "30-day money-back guarantee" (Terms §8.4/§9.2 give
+      a 14-day cooling-off, registration fees non-refundable) · "Free next-day
+      delivery to Spain" (shipping is a **€14.99** fee, `src/config/pricing.ts`,
+      and checkout quotes 2–3 business days) · "**Average response time under 30
+      seconds**" on /contact (Terms §3.2/§4.3 disclaim any specific response
+      time) · "24/7 nurse-led care centre" in the seeded catalog (no nurse in
+      `app_role`; Terms §3.2 disclaims medical care).
+      **Still open for Lee:** `support.faq.cancelSubscriptionAnswer` says
+      "we require 30 days' notice for cancellation" while /pendant, /landing and
+      the Terms all say cancel any time — one of the two is wrong and it is a
+      contractual term, so it is flagged rather than guessed.
 - [ ] Favicon + meta + OG branded (LAUNCH_SCOPE §7): repo icon set is the Care Conneqt
       "v" mark (favicon.ico/16/32/48, icon-192/512, apple-touch, icon.svg) and og-image.png
       is the two-C wordmark — both on-brand, no ICE. `index.html` `<title>`, meta description,

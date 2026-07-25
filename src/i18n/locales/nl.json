@@ -1226,7 +1226,7 @@
       "billingDate": "When am I billed each month?",
       "billingDateAnswer": "You are billed on the same date each month as when you first subscribed. If that date doesn't exist in a shorter month, you'll be billed on the last day. You can check your next billing date on your dashboard.",
       "cancelSubscription": "How do I cancel my subscription?",
-      "cancelSubscriptionAnswer": "We're sorry to see you go. Please contact our support team through the Messages tab or call us. We require 30 days' notice for cancellation. We'll arrange collection of any equipment and process your final payment.",
+      "cancelSubscriptionAnswer": "Jammer dat u ons verlaat. U kunt op elk moment opzeggen: er is geen minimumtermijn en geen opzegtermijn. Zeg op via uw dashboard, stuur ons hier een bericht of bel ons. Uw bewaking blijft actief tot het einde van de factuurperiode die u al hebt betaald. Bent u minder dan 14 dagen lid, dan geldt uw herroepingsrecht en krijgt u het volledige bedrag terug — zie artikel 9.2 van onze voorwaarden.",
       "medicalPrivacy": "Who can see my medical information?",
       "medicalPrivacyAnswer": "Your medical information is only accessible to our trained emergency operators and the emergency services we coordinate with during an alert. It is never shared with third parties for marketing or other purposes. You control what information you add.",
       "locationData": "How is my location data used?",
@@ -2836,7 +2836,10 @@
       "termsNote": "Door dit vakje aan te vinken, gaat u akkoord met onze servicevoorwaarden en ons privacybeleid.",
       "acceptMedical": "Ik geef toestemming om medische informatie te delen met hulpdiensten",
       "medicalNote": "Uw medische informatie wordt alleen gedeeld met hulpverleners wanneer dit nodig is.",
-      "securityNote": "Uw betaalgegevens zijn veilig en versleuteld"
+      "securityNote": "Uw betaalgegevens zijn veilig en versleuteld",
+      "preContractTitle": "Voordat u betaalt",
+      "withdrawalNotice": "U hebt 14 dagen vanaf de ontvangst van uw hanger om deze overeenkomst zonder opgave van redenen te herroepen. Wij betalen alles terug wat u hebt betaald, inclusief standaardlevering; u draagt alleen de kosten van het terugsturen van de hanger. De details en het modelformulier staan in artikel 9.2 van onze voorwaarden.",
+      "deliveryNotice": "Uw hanger wordt per aangetekende post verzonden en komt binnen 5–7 werkdagen aan."
     },
     "payment": {
       "title": "Voltooi uw betaling",
@@ -2872,7 +2875,7 @@
       "saveNumber": "Sla ons nummer op",
       "saveNumberDesc": "Voeg onze 24/7-noodhotline toe aan uw contacten.",
       "pendantShipping": "Verzending van de hanger",
-      "pendantShippingDesc": "Uw GPS-veiligheidshanger wordt binnen 2-3 werkdagen verzonden.",
+      "pendantShippingDesc": "Uw GPS-veiligheidshanger wordt per aangetekende post verzonden en komt binnen 5–7 werkdagen aan.",
       "downloadApp": "Download de app",
       "downloadAppDesc": "Download onze mobiele app uit de App Store of Google Play om te beginnen.",
       "welcomeCall": "Welkomstgesprek",
@@ -3426,10 +3429,10 @@
       "s8_3p1": "We may change subscription prices with 30 days notice. If you do not agree to a price change, you may cancel before it takes effect.",
       "s8_4Title": "8.4 Refunds",
       "s8_4Items": [
-        "Registration fees are non-refundable",
-        "If you cancel within 14 days of signup (cooling-off period), you are entitled to a refund of subscription fees minus any services already used",
-        "After 14 days, subscription fees are non-refundable for the current billing period",
-        "Device deposits are refundable upon return of the device in good condition"
+        "Binnen de herroepingstermijn van 14 dagen (artikel 9.2) krijgt u alles terug wat u hebt betaald, inclusief het inschrijfgeld en de kosten van standaardlevering.",
+        "Hebt u ons uitdrukkelijk gevraagd de bewaking binnen die termijn te starten, dan brengen wij alleen een proportioneel bedrag in rekening voor de dagen dat de dienst daadwerkelijk actief was.",
+        "Na de herroepingstermijn worden al betaalde abonnementskosten voor de lopende factuurperiode niet terugbetaald; uw opzegging gaat in aan het einde van die periode.",
+        "Voor defecte, beschadigde of niet-conforme apparatuur gelden uw wettelijke garantierechten, die dit artikel niet beperkt."
       ],
       "s8_5Title": "8.5 Non-Payment",
       "s8_5Intro": "If payment fails:",
@@ -3447,9 +3450,9 @@
         "Emailing info@careconneqt.es",
         "Calling our customer service"
       ],
-      "s9_1p1": "Cancellation takes effect at the end of your current billing period.",
-      "s9_2Title": "9.2 Cooling-Off Period",
-      "s9_2p1": "Under EU consumer law, you have 14 days from signup to cancel for a full refund. To exercise this right, contact us clearly stating your wish to cancel.",
+      "s9_1p1": "U kunt op elk moment opzeggen. Er is geen minimumtermijn en geen opzegtermijn. De opzegging gaat in aan het einde van de factuurperiode die u al hebt betaald; tot dan blijft de bewaking actief.",
+      "s9_2Title": "9.2 Herroepingsrecht (14 dagen)",
+      "s9_2p1": "Als consument hebt u het recht deze overeenkomst binnen 14 kalenderdagen zonder opgave van redenen en zonder boete te herroepen. Dit is een wettelijk recht op grond van de Spaanse en Europese regels voor verkoop op afstand (Real Decreto Legislativo 1/2007, artikelen 102 tot en met 108, ter uitvoering van Richtlijn 2011/83/EU).",
       "s9_3Title": "9.3 Our Right to Terminate",
       "s9_3Intro": "We may suspend or terminate your account if:",
       "s9_3Items": [
@@ -3593,7 +3596,19 @@
         "You will call 112 directly whenever possible in a life-threatening emergency"
       ],
       "effectiveDate": "These Terms of Service are effective as of the date last updated above.",
-      "tagline": "Care Conneqt — Keeping You Connected, Keeping You Safe"
+      "tagline": "Care Conneqt — Keeping You Connected, Keeping You Safe",
+      "s9_2Items": [
+        "<strong>Start van de termijn:</strong> hebt u een GPS-hanger besteld, dan op de dag waarop u — of iemand die u aanwijst — het apparaat fysiek in bezit krijgt. Hebt u zich geabonneerd zonder apparaat, dan op de dag waarop de overeenkomst is gesloten.",
+        "<strong>Hoe u het uitoefent:</strong> laat het ons binnen de 14 dagen weten met een ondubbelzinnige verklaring — per e-mail naar info@careconneqt.es, schriftelijk naar ons vestigingsadres, of met het modelformulier hieronder. U hoeft geen reden op te geven.",
+        "<strong>Wat wij terugbetalen:</strong> alle betalingen die wij van u hebben ontvangen, inclusief het inschrijfgeld en de kosten van standaardlevering. Koos u een duurdere verzendwijze, dan vergoeden wij de standaardkosten.",
+        "<strong>Wanneer wij terugbetalen:</strong> binnen 14 dagen na ontvangst van uw herroeping, via hetzelfde betaalmiddel dat u hebt gebruikt en zonder kosten voor u.",
+        "<strong>De hanger terugsturen:</strong> stuur deze zonder onnodige vertraging terug, en in ieder geval binnen 14 dagen nadat u het ons hebt gemeld. De retourkosten zijn voor uw rekening. U bent alleen aansprakelijk voor waardevermindering door een behandeling die verder gaat dan nodig is om de werking vast te stellen.",
+        "<strong>Al geleverde dienst:</strong> hebt u ons uitdrukkelijk gevraagd de bewaking tijdens de herroepingstermijn te starten, dan betaalt u een proportioneel bedrag voor de dagen dat deze actief was. De rest wordt terugbetaald.",
+        "<strong>Dit recht gaat voor:</strong> waar elders in deze voorwaarden een betaling als niet-terugbetaalbaar wordt omschreven, prevaleert uw wettelijke herroepingsrecht."
+      ],
+      "s9_2FormTitle": "Modelformulier voor herroeping",
+      "s9_2FormIntro": "U mag dit formulier gebruiken, maar dat is niet verplicht.",
+      "s9_2FormBody": "Aan Care Conneqt, info@careconneqt.es:<br/><br/>Hiermee deel ik/delen wij u mee dat ik/wij onze overeenkomst herroep(en) voor de levering van de volgende dienst en/of goederen: ______________________<br/><br/>Besteld op / ontvangen op: ______________________<br/>Naam consument(en): ______________________<br/>Adres consument(en): ______________________<br/>Handtekening consument(en) (alleen als dit formulier op papier wordt verzonden): ______________________<br/>Datum: ______________________"
     },
     "privacy": {
       "title": "Privacy Policy",
@@ -5930,7 +5945,7 @@
       "secondaryButton": "Praat met ons team",
       "trust1": "Geen langlopende contracten",
       "trust2": "14 dagen herroepingsrecht",
-      "trust3": "Hanger verzonden binnen 2–3 werkdagen"
+      "trust3": "Levering binnen 5–7 werkdagen, per aangetekende post"
     }
   },
   "aiChat": {

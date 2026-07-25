@@ -140,6 +140,15 @@ export default function TermsContent() {
         <p className="text-muted-foreground mb-4">{t("legal.terms.s9_1p1")}</p>
         <h3 className="text-lg font-medium mb-3">{t("legal.terms.s9_2Title")}</h3>
         <p className="text-muted-foreground mb-4">{t("legal.terms.s9_2p1")}</p>
+        {renderList(t("legal.terms.s9_2Items", { returnObjects: true }) as string[])}
+        <div className="border border-border rounded-lg p-4 mb-4">
+          <h4 className="font-medium mb-1">{t("legal.terms.s9_2FormTitle")}</h4>
+          <p className="text-muted-foreground text-sm mb-3">{t("legal.terms.s9_2FormIntro")}</p>
+          <p
+            className="text-muted-foreground text-sm"
+            dangerouslySetInnerHTML={{ __html: t("legal.terms.s9_2FormBody") }}
+          />
+        </div>
         <h3 className="text-lg font-medium mb-3">{t("legal.terms.s9_3Title")}</h3>
         <p className="text-muted-foreground mb-2">{t("legal.terms.s9_3Intro")}</p>
         {renderList(t("legal.terms.s9_3Items", { returnObjects: true }) as string[])}

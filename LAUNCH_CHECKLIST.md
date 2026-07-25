@@ -125,10 +125,12 @@
       flat, which the withdrawal right overrides; (b) §8.4 referred to
       refundable "device deposits", but the pendant is **sold** (€125 net +
       IVA), not deposited — that line is removed.
-      **Still unresolved and needs a commercial decision:** §9.4 says "you must
-      return any devices" and the support FAQ offers "collection of any
-      equipment", both of which contradict the pendant being sold outright.
-      Decide whether the pendant is sold or loaned, then align §7.1/§9.4.
+      **Device model RESOLVED 2026-07-25 (Lee's ruling): the pendant is SOLD
+      outright** (€125 + IVA) — customers own it. §7.1 now says so explicitly,
+      §9.4 says there is nothing to return on cancellation, and the support FAQ
+      matches. The only return scenario is the 14-day withdrawal window, where
+      the consumer pays return postage. All surfaces aligned in en/es/nl, pinned
+      by `deviceOwnership.test.ts`.
 - [ ] Favicon + meta + OG branded (LAUNCH_SCOPE §7): repo icon set is the Care Conneqt
       "v" mark (favicon.ico/16/32/48, icon-192/512, apple-touch, icon.svg) and og-image.png
       is the two-C wordmark — both on-brand, no ICE. `index.html` `<title>`, meta description,
@@ -148,21 +150,22 @@
       carried across unchanged. **Machine-drafted — a native Dutch speaker must
       review before launch**, per Lee's instruction. Guarded against regression
       by `nlTranslations.test.ts` (`legal.` namespace).
-- [ ] **Privacy Policy sub-processor table — verify against reality** (found
-      during the Dutch translation, all three locales):
-      - **`OpenAI, LLC` was listed as the AI sub-processor. We do not use
-        OpenAI** — Isabella runs on the Anthropic API (`claude-opus-4-8` via
-        `_shared/anthropic.ts`). Corrected to **`Anthropic, PBC`** in en/es/nl.
-        **Lee must confirm the real-world paperwork exists** (DPA / Standard
-        Contractual Clauses with Anthropic) — naming a processor we have no
-        agreement with is its own GDPR problem.
-      - **`Google (Gmail)` is listed for email delivery.** True today, but it
-        becomes **Resend** at domain cutover (#69) — this row must change in the
-        same push that flips `email_settings.provider`.
-      - **`MonitorLinq B.V.` (NL) is named as the device-monitoring partner**
-        with ISO 27001 / NEN 7510 certification, and §3.3 says device data
-        flows through them. Confirm this is the actual partner and that the
-        certification claim is theirs to make, or correct it.
+- [ ] **HARD BLOCKER — DPA/SCC in place with Anthropic** *(Lee, 2026-07-25)*.
+      The Privacy Policy named `OpenAI, LLC` as the AI sub-processor; we do not
+      use OpenAI (Isabella runs on the Anthropic API, `claude-opus-4-8` via
+      `_shared/anthropic.ts`). Corrected to **`Anthropic, PBC`** in en/es/nl.
+      Publishing a processor we hold no agreement with is itself a GDPR breach,
+      so **confirm the DPA / Standard Contractual Clauses exist before launch.**
+- [ ] **HARD BLOCKER — flip the Gmail row to Resend in the same push as
+      `email_settings.provider`** *(Lee, 2026-07-25)*. The sub-processor table
+      lists `Google (Gmail)` for email delivery, true only until the domain
+      cutover (#69). The published table and the live transport must never
+      disagree — change both together.
+- [ ] **HARD BLOCKER — verify MonitorLinq's ISO 27001 / NEN 7510 claim is
+      theirs to make** *(Lee, 2026-07-25)*. §3.3 and the sub-processor table
+      name `MonitorLinq B.V.` (NL) as the device-monitoring partner and publish
+      those certifications on their behalf. Confirm both the partner identity
+      and the certifications in writing before launch, or correct the text.
 
 ### Pre-launch polish (Stage 8 broken-items sweep)  *(added 2026-07-24, goal loop)*
 - [x] **nl locale: legacy English values replaced with real Dutch** — 52 keys in

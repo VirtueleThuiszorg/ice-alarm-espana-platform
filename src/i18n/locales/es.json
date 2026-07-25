@@ -1226,7 +1226,7 @@
       "billingDate": "¿Cuándo se me cobra cada mes?",
       "billingDateAnswer": "Se le cobra en la misma fecha cada mes en que se suscribió por primera vez. Si esa fecha no existe en un mes más corto, se le cobrará el último día. Puede consultar su próxima fecha de cobro en su panel.",
       "cancelSubscription": "¿Cómo cancelo mi suscripción?",
-      "cancelSubscriptionAnswer": "Lamentamos que se vaya. Puede cancelar en cualquier momento: no hay plazo mínimo ni preaviso. Cancele desde su panel, escríbanos por aquí o llámenos. Su monitorización sigue activa hasta el final del periodo de facturación que ya ha pagado. Si se dio de alta hace menos de 14 días, se aplica su derecho de desistimiento y recibirá el reembolso completo: consulte la sección 9.2 de nuestros Términos.",
+      "cancelSubscriptionAnswer": "Lamentamos que se vaya. Puede cancelar en cualquier momento: no hay plazo mínimo ni preaviso. Cancele desde su panel, escríbanos por aquí o llámenos. Su monitorización sigue activa hasta el final del periodo de facturación que ya ha pagado. Conserva su colgante, porque lo compró, pero cuando finalice la monitorización el botón SOS ya no contactará con nuestro equipo. Si se dio de alta hace menos de 14 días, se aplica su derecho de desistimiento y recibirá el reembolso completo: consulte la sección 9.2 de nuestros Términos.",
       "medicalPrivacy": "¿Quién puede ver mi información médica?",
       "medicalPrivacyAnswer": "Su información médica solo es accesible para nuestros operadores de emergencia capacitados y los servicios de emergencia que coordinamos durante una alerta. Nunca se comparte con terceros con fines de marketing u otros propósitos. Usted controla qué información añade.",
       "locationData": "¿Cómo se usan mis datos de ubicación?",
@@ -3391,11 +3391,11 @@
       "s7Title": "7. Dispositivos y Equipamiento",
       "s7_1Title": "7.1 Colgante GPS",
       "s7_1Items": [
-        "El dispositivo sigue siendo nuestra propiedad salvo que se especifique lo contrario",
-        "Debe usar el dispositivo de acuerdo con las instrucciones proporcionadas",
-        "Usted es responsable del cuidado razonable del dispositivo",
-        "Debe devolver el dispositivo si cancela su suscripción (cuando corresponda)",
-        "Los dispositivos perdidos o dañados pueden incurrir en cargos de reemplazo"
+        "El colgante GPS <strong>se le vende</strong>: pasa a ser de su propiedad en el momento de la entrega. No lo cedemos, ni lo alquilamos, ni exigimos fianza alguna.",
+        "Debe utilizar el dispositivo conforme a las instrucciones facilitadas",
+        "Es responsable del cuidado razonable del dispositivo",
+        "No tiene que devolverlo al cancelar: el colgante es suyo. El único supuesto de devolución es el ejercicio de su derecho de desistimiento de 14 días (sección 9.2), en cuyo caso los gastos de envío de la devolución son a su cargo.",
+        "Si el colgante se pierde o se daña, puede adquirir uno de repuesto al precio vigente; no aplicamos ninguna penalización."
       ],
       "s7_2Title": "7.2 Sus Responsabilidades",
       "s7_2Intro": "Usted acepta:",
@@ -3468,9 +3468,9 @@
       "s9_4Intro": "Tras la terminación:",
       "s9_4Items": [
         "Su acceso a los servicios cesará",
-        "La monitorización de alertas se detendrá",
-        "Debe devolver cualquier dispositivo (si corresponde)",
-        "Conservaremos sus datos como se describe en nuestra Política de Privacidad"
+        "La monitorización de alertas se detendrá: al pulsar el botón SOS ya no contactará con nuestro equipo",
+        "Conserva el colgante, ya que lo compró; no hay nada que devolver",
+        "Conservaremos sus datos según lo descrito en nuestra Política de Privacidad"
       ],
       "s10Title": "10. Limitación de Responsabilidad",
       "s10_1Title": "10.1 En la Máxima Medida Permitida por la Ley",

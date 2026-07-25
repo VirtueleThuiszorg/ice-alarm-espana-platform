@@ -1226,7 +1226,7 @@
       "billingDate": "When am I billed each month?",
       "billingDateAnswer": "You are billed on the same date each month as when you first subscribed. If that date doesn't exist in a shorter month, you'll be billed on the last day. You can check your next billing date on your dashboard.",
       "cancelSubscription": "How do I cancel my subscription?",
-      "cancelSubscriptionAnswer": "Jammer dat u ons verlaat. U kunt op elk moment opzeggen: er is geen minimumtermijn en geen opzegtermijn. Zeg op via uw dashboard, stuur ons hier een bericht of bel ons. Uw bewaking blijft actief tot het einde van de factuurperiode die u al hebt betaald. Bent u minder dan 14 dagen lid, dan geldt uw herroepingsrecht en krijgt u het volledige bedrag terug — zie artikel 9.2 van onze voorwaarden.",
+      "cancelSubscriptionAnswer": "Jammer dat u ons verlaat. U kunt op elk moment opzeggen: er is geen minimumtermijn en geen opzegtermijn. Zeg op via uw dashboard, stuur ons hier een bericht of bel ons. Uw bewaking blijft actief tot het einde van de factuurperiode die u al hebt betaald. U houdt uw hanger, want u hebt die gekocht — maar zodra de bewaking stopt, bereikt de SOS-knop ons team niet meer. Bent u minder dan 14 dagen lid, dan geldt uw herroepingsrecht en krijgt u het volledige bedrag terug — zie artikel 9.2 van onze voorwaarden.",
       "medicalPrivacy": "Who can see my medical information?",
       "medicalPrivacyAnswer": "Your medical information is only accessible to our trained emergency operators and the emergency services we coordinate with during an alert. It is never shared with third parties for marketing or other purposes. You control what information you add.",
       "locationData": "How is my location data used?",
@@ -3391,11 +3391,11 @@
       "s7Title": "7. Apparaten en apparatuur",
       "s7_1Title": "7.1 GPS-hanger",
       "s7_1Items": [
-        "Het apparaat blijft ons eigendom, tenzij anders is aangegeven",
+        "De GPS-hanger wordt <strong>aan u verkocht</strong>: bij levering wordt deze uw eigendom. Wij lenen of verhuren het apparaat niet en vragen geen borg.",
         "U dient het apparaat te gebruiken volgens de meegeleverde instructies",
         "U bent verantwoordelijk voor een redelijke zorg voor het apparaat",
-        "U dient het apparaat terug te sturen wanneer u uw abonnement opzegt (indien van toepassing)",
-        "Voor verloren of beschadigde apparaten kunnen vervangingskosten in rekening worden gebracht"
+        "U hoeft de hanger bij opzegging niet terug te sturen — die is en blijft van u. Terugsturen is alleen aan de orde als u uw herroepingsrecht van 14 dagen uitoefent (artikel 9.2); de retourkosten zijn dan voor uw rekening.",
+        "Raakt de hanger kwijt of beschadigd, dan kunt u een nieuwe aanschaffen tegen de dan geldende prijs; wij brengen geen boete in rekening."
       ],
       "s7_2Title": "7.2 Uw verantwoordelijkheden",
       "s7_2Intro": "U stemt ermee in om:",
@@ -3468,8 +3468,8 @@
       "s9_4Intro": "Bij beëindiging:",
       "s9_4Items": [
         "Vervalt uw toegang tot de diensten",
-        "Stopt de bewaking van meldingen",
-        "Dient u eventuele apparaten terug te sturen (indien van toepassing)",
+        "Stopt de bewaking van meldingen — een druk op de SOS-knop bereikt ons team dan niet meer",
+        "Houdt u de hanger, omdat u die hebt gekocht; er is niets terug te sturen",
         "Bewaren wij uw gegevens zoals beschreven in ons privacybeleid"
       ],
       "s10Title": "10. Beperking van aansprakelijkheid",

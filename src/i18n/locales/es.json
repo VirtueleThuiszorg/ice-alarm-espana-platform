@@ -603,7 +603,8 @@
     "call": "Llamar",
     "markComplete": "Marcar como completada",
     "deleting": "Eliminando...",
-    "selected": "seleccionados"
+    "selected": "seleccionados",
+    "view": "Ver"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -872,7 +873,8 @@
     "footer": {
       "links": "Enlaces",
       "legal": "Legal"
-    }
+    },
+    "ourDifference": "Nuestra diferencia"
   },
   "membership": {
     "single": "Individual",
@@ -2872,7 +2874,10 @@
       "addEmergencyContact": "Por favor añada al menos un contacto de emergencia",
       "acceptTerms": "Por favor acepte los Términos de Servicio",
       "acceptPrivacy": "Por favor consienta compartir información médica con servicios de emergencia"
-    }
+    },
+    "paymentSuccessRecovered": "¡Pago recibido! Su pedido está confirmado.",
+    "draftSaveFailed": "No hemos podido guardar su progreso. Puede continuar, pero no cierre esta pestaña.",
+    "contactRequiredFields": "Por favor, rellene el nombre, la relación y el número de teléfono."
   },
   "chat": {
     "openChat": "Abrir chat",

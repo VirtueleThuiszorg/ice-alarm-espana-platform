@@ -47,7 +47,7 @@ export default function JoinWizard() {
   const [currentStep, setCurrentStep] = useState(1);
   const [wizardData, setWizardData] = useState<JoinWizardData>(initialJoinWizardData);
   const [stepValidation, setStepValidation] = useState<Record<number, boolean>>({});
-  const [isSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const contentTopRef = useRef<HTMLDivElement>(null);
 
   // On step change, bring the top of the wizard content into view (smooth, respecting
@@ -106,7 +106,7 @@ export default function JoinWizard() {
 
             reportEvent('new_sale', {
               amount: totalPence,
-              label: `New LifeLink sale — £${(totalPence / 100).toFixed(2)}`,
+              label: `New Care Conneqt sale — €${(totalPence / 100).toFixed(2)}`,
               metadata: {
                 planName: parsed.membershipType,
                 orderId: orderNumber,
@@ -127,6 +127,14 @@ export default function JoinWizard() {
           toast.success(t("joinWizard.payment.success"));
         } catch (e) {
           console.error("Failed to parse saved wizard data:", e);
+          // The customer HAS paid — never strand them on step 1 over a parse failure.
+          setWizardData((prev) => ({
+            ...prev,
+            paymentComplete: true,
+            orderId: orderNumber,
+          }));
+          setCurrentStep(9);
+          toast.success(t("joinWizard.paymentSuccessRecovered", "Payment received! Your order is confirmed."));
         }
       } else {
         // No saved data, but payment was successful
@@ -301,12 +309,21 @@ export default function JoinWizard() {
     if (validateCurrentStep()) {
       setStepValidation((prev) => ({ ...prev, [currentStep]: true }));
 
-      // Save progress to database before advancing
-      // This ensures we capture data even if user abandons later
-      await saveDraft(currentStep, wizardData);
+      setIsSubmitting(true);
+      try {
+        // Save progress to database before advancing
+        // This ensures we capture data even if user abandons later
+        const { success } = await saveDraft(currentStep, wizardData);
+        if (!success) {
+          // Non-blocking: a failed draft save must never stop the customer
+          toast.warning(t("joinWizard.draftSaveFailed", "We couldn't save your progress — you can continue, but don't close this tab."));
+        }
 
-      if (currentStep < steps.length) {
-        setCurrentStep(currentStep + 1);
+        if (currentStep < steps.length) {
+          setCurrentStep(currentStep + 1);
+        }
+      } finally {
+        setIsSubmitting(false);
       }
     } else {
       const message = getValidationMessage();

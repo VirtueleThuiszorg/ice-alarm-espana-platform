@@ -48,6 +48,8 @@ export default function PendantPage() {
 
   // Format phone for tel: links
   const phoneForLink = companySettings.emergency_phone.replace(/\s/g, '');
+  // Format phone for WhatsApp (remove spaces and + sign)
+  const whatsappNumber = companySettings.emergency_phone.replace(/[\s+]/g, '');
   const features = [
     {
       icon: MapPin,
@@ -111,19 +113,15 @@ export default function PendantPage() {
     { labelKey: "pendant.specs.wearing", valueKey: "pendant.specs.wearingValue" }
   ];
 
-  const testimonials = dbTestimonials && dbTestimonials.length > 0
-    ? dbTestimonials.map((item) => ({
-        id: item.id,
-        quote: i18n.language === "es" ? item.quote_es : item.quote_en,
-        author: item.author_name,
-        location: i18n.language === "es" ? item.location_es : item.location_en,
-        rating: item.rating,
-      }))
-    : [
-        { id: "fb-1", quote: t("pendant.testimonials.quote1"), author: t("pendant.testimonials.author1"), location: t("pendant.testimonials.location1"), rating: 5 },
-        { id: "fb-2", quote: t("pendant.testimonials.quote2"), author: t("pendant.testimonials.author2"), location: t("pendant.testimonials.location2"), rating: 5 },
-        { id: "fb-3", quote: t("pendant.testimonials.quote3"), author: t("pendant.testimonials.author3"), location: t("pendant.testimonials.location3"), rating: 5 },
-      ];
+  // Only real, DB-sourced testimonials render — no fixture fallback
+  // (LAUNCH_SCOPE §7: no unverifiable claims, no fake reviews).
+  const testimonials = (dbTestimonials ?? []).map((item) => ({
+    id: item.id,
+    quote: i18n.language === "es" ? item.quote_es : item.quote_en,
+    author: item.author_name,
+    location: i18n.language === "es" ? item.location_es : item.location_en,
+    rating: item.rating,
+  }));
 
   const faqs = [
     { questionKey: "pendant.faq.q1", answerKey: "pendant.faq.a1" },
@@ -432,7 +430,7 @@ export default function PendantPage() {
                     <span className="text-muted-foreground">{t("pendant.pricing.single.perMonth")}</span>
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    or <span className="font-medium text-foreground">{formatPrice(getSubscriptionFinalPrice("single", "annual"))}{t("pendant.pricing.single.perYear")}</span>
+                    {t("common.or")} <span className="font-medium text-foreground">{formatPrice(getSubscriptionFinalPrice("single", "annual"))}{t("pendant.pricing.single.perYear")}</span>
                     <Badge variant="secondary" className="ml-2">{t("pendant.pricing.single.save")}</Badge>
                   </div>
                 </div>
@@ -454,7 +452,7 @@ export default function PendantPage() {
                     <span className="text-muted-foreground">{t("pendant.pricing.couple.perMonth")}</span>
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    or <span className="font-medium text-foreground">{formatPrice(getSubscriptionFinalPrice("couple", "annual"))}{t("pendant.pricing.couple.perYear")}</span>
+                    {t("common.or")} <span className="font-medium text-foreground">{formatPrice(getSubscriptionFinalPrice("couple", "annual"))}{t("pendant.pricing.couple.perYear")}</span>
                     <Badge variant="secondary" className="ml-2">{t("pendant.pricing.couple.save")}</Badge>
                   </div>
                 </div>
@@ -468,7 +466,8 @@ export default function PendantPage() {
       </section>
 
 
-      {/* Testimonials */}
+      {/* Testimonials — only rendered when real DB testimonials exist */}
+      {testimonials.length > 0 && (
       <section className="py-24 px-4 bg-gradient-to-b from-background to-muted/50">
         <div className="container mx-auto">
           <div className="text-center mb-16">
@@ -513,6 +512,7 @@ export default function PendantPage() {
           </div>
         </div>
       </section>
+      )}
 
       {/* FAQ */}
       <section className="py-20 px-4">
@@ -558,7 +558,14 @@ export default function PendantPage() {
             </Button>
           </div>
           <p className="text-sm text-muted-foreground mt-6">
-            {t("pendant.cta.whatsapp")}
+            <a
+              href={`https://wa.me/${whatsappNumber}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              {t("pendant.cta.whatsapp")}
+            </a>
           </p>
         </div>
       </section>
@@ -577,7 +584,7 @@ export default function PendantPage() {
               <h4 className="font-semibold mb-4">{t("pendant.footer.contact")}</h4>
               <ul className="space-y-2 text-sm text-sidebar-foreground/70">
                 <li><a href={`tel:${companySettings.emergency_phone.replace(/\s/g, '')}`} className="hover:text-sidebar-foreground">{t("common.callNow")}</a></li>
-                <li>{companySettings.support_email}</li>
+                <li><a href={`mailto:${companySettings.support_email}`} className="hover:text-sidebar-foreground">{companySettings.support_email}</a></li>
                 <li>{t("pendant.footer.whatsappAvailable")}</li>
               </ul>
             </div>

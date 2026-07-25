@@ -109,10 +109,26 @@
       seconds**" on /contact (Terms §3.2/§4.3 disclaim any specific response
       time) · "24/7 nurse-led care centre" in the seeded catalog (no nurse in
       `app_role`; Terms §3.2 disclaims medical care).
-      **Still open for Lee:** `support.faq.cancelSubscriptionAnswer` says
-      "we require 30 days' notice for cancellation" while /pendant, /landing and
-      the Terms all say cancel any time — one of the two is wrong and it is a
-      contractual term, so it is flagged rather than guessed.
+      **Cancellation resolved 2026-07-25 (Lee's ruling):** cancel any time, no
+      notice period, effective at the end of the paid billing period — now
+      consistent across the FAQ, Terms §9.1, landing, /pendant and the CTA.
+- [ ] **LEGAL REVIEW REQUIRED BEFORE LAUNCH — right of withdrawal.** The
+      14-day statutory withdrawal right (Real Decreto Legislativo 1/2007
+      arts. 102–108, Directive 2011/83/EU) is now drafted to standard statutory
+      wording, in en/es/nl, on the four surfaces the law touches: Terms §9.2
+      (full clause + model withdrawal form), the /how-it-works trust badge,
+      the checkout pre-contract notice, and the order-confirmation email.
+      **Drafted by Claude, NOT by a lawyer — Lee's gestor/legal adviser must
+      review before launch.** Two pre-existing contradictions were corrected
+      as part of it and should be confirmed by the same review:
+      (a) Terms §8.4 previously stated "registration fees are non-refundable"
+      flat, which the withdrawal right overrides; (b) §8.4 referred to
+      refundable "device deposits", but the pendant is **sold** (€125 net +
+      IVA), not deposited — that line is removed.
+      **Still unresolved and needs a commercial decision:** §9.4 says "you must
+      return any devices" and the support FAQ offers "collection of any
+      equipment", both of which contradict the pendant being sold outright.
+      Decide whether the pendant is sold or loaned, then align §7.1/§9.4.
 - [ ] Favicon + meta + OG branded (LAUNCH_SCOPE §7): repo icon set is the Care Conneqt
       "v" mark (favicon.ico/16/32/48, icon-192/512, apple-touch, icon.svg) and og-image.png
       is the two-C wordmark — both on-brand, no ICE. `index.html` `<title>`, meta description,

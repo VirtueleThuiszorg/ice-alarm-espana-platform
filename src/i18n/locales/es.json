@@ -1226,7 +1226,7 @@
       "billingDate": "¿Cuándo se me cobra cada mes?",
       "billingDateAnswer": "Se le cobra en la misma fecha cada mes en que se suscribió por primera vez. Si esa fecha no existe en un mes más corto, se le cobrará el último día. Puede consultar su próxima fecha de cobro en su panel.",
       "cancelSubscription": "¿Cómo cancelo mi suscripción?",
-      "cancelSubscriptionAnswer": "Lamentamos que se vaya. Por favor contacte con nuestro equipo de soporte a través de la pestaña Mensajes o llámenos. Requerimos 30 días de preaviso para la cancelación. Organizaremos la recogida del equipo y procesaremos su pago final.",
+      "cancelSubscriptionAnswer": "Lamentamos que se vaya. Puede cancelar en cualquier momento: no hay plazo mínimo ni preaviso. Cancele desde su panel, escríbanos por aquí o llámenos. Su monitorización sigue activa hasta el final del periodo de facturación que ya ha pagado. Si se dio de alta hace menos de 14 días, se aplica su derecho de desistimiento y recibirá el reembolso completo: consulte la sección 9.2 de nuestros Términos.",
       "medicalPrivacy": "¿Quién puede ver mi información médica?",
       "medicalPrivacyAnswer": "Su información médica solo es accesible para nuestros operadores de emergencia capacitados y los servicios de emergencia que coordinamos durante una alerta. Nunca se comparte con terceros con fines de marketing u otros propósitos. Usted controla qué información añade.",
       "locationData": "¿Cómo se usan mis datos de ubicación?",
@@ -2836,7 +2836,10 @@
       "termsNote": "Al marcar esta casilla, acepta nuestros Términos de Servicio y Política de Privacidad.",
       "acceptMedical": "Consiento compartir información médica con los servicios de emergencia",
       "medicalNote": "Su información médica solo se compartirá con los equipos de emergencia cuando sea necesario.",
-      "securityNote": "Su información de pago es segura y está encriptada"
+      "securityNote": "Su información de pago es segura y está encriptada",
+      "preContractTitle": "Antes de pagar",
+      "withdrawalNotice": "Dispone de 14 días desde la recepción de su colgante para desistir de este contrato sin necesidad de justificación. Le reembolsamos todo lo pagado, incluido el envío estándar; usted solo asume el coste de devolver el colgante. Los detalles y el modelo de formulario están en la sección 9.2 de nuestros Términos.",
+      "deliveryNotice": "Su colgante se envía por correo certificado y llega en 5–7 días laborables."
     },
     "payment": {
       "title": "Complete su pago",
@@ -2872,7 +2875,7 @@
       "saveNumber": "Guarde nuestro número",
       "saveNumberDesc": "Añada nuestra línea de emergencia 24/7 a sus contactos.",
       "pendantShipping": "Envío del colgante",
-      "pendantShippingDesc": "Su colgante GPS de seguridad se enviará en 2-3 días hábiles.",
+      "pendantShippingDesc": "Su colgante GPS de seguridad se envía por correo certificado y llega en 5–7 días laborables.",
       "downloadApp": "Descargue la app",
       "downloadAppDesc": "Descargue nuestra aplicación móvil de App Store o Google Play para comenzar.",
       "welcomeCall": "Llamada de bienvenida",
@@ -3426,10 +3429,10 @@
       "s8_3p1": "Podemos cambiar los precios de suscripción con 30 días de aviso. Si no está de acuerdo con un cambio de precio, puede cancelar antes de que entre en vigor.",
       "s8_4Title": "8.4 Reembolsos",
       "s8_4Items": [
-        "Las tarifas de registro no son reembolsables",
-        "Si cancela dentro de los 14 días posteriores al registro (período de desistimiento), tiene derecho a un reembolso de las tarifas de suscripción menos los servicios ya utilizados",
-        "Después de 14 días, las tarifas de suscripción no son reembolsables para el período de facturación actual",
-        "Los depósitos de dispositivos son reembolsables tras la devolución del dispositivo en buen estado"
+        "Dentro del plazo de desistimiento de 14 días (sección 9.2) recibirá el reembolso íntegro de todo lo pagado, incluida la cuota de registro y el coste del envío estándar.",
+        "Si nos pidió expresamente iniciar la monitorización durante ese plazo, solo descontaremos la parte proporcional a los días en que el servicio estuvo activo.",
+        "Transcurrido el plazo de desistimiento, las cuotas de suscripción ya pagadas del periodo de facturación en curso no se reembolsan; la cancelación surte efecto al final de ese periodo.",
+        "Los equipos defectuosos, dañados o no conformes están cubiertos por sus derechos legales de garantía, que esta sección no limita."
       ],
       "s8_5Title": "8.5 Impago",
       "s8_5Intro": "Si el pago falla:",
@@ -3447,9 +3450,9 @@
         "Enviando un email a info@careconneqt.es",
         "Llamando a nuestro servicio de atención al cliente"
       ],
-      "s9_1p1": "La cancelación entra en vigor al final de su período de facturación actual.",
-      "s9_2Title": "9.2 Período de Desistimiento",
-      "s9_2p1": "Según la legislación de consumo de la UE, tiene 14 días desde el registro para cancelar con un reembolso completo. Para ejercer este derecho, contáctenos indicando claramente su deseo de cancelar.",
+      "s9_1p1": "Puede cancelar en cualquier momento. No existe plazo mínimo ni preaviso. La cancelación surte efecto al final del periodo de facturación que ya ha pagado, y la monitorización continúa hasta entonces.",
+      "s9_2Title": "9.2 Derecho de desistimiento (14 días)",
+      "s9_2p1": "Si usted es consumidor, tiene derecho a desistir de este contrato en un plazo de 14 días naturales sin necesidad de justificación y sin penalización alguna. Se trata de un derecho legal reconocido por la normativa española y europea de contratación a distancia (Real Decreto Legislativo 1/2007, artículos 102 a 108, que incorpora la Directiva 2011/83/UE).",
       "s9_3Title": "9.3 Nuestro Derecho a Terminar",
       "s9_3Intro": "Podemos suspender o terminar su cuenta si:",
       "s9_3Items": [
@@ -3593,7 +3596,19 @@
         "Llamará al 112 directamente siempre que sea posible en una emergencia que amenace la vida"
       ],
       "effectiveDate": "Estos Términos de Servicio son efectivos a partir de la fecha de última actualización indicada arriba.",
-      "tagline": "Care Conneqt — Manteniéndole Conectado, Manteniéndole Seguro"
+      "tagline": "Care Conneqt — Manteniéndole Conectado, Manteniéndole Seguro",
+      "s9_2Items": [
+        "<strong>Inicio del plazo:</strong> si ha pedido un colgante GPS, el día en que usted —o la persona que designe— reciba materialmente el dispositivo. Si se suscribió sin pedir dispositivo, el día de celebración del contrato.",
+        "<strong>Cómo ejercerlo:</strong> comuníquenoslo mediante una declaración inequívoca antes de que venzan los 14 días — por correo a info@careconneqt.es, por escrito a nuestro domicilio social o usando el formulario que figura a continuación. No tiene que dar ningún motivo.",
+        "<strong>Qué reembolsamos:</strong> todos los pagos recibidos de usted, incluida la cuota de registro y el coste del envío estándar. Si eligió una modalidad de envío más cara, reembolsamos el coste estándar.",
+        "<strong>Cuándo reembolsamos:</strong> en un plazo de 14 días desde la recepción de su comunicación de desistimiento, por el mismo medio de pago que utilizó y sin coste alguno para usted.",
+        "<strong>Devolución del colgante:</strong> devuélvalo sin demora indebida y, en todo caso, en un plazo de 14 días desde que nos lo comunique. Los gastos de devolución corren por su cuenta. Solo responde por la disminución de valor derivada de una manipulación distinta a la necesaria para comprobar su funcionamiento.",
+        "<strong>Servicio ya prestado:</strong> si nos pidió expresamente iniciar la monitorización durante el plazo de desistimiento, deberá abonar la parte proporcional a los días en que estuvo activa. El resto se reembolsa.",
+        "<strong>Prevalencia de este derecho:</strong> si cualquier otra parte de estos Términos describe un pago como no reembolsable, su derecho legal de desistimiento prevalece."
+      ],
+      "s9_2FormTitle": "Modelo de formulario de desistimiento",
+      "s9_2FormIntro": "Puede utilizar este formulario, aunque no está obligado a hacerlo.",
+      "s9_2FormBody": "A la atención de Care Conneqt, info@careconneqt.es:<br/><br/>Por la presente le comunico/comunicamos que desisto de mi/desistimos de nuestro contrato de prestación del siguiente servicio y/o de venta de los siguientes bienes: ______________________<br/><br/>Pedido el / recibido el: ______________________<br/>Nombre del consumidor o consumidores: ______________________<br/>Domicilio del consumidor o consumidores: ______________________<br/>Firma del consumidor o consumidores (solo si el formulario se envía en papel): ______________________<br/>Fecha: ______________________"
     },
     "privacy": {
       "title": "Política de Privacidad",
@@ -5929,8 +5944,8 @@
       "primaryButton": "Proteja a Quien Más Quiere",
       "secondaryButton": "Hable con Nuestro Equipo",
       "trust1": "Sin contratos a largo plazo",
-      "trust2": "Periodo de desistimiento de 14 días",
-      "trust3": "Colgante enviado en 2–3 días laborables"
+      "trust2": "Derecho de desistimiento de 14 días",
+      "trust3": "Entrega en 5–7 días laborables, por envío certificado"
     }
   },
   "aiChat": {

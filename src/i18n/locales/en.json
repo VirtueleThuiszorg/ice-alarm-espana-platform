@@ -1226,7 +1226,7 @@
       "billingDate": "When am I billed each month?",
       "billingDateAnswer": "You are billed on the same date each month as when you first subscribed. If that date doesn't exist in a shorter month, you'll be billed on the last day. You can check your next billing date on your dashboard.",
       "cancelSubscription": "How do I cancel my subscription?",
-      "cancelSubscriptionAnswer": "We're sorry to see you go. You can cancel at any time — there is no minimum term and no notice period. Cancel from your dashboard, message us here, or call us. Your monitoring stays active until the end of the billing period you have already paid for. If you joined less than 14 days ago, your right of withdrawal applies instead and you get a full refund — see section 9.2 of our Terms.",
+      "cancelSubscriptionAnswer": "We're sorry to see you go. You can cancel at any time — there is no minimum term and no notice period. Cancel from your dashboard, message us here, or call us. Your monitoring stays active until the end of the billing period you have already paid for. You keep your pendant, because you bought it — but once monitoring ends the SOS button no longer reaches our team. If you joined less than 14 days ago, your right of withdrawal applies instead and you get a full refund — see section 9.2 of our Terms.",
       "medicalPrivacy": "Who can see my medical information?",
       "medicalPrivacyAnswer": "Your medical information is only accessible to our trained emergency operators and the emergency services we coordinate with during an alert. It is never shared with third parties for marketing or other purposes. You control what information you add.",
       "locationData": "How is my location data used?",
@@ -3392,11 +3392,11 @@
       "s7Title": "7. Devices and Equipment",
       "s7_1Title": "7.1 GPS Pendant",
       "s7_1Items": [
-        "The device remains our property unless otherwise specified",
+        "The GPS pendant is <strong>sold to you</strong>: it becomes your property when it is delivered. We do not lend, lease or take a deposit on it.",
         "You must use the device in accordance with provided instructions",
         "You are responsible for reasonable care of the device",
-        "You must return the device if you cancel your subscription (where applicable)",
-        "Lost or damaged devices may incur replacement charges"
+        "You do not have to return it when you cancel — the pendant is yours to keep. The only return situation is if you exercise your 14-day right of withdrawal (section 9.2), where you pay the return postage.",
+        "If the pendant is lost or damaged you can buy a replacement at the current price; there is no penalty charge."
       ],
       "s7_2Title": "7.2 Your Responsibilities",
       "s7_2Intro": "You agree to:",
@@ -3469,8 +3469,8 @@
       "s9_4Intro": "Upon termination:",
       "s9_4Items": [
         "Your access to services will cease",
-        "Alert monitoring will stop",
-        "You must return any devices (if applicable)",
+        "Alert monitoring will stop — pressing the SOS button will no longer reach our team",
+        "You keep the pendant, as you bought it; there is nothing to return",
         "We will retain your data as described in our Privacy Policy"
       ],
       "s10Title": "10. Limitation of Liability",

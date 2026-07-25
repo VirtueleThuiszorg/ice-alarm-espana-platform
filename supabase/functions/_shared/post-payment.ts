@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { sendEmail } from "./email.ts";
-import { buildMemberWelcomeEmail } from "./welcome-email.ts";
+import { buildMemberWelcomeEmail, memberWelcomeSubject } from "./welcome-email.ts";
 
 interface PostPaymentParams {
   orderId: string;
@@ -263,10 +263,9 @@ export async function handleSuccessfulPayment(
           dashboardUrl
         );
 
-        const emailSubject =
-          lang === "es" || lang === "ES"
-            ? "¡Bienvenido a Care Conneqt! Tu membresía está activa"
-            : "Welcome to Care Conneqt! Your membership is active";
+        // Subject comes from the same locale table as the body, so a Dutch
+        // member no longer gets a Spanish/English subject on a Dutch email.
+        const emailSubject = memberWelcomeSubject(lang);
 
         const emailResult = await sendEmail(memberData.email, emailSubject, emailHtml);
         if (!emailResult.success) {

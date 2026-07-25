@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Check, Loader2 } from "lucide-react";
@@ -5,7 +6,9 @@ import { PublicHeader } from "@/components/layout/PublicHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { BillingPeriodToggle } from "@/components/pricing/BillingPeriodToggle";
 import { usePricing } from "@/hooks/usePricing";
+import { buildJoinPath } from "@/lib/joinLink";
 import {
   formatPrice,
   getSubscriptionMonthlyFinal,
@@ -14,15 +17,20 @@ import {
   getPendantFinalPrice,
   getRegistrationFee,
   getShippingCost,
+  type BillingFrequency,
 } from "@/config/pricing";
 
 /**
  * Public /pricing page. Reads the canonical pricing via usePricing() (DB-backed); the home
  * #pricing section and pendant cards read the same source, so there is one place to change.
+ *
+ * The plan + billing period chosen here travel to the wizard on the CTA
+ * (/join?plan=…&billing=…) so the member is never asked the same question twice.
  */
 export default function PricingPage() {
   const { t } = useTranslation();
   const { isLoading } = usePricing(); // hydrate + react to admin-edited prices
+  const [billing, setBilling] = useState<BillingFrequency>("monthly");
 
   const plans: Array<{ key: "single" | "couple"; titleKey: string; descKey: string; popular?: boolean }> = [
     { key: "single", titleKey: "landing.singleMembership", descKey: "landing.forOnePerson" },
@@ -44,34 +52,55 @@ export default function PricingPage() {
           {isLoading ? (
             <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
           ) : (
-            <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-              {plans.map((plan) => (
-                <Card key={plan.key} className={plan.popular ? "relative border-primary shadow-glow" : "relative"}>
-                  {plan.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="px-3 py-1">{t("landing.mostPopular", "Most Popular")}</Badge>
-                    </div>
-                  )}
-                  <CardContent className="pt-6">
-                    <h3 className="font-semibold text-lg mb-2">{t(plan.titleKey)}</h3>
-                    <p className="text-sm text-muted-foreground mb-4">{t(plan.descKey)}</p>
-                    <div className="mb-2">
-                      <span className="text-4xl font-bold">{formatPrice(getSubscriptionMonthlyFinal(plan.key))}</span>
-                      <span className="text-muted-foreground">{t("landing.perMonth", "/month")}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-6">
-                      {t("common.or", "or")} {formatPrice(getSubscriptionFinalPrice(plan.key, "annual"))}{t("landing.perYear", "/year")}{" "}
-                      <span className="text-alert-resolved">
-                        ({t("landing.save", "save")} {formatPrice(getAnnualSavings(plan.key))})
-                      </span>
-                    </p>
-                    <Button className="w-full" variant={plan.popular ? "default" : "outline"} asChild>
-                      <Link to="/join">{t("common.getStarted", "Get Started")}</Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <>
+              <BillingPeriodToggle value={billing} onChange={setBilling} className="mb-8" />
+              <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                {plans.map((plan) => (
+                  <Card key={plan.key} className={plan.popular ? "relative border-primary shadow-glow" : "relative"}>
+                    {plan.popular && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <Badge className="px-3 py-1">{t("landing.mostPopular", "Most Popular")}</Badge>
+                      </div>
+                    )}
+                    <CardContent className="pt-6">
+                      <h3 className="font-semibold text-lg mb-2">{t(plan.titleKey)}</h3>
+                      <p className="text-sm text-muted-foreground mb-4">{t(plan.descKey)}</p>
+                      <div className="mb-2">
+                        <span className="text-4xl font-bold">
+                          {formatPrice(
+                            billing === "annual"
+                              ? getSubscriptionFinalPrice(plan.key, "annual")
+                              : getSubscriptionMonthlyFinal(plan.key),
+                          )}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {billing === "annual" ? t("landing.perYear", "/year") : t("landing.perMonth", "/month")}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-6">
+                        {billing === "annual" ? (
+                          <span className="text-alert-resolved">
+                            {t("landing.save", "save")} {formatPrice(getAnnualSavings(plan.key))}
+                            {t("landing.perYear", "/year")}
+                          </span>
+                        ) : (
+                          <>
+                            {t("common.or", "or")} {formatPrice(getSubscriptionFinalPrice(plan.key, "annual"))}
+                            {t("landing.perYear", "/year")}{" "}
+                            <span className="text-alert-resolved">
+                              ({t("landing.save", "save")} {formatPrice(getAnnualSavings(plan.key))})
+                            </span>
+                          </>
+                        )}
+                      </p>
+                      <Button className="w-full" variant={plan.popular ? "default" : "outline"} asChild>
+                        <Link to={buildJoinPath({ plan: plan.key, billing })}>{t("common.getStarted", "Get Started")}</Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
 
           {/* One-time costs */}

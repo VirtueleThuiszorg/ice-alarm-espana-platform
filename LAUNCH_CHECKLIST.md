@@ -166,6 +166,21 @@
       name `MonitorLinq B.V.` (NL) as the device-monitoring partner and publish
       those certifications on their behalf. Confirm both the partner identity
       and the certifications in writing before launch, or correct the text.
+- [ ] **Privacy Policy sub-processor table — verify against reality** (found
+      during the Dutch translation, all three locales):
+      - **`OpenAI, LLC` was listed as the AI sub-processor. We do not use
+        OpenAI** — Isabella runs on the Anthropic API (`claude-opus-4-8` via
+        `_shared/anthropic.ts`). Corrected to **`Anthropic, PBC`** in en/es/nl.
+        **Lee must confirm the real-world paperwork exists** (DPA / Standard
+        Contractual Clauses with Anthropic) — naming a processor we have no
+        agreement with is its own GDPR problem.
+      - **`Google (Gmail)` is listed for email delivery.** True today, but it
+        becomes **Resend** at domain cutover (#69) — this row must change in the
+        same push that flips `email_settings.provider`.
+      - **`MonitorLinq B.V.` (NL) is named as the device-monitoring partner**
+        with ISO 27001 / NEN 7510 certification, and §3.3 says device data
+        flows through them. Confirm this is the actual partner and that the
+        certification claim is theirs to make, or correct it.
 
 ### Pre-launch polish (Stage 8 broken-items sweep)  *(added 2026-07-24, goal loop)*
 - [x] **nl locale: legacy English values replaced with real Dutch** — 52 keys in

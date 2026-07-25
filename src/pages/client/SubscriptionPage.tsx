@@ -15,7 +15,6 @@ import {
   Loader2,
   CreditCard,
   Calendar,
-  Download,
   CheckCircle,
   Clock,
   XCircle,
@@ -24,10 +23,11 @@ import {
   Banknote
 } from "lucide-react";
 import { format } from "date-fns";
-import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export default function SubscriptionPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { data: subscription, isLoading: subLoading } = useMemberSubscription();
   const { data: payments, isLoading: paymentsLoading } = useMemberPayments();
 
@@ -175,7 +175,7 @@ export default function SubscriptionPage() {
                     {t("subscription.savePerYear", { amount: subscription.plan_type === "single" ? "54.99" : "76.99" })}
                   </p>
                 </div>
-                <Button onClick={() => toast.info(t("subscription.contactToUpgrade", "Please contact support to upgrade your plan."))}>
+                <Button onClick={() => navigate("/dashboard/support?action=upgrade_plan")}>
                   {t("subscription.upgrade")}
                   <ArrowUpRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -219,7 +219,7 @@ export default function SubscriptionPage() {
                 <p className="text-sm text-muted-foreground">{t("common.active")}</p>
               </div>
             </div>
-            <Button variant="outline" onClick={() => toast.info(t("subscription.contactToUpdatePayment", "Please contact support to update your payment method."))}>
+            <Button variant="outline" onClick={() => navigate("/dashboard/support?action=update_payment")}>
               {t("common.update")}
             </Button>
           </div>
@@ -276,12 +276,10 @@ export default function SubscriptionPage() {
                         )}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
-                      {payment.invoice_number && (
-                        <Button variant="ghost" size="sm" onClick={() => toast.info(t("subscription.invoiceComingSoon", "Invoice downloads coming soon."))}>
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      )}
+                    <TableCell className="text-right text-sm text-muted-foreground">
+                      {/* Download affordance removed: invoice PDFs don't exist
+                          yet — a download icon that only toasts is a dead end */}
+                      {payment.invoice_number || ""}
                     </TableCell>
                   </TableRow>
                 ))}

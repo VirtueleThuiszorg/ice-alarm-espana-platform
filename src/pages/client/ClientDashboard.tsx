@@ -435,7 +435,20 @@ export default function ClientDashboard() {
         </Card>
       </div>
 
-      {/* Quick Stats */}
+      {/* Quick Stats — gated on loading: rendering "0 alerts / Offline"
+          mid-fetch is false reassurance on a safety dashboard */}
+      {(deviceLoading || contactsLoading) && !isTemplatePreview ? (
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <Skeleton className="h-8 w-16 mx-auto mb-2" />
+                <Skeleton className="h-3 w-24 mx-auto" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
       <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
         <Card>
           <CardContent className="p-4 text-center">
@@ -458,13 +471,17 @@ export default function ClientDashboard() {
         <Card>
           <CardContent className="p-4 text-center">
             <div className="flex items-center justify-center gap-1">
-              <div className={`h-2 w-2 rounded-full ${displayDevice?.status === "active" ? "bg-alert-resolved" : "bg-muted-foreground"}`} />
-              <p className="text-sm font-medium">{displayDevice?.status === "active" ? t("common.online") : t("common.offline")}</p>
+              {/* is_online is the real connectivity signal — status covers
+                  allocation states (allocated/with_staff/live/active), so a
+                  live online pendant used to read "Offline" here */}
+              <div className={`h-2 w-2 rounded-full ${displayDevice?.is_online ? "bg-alert-resolved" : "bg-muted-foreground"}`} />
+              <p className="text-sm font-medium">{displayDevice?.is_online ? t("common.online") : t("common.offline")}</p>
             </div>
             <p className="text-xs text-muted-foreground">{t("dashboard.deviceStatus")}</p>
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* Announcements */}
       <Card className="border-alert-checkin/30 bg-alert-checkin/5">

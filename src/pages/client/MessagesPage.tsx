@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { createNotification } from "@/utils/notifications";
+import { notifyStaffOfMemberMessage, markMemberConversationRead } from "@/utils/notifications";
 import {
   Loader2, Plus, Send, MessageSquare, ArrowLeft,
   CheckCheck, Clock, Inbox, PenLine
@@ -186,12 +186,9 @@ export default function MessagesPage() {
 
       if (error) throw error;
 
-      await supabase
-        .from("messages")
-        .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq("conversation_id", conversationId)
-        .eq("sender_type", "staff")
-        .eq("is_read", false);
+      // Members have no UPDATE policy on messages — the old direct update
+      // was silently RLS-denied (badges never cleared). Server-side instead.
+      markMemberConversationRead(conversationId);
 
       const staffIds = data?.filter(m => m.sender_type === "staff" && m.sender_id).map(m => m.sender_id).filter((x): x is string => x !== null) || [];
       const { data: staffData } = await supabase.from("staff").select("id, first_name").in("id", staffIds);
@@ -242,14 +239,10 @@ export default function MessagesPage() {
 
       if (msgError) throw msgError;
 
-      // Notify all staff about new member message
-      createNotification({
-        adminUserId: null,
-        eventType: "message",
-        message: `New message from member: ${newSubject}`,
-        entityType: "conversation",
-        entityId: convData.id,
-      });
+      // Notify all staff about new member message — server-side: the
+      // notification_log INSERT policy is service/staff-only by design, so a
+      // direct client insert was silently RLS-denied and staff never saw it.
+      notifyStaffOfMemberMessage(convData.id, "new", newSubject);
 
       toast.success(t("messages.messageSent"));
       setIsDialogOpen(false);
@@ -282,19 +275,10 @@ export default function MessagesPage() {
 
       if (error) throw error;
 
-      await supabase
-        .from("conversations")
-        .update({ last_message_at: new Date().toISOString() })
-        .eq("id", selectedConversation.id);
-
-      // Notify all staff about member reply
-      createNotification({
-        adminUserId: null,
-        eventType: "message",
-        message: `Member replied in: ${selectedConversation.subject || "Conversation"}`,
-        entityType: "conversation",
-        entityId: selectedConversation.id,
-      });
+      // Notify all staff about member reply (server-side; also bumps
+      // last_message_at — members have no UPDATE policy on conversations,
+      // so the old direct bump was silently RLS-denied)
+      notifyStaffOfMemberMessage(selectedConversation.id, "reply", selectedConversation.subject || "");
 
       setReplyMessage("");
       fetchMessages(selectedConversation.id);

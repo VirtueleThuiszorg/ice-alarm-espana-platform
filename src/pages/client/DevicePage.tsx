@@ -91,11 +91,11 @@ export default function DevicePage() {
             {/* Emergency Number */}
             <div className="p-6 bg-primary/5 rounded-lg text-center">
               <p className="text-sm text-muted-foreground mb-2">{t('support.emergencyNumber')}</p>
-              <a 
+              <a
                 href={`tel:${phoneForLink}`}
                 className="text-3xl md:text-4xl font-bold text-primary hover:underline block"
               >
-                {t("common.callNow")}
+                {companySettings.emergency_phone}
               </a>
               <Button 
                 className="mt-4 bg-[#25D366] hover:bg-[#128C7E] text-white"

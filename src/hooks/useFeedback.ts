@@ -34,26 +34,20 @@ export function useFeedback() {
       setIsSubmitting(true);
 
       try {
-        const { error } = await supabase.from("activity_logs").insert({
-          user_id: user.id,
-          entity_type: "feedback",
-          entity_id: memberId || user.id,
-          action: "feedback_submitted",
-          details: {
+        // Server-side: activity_logs INSERT is staff-only under RLS, so the
+        // old direct insert failed for every member. member-self-service
+        // writes it with the caller's identity verified.
+        const { data: result, error } = await supabase.functions.invoke("member-self-service", {
+          body: {
+            action: "submit_feedback",
             rating: data.rating,
             comment: data.comment || null,
             category: data.category,
-            nps_category:
-              data.rating >= 9
-                ? "promoter"
-                : data.rating >= 7
-                  ? "passive"
-                  : "detractor",
-            submitted_at: new Date().toISOString(),
           },
         });
 
         if (error) throw error;
+        if (result?.error) throw new Error(result.error);
 
         // Set cooldown in localStorage
         const cooldownUntil = new Date();

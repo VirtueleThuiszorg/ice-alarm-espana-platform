@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { SectionErrorBoundary } from "@/components/SectionErrorBoundary";
@@ -23,7 +22,6 @@ import {
   MessageSquare,
   LogOut,
   ChevronLeft,
-  Search,
   ChevronDown
 } from "lucide-react";
 import {
@@ -143,9 +141,9 @@ export function ClientLayout() {
     enabled: !!memberId,
   });
 
-  const displayName = memberInfo 
-    ? `${memberInfo.first_name} ${memberInfo.last_name}` 
-    : user?.email?.split('@')[0] || "Member";
+  const displayName = memberInfo
+    ? `${memberInfo.first_name} ${memberInfo.last_name}`
+    : user?.email?.split('@')[0] || t("common.member");
 
   const displayEmail = memberInfo?.email || user?.email || "";
 
@@ -401,7 +399,7 @@ export function ClientLayout() {
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <SheetContent side="left" className="p-0 w-72 bg-sidebar border-sidebar-border">
           <SheetHeader className="sr-only">
-            <SheetTitle>Navigation Menu</SheetTitle>
+            <SheetTitle>{t("navigation.menu", "Navigation Menu")}</SheetTitle>
           </SheetHeader>
           <div className="flex flex-col h-full">
             <SidebarContent isMobile />
@@ -438,16 +436,9 @@ export function ClientLayout() {
       )}>
         {/* Desktop Header */}
         <header className="hidden md:flex sticky top-0 z-30 h-16 items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
-          {/* Left side - Search */}
-          <div className="flex items-center gap-4">
-            <div className="relative w-full max-w-md">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder={t("common.search")}
-                className="pl-10 bg-secondary/50 border-0 focus-visible:ring-1"
-              />
-            </div>
-          </div>
+          {/* Left side — intentionally empty: the previous search input was
+              never wired to anything (no member search exists yet) */}
+          <div className="flex items-center gap-4" />
 
           {/* Right side */}
           <div className="flex items-center gap-2">

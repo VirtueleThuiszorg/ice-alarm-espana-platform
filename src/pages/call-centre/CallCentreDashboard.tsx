@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Clock, AlertTriangle, CheckCircle, PhoneCall, Volume2, VolumeX, MessageSquare } from "lucide-react";
+import { Search, Clock, AlertTriangle, CheckCircle, PhoneCall, MessageSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +19,7 @@ type AlertTabValue = "all" | "incoming" | "in_progress" | "escalated";
 type MainTab = "alerts" | "messages";
 
 export default function CallCentreDashboard() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { alerts, isLoading, claimAlert, resolveAlert, escalateAlert } = useAlerts();
   const [mainTab, setMainTab] = useState<MainTab>("alerts");
@@ -27,7 +27,6 @@ export default function CallCentreDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAlert, setSelectedAlert] = useState<EnrichedAlert | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
 
@@ -149,17 +148,14 @@ export default function CallCentreDashboard() {
           )}
         </div>
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className={cn(!soundEnabled && "text-muted-foreground")}
-          >
-            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-          </Button>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Clock className="w-4 h-4" />
-            <span>{currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+            <span>
+              {currentTime.toLocaleTimeString(
+                i18n.language === "es" ? "es-ES" : i18n.language === "nl" ? "nl-NL" : "en-GB",
+                { hour: "2-digit", minute: "2-digit", second: "2-digit" }
+              )}
+            </span>
           </div>
         </div>
       </div>

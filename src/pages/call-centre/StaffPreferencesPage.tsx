@@ -11,7 +11,6 @@ import {
   Save,
   Loader2,
   Shield,
-  Bell,
   Clock,
   CheckCircle,
 } from "lucide-react";
@@ -20,7 +19,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -73,13 +71,6 @@ export default function StaffPreferencesPage() {
   const [staffData, setStaffData] = useState<StaffData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-
-  // Notification preferences (stored locally for now - could be extended to DB)
-  const [notifications, setNotifications] = useState({
-    alertSounds: true,
-    desktopNotifications: true,
-    emailSummary: false,
-  });
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -341,64 +332,7 @@ export default function StaffPreferencesPage() {
             </CardContent>
           </Card>
 
-          {/* Notification Preferences */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="w-5 h-5" />
-                {t("staffPreferences.notifications")}
-              </CardTitle>
-              <CardDescription>
-                {t("staffPreferences.notificationsDesc")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>{t("staffPreferences.alertSounds")}</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {t("staffPreferences.alertSoundsDesc")}
-                  </p>
-                </div>
-                <Switch
-                  checked={notifications.alertSounds}
-                  onCheckedChange={(checked) =>
-                    setNotifications((prev) => ({ ...prev, alertSounds: checked }))
-                  }
-                />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>{t("staffPreferences.desktopNotifications")}</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {t("staffPreferences.desktopNotificationsDesc")}
-                  </p>
-                </div>
-                <Switch
-                  checked={notifications.desktopNotifications}
-                  onCheckedChange={(checked) =>
-                    setNotifications((prev) => ({ ...prev, desktopNotifications: checked }))
-                  }
-                />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>{t("staffPreferences.emailSummary")}</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {t("staffPreferences.emailSummaryDesc")}
-                  </p>
-                </div>
-                <Switch
-                  checked={notifications.emailSummary}
-                  onCheckedChange={(checked) =>
-                    setNotifications((prev) => ({ ...prev, emailSummary: checked }))
-                  }
-                />
-              </div>
-            </CardContent>
-          </Card>
+          {/* notification preferences card removed — switches were never persisted or consumed; reinstate when wired */}
 
           {/* Account Information */}
           <Card>

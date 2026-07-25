@@ -1563,7 +1563,25 @@
       "callMember": "Call member",
       "sendMessage": "Send message",
       "viewProfile": "View profile"
-    }
+    },
+    "loadError": "Couldn't load this data — refresh to retry"
+  },
+  "callCentreHeader": {
+    "operator": "Operator",
+    "onDuty": "On Duty",
+    "startShift": "Start Shift",
+    "scheduled": "Scheduled",
+    "onShift": "on shift",
+    "staffOnShift": "Staff Currently on Shift",
+    "role": "Call Centre Operator",
+    "shiftHistory": "My Shift History",
+    "preferences": "Preferences",
+    "endShift": "End Shift",
+    "logOut": "Log Out",
+    "dutyUpdateFailed": "Failed to update duty status",
+    "nowOnDuty": "You are now on duty",
+    "shiftEnded": "You have ended your shift",
+    "shiftUpdateFailed": "Your shift status couldn't be updated — you may still show as on duty"
   },
   "callCentreMessages": {
     "title": "Messages",
@@ -3242,7 +3260,8 @@
     "followup": "Follow-up",
     "completed": "Completed",
     "messages": "messages",
-    "failedToLoad": "Failed to load shift history"
+    "failedToLoad": "Failed to load shift history",
+    "loadFailed": "Could not load your shift history. Please refresh."
   },
   "products": {
     "title": "Our Products",

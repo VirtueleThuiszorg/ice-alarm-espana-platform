@@ -1563,7 +1563,25 @@
       "callMember": "Lid bellen",
       "sendMessage": "Bericht versturen",
       "viewProfile": "Profiel bekijken"
-    }
+    },
+    "loadError": "Deze gegevens konden niet worden geladen; vernieuw de pagina om het opnieuw te proberen"
+  },
+  "callCentreHeader": {
+    "operator": "Operator",
+    "onDuty": "Dienst actief",
+    "startShift": "Dienst starten",
+    "scheduled": "Ingepland",
+    "onShift": "van dienst",
+    "staffOnShift": "Medewerkers momenteel van dienst",
+    "role": "Callcentermedewerker",
+    "shiftHistory": "Mijn dienstgeschiedenis",
+    "preferences": "Voorkeuren",
+    "endShift": "Dienst beëindigen",
+    "logOut": "Uitloggen",
+    "dutyUpdateFailed": "Dienststatus kon niet worden bijgewerkt",
+    "nowOnDuty": "Uw dienst is gestart",
+    "shiftEnded": "U heeft uw dienst beëindigd",
+    "shiftUpdateFailed": "Uw dienststatus kon niet worden bijgewerkt; mogelijk staat u nog als actief geregistreerd"
   },
   "callCentreMessages": {
     "title": "Berichten",
@@ -3242,7 +3260,8 @@
     "followup": "Follow-up",
     "completed": "Completed",
     "messages": "messages",
-    "failedToLoad": "Failed to load shift history"
+    "failedToLoad": "Failed to load shift history",
+    "loadFailed": "Uw dienstgeschiedenis kon niet worden geladen. Vernieuw de pagina."
   },
   "products": {
     "title": "Onze producten",

@@ -18,6 +18,8 @@ import {
 import { useNavigate, Link } from "react-router-dom";
 import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { isAdminRole as checkAdminRole } from "@/config/constants";
 
 interface DeviceIssue {
   id: string;
@@ -37,6 +39,10 @@ export function DeviceIssuesQueue() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const { isStaff, staffRole } = useAuth();
+  // Device admin routes (/admin/*) bounce non-admin operators to /unauthorized,
+  // so only admins get the admin-navigating affordances.
+  const isAdmin = isStaff && checkAdminRole(staffRole);
 
   // Subscribe to realtime device updates
   useEffect(() => {
@@ -56,7 +62,7 @@ export function DeviceIssuesQueue() {
     };
   }, [queryClient]);
 
-  const { data: issues, isLoading } = useQuery({
+  const { data: issues, isLoading, isError } = useQuery({
     queryKey: ["staff-device-issues"],
     queryFn: async () => {
       const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
@@ -145,15 +151,23 @@ export function DeviceIssuesQueue() {
             </CardTitle>
             <CardDescription className="truncate">{t("callCentre.deviceIssues.subtitle", "Faulty or extended offline devices")}</CardDescription>
           </div>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/admin/ev07b">
-              {t("callCentre.deviceIssues.viewAll", "View All")} <ArrowRight className="h-4 w-4 ml-1" />
-            </Link>
-          </Button>
+          {isAdmin && (
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/admin/ev07b">
+                {t("callCentre.deviceIssues.viewAll", "View All")} <ArrowRight className="h-4 w-4 ml-1" />
+              </Link>
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent>
-        {!hasIssues ? (
+        {isError ? (
+          // A failed query must never render as a green all-clear.
+          <div className="text-center py-6 text-muted-foreground">
+            <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
+            <p>{t("callCentre.loadError", "Couldn't load this data — refresh to retry")}</p>
+          </div>
+        ) : !hasIssues ? (
           <div className="text-center py-6 text-muted-foreground">
             <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
             <p>{t("callCentre.deviceIssues.noIssues", "No device issues")}</p>
@@ -165,10 +179,13 @@ export function DeviceIssuesQueue() {
               const member = device.member as DeviceIssue["member"];
               
               return (
-                <div 
-                  key={device.id} 
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
-                  onClick={() => navigate(`/admin/devices/${device.id}`)}
+                <div
+                  key={device.id}
+                  className={cn(
+                    "flex items-center justify-between p-3 border rounded-lg",
+                    isAdmin && "hover:bg-muted/50 cursor-pointer"
+                  )}
+                  onClick={isAdmin ? () => navigate(`/admin/devices/${device.id}`) : undefined}
                 >
                   <div className="flex items-center gap-3">
                     {issueType === "faulty" ? (

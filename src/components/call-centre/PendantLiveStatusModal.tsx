@@ -52,7 +52,7 @@ export function PendantLiveStatusModal() {
   const dateLocale = i18n.language === "es" ? es : enGB;
 
   // Fetch devices with member data
-  const { data: devices, isLoading } = useQuery({
+  const { data: devices, isLoading, isError } = useQuery({
     queryKey: ["pendant-live-status"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -182,6 +182,12 @@ export function PendantLiveStatusModal() {
               {[...Array(5)].map((_, i) => (
                 <Skeleton key={i} className="h-20 w-full" />
               ))}
+            </div>
+          ) : isError ? (
+            // A failed query must never render as "no devices assigned".
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <AlertTriangle className="h-12 w-12 mb-4" />
+              <p>{t("callCentre.loadError", "Couldn't load this data — refresh to retry")}</p>
             </div>
           ) : !devices || devices.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">

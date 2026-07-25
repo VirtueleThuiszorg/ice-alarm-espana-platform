@@ -6,7 +6,7 @@ import {
   Phone,
   AlertCircle,
   MessageCircle,
-  Brain,
+  ClipboardList,
   Monitor,
   Headphones,
   Ambulance,
@@ -266,7 +266,7 @@ export default function HowItWorksPage() {
             <TimelineStep
               time={t("howItWorksPage.step3.time")}
               title={t("howItWorksPage.step3.title")}
-              icon={Brain}
+              icon={ClipboardList}
               iconColor="text-purple-500"
               iconBg="bg-purple-500/10"
               dotColor="bg-purple-500"

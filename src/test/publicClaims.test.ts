@@ -258,3 +258,20 @@ describe("seeded catalog copy is corrected by guarded migrations", () => {
     expect(sql).toMatch(/getrainde meldkamerteam/);
   });
 });
+
+describe("checkout shows the pre-contract information before payment", () => {
+  it("the summary step renders the delivery and withdrawal notices", () => {
+    const step = readFileSync(join(ROOT, "src/components/join/steps/JoinSummaryStep.tsx"), "utf8");
+    expect(step).toMatch(/joinWizard\.summary\.deliveryNotice/);
+    expect(step).toMatch(/joinWizard\.summary\.withdrawalNotice/);
+    // it must come before the accept-terms checkbox the consumer is bound by
+    expect(step.indexOf("withdrawalNotice")).toBeLessThan(step.indexOf('id="terms"'));
+  });
+
+  it("the notices exist in all three locales", () => {
+    for (const locale of LOCALES) {
+      expect(flat[locale]["joinWizard.summary.withdrawalNotice"]).toBeTruthy();
+      expect(flat[locale]["joinWizard.summary.deliveryNotice"]).toBeTruthy();
+    }
+  });
+});

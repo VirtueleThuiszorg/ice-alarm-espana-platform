@@ -34,10 +34,15 @@ export function OutreachControlPanel() {
   });
 
   const updateSetting = async (key: string, value: unknown) => {
-    await supabase.from("outreach_settings").upsert(
+    const { error } = await supabase.from("outreach_settings").upsert(
       { setting_key: key, setting_value: JSON.parse(JSON.stringify(value)), updated_at: new Date().toISOString() },
       { onConflict: "setting_key" }
     );
+    if (error) {
+      console.error("Failed to update outreach setting", error);
+      toast({ title: "Could not update outreach settings", variant: "destructive" });
+      return;
+    }
     refetch();
   };
 

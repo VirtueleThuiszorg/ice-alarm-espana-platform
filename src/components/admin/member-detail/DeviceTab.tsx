@@ -123,10 +123,15 @@ export function DeviceTab({ memberId }: DeviceTabProps) {
       if (error) throw error;
 
       // Sync has_pendant on subscription
-      await supabase
+      const { error: syncError } = await supabase
         .from("subscriptions")
         .update({ has_pendant: true })
         .eq("member_id", memberId);
+
+      if (syncError) {
+        console.error("Error syncing has_pendant flag:", syncError);
+        toast.warning("Device updated but subscription flag failed to sync");
+      }
 
       toast.success(t("admin.devices.deviceAllocated"));
       setIsDialogOpen(false);
@@ -197,10 +202,15 @@ export function DeviceTab({ memberId }: DeviceTabProps) {
       if (error) throw error;
 
       // Sync has_pendant on subscription
-      await supabase
+      const { error: syncError } = await supabase
         .from("subscriptions")
         .update({ has_pendant: false })
         .eq("member_id", memberId);
+
+      if (syncError) {
+        console.error("Error syncing has_pendant flag:", syncError);
+        toast.warning("Device updated but subscription flag failed to sync");
+      }
 
       toast.success(t("admin.devices.markedFaulty"));
       queryClient.invalidateQueries({ queryKey: ["admin-member-device", memberId] });
@@ -226,10 +236,15 @@ export function DeviceTab({ memberId }: DeviceTabProps) {
       if (error) throw error;
 
       // Sync has_pendant on subscription
-      await supabase
+      const { error: syncError } = await supabase
         .from("subscriptions")
         .update({ has_pendant: false })
         .eq("member_id", memberId);
+
+      if (syncError) {
+        console.error("Error syncing has_pendant flag:", syncError);
+        toast.warning("Device updated but subscription flag failed to sync");
+      }
 
       toast.success(t("admin.devices.deviceUnassigned"));
       queryClient.invalidateQueries({ queryKey: ["admin-member-device", memberId] });

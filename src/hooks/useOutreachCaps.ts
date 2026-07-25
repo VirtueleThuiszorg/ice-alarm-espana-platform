@@ -172,17 +172,19 @@ export function useOutreachCaps() {
       const { data: existing } = await query.single();
 
       if (existing) {
-        await supabase
+        const { error } = await supabase
           .from("outreach_daily_usage")
           .update({ usage_count: existing.usage_count + count })
           .eq("id", existing.id);
+        if (error) throw error;
       } else {
-        await supabase.from("outreach_daily_usage").insert({
+        const { error } = await supabase.from("outreach_daily_usage").insert({
           usage_date: today,
           usage_type: usageType,
           usage_count: count,
           inbox_id: inboxId || null,
         });
+        if (error) throw error;
       }
     },
     onSuccess: () => {

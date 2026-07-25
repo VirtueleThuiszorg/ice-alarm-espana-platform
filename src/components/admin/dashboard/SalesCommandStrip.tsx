@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { CreditCard, Clock, Users, Handshake, Brain, ListTodo } from "lucide-react";
+import { CreditCard, Clock, Users, Handshake, Brain, ListTodo, AlertCircle } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 interface SalesStats {
@@ -50,7 +51,7 @@ function StatCard({ icon: Icon, label, value, amount, highlight }: StatCardProps
 }
 
 export function SalesCommandStrip() {
-  const { data: stats } = useQuery({
+  const { data: stats, isLoading, isError } = useQuery({
     queryKey: ["sales-command-stats"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_sales_command_stats");
@@ -72,7 +73,35 @@ export function SalesCommandStrip() {
     followups_pending: 0,
   };
 
+  // defaultStats is only used for genuinely-empty data (query succeeded with no rows)
   const s = stats || defaultStats;
+
+  if (isLoading) {
+    return (
+      <div className="grid gap-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-6 bg-gradient-to-r from-primary/5 via-background to-green-500/5 p-4 rounded-lg border">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-background/50 border">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <div className="space-y-1">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-5 w-10" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center gap-2 bg-gradient-to-r from-primary/5 via-background to-green-500/5 p-4 rounded-lg border">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 text-destructive text-xs font-medium px-3 py-1">
+          <AlertCircle className="h-3.5 w-3.5" />
+          Sales stats failed to load
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-6 bg-gradient-to-r from-primary/5 via-background to-green-500/5 p-4 rounded-lg border">

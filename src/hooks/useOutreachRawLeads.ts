@@ -328,7 +328,10 @@ export function useOutreachRawLeads(filters?: Filters) {
           scheduled_for: tomorrow.toISOString().split("T")[0],
         }));
 
-        await supabase.from("outreach_queued_tasks").insert(queuedTasks);
+        const { error: queueError } = await supabase
+          .from("outreach_queued_tasks")
+          .insert(queuedTasks);
+        if (queueError) throw queueError;
       }
 
       // Create CRM leads with campaign_id

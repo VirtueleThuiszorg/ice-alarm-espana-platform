@@ -60,6 +60,10 @@ export function AISalesDesk() {
       queryClient.invalidateQueries({ queryKey: ["ai-sales-recommendations"] });
       queryClient.invalidateQueries({ queryKey: ["sales-command-stats"] });
     },
+    onError: (error) => {
+      console.error("Failed to update AI action:", error);
+      toast.error("Failed to update AI recommendation");
+    },
   });
 
   const handleCreateTask = async (action: AIAction) => {
@@ -100,13 +104,17 @@ export function AISalesDesk() {
       return;
     }
 
-    await updateActionMutation.mutateAsync({ id: action.id, status: "executed" });
-    toast.success("Task created from AI recommendation");
+    updateActionMutation.mutate(
+      { id: action.id, status: "executed" },
+      { onSuccess: () => toast.success("Task created from AI recommendation") }
+    );
   };
 
-  const handleMarkDone = async (action: AIAction) => {
-    await updateActionMutation.mutateAsync({ id: action.id, status: "completed" });
-    toast.success("Marked as done");
+  const handleMarkDone = (action: AIAction) => {
+    updateActionMutation.mutate(
+      { id: action.id, status: "completed" },
+      { onSuccess: () => toast.success("Marked as done") }
+    );
   };
 
   const handleEscalate = async (action: AIAction) => {
@@ -128,8 +136,10 @@ export function AISalesDesk() {
       console.error("Failed to escalate:", error);
     }
 
-    await updateActionMutation.mutateAsync({ id: action.id, status: "escalated" });
-    toast.success("Escalated to Main Brain");
+    updateActionMutation.mutate(
+      { id: action.id, status: "escalated" },
+      { onSuccess: () => toast.success("Escalated to Main Brain") }
+    );
   };
 
   const getConfidenceColor = (confidence?: number) => {

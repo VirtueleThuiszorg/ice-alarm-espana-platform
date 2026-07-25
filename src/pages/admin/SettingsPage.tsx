@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,10 +79,30 @@ const KEY = {
   FB_PAGE_TOKEN: "settings_facebook_page_access_token",
 } as const;
 
+const SETTINGS_TABS = ["company", "pricing", "payments", "communications", "devices", "images", "documentation"] as const;
+
 export default function SettingsPage() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Deep-linkable tabs: ?tab=<value>, validated against the TabsList values
+  const tabParam = searchParams.get("tab");
+  const activeTab = SETTINGS_TABS.includes(tabParam as (typeof SETTINGS_TABS)[number])
+    ? (tabParam as (typeof SETTINGS_TABS)[number])
+    : "company";
+
+  const handleTabChange = (value: string) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("tab", value);
+        return next;
+      },
+      { replace: true }
+    );
+  };
 
   // Company settings state (UI values)
   const [companySettings, setCompanySettings] = useState({
@@ -439,7 +460,7 @@ export default function SettingsPage() {
         <p className="text-muted-foreground">{t("adminSettings.subtitle", "Manage system configuration and integrations.")}</p>
       </div>
 
-      <Tabs defaultValue="company" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="company">{t("adminSettings.company", "Company")}</TabsTrigger>
           <TabsTrigger value="pricing">{t("adminSettings.pricing", "Pricing")}</TabsTrigger>

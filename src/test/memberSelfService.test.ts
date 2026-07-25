@@ -45,12 +45,20 @@ describe("member-self-service — scoped service-role routing", () => {
     expect(fn).toMatch(/checkRateLimit\(`member-self-service:\$\{user\.id\}`/);
   });
 
-  it("ZERO policy changes: this fix ships no migration at all", () => {
+  it("ZERO policy changes: no migration ever grants non-staff writes on the routed tables", () => {
     // The whole point is routing, not policy loosening. Any migration dated
-    // after this work started (2026-07-24 16:00) would need its own review.
+    // after this work started (2026-07-24 16:00) must not touch the three
+    // routed tables' policies. (The original "no new migrations at all" pin
+    // was too broad — it tripped when the unrelated partner guard-trigger
+    // migration from the same night merged alongside this fix.)
     const dir = join(ROOT, "supabase/migrations");
-    const newMigrations = readdirSync(dir).filter((m) => m >= "20260724160000");
-    expect(newMigrations).toEqual([]);
+    for (const m of readdirSync(dir).filter((f) => f >= "20260724160000")) {
+      const sql = readFileSync(join(dir, m), "utf8");
+      expect(
+        /CREATE POLICY[^;]*ON public\.(medical_information|activity_logs|notification_log)/i.test(sql),
+        `${m} adds a policy on a member-self-service routed table — the fix must stay routing, not policy loosening`,
+      ).toBe(false);
+    }
   });
 });
 

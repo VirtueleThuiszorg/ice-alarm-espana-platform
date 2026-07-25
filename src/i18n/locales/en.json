@@ -1226,7 +1226,7 @@
       "billingDate": "When am I billed each month?",
       "billingDateAnswer": "You are billed on the same date each month as when you first subscribed. If that date doesn't exist in a shorter month, you'll be billed on the last day. You can check your next billing date on your dashboard.",
       "cancelSubscription": "How do I cancel my subscription?",
-      "cancelSubscriptionAnswer": "We're sorry to see you go. Please contact our support team through the Messages tab or call us. We require 30 days' notice for cancellation. We'll arrange collection of any equipment and process your final payment.",
+      "cancelSubscriptionAnswer": "We're sorry to see you go. You can cancel at any time — there is no minimum term and no notice period. Cancel from your dashboard, message us here, or call us. Your monitoring stays active until the end of the billing period you have already paid for. If you joined less than 14 days ago, your right of withdrawal applies instead and you get a full refund — see section 9.2 of our Terms.",
       "medicalPrivacy": "Who can see my medical information?",
       "medicalPrivacyAnswer": "Your medical information is only accessible to our trained emergency operators and the emergency services we coordinate with during an alert. It is never shared with third parties for marketing or other purposes. You control what information you add.",
       "locationData": "How is my location data used?",
@@ -2836,7 +2836,10 @@
       "termsNote": "By checking this box, you agree to our Terms of Service and Privacy Policy.",
       "acceptMedical": "I consent to share medical information with emergency services",
       "medicalNote": "Your medical information will only be shared with emergency responders when needed.",
-      "securityNote": "Your payment information is secure and encrypted"
+      "securityNote": "Your payment information is secure and encrypted",
+      "preContractTitle": "Before you pay",
+      "withdrawalNotice": "You have 14 days from receiving your pendant to withdraw from this contract for any reason. We refund everything you paid, including standard delivery; you pay only the cost of sending the pendant back. Full details and the model withdrawal form are in our Terms, section 9.2.",
+      "deliveryNotice": "Your pendant is sent by recorded delivery and arrives within 5–7 working days."
     },
     "payment": {
       "title": "Complete Your Payment",
@@ -2872,7 +2875,7 @@
       "saveNumber": "Save Our Number",
       "saveNumberDesc": "Add our 24/7 emergency hotline to your contacts.",
       "pendantShipping": "Pendant Shipping",
-      "pendantShippingDesc": "Your GPS safety pendant will be shipped within 2-3 business days.",
+      "pendantShippingDesc": "Your GPS safety pendant is sent by recorded delivery and arrives within 5–7 working days.",
       "downloadApp": "Download the App",
       "downloadAppDesc": "Download our mobile app from the App Store or Google Play to get started.",
       "welcomeCall": "Welcome Call",
@@ -3426,10 +3429,10 @@
       "s8_3p1": "We may change subscription prices with 30 days notice. If you do not agree to a price change, you may cancel before it takes effect.",
       "s8_4Title": "8.4 Refunds",
       "s8_4Items": [
-        "Registration fees are non-refundable",
-        "If you cancel within 14 days of signup (cooling-off period), you are entitled to a refund of subscription fees minus any services already used",
-        "After 14 days, subscription fees are non-refundable for the current billing period",
-        "Device deposits are refundable upon return of the device in good condition"
+        "Within the 14-day withdrawal period (section 9.2) you receive a full refund of everything you paid — including the registration fee and the standard delivery cost.",
+        "If you expressly asked us to start monitoring during that period, we deduct only a proportionate amount for the days the service was actually live.",
+        "After the withdrawal period, subscription fees already paid for the current billing period are not refunded; your cancellation takes effect at the end of that period.",
+        "Faulty, damaged or misdescribed equipment is covered by your statutory guarantee rights, which this section does not limit."
       ],
       "s8_5Title": "8.5 Non-Payment",
       "s8_5Intro": "If payment fails:",
@@ -3447,9 +3450,9 @@
         "Emailing info@careconneqt.es",
         "Calling our customer service"
       ],
-      "s9_1p1": "Cancellation takes effect at the end of your current billing period.",
-      "s9_2Title": "9.2 Cooling-Off Period",
-      "s9_2p1": "Under EU consumer law, you have 14 days from signup to cancel for a full refund. To exercise this right, contact us clearly stating your wish to cancel.",
+      "s9_1p1": "You can cancel at any time. There is no minimum term and no notice period. Cancellation takes effect at the end of the billing period you have already paid for, and monitoring continues until then.",
+      "s9_2Title": "9.2 Right of Withdrawal (14 Days)",
+      "s9_2p1": "If you are a consumer, you have the right to withdraw from this contract within 14 calendar days without giving any reason and without penalty. This is a statutory right under Spanish and EU distance-selling law (Royal Legislative Decree 1/2007, articles 102 to 108, implementing Directive 2011/83/EU).",
       "s9_3Title": "9.3 Our Right to Terminate",
       "s9_3Intro": "We may suspend or terminate your account if:",
       "s9_3Items": [
@@ -3593,7 +3596,19 @@
         "You will call 112 directly whenever possible in a life-threatening emergency"
       ],
       "effectiveDate": "These Terms of Service are effective as of the date last updated above.",
-      "tagline": "Care Conneqt — Keeping You Connected, Keeping You Safe"
+      "tagline": "Care Conneqt — Keeping You Connected, Keeping You Safe",
+      "s9_2Items": [
+        "<strong>When the period starts:</strong> if you ordered a GPS pendant, on the day you — or someone you nominate — take physical possession of it. If you subscribed without ordering a device, on the day the contract was concluded.",
+        "<strong>How to exercise it:</strong> tell us in any unambiguous statement before the 14 days expire — email info@careconneqt.es, write to our registered address, or use the model form below. You do not have to give a reason.",
+        "<strong>What we refund:</strong> every payment we received from you, including the registration fee and the cost of standard delivery. If you chose a more expensive delivery option, we refund the standard cost.",
+        "<strong>When we refund:</strong> within 14 days of receiving your withdrawal notice, using the same payment method you paid with, at no cost to you.",
+        "<strong>Returning the pendant:</strong> send it back without undue delay and within 14 days of telling us. You pay the cost of return postage. You are only liable for any loss in value caused by handling the device beyond what is needed to check it works.",
+        "<strong>Service already provided:</strong> if you expressly asked us to start monitoring during the withdrawal period, you owe a proportionate amount for the days it was live. Everything else is refunded.",
+        "<strong>This right prevails:</strong> where anything elsewhere in these Terms describes a payment as non-refundable, your statutory right of withdrawal takes precedence."
+      ],
+      "s9_2FormTitle": "Model withdrawal form",
+      "s9_2FormIntro": "You may use this form, but you are not obliged to.",
+      "s9_2FormBody": "To Care Conneqt, info@careconneqt.es:<br/><br/>I/we hereby give notice that I/we withdraw from my/our contract for the supply of the following service and/or goods: ______________________<br/><br/>Ordered on / received on: ______________________<br/>Name of consumer(s): ______________________<br/>Address of consumer(s): ______________________<br/>Signature of consumer(s) (only if this form is sent on paper): ______________________<br/>Date: ______________________"
     },
     "privacy": {
       "title": "Privacy Policy",
@@ -5929,8 +5944,8 @@
       "primaryButton": "Protect Someone You Love",
       "secondaryButton": "Talk to Our Team",
       "trust1": "No long-term contracts",
-      "trust2": "14-day cooling-off period",
-      "trust3": "Pendant shipped within 2–3 business days"
+      "trust2": "14-day right of withdrawal",
+      "trust3": "Delivery within 5–7 working days, sent by recorded delivery"
     }
   },
   "aiChat": {

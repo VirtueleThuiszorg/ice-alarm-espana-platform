@@ -1,7 +1,7 @@
 /**
- * Guards the 2026-07-24 nl.json legacy-translation fix: the shifts/leads/
- * covers/callCentre.members namespaces shipped with English values pasted
- * into the Dutch locale. This pins that they stay genuinely Dutch — any key
+ * Guards the nl.json translation fixes: namespaces that shipped with English
+ * values pasted into the Dutch locale — shifts/leads/covers/callCentre.members
+ * (2026-07-24) and the member-facing support namespace (2026-07-25). This pins that they stay genuinely Dutch — any key
  * in these namespaces whose nl value is byte-identical to its en value fails,
  * except the pinned legitimate identicals ("Status" is the same word in
  * Dutch). A regression that re-copies English strings in fails immediately.
@@ -23,12 +23,27 @@ function flatten(obj: Record<string, unknown>, prefix = ""): Record<string, stri
   return out;
 }
 
-const FIXED_NAMESPACES = ["shifts.", "leads.", "covers.", "callCentre.members."];
-// "Status" is identical in Dutch and English — the only allowed carbon copies.
-const LEGITIMATE_IDENTICALS = new Set(["leads.statusFilter", "callCentre.members.statusFilter"]);
+const FIXED_NAMESPACES = [
+  "shifts.",
+  "leads.",
+  "covers.",
+  "callCentre.members.",
+  // 2026-07-25: the whole member-facing support namespace (help centre, FAQ,
+  // messaging) was untranslated English on a Dutch surface — 91 values.
+  "support.",
+];
+// Words that are genuinely the same in Dutch and English.
+const LEGITIMATE_IDENTICALS = new Set([
+  "leads.statusFilter",
+  "callCentre.members.statusFilter",
+  "support.chat",
+  "support.status.open",
+  "support.aiShort",
+  "support.faqShort",
+]);
 
 describe("nl locale — no English left in the fixed namespaces", () => {
-  it("every shifts/leads/covers/callCentre.members value differs from en (except pinned identicals)", () => {
+  it("every value in a fixed namespace differs from en (except pinned identicals)", () => {
     const en = flatten(load("en"));
     const nl = flatten(load("nl"));
     const englishLeftovers = Object.keys(nl).filter(

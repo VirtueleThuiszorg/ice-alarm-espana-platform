@@ -2155,7 +2155,19 @@
     "copyLink": "Copiar enlace",
     "openFile": "Abrir archivo",
     "noPresentations": "Aún no hay archivos subidos",
-    "uploadHint": "Sube PDF, presentaciones o imágenes de hasta 50 MB"
+    "uploadHint": "Sube PDF, presentaciones o imágenes de hasta 50 MB",
+    "residential": {
+      "previewCsv": "Vista previa del CSV (importación próximamente)",
+      "csvPreview_one": "Vista previa: {{count}} residente encontrado en el archivo; no se ha importado nada (importación próximamente)",
+      "csvPreview_other": "Vista previa: {{count}} residentes encontrados en el archivo; no se ha importado nada (importación próximamente)",
+      "csvParseError": "No se pudo procesar el archivo CSV",
+      "csvReadError": "No se pudo leer el archivo CSV"
+    },
+    "care": {
+      "invitesSent_one": "{{count}} invitación enviada",
+      "invitesSent_other": "{{count}} invitaciones enviadas",
+      "sendResult": "{{sent}} enviadas, {{failed}} fallidas; las invitaciones fallidas se guardaron como borradores"
+    }
   },
   "partnerSupport": {
     "title": "Soporte para Socios",

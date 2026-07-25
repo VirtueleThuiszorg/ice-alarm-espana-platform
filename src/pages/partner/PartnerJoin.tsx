@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
+import { Link, useNavigate } from "react-router-dom";
+import { useForm, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,6 +66,24 @@ type PartnerFormValues = z.infer<typeof partnerFormSchema>;
 
 // Step definitions
 type Step = "info" | "type" | "contact" | "organization" | "additional" | "payout" | "account" | "success";
+
+// Fields validated before leaving each step — prevents a silent no-op submit
+// when a failing FormMessage lives on a step that is no longer rendered.
+const stepFields: Partial<Record<Step, (keyof PartnerFormValues)[]>> = {
+  type: ["partner_type"],
+  contact: ["contact_name", "last_name", "company_name", "email", "phone", "preferred_language", "position_title"],
+  organization: [
+    "organization_type",
+    "organization_registration",
+    "organization_website",
+    "estimated_monthly_referrals",
+    "facility_address",
+    "facility_resident_count",
+  ],
+  additional: ["region", "how_heard_about_us", "motivation", "additional_notes", "current_client_base"],
+  payout: ["payout_beneficiary_name", "payout_iban"],
+  account: ["password", "confirmPassword", "accept_terms"],
+};
 
 const partnerTypeOptions = [
   {
@@ -289,7 +307,21 @@ export default function PartnerJoin() {
     }
   };
 
-  const goToNextStep = () => {
+  // Toast the first validation error when the final submit is invalid, so the
+  // failure is never silent (the failing field may be on an unrendered step).
+  const onInvalid = (errors: FieldErrors<PartnerFormValues>) => {
+    const firstError = Object.values(errors).find((e) => e && typeof e.message === "string");
+    toast.error(
+      (firstError?.message as string) || "Please complete the highlighted fields"
+    );
+  };
+
+  const goToNextStep = async () => {
+    const fields = stepFields[step];
+    if (fields && !(await form.trigger(fields))) {
+      toast.error("Please complete the highlighted fields");
+      return;
+    }
     if (step === "type") {
       setStep("contact");
     } else if (step === "contact") {
@@ -369,9 +401,9 @@ export default function PartnerJoin() {
 
             <p className="text-center text-sm text-muted-foreground">
               Already a partner?{" "}
-              <a href="/partner/login" className="text-primary hover:underline">
+              <Link to="/partner/login" className="text-primary hover:underline">
                 Sign in here
-              </a>
+              </Link>
             </p>
           </div>
         </main>
@@ -481,9 +513,9 @@ export default function PartnerJoin() {
 
               <p className="text-center text-sm text-muted-foreground pt-4">
                 Already a partner?{" "}
-                <a href="/partner/login" className="text-primary hover:underline font-medium">
+                <Link to="/partner/login" className="text-primary hover:underline font-medium">
                   Sign in
-                </a>
+                </Link>
               </p>
             </CardContent>
           </Card>
@@ -518,7 +550,7 @@ export default function PartnerJoin() {
           </CardHeader>
           <CardContent>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-4">
                 
                 {/* Contact Step */}
                 {step === "contact" && (

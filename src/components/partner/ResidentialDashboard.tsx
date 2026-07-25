@@ -38,6 +38,7 @@ import {
 import { usePartnerMembers } from "@/hooks/usePartnerMembers";
 import { usePartnerAlertNotifications } from "@/hooks/usePartnerAlertNotifications";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface ResidentialDashboardProps {
   partnerId: string;
@@ -180,7 +181,12 @@ export function ResidentialDashboard({
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
+        <TabsList
+          className={cn(
+            "grid w-full lg:w-auto lg:inline-grid",
+            alertVisibilityEnabled ? "grid-cols-6" : "grid-cols-5"
+          )}
+        >
           <TabsTrigger value="overview" className="gap-2">
             <LayoutDashboard className="h-4 w-4" />
             <span className="hidden sm:inline">{t("partner.residential.tabs.overview", "Overview")}</span>
@@ -521,7 +527,7 @@ export function ResidentialDashboard({
               <CardContent>
                 <Button variant="outline" className="w-full" onClick={() => csvInputRef.current?.click()}>
                   <Upload className="h-4 w-4 mr-2" />
-                  {t("partner.residential.onboarding.uploadCsv", "Upload CSV File")}
+                  {t("partner.residential.previewCsv", "Preview CSV (import coming soon)")}
                 </Button>
               </CardContent>
             </Card>
@@ -689,15 +695,25 @@ export function ResidentialDashboard({
           if (!file) return;
           const reader = new FileReader();
           reader.onload = (event) => {
-            const text = event.target?.result as string;
-            const lines = text.split("\n").filter(l => l.trim());
-            const startIdx = lines[0]?.toLowerCase().includes("name") ? 1 : 0;
-            let count = 0;
-            for (let i = startIdx; i < lines.length; i++) {
-              const cols = lines[i].split(",").map(c => c.trim().replace(/^"|"$/g, ""));
-              if (cols[0]) count++;
+            try {
+              const text = event.target?.result as string;
+              const lines = text.split("\n").filter(l => l.trim());
+              const startIdx = lines[0]?.toLowerCase().includes("name") ? 1 : 0;
+              let count = 0;
+              for (let i = startIdx; i < lines.length; i++) {
+                const cols = lines[i].split(",").map(c => c.trim().replace(/^"|"$/g, ""));
+                if (cols[0]) count++;
+              }
+              toast.info(t("partner.residential.csvPreview", {
+                count,
+                defaultValue: "Preview: {{count}} residents found in the file — nothing was imported (import coming soon)",
+              }));
+            } catch {
+              toast.error(t("partner.residential.csvParseError", "Failed to parse CSV file"));
             }
-            toast.info(t("partner.residential.csvPreview", { count }));
+          };
+          reader.onerror = () => {
+            toast.error(t("partner.residential.csvReadError", "Failed to read CSV file"));
           };
           reader.readAsText(file);
           if (csvInputRef.current) csvInputRef.current.value = "";

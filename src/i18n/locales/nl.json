@@ -2155,7 +2155,19 @@
     "copyLink": "Link kopiëren",
     "openFile": "Bestand openen",
     "noPresentations": "Nog geen bestanden geüpload",
-    "uploadHint": "Upload PDF's, presentaties of afbeeldingen tot 50 MB"
+    "uploadHint": "Upload PDF's, presentaties of afbeeldingen tot 50 MB",
+    "residential": {
+      "previewCsv": "CSV-voorbeeld (import binnenkort beschikbaar)",
+      "csvPreview_one": "Voorbeeld: {{count}} bewoner gevonden in het bestand; er is niets geïmporteerd (import binnenkort beschikbaar)",
+      "csvPreview_other": "Voorbeeld: {{count}} bewoners gevonden in het bestand; er is niets geïmporteerd (import binnenkort beschikbaar)",
+      "csvParseError": "CSV-bestand kon niet worden verwerkt",
+      "csvReadError": "CSV-bestand kon niet worden gelezen"
+    },
+    "care": {
+      "invitesSent_one": "{{count}} uitnodiging verzonden",
+      "invitesSent_other": "{{count}} uitnodigingen verzonden",
+      "sendResult": "{{sent}} verzonden, {{failed}} mislukt; mislukte uitnodigingen zijn als concept bewaard"
+    }
   },
   "partnerSupport": {
     "title": "Partner Support",

@@ -86,12 +86,18 @@ describe("public copy makes no claim our own repo contradicts", () => {
     ).toEqual([]);
   });
 
-  it("no next-day or free delivery (shipping is a charged fee, quoted at 2-3 business days)", () => {
+  it("no next-day or free delivery (shipping is a charged fee — pricing_settings.shipping_amount)", () => {
     expect(
       offenders(
         /next.?day deliver|free\s+(next.?day\s+)?deliver|entrega gratuita|envío gratis|gratis (levering|verzending)/i,
       ),
     ).toEqual([]);
+  });
+
+  it("the superseded 2-3 day dispatch quote is gone everywhere", () => {
+    expect(offenders(/2[-–]3\s*(business|working)\s*days|2[-–]3\s*días\s*(h|l)|2[-–]3\s*werkdagen/i)).toEqual([]);
+    const email = readFileSync(join(ROOT, "supabase/functions/_shared/welcome-email.ts"), "utf8");
+    expect(email).not.toMatch(/2-3\s*(business|working)\s*days|2-3\s*días|2-3\s*werkdagen/i);
   });
 
   it("no nurse-led or clinician-led staffing claim (app_role has no nurse; Terms §3.2 disclaims medical care)", () => {
@@ -100,11 +106,87 @@ describe("public copy makes no claim our own repo contradicts", () => {
     ).toEqual([]);
   });
 
-  it("the delivery claim we do make matches the checkout's own timeframe", () => {
-    // joinWizard.confirmation.pendantShippingDesc is the statement made at
-    // purchase — the marketing badge must not promise anything faster.
-    expect(flat.en["joinWizard.confirmation.pendantShippingDesc"]).toMatch(/2-3 business days/i);
-    expect(flat.en["howItWorksPage.cta.trust3"]).toMatch(/2–3 business days/i);
+  it("the delivery claim is the same on the badge, in checkout and in the email", () => {
+    // One stated service: 5-7 working days by recorded delivery.
+    expect(flat.en["howItWorksPage.cta.trust3"]).toMatch(/5–7 working days.*recorded delivery/i);
+    expect(flat.en["joinWizard.confirmation.pendantShippingDesc"]).toMatch(
+      /recorded delivery.*5–7 working days/i,
+    );
+    expect(flat.es["joinWizard.confirmation.pendantShippingDesc"]).toMatch(/5–7 días laborables/);
+    expect(flat.nl["joinWizard.confirmation.pendantShippingDesc"]).toMatch(/5–7 werkdagen/);
+    const email = readFileSync(join(ROOT, "supabase/functions/_shared/welcome-email.ts"), "utf8");
+    for (const p of [/5-7 working days/, /5-7 días laborables/, /5-7 werkdagen/]) {
+      expect(email, `confirmation email must quote the same delivery service (${p})`).toMatch(p);
+    }
+  });
+});
+
+describe("right of withdrawal — statutory, consistent, and on every required surface", () => {
+  it("marketing states the statutory right, not a voluntary guarantee", () => {
+    expect(flat.en["howItWorksPage.cta.trust2"]).toMatch(/right of withdrawal/i);
+    expect(flat.es["howItWorksPage.cta.trust2"]).toMatch(/desistimiento/i);
+    expect(flat.nl["howItWorksPage.cta.trust2"]).toMatch(/herroepingsrecht/i);
+  });
+
+  it("the Terms carry a full withdrawal clause with the model form, in all locales", () => {
+    for (const locale of LOCALES) {
+      const items = Object.keys(flat[locale]).filter((k) =>
+        /^legal\.terms\.s9_2Items\[\d+\]$/.test(k),
+      );
+      expect(items.length, `${locale} withdrawal clause must enumerate the mechanics`).toBeGreaterThanOrEqual(6);
+      expect(flat[locale]["legal.terms.s9_2FormBody"], `${locale} needs the model form`).toBeTruthy();
+      // the four facts the statute requires: window start, how to exercise,
+      // refund deadline, who pays return postage.
+      const clause = items.map((k) => flat[locale][k]).join(" ");
+      expect(clause).toMatch(/14/);
+    }
+  });
+
+  it("the clause is actually rendered on the Terms page", () => {
+    const page = readFileSync(join(ROOT, "src/components/legal/TermsContent.tsx"), "utf8");
+    expect(page).toMatch(/legal\.terms\.s9_2Items/);
+    expect(page).toMatch(/legal\.terms\.s9_2FormBody/);
+  });
+
+  it("the order-confirmation email carries the withdrawal information in all three locales", () => {
+    const email = readFileSync(join(ROOT, "supabase/functions/_shared/welcome-email.ts"), "utf8");
+    expect(email).toMatch(/right of withdrawal/i);
+    expect(email).toMatch(/derecho de desistimiento/i);
+    expect(email).toMatch(/herroepingsrecht/i);
+    // nl was previously absent entirely — Dutch members got the English body.
+    expect(email).toMatch(/nl:\s*\{/);
+    expect(readFileSync(join(ROOT, "supabase/functions/_shared/post-payment.ts"), "utf8")).toMatch(
+      /memberWelcomeSubject\(lang\)/,
+    );
+  });
+
+  it("no surface claims the registration fee is simply non-refundable", () => {
+    // It is refundable inside the withdrawal window, so the flat statement
+    // contradicted the statutory right.
+    expect(offenders(/registration fees? (are|is) non-refundable|cuotas? de registro no (es|son) reembolsable/i)).toEqual(
+      [],
+    );
+  });
+});
+
+describe("cancellation terms are consistent across surfaces", () => {
+  it("no consumer-facing surface imposes a notice period to cancel", () => {
+    // Lee's ruling: cancel any time, no notice. Two things stay legitimate and
+    // must not be caught: partnerAgreement.*'s 30-day B2B termination notice,
+    // and legal.terms.s8_3p1, which is OUR 30-day notice to the member before
+    // a price change (consumer-protective, not a barrier to leaving).
+    const consumerHits = offenders(
+      // An imposed notice period always names a duration; "no notice period"
+      // and "geen opzegtermijn" are the statements we WANT and must not match.
+      /(require|requires|required)[^.]{0,40}(notice|preaviso)[^.]{0,40}(cancel|cancelaci)|notice period (for|to) cancel|preaviso para la cancelaci|opzegtermijn van\s*\d|\d+\s*(dagen|maanden)\s*opzegtermijn/i,
+    ).filter((hit) => !/:partnerAgreement\./.test(hit));
+    expect(consumerHits).toEqual([]);
+  });
+
+  it("cancel-any-time is stated in the FAQ and the Terms alike", () => {
+    expect(flat.en["support.faq.cancelSubscriptionAnswer"]).toMatch(/cancel at any time/i);
+    expect(flat.en["support.faq.cancelSubscriptionAnswer"]).toMatch(/no notice period/i);
+    expect(flat.en["legal.terms.s9_1p1"]).toMatch(/no notice period/i);
   });
 });
 

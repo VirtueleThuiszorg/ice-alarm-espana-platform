@@ -3320,313 +3320,320 @@
       "privacyPolicy": "Privacybeleid"
     },
     "terms": {
-      "title": "Terms of Service",
-      "company": "Care Conneqt — Connected Health. Human Care.",
-      "lastUpdated": "Last updated: June 2026",
-      "importantWarning": "IMPORTANT: PLEASE READ THESE TERMS CAREFULLY BEFORE USING OUR SERVICES.",
-      "emergencyWarning": "THIS IS A PERSONAL EMERGENCY RESPONSE SERVICE, NOT A SUBSTITUTE FOR EMERGENCY SERVICES (112). IN A LIFE-THREATENING EMERGENCY, ALWAYS CALL 112 DIRECTLY IF POSSIBLE.",
-      "s1Title": "1. Agreement to Terms",
-      "s1p1": "By creating an account, subscribing to our services, or using any Care Conneqt service, you agree to be bound by these Terms of Service (\"Terms\"), our Privacy Policy, and any additional terms that apply to specific services.",
-      "s1p2": "If you do not agree to these Terms, do not use our services.",
-      "s2Title": "2. Who We Are",
-      "s2p1": "<strong>Care Conneqt</strong> (\"we\", \"us\", \"our\", \"Care Conneqt\") provides personal emergency response services including GPS pendant monitoring, emergency alert handling, and related support services.",
+      "title": "Servicevoorwaarden",
+      "company": "Care Conneqt — Verbonden zorg. Menselijke aandacht.",
+      "lastUpdated": "Laatst bijgewerkt: juni 2026",
+      "importantWarning": "BELANGRIJK: LEES DEZE VOORWAARDEN ZORGVULDIG VOORDAT U ONZE DIENSTEN GEBRUIKT.",
+      "emergencyWarning": "DIT IS EEN PERSOONLIJKE ALARMERINGSDIENST, GEEN VERVANGING VAN DE HULPDIENSTEN (112). BEL BIJ LEVENSGEVAAR ALTIJD ZELF 112 ALS DAT MOGELIJK IS.",
+      "s1Title": "1. Aanvaarding van de voorwaarden",
+      "s1p1": "Door een account aan te maken, een abonnement te nemen of gebruik te maken van een dienst van Care Conneqt, aanvaardt u deze servicevoorwaarden (\"voorwaarden\"), ons privacybeleid en eventuele aanvullende voorwaarden die voor specifieke diensten gelden.",
+      "s1p2": "Bent u niet met deze voorwaarden akkoord, maak dan geen gebruik van onze diensten.",
+      "s2Title": "2. Wie wij zijn",
+      "s2p1": "<strong>Care Conneqt</strong> (\"wij\", \"ons\", \"onze\", \"Care Conneqt\") levert persoonlijke alarmeringsdiensten, waaronder bewaking via een GPS-hanger, de afhandeling van noodmeldingen en bijbehorende ondersteuning.",
       "s2p2": "Contact: info@careconneqt.es",
-      "s3Title": "3. Description of Services",
-      "s3_1Title": "3.1 What We Provide",
+      "s3Title": "3. Beschrijving van de diensten",
+      "s3_1Title": "3.1 Wat wij leveren",
       "s3_1Items": [
-        "GPS pendant devices for emergency alerts",
-        "24/7 monitoring of device alerts (SOS button, fall detection, device offline)",
-        "Response to alerts via phone call to assess the situation",
-        "Coordination with emergency services (112) when required",
-        "Notification of your designated emergency contacts",
-        "AI-assisted call handling and customer support",
-        "Courtesy welfare check calls (where subscribed)",
-        "Member dashboard for account management"
+        "GPS-hangers voor noodmeldingen",
+        "24/7 bewaking van apparaatmeldingen (SOS-knop, valdetectie, apparaat offline)",
+        "Reactie op meldingen via een telefoongesprek om de situatie te beoordelen",
+        "Coördinatie met de hulpdiensten (112) wanneer dat nodig is",
+        "Het waarschuwen van uw aangewezen contactpersonen",
+        "AI-ondersteunde gespreksafhandeling en klantenservice",
+        "Welzijnscontroles per telefoon (bij het betreffende abonnement)",
+        "Een ledendashboard voor het beheer van uw account"
       ],
-      "s3_2Title": "3.2 What We Do NOT Provide",
+      "s3_2Title": "3.2 Wat wij NIET leveren",
       "s3_2Items": [
-        "Direct medical care or medical advice",
-        "Emergency medical services",
-        "Ambulance or paramedic services",
-        "Guaranteed response times",
-        "A substitute for calling 112 in emergencies",
-        "A replacement for proper medical monitoring or care facilities"
+        "Directe medische zorg of medisch advies",
+        "Spoedeisende medische hulp",
+        "Ambulance- of paramedische diensten",
+        "Gegarandeerde reactietijden",
+        "Een vervanging van het bellen van 112 bij noodgevallen",
+        "Een vervanging van goede medische bewaking of zorginstellingen"
       ],
-      "s4Title": "4. Important Limitations and Disclaimers",
-      "s4_1Title": "4.1 Not a Replacement for Emergency Services",
-      "s4_1Warning": "CARE CONNEQT IS A SUPPLEMENTARY SERVICE. WE ARE NOT EMERGENCY SERVICES.",
+      "s4Title": "4. Belangrijke beperkingen en disclaimers",
+      "s4_1Title": "4.1 Geen vervanging van de hulpdiensten",
+      "s4_1Warning": "CARE CONNEQT IS EEN AANVULLENDE DIENST. WIJ ZIJN GEEN HULPDIENST.",
       "s4_1Items": [
-        "If you are able to call 112 directly in an emergency, you should do so",
-        "Our service depends on technology that can fail",
-        "There may be delays in our response",
-        "We cannot guarantee that help will arrive in time in any situation"
+        "Kunt u bij een noodgeval zelf 112 bellen, doe dat dan",
+        "Onze dienst is afhankelijk van techniek die kan uitvallen",
+        "Onze reactie kan vertraging oplopen",
+        "Wij kunnen niet garanderen dat hulp in elke situatie tijdig arriveert"
       ],
-      "s4_2Title": "4.2 Technology Limitations",
-      "s4_2Intro": "Our service depends on technology that is subject to limitations:",
-      "s4_2GpsLabel": "GPS Pendant:",
+      "s4_2Title": "4.2 Beperkingen van de techniek",
+      "s4_2Intro": "Onze dienst is afhankelijk van techniek die haar beperkingen kent:",
+      "s4_2GpsLabel": "GPS-hanger:",
       "s4_2GpsItems": [
-        "Requires battery charge (if battery dies, no alerts can be sent)",
-        "Requires mobile network coverage (may not work in remote areas or buildings with poor signal)",
-        "GPS accuracy varies (typically 5-50 meters, may be less accurate indoors)",
-        "Fall detection is not 100% accurate (may miss some falls or trigger false alerts)",
-        "Device must be worn to be effective"
+        "Heeft een opgeladen batterij nodig (is de batterij leeg, dan kunnen er geen meldingen worden verzonden)",
+        "Heeft mobiele netwerkdekking nodig (werkt mogelijk niet in afgelegen gebieden of gebouwen met slecht bereik)",
+        "De nauwkeurigheid van gps varieert (doorgaans 5-50 meter, binnenshuis mogelijk minder nauwkeurig)",
+        "Valdetectie is niet 100% nauwkeurig (kan een val missen of een valse melding geven)",
+        "Het apparaat moet gedragen worden om te werken"
       ],
-      "s4_2SystemsLabel": "Our Systems:",
+      "s4_2SystemsLabel": "Onze systemen:",
       "s4_2SystemsItems": [
-        "Internet and phone networks can experience outages",
-        "Software systems can have bugs or failures",
-        "AI assistant may misunderstand or make errors"
+        "Internet- en telefoonnetwerken kunnen storingen hebben",
+        "Software kan fouten of storingen bevatten",
+        "De AI-assistent kan iets verkeerd begrijpen of fouten maken"
       ],
-      "s4_2ThirdPartyLabel": "Third-Party Dependencies:",
+      "s4_2ThirdPartyLabel": "Afhankelijkheid van derden:",
       "s4_2ThirdPartyItems": [
-        "We rely on mobile network operators",
-        "We rely on device monitoring partners",
-        "We rely on emergency services to respond once notified"
+        "Wij zijn afhankelijk van mobiele netwerkaanbieders",
+        "Wij zijn afhankelijk van partners voor apparaatbewaking",
+        "Wij zijn afhankelijk van de hulpdiensten om te reageren nadat zij gewaarschuwd zijn"
       ],
-      "s4_3Title": "4.3 Response Time",
-      "s4_3Warning": "WE DO NOT GUARANTEE ANY SPECIFIC RESPONSE TIME.",
-      "s4_3p1": "While we strive to respond to alerts as quickly as possible, response times depend on volume of simultaneous alerts, availability of operators, accuracy of information provided, response time of emergency services (112), and traffic, weather, and other factors beyond our control.",
-      "s4_4Title": "4.4 No Medical Advice",
-      "s4_4p1": "Our staff and AI assistant provide emergency coordination, NOT medical advice. Any information provided is general in nature and should not be relied upon as medical advice. Always consult qualified medical professionals for health decisions.",
-      "s4_5Title": "4.5 AI Assistant Limitations",
-      "s4_5Intro": "Our AI assistant \"Isabella\":",
+      "s4_3Title": "4.3 Reactietijd",
+      "s4_3Warning": "WIJ GARANDEREN GEEN ENKELE SPECIFIEKE REACTIETIJD.",
+      "s4_3p1": "Wij streven ernaar zo snel mogelijk op meldingen te reageren, maar de reactietijd hangt af van het aantal gelijktijdige meldingen, de beschikbaarheid van operators, de juistheid van de verstrekte gegevens, de reactietijd van de hulpdiensten (112) en van verkeer, weer en andere factoren buiten onze macht.",
+      "s4_4Title": "4.4 Geen medisch advies",
+      "s4_4p1": "Onze medewerkers en onze AI-assistent verzorgen de coördinatie bij noodgevallen, GEEN medisch advies. Verstrekte informatie is algemeen van aard en mag niet als medisch advies worden opgevat. Raadpleeg voor gezondheidsbeslissingen altijd een bevoegde zorgverlener.",
+      "s4_5Title": "4.5 Beperkingen van de AI-assistent",
+      "s4_5Intro": "Onze AI-assistent \"Isabella\":",
       "s4_5Items": [
-        "Is an artificial intelligence, not a human",
-        "May misunderstand what you say",
-        "May provide incorrect or inappropriate responses",
-        "Will transfer to human operators when uncertain or upon request",
-        "Should not be relied upon for critical medical decisions"
+        "Is kunstmatige intelligentie, geen mens",
+        "Kan verkeerd begrijpen wat u zegt",
+        "Kan onjuiste of ongepaste antwoorden geven",
+        "Verbindt door naar een menselijke operator bij twijfel of op uw verzoek",
+        "Mag niet worden gebruikt voor kritieke medische beslissingen"
       ],
-      "s5Title": "5. Eligibility",
-      "s5Intro": "To use our services, you must:",
+      "s5Title": "5. Voorwaarden voor deelname",
+      "s5Intro": "Om onze diensten te gebruiken, moet u:",
       "s5Items": [
-        "Be at least 18 years old, OR have a parent/guardian agree on your behalf",
-        "Provide accurate and complete information",
-        "Have a valid payment method",
-        "Be located in an area with mobile network coverage",
-        "Be capable of wearing and using the GPS pendant (or have a caregiver who can assist)"
+        "Ten minste 18 jaar oud zijn, OF een ouder/voogd hebben die namens u akkoord gaat",
+        "Juiste en volledige gegevens verstrekken",
+        "Beschikken over een geldig betaalmiddel",
+        "Zich bevinden in een gebied met mobiele netwerkdekking",
+        "In staat zijn de GPS-hanger te dragen en te gebruiken (of een verzorger hebben die daarbij helpt)"
       ],
-      "s5p1": "We reserve the right to refuse service to anyone for any reason.",
-      "s6Title": "6. Your Account",
-      "s6_1Title": "6.1 Account Creation",
-      "s6_1p1": "You must provide accurate, current, and complete information during registration. You agree to update this information to keep it accurate.",
-      "s6_2Title": "6.2 Account Security",
-      "s6_2Intro": "You are responsible for:",
+      "s5p1": "Wij behouden ons het recht voor om de dienst aan iedereen te weigeren, om welke reden dan ook.",
+      "s6Title": "6. Uw account",
+      "s6_1Title": "6.1 Account aanmaken",
+      "s6_1p1": "U moet bij de registratie juiste, actuele en volledige gegevens verstrekken. U stemt ermee in deze gegevens bij te werken zodat ze juist blijven.",
+      "s6_2Title": "6.2 Accountbeveiliging",
+      "s6_2Intro": "U bent verantwoordelijk voor:",
       "s6_2Items": [
-        "Maintaining the confidentiality of your login credentials",
-        "All activities that occur under your account",
-        "Notifying us immediately of any unauthorized access"
+        "Het geheim houden van uw inloggegevens",
+        "Alle activiteiten die onder uw account plaatsvinden",
+        "Het onmiddellijk melden van ongeoorloofde toegang"
       ],
-      "s6_3Title": "6.3 Accuracy of Information",
-      "s6_3Warning": "CRITICAL: The accuracy of your personal information, medical details, and emergency contacts directly affects our ability to help you in an emergency. You are responsible for keeping this information current and accurate.",
-      "s6_3p1": "If we contact your emergency contacts or provide your medical information to emergency services based on what you have provided, you agree that we are not liable for any consequences of inaccurate information.",
-      "s7Title": "7. Devices and Equipment",
-      "s7_1Title": "7.1 GPS Pendant",
+      "s6_3Title": "6.3 Juistheid van de gegevens",
+      "s6_3Warning": "ESSENTIEEL: de juistheid van uw persoonlijke gegevens, medische gegevens en contactpersonen bepaalt direct of wij u bij een noodgeval kunnen helpen. U bent er verantwoordelijk voor dat deze gegevens actueel en juist blijven.",
+      "s6_3p1": "Wanneer wij op basis van uw gegevens uw contactpersonen benaderen of uw medische gegevens aan de hulpdiensten verstrekken, aanvaardt u dat wij niet aansprakelijk zijn voor de gevolgen van onjuiste gegevens.",
+      "s7Title": "7. Apparaten en apparatuur",
+      "s7_1Title": "7.1 GPS-hanger",
       "s7_1Items": [
-        "The device remains our property unless otherwise specified",
-        "You must use the device in accordance with provided instructions",
-        "You are responsible for reasonable care of the device",
-        "You must return the device if you cancel your subscription (where applicable)",
-        "Lost or damaged devices may incur replacement charges"
+        "Het apparaat blijft ons eigendom, tenzij anders is aangegeven",
+        "U dient het apparaat te gebruiken volgens de meegeleverde instructies",
+        "U bent verantwoordelijk voor een redelijke zorg voor het apparaat",
+        "U dient het apparaat terug te sturen wanneer u uw abonnement opzegt (indien van toepassing)",
+        "Voor verloren of beschadigde apparaten kunnen vervangingskosten in rekening worden gebracht"
       ],
-      "s7_2Title": "7.2 Your Responsibilities",
-      "s7_2Intro": "You agree to:",
+      "s7_2Title": "7.2 Uw verantwoordelijkheden",
+      "s7_2Intro": "U stemt ermee in om:",
       "s7_2Items": [
-        "Keep the device charged",
-        "Wear the device as intended",
-        "Test the device periodically as instructed",
-        "Notify us of any device malfunctions",
-        "Not attempt to modify, repair, or tamper with the device"
+        "Het apparaat opgeladen te houden",
+        "Het apparaat te dragen zoals bedoeld",
+        "Het apparaat periodiek te testen volgens de instructies",
+        "Storingen aan het apparaat aan ons te melden",
+        "Niet te proberen het apparaat te wijzigen, te repareren of ermee te manipuleren"
       ],
-      "s7_3Title": "7.3 Device Connectivity",
-      "s7_3p1": "The device requires mobile network coverage, battery charge, and the SIM card to remain active (managed by our partner).",
-      "s7_3p2": "We are not responsible for service failures caused by:",
+      "s7_3Title": "7.3 Connectiviteit van het apparaat",
+      "s7_3p1": "Het apparaat heeft mobiele netwerkdekking en een opgeladen batterij nodig, en de simkaart moet actief blijven (beheerd door onze partner).",
+      "s7_3p2": "Wij zijn niet verantwoordelijk voor storingen in de dienst als gevolg van:",
       "s7_3Items": [
-        "Poor or no mobile network coverage in your area",
-        "Interference from buildings, terrain, or weather",
-        "Mobile network outages",
-        "Depleted device battery"
+        "Slechte of geen mobiele netwerkdekking in uw gebied",
+        "Storing door gebouwen, terrein of weersomstandigheden",
+        "Storingen in het mobiele netwerk",
+        "Een lege batterij van het apparaat"
       ],
-      "s8Title": "8. Subscription and Payment",
-      "s8_1Title": "8.1 Subscription Plans",
-      "s8_1p1": "Details of available subscription plans, including pricing, are displayed on our website and during registration. Prices include applicable VAT.",
-      "s8_2Title": "8.2 Payment",
+      "s8Title": "8. Abonnement en betaling",
+      "s8_1Title": "8.1 Abonnementen",
+      "s8_1p1": "De beschikbare abonnementen, inclusief prijzen, staan op onze website en worden tijdens de registratie weergegeven. De prijzen zijn inclusief de toepasselijke btw.",
+      "s8_2Title": "8.2 Betaling",
       "s8_2Items": [
-        "Payment is processed securely by Stripe",
-        "Subscriptions are billed monthly or annually as selected",
-        "You authorize us to charge your payment method automatically",
-        "Failed payments may result in service suspension"
+        "De betaling wordt veilig verwerkt door Stripe",
+        "Abonnementen worden maandelijks of jaarlijks gefactureerd, naar keuze",
+        "U geeft ons toestemming uw betaalmiddel automatisch te belasten",
+        "Mislukte betalingen kunnen leiden tot opschorting van de dienst"
       ],
-      "s8_3Title": "8.3 Price Changes",
-      "s8_3p1": "We may change subscription prices with 30 days notice. If you do not agree to a price change, you may cancel before it takes effect.",
-      "s8_4Title": "8.4 Refunds",
+      "s8_3Title": "8.3 Prijswijzigingen",
+      "s8_3p1": "Wij kunnen abonnementsprijzen wijzigen met een aankondiging van 30 dagen. Bent u niet akkoord met een prijswijziging, dan kunt u opzeggen voordat deze ingaat.",
+      "s8_4Title": "8.4 Terugbetalingen",
       "s8_4Items": [
         "Binnen de herroepingstermijn van 14 dagen (artikel 9.2) krijgt u alles terug wat u hebt betaald, inclusief het inschrijfgeld en de kosten van standaardlevering.",
         "Hebt u ons uitdrukkelijk gevraagd de bewaking binnen die termijn te starten, dan brengen wij alleen een proportioneel bedrag in rekening voor de dagen dat de dienst daadwerkelijk actief was.",
         "Na de herroepingstermijn worden al betaalde abonnementskosten voor de lopende factuurperiode niet terugbetaald; uw opzegging gaat in aan het einde van die periode.",
         "Voor defecte, beschadigde of niet-conforme apparatuur gelden uw wettelijke garantierechten, die dit artikel niet beperkt."
       ],
-      "s8_5Title": "8.5 Non-Payment",
-      "s8_5Intro": "If payment fails:",
+      "s8_5Title": "8.5 Niet-betaling",
+      "s8_5Intro": "Als een betaling mislukt:",
       "s8_5Items": [
-        "We will notify you and attempt to charge again",
-        "After 7 days of failed payment, service may be suspended",
-        "After 30 days, your account may be terminated",
-        "Outstanding amounts may be sent to collections"
+        "Stellen wij u op de hoogte en proberen wij het bedrag opnieuw af te schrijven",
+        "Kan de dienst na 7 dagen van mislukte betaling worden opgeschort",
+        "Kan uw account na 30 dagen worden beëindigd",
+        "Kunnen openstaande bedragen ter incasso worden overgedragen"
       ],
-      "s9Title": "9. Cancellation and Termination",
-      "s9_1Title": "9.1 Your Right to Cancel",
-      "s9_1Intro": "You may cancel your subscription at any time through:",
+      "s9Title": "9. Opzegging en beëindiging",
+      "s9_1Title": "9.1 Uw recht om op te zeggen",
+      "s9_1Intro": "U kunt uw abonnement op elk moment opzeggen via:",
       "s9_1Items": [
-        "Your member dashboard",
-        "Emailing info@careconneqt.es",
-        "Calling our customer service"
+        "Uw ledendashboard",
+        "Een e-mail aan info@careconneqt.es",
+        "Een telefoontje naar onze klantenservice"
       ],
+      "s9_1p1": "Cancellation takes effect at the end of your current billing period.",
+      "s9_2Title": "9.2 Cooling-Off Period",
+      "s9_2p1": "Under EU consumer law, you have 14 days from signup to cancel for a full refund. To exercise this right, contact us clearly stating your wish to cancel.",
+      "s9_3Title": "9.3 Ons recht tot beëindiging",
+      "s9_3Intro": "Wij kunnen uw account opschorten of beëindigen als:",
       "s9_1p1": "U kunt op elk moment opzeggen. Er is geen minimumtermijn en geen opzegtermijn. De opzegging gaat in aan het einde van de factuurperiode die u al hebt betaald; tot dan blijft de bewaking actief.",
       "s9_2Title": "9.2 Herroepingsrecht (14 dagen)",
       "s9_2p1": "Als consument hebt u het recht deze overeenkomst binnen 14 kalenderdagen zonder opgave van redenen en zonder boete te herroepen. Dit is een wettelijk recht op grond van de Spaanse en Europese regels voor verkoop op afstand (Real Decreto Legislativo 1/2007, artikelen 102 tot en met 108, ter uitvoering van Richtlijn 2011/83/EU).",
       "s9_3Title": "9.3 Our Right to Terminate",
       "s9_3Intro": "We may suspend or terminate your account if:",
       "s9_3Items": [
-        "You breach these Terms",
-        "Your payment method fails repeatedly",
-        "You provide false information",
-        "You misuse the service or devices",
-        "You abuse our staff or AI systems",
-        "Continued service poses a risk to you or others"
+        "U deze voorwaarden schendt",
+        "Uw betaalmiddel herhaaldelijk faalt",
+        "U onjuiste gegevens verstrekt",
+        "U de dienst of de apparaten misbruikt",
+        "U onze medewerkers of AI-systemen bejegent op een onaanvaardbare manier",
+        "Voortzetting van de dienst een risico vormt voor u of voor anderen"
       ],
-      "s9_3p1": "We will provide reasonable notice except in cases of serious breach.",
-      "s9_4Title": "9.4 Effect of Termination",
-      "s9_4Intro": "Upon termination:",
+      "s9_3p1": "Wij kondigen dit met een redelijke termijn aan, behalve bij een ernstige schending.",
+      "s9_4Title": "9.4 Gevolgen van beëindiging",
+      "s9_4Intro": "Bij beëindiging:",
       "s9_4Items": [
-        "Your access to services will cease",
-        "Alert monitoring will stop",
-        "You must return any devices (if applicable)",
-        "We will retain your data as described in our Privacy Policy"
+        "Vervalt uw toegang tot de diensten",
+        "Stopt de bewaking van meldingen",
+        "Dient u eventuele apparaten terug te sturen (indien van toepassing)",
+        "Bewaren wij uw gegevens zoals beschreven in ons privacybeleid"
       ],
-      "s10Title": "10. Limitation of Liability",
-      "s10_1Title": "10.1 To the Maximum Extent Permitted by Law",
-      "s10_1Warning": "WE SHALL NOT BE LIABLE FOR:",
-      "s10_1a": "(a) <strong>Death or personal injury</strong> except where caused directly by our gross negligence or willful misconduct",
-      "s10_1b": "(b) <strong>Any indirect, incidental, special, consequential, or punitive damages</strong> including but not limited to loss of profits, data, use, goodwill, or other intangible losses",
-      "s10_1c": "(c) <strong>Damages arising from:</strong>",
+      "s10Title": "10. Beperking van aansprakelijkheid",
+      "s10_1Title": "10.1 Voor zover wettelijk toegestaan",
+      "s10_1Warning": "WIJ ZIJN NIET AANSPRAKELIJK VOOR:",
+      "s10_1a": "(a) <strong>Overlijden of persoonlijk letsel</strong>, behalve wanneer dit direct het gevolg is van onze grove schuld of opzet",
+      "s10_1b": "(b) <strong>Indirecte schade, incidentele schade, bijzondere schade, gevolgschade of punitieve schadevergoeding</strong>, waaronder maar niet beperkt tot winstderving, verlies van gegevens, gebruiksderving, reputatieschade of andere immateriële schade",
+      "s10_1c": "(c) <strong>Schade die voortvloeit uit:</strong>",
       "s10_1cItems": [
-        "Technology failures (networks, devices, software)",
-        "Delays in response to alerts",
-        "Actions or failures of emergency services (112, police, ambulance)",
-        "Inaccurate information provided by you",
-        "Your failure to maintain device charge or wear the device",
-        "Circumstances beyond our reasonable control (force majeure)",
-        "Actions of third parties including our technology partners",
-        "AI assistant errors or misunderstandings"
+        "Storingen in de techniek (netwerken, apparaten, software)",
+        "Vertraging in de reactie op meldingen",
+        "Handelen of nalaten van de hulpdiensten (112, politie, ambulance)",
+        "Onjuiste gegevens die u hebt verstrekt",
+        "Het niet opgeladen houden of niet dragen van het apparaat",
+        "Omstandigheden buiten onze redelijke macht (overmacht)",
+        "Handelen van derden, waaronder onze technologiepartners",
+        "Fouten of misverstanden van de AI-assistent"
       ],
-      "s10_2Title": "10.2 Maximum Liability",
-      "s10_2Warning": "OUR TOTAL LIABILITY TO YOU FOR ANY CLAIMS ARISING FROM OR RELATED TO THESE TERMS OR OUR SERVICES SHALL NOT EXCEED THE TOTAL AMOUNT YOU HAVE PAID US IN THE 12 MONTHS PRECEDING THE CLAIM.",
-      "s10_3Title": "10.3 Essential Purpose",
-      "s10_3Intro": "You acknowledge that:",
+      "s10_2Title": "10.2 Maximale aansprakelijkheid",
+      "s10_2Warning": "ONZE TOTALE AANSPRAKELIJKHEID JEGENS U VOOR VORDERINGEN DIE VOORTVLOEIEN UIT OF VERBAND HOUDEN MET DEZE VOORWAARDEN OF ONZE DIENSTEN BEDRAAGT NOOIT MEER DAN HET TOTAALBEDRAG DAT U ONS IN DE 12 MAANDEN VOORAFGAAND AAN DE VORDERING HEBT BETAALD.",
+      "s10_3Title": "10.3 Wezenlijk doel",
+      "s10_3Intro": "U erkent dat:",
       "s10_3Items": [
-        "Our service is designed to provide additional support, not guaranteed protection",
-        "No emergency response system can guarantee safety",
-        "Multiple factors beyond our control affect emergency outcomes",
-        "The limitations above are an essential part of our agreement and reflected in our pricing"
+        "Onze dienst bedoeld is als aanvullende ondersteuning, niet als gegarandeerde bescherming",
+        "Geen enkel alarmeringssysteem veiligheid kan garanderen",
+        "Meerdere factoren buiten onze macht de uitkomst van een noodgeval beïnvloeden",
+        "De bovenstaande beperkingen een wezenlijk onderdeel van onze overeenkomst zijn en in onze prijzen zijn verwerkt"
       ],
-      "s10_4Title": "10.4 Statutory Rights",
-      "s10_4Intro": "Nothing in these Terms limits or excludes:",
+      "s10_4Title": "10.4 Wettelijke rechten",
+      "s10_4Intro": "Niets in deze voorwaarden beperkt of sluit uit:",
       "s10_4Items": [
-        "Liability for death or personal injury caused by gross negligence",
-        "Liability for fraud or fraudulent misrepresentation",
-        "Any liability that cannot be limited or excluded under Spanish law",
-        "Your statutory rights as a consumer"
+        "Aansprakelijkheid voor overlijden of persoonlijk letsel door grove schuld",
+        "Aansprakelijkheid voor fraude of bedrog",
+        "Aansprakelijkheid die naar Spaans recht niet kan worden beperkt of uitgesloten",
+        "Uw wettelijke rechten als consument"
       ],
-      "s11Title": "11. Indemnification",
-      "s11p1": "You agree to indemnify and hold harmless Care Conneqt, its officers, directors, employees, and partners from any claims, damages, losses, liabilities, costs, and expenses (including legal fees) arising from:",
+      "s11Title": "11. Vrijwaring",
+      "s11p1": "U vrijwaart Care Conneqt, haar bestuurders, directeuren, werknemers en partners van alle vorderingen, schade, verliezen, aansprakelijkheden, kosten en uitgaven (waaronder juridische kosten) die voortvloeien uit:",
       "s11Items": [
-        "Your breach of these Terms",
-        "Your misuse of the service or devices",
-        "Inaccurate information you provide",
-        "Your violation of any law or third-party rights",
-        "Claims by your emergency contacts or family members"
+        "Uw schending van deze voorwaarden",
+        "Uw misbruik van de dienst of de apparaten",
+        "Onjuiste gegevens die u verstrekt",
+        "Uw overtreding van de wet of van rechten van derden",
+        "Vorderingen van uw contactpersonen of familieleden"
       ],
-      "s12Title": "12. Intellectual Property",
-      "s12p1": "All content, software, trademarks, and materials on our website and in our apps remain our property or that of our licensors. You may not:",
+      "s12Title": "12. Intellectuele eigendom",
+      "s12p1": "Alle inhoud, software, merken en materialen op onze website en in onze apps blijven ons eigendom of dat van onze licentiegevers. Het is niet toegestaan om:",
       "s12Items": [
-        "Copy, modify, or distribute our materials",
-        "Reverse engineer our software",
-        "Use our trademarks without permission",
-        "Scrape or harvest data from our systems"
+        "Onze materialen te kopiëren, te wijzigen of te verspreiden",
+        "Onze software te reverse-engineeren",
+        "Onze merken zonder toestemming te gebruiken",
+        "Gegevens uit onze systemen te scrapen of te verzamelen"
       ],
       "s13Title": "13. Privacy",
-      "s13p1": "Your privacy is important to us. Please review our <a href=\"/privacy\">Privacy Policy</a> which explains how we collect, use, and protect your personal data.",
-      "s13p2": "By using our services, you consent to:",
+      "s13p1": "Uw privacy is belangrijk voor ons. Lees ons <a href=\"/privacy\">privacybeleid</a>, waarin staat hoe wij uw persoonsgegevens verzamelen, gebruiken en beschermen.",
+      "s13p2": "Door onze diensten te gebruiken, stemt u in met:",
       "s13Items": [
-        "Processing of your personal and medical data as described in our Privacy Policy",
-        "Recording of phone calls for quality and training purposes",
-        "Sharing of your information with emergency services when necessary",
-        "Receiving communications about your service"
+        "De verwerking van uw persoonlijke en medische gegevens zoals beschreven in ons privacybeleid",
+        "Het opnemen van telefoongesprekken voor kwaliteit en opleiding",
+        "Het delen van uw gegevens met de hulpdiensten wanneer dat nodig is",
+        "Het ontvangen van berichten over uw dienst"
       ],
-      "s14Title": "14. Communications",
-      "s14_1Title": "14.1 From Us to You",
-      "s14_1Intro": "You agree to receive communications from us via:",
+      "s14Title": "14. Communicatie",
+      "s14_1Title": "14.1 Van ons aan u",
+      "s14_1Intro": "U stemt ermee in berichten van ons te ontvangen via:",
       "s14_1Items": [
-        "Email",
-        "SMS",
-        "Phone calls (including from our AI assistant)",
+        "E-mail",
+        "Sms",
+        "Telefoongesprekken (ook van onze AI-assistent)",
         "WhatsApp",
-        "Push notifications (if you use our app)",
+        "Pushmeldingen (als u onze app gebruikt)",
         "Post"
       ],
-      "s14_2Title": "14.2 Emergency Communications",
-      "s14_2Intro": "You agree that we may contact:",
+      "s14_2Title": "14.2 Communicatie bij noodgevallen",
+      "s14_2Intro": "U stemt ermee in dat wij contact mogen opnemen met:",
       "s14_2Items": [
-        "You at any phone numbers you provide",
-        "Your emergency contacts when an alert is triggered",
-        "Emergency services on your behalf"
+        "U, op elk telefoonnummer dat u opgeeft",
+        "Uw contactpersonen wanneer een melding wordt gemaakt",
+        "De hulpdiensten, namens u"
       ],
       "s14_3Title": "14.3 Marketing",
-      "s14_3p1": "We will only send marketing communications with your consent. You can opt out at any time.",
-      "s15Title": "15. Modifications to Service",
-      "s15p1": "We may modify, suspend, or discontinue any aspect of our services at any time. We will provide reasonable notice of significant changes. Continued use after changes constitutes acceptance.",
-      "s16Title": "16. Modifications to Terms",
-      "s16Intro": "We may update these Terms from time to time. We will notify you of material changes by:",
+      "s14_3p1": "Wij versturen alleen marketingberichten met uw toestemming. U kunt zich op elk moment afmelden.",
+      "s15Title": "15. Wijzigingen in de dienst",
+      "s15p1": "Wij kunnen onderdelen van onze diensten op elk moment wijzigen, opschorten of beëindigen. Belangrijke wijzigingen kondigen wij met een redelijke termijn aan. Blijft u de dienst daarna gebruiken, dan geldt dat als aanvaarding.",
+      "s16Title": "16. Wijzigingen in de voorwaarden",
+      "s16Intro": "Wij kunnen deze voorwaarden van tijd tot tijd aanpassen. Wezenlijke wijzigingen laten wij u weten via:",
       "s16Items": [
-        "Email",
-        "Notice on our website",
-        "Notice in your dashboard"
+        "E-mail",
+        "Een melding op onze website",
+        "Een melding in uw dashboard"
       ],
-      "s16p1": "If you do not agree to updated Terms, you must stop using our services and cancel your subscription.",
-      "s17Title": "17. Dispute Resolution",
-      "s17_1Title": "17.1 Informal Resolution",
-      "s17_1p1": "Before initiating formal proceedings, you agree to contact us at info@careconneqt.es to attempt to resolve any dispute informally.",
-      "s17_2Title": "17.2 Governing Law",
-      "s17_2p1": "These Terms are governed by the laws of Spain.",
-      "s17_3Title": "17.3 Jurisdiction",
-      "s17_3p1": "Any disputes shall be submitted to the courts of Almería, Spain, unless you are a consumer, in which case you may also bring proceedings in your place of residence.",
-      "s17_4Title": "17.4 Consumer Rights",
-      "s17_4p1": "If you are a consumer in the EU, you have the right to access the Online Dispute Resolution platform at:",
-      "s18Title": "18. General Provisions",
-      "s18_1Title": "18.1 Entire Agreement",
-      "s18_1p1": "These Terms, together with our Privacy Policy, constitute the entire agreement between you and Care Conneqt.",
-      "s18_2Title": "18.2 Severability",
-      "s18_2p1": "If any provision of these Terms is found unenforceable, the remaining provisions will continue in effect.",
-      "s18_3Title": "18.3 No Waiver",
-      "s18_3p1": "Our failure to enforce any right or provision does not constitute a waiver of that right.",
-      "s18_4Title": "18.4 Assignment",
-      "s18_4p1": "You may not assign your rights under these Terms. We may assign our rights to any successor or affiliate.",
-      "s18_5Title": "18.5 Force Majeure",
-      "s18_5p1": "We are not liable for failures caused by circumstances beyond our reasonable control, including natural disasters, wars, pandemics, network failures, or government actions.",
-      "s19Title": "19. Contact Us",
-      "s19Content": "<strong>Care Conneqt</strong><br/><br/>General enquiries: info@careconneqt.es<br/>Support: support@careconneqt.es<br/>Privacy: privacy@careconneqt.es",
-      "s20Title": "20. Acknowledgment",
-      "s20Warning": "BY USING OUR SERVICES, YOU ACKNOWLEDGE THAT:",
+      "s16p1": "Bent u niet akkoord met de bijgewerkte voorwaarden, dan dient u het gebruik van onze diensten te staken en uw abonnement op te zeggen.",
+      "s17Title": "17. Geschillenbeslechting",
+      "s17_1Title": "17.1 Informele oplossing",
+      "s17_1p1": "Voordat u een formele procedure start, stemt u ermee in eerst contact met ons op te nemen via info@careconneqt.es om het geschil informeel op te lossen.",
+      "s17_2Title": "17.2 Toepasselijk recht",
+      "s17_2p1": "Op deze voorwaarden is Spaans recht van toepassing.",
+      "s17_3Title": "17.3 Bevoegde rechter",
+      "s17_3p1": "Geschillen worden voorgelegd aan de rechter in Almería, Spanje, tenzij u consument bent; in dat geval kunt u de zaak ook aanhangig maken in uw woonplaats.",
+      "s17_4Title": "17.4 Consumentenrechten",
+      "s17_4p1": "Bent u consument in de EU, dan hebt u toegang tot het Europese platform voor onlinegeschillenbeslechting op:",
+      "s18Title": "18. Algemene bepalingen",
+      "s18_1Title": "18.1 Volledige overeenkomst",
+      "s18_1p1": "Deze voorwaarden vormen samen met ons privacybeleid de volledige overeenkomst tussen u en Care Conneqt.",
+      "s18_2Title": "18.2 Deelbaarheid",
+      "s18_2p1": "Wordt een bepaling van deze voorwaarden niet-uitvoerbaar bevonden, dan blijven de overige bepalingen van kracht.",
+      "s18_3Title": "18.3 Geen afstand van recht",
+      "s18_3p1": "Wanneer wij een recht of bepaling niet handhaven, betekent dat niet dat wij afstand doen van dat recht.",
+      "s18_4Title": "18.4 Overdracht",
+      "s18_4p1": "U mag uw rechten uit deze voorwaarden niet overdragen. Wij mogen onze rechten overdragen aan een rechtsopvolger of aan een gelieerde onderneming.",
+      "s18_5Title": "18.5 Overmacht",
+      "s18_5p1": "Wij zijn niet aansprakelijk voor tekortkomingen door omstandigheden buiten onze redelijke macht, waaronder natuurrampen, oorlog, pandemieën, netwerkstoringen of overheidsmaatregelen.",
+      "s19Title": "19. Contact",
+      "s19Content": "<strong>Care Conneqt</strong><br/><br/>Algemene vragen: info@careconneqt.es<br/>Ondersteuning: support@careconneqt.es<br/>Privacy: privacy@careconneqt.es",
+      "s20Title": "20. Bevestiging",
+      "s20Warning": "DOOR ONZE DIENSTEN TE GEBRUIKEN, BEVESTIGT U DAT:",
       "s20Items": [
-        "You have read and understood these Terms",
-        "You understand this is a supplementary service, not a guarantee of safety",
-        "You understand the technology limitations described above",
-        "You accept the limitations of liability described above",
-        "You will maintain accurate personal, medical, and emergency contact information",
-        "You will properly maintain and wear your GPS device",
-        "You will call 112 directly whenever possible in a life-threatening emergency"
+        "U deze voorwaarden hebt gelezen en begrepen",
+        "U begrijpt dat dit een aanvullende dienst is en geen garantie op veiligheid",
+        "U de hierboven beschreven beperkingen van de techniek begrijpt",
+        "U de hierboven beschreven beperkingen van aansprakelijkheid aanvaardt",
+        "U uw persoonlijke gegevens, medische gegevens en contactpersonen juist houdt",
+        "U uw GPS-apparaat goed onderhoudt en draagt",
+        "U bij levensgevaar altijd zelf 112 belt wanneer dat mogelijk is"
       ],
+      "effectiveDate": "Deze servicevoorwaarden gelden vanaf de hierboven vermelde datum van laatste bijwerking.",
+      "tagline": "Care Conneqt — Altijd verbonden, altijd veilig"
       "effectiveDate": "These Terms of Service are effective as of the date last updated above.",
       "tagline": "Care Conneqt — Keeping You Connected, Keeping You Safe",
       "s9_2Items": [
@@ -3643,347 +3650,347 @@
       "s9_2FormBody": "Aan Care Conneqt, info@careconneqt.es:<br/><br/>Hiermee deel ik/delen wij u mee dat ik/wij onze overeenkomst herroep(en) voor de levering van de volgende dienst en/of goederen: ______________________<br/><br/>Besteld op / ontvangen op: ______________________<br/>Naam consument(en): ______________________<br/>Adres consument(en): ______________________<br/>Handtekening consument(en) (alleen als dit formulier op papier wordt verzonden): ______________________<br/>Datum: ______________________"
     },
     "privacy": {
-      "title": "Privacy Policy",
-      "company": "Care Conneqt — Connected Health. Human Care.",
-      "lastUpdated": "Last updated: June 2026",
-      "s1Title": "1. Who We Are",
-      "s1p1": "<strong>Care Conneqt</strong> (\"we\", \"us\", \"our\") operates the personal emergency response service available at careconneqt.es.",
-      "s1p2": "<strong>Data Controller:</strong><br/>Care Conneqt<br/>Email: info@careconneqt.es",
-      "s1p3": "For any privacy-related questions, contact us at: privacy@careconneqt.es",
-      "s2Title": "2. What This Policy Covers",
-      "s2Intro": "This Privacy Policy explains:",
+      "title": "Privacybeleid",
+      "company": "Care Conneqt — Verbonden zorg. Menselijke aandacht.",
+      "lastUpdated": "Laatst bijgewerkt: juni 2026",
+      "s1Title": "1. Wie wij zijn",
+      "s1p1": "<strong>Care Conneqt</strong> (\"wij\", \"ons\", \"onze\") verzorgt de persoonlijke alarmeringsdienst die beschikbaar is via careconneqt.es.",
+      "s1p2": "<strong>Verwerkingsverantwoordelijke:</strong><br/>Care Conneqt<br/>E-mail: info@careconneqt.es",
+      "s1p3": "Met vragen over privacy kunt u terecht bij: privacy@careconneqt.es",
+      "s2Title": "2. Waar dit beleid over gaat",
+      "s2Intro": "Dit privacybeleid legt uit:",
       "s2Items": [
-        "What personal data we collect",
-        "Why we collect it",
-        "How we use it",
-        "Who we share it with",
-        "Your rights under EU General Data Protection Regulation (GDPR) and Spanish Organic Law 3/2018 (LOPD-GDD)"
+        "Welke persoonsgegevens wij verzamelen",
+        "Waarom wij die verzamelen",
+        "Hoe wij die gebruiken",
+        "Met wie wij die delen",
+        "Welke rechten u hebt op grond van de Algemene verordening gegevensbescherming (AVG) en de Spaanse organieke wet 3/2018 (LOPD-GDD)"
       ],
-      "s3Title": "3. Data We Collect",
-      "s3_1Title": "3.1 Information You Provide",
-      "s3AccountLabel": "Account Information:",
+      "s3Title": "3. Gegevens die wij verzamelen",
+      "s3_1Title": "3.1 Gegevens die u zelf verstrekt",
+      "s3AccountLabel": "Accountgegevens:",
       "s3AccountItems": [
-        "Full name",
-        "Email address",
-        "Phone number",
-        "Home address",
-        "Date of birth",
-        "Preferred language"
+        "Volledige naam",
+        "E-mailadres",
+        "Telefoonnummer",
+        "Woonadres",
+        "Geboortedatum",
+        "Voorkeurstaal"
       ],
-      "s3HealthLabel": "Health & Medical Information (Special Category Data):",
+      "s3HealthLabel": "Gezondheids- en medische gegevens (bijzondere categorie persoonsgegevens):",
       "s3HealthItems": [
-        "Medical conditions",
-        "Current medications",
-        "Allergies",
-        "Blood type",
-        "Doctor's name and contact details",
-        "Hospital preference",
-        "Mobility limitations or special needs"
+        "Medische aandoeningen",
+        "Huidige medicatie",
+        "Allergieën",
+        "Bloedgroep",
+        "Naam en contactgegevens van uw arts",
+        "Voorkeursziekenhuis",
+        "Beperkingen in mobiliteit of bijzondere behoeften"
       ],
-      "s3EmergencyLabel": "Emergency Contacts:",
+      "s3EmergencyLabel": "Contactpersonen voor noodgevallen:",
       "s3EmergencyItems": [
-        "Names, phone numbers, and email addresses of people you designate",
-        "Their relationship to you",
-        "Language preferences"
+        "Namen, telefoonnummers en e-mailadressen van de personen die u aanwijst",
+        "Hun relatie tot u",
+        "Taalvoorkeuren"
       ],
-      "s3PaymentLabel": "Payment Information:",
+      "s3PaymentLabel": "Betaalgegevens:",
       "s3PaymentItems": [
-        "Billing address",
-        "Payment card details (processed securely by Stripe, Inc.)"
+        "Factuuradres",
+        "Gegevens van uw betaalkaart (veilig verwerkt door Stripe, Inc.)"
       ],
-      "s3_2Title": "3.2 Information Collected Automatically",
-      "s3DeviceLabel": "Device Information:",
+      "s3_2Title": "3.2 Gegevens die automatisch worden verzameld",
+      "s3DeviceLabel": "Apparaatgegevens:",
       "s3DeviceItems": [
-        "Your GPS pendant's unique identifier (IMEI)",
-        "Battery status",
-        "Online/offline status",
-        "Location data when alerts are triggered"
+        "Het unieke nummer van uw GPS-hanger (IMEI)",
+        "Batterijstatus",
+        "Online- of offlinestatus",
+        "Locatiegegevens wanneer een melding wordt gemaakt"
       ],
-      "s3UsageLabel": "Usage Data:",
+      "s3UsageLabel": "Gebruiksgegevens:",
       "s3UsageItems": [
-        "Pages visited on our website",
-        "Time and date of access",
-        "Browser type and device information"
+        "Bezochte pagina's op onze website",
+        "Tijdstip en datum van bezoek",
+        "Browsertype en apparaatgegevens"
       ],
-      "s3CommsLabel": "Communication Records:",
+      "s3CommsLabel": "Communicatiegegevens:",
       "s3CommsItems": [
-        "Voice call recordings (with your consent)",
-        "SMS and WhatsApp message logs",
-        "Chat transcripts with our AI assistant"
+        "Opnamen van telefoongesprekken (met uw toestemming)",
+        "Logboeken van sms- en WhatsApp-berichten",
+        "Chatgesprekken met onze AI-assistent"
       ],
-      "s3_3Title": "3.3 Information from Third Parties",
-      "s3_3p1": "<strong>Device Monitoring Partner (MonitorLinq B.V.):</strong> We receive real-time device status updates including location, battery level, SOS alerts, and fall detection events from your GPS pendant via our technology partner MonitorLinq B.V. (Netherlands).",
-      "s4Title": "4. Why We Collect Your Data (Legal Basis)",
+      "s3_3Title": "3.3 Gegevens van derden",
+      "s3_3p1": "<strong>Partner voor apparaatbewaking (MonitorLinq B.V.):</strong> wij ontvangen realtime statusgegevens van uw GPS-hanger, waaronder locatie, batterijniveau, SOS-meldingen en valdetectie, via onze technologiepartner MonitorLinq B.V. (Nederland).",
+      "s4Title": "4. Waarom wij uw gegevens verzamelen (rechtsgrond)",
       "s4TableHeaders": [
-        "Purpose",
-        "Legal Basis (GDPR Article 6)"
+        "Doel",
+        "Rechtsgrond (artikel 6 AVG)"
       ],
       "s4TableRows": [
         [
-          "Provide emergency response services",
-          "Performance of contract"
+          "Het leveren van alarmeringsdiensten",
+          "Uitvoering van de overeenkomst"
         ],
         [
-          "Process your subscription payments",
-          "Performance of contract"
+          "Het verwerken van uw abonnementsbetalingen",
+          "Uitvoering van de overeenkomst"
         ],
         [
-          "Contact you about your account",
-          "Performance of contract"
+          "Contact met u opnemen over uw account",
+          "Uitvoering van de overeenkomst"
         ],
         [
-          "Respond to SOS alerts and emergencies",
-          "Legitimate interest (protecting vital interests)"
+          "Reageren op SOS-meldingen en noodgevallen",
+          "Gerechtvaardigd belang (bescherming van vitale belangen)"
         ],
         [
-          "Store medical information for emergencies",
-          "Explicit consent (Article 9)"
+          "Het bewaren van medische gegevens voor noodgevallen",
+          "Uitdrukkelijke toestemming (artikel 9)"
         ],
         [
-          "Record calls for quality and training",
-          "Legitimate interest + consent"
+          "Het opnemen van gesprekken voor kwaliteit en opleiding",
+          "Gerechtvaardigd belang + toestemming"
         ],
         [
-          "Improve our services",
-          "Legitimate interest"
+          "Het verbeteren van onze diensten",
+          "Gerechtvaardigd belang"
         ],
         [
-          "Comply with legal obligations",
-          "Legal obligation"
+          "Het naleven van wettelijke verplichtingen",
+          "Wettelijke verplichting"
         ],
         [
-          "Send service updates",
-          "Performance of contract"
+          "Het versturen van service-updates",
+          "Uitvoering van de overeenkomst"
         ],
         [
-          "Send marketing communications",
-          "Consent (opt-in only)"
+          "Het versturen van marketingberichten",
+          "Toestemming (alleen na aanmelding)"
         ]
       ],
-      "s4SpecialCategory": "<strong>Special Category Data (Health Information):</strong> We process your medical information ONLY because you have given us explicit consent during registration, AND because this information may be vital for protecting your life in an emergency situation (GDPR Article 9(2)(a) and (c)).",
-      "s5Title": "5. How We Use Your Data",
-      "s5_1Title": "5.1 Emergency Response",
-      "s5_1Intro": "When your pendant detects an emergency (SOS button, fall detection, device offline), we:",
+      "s4SpecialCategory": "<strong>Bijzondere categorie persoonsgegevens (gezondheidsgegevens):</strong> wij verwerken uw medische gegevens UITSLUITEND omdat u ons daarvoor bij de registratie uitdrukkelijk toestemming hebt gegeven, EN omdat deze gegevens van vitaal belang kunnen zijn om uw leven bij een noodgeval te beschermen (artikel 9, lid 2, onder a en c, AVG).",
+      "s5Title": "5. Hoe wij uw gegevens gebruiken",
+      "s5_1Title": "5.1 Hulp bij noodgevallen",
+      "s5_1Intro": "Wanneer uw hanger een noodsituatie vaststelt (SOS-knop, valdetectie, apparaat offline), doen wij het volgende:",
       "s5_1Items": [
-        "Receive the alert from our monitoring partner",
-        "Access your profile to identify you",
-        "Review your medical information and emergency contacts",
-        "Contact you by phone to assess the situation",
-        "Contact emergency services (112) if required",
-        "Notify your designated emergency contacts"
+        "Wij ontvangen de melding van onze bewakingspartner",
+        "Wij openen uw profiel om u te identificeren",
+        "Wij bekijken uw medische gegevens en uw contactpersonen",
+        "Wij bellen u om de situatie te beoordelen",
+        "Wij schakelen indien nodig de hulpdiensten in (112)",
+        "Wij waarschuwen de door u aangewezen contactpersonen"
       ],
-      "s5_2Title": "5.2 AI-Assisted Services",
-      "s5_2Intro": "Our AI assistant \"Isabella\" may:",
+      "s5_2Title": "5.2 AI-ondersteunde diensten",
+      "s5_2Intro": "Onze AI-assistent \"Isabella\" kan:",
       "s5_2Items": [
-        "Answer your phone calls",
-        "Respond to chat messages",
-        "Make courtesy check-in calls",
-        "Handle initial emergency triage"
+        "Uw telefoongesprekken aannemen",
+        "Reageren op chatberichten",
+        "Vriendelijke controlegesprekken voeren",
+        "Een eerste beoordeling van een noodmelding doen"
       ],
-      "s5_2p1": "When speaking with Isabella, your conversation is processed using artificial intelligence. Human operators can take over at any time and will always handle genuine emergencies.",
-      "s5_3Title": "5.3 Service Administration",
+      "s5_2p1": "Wanneer u met Isabella spreekt, wordt uw gesprek met kunstmatige intelligentie verwerkt. Menselijke operators kunnen op elk moment overnemen en behandelen echte noodgevallen altijd zelf.",
+      "s5_3Title": "5.3 Beheer van de dienst",
       "s5_3Items": [
-        "Process monthly subscription payments",
-        "Send service-related communications",
-        "Provide customer support",
-        "Schedule courtesy welfare calls"
+        "Het verwerken van maandelijkse abonnementsbetalingen",
+        "Het versturen van berichten over de dienst",
+        "Het leveren van klantenservice",
+        "Het inplannen van welzijnscontroles"
       ],
-      "s6Title": "6. Who We Share Your Data With",
-      "s6Intro": "We share your data ONLY with the following categories of recipients, and ONLY when necessary:",
-      "s6_1Title": "6.1 Service Providers (Data Processors)",
+      "s6Title": "6. Met wie wij uw gegevens delen",
+      "s6Intro": "Wij delen uw gegevens UITSLUITEND met de volgende categorieën ontvangers, en ALLEEN wanneer dat nodig is:",
+      "s6_1Title": "6.1 Dienstverleners (verwerkers)",
       "s6_1TableHeaders": [
-        "Provider",
-        "Purpose",
-        "Location",
-        "Safeguards"
+        "Dienstverlener",
+        "Doel",
+        "Locatie",
+        "Waarborgen"
       ],
       "s6_1TableRows": [
         [
           "Supabase, Inc.",
-          "Database hosting",
-          "EU (Stockholm, Sweden)",
-          "EU data center, DPA in place"
+          "Databasehosting",
+          "EU (Stockholm, Zweden)",
+          "Datacentrum in de EU, verwerkersovereenkomst gesloten"
         ],
         [
           "MonitorLinq B.V.",
-          "Device monitoring & GPS tracking",
-          "Netherlands (EU)",
-          "ISO 27001, NEN 7510 certified"
+          "Apparaatbewaking en gps-tracking",
+          "Nederland (EU)",
+          "ISO 27001- en NEN 7510-gecertificeerd"
         ],
         [
           "Stripe, Inc.",
-          "Payment processing",
-          "EU/US",
-          "EU-US Data Privacy Framework, PCI-DSS compliant"
+          "Betalingsverwerking",
+          "EU/VS",
+          "EU-US Data Privacy Framework, PCI-DSS-compliant"
         ],
         [
           "Twilio, Inc.",
-          "Voice calls & SMS",
-          "EU/US",
-          "Standard Contractual Clauses"
+          "Telefoongesprekken en sms",
+          "EU/VS",
+          "Standaardcontractbepalingen"
         ],
         [
-          "OpenAI, LLC",
-          "AI assistant functionality",
-          "US",
-          "Standard Contractual Clauses"
+          "Anthropic, PBC",
+          "Functionaliteit van de AI-assistent",
+          "VS",
+          "Standaardcontractbepalingen"
         ],
         [
           "Google (Gmail)",
-          "Email delivery",
-          "EU/US",
-          "Standard Contractual Clauses"
+          "E-mailbezorging",
+          "EU/VS",
+          "Standaardcontractbepalingen"
         ],
         [
           "Vercel, Inc.",
-          "Website hosting",
+          "Websitehosting",
           "EU",
-          "EU data center"
+          "Datacentrum in de EU"
         ]
       ],
-      "s6_2Title": "6.2 Emergency Services",
-      "s6_2Intro": "In an emergency, we may share your name, location, and relevant medical information with:",
+      "s6_2Title": "6.2 Hulpdiensten",
+      "s6_2Intro": "Bij een noodgeval kunnen wij uw naam, locatie en relevante medische gegevens delen met:",
       "s6_2Items": [
-        "Spanish emergency services (112)",
-        "Local police, fire, or ambulance services",
-        "Hospital emergency departments"
+        "De Spaanse hulpdiensten (112)",
+        "Lokale politie, brandweer of ambulancedienst",
+        "Spoedeisende hulpafdelingen van ziekenhuizen"
       ],
-      "s6_2p1": "This sharing is based on protecting your vital interests (GDPR Article 6(1)(d)).",
-      "s6_3Title": "6.3 Your Emergency Contacts",
-      "s6_3Intro": "People you designate as emergency contacts will receive:",
+      "s6_2p1": "Deze verstrekking is gebaseerd op de bescherming van uw vitale belangen (artikel 6, lid 1, onder d, AVG).",
+      "s6_3Title": "6.3 Uw contactpersonen voor noodgevallen",
+      "s6_3Intro": "De personen die u als contactpersoon aanwijst, ontvangen:",
       "s6_3Items": [
-        "Notification when an alert is triggered",
-        "Your location at the time of alert",
-        "Status updates during an incident"
+        "Een melding wanneer er een alarm wordt gemaakt",
+        "Uw locatie op het moment van de melding",
+        "Statusupdates tijdens een incident"
       ],
-      "s6_4Title": "6.4 Legal Requirements",
-      "s6_4Intro": "We may disclose your data if required by:",
+      "s6_4Title": "6.4 Wettelijke verplichtingen",
+      "s6_4Intro": "Wij kunnen uw gegevens verstrekken wanneer dat verplicht is op grond van:",
       "s6_4Items": [
-        "Court order or legal process",
-        "Spanish law enforcement with valid legal basis",
-        "Regulatory authorities"
+        "Een rechterlijk bevel of gerechtelijke procedure",
+        "Een verzoek van de Spaanse opsporingsdiensten met een geldige rechtsgrond",
+        "Een verzoek van toezichthoudende autoriteiten"
       ],
-      "s6_5Title": "6.5 We Do NOT",
+      "s6_5Title": "6.5 Wat wij NIET doen",
       "s6_5Items": [
-        "Sell your personal data",
-        "Share your data for third-party marketing",
-        "Use your medical data for any purpose other than emergency response"
+        "Wij verkopen uw persoonsgegevens niet",
+        "Wij delen uw gegevens niet voor marketing door derden",
+        "Wij gebruiken uw medische gegevens voor geen enkel ander doel dan hulp bij noodgevallen"
       ],
-      "s7Title": "7. International Data Transfers",
-      "s7Intro": "Some of our service providers are located outside the European Economic Area (EEA). When we transfer your data outside the EEA, we ensure protection through:",
+      "s7Title": "7. Internationale gegevensoverdracht",
+      "s7Intro": "Enkele van onze dienstverleners bevinden zich buiten de Europese Economische Ruimte (EER). Wanneer wij uw gegevens buiten de EER doorgeven, zorgen wij voor bescherming via:",
       "s7Items": [
-        "<strong>EU-US Data Privacy Framework</strong> (for certified US companies)",
-        "<strong>Standard Contractual Clauses</strong> approved by the European Commission",
-        "<strong>Adequacy decisions</strong> where applicable"
+        "<strong>Het EU-US Data Privacy Framework</strong> (voor gecertificeerde Amerikaanse bedrijven)",
+        "<strong>Standaardcontractbepalingen</strong> die door de Europese Commissie zijn goedgekeurd",
+        "<strong>Adequaatheidsbesluiten</strong>, waar van toepassing"
       ],
-      "s7p1": "You can request copies of the relevant safeguards by contacting us.",
-      "s8Title": "8. Data Retention",
+      "s7p1": "U kunt een kopie van de betreffende waarborgen opvragen door contact met ons op te nemen.",
+      "s8Title": "8. Bewaartermijnen",
       "s8TableHeaders": [
-        "Data Type",
-        "Retention Period"
+        "Soort gegevens",
+        "Bewaartermijn"
       ],
       "s8TableRows": [
         [
-          "Account information",
-          "Duration of membership + 5 years"
+          "Accountgegevens",
+          "Duur van het lidmaatschap + 5 jaar"
         ],
         [
-          "Medical information",
-          "Duration of membership + 5 years"
+          "Medische gegevens",
+          "Duur van het lidmaatschap + 5 jaar"
         ],
         [
-          "Emergency contact details",
-          "Duration of membership + 1 year"
+          "Gegevens van contactpersonen",
+          "Duur van het lidmaatschap + 1 jaar"
         ],
         [
-          "Alert and incident records",
-          "7 years (legal requirement)"
+          "Meldingen en incidentdossiers",
+          "7 jaar (wettelijke verplichting)"
         ],
         [
-          "Call recordings",
-          "2 years"
+          "Gespreksopnamen",
+          "2 jaar"
         ],
         [
-          "Payment records",
-          "10 years (Spanish tax law)"
+          "Betaalgegevens",
+          "10 jaar (Spaanse belastingwetgeving)"
         ],
         [
-          "Chat/message logs",
-          "2 years"
+          "Chat- en berichtenlogboeken",
+          "2 jaar"
         ],
         [
-          "Website analytics",
-          "26 months"
+          "Websitestatistieken",
+          "26 maanden"
         ]
       ],
-      "s8p1": "After these periods, data is securely deleted or anonymized.",
-      "s9Title": "9. Your Rights",
-      "s9Intro": "Under GDPR and Spanish law, you have the right to:",
-      "s9_1Title": "9.1 Access",
-      "s9_1p1": "Request a copy of all personal data we hold about you. We will respond within 30 days.",
-      "s9_2Title": "9.2 Rectification",
-      "s9_2p1": "Correct any inaccurate or incomplete data. You can update most information directly in your member dashboard.",
-      "s9_3Title": "9.3 Erasure (\"Right to be Forgotten\")",
-      "s9_3p1": "Request deletion of your data. Note: We may need to retain some data for legal compliance. You can request deletion through your member dashboard or by contacting us.",
-      "s9_4Title": "9.4 Restriction",
-      "s9_4p1": "Request that we limit how we use your data while a complaint is being resolved.",
-      "s9_5Title": "9.5 Data Portability",
-      "s9_5p1": "Receive your data in a structured, machine-readable format.",
-      "s9_6Title": "9.6 Object",
-      "s9_6p1": "Object to processing based on legitimate interests. For direct marketing, you can opt out at any time.",
-      "s9_7Title": "9.7 Withdraw Consent",
-      "s9_7p1": "Where we rely on your consent, you can withdraw it at any time. This does not affect the lawfulness of processing before withdrawal.",
-      "s9Warning": "Important: If you withdraw consent for medical data processing or request deletion, we may no longer be able to provide effective emergency response services. In such cases, we may need to terminate your membership for your own safety.",
-      "s9_8Title": "9.8 How to Exercise Your Rights",
+      "s8p1": "Na deze termijnen worden de gegevens veilig verwijderd of geanonimiseerd.",
+      "s9Title": "9. Uw rechten",
+      "s9Intro": "Op grond van de AVG en de Spaanse wetgeving hebt u het recht om:",
+      "s9_1Title": "9.1 Inzage",
+      "s9_1p1": "Een kopie op te vragen van alle persoonsgegevens die wij over u bewaren. Wij reageren binnen 30 dagen.",
+      "s9_2Title": "9.2 Rectificatie",
+      "s9_2p1": "Onjuiste of onvolledige gegevens te laten corrigeren. De meeste gegevens kunt u zelf bijwerken in uw ledendashboard.",
+      "s9_3Title": "9.3 Verwijdering (\"recht op vergetelheid\")",
+      "s9_3p1": "Verwijdering van uw gegevens te verzoeken. Let op: wij moeten sommige gegevens bewaren om aan de wet te voldoen. U kunt verwijdering aanvragen via uw ledendashboard of door contact met ons op te nemen.",
+      "s9_4Title": "9.4 Beperking",
+      "s9_4p1": "Te verzoeken dat wij het gebruik van uw gegevens beperken zolang een klacht in behandeling is.",
+      "s9_5Title": "9.5 Gegevensoverdraagbaarheid",
+      "s9_5p1": "Uw gegevens te ontvangen in een gestructureerde, machineleesbare vorm.",
+      "s9_6Title": "9.6 Bezwaar",
+      "s9_6p1": "Bezwaar te maken tegen verwerking op grond van gerechtvaardigd belang. Voor direct marketing kunt u zich op elk moment afmelden.",
+      "s9_7Title": "9.7 Toestemming intrekken",
+      "s9_7p1": "Waar wij ons op uw toestemming baseren, kunt u die op elk moment intrekken. Dit tast de rechtmatigheid van de verwerking vóór de intrekking niet aan.",
+      "s9Warning": "Belangrijk: trekt u uw toestemming voor de verwerking van medische gegevens in of verzoekt u om verwijdering, dan kunnen wij mogelijk geen effectieve hulp bij noodgevallen meer bieden. In dat geval kunnen wij uw lidmaatschap voor uw eigen veiligheid moeten beëindigen.",
+      "s9_8Title": "9.8 Hoe u uw rechten uitoefent",
       "s9_8Items": [
-        "<strong>Online:</strong> Through your member dashboard at careconneqt.es/dashboard",
-        "<strong>Email:</strong> privacy@careconneqt.es"
+        "<strong>Online:</strong> via uw ledendashboard op careconneqt.es/dashboard",
+        "<strong>E-mail:</strong> privacy@careconneqt.es"
       ],
-      "s9_8p1": "We will respond within 30 days. We may need to verify your identity before processing requests.",
-      "s10Title": "10. Data Security",
-      "s10Intro": "We implement appropriate technical and organizational measures including:",
+      "s9_8p1": "Wij reageren binnen 30 dagen. Wij kunnen uw identiteit moeten vaststellen voordat wij een verzoek in behandeling nemen.",
+      "s10Title": "10. Beveiliging van gegevens",
+      "s10Intro": "Wij nemen passende technische en organisatorische maatregelen, waaronder:",
       "s10Items": [
-        "Encryption of data in transit (TLS 1.3)",
-        "Encryption of data at rest",
-        "Access controls and authentication",
-        "Regular security assessments",
-        "Staff training on data protection",
-        "Incident response procedures"
+        "Versleuteling van gegevens tijdens verzending (TLS 1.3)",
+        "Versleuteling van opgeslagen gegevens",
+        "Toegangsbeheer en authenticatie",
+        "Periodieke veiligheidsbeoordelingen",
+        "Opleiding van medewerkers op het gebied van gegevensbescherming",
+        "Procedures voor het reageren op incidenten"
       ],
-      "s10p1": "Our database is hosted in a Tier 3 certified data center in the European Union.",
-      "s11Title": "11. Children's Privacy",
-      "s11p1": "Our services are not directed at children under 16. We do not knowingly collect personal data from children under 16 without parental consent. If you believe we have collected such data, please contact us immediately.",
-      "s12Title": "12. Automated Decision-Making",
-      "s12Intro": "Our AI assistant may process your data to:",
+      "s10p1": "Onze database wordt gehost in een Tier 3-gecertificeerd datacentrum in de Europese Unie.",
+      "s11Title": "11. Privacy van kinderen",
+      "s11p1": "Onze diensten zijn niet gericht op kinderen onder de 16 jaar. Wij verzamelen niet bewust persoonsgegevens van kinderen onder de 16 zonder toestemming van een ouder. Denkt u dat wij dat toch hebben gedaan, neem dan direct contact met ons op.",
+      "s12Title": "12. Geautomatiseerde besluitvorming",
+      "s12Intro": "Onze AI-assistent kan uw gegevens verwerken om:",
       "s12Items": [
-        "Triage emergency calls",
-        "Determine appropriate responses",
-        "Route calls to human operators"
+        "Noodmeldingen te beoordelen",
+        "Passende reacties te bepalen",
+        "Gesprekken door te verbinden naar menselijke operators"
       ],
-      "s12p1": "You have the right to request human intervention in any automated decision that significantly affects you. During any emergency, human operators are always available to take over.",
+      "s12p1": "U hebt het recht om menselijke tussenkomst te vragen bij elk geautomatiseerd besluit dat u in aanzienlijke mate raakt. Bij een noodgeval zijn er altijd menselijke operators beschikbaar om over te nemen.",
       "s13Title": "13. Cookies",
-      "s13Intro": "Our website uses cookies for:",
+      "s13Intro": "Onze website gebruikt cookies voor:",
       "s13Items": [
-        "<strong>Essential cookies:</strong> Required for the website to function",
-        "<strong>Analytics cookies:</strong> To understand how visitors use our site (only with consent)"
+        "<strong>Noodzakelijke cookies:</strong> nodig om de website te laten werken",
+        "<strong>Analytische cookies:</strong> om te begrijpen hoe bezoekers onze site gebruiken (alleen met toestemming)"
       ],
-      "s13p1": "You can manage cookie preferences through our cookie banner or your browser settings.",
-      "s14Title": "14. Changes to This Policy",
-      "s14Intro": "We may update this Privacy Policy from time to time. We will notify you of significant changes by:",
+      "s13p1": "U kunt uw cookievoorkeuren beheren via onze cookiemelding of via de instellingen van uw browser.",
+      "s14Title": "14. Wijzigingen in dit beleid",
+      "s14Intro": "Wij kunnen dit privacybeleid van tijd tot tijd aanpassen. Belangrijke wijzigingen laten wij u weten via:",
       "s14Items": [
-        "Email notification",
-        "Notice on our website",
-        "Notice in your member dashboard"
+        "Een e-mailbericht",
+        "Een melding op onze website",
+        "Een melding in uw ledendashboard"
       ],
-      "s14p1": "The \"Last Updated\" date at the top indicates when the policy was last revised.",
-      "s15Title": "15. Complaints",
-      "s15p1": "If you are not satisfied with how we handle your data, you have the right to lodge a complaint with:",
+      "s14p1": "De datum \"Laatst bijgewerkt\" bovenaan geeft aan wanneer het beleid voor het laatst is herzien.",
+      "s15Title": "15. Klachten",
+      "s15p1": "Bent u niet tevreden over de manier waarop wij met uw gegevens omgaan, dan hebt u het recht een klacht in te dienen bij:",
       "s15Authority": "<strong>Agencia Española de Protección de Datos (AEPD)</strong><br/>C/ Jorge Juan, 6<br/>28001 Madrid<br/><a href=\"https://www.aepd.es\" target=\"_blank\" rel=\"noopener noreferrer\">www.aepd.es</a><br/>Tel: 900 293 183",
-      "s15p2": "You also have the right to seek judicial remedy.",
-      "s16Title": "16. Contact Us",
-      "s16Intro": "<strong>For any privacy-related questions:</strong>",
-      "s16Content": "Care Conneqt<br/>Email: privacy@careconneqt.es<br/>General enquiries: info@careconneqt.es",
-      "governedBy": "This Privacy Policy is governed by Spanish law and the General Data Protection Regulation (EU) 2016/679."
+      "s15p2": "U hebt ook het recht om naar de rechter te stappen.",
+      "s16Title": "16. Contact",
+      "s16Intro": "<strong>Voor alle vragen over privacy:</strong>",
+      "s16Content": "Care Conneqt<br/>E-mail: privacy@careconneqt.es<br/>Algemene vragen: info@careconneqt.es",
+      "governedBy": "Op dit privacybeleid is Spaans recht van toepassing, evenals de Algemene verordening gegevensbescherming (EU) 2016/679."
     }
   },
   "mediaStrategy": {

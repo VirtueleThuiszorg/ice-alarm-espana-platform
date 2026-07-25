@@ -17,7 +17,9 @@ import { BlogCard } from "@/components/blog/BlogCard";
 import { useBlogPosts } from "@/hooks/useBlogPosts";
 import { usePublicTestimonials } from "@/hooks/useTestimonials";
 import { usePricing } from "@/hooks/usePricing";
-import { formatPrice, getSubscriptionMonthlyFinal, getSubscriptionFinalPrice, getPendantFinalPrice } from "@/config/pricing";
+import { BillingPeriodToggle } from "@/components/pricing/BillingPeriodToggle";
+import { buildJoinPath } from "@/lib/joinLink";
+import { formatPrice, getSubscriptionMonthlyFinal, getSubscriptionFinalPrice, getAnnualSavings, getPendantFinalPrice, type BillingFrequency } from "@/config/pricing";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +39,9 @@ export default function LandingPage() {
   const pendantPromoImage = getImage("homepage_pendant_promo");
 
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  // Billing period for the pricing cards below; carried into the wizard on the CTA so the
+  // member never picks their membership twice.
+  const [billing, setBilling] = useState<BillingFrequency>("monthly");
   const [searchParams] = useSearchParams();
 
   // DB-sourced prices (IVA included), reflect admin edits.
@@ -363,6 +368,8 @@ export default function LandingPage() {
             </p>
           </div>
 
+          <BillingPeriodToggle value={billing} onChange={setBilling} className="mb-8" />
+
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Single Membership */}
             <Card className="relative">
@@ -370,11 +377,19 @@ export default function LandingPage() {
                 <h3 className="font-semibold text-lg mb-2">{t("landing.singleMembership")}</h3>
                 <p className="text-sm text-muted-foreground mb-4">{t("landing.forOnePerson")}</p>
                 <div className="mb-2">
-                  <span className="text-4xl font-bold">{formatPrice(getSubscriptionMonthlyFinal("single"))}</span>
-                  <span className="text-muted-foreground">{t("landing.perMonth")}</span>
+                  <span className="text-4xl font-bold">
+                    {formatPrice(billing === "annual" ? getSubscriptionFinalPrice("single", "annual") : getSubscriptionMonthlyFinal("single"))}
+                  </span>
+                  <span className="text-muted-foreground">{billing === "annual" ? t("landing.perYear") : t("landing.perMonth")}</span>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">
-                  {t("common.or")} {formatPrice(getSubscriptionFinalPrice("single", "annual"))}{t("landing.perYear")} <span className="text-alert-resolved">({t("landing.saveTwoMonths")})</span>
+                  {billing === "annual" ? (
+                    <span className="text-alert-resolved">{t("landing.save")} {formatPrice(getAnnualSavings("single"))}{t("landing.perYear")}</span>
+                  ) : (
+                    <>
+                      {t("common.or")} {formatPrice(getSubscriptionFinalPrice("single", "annual"))}{t("landing.perYear")} <span className="text-alert-resolved">({t("landing.saveTwoMonths")})</span>
+                    </>
+                  )}
                 </p>
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center gap-2 text-sm">
@@ -395,7 +410,7 @@ export default function LandingPage() {
                   </li>
                 </ul>
                 <Button className="w-full" variant="outline" asChild>
-                  <Link to="/join">{t("common.getStarted")}</Link>
+                  <Link to={buildJoinPath({ plan: "single", billing })}>{t("common.getStarted")}</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -411,11 +426,19 @@ export default function LandingPage() {
                 <h3 className="font-semibold text-lg mb-2">{t("landing.coupleMembership")}</h3>
                 <p className="text-sm text-muted-foreground mb-4">{t("landing.forTwoPeople")}</p>
                 <div className="mb-2">
-                  <span className="text-4xl font-bold">{formatPrice(getSubscriptionMonthlyFinal("couple"))}</span>
-                  <span className="text-muted-foreground">{t("landing.perMonth")}</span>
+                  <span className="text-4xl font-bold">
+                    {formatPrice(billing === "annual" ? getSubscriptionFinalPrice("couple", "annual") : getSubscriptionMonthlyFinal("couple"))}
+                  </span>
+                  <span className="text-muted-foreground">{billing === "annual" ? t("landing.perYear") : t("landing.perMonth")}</span>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">
-                  {t("common.or")} {formatPrice(getSubscriptionFinalPrice("couple", "annual"))}{t("landing.perYear")} <span className="text-alert-resolved">({t("landing.saveTwoMonths")})</span>
+                  {billing === "annual" ? (
+                    <span className="text-alert-resolved">{t("landing.save")} {formatPrice(getAnnualSavings("couple"))}{t("landing.perYear")}</span>
+                  ) : (
+                    <>
+                      {t("common.or")} {formatPrice(getSubscriptionFinalPrice("couple", "annual"))}{t("landing.perYear")} <span className="text-alert-resolved">({t("landing.saveTwoMonths")})</span>
+                    </>
+                  )}
                 </p>
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center gap-2 text-sm">
@@ -436,7 +459,7 @@ export default function LandingPage() {
                   </li>
                 </ul>
                 <Button className="w-full" asChild>
-                  <Link to="/join">{t("common.getStarted")}</Link>
+                  <Link to={buildJoinPath({ plan: "couple", billing })}>{t("common.getStarted")}</Link>
                 </Button>
               </CardContent>
             </Card>

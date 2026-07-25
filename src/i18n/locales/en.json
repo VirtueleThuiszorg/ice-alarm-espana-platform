@@ -604,7 +604,8 @@
     "markComplete": "Mark complete",
     "deleting": "Deleting...",
     "selected": "selected",
-    "view": "View"
+    "view": "View",
+    "change": "Change"
   },
   "auth": {
     "login": "Login",
@@ -2911,7 +2912,8 @@
     },
     "paymentSuccessRecovered": "Payment received! Your order is confirmed.",
     "draftSaveFailed": "We couldn't save your progress — you can continue, but don't close this tab.",
-    "contactRequiredFields": "Please fill in name, relationship and phone number."
+    "contactRequiredFields": "Please fill in name, relationship and phone number.",
+    "yourSelection": "Your selection"
   },
   "chat": {
     "openChat": "Open chat",
@@ -5541,7 +5543,10 @@
     "oneTime": "One-time costs",
     "pendant": "GPS pendant",
     "shipping": "Shipping",
-    "registration": "Registration & setup"
+    "registration": "Registration & setup",
+    "billingPeriod": "Billing period",
+    "monthly": "Monthly",
+    "annual": "Annual"
   },
   "rota": {
     "title": "Staff Rota",

@@ -604,7 +604,8 @@
     "markComplete": "Marcar como completada",
     "deleting": "Eliminando...",
     "selected": "seleccionados",
-    "view": "Ver"
+    "view": "Ver",
+    "change": "Cambiar"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -2911,7 +2912,8 @@
     },
     "paymentSuccessRecovered": "¡Pago recibido! Su pedido está confirmado.",
     "draftSaveFailed": "No hemos podido guardar su progreso. Puede continuar, pero no cierre esta pestaña.",
-    "contactRequiredFields": "Por favor, rellene el nombre, la relación y el número de teléfono."
+    "contactRequiredFields": "Por favor, rellene el nombre, la relación y el número de teléfono.",
+    "yourSelection": "Tu selección"
   },
   "chat": {
     "openChat": "Abrir chat",
@@ -5541,7 +5543,10 @@
     "oneTime": "Costes únicos",
     "pendant": "Colgante GPS",
     "shipping": "Envío",
-    "registration": "Alta y configuración"
+    "registration": "Alta y configuración",
+    "billingPeriod": "Periodo de facturación",
+    "monthly": "Mensual",
+    "annual": "Anual"
   },
   "rota": {
     "title": "Turnos del Personal",

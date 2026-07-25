@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { usePublicTestimonials } from "@/hooks/useTestimonials";
 import { usePricing } from "@/hooks/usePricing";
-import { formatPrice, getSubscriptionMonthlyFinal, getSubscriptionFinalPrice } from "@/config/pricing";
+import { BillingPeriodToggle } from "@/components/pricing/BillingPeriodToggle";
+import { buildJoinPath } from "@/lib/joinLink";
+import { formatPrice, getSubscriptionMonthlyFinal, getSubscriptionFinalPrice, type BillingFrequency } from "@/config/pricing";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +41,8 @@ import { useCompanySettings } from "@/hooks/useCompanySettings";
 export default function PendantPage() {
   usePricing(); // hydrate pricing from DB
   const { t, i18n } = useTranslation();
+  // Billing period for the pricing cards; carried into the wizard on the CTA.
+  const [billing, setBilling] = useState<BillingFrequency>("monthly");
   const { settings: companySettings } = useCompanySettings();
   const { data: dbTestimonials } = usePublicTestimonials("pendant");
   
@@ -415,6 +420,8 @@ export default function PendantPage() {
             </p>
           </div>
 
+          <BillingPeriodToggle value={billing} onChange={setBilling} className="mb-8" />
+
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Single */}
             <Card>
@@ -426,16 +433,26 @@ export default function PendantPage() {
                 <p className="text-sm text-muted-foreground mb-6">{t("pendant.pricing.single.subtitle")}</p>
                 <div className="space-y-2 mb-6">
                   <div>
-                    <span className="text-2xl font-bold">{formatPrice(getSubscriptionMonthlyFinal("single"))}</span>
-                    <span className="text-muted-foreground">{t("pendant.pricing.single.perMonth")}</span>
+                    <span className="text-2xl font-bold">
+                      {formatPrice(billing === "annual" ? getSubscriptionFinalPrice("single", "annual") : getSubscriptionMonthlyFinal("single"))}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {billing === "annual" ? t("pendant.pricing.single.perYear") : t("pendant.pricing.single.perMonth")}
+                    </span>
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {t("common.or")} <span className="font-medium text-foreground">{formatPrice(getSubscriptionFinalPrice("single", "annual"))}{t("pendant.pricing.single.perYear")}</span>
-                    <Badge variant="secondary" className="ml-2">{t("pendant.pricing.single.save")}</Badge>
+                    {billing === "annual" ? (
+                      <Badge variant="secondary">{t("pendant.pricing.single.save")}</Badge>
+                    ) : (
+                      <>
+                        {t("common.or")} <span className="font-medium text-foreground">{formatPrice(getSubscriptionFinalPrice("single", "annual"))}{t("pendant.pricing.single.perYear")}</span>
+                        <Badge variant="secondary" className="ml-2">{t("pendant.pricing.single.save")}</Badge>
+                      </>
+                    )}
                   </div>
                 </div>
                 <Button className="w-full" asChild>
-                  <Link to="/join">{t("pendant.pricing.getStarted")}</Link>
+                  <Link to={buildJoinPath({ plan: "single", billing })}>{t("pendant.pricing.getStarted")}</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -448,16 +465,26 @@ export default function PendantPage() {
                 <p className="text-sm text-muted-foreground mb-6">{t("pendant.pricing.couple.subtitle")}</p>
                 <div className="space-y-2 mb-6">
                   <div>
-                    <span className="text-2xl font-bold">{formatPrice(getSubscriptionMonthlyFinal("couple"))}</span>
-                    <span className="text-muted-foreground">{t("pendant.pricing.couple.perMonth")}</span>
+                    <span className="text-2xl font-bold">
+                      {formatPrice(billing === "annual" ? getSubscriptionFinalPrice("couple", "annual") : getSubscriptionMonthlyFinal("couple"))}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {billing === "annual" ? t("pendant.pricing.couple.perYear") : t("pendant.pricing.couple.perMonth")}
+                    </span>
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {t("common.or")} <span className="font-medium text-foreground">{formatPrice(getSubscriptionFinalPrice("couple", "annual"))}{t("pendant.pricing.couple.perYear")}</span>
-                    <Badge variant="secondary" className="ml-2">{t("pendant.pricing.couple.save")}</Badge>
+                    {billing === "annual" ? (
+                      <Badge variant="secondary">{t("pendant.pricing.couple.save")}</Badge>
+                    ) : (
+                      <>
+                        {t("common.or")} <span className="font-medium text-foreground">{formatPrice(getSubscriptionFinalPrice("couple", "annual"))}{t("pendant.pricing.couple.perYear")}</span>
+                        <Badge variant="secondary" className="ml-2">{t("pendant.pricing.couple.save")}</Badge>
+                      </>
+                    )}
                   </div>
                 </div>
                 <Button className="w-full" asChild>
-                  <Link to="/join">{t("pendant.pricing.getStarted")}</Link>
+                  <Link to={buildJoinPath({ plan: "couple", billing })}>{t("pendant.pricing.getStarted")}</Link>
                 </Button>
               </CardContent>
             </Card>

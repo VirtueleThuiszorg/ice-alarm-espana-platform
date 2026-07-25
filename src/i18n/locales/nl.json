@@ -604,7 +604,8 @@
     "markComplete": "Markeren als voltooid",
     "deleting": "Verwijderen...",
     "selected": "geselecteerd",
-    "view": "Bekijken"
+    "view": "Bekijken",
+    "change": "Wijzigen"
   },
   "auth": {
     "login": "Inloggen",
@@ -2943,7 +2944,8 @@
     },
     "paymentSuccessRecovered": "Betaling ontvangen! Uw bestelling is bevestigd.",
     "draftSaveFailed": "We konden uw voortgang niet opslaan. U kunt doorgaan, maar sluit dit tabblad niet.",
-    "contactRequiredFields": "Vul de naam, relatie en het telefoonnummer in."
+    "contactRequiredFields": "Vul de naam, relatie en het telefoonnummer in.",
+    "yourSelection": "Jouw keuze"
   },
   "chat": {
     "openChat": "Chat openen",
@@ -5588,7 +5590,10 @@
     "oneTime": "Eenmalige kosten",
     "pendant": "GPS-hanger",
     "shipping": "Verzending",
-    "registration": "Registratie en installatie"
+    "registration": "Registratie en installatie",
+    "billingPeriod": "Facturatieperiode",
+    "monthly": "Maandelijks",
+    "annual": "Jaarlijks"
   },
   "rota": {
     "title": "Staff Rota",

@@ -14,6 +14,7 @@ import { extractUtmParams, storeReferralData } from "@/lib/crmEvents";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { usePricingSettings } from "@/hooks/usePricingSettings";
 import { calculateOrder } from "@/config/pricing";
+import { resolveJoinEntry } from "@/lib/joinLink";
 import { reportEvent, updateDailyMetrics } from "@/lib/syncHub";
 // Step Components
 import { JoinMembershipStep } from "@/components/join/steps/JoinMembershipStep";
@@ -44,9 +45,24 @@ export default function JoinWizard() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [wizardData, setWizardData] = useState<JoinWizardData>(initialJoinWizardData);
-  const [stepValidation, setStepValidation] = useState<Record<number, boolean>>({});
+
+  // A pricing card can deep-link the choice it already asked for
+  // (/join?plan=couple&billing=annual) so step 1 never repeats the question. Only read on
+  // mount (via the state initialisers below); the member can still change both later —
+  // step 1 stays reachable from Back / the step rail, and the billing period again on the
+  // review step. Not a charge input: submit-registration recomputes the price server-side.
+  const { selection: deepLink, planStepSkipped: skippedPlanStep, initialStep } = resolveJoinEntry(searchParams);
+
+  const [currentStep, setCurrentStep] = useState(initialStep);
+  const [wizardData, setWizardData] = useState<JoinWizardData>(() => ({
+    ...initialJoinWizardData,
+    ...(deepLink.plan ? { membershipType: deepLink.plan } : {}),
+    ...(deepLink.billing ? { billingFrequency: deepLink.billing } : {}),
+  }));
+  // Mark the skipped plan step complete so the rail shows it as done and clickable.
+  const [stepValidation, setStepValidation] = useState<Record<number, boolean>>(() =>
+    skippedPlanStep ? { 1: true } : ({} as Record<number, boolean>),
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const contentTopRef = useRef<HTMLDivElement>(null);
 
@@ -458,6 +474,28 @@ export default function JoinWizard() {
               })}
             </div>
           </>
+        )}
+
+        {/* Selection carried in from a pricing card — visible and changeable, so skipping
+            step 1 never hides what the member picked. */}
+        {skippedPlanStep && currentStep > 1 && currentStep < 7 && (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
+            <span>
+              <span className="text-muted-foreground">{t("joinWizard.yourSelection", "Your selection")}: </span>
+              <span className="font-medium">
+                {wizardData.membershipType === "single"
+                  ? t("joinWizard.summary.individual")
+                  : t("joinWizard.summary.couple")}{" "}
+                {t("joinWizard.summary.membership")} ·{" "}
+                {wizardData.billingFrequency === "monthly"
+                  ? t("joinWizard.summary.monthly")
+                  : t("joinWizard.summary.annual")}
+              </span>
+            </span>
+            <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setCurrentStep(1)}>
+              {t("common.change", "Change")}
+            </Button>
+          </div>
         )}
 
         {/* Step Content */}

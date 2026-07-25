@@ -2596,6 +2596,7 @@
   },
   "sidebar": {
     "dashboard": "Dashboard",
+    "medconneqt": "MedConneqt",
     "people": "People",
     "members": "Members",
     "leads": "Leads",

@@ -3092,7 +3092,7 @@
       "bilingual": "Tweetalige ondersteuning",
       "bilingualDesc": "Vloeiend Engels- en Spaanssprekende operators die uw behoeften begrijpen.",
       "response": "Snelle respons",
-      "responseDesc": "Gemiddelde responstijd van minder dan 30 seconden wanneer u ons het hardst nodig heeft."
+      "responseDesc": "Een echte operator antwoordt direct via uw hanger — geen keuzemenu's, geen wachtrij."
     },
     "success": {
       "title": "Bericht verzonden!",
@@ -5915,7 +5915,7 @@
       "title": "Wat als...?",
       "subtitle": "Echte zorgen, echte antwoorden.",
       "q1": "Wat als Maria niet kan praten?",
-      "a1": "Ons meldkamerteam ontvangt de melding evengoed, met Maria's volledige profiel en gps-locatie, en kan direct hulp sturen — er is geen stem nodig. Bovendien is de microfoon van de hanger gevoelig genoeg om een zwakke stem aan de andere kant van de kamer op te vangen.",
+      "a1": "Ons meldkamerteam ontvangt de melding nog steeds met het volledige profiel van Maria en haar GPS-locatie, en kan direct hulp sturen — spreken is niet nodig. Het spraakkanaal gaat automatisch open, zodat de operator kan horen wat er in de kamer gebeurt, ook als Maria niet kan antwoorden.",
       "q2": "Wat als het loos alarm is?",
       "a2": "De medewerker vraagt het Maria gewoon. Zegt ze dat het goed gaat, dan wordt de melding geannuleerd — zonder gedoe en zonder kosten. We hebben liever dat u honderd keer per ongeluk drukt dan dat u aarzelt op het ene moment dat het ertoe doet.",
       "q3": "Wat als het 3 uur 's nachts is?",
@@ -5929,13 +5929,8 @@
       "primaryButton": "Bescherm iemand van wie u houdt",
       "secondaryButton": "Praat met ons team",
       "trust1": "Geen langlopende contracten",
-      "trust2": "30 dagen niet-goed-geld-terug-garantie",
-      "trust3": "Gratis levering de volgende dag in Spanje"
-    },
-    "timeline": {
-      "seconds": "seconden",
-      "minute": "minuut",
-      "minutes": "minuten"
+      "trust2": "14 dagen herroepingsrecht",
+      "trust3": "Hanger verzonden binnen 2–3 werkdagen"
     }
   },
   "aiChat": {

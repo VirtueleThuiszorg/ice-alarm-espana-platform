@@ -8,7 +8,11 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Supersede an in-flight run for PR pushes only. On main every merge's verdict has to
+  # survive: during the 2026-07-25 burst (#84-#88) each merge cancelled the previous main
+  # run, so runs 168/171/172/174 read "cancelled" and the red X for the nl.json break never
+  # appeared on main until two merges later. Only Vercel failed loudly.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   lint-typecheck-build:

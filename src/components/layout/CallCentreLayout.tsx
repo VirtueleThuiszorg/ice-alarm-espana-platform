@@ -22,7 +22,10 @@ export function CallCentreLayout() {
     isTakeoverActive && location.pathname !== "/call-centre/sos-alert";
 
   return (
-    <div className="min-h-screen bg-background">
+    // "theme-staff" scopes the aqua-wash token block (see index.css) to every
+    // call-centre route in one place — page tint + crisp white cards inherit
+    // from here, no per-page styling.
+    <div className="theme-staff min-h-screen bg-background text-foreground">
       {/* Floating button to navigate to SOS alert page */}
       {showSOSReturnButton && (
         <button

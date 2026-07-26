@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useDocumentation, DocumentCategory } from "@/hooks/useDocumentation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -40,14 +42,25 @@ const categoryLabelKeys: Record<DocumentCategory, { key: string; fallback: strin
 };
 
 export default function DocumentsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [expandedDoc, setExpandedDoc] = useState<string | null>(null);
 
+  // The library stores one row per language (documentation.language is
+  // CHECK-constrained to 'en' | 'es'). Without this the operator saw BOTH
+  // rows of every document — each procedure listed twice, in two languages.
+  // Dutch staff read the English copy; there are no nl rows to serve.
+  const docLanguage: "en" | "es" = i18n.language?.startsWith("es") ? "es" : "en";
+  const showingFallbackLanguage = !i18n.language?.startsWith("es") && !i18n.language?.startsWith("en");
+
   const { data: documents, isLoading } = useDocumentation({
+    // OPERATOR BOUNDARY: 'staff' visibility only. Internal/engineering notes
+    // belong to visibility ['admin'] and never reach this page — the filter,
+    // the RLS policy and documentsPage.test.ts all enforce that separately.
     visibility: 'staff',
     status: 'published',
+    language: docLanguage,
     search: search || undefined,
     category: selectedCategory !== "all" ? selectedCategory as DocumentCategory : undefined,
   });
@@ -83,6 +96,15 @@ export default function DocumentsPage() {
       </div>
 
       {/* Category Tabs */}
+      {showingFallbackLanguage && (
+        <p className="text-xs text-muted-foreground">
+          {t(
+            "staffDocuments.languageFallback",
+            "Procedures are published in English and Spanish only — showing the English copy.",
+          )}
+        </p>
+      )}
+
       <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
         <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="all" className="text-xs">
@@ -133,12 +155,6 @@ export default function DocumentsPage() {
                               <Badge variant="outline" className="text-xs">
                                 {t(categoryLabelKeys[doc.category].key, categoryLabelKeys[doc.category].fallback)}
                               </Badge>
-                              <Badge 
-                                variant="secondary" 
-                                className="text-xs uppercase"
-                              >
-                                {doc.language}
-                              </Badge>
                               {doc.importance >= 8 && (
                                 <Badge className="text-xs bg-amber-500/20 text-amber-700 border-amber-300">
                                   <Star className="h-3 w-3 mr-1 fill-current" />
@@ -164,10 +180,9 @@ export default function DocumentsPage() {
                     
                     {isExpanded && (
                       <CardContent className="pt-2 border-t">
-                        <div 
-                          className="prose prose-sm max-w-none dark:prose-invert"
-                          dangerouslySetInnerHTML={{ __html: doc.content.replace(/\n/g, '<br/>') }}
-                        />
+                        <article className="prose prose-sm max-w-none dark:prose-invert prose-headings:font-semibold prose-h2:text-lg prose-h3:text-base prose-a:text-primary prose-strong:font-semibold prose-ul:list-disc prose-ol:list-decimal prose-table:text-xs">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{doc.content}</ReactMarkdown>
+                        </article>
                         {doc.tags && doc.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-4 pt-3 border-t">
                             {doc.tags.map((tag) => (

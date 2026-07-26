@@ -3221,7 +3221,8 @@
       "device": "Device Guides",
       "emergency": "Emergency Protocols",
       "partner": "Partner Info"
-    }
+    },
+    "languageFallback": "Procedures are published in English and Spanish only — showing the English copy."
   },
   "pendantStatus": {
     "title": "Pendant Live Status",

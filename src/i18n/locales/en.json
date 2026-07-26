@@ -5963,5 +5963,19 @@
     "empty": "No notifications",
     "markRead": "Mark as read",
     "viewAll": "View all notifications"
+  },
+  "medconneqt": {
+    "title": "MedConneqt",
+    "subtitle": "Medication-dispenser alarms, alongside your call-centre queue",
+    "loginNote": "MedConneqt is a separate system with its own login — signing in to Care Conneqt does not sign you in there.",
+    "sessionNote": "If the MedConneqt login will not stay signed in inside this view, your browser is blocking its cookies in an embedded frame; use \"Open in new tab\" instead.",
+    "openInNewTab": "Open in new tab",
+    "frameTitle": "MedConneqt alarm platform",
+    "loading": "Loading MedConneqt…",
+    "blockedTitle": "MedConneqt can't be displayed inside the portal",
+    "blockedBody": "MedConneqt does not allow itself to be embedded in another site. Open it in a new tab instead — everything works normally there.",
+    "retry": "Try again",
+    "unreachableTitle": "MedConneqt isn't responding",
+    "unreachableBody": "We couldn't reach alarm.medconneqt.nl. It may be down, or your connection may be blocking it. Try again, or open it in a new tab to check."
   }
 }

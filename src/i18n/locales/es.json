@@ -5963,5 +5963,19 @@
     "empty": "Sin notificaciones",
     "markRead": "Marcar como leído",
     "viewAll": "Ver todas las notificaciones"
+  },
+  "medconneqt": {
+    "title": "MedConneqt",
+    "subtitle": "Alarmas del dispensador de medicación, junto a su cola del centro de atención",
+    "loginNote": "MedConneqt es un sistema independiente con su propio inicio de sesión: entrar en Care Conneqt no le identifica allí.",
+    "sessionNote": "Si la sesión de MedConneqt no se mantiene dentro de esta vista, su navegador está bloqueando sus cookies en un marco incrustado; utilice «Abrir en una pestaña nueva».",
+    "openInNewTab": "Abrir en una pestaña nueva",
+    "frameTitle": "Plataforma de alarmas MedConneqt",
+    "loading": "Cargando MedConneqt…",
+    "blockedTitle": "MedConneqt no puede mostrarse dentro del portal",
+    "blockedBody": "MedConneqt no permite integrarse en otro sitio web. Ábralo en una pestaña nueva: allí funciona con normalidad.",
+    "retry": "Reintentar",
+    "unreachableTitle": "MedConneqt no responde",
+    "unreachableBody": "No hemos podido conectar con alarm.medconneqt.nl. Puede que el servicio esté caído o que su conexión lo esté bloqueando. Reinténtelo o ábralo en una pestaña nueva para comprobarlo."
   }
 }

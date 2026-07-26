@@ -250,8 +250,11 @@
 }
 
 /* ———————————————————————————————————————————————————————————————
-   STAFF / CALL-CENTRE SURFACE theme ("theme-staff")
-   Scoped to every /call-centre route by <CallCentreLayout>.
+   INTERNAL PORTAL theme ("theme-staff" / "theme-admin")
+   Scoped to every /call-centre route by <CallCentreLayout> and every /admin
+   route by <AdminLayout>. Both are internal, staff-facing surfaces with the
+   same job, so they share ONE block rather than two identical copies that
+   would drift apart.
 
    Problem it solves: the page background was 0 0% 99% and cards are 0 0% 100%
    — a 1% difference. On an operator's screen the cards had no edge at all, so
@@ -266,13 +269,14 @@
    NOT TOUCHED, deliberately: --alert-* (sos/fall/battery/checkin/resolved),
    --status-*, --destructive and the sidebar tokens. Red stays reserved for
    emergencies; the SOS screen keeps its safety-critical semantics exactly.
-   Pinned by src/test/staffTheme.test.ts.
+   Pinned by src/test/portalTheme.test.ts.
 
    Note: the app ships light-only (no theme provider, .dark is never applied),
    so like .theme-public this block defines light values only.
    ——————————————————————————————————————————————————————————————— */
 @layer base {
-  .theme-staff {
+  .theme-staff,
+  .theme-admin {
     --background: 185 45% 96.5%;         /* the aqua wash — ~6% brand teal on white */
     --foreground: 205 25% 17%;           /* cool near-black ink, 14.9:1 on the wash */
 
@@ -306,7 +310,7 @@
    (rounded-lg/xl + border + bg-card), so it inherits everywhere a Card is used
    without touching a single page — and leaves cards that opt into their own
    background (bg-muted/30, alert tints, the SOS panels) alone. */
-.theme-staff :is(.rounded-lg, .rounded-xl).border.bg-card {
+:is(.theme-staff, .theme-admin) :is(.rounded-lg, .rounded-xl).border.bg-card {
   box-shadow: var(--shadow-card);
 }
 

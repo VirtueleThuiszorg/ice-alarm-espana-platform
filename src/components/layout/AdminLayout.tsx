@@ -9,7 +9,10 @@ export function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background">
+    // "theme-admin" scopes the internal-portal token block (see index.css) to
+    // every /admin route in one place — same aqua wash and crisp white cards as
+    // the call centre, inherited, with no per-page styling.
+    <div className="theme-admin min-h-screen bg-background text-foreground">
       <AdminSidebar onCollapsedChange={setCollapsed} />
       {/* Desktop: sidebar margin, Mobile: top padding for fixed header */}
       <div className={cn(

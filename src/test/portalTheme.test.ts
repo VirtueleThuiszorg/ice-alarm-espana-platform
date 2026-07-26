@@ -30,15 +30,23 @@ interface Portal {
 
 const PORTALS: Portal[] = [
   { theme: "theme-staff", layout: "components/layout/CallCentreLayout.tsx", hue: [180, 195] },
+  // Partner is external-facing; the hue range covers both the aqua wash and the
+  // warm public alternative (36deg), so swapping palettes needs no guard edit.
+  { theme: "theme-partner", layout: "components/layout/PartnerLayout.tsx", hue: [30, 195] },
 ];
 
 const css = readFileSync(join(process.cwd(), "src/index.css"), "utf8");
 
-/** The declarations inside `.<theme> { … }` (the token block). */
+/**
+ * The declarations of the block governing `theme`. Portals that share a wash use
+ * one grouped selector (`.theme-staff, .theme-admin { … }`) rather than keeping
+ * identical copies that would drift, so match the class anywhere in the selector
+ * list — not just at its start.
+ */
 function block(theme: string): string {
-  const start = css.indexOf(`.${theme} {`);
-  expect(start, `.${theme} token block missing from src/index.css`).toBeGreaterThan(-1);
-  const open = css.indexOf("{", start);
+  const m = css.match(new RegExp(`(^|[,\\s])\\.${theme}\\s*(,[^{]*)?\\{`, "m"));
+  expect(m, `.${theme} token block missing from src/index.css`).not.toBeNull();
+  const open = css.indexOf("{", m!.index!);
   return css.slice(open + 1, css.indexOf("}", open));
 }
 

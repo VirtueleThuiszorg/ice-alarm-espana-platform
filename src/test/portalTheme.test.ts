@@ -33,6 +33,11 @@ const PORTALS: Portal[] = [
   // Partner is external-facing; the hue range covers both the aqua wash and the
   // warm public alternative (36deg), so swapping palettes needs no guard edit.
   { theme: "theme-partner", layout: "components/layout/PartnerLayout.tsx", hue: [30, 195] },
+  // Member is the one customer-facing portal; the hue range is deliberately wide
+  // enough to cover both the aqua wash and the warm public alternative (36deg),
+  // so swapping palettes does not require editing the guard.
+  { theme: "theme-member", layout: "components/layout/ClientLayout.tsx", hue: [30, 195] },
+  { theme: "theme-admin", layout: "components/layout/AdminLayout.tsx", hue: [180, 195] },
 ];
 
 const css = readFileSync(join(process.cwd(), "src/index.css"), "utf8");
@@ -42,6 +47,10 @@ const css = readFileSync(join(process.cwd(), "src/index.css"), "utf8");
  * one grouped selector (`.theme-staff, .theme-admin { … }`) rather than keeping
  * identical copies that would drift, so match the class anywhere in the selector
  * list — not just at its start.
+ * The declarations of the block governing `theme`. Internal portals share one
+ * block via a grouped selector (`.theme-staff, .theme-admin { … }`) rather than
+ * keeping two identical copies that would drift, so match the class anywhere in
+ * the selector list — not just at its start.
  */
 function block(theme: string): string {
   const m = css.match(new RegExp(`(^|[,\\s])\\.${theme}\\s*(,[^{]*)?\\{`, "m"));

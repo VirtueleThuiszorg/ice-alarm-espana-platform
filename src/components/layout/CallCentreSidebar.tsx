@@ -15,8 +15,7 @@ import {
   Menu,
   UserPlus,
   BookOpen,
-  Pill,
-  ExternalLink
+  Pill
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
@@ -36,29 +35,16 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 
-/**
- * Medconneqt's medication-dispenser alarm platform. Staff work it alongside
- * our own call-centre, so it gets a sidebar entry — but it is a separate
- * product with its own login, so it opens in a new tab rather than pretending
- * to be part of this portal. Deliberately NOT an iframe: their headers may
- * forbid framing, and a framed third-party login would break on SameSite
- * cookies anyway. If they expose an API, dispenser alarms move into our own
- * queue and this link goes away (that work is gated — it touches alerts).
- */
-const MEDCONNEQT_URL = "https://alarm.medconneqt.nl";
-
 interface MenuItem {
   icon: React.ElementType;
   labelKey: string;
   path: string;
   badgeKey?: "alerts" | "messages";
-  /** Opens in a new tab instead of routing inside the portal. */
-  external?: boolean;
 }
 
 const menuItems: MenuItem[] = [
   { icon: LayoutDashboard, labelKey: "sidebar.dashboard", path: "/call-centre" },
-  { icon: Pill, labelKey: "sidebar.medconneqt", path: MEDCONNEQT_URL, external: true },
+  { icon: Pill, labelKey: "sidebar.medconneqt", path: "/call-centre/medconneqt" },
   { icon: AlertTriangle, labelKey: "sidebar.alerts", path: "/call-centre/alerts", badgeKey: "alerts" },
   { icon: UserPlus, labelKey: "sidebar.leads", path: "/call-centre/leads" },
   { icon: Users, labelKey: "sidebar.members", path: "/call-centre/members" },
@@ -156,49 +142,11 @@ export function CallCentreSidebar({ onCollapsedChange }: CallCentreSidebarProps 
     const itemClassName = cn(
       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
       "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-      active && !item.external
+      active
         ? "bg-sidebar-primary text-sidebar-primary-foreground"
         : "text-sidebar-foreground",
       !isMobile && collapsed && "justify-center px-2"
     );
-
-    // External tools (Medconneqt) leave the portal — a plain anchor with an
-    // explicit indicator, so staff know a new tab is opening.
-    if (item.external) {
-      const externalContent = (
-        <a
-          href={item.path}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => isMobile && setMobileOpen(false)}
-          className={itemClassName}
-        >
-          <Icon className="h-5 w-5 shrink-0" />
-          {(isMobile || !collapsed) && (
-            <>
-              <span className="flex-1">{label}</span>
-              <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-60" />
-            </>
-          )}
-        </a>
-      );
-
-      if (!isMobile && collapsed) {
-        return (
-          <li key={item.path} className="relative">
-            <Tooltip delayDuration={0}>
-              <TooltipTrigger asChild>{externalContent}</TooltipTrigger>
-              <TooltipContent side="right" className="font-medium flex items-center gap-2">
-                {label}
-                <ExternalLink className="h-3.5 w-3.5 opacity-60" />
-              </TooltipContent>
-            </Tooltip>
-          </li>
-        );
-      }
-
-      return <li key={item.path}>{externalContent}</li>;
-    }
 
     const linkContent = (
       <NavLink

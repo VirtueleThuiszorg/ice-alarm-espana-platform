@@ -161,6 +161,7 @@ const CallCentreDocumentsPage = lazyWithRetry(() => import("./pages/call-centre/
 const CallCentreHolidaysPage = lazyWithRetry(() => import("./pages/call-centre/HolidaysPage"));
 const HolidayApprovalsPage = lazyWithRetry(() => import("./pages/call-centre/HolidayApprovalsPage"));
 const SOSAlertPage = lazyWithRetry(() => import("./pages/call-centre/SOSAlertPage"));
+const MedConneqtPage = lazyWithRetry(() => import("./pages/call-centre/MedConneqtPage"));
 
 // Client Pages - Lazy loaded
 const ClientDashboard = lazyWithRetry(() => import("./pages/client/ClientDashboard"));
@@ -459,6 +460,7 @@ const App = () => {
                       }
                     >
                       <Route index element={<StaffDashboard />} />
+                      <Route path="medconneqt" element={<MedConneqtPage />} />
                       <Route path="alerts" element={<CallCentreDashboard />} />
                       <Route path="sos-alert" element={<SOSAlertPage />} />
                       <Route path="members" element={<CallCentreMembersPage />} />

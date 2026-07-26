@@ -5,7 +5,19 @@
 > source in code it was written from, so you can verify the wording against real
 > operations before anything reaches the people who handle emergencies.
 >
-> Drafted 2026-07-26 against `main` @ `1484714`.
+> Drafted 2026-07-26 against `main` @ `1484714`. **Revision 2** incorporates
+> Lee's four rulings of 2026-07-26:
+>
+> 1. **No response-time target** — none published, none internal. Procedures stay
+>    qualitative. (The ladder rungs in D3 are not a target: they describe what the
+>    system does on its own, and staff need them to understand what is happening.)
+> 2. **Ladder timings confirmed as-is** — 15s browser → 30s on-shift mobile → 60s
+>    supervisor → 90s admin → 120s emergency contacts.
+> 3. **The ladder governs non-response.** The old "3 attempts / 10 minutes"
+>    timeline is deleted everywhere it appears — it was the dangerous
+>    contradiction, telling staff one thing while the system did another.
+> 4. **112 dials via the workstation softphone** — click to dial, no desk-phone
+>    fallback needed.
 >
 > **How to publish once approved:** Admin → Settings → Documentation → New, or a
 > seed migration. Each draft states the slug / category / visibility / importance
@@ -79,7 +91,8 @@ still says "Click Claim Alert" and promises "< 30 seconds".*
 >
 > - **Emergency confirmed** → D4 (112) immediately, then keep talking to them.
 > - **They are unhurt** → confirm, offer to tell a family member, log it.
-> - **No answer** → D5, Non-Response.
+> - **No answer** → D5, Non-Response. Do not work to a stopwatch of your own:
+>   the ladder is already running and will bring others in.
 > - **Accidental press** → confirm it was accidental and resolve as a false alarm.
 >
 > ### 4. Stay with them
@@ -92,12 +105,11 @@ still says "Click Claim Alert" and promises "< 30 seconds".*
 > alert, not a false alarm — notifies the emergency contacts who were involved.
 > Write the notes for the next person, not for the file.
 
-**Deliberately NOT in this draft, needs your ruling:** the old doc's
-"< 30 seconds" response-time target and "monthly audit of response times".
-Terms §3.2/§4.3 say we guarantee no specific response time, and we removed
-every published number in the claims pass. If you want an *internal* target
-that staff are measured against, say the number and I will write it as an
-internal target, explicitly not a member promise.
+**Response times (ruling 1 applied):** no target appears in this draft — not
+"< 30 seconds", not an internal one, and the old doc's "monthly audit of
+response times" is gone with it. The procedure says *quickly* and explains why
+speed matters (every second of delay climbs the ladder and rings a real
+person's phone), which is the honest motivator and needs no number.
 
 ---
 
@@ -184,9 +196,10 @@ selection; `migration 20260716120000_sos_escalation_cron.sql` (per-minute wake).
 > alert sitting unaccepted with no escalation activity, treat it as a live
 > emergency and a system fault: handle the member, then tell an admin at once.
 
-**Check before publishing:** the rung timings are the code's current values.
-Confirm they match what you want operationally — they are aggressive, and level 5
-reaches family in two minutes.
+**Confirmed by Lee 2026-07-26:** these rung timings are correct and intended,
+including level 5 reaching family at two minutes. They are stated here because
+operators need to know what is happening around them — they are not a
+performance target, and no target exists.
 
 ---
 
@@ -202,9 +215,10 @@ emergency-services-called flag), `AlertDetailPanel.tsx` `handleCall112`.
 > ## Calling 112 From an Alert
 >
 > ### What the button does
-> The red **112** button dials the Spanish emergency number from your device and
-> marks the alert as *emergency services called*, so the rest of the team and the
-> record know without asking. It dials — **it does not speak for you.**
+> The red **112** button click-dials the Spanish emergency number through your
+> softphone, and marks the alert as *emergency services called* so the rest of
+> the team and the record know without anyone having to ask. It places the call —
+> **it does not speak for you.**
 >
 > ### When to press it
 > Press it without waiting for permission when: the member confirms a medical
@@ -225,28 +239,98 @@ emergency-services-called flag), `AlertDetailPanel.tsx` `handleCall112`.
 > Note the reference number in the alert, tell the emergency contacts, keep the
 > pendant channel open, and stay until responders arrive.
 
-**Flag:** the button is a `tel:` link, so it dials through the operator's own
-device/softphone. If a workstation cannot place calls, that button does nothing
-useful and staff must have a desk phone. Worth confirming before this publishes.
+**Resolved (ruling 4):** workstations run a softphone, so the `tel:` link dials
+correctly. No desk-phone fallback is documented, because none is needed.
 
 ---
 
-## D5 — Member non-response (UPDATES `member-non-response-protocol-en`)
+## D5 — Member non-response (REPLACES `member-non-response-protocol-en` / `-es`)
 
-*Category `emergency` · visibility `staff` · importance 9*
+*Category `emergency` · visibility `staff` · importance 9 · **full replacement**, not a patch*
 
-The existing procedure's human steps are sound. It needs two corrections, not a
-rewrite:
+**Sources:** `supabase/functions/sos-escalation-runner/index.ts` (the ladder and
+its unresponsive timings), `useSOSTakeover.ts`, `SOSActionPanel.tsx`.
 
-1. It was written for a world with no automatic escalation. Add: while you work
-   through the steps, the ladder (D3) is climbing on its own — the family may
-   already have been phoned at level 5 before you reach your own "call emergency
-   contact" step. Say so, so operators do not double-call and confuse people.
-2. Its "3 attempts over 5 minutes, then contacts, then 112 at 10 minutes"
-   timeline is much slower than the ladder. **Which one governs?** I will not
-   invent the answer — tell me, and I will make the two agree.
+**Ruling 3 applied.** The old procedure told operators to make 3 call attempts
+over 5 minutes, then phone emergency contacts, then call 112 at the 10-minute
+mark. The system does not work that way and never waited for them: by 10 minutes
+the ladder has already called on-shift staff, a supervisor, an admin and the
+member's own emergency contacts. An operator following the old page would have
+been working to a clock that had nothing to do with reality — and would have
+duplicated calls to family the system had already made. **The whole timeline is
+deleted, not softened.**
 
----
+### Draft
+
+> ## When the Member Does Not Answer
+>
+> ### What counts as non-response
+> - The voice channel is open but nobody speaks
+> - You can hear distress, struggle, or sounds you cannot account for
+> - The channel connects and drops repeatedly
+>
+> **Silence is not a false alarm.** Treat it as a live emergency until you know
+> otherwise.
+>
+> ### The ladder is already running
+> You are not alone with this and you are not on a stopwatch. From the moment
+> the alert arrived, the escalation ladder has been climbing on its own (D3):
+> on-shift staff, then a supervisor, then an admin, then the member's own
+> emergency contacts — all automatically, whether or not anyone accepted.
+>
+> **This changes what your job is.** It is not to work through a call list on a
+> timer. It is to:
+>
+> ### What you do
+>
+> 1. **Say who you are, out loud, on the open channel.** A member who can hear
+>    but cannot answer is reassured by it, and it is on the recording.
+>    > "This is [name] from Care Conneqt. I can hear the line is open. Help is
+>    > coming. I am staying with you."
+>
+> 2. **Read what the system already knows.** Their profile, medical conditions,
+>    GPS location, and whether the pendant reported a fall. That is what the
+>    emergency services will ask you for.
+>
+> 3. **Call 112 as soon as you believe the member is at risk** (D4). Do not wait
+>    for a time to elapse and do not wait for permission. An unresponsive member
+>    after a confirmed SOS is a reason to call — that is the whole point of the
+>    button.
+>
+> 4. **Tell a supervisor.** They may already know, because the ladder may have
+>    phoned them. Say it anyway.
+>
+> 5. **Check before you phone family yourself.** The ladder calls the member's
+>    emergency contacts on its own. Look at the alert's escalation history first:
+>    if a contact has already been called, phoning again to ask the same question
+>    frightens people and wastes the minutes you have.
+>
+> 6. **Stay on the channel.** Do not close it because help is on the way.
+>
+> ### What is deliberately NOT in this procedure
+> There is no attempt count and no minute-by-minute schedule for you to follow.
+> The timings that matter are the system's, and they are in the escalation
+> chain procedure. Your judgement about the member in front of you is not on a
+> timer.
+
+**On publish, the same deletion must reach these rows** — they carry fragments
+of the old timeline or the withdrawn response-time target:
+
+| Row | What must go |
+|---|---|
+| `member-non-response-protocol-en` / `-es` | replaced wholesale by the above |
+| `sos-alert-response-protocol-en` / `-es` | "< 30 seconds" target; "10+ minutes" escalation trigger — both covered by D1/D3 |
+| `fall-detection-alert-protocol-en` / `-es` | "< 30 seconds" response-time header |
+| `working-hours-contact-en` / `-es` | "Emergency Alert — < 30 seconds" row in the response-time table (this one is **member-visible**) |
+| `getting-started-en` / `-es` | "< 30 seconds" claim (**member-visible**) |
+| `device-offline-alert-procedure-en` | "3 attempts" — a device-offline flow, not SOS non-response, so it needs a decision rather than deletion (see below) |
+
+**One question this raises (not a blocker for D1–D8):** device-offline alerts
+have their own separate timeline ("3 attempts", "6 hours", "12 hours") and are
+**not** driven by the SOS ladder — `ev07b-offline-monitor` raises them, and the
+ladder does not escalate them. So that procedure is not contradicted by ruling 3,
+but it is unowned: nothing automatic chases an offline device. Worth deciding
+separately whether those hour-based steps are real policy.
 
 ## D6 — When MedConneqt is unavailable
 
@@ -373,13 +457,23 @@ will add it to the shift-start checklist (D9, not yet drafted).
   (30-day notice, device return, missing withdrawal right); these are data fixes
   in the same class as the claims pass, and member-visible.
 
-## Open questions blocking publication
+## Open questions — all four answered (2026-07-26)
 
-1. **Internal response-time target** — is there one, and is it a target or a
-   promise? (D1)
-2. **Do the ladder timings match intended operations?** Level 5 phones family at
-   two minutes. (D3)
-3. **Which timeline governs non-response** — the ladder or the written 10-minute
-   protocol? They currently disagree. (D5)
-4. **Can every operator workstation actually place a `tel:` call?** If not, the
-   112 button needs a documented fallback. (D4)
+1. ~~Internal response-time target~~ → **none.** No target published or internal;
+   procedures stay qualitative. Applied in D1, and the withdrawn "< 30 seconds"
+   is listed for deletion from four further rows in D5's table.
+2. ~~Do the ladder timings match operations?~~ → **confirmed as-is.** Stated in
+   D3 as system behaviour, explicitly not a target.
+3. ~~Which timeline governs non-response?~~ → **the ladder.** D5 is now a full
+   replacement and the "3 attempts / 10 minutes" schedule is deleted.
+4. ~~Can workstations place a `tel:` call?~~ → **yes, softphone.** D4 says
+   "click to dial via your softphone"; no fallback documented.
+
+### One new question, raised by applying ruling 3
+
+**Device-offline alerts are not covered by the ladder.** `ev07b-offline-monitor`
+raises them, and the escalation runner does not chase them — so the offline
+procedure's "3 attempts / 6 hours / 12 hours" steps are not contradicted by the
+ruling, but nothing automatic backs them up either. Is that timeline real policy
+a human is expected to follow, or should offline alerts get their own automated
+handling? Not a blocker for D1–D8.

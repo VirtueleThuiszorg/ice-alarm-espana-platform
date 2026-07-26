@@ -3221,7 +3221,8 @@
       "device": "Guías de Dispositivos",
       "emergency": "Protocolos de Emergencia",
       "partner": "Información de Socios"
-    }
+    },
+    "languageFallback": "Los procedimientos se publican solo en inglés y español: está viendo la versión en inglés."
   },
   "pendantStatus": {
     "title": "Estado en Vivo de Colgantes",

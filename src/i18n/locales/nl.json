@@ -3208,20 +3208,21 @@
     }
   },
   "staffDocuments": {
-    "title": "Staff Documents",
-    "subtitle": "Access company procedures, protocols, and guides",
-    "searchPlaceholder": "Search documents...",
-    "important": "Important",
-    "noDocuments": "No documents available",
-    "noDocumentsDesc": "Documents will appear here when published by administrators.",
+    "title": "Personeelsdocumenten",
+    "subtitle": "Procedures, protocollen en handleidingen van het bedrijf",
+    "searchPlaceholder": "Documenten zoeken...",
+    "important": "Belangrijk",
+    "noDocuments": "Geen documenten beschikbaar",
+    "noDocumentsDesc": "Documenten verschijnen hier zodra beheerders ze publiceren.",
     "categories": {
-      "general": "General",
-      "memberGuide": "Member Guides",
-      "staff": "Staff Instructions",
-      "device": "Device Guides",
-      "emergency": "Emergency Protocols",
-      "partner": "Partner Info"
-    }
+      "general": "Algemeen",
+      "memberGuide": "Ledenhandleidingen",
+      "staff": "Werkinstructies",
+      "device": "Apparaathandleidingen",
+      "emergency": "Noodprotocollen",
+      "partner": "Partnerinformatie"
+    },
+    "languageFallback": "Procedures worden alleen in het Engels en Spaans gepubliceerd — u ziet de Engelse versie."
   },
   "pendantStatus": {
     "title": "Pendant Live Status",

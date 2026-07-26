@@ -3208,20 +3208,21 @@
     }
   },
   "staffDocuments": {
-    "title": "Staff Documents",
-    "subtitle": "Access company procedures, protocols, and guides",
-    "searchPlaceholder": "Search documents...",
-    "important": "Important",
-    "noDocuments": "No documents available",
-    "noDocumentsDesc": "Documents will appear here when published by administrators.",
+    "title": "Personeelsdocumenten",
+    "subtitle": "Procedures, protocollen en handleidingen van het bedrijf",
+    "searchPlaceholder": "Documenten zoeken...",
+    "important": "Belangrijk",
+    "noDocuments": "Geen documenten beschikbaar",
+    "noDocumentsDesc": "Documenten verschijnen hier zodra beheerders ze publiceren.",
     "categories": {
-      "general": "General",
-      "memberGuide": "Member Guides",
-      "staff": "Staff Instructions",
-      "device": "Device Guides",
-      "emergency": "Emergency Protocols",
-      "partner": "Partner Info"
-    }
+      "general": "Algemeen",
+      "memberGuide": "Ledenhandleidingen",
+      "staff": "Werkinstructies",
+      "device": "Apparaathandleidingen",
+      "emergency": "Noodprotocollen",
+      "partner": "Partnerinformatie"
+    },
+    "languageFallback": "Procedures worden alleen in het Engels en Spaans gepubliceerd — u ziet de Engelse versie."
   },
   "pendantStatus": {
     "title": "Pendant Live Status",
@@ -5963,5 +5964,19 @@
     "empty": "Geen meldingen",
     "markRead": "Als gelezen markeren",
     "viewAll": "Alle meldingen bekijken"
+  },
+  "medconneqt": {
+    "title": "MedConneqt",
+    "subtitle": "Meldingen van de medicijndispenser, naast uw meldkamerwachtrij",
+    "loginNote": "MedConneqt is een apart systeem met een eigen login — inloggen bij Care Conneqt logt u daar niet in.",
+    "sessionNote": "Blijft u in deze weergave niet ingelogd bij MedConneqt, dan blokkeert uw browser de cookies in een ingesloten frame; gebruik dan \"Openen in nieuw tabblad\".",
+    "openInNewTab": "Openen in nieuw tabblad",
+    "frameTitle": "MedConneqt-alarmplatform",
+    "loading": "MedConneqt laden…",
+    "blockedTitle": "MedConneqt kan niet in het portaal worden weergegeven",
+    "blockedBody": "MedConneqt staat niet toe dat het in een andere site wordt ingesloten. Open het in een nieuw tabblad — daar werkt alles gewoon.",
+    "retry": "Opnieuw proberen",
+    "unreachableTitle": "MedConneqt reageert niet",
+    "unreachableBody": "We konden alarm.medconneqt.nl niet bereiken. Mogelijk is de dienst offline of blokkeert uw verbinding deze. Probeer het opnieuw of open het in een nieuw tabblad om te controleren."
   }
 }

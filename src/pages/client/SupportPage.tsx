@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -815,7 +817,18 @@ export default function SupportPage() {
                         </button>
                         {expandedArticle === article.id && (
                           <div className="px-4 pb-4 text-muted-foreground text-sm leading-relaxed border-t pt-3">
-                            <div dangerouslySetInnerHTML={{ __html: article.content.substring(0, 500) + (article.content.length > 500 ? '...' : '') }} />
+                            {/* Knowledge-base content is markdown. It used to be
+                                injected as raw HTML, which both rendered the
+                                source (## headings, ** asterisks**) and made an
+                                unnecessary injection sink out of admin-authored
+                                text shown to members. */}
+                            <article className="prose prose-sm max-w-none dark:prose-invert">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {article.content.length > 500
+                                  ? `${article.content.substring(0, 500)}…`
+                                  : article.content}
+                              </ReactMarkdown>
+                            </article>
                           </div>
                         )}
                       </div>

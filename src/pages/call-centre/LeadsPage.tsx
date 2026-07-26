@@ -261,13 +261,21 @@ export default function CallCentreLeadsPage() {
 
       {/* Leads List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {/* Loading/empty sit on a card like the rows they replace — on a tinted page
+            an unwrapped state floats in the middle of the wash with no surface. */}
         {loading ? (
-          <div className="text-center py-8 text-muted-foreground">{t("leads.loading", "Loading leads...")}</div>
+          <Card>
+            <CardContent className="text-center py-8 text-muted-foreground">
+              {t("leads.loading", "Loading leads...")}
+            </CardContent>
+          </Card>
         ) : filteredLeads.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <UserPlus className="h-12 w-12 mx-auto mb-3 opacity-20" />
-            <p>{t("leads.noLeads", "No leads found")}</p>
-          </div>
+          <Card>
+            <CardContent className="text-center py-12 text-muted-foreground">
+              <UserPlus className="h-12 w-12 mx-auto mb-3 opacity-20" />
+              <p>{t("leads.noLeads", "No leads found")}</p>
+            </CardContent>
+          </Card>
         ) : (
           filteredLeads.map((lead) => (
             <Card 

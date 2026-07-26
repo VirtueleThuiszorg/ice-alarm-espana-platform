@@ -5963,5 +5963,19 @@
     "empty": "Geen meldingen",
     "markRead": "Als gelezen markeren",
     "viewAll": "Alle meldingen bekijken"
+  },
+  "medconneqt": {
+    "title": "MedConneqt",
+    "subtitle": "Meldingen van de medicijndispenser, naast uw meldkamerwachtrij",
+    "loginNote": "MedConneqt is een apart systeem met een eigen login — inloggen bij Care Conneqt logt u daar niet in.",
+    "sessionNote": "Blijft u in deze weergave niet ingelogd bij MedConneqt, dan blokkeert uw browser de cookies in een ingesloten frame; gebruik dan \"Openen in nieuw tabblad\".",
+    "openInNewTab": "Openen in nieuw tabblad",
+    "frameTitle": "MedConneqt-alarmplatform",
+    "loading": "MedConneqt laden…",
+    "blockedTitle": "MedConneqt kan niet in het portaal worden weergegeven",
+    "blockedBody": "MedConneqt staat niet toe dat het in een andere site wordt ingesloten. Open het in een nieuw tabblad — daar werkt alles gewoon.",
+    "retry": "Opnieuw proberen",
+    "unreachableTitle": "MedConneqt reageert niet",
+    "unreachableBody": "We konden alarm.medconneqt.nl niet bereiken. Mogelijk is de dienst offline of blokkeert uw verbinding deze. Probeer het opnieuw of open het in een nieuw tabblad om te controleren."
   }
 }

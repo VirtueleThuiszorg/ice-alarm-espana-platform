@@ -34,7 +34,9 @@ export function PartnerLayout() {
   // Show loading state while fetching partner data
   if (partnerLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      // Themed too — otherwise the portal flashes un-themed white on every load
+      // before the partner query resolves.
+      <div className="theme-partner min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="space-y-4 text-center">
           <Skeleton className="h-8 w-48 mx-auto" />
           <Skeleton className="h-4 w-64 mx-auto" />
@@ -44,7 +46,10 @@ export function PartnerLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    // "theme-partner" scopes the partner token block (see index.css) to every
+    // /partner-dashboard route in one place. See the BRAND NOTE on that block:
+    // partners come through the warm public funnel, so aqua-vs-warm is open.
+    <div className="theme-partner min-h-screen bg-background text-foreground">
       <PartnerSidebar 
         isAdminViewMode={isAdminViewMode} 
         partnerIdParam={partnerIdParam}

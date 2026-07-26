@@ -30,6 +30,9 @@ interface Portal {
 
 const PORTALS: Portal[] = [
   { theme: "theme-staff", layout: "components/layout/CallCentreLayout.tsx", hue: [180, 195] },
+  // Partner is external-facing; the hue range covers both the aqua wash and the
+  // warm public alternative (36deg), so swapping palettes needs no guard edit.
+  { theme: "theme-partner", layout: "components/layout/PartnerLayout.tsx", hue: [30, 195] },
   // Member is the one customer-facing portal; the hue range is deliberately wide
   // enough to cover both the aqua wash and the warm public alternative (36deg),
   // so swapping palettes does not require editing the guard.

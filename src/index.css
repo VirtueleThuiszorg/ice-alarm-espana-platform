@@ -370,6 +370,59 @@
   box-shadow: var(--shadow-card);
 }
 
+/* ———————————————————————————————————————————————————————————————
+   PARTNER PORTAL theme ("theme-partner")
+   Scoped to every /partner-dashboard route by <PartnerLayout>.
+
+   Same white-on-white fix as the other portals: tint the page, keep the cards
+   white. Its own block, not the internal one, for the same reason as the
+   member dashboard — partners are external users, not staff.
+
+   BRAND NOTE (open decision, flagged for Lee): partners arrive through the
+   public warm-cream funnel (/partner, /partner/join, /partner/login all run
+   .theme-public) and then land here. The clash is milder than the member
+   dashboard's — a partner is a business user on a working tool, and their
+   funnel is shorter — but it is the same seam. Alternative, drop-in, same AA
+   math (worst pair 5.40:1 either way):
+       --background: 36 50% 97%;  --muted: 36 30% 93%;
+       --secondary: 36 34% 92%;   --border: 36 24% 86%;
+       --accent: 36 40% 92%;      --ring: 215 85% 40%;
+
+   NOT TOUCHED: --alert-*, --status-*, --destructive, sidebar tokens. The
+   admin-view-mode amber banner keeps its own colours.
+   Pinned by src/test/portalTheme.test.ts.
+   ——————————————————————————————————————————————————————————————— */
+@layer base {
+  .theme-partner {
+    --background: 185 45% 96.5%;         /* aqua wash — ~6% brand teal on white */
+    --foreground: 205 25% 17%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 205 25% 17%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 205 25% 17%;
+
+    --muted: 190 28% 93%;
+    --muted-foreground: 205 16% 38%;
+
+    --secondary: 190 30% 92%;
+    --secondary-foreground: 205 30% 22%;
+
+    --accent: 185 42% 91%;
+    --accent-foreground: 190 80% 20%;
+
+    --border: 195 20% 87%;
+    --input: 195 20% 87%;
+    --ring: 185 70% 38%;
+
+    --shadow-card: 0 1px 2px 0 hsl(196 32% 28% / 0.05), 0 4px 10px -3px hsl(196 32% 28% / 0.10);
+  }
+}
+
+.theme-partner :is(.rounded-lg, .rounded-xl).border.bg-card {
+  box-shadow: var(--shadow-card);
+}
+
 /* Signature "response ripple" — one gentle expansion, hero only; disabled under
    reduced-motion (arcs stay static). Keyframe lives here; component in ui/. */
 @keyframes response-ripple {

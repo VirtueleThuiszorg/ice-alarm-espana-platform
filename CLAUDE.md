@@ -32,6 +32,29 @@ A direct-to-consumer connected-care business in Spain: 4 devices (Vivago SOS wat
 - When porting from the old repos (read-only reference), port deliberately — copy the good part, leave the debris.
 - If a spec is ambiguous (esp. Vivago/Dosell device APIs), stop and ask rather than guessing an integration.
 
+## Merging (never break)
+Two production outages (2026-07-23, 2026-07-25) came from the same thing: several PRs
+touching `src/i18n/locales/*.json` merged back-to-back, each resolving the conflict by
+**keeping both sides**. The second outage took five collision sites across four PRs, and
+the fix PR undid itself the same way.
+
+- **One at a time.** When more than one open PR touches the same large file — locale JSON
+  above all, but the same goes for big shared modules and migrations — merge them
+  **serially**: rebase PR *n* on a **green** main, wait for its build to pass, merge, wait
+  for main to go green, and only then start PR *n+1*. Never merge a queue of them in a burst.
+- **Never merge red.** CI failing on a PR means the merge does not happen. In both outages
+  the guard test was already red on the PR and the merge button was pressed anyway.
+- **Resolving a locale conflict is not concatenation.** Take one side's block whole, then
+  re-apply the other side's newer values onto it, and diff the key list before committing.
+  Two adjacent blocks with the same keys is always wrong — it is invalid JSON at best, and a
+  silently-overwritten translation at worst (`JSON.parse` keeps the *last* duplicate).
+- **Re-verify after every `Merge branch 'main' into <feature>`.** That merge commit is where
+  both outages were actually created, and it is *not* what a green PR run tested earlier.
+  Run `npm test` on the merge result before merging the PR.
+- Locale integrity is enforced by `src/test/localeParse.test.ts`: parse, deep key parity,
+  array-length parity, no duplicate keys, no English left in member-facing namespaces. If it
+  is red, main is broken — fix it, never pin around it.
+
 ## Stack
 Single Vite + React 18 + TypeScript SPA (npm, **not** a pnpm monorepo) · Tailwind + shadcn/ui in `src/components/ui` · Supabase (Postgres/Auth/Edge Functions/Realtime), one project — **`crpsuhoixfdhjugprbuc`** (care-conneqt-prod, LifeLink Sync org, Pro; LOCKED 2026-07-22, LAUNCH_SCOPE.md §0). The planned `cfwnrcogikjycjcobsay` migration is **CANCELLED**; the `qkfvojbcxaptufsepupo` project is to be deleted. · Stripe + Mollie (SEPA + cards, webhook-driven) · AI is Isabella on the **Anthropic API** (`claude-opus-4-8` via `_shared/anthropic.ts`, `ISABELLA_MODEL` overridable; core migrated 2026-07-24 — only the archive-candidate growth fns still touch Lovable) · Vercel deploy · Sentry.
 

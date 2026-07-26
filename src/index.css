@@ -310,6 +310,62 @@
   box-shadow: var(--shadow-card);
 }
 
+/* ———————————————————————————————————————————————————————————————
+   MEMBER DASHBOARD theme ("theme-member")
+   Scoped to every /dashboard route by <ClientLayout>.
+
+   Same white-on-white problem as the internal portals, same fix: tint the page,
+   keep cards white. This gets its OWN block rather than joining the internal
+   one, because it is the only CUSTOMER-facing logged-in surface — see
+   BRAND NOTE below. Switching it to the warm public palette later is a change
+   to the values in this block and nothing else.
+
+   BRAND NOTE (open decision, flagged for Lee): the public site — marketing,
+   /pricing, the join wizard, auth — runs .theme-public, a warm cream/indigo
+   palette (--background: 36 50% 97%, #FBF8F4). A member signing up therefore
+   walks warm cream -> warm cream -> AQUA the moment they log in. Today's
+   dashboard is neutral white, so the seam already exists and is merely
+   invisible; the wash makes it legible. Aqua is defensible (teal IS the brand
+   accent, and the dashboard is a utility surface); a warm wash would make the
+   journey continuous. Alternative, drop-in, same AA math:
+       --background: 36 50% 97%;  --muted: 36 30% 93%;
+       --secondary: 36 34% 92%;   --border: 36 24% 86%;
+       --accent: 36 40% 92%;      --ring: 215 85% 40%;
+
+   NOT TOUCHED: --alert-*, --status-*, --destructive, sidebar tokens.
+   Pinned by src/test/portalTheme.test.ts.
+   ——————————————————————————————————————————————————————————————— */
+@layer base {
+  .theme-member {
+    --background: 185 45% 96.5%;         /* aqua wash — ~6% brand teal on white */
+    --foreground: 205 25% 17%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 205 25% 17%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 205 25% 17%;
+
+    --muted: 190 28% 93%;
+    --muted-foreground: 205 16% 38%;
+
+    --secondary: 190 30% 92%;
+    --secondary-foreground: 205 30% 22%;
+
+    --accent: 185 42% 91%;
+    --accent-foreground: 190 80% 20%;
+
+    --border: 195 20% 87%;
+    --input: 195 20% 87%;
+    --ring: 185 70% 38%;
+
+    --shadow-card: 0 1px 2px 0 hsl(196 32% 28% / 0.05), 0 4px 10px -3px hsl(196 32% 28% / 0.10);
+  }
+}
+
+.theme-member :is(.rounded-lg, .rounded-xl).border.bg-card {
+  box-shadow: var(--shadow-card);
+}
+
 /* Signature "response ripple" — one gentle expansion, hero only; disabled under
    reduced-motion (arcs stay static). Keyframe lives here; component in ui/. */
 @keyframes response-ripple {

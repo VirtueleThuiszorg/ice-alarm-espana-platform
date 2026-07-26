@@ -7,7 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { User, MapPin, Smartphone, CreditCard, Calendar, CalendarDays, Sparkles, Check, Shield, Gift } from "lucide-react";
+import { User, MapPin, Smartphone, CreditCard, Calendar, CalendarDays, Sparkles, Check, Shield, Gift, FileText, Truck, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getSubscriptionFinalPrice, getSubscriptionMonthlyFinal, getAnnualSavings, formatPrice, calculateOrder } from "@/config/pricing";
 import { usePricingSettings } from "@/hooks/usePricingSettings";
@@ -121,6 +121,32 @@ export function JoinSummaryStep({ data, onUpdate }: JoinSummaryStepProps) {
         {order.totalTax > 0 && <p className="text-xs text-muted-foreground text-right">{t("joinWizard.summary.ivaIncludedTotal", { amount: formatPrice(order.totalTax) })}</p>}
         {data.billingFrequency === "monthly" && <p className="text-sm text-muted-foreground text-center">{t("joinWizard.summary.thenMonthly", { amount: formatPrice(monthlyFinal) })}</p>}
       </CardContent></Card>
+
+      {/*
+        Pre-contract information. Distance-selling law requires the consumer to
+        be told about the right of withdrawal and the delivery service BEFORE
+        being bound, not only in the confirmation email (Directive 2011/83/EU
+        art. 6(1); RDL 1/2007 arts. 97 and 102-108). Wording drafted to the
+        statute and pending legal review — see LAUNCH_CHECKLIST.
+      */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            {t("joinWizard.summary.preContractTitle")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <p className="flex items-start gap-2">
+            <Truck className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>{t("joinWizard.summary.deliveryNotice")}</span>
+          </p>
+          <p className="flex items-start gap-2">
+            <RotateCcw className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>{t("joinWizard.summary.withdrawalNotice")}</span>
+          </p>
+        </CardContent>
+      </Card>
 
       <Card className="bg-muted/30"><CardContent className="pt-6 space-y-4">
         <div className="flex items-start space-x-3"><Checkbox id="terms" checked={data.acceptTerms} onCheckedChange={(checked) => onUpdate({ acceptTerms: checked === true })} /><div className="grid gap-1.5 leading-none"><label htmlFor="terms" className="text-sm font-medium leading-none cursor-pointer">{t("joinWizard.summary.acceptTerms")} (<Link to="/terms" target="_blank" className="underline">{t("common.view", "View")}</Link>)</label><p className="text-xs text-muted-foreground">{t("joinWizard.summary.termsNote")}</p></div></div>

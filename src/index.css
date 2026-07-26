@@ -249,6 +249,67 @@
   background-color: hsl(30 92% 48%);
 }
 
+/* ———————————————————————————————————————————————————————————————
+   STAFF / CALL-CENTRE SURFACE theme ("theme-staff")
+   Scoped to every /call-centre route by <CallCentreLayout>.
+
+   Problem it solves: the page background was 0 0% 99% and cards are 0 0% 100%
+   — a 1% difference. On an operator's screen the cards had no edge at all, so
+   the whole portal read as one flat white sheet.
+
+   Approach: tint the PAGE, not the cards. The wash is the brand teal #1CBAC8
+   (= hsl(185 75% 45%), the --brand-teal token) mixed ~6% into white, which is
+   rgb(242 249 250) — visible as "not white" but nowhere near a saturated or
+   clinical aqua. Cards stay pure white with a cool-grey border and a soft
+   shadow, so they lift off the wash instead of merging into it.
+
+   NOT TOUCHED, deliberately: --alert-* (sos/fall/battery/checkin/resolved),
+   --status-*, --destructive and the sidebar tokens. Red stays reserved for
+   emergencies; the SOS screen keeps its safety-critical semantics exactly.
+   Pinned by src/test/staffTheme.test.ts.
+
+   Note: the app ships light-only (no theme provider, .dark is never applied),
+   so like .theme-public this block defines light values only.
+   ——————————————————————————————————————————————————————————————— */
+@layer base {
+  .theme-staff {
+    --background: 185 45% 96.5%;         /* the aqua wash — ~6% brand teal on white */
+    --foreground: 205 25% 17%;           /* cool near-black ink, 14.9:1 on the wash */
+
+    --card: 0 0% 100%;                   /* crisp white — the lift comes from here */
+    --card-foreground: 205 25% 17%;
+    --popover: 0 0% 100%;                /* dropdowns/menus stay crisp too */
+    --popover-foreground: 205 25% 17%;
+
+    /* One step deeper than the wash, so muted panels read as recessed against
+       both the page and the white cards. */
+    --muted: 190 28% 93%;
+    --muted-foreground: 205 16% 38%;     /* 7.4:1 on card, 6.8:1 on the wash */
+
+    --secondary: 190 30% 92%;
+    --secondary-foreground: 205 30% 22%;
+
+    --accent: 185 42% 91%;               /* hover/selected tint, same family */
+    --accent-foreground: 190 80% 20%;
+
+    --border: 195 20% 87%;               /* cool border — defines the card edge */
+    --input: 195 20% 87%;
+    --ring: 185 70% 38%;                 /* teal focus ring, AA against both surfaces */
+
+    /* Soft, cool-tinted card shadow. Neutral black shadows go muddy on a tinted
+       page; keying the shadow to the wash's hue keeps it clean. */
+    --shadow-card: 0 1px 2px 0 hsl(196 32% 28% / 0.05), 0 4px 10px -3px hsl(196 32% 28% / 0.10);
+  }
+}
+
+/* The lift itself. Matches the shadcn <Card> class signature exactly
+   (rounded-lg/xl + border + bg-card), so it inherits everywhere a Card is used
+   without touching a single page — and leaves cards that opt into their own
+   background (bg-muted/30, alert tints, the SOS panels) alone. */
+.theme-staff :is(.rounded-lg, .rounded-xl).border.bg-card {
+  box-shadow: var(--shadow-card);
+}
+
 /* Signature "response ripple" — one gentle expansion, hero only; disabled under
    reduced-motion (arcs stay static). Keyframe lives here; component in ui/. */
 @keyframes response-ripple {

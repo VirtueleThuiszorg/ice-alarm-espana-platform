@@ -387,9 +387,9 @@ export function ClientLayout() {
 
   return (
     // "theme-member" scopes the member dashboard token block (see index.css) to
-    // every /dashboard route in one place. See the BRAND NOTE on that block:
-    // this is the one customer-facing logged-in surface, and whether it stays
-    // aqua or moves to the warm public palette is an open call.
+    // every /dashboard route in one place. This is the one customer-facing
+    // logged-in surface, so its wash is the WARM public cream rather than the
+    // internal aqua — a member never crosses a palette boundary at login.
     <div className="theme-member min-h-screen bg-background text-foreground">
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-sidebar h-16 flex items-center justify-between px-4 border-b border-sidebar-border">

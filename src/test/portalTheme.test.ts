@@ -47,10 +47,6 @@ const css = readFileSync(join(process.cwd(), "src/index.css"), "utf8");
  * one grouped selector (`.theme-staff, .theme-admin { … }`) rather than keeping
  * identical copies that would drift, so match the class anywhere in the selector
  * list — not just at its start.
- * The declarations of the block governing `theme`. Internal portals share one
- * block via a grouped selector (`.theme-staff, .theme-admin { … }`) rather than
- * keeping two identical copies that would drift, so match the class anywhere in
- * the selector list — not just at its start.
  */
 function block(theme: string): string {
   const m = css.match(new RegExp(`(^|[,\\s])\\.${theme}\\s*(,[^{]*)?\\{`, "m"));

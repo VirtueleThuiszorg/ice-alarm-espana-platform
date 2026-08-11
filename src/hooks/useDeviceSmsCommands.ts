@@ -163,7 +163,9 @@ export function useDeviceSmsCommands(deviceId: string) {
       queryClient.invalidateQueries({ queryKey: ["admin-device-detail", deviceId] });
       toast.success(`Command "${entry.label}" sent`);
     },
-    onError: (error: Error) => {
+    onError: async (error: Error) => {
+      // async because reading the function's error body is async — the message is
+      // on error.context as an unread Response.
       toast.error(`Failed to send command: ${await extractFunctionError(error, "unknown error")}`);
     },
   });

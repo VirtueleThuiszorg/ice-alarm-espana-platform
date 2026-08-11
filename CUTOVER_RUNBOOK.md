@@ -6,6 +6,10 @@
 > project is not a target. This runbook is retained as **historical reference only** —
 > do NOT execute any step below against `cfwnrcogikjycjcobsay`.
 >
+> **Re-confirmed 2026-08-11** against the Supabase dashboard (Pro tier, 24,299 requests,
+> real migration history, recent backup): `crpsuhoixfdhjugprbuc` is authoritative. Every
+> `cfwnrcogikjycjcobsay` mention in this file is HISTORICAL. See `PROJECT_REFS.md`.
+>
 > Gated runbook for cutting Care Conneqt over from the Lovable-managed Supabase
 > (`crpsuhoixfdhjugprbuc`, current live prod) to Lee's own project
 > (`cfwnrcogikjycjcobsay`). **Clean start — NO data migration.**

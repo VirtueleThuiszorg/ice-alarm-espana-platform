@@ -63,6 +63,50 @@ session*, driven by this routine, not a live background process.
 
 > Format: `### YYYY-MM-DD — short title` then 1–3 lines. Never delete entries.
 
+### 2026-08-11 — Project ref CONFIRMED against the dashboard; `qkfvojbcxaptufsepupo` is DEFERRED, not to be deleted
+Lee verified in the Supabase dashboard: **`crpsuhoixfdhjugprbuc` (care-conneqt-prod) is
+authoritative** — Pro tier, 24,299 requests at 100%, real migration history, backup 7h old.
+The two **2026-06-17 entries below naming `cfwnrcogikjycjcobsay` as live are WRONG** and are
+formally superseded by this entry (annotated in place, not deleted — §4 is append-only).
+**Decision reversed:** `qkfvojbcxaptufsepupo` (care-conneqt-platform, VirtueleThuiszorg org,
+Free — no migrations, no backups, empty) is a **future migration target**, recorded as
+**DEFERRED**. It is **no longer to be deleted**; the 2026-07-22 "to be deleted" decision is
+withdrawn, and the delete tasks in `LAUNCH_SCOPE.md` §0, `LAUNCH_CHECKLIST.md` and
+`AUDIT_NIGHT.md` item 55 were corrected accordingly.
+Full audit + per-file/per-line classification in **`PROJECT_REFS.md`** (new, canonical for
+"which ref is where"). Learning: the split persisted because a *superseded* log entry read
+like current truth. A dated log needs an explicit superseding marker on the entry itself —
+newest-at-top ordering alone was not enough to stop it being cited five weeks later.
+Also fixed in the same pass (bugs the split was masking, all long-standing): the
+`YOUR_SUPABASE_PROJECT_REF` placeholder in `vercel.json`'s sitemap rewrite and in the six
+`_shared/email-templates/*.tsx` logo URLs, plus `vite.config.ts`'s silent placeholder
+fallback — which now **throws** when `VITE_SUPABASE_URL`/`VITE_SUPABASE_PUBLISHABLE_KEY` are
+absent instead of building a client aimed at a dead host (G2: fail loud, never silent).
+Deliberately **not** touched: `index.html`, `.github/workflows/deploy-functions.yml`, and the
+two cron migrations (`20260716120000`, `20260723120000`) — the latter are the SOS-escalation
+path and already correct.
+
+### 2026-08-11 — Staff credential resets are now scripted, guarded and reversible
+Manual credential surgery is what diverged `auth.users` from `public.staff` and broke staff
+login. Replaced by `scripts/reset-staff-logins.ts` (separate PR): env-only config, account
+list from a gitignored file, dry-run by default, `activity_logs` entry per change, passwords
+never printed or persisted. Two learnings worth keeping:
+**(1) A guard that cannot verify must refuse, not pass.** The script compares the `ref` claim
+inside the service key against the `SUPABASE_URL` host and refuses on mismatch — the exact
+failure we hit. Newer `sb_secret_*` keys are opaque, so the ref is unreadable; the script
+treats "cannot check" as a refusal (explicit loud override exists) rather than silently
+proceeding. Proven negatively by a test that feeds a mismatched pair and asserts refusal.
+**(2) Cross-system writes need a pre-flight and a halt, not a try/catch.** Every account is
+resolved against `public.staff` before the first write, so a bad account aborts while the DB
+is untouched; if the staff update fails after the auth update succeeded, the run raises and
+**halts** so no further account can diverge.
+Second admin added as migration `20260811120000` rather than a hand-run INSERT — identity
+supplied at apply time via a setting so nothing real is committed, guarded no-op when unset
+(the STAGE_0B un-guarded `current_setting` lesson again), and reversible via prior state
+captured in `activity_logs`. Verified against real PostgreSQL 16 across 8 paths including
+both rollback directions. Re-confirmed the `is_active` trap: it is GENERATED, and writing it
+directly still raises `column "is_active" can only be updated to DEFAULT`.
+
 ### 2026-07-22 — Stage 0 verified: prod functions stale since 2026-04-20; 721/day cron spike
 Tokened read-only pass on `crpsuhoixfdhjugprbuc` (parallel session). Findings: **5 migrations
 unapplied** (incl. `pricing_source` → gates Prompt 4), **2 functions never deployed**, and **all
@@ -94,6 +138,12 @@ golden-rule/§-numbering that LEARN §2 and old notes reference is stale) — ba
 the Stack line, its true home today.
 
 ### 2026-06-17 — CLAUDE.md §4/§6 updated to post-cutover reality (live ref swapped)
+> ⛔ **SUPERSEDED — THIS ENTRY IS WRONG. Do not act on it.** The cutover it describes was
+> CANCELLED on 2026-07-22 and the live ref was confirmed as `crpsuhoixfdhjugprbuc` against the
+> Supabase dashboard on 2026-08-11. `cfwnrcogikjycjcobsay` is **not** and never became live
+> production. Retained unedited below because §4 is append-only. See the 2026-08-11 entry and
+> `PROJECT_REFS.md`.
+
 §4 now names `cfwnrcogikjycjcobsay` as CURRENT LIVE PRODUCTION (cutover complete: 126
 migrations + 91 edge functions deployed; Lee = super_admin). `crpsuhoixfdhjugprbuc`
 downgraded to OLD production — no longer served, kept as fallback, NOT to be deleted until
@@ -104,6 +154,14 @@ NOTE: §3 size table is now stale (says 89 edge functions / 123 migrations; real
 — left for the next §3 reconcile pass, not touched in this docs-only edit.
 
 ### 2026-06-17 — CUTOVER COMPLETE: cfwnrcogikjycjcobsay is live; first super_admin bootstrapped
+> ⛔ **SUPERSEDED — THE TITLE'S CLAIM IS WRONG. Do not act on it.** This deploy did land, but
+> on `cfwnrcogikjycjcobsay`, which was **never** live production and whose cutover was
+> CANCELLED on 2026-07-22. Its practical consequence was the opposite of "complete": real prod
+> (`crpsuhoixfdhjugprbuc`) went un-redeployed from 2026-04-20 until Stage 0b. The
+> `bootstrap_first_admin` / `is_active` hotfix described at the end **is still valid** and
+> applies to any project. Retained unedited because §4 is append-only. See the 2026-08-11
+> entry and `PROJECT_REFS.md`.
+
 Live deploy executed end-to-end against `cfwnrcogikjycjcobsay`: (1) link + secrets audited
 (only 4 self-gen secrets set; provider secrets still Lee's to add); (2) 11 branches merged to
 main (0 conflicts, 349 tests pass); (3) `db push` (pricing_source + bootstrap_first_admin);

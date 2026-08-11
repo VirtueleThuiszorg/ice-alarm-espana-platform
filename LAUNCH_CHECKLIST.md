@@ -84,7 +84,9 @@
 - [ ] **24h clean-run confirmation** — re-check `cron.job_run_details` + error count at
       **T+24h (~2026-07-23)** to confirm the clean run held for a full day, then this line
       closes. (Clock started 2026-07-22 ~17:47 UTC.)
-- [ ] Empty project `qkfvojbcxaptufsepupo` deleted.
+- [x] ~~Empty project `qkfvojbcxaptufsepupo` deleted.~~ **WITHDRAWN 2026-08-11** — it is a
+      **DEFERRED** future migration target, not to be deleted. Not a launch blocker.
+      (Lee, dashboard-verified; `PROJECT_REFS.md` §0.)
 - [ ] **Pending migrations to apply** (none applied on prod yet; all reversible,
       none touches an RLS policy):
       `20260725010000_partner_privilege_guard.sql` (**security** — makes

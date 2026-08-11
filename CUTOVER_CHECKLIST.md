@@ -4,6 +4,9 @@
 > is not happening; the one true backend remains **`crpsuhoixfdhjugprbuc`**. Historical
 > reference only — do not execute.
 >
+> **Re-confirmed 2026-08-11** against the Supabase dashboard. Every `cfwnrcogikjycjcobsay`
+> mention below is HISTORICAL. See `PROJECT_REFS.md`.
+>
 > Condensed from `CUTOVER_RUNBOOK.md` (the runbook is the source of truth; this is the
 > quick-reference). Target: `cfwnrcogikjycjcobsay`. Schema already pushed (123 migrations).
 

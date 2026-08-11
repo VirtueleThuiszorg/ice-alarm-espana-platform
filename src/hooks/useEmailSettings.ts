@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { functionError } from "@/lib/functionError";
 
 const SINGLETON_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -109,7 +110,7 @@ export function useEmailSettings() {
         body: { to: toEmail },
       });
 
-      if (error) throw error;
+      if (error) throw await functionError(error);
       return data;
     },
     onSuccess: () => {

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import i18n from "@/i18n";
+import { functionError } from "@/lib/functionError";
 
 export interface YouTubeIntegration {
   connected: boolean;
@@ -23,7 +24,7 @@ export function useYouTubeIntegration() {
     queryKey: ["youtube-integration-status"],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("youtube-integration-status");
-      if (error) throw error;
+      if (error) throw await functionError(error);
       return data as YouTubeIntegration;
     },
     refetchOnWindowFocus: true,
@@ -32,7 +33,7 @@ export function useYouTubeIntegration() {
   const connectMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke("youtube-oauth-start");
-      if (error) throw error;
+      if (error) throw await functionError(error);
       return data;
     },
     onSuccess: (data) => {
@@ -85,7 +86,7 @@ export function useYouTubeIntegration() {
   const disconnectMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke("youtube-disconnect");
-      if (error) throw error;
+      if (error) throw await functionError(error);
       return data;
     },
     onSuccess: () => {
@@ -117,7 +118,7 @@ export function useYouTubeIntegration() {
       const { data, error } = await supabase.functions.invoke("youtube-publish", {
         body: params,
       });
-      if (error) throw error;
+      if (error) throw await functionError(error);
       return data;
     },
     onSuccess: () => {

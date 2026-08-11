@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { PARTNER_TYPES, getPartnerTypeLabel } from "@/config/partnerTypes";
+import { functionError } from "@/lib/functionError";
 
 interface InvitePartnerDialogProps {
   open: boolean;
@@ -54,7 +55,7 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
 
       if (error) {
         const errorData = data;
-        throw new Error(errorData?.error || error.message || "Failed to send invitation");
+        throw await functionError(error, "Failed to send invitation");
       }
 
       if (!data?.success) {

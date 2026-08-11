@@ -24,6 +24,7 @@ import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { functionError } from "@/lib/functionError";
 
 const EXPECTED_CHANNEL_ID = "UCT9_R7Czan0lPFvq5XyV5kg";
 
@@ -107,7 +108,7 @@ export function SocialMediaSection({
         body: { service: "settings", keys: updates },
       });
 
-      if (response.error) throw response.error;
+      if (response.error) throw await functionError(response.error);
       return response.data;
     },
     onSuccess: () => {

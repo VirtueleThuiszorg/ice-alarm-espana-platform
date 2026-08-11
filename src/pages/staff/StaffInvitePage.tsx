@@ -17,6 +17,7 @@ import { ContactInfoStep } from "@/components/staff-invite/steps/ContactInfoStep
 import { AddressStep } from "@/components/staff-invite/steps/AddressStep";
 import { EmergencyContactStep } from "@/components/staff-invite/steps/EmergencyContactStep";
 import { ConfirmationStep } from "@/components/staff-invite/steps/ConfirmationStep";
+import { functionError } from "@/lib/functionError";
 
 type TokenStatus = "loading" | "valid" | "invalid" | "expired" | "used" | "submitting" | "completed";
 
@@ -144,7 +145,7 @@ export default function StaffInvitePage() {
         body: { token },
       });
 
-      if (error) throw error;
+      if (error) throw await functionError(error);
 
       if (!data.valid) {
         if (data.error === "token_expired") setStatus("expired");
@@ -216,7 +217,7 @@ export default function StaffInvitePage() {
         },
       });
 
-      if (error) throw error;
+      if (error) throw await functionError(error);
 
       if (!data?.success) {
         if (data?.error === "token_expired") {

@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Logo } from "@/components/ui/logo";
 import { Loader2, ArrowLeft, User, MapPin, Phone } from "lucide-react";
 import { toast } from "sonner";
+import { extractFunctionError } from "@/lib/functionError";
 
 const spanishProvinces = [
   "Álava", "Albacete", "Alicante", "Almería", "Asturias", "Ávila", "Badajoz", "Barcelona",
@@ -101,7 +102,7 @@ export default function CompleteRegistration() {
       });
 
       if (error) {
-        toast.error(error.message || t("errors.unexpectedError"));
+        toast.error(await extractFunctionError(error, t("errors.unexpectedError")));
         return;
       }
       if (data?.email_not_confirmed) {

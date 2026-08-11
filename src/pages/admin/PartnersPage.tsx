@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "@/hooks/use-toast";
 import { PARTNER_TYPES, getPartnerTypeLabel } from "@/config/partnerTypes";
 import { InvitePartnerDialog } from "@/components/admin/InvitePartnerDialog";
+import { functionError } from "@/lib/functionError";
 
 type PartnerStatus = Database["public"]["Enums"]["partner_status"];
 
@@ -134,7 +135,7 @@ export default function PartnersPage() {
       }
 
       const { data: partners, count, error } = await query;
-      if (error) throw error;
+      if (error) throw await functionError(error);
 
       return { partners: partners as Partner[], totalCount: count || 0 };
     },

@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Logo } from "@/components/ui/logo";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { functionError } from "@/lib/functionError";
 
 export default function PartnerVerify() {
   const { t } = useTranslation();
@@ -31,7 +32,7 @@ export default function PartnerVerify() {
         });
 
         if (response.error) {
-          throw new Error(response.error.message || "Verification failed");
+          throw await functionError(response.error, "Verification failed");
         }
 
         if (response.data?.error) {

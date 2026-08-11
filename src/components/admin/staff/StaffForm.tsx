@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { functionError } from "@/lib/functionError";
 
 const staffFormSchema = z.object({
   first_name: z.string().min(1, "First name is required").max(50),
@@ -81,7 +82,7 @@ export function StaffForm({ onSuccess, onCancel }: StaffFormProps) {
       });
 
       if (response.error) {
-        throw new Error(response.error.message || "Failed to create staff member");
+        throw await functionError(response.error, "Failed to create staff member");
       }
 
       if (response.data?.error) {

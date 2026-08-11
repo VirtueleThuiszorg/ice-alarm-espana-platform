@@ -17,6 +17,7 @@ import { ContactInfoStep } from "@/components/partner-invite/steps/ContactInfoSt
 import { OrganizationStep } from "@/components/partner-invite/steps/OrganizationStep";
 import { PayoutStep } from "@/components/partner-invite/steps/PayoutStep";
 import { ConfirmationStep } from "@/components/partner-invite/steps/ConfirmationStep";
+import { functionError } from "@/lib/functionError";
 
 type TokenStatus = "loading" | "valid" | "invalid" | "expired" | "used" | "submitting" | "completed";
 
@@ -135,7 +136,7 @@ export default function PartnerInvitePage() {
         body: { token },
       });
 
-      if (error) throw error;
+      if (error) throw await functionError(error);
 
       if (!data.valid) {
         if (data.error === "token_expired") setStatus("expired");
@@ -208,7 +209,7 @@ export default function PartnerInvitePage() {
         },
       });
 
-      if (error) throw error;
+      if (error) throw await functionError(error);
 
       if (!data?.success) {
         if (data?.error === "token_expired") {

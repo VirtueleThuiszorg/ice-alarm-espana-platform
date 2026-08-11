@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { functionError } from "@/lib/functionError";
 
 interface MemberData {
   id: string;
@@ -129,7 +130,7 @@ export function MemberUpdateRequestModal({ open, onOpenChange, member }: MemberU
         },
       });
 
-      if (error) throw error;
+      if (error) throw await functionError(error);
 
       toast.success(t("crm.updateRequestSent", "Update request sent successfully"));
       onOpenChange(false);

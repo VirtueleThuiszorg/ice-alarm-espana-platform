@@ -33,6 +33,7 @@ import { CommunicationsTab } from "@/components/admin/settings/CommunicationsTab
 import { DevicesSettingsTab } from "@/components/admin/settings/DevicesSettingsTab";
 import { PRICING } from "@/config/pricing";
 import { PricingPlansEditor } from "@/components/admin/PricingPlansEditor";
+import { functionError } from "@/lib/functionError";
 
 interface SystemSetting {
   key: string;
@@ -258,7 +259,7 @@ export default function SettingsPage() {
         body: { service: "settings", keys: updates },
       });
 
-      if (response.error) throw response.error;
+      if (response.error) throw await functionError(response.error);
       return response.data;
     },
     onSuccess: () => {
@@ -431,7 +432,7 @@ export default function SettingsPage() {
     setTwilioTestMessage("");
     try {
       const response = await supabase.functions.invoke("test-twilio");
-      if (response.error) throw response.error;
+      if (response.error) throw await functionError(response.error);
 
       const data = response.data;
       if (data.success) {

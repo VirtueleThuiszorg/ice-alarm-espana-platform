@@ -8,7 +8,7 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    include: ["src/**/*.{test,spec}.{ts,tsx}", "scripts/**/*.{test,spec}.ts"],
     // Dummy Supabase env so modules that import the generated client at load time
     // (e.g. @/lib/crmEvents) don't throw "supabaseUrl is required" during tests.
     // These are non-secret placeholders; tests never hit a real backend.

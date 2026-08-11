@@ -37,6 +37,10 @@ supabase/.temp/
 # Claude Code local settings
 .claude/
 
+# Staff credential-reset config — real addresses/passwords, never committed.
+# Template lives at scripts/staff-logins.config.example.json.
+scripts/staff-logins.config.json
+
 # Playwright audit
 e2e/.report/
 test-results/

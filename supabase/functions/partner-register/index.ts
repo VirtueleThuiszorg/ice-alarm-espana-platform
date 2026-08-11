@@ -180,12 +180,20 @@ serve(async (req: Request): Promise<Response> => {
       // Log the real PostgREST error, not a summary. A generic message here is what
       // made an empty `partners` table take a production trace to diagnose: a schema
       // mismatch (PGRST204 "column ... does not exist") looked identical to any
-      // other failure.
+      // other failure — and `message` carries the column name, so the diagnosis
+      // survives.
+      //
+      // `details` is deliberately EXCLUDED. On a constraint violation Postgres puts
+      // the offending value in it verbatim — "Key (email)=(someone@example.com)
+      // already exists" — which would write an applicant's email address into
+      // production logs. That is PII in logs (GOALS.md G2, CLAUDE.md "do not
+      // console.log auth state or PII"). Its presence is recorded as a boolean so a
+      // reader still knows the field existed.
       console.error("Partner creation error:", {
         code: partnerError.code,
         message: partnerError.message,
-        details: partnerError.details,
         hint: partnerError.hint,
+        had_details: Boolean(partnerError.details),
       });
 
       // Roll back the auth user, and CHECK that it worked. An unchecked delete is
@@ -204,8 +212,10 @@ serve(async (req: Request): Promise<Response> => {
       return new Response(
         JSON.stringify({
           error: "Failed to create partner record",
-          // Surfaced so the cause is visible without shell access to the logs. This
-          // is a schema/plumbing error, never user data.
+          // Surfaced so the cause is visible without shell access to the logs.
+          // `message` only — never `details`, which can quote the submitted value.
+          // A genuine duplicate is already answered with a 409 earlier, so what
+          // reaches here is schema/plumbing rather than anything user-entered.
           reason: partnerError.message,
           orphaned_auth_user: cleanupError ? authData.user.id : undefined,
         }),
@@ -321,7 +331,9 @@ serve(async (req: Request): Promise<Response> => {
       if (!emailResult.success) {
         console.error("Email sending failed:", emailResult.error);
       } else {
-        console.log("Verification email sent to:", data.email);
+        // The partner id, not the address. Logging the email would put PII in
+        // production logs (G2); the id is enough to trace a send.
+        console.log("Verification email sent for partner:", partner.id);
       }
     } catch (emailError) {
       console.error("Email sending error:", emailError);

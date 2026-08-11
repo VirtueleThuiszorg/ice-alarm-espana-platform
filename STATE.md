@@ -43,7 +43,7 @@
 | P3 | Client password rule was `min(8)`; server also requires upper + lower + digit | 🔴 BROKEN on main · fix open in **#106** (C2) | Parity test imports the REAL server schema and runs 35 adversarial inputs; reverting the client rule fails 5. |
 | P4 | Terms acceptance was UI state only — never sent, validated or stored | 🔴 BROKEN on main · fix open in **#107** (C3) | No `accept_terms` in the server schema, no column on `partners`. Migration + server enforcement verified against real PostgreSQL 16, including rollback. |
 | P5 | `/partner/login` unreachable from the public site | 🔴 BROKEN on main · fix open in **#108** (C5) | Nav and landing footer both pointed only at `/partner`. Reverting both pages fails 4 of 7 tests. |
-| P6 | `partner-register` had **zero invocations**: the nav reaches `/partner` → `partner-apply`, never `/partner/join` | 🔴 BROKEN — **no fix; Lee's decision** | Three options + recommendation in `PARTNER_JOURNEY.md` §3. Deliberately not unified unattended. |
+| P6 | The nav reaches `/partner` → `partner-apply`, never `/partner/join` | 🔴 BROKEN — **DECIDED 2026-08-11: Option C** (admin conversion of applications), `/partner/join` kept reachable. Not yet implemented. | `PARTNER_JOURNEY.md` §3. **The zero-invocation count was NOT caused by this**: `partner-apply` read zero too, both from the placeholder `VITE_SUPABASE_URL`. The nav split is a real gap; it was not the cause of the zero. |
 
 ### Verified by execution, not inspection
 

@@ -236,3 +236,112 @@ describe("partner-register failure handling", () => {
     expect(src).toMatch(/deleteUserError|cleanupError/);
   });
 });
+
+// ============================================================
+//  There are TWO partner registration paths, and they differ
+// ============================================================
+//
+// This is why `partner-register` shows zero invocations on prod while partner
+// registrations were being submitted: the public nav does not link to the page
+// that calls it.
+//
+//   /partner       (PartnerOnboarding)  -> partner-apply     <- what the nav links to
+//   /partner/join  (PartnerJoin)        -> partner-register   <- unreachable from the site
+//
+// The two produce materially different rows. partner-register creates an auth
+// user, links it via user_id, and issues a verification token. partner-apply is
+// an application intake: it writes a partners row with NO user_id and no
+// credentials, so the resulting partner can never log in — PartnerLogin looks up
+// `partners` by user_id, and get_user_role_info requires a user_id match too.
+//
+// These tests pin the split so it cannot be mistaken for one flow, and hold
+// partner-apply to the same column contract.
+
+const APPLY_FN = "supabase/functions/partner-apply/index.ts";
+
+/** Column keys a given function's `partners` insert writes (first insert). */
+function insertedColumnsIn(file: string): string[] {
+  const src = read(file);
+  const anchor = src.indexOf('.from("partners")');
+  const insertAt = src.indexOf(".insert({", anchor);
+  const open = src.indexOf("{", insertAt);
+  let depth = 0;
+  let end = open;
+  for (let i = open; i < src.length; i++) {
+    if (src[i] === "{") depth++;
+    else if (src[i] === "}") {
+      depth--;
+      if (depth === 0) {
+        end = i;
+        break;
+      }
+    }
+  }
+  const block = src.slice(open + 1, end);
+  return [...block.matchAll(/^\s{6,10}([a-z_][a-z0-9_]*)\s*:/gim)].map((m) => m[1]);
+}
+
+describe("the two partner registration paths", () => {
+  it("both functions exist", () => {
+    expect(read(REGISTER_FN).length).toBeGreaterThan(0);
+    expect(read(APPLY_FN).length).toBeGreaterThan(0);
+  });
+
+  it("/partner (PartnerOnboarding) calls partner-apply", () => {
+    const src = read("src/pages/partner/PartnerOnboarding.tsx");
+    expect(src).toMatch(/functions\.invoke\(\s*["']partner-apply["']/);
+    expect(src).not.toMatch(/functions\.invoke\(\s*["']partner-register["']/);
+  });
+
+  it("/partner/join (PartnerJoin) calls partner-register", () => {
+    const src = read("src/pages/partner/PartnerJoin.tsx");
+    expect(src).toMatch(/functions\.invoke\(\s*["']partner-register["']/);
+    expect(src).not.toMatch(/functions\.invoke\(\s*["']partner-apply["']/);
+  });
+
+  it("the public nav reaches /partner, which is the partner-apply path", () => {
+    // Documents why partner-register saw zero traffic. If the nav is ever pointed
+    // at /partner/join, this test should be updated deliberately, not silently.
+    const header = read("src/components/layout/PublicHeader.tsx");
+    expect(header).toMatch(/to:\s*["']\/partner["']/);
+    expect(header).not.toMatch(/to:\s*["']\/partner\/join["']/);
+  });
+
+  it("only partner-register creates an auth user and links it via user_id", () => {
+    expect(read(REGISTER_FN)).toMatch(/auth\.admin\.createUser/);
+    expect(read(REGISTER_FN)).toMatch(/user_id:\s*authData\.user\.id/);
+  });
+
+  it("partner-apply writes NO user_id — its partners cannot log in", () => {
+    const src = read(APPLY_FN);
+    // Asserted negatively and deliberately: this is the defect, pinned so that it
+    // is visible rather than surprising. A partners row with no user_id fails
+    // PartnerLogin's user_id lookup and get_user_role_info alike.
+    expect(src).not.toMatch(/user_id/);
+    expect(src).not.toMatch(/auth\.admin\.createUser/);
+    expect(insertedColumnsIn(APPLY_FN)).not.toContain("user_id");
+  });
+
+  it("partner-apply is held to the same column contract as partner-register", () => {
+    const migrated = migratedPartnerColumns();
+    const missing = insertedColumnsIn(APPLY_FN).filter((c) => !migrated.has(c));
+    expect(missing, `partner-apply inserts un-migrated columns: ${missing.join(", ")}`).toEqual([]);
+  });
+
+  it("both are publicly invokable, as both are submitted by anonymous visitors", () => {
+    const config = read("supabase/config.toml");
+    expect(config).toMatch(/\[functions\.partner-apply\]\s*\n\s*verify_jwt\s*=\s*false/);
+    expect(config).toMatch(/\[functions\.partner-register\]\s*\n\s*verify_jwt\s*=\s*false/);
+  });
+
+  it("both surface failure to the user rather than swallowing it", () => {
+    // Neither path may show a success screen on a failed submit.
+    const onboarding = read("src/pages/partner/PartnerOnboarding.tsx");
+    expect(onboarding).toMatch(/toast\.error/);
+    const join = read("src/pages/partner/PartnerJoin.tsx");
+    expect(join).toMatch(/toast\.error/);
+    // PartnerJoin must pass an invalid-handler, or a failing field on an
+    // unrendered step would block submit with no message at all.
+    expect(join).toMatch(/handleSubmit\(onSubmit,\s*onInvalid\)/);
+  });
+});

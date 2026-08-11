@@ -26,6 +26,61 @@
 | B7 | 6 email-template logo URLs | ✅ FIXED | All six `_shared/email-templates/*.tsx` carried the placeholder. Now the real ref. ⚠️ **Still owed:** upload the logo to the `email-assets/logo.png` storage object — until then the images 404 (templates are currently unreferenced by any function, so no live email is affected). |
 | B8 | Untouched by design | — | `index.html`, `.github/workflows/deploy-functions.yml`, and the two cron migrations (`20260716120000`, `20260723120000`) already name the authoritative ref. The cron pair is the **SOS-escalation path** — not edited (G1 / human gate). |
 
+## Partner journey (2026-08-11) — traced end to end
+
+> Full reasoning, both signup paths and the open decision: **`PARTNER_JOURNEY.md`**.
+>
+> ⚠️ **Everything marked "fix open" below is in an OPEN PR and is NOT on `main`.** The
+> live behaviour is still the broken behaviour until those merge. Nothing here is
+> marked working on the strength of a PR existing.
+
+### What the production trace established
+
+| # | Item | Status | Evidence |
+|---|---|---|---|
+| P1 | Deployed bundle called a placeholder Supabase host, so **no client call reached the backend** | ✅ FIXED (live) | Lee fixed `VITE_SUPABASE_URL` in Vercel. `vite.config.ts` now throws instead of substituting a placeholder — merged in #100. |
+| P2 | `partner-register` rejected the password; browser showed only `Edge Function returned a non-2xx status code` | 🔴 BROKEN on main · fix open in **#105** (C1) | `_shared/validation.ts` returns `{error, details:["password: Invalid"]}`; the helper dropped `details`. Tests in #105 fail against the pre-fix helper. |
+| P3 | Client password rule was `min(8)`; server also requires upper + lower + digit | 🔴 BROKEN on main · fix open in **#106** (C2) | Parity test imports the REAL server schema and runs 35 adversarial inputs; reverting the client rule fails 5. |
+| P4 | Terms acceptance was UI state only — never sent, validated or stored | 🔴 BROKEN on main · fix open in **#107** (C3) | No `accept_terms` in the server schema, no column on `partners`. Migration + server enforcement verified against real PostgreSQL 16, including rollback. |
+| P5 | `/partner/login` unreachable from the public site | 🔴 BROKEN on main · fix open in **#108** (C5) | Nav and landing footer both pointed only at `/partner`. Reverting both pages fails 4 of 7 tests. |
+| P6 | `partner-register` had **zero invocations**: the nav reaches `/partner` → `partner-apply`, never `/partner/join` | 🔴 BROKEN — **no fix; Lee's decision** | Three options + recommendation in `PARTNER_JOURNEY.md` §3. Deliberately not unified unattended. |
+
+### Verified by execution, not inspection
+
+| Claim | How it was proven |
+|---|---|
+| `partners` has **no INSERT policy**; no anon/authenticated client can insert | Real PostgreSQL 16 with `authenticated`'s grants applied: `new row violates row-level security policy`. `SELECT` returns only own row; `UPDATE` of another partner's row affects 0 rows. |
+| `partner-register`'s insert is valid against the migrated schema | Rebuilt `partners` from the migrations and ran the exact payload — succeeds. All 24 inserted columns exist among the 37 migrated. |
+| `get_user_role_info` gates `is_partner` on `status='active'` | Ran the migration's own function body: `pending` → `is_partner:false, partner_id:null`; `active` → `true` + the row's id. |
+| The terms migration is reversible | Applied, wrote a record, re-applied (no-op), rolled back: both columns gone, **all partner rows preserved**, index dropped with the column. |
+
+### Open gaps — verified, unfixed, not in any PR
+
+| # | Gap | Why it is left |
+|---|---|---|
+| P7 | `PartnerLogin` blocks only `pending`/`suspended` (denylist); `get_user_role_info` grants only `active` (allowlist) | Same asymmetry as #102. No status outside the enum exists today, so it is latent. Needs prod's distinct values checked first. |
+| P8 | "No partner account found for this email" — the lookup is by `user_id`, not email | Every `partner-apply` row has no `user_id`, so this is exactly what an application-path partner sees. Wording fix is trivial; the underlying cause is P6. |
+| P9 | `preferred_language` is `en`/`es` only — CHECK constraint, server enum and form all agree | Consistent, so parity holds, but Dutch is consistently **rejected**, against LAUNCH_SCOPE §6. Needs a migration + scope decision; not bundled into a parity PR. |
+| P10 | `/partner-dashboard` is hard-blocked on first arrival by `AgreementRequiredModal` (`open={true}`, non-dismissible) | Intended, but the first-run experience has never been click-tested. |
+| P11 | Verification email runs on interim Gmail SMTP | Already a `LAUNCH_CHECKLIST.md` hard blocker. A silent delivery failure is indistinguishable from a partner who never bothered. |
+| P12 | `partner-apply` writes no `user_id` and issues no verification token | This IS P6. An application is a lead and terminal without admin action. |
+
+### Retracted
+
+**The schema-mismatch hypothesis in #104 was wrong.** `partners` has all 37 columns on
+prod and the insert was never reached — `partner-register` had zero invocations. The
+column-contract test from #104 is still worth keeping as a guard, but it was not the
+explanation. Recorded here rather than left as a retracted theory with no correction
+attached (G5).
+
+### Not asserted
+
+- No browser click-through of the partner journey was performed. Every claim above is
+  either a test, a real-PostgreSQL run, or a source reading — never "looks right".
+- The **live** partner journey is unverified after these PRs, because none is merged.
+- `partner-apply`'s invocation count on prod is unknown, so whether the application
+  path itself is currently reaching the backend has not been confirmed.
+
 ## Staff credential reset tooling (2026-08-11)
 
 > Landed on a **separate branch/PR** (`…-staff-login-reset`). Recorded here because

@@ -1,0 +1,22 @@
+{
+  "_readme": [
+    "Template for scripts/reset-staff-logins.ts.",
+    "Copy to scripts/staff-logins.config.json (gitignored) and fill in real values there.",
+    "NEVER put a real address or password in THIS file — it is committed.",
+    "Alternatively set STAFF_LOGINS_CONFIG to this JSON as a string and skip the file.",
+    "newPassword must be at least 12 characters; the script refuses anything shorter.",
+    "currentEmail must match an existing public.staff row (case-insensitive) that has a user_id."
+  ],
+  "accounts": [
+    {
+      "currentEmail": "REPLACE-current-address-1@example.invalid",
+      "newEmail": "REPLACE-new-address-1@example.invalid",
+      "newPassword": "REPLACE-with-a-long-generated-password"
+    },
+    {
+      "currentEmail": "REPLACE-current-address-2@example.invalid",
+      "newEmail": "REPLACE-new-address-2@example.invalid",
+      "newPassword": "REPLACE-with-a-long-generated-password"
+    }
+  ]
+}

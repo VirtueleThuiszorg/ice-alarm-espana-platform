@@ -43,7 +43,7 @@ vi.mock("lucide-react", () => ({
 
 // ---- Import the component under test AFTER mocks are set up ----
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { staffLandingPath, staffPostLoginPath } from "@/config/constants";
+import { PARTNER_DASHBOARD_PATH, staffLandingPath, staffPostLoginPath } from "@/config/constants";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -519,5 +519,158 @@ describe("Unauthorized page", () => {
     const src = readSrc("src/pages/auth/Unauthorized.tsx");
     expect(src).toMatch(/isStaff \? "\/staff\/login" : "\/login"/);
     expect(src).toMatch(/to=\{loginPath\}/);
+  });
+});
+
+// ============================================================
+//  Partner registration → partner dashboard
+// ============================================================
+//
+// Reported: after completing partner registration the user ended up back at the
+// start of the join flow instead of the partner dashboard.
+//
+// The redirect TARGET was never wrong — PartnerLogin has always navigated to
+// /partner-dashboard. The bug was that it navigated *before* the role context
+// existed. /partner-dashboard is `requirePartner`, and ProtectedRoute reads
+// isPartner/partnerId from AuthContext — not from the `partners` row the login page
+// had just queried itself. PartnerLogin was the only login page that did not
+// `await refreshAuth()` first, so the redirect raced the onAuthStateChange fetch.
+//
+// It also could not recover: that listener only refetches when
+// `session.user.id !== lastFetchedUserId.current`, so a partner whose role was read
+// earlier in the page load while still `pending` was never re-read after
+// verification — get_user_role_info reports is_partner only for status='active'.
+//
+// ProtectedRoute is deliberately NOT loosened; the tests below pin that it still
+// refuses anyone without a partner identity.
+
+describe("newly-registered partner reaches the partner dashboard", () => {
+  const PARTNER_USER = { id: "aaaaaaaa-0000-0000-0000-000000000001", email: "p@test.invalid" };
+  const PARTNER_ROW_ID = "132d1871-5160-4113-a217-7003ac7a556a";
+
+  beforeEach(() => {
+    mockAuth = { ...defaultAuth, signOut: vi.fn() };
+  });
+
+  it("lands on the dashboard once the role context is populated (post-refreshAuth)", () => {
+    // Exactly the state `await refreshAuth()` produces for a verified partner:
+    // get_user_role_info returned is_partner=true with a partner_id.
+    mockAuth.user = PARTNER_USER;
+    mockAuth.isPartner = true;
+    mockAuth.partnerId = PARTNER_ROW_ID;
+
+    renderProtected({ requirePartner: true });
+
+    expect(screen.getByTestId("protected-content")).toBeInTheDocument();
+    expect(getNavigateTo()).toBeNull();
+    expect(mockAuth.signOut).not.toHaveBeenCalled();
+  });
+
+  it("has a partner_id at that point, not just the boolean", () => {
+    mockAuth.user = PARTNER_USER;
+    mockAuth.isPartner = true;
+    mockAuth.partnerId = PARTNER_ROW_ID;
+
+    renderProtected({ requirePartner: true });
+
+    expect(mockAuth.isPartner).toBe(true);
+    expect(mockAuth.partnerId).not.toBeNull();
+    expect(mockAuth.partnerId).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it("refuses to /unauthorized — never into the join funnel — while the role is unresolved", () => {
+    // The racing state: signed in, but AuthContext has not resolved the partner role.
+    mockAuth.user = PARTNER_USER;
+    mockAuth.isPartner = false;
+    mockAuth.partnerId = null;
+
+    renderProtected({ requirePartner: true });
+
+    const to = getNavigateTo();
+    expect(to).toBe("/unauthorized");
+    // The reported symptom was landing back at the start of the join flow.
+    expect(to).not.toBe("/partner");
+    expect(to).not.toBe("/partner/join");
+    expect(mockAuth.signOut).not.toHaveBeenCalled();
+  });
+
+  it("waits rather than refusing while auth is still loading", () => {
+    mockAuth.user = PARTNER_USER;
+    mockAuth.isLoading = true;
+
+    renderProtected({ requirePartner: true });
+
+    expect(screen.getByTestId("loader")).toBeInTheDocument();
+    expect(getNavigateTo()).toBeNull();
+  });
+
+  it("is NOT loosened: a user with no partner identity is still refused", () => {
+    mockAuth.user = { id: "u-nobody", email: "nobody@test.invalid" };
+
+    renderProtected({ requirePartner: true });
+
+    expect(screen.queryByTestId("protected-content")).not.toBeInTheDocument();
+    expect(getNavigateTo()).toBe("/unauthorized");
+  });
+
+  it("is NOT loosened: an unauthenticated visitor still goes to the partner login", () => {
+    renderProtected({ requirePartner: true });
+    expect(getNavigateTo()).toBe("/partner/login");
+  });
+
+  it("the dashboard path is the partner portal home", () => {
+    expect(PARTNER_DASHBOARD_PATH).toBe("/partner-dashboard");
+  });
+});
+
+describe("login pages await refreshAuth before navigating", () => {
+  const LOGIN_PAGES = [
+    "src/pages/auth/StaffLogin.tsx",
+    "src/pages/auth/Login.tsx",
+    "src/pages/partner/PartnerLogin.tsx",
+  ];
+
+  it.each(LOGIN_PAGES)("%s calls refreshAuth", (file) => {
+    expect(readSrc(file)).toMatch(/await refreshAuth\(\)/);
+  });
+
+  it("PartnerLogin awaits refreshAuth BEFORE it navigates — the ordering is the fix", () => {
+    const src = readSrc("src/pages/partner/PartnerLogin.tsx");
+    const refresh = src.indexOf("await refreshAuth()");
+    const nav = src.indexOf("navigate(PARTNER_DASHBOARD_PATH)");
+
+    expect(refresh).toBeGreaterThan(-1);
+    expect(nav).toBeGreaterThan(-1);
+    expect(refresh).toBeLessThan(nav);
+  });
+
+  it("PartnerLogin redirects to the shared partner-dashboard constant", () => {
+    const src = readSrc("src/pages/partner/PartnerLogin.tsx");
+    expect(src).toMatch(/PARTNER_DASHBOARD_PATH/);
+    expect(src).toMatch(/from "@\/config\/constants"/);
+  });
+});
+
+// Why the await is required, verified against real PostgreSQL 16 using the
+// migration's own function body:
+//   status='pending' → {"is_partner": false, "partner_id": null}
+//   status='active'  → {"is_partner": true,  "partner_id": "<the row's id>"}
+// A partner read while pending stays non-partner in AuthContext until something
+// forces a re-read. This pins the gate that makes that true.
+
+describe("get_user_role_info partner contract", () => {
+  const RPC_MIGRATION =
+    "supabase/migrations/20260122124126_30d5eccf-0a25-4890-a500-e702ff9f46c0.sql";
+
+  it("reports is_partner only for an active partners row", () => {
+    const sql = readSrc(RPC_MIGRATION);
+    expect(sql).toMatch(/FROM public\.partners\s*\n?\s*WHERE user_id = _user_id AND status = 'active'/);
+  });
+
+  it("returns partner_id alongside the flag, derived from the same row", () => {
+    const sql = readSrc(RPC_MIGRATION);
+    expect(sql).toMatch(/_is_partner := _partner_id IS NOT NULL/);
+    expect(sql).toMatch(/'is_partner', _is_partner/);
+    expect(sql).toMatch(/'partner_id', _partner_id/);
   });
 });

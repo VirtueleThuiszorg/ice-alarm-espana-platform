@@ -58,7 +58,16 @@ export default function PartnerOnboarding() {
                 {t("partnerOnboarding.successDesc", "Our team will send you an email shortly with full details about our partner programme, including what you can earn and a link to complete your registration.")}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
+              {/* The description above promises "a link to complete your
+                  registration" and used to deliver only an email. Offer the route
+                  here too, so an applicant who wants to finish now is not waiting on
+                  a send that currently runs over interim Gmail transport. */}
+              <Button asChild className="w-full">
+                <Link to="/partner/join">
+                  {t("partnerOnboarding.completeNow", "Complete full registration")}
+                </Link>
+              </Button>
               <Button variant="outline" onClick={() => navigate("/")}>
                 {t("partnerOnboarding.returnHome", "Return to Homepage")}
               </Button>
@@ -258,10 +267,24 @@ export default function PartnerOnboarding() {
             </CardContent>
           </Card>
 
+          {/* Option C keeps /partner as lead capture, but a partner who would rather
+              self-serve should not have to guess that /partner/join exists. Same
+              persistent-underline + tap-target treatment as the sign-in link below
+              (G3 / WCAG 1.4.1) rather than a second, differently-styled link. */}
+          <p className="mt-6 text-center text-base text-muted-foreground">
+            {t("partnerOnboarding.preferNow", "Prefer to do it all now?")}{" "}
+            <Link
+              to="/partner/join"
+              className="inline-block py-1 font-medium text-primary underline underline-offset-4 hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+            >
+              {t("partnerOnboarding.completeNow", "Complete full registration")}
+            </Link>
+          </p>
+
           {/* Returning partners. This page is where the public nav sends everyone,
               so without this a partner who already has an account had no route to
               /partner/login except typing the URL. */}
-          <p className="mt-6 text-center text-base text-muted-foreground">
+          <p className="mt-2 text-center text-base text-muted-foreground">
             {t("partnerOnboarding.alreadyPartner", "Already a partner?")}{" "}
             {/* GOALS.md G3: a link sitting inside a sentence must not be
                 distinguished by colour alone (WCAG 1.4.1), so the underline is

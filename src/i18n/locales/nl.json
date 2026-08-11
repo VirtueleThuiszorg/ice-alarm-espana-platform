@@ -5983,5 +5983,15 @@
     "retry": "Opnieuw proberen",
     "unreachableTitle": "MedConneqt reageert niet",
     "unreachableBody": "We konden alarm.medconneqt.nl niet bereiken. Mogelijk is de dienst offline of blokkeert uw verbinding deze. Probeer het opnieuw of open het in een nieuw tabblad om te controleren."
+  },
+  "partnerConvert": {
+    "title": "Aanvraag omzetten naar partner",
+    "description": "{{name}} ontvangt een uitnodiging om zelf een wachtwoord te kiezen en het profiel af te ronden. De aanvraag wordt vastgelegd als door jou beoordeeld.",
+    "reviewNotes": "Beoordelingsnotities (optioneel)",
+    "reviewNotesPlaceholder": "Waarom je deze aanvraag goedkeurt — blijft op de partnerkaart staan.",
+    "convert": "Uitnodiging versturen",
+    "converting": "Versturen…",
+    "success": "Uitnodiging verstuurd — de aanvraag is nu een uitgenodigde partner.",
+    "error": "Aanvraag kon niet worden omgezet"
   }
 }

@@ -53,10 +53,7 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
         },
       });
 
-      if (error) {
-        const errorData = data;
-        throw await functionError(error, "Failed to send invitation");
-      }
+      if (error) throw await functionError(error, "Failed to send invitation");
 
       if (!data?.success) {
         throw new Error(data?.error || "Failed to send invitation");

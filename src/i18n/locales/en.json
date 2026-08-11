@@ -5983,5 +5983,15 @@
     "retry": "Try again",
     "unreachableTitle": "MedConneqt isn't responding",
     "unreachableBody": "We couldn't reach alarm.medconneqt.nl. It may be down, or your connection may be blocking it. Try again, or open it in a new tab to check."
+  },
+  "partnerConvert": {
+    "title": "Convert application to partner",
+    "description": "This sends {{name}} an invitation to set their own password and complete their profile. Their application is recorded as reviewed by you.",
+    "reviewNotes": "Review notes (optional)",
+    "reviewNotesPlaceholder": "Why you are approving this application — kept on the partner record.",
+    "convert": "Send invitation",
+    "converting": "Sending…",
+    "success": "Invitation sent — the application is now an invited partner.",
+    "error": "Could not convert the application"
   }
 }

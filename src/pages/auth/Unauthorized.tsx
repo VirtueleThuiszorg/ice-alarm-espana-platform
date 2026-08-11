@@ -4,9 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
 import { ShieldX, ArrowLeft, Home } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Unauthorized() {
   const { t } = useTranslation();
+  // Staff belong on the staff login page. Sending them to the member /login made a
+  // still-authenticated staff user stare at a login form, which reads as "I've been
+  // signed out" — this page never signs anyone out.
+  const { isStaff } = useAuth();
+  const loginPath = isStaff ? "/staff/login" : "/login";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
@@ -40,7 +46,7 @@ export default function Unauthorized() {
                 </Link>
               </Button>
               <Button asChild variant="outline" className="w-full">
-                <Link to="/login">
+                <Link to={loginPath}>
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   {t("auth.unauthorized.backToLogin")}
                 </Link>

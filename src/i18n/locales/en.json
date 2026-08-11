@@ -5520,7 +5520,9 @@
     "howHeard": "How did you hear about us?",
     "selectHowHeard": "Select option",
     "alreadyPartner": "Already a partner?",
-    "signIn": "Sign in to your dashboard"
+    "signIn": "Sign in to your dashboard",
+    "preferNow": "Prefer to do it all now?",
+    "completeNow": "Complete full registration"
   },
   "partnerLogin": {
     "title": "Partner Login",

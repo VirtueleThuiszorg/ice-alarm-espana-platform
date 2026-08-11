@@ -5520,7 +5520,9 @@
     "howHeard": "Hoe heeft u over ons gehoord?",
     "selectHowHeard": "Selecteer een optie",
     "alreadyPartner": "Al partner?",
-    "signIn": "Meld je aan bij je dashboard"
+    "signIn": "Meld je aan bij je dashboard",
+    "preferNow": "Wil je het meteen afronden?",
+    "completeNow": "Registratie afronden"
   },
   "partnerLogin": {
     "title": "Partnerlogin",

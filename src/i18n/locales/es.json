@@ -5520,7 +5520,9 @@
     "howHeard": "¿Cómo se enteró de nosotros?",
     "selectHowHeard": "Seleccione una opción",
     "alreadyPartner": "¿Ya eres partner?",
-    "signIn": "Accede a tu panel"
+    "signIn": "Accede a tu panel",
+    "preferNow": "¿Prefieres hacerlo todo ahora?",
+    "completeNow": "Completar el registro"
   },
   "partnerLogin": {
     "title": "Acceso de Colaboradores",

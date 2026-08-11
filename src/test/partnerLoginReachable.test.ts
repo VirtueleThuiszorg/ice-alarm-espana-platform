@@ -113,3 +113,67 @@ describe("the sign-in link meets G3", () => {
     expect(src()).toMatch(/text-base text-muted-foreground/);
   });
 });
+
+// ============================================================
+//  The self-serve path must be reachable too (Option C, 3/3)
+// ============================================================
+//
+// Option C keeps /partner as lead capture and converts applications by admin
+// invite. That only works as a product if a partner who would rather do everything
+// now can still get to /partner/join — otherwise the low-friction path is the ONLY
+// path, which is the situation that produced zero invocations on partner-register.
+//
+// The success screen matters more than it looks: its own copy promises "a link to
+// complete your registration" and used to deliver only an email — over interim
+// Gmail transport, where a silent delivery failure is indistinguishable from an
+// applicant who never bothered.
+
+describe("the self-serve registration path is reachable from /partner", () => {
+  const onboarding = () => read("src/pages/partner/PartnerOnboarding.tsx");
+
+  it("the application page offers it", () => {
+    expect(onboarding()).toContain('to="/partner/join"');
+  });
+
+  it("the success screen delivers the link its own copy promises", () => {
+    const src = onboarding();
+    // The promise:
+    expect(src).toMatch(/link to complete your registration/);
+    // …and the delivery, inside the submitted branch.
+    const submitted = src.slice(src.indexOf("if (submitted)"), src.indexOf("if (submitted)") + 2000);
+    expect(submitted, "the success screen must link to /partner/join").toContain(
+      'to="/partner/join"'
+    );
+  });
+
+  it("uses translated copy in all three locales", () => {
+    expect(onboarding()).toMatch(/partnerOnboarding\.completeNow/);
+    for (const loc of ["en", "es", "nl"]) {
+      const dict = JSON.parse(read(`src/i18n/locales/${loc}.json`));
+      expect(dict.partnerOnboarding?.preferNow, `${loc}: preferNow`).toBeTruthy();
+      expect(dict.partnerOnboarding?.completeNow, `${loc}: completeNow`).toBeTruthy();
+    }
+  });
+
+  it("the locales are real translations, not English copied across", () => {
+    const value = (loc: string) =>
+      JSON.parse(read(`src/i18n/locales/${loc}.json`)).partnerOnboarding.completeNow;
+    expect(value("es")).not.toBe(value("en"));
+    expect(value("nl")).not.toBe(value("en"));
+  });
+
+  it("does not regress the sign-in link's accessibility treatment", () => {
+    // G3 / WCAG 1.4.1: an inline link must not be distinguished by colour alone.
+    // Both links carry the same persistent underline and focus ring.
+    const src = onboarding();
+    const joinLink = src.slice(src.indexOf('to="/partner/join"'));
+    expect(joinLink).toMatch(/underline underline-offset-4/);
+    expect(joinLink).toMatch(/focus-visible:ring-2/);
+  });
+
+  it("still keeps the nav pointed at /partner — Option C is lead capture first", () => {
+    const header = read("src/components/layout/PublicHeader.tsx");
+    expect(header).toMatch(/to:\s*["']\/partner["']/);
+    expect(header).not.toMatch(/to:\s*["']\/partner\/join["']/);
+  });
+});

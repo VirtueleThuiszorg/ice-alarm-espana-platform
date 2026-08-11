@@ -200,6 +200,8 @@ export const partnerAdminInviteSchema = z.object({
     "insurance", "healthcare_provider", "real_estate",
     "expat_community", "corporate_other",
   ]).optional(),
+  // Optional admin note recorded when converting an application (Option C).
+  review_notes: z.string().max(1000).optional(),
 });
 
 export const partnerCompleteInviteSchema = z.object({

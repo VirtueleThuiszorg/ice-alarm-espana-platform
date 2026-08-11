@@ -177,11 +177,38 @@ serve(async (req: Request): Promise<Response> => {
       .single();
 
     if (partnerError) {
-      console.error("Partner creation error:", partnerError);
-      // Clean up auth user if partner creation fails
-      await supabase.auth.admin.deleteUser(authData.user.id);
+      // Log the real PostgREST error, not a summary. A generic message here is what
+      // made an empty `partners` table take a production trace to diagnose: a schema
+      // mismatch (PGRST204 "column ... does not exist") looked identical to any
+      // other failure.
+      console.error("Partner creation error:", {
+        code: partnerError.code,
+        message: partnerError.message,
+        details: partnerError.details,
+        hint: partnerError.hint,
+      });
+
+      // Roll back the auth user, and CHECK that it worked. An unchecked delete is
+      // how an orphaned auth user survives a failed insert: no partners row, a live
+      // auth user, and nothing anywhere saying the two diverged.
+      const { error: cleanupError } = await supabase.auth.admin.deleteUser(authData.user.id);
+      if (cleanupError) {
+        console.error(
+          "ORPHANED AUTH USER: partner insert failed and the auth user could not be " +
+            "deleted. auth.users has a row with no matching partners row — this needs " +
+            "manual cleanup.",
+          { user_id: authData.user.id, cleanup_error: cleanupError.message }
+        );
+      }
+
       return new Response(
-        JSON.stringify({ error: "Failed to create partner record" }),
+        JSON.stringify({
+          error: "Failed to create partner record",
+          // Surfaced so the cause is visible without shell access to the logs. This
+          // is a schema/plumbing error, never user data.
+          reason: partnerError.message,
+          orphaned_auth_user: cleanupError ? authData.user.id : undefined,
+        }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }

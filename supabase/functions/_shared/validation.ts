@@ -135,6 +135,10 @@ export const partnerRegisterSchema = z.object({
   additional_notes: z.string().max(2000).optional(),
   current_client_base: z.string().max(500).optional(),
   position_title: z.string().max(200).optional(),
+  // Terms acceptance is a legal record, so the server requires it rather than
+  // trusting the form's checkbox. `literal(true)` rejects false AND absent — an
+  // optional boolean would let a caller skip the field entirely.
+  accept_terms: z.literal(true),
 });
 
 export const staffRegisterSchema = z.object({

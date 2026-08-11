@@ -227,6 +227,9 @@ export default function PartnerJoin() {
           additional_notes: data.additional_notes || undefined,
           current_client_base: data.current_client_base || undefined,
           position_title: data.position_title || undefined,
+          // The server requires this and stamps the acceptance itself; the form's
+          // checkbox alone was never a record of anything.
+          accept_terms: data.accept_terms,
         },
       });
 

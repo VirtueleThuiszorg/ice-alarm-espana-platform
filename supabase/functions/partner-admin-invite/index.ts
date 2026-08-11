@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { sendEmail } from "../_shared/email.ts";
+import { decidePartnerInvite, type PartnerStatus } from "../_shared/partnerInviteDecision.ts";
 import { partnerAdminInviteSchema, validateRequest } from "../_shared/validation.ts";
 
 const PARTNER_TYPE_SUFFIXES: Record<string, string> = {
@@ -92,7 +93,8 @@ serve(async (req: Request) => {
     const validated = validateRequest(partnerAdminInviteSchema, rawBody, corsHeaders);
     if (validated.error) return validated.error;
 
-    const { contact_name, email, preferred_language, partner_type } = validated.data;
+    const { contact_name, email, preferred_language, partner_type, review_notes } = validated.data as
+      typeof validated.data & { review_notes?: string };
     const normalizedEmail = email.toLowerCase().trim();
     const lang = preferred_language || "es";
     const type = partner_type || "referral";
@@ -108,21 +110,52 @@ serve(async (req: Request) => {
 
     let partnerId: string;
 
+    const decision = decidePartnerInvite(existingPartner?.status as PartnerStatus | null);
+
+    if (existingPartner && decision.action === "reject") {
+      return new Response(
+        JSON.stringify({ error: decision.reason }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (existingPartner) {
-      // Allow re-invite if status is "invited" (never completed)
-      if (existingPartner.status !== "invited") {
-        return new Response(
-          JSON.stringify({ error: "A partner with this email already exists" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
       partnerId = existingPartner.id;
 
-      // Update the existing invited partner record
-      await adminClient
+      const partnerUpdate: Record<string, unknown> = {
+        contact_name,
+        preferred_language: lang,
+        partner_type: type,
+        status: "invited",
+      };
+
+      if (decision.action === "convert") {
+        // Converting an APPLICATION (`pending`, from /partner → partner-apply) into
+        // an invited partner. This is Option C. Stamp who reviewed it and when —
+        // the columns have existed since 20260301140000 and nothing wrote them, so
+        // there was no record of who let a partner in.
+        partnerUpdate.reviewed_by = callerStaff.id;
+        partnerUpdate.reviewed_at = new Date().toISOString();
+        if (typeof review_notes === "string" && review_notes.trim()) {
+          partnerUpdate.review_notes = review_notes.trim();
+        }
+      }
+
+      const { error: partnerUpdateError } = await adminClient
         .from("partners")
-        .update({ contact_name, preferred_language: lang, partner_type: type })
+        .update(partnerUpdate)
         .eq("id", partnerId);
+
+      if (partnerUpdateError) {
+        console.error("Error updating partner for invite:", {
+          code: partnerUpdateError.code,
+          message: partnerUpdateError.message,
+        });
+        return new Response(
+          JSON.stringify({ error: "Failed to update the partner record" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     } else {
       // Generate unique referral code
       const baseCode = generateMeaningfulReferralCode(contact_name, type);

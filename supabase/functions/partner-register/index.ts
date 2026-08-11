@@ -3,12 +3,14 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { sendEmail } from "../_shared/email.ts";
 import { partnerRegisterSchema, validateRequest } from "../_shared/validation.ts";
+import { PARTNER_TERMS_VERSION } from "../_shared/partnerTerms.ts";
 
 
 
 interface PartnerRegistrationRequest {
   contact_name: string;
   last_name?: string;
+  accept_terms: true;
   company_name?: string;
   email: string;
   phone?: string;
@@ -172,6 +174,12 @@ serve(async (req: Request): Promise<Response> => {
         additional_notes: data.additional_notes || null,
         current_client_base: data.current_client_base || null,
         position_title: data.position_title || null,
+        // Legal record. Stamped here, server-side: the timestamp is ours (never a
+        // client-supplied one) and the version is the server's own constant, so a
+        // caller cannot record consent to a version it invented. The schema has
+        // already required accept_terms === true to get this far.
+        terms_accepted_at: new Date().toISOString(),
+        terms_version: PARTNER_TERMS_VERSION,
       })
       .select()
       .single();

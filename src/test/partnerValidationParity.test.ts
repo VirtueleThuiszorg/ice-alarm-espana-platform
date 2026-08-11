@@ -52,9 +52,12 @@ const VALID = {
   accept_terms: true as const,
 };
 
-/** The client schema carries two extra fields; the server never sees them. */
+/**
+ * What PartnerJoin actually posts. Only `confirmPassword` is client-only —
+ * `accept_terms` IS sent, because the server requires it as a legal record.
+ */
 function toServerPayload(values: Record<string, unknown>) {
-  const { confirmPassword: _c, accept_terms: _a, ...rest } = values;
+  const { confirmPassword: _c, ...rest } = values;
   return rest;
 }
 
@@ -166,12 +169,14 @@ describe("the client is allowed to be stricter", () => {
     expect(clientAccepts(values)).toBe(false);
   });
 
-  it("requires terms acceptance, which the server does not yet check", () => {
+  it("requires terms acceptance — and so does the server now", () => {
     const values = { ...VALID, accept_terms: false };
     expect(clientAccepts(values)).toBe(false);
-    // Documents the gap deliberately: the server has no accept_terms field, so a
-    // caller bypassing the form is not held to it. See the terms-acceptance work.
-    expect(serverAccepts(values)).toBe(true);
+    // This assertion previously read `.toBe(true)`, documenting a real gap: the
+    // server had no accept_terms field, so a caller bypassing the form was never
+    // held to it. The terms-acceptance change closes that, so parity now holds on
+    // this field too — note the server payload therefore keeps accept_terms.
+    expect(serverAccepts(values)).toBe(false);
   });
 });
 

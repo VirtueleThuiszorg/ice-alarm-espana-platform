@@ -12,6 +12,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { VideoExport } from "@/hooks/useVideoExports";
+import { extractFunctionError } from "@/lib/functionError";
 
 interface RenderVariantButtonsProps {
   projectId: string;
@@ -46,7 +47,7 @@ export function RenderVariantButtons({
 
       if (error) {
         console.error("Render variant error:", error);
-        toast.error(error.message || t("videoHub.create.renderFailed"));
+        toast.error(await extractFunctionError(error, t("videoHub.create.renderFailed")));
       } else if (data?.error) {
         console.error("Render variant returned error:", data.error);
         toast.error(data.error);

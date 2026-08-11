@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { functionError } from "@/lib/functionError";
 
 export interface AIAgent {
   id: string;
@@ -382,7 +383,7 @@ export function useRunAgent() {
         body: { agentKey, context, simulationMode },
       });
 
-      if (error) throw error;
+      if (error) throw await functionError(error);
       return data;
     },
     onSuccess: () => {
@@ -411,7 +412,7 @@ export function useApproveAction() {
         body: { actionId },
       });
 
-      if (error) throw error;
+      if (error) throw await functionError(error);
       return data;
     },
     onSuccess: () => {

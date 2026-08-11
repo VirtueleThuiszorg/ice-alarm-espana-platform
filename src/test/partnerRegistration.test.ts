@@ -236,3 +236,61 @@ describe("partner-register failure handling", () => {
     expect(src).toMatch(/deleteUserError|cleanupError/);
   });
 });
+
+// ============================================================
+//  No PII in logs (GOALS.md G2 / CLAUDE.md)
+// ============================================================
+//
+// On a constraint violation Postgres puts the offending value in `details`
+// verbatim — "Key (email)=(someone@example.com) already exists". Logging that
+// writes an applicant's email address into production logs.
+//
+// This was a real regression: the error-surfacing change logged code, message,
+// details and hint together, with a comment asserting it was "never user data".
+// The comment was wrong about `details`.
+
+describe("partner-register logs no PII", () => {
+  const src = read(REGISTER_FN);
+
+  it("does not log PostgREST `details`, which can quote the submitted value", () => {
+    expect(src).not.toMatch(/details:\s*partnerError\.details/);
+  });
+
+  it("still records that details existed, so the diagnosis is not lost", () => {
+    expect(src).toMatch(/had_details:\s*Boolean\(partnerError\.details\)/);
+  });
+
+  it("keeps code, message and hint, which carry the schema diagnosis", () => {
+    expect(src).toMatch(/code:\s*partnerError\.code/);
+    expect(src).toMatch(/message:\s*partnerError\.message/);
+    expect(src).toMatch(/hint:\s*partnerError\.hint/);
+  });
+
+  it("does not return details to the client either", () => {
+    expect(src).not.toMatch(/reason:\s*partnerError\.details/);
+  });
+
+  it("logs no email, password or IBAN field anywhere", () => {
+    // Negative sweep over every console.* call in the function.
+    const logCalls = [...src.matchAll(/console\.(error|warn|log)\(([\s\S]*?)\);/g)].map((m) => m[2]);
+    for (const call of logCalls) {
+      expect(call, `a console call references data.email: ${call.slice(0, 80)}`).not.toMatch(
+        /data\.email|data\.password|data\.payout_iban/
+      );
+    }
+  });
+});
+
+// Found during the same sweep and deliberately NOT fixed: partner-alert-notify
+// logs `partner.email` (index.ts:186). That is the same G2 violation, but it sits
+// on the ALERT path, which carries a mandatory human gate (CLAUDE.md / GOALS.md
+// G1) and which this work was told not to touch. Pinned here so the finding is not
+// lost — flip this to an assertion once a human has signed off on that file.
+describe("known PII leak outside this change's scope", () => {
+  it("partner-alert-notify still logs a partner email — alert path, human gate", () => {
+    const src = read("supabase/functions/partner-alert-notify/index.ts");
+    // Asserting the CURRENT state on purpose. When it is fixed under the gate, this
+    // test fails and should be inverted, which is the reminder.
+    expect(src).toMatch(/console\.log\(`Email notification to \$\{partner\.email\}/);
+  });
+});

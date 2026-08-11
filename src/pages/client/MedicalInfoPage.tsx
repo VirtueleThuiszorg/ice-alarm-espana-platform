@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { functionError } from "@/lib/functionError";
 
 const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
@@ -177,7 +178,7 @@ export default function MedicalInfoPage() {
         body: { action: "save_medical_info", ...medicalData },
       });
 
-      if (error) throw error;
+      if (error) throw await functionError(error);
       if (result?.error) throw new Error(result.error);
 
       queryClient.invalidateQueries({ queryKey: ["medical-info"] });

@@ -14,6 +14,7 @@ import { useContentCalendar } from "@/hooks/useContentCalendar";
 import { MediaGoal, MediaAudience, MediaTopic, MediaImageStyle, MediaScheduleSettings } from "@/hooks/useMediaStrategy";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { functionError } from "@/lib/functionError";
 
 interface ContentPlannerProps {
   goals: MediaGoal[];
@@ -89,7 +90,7 @@ export function ContentPlanner({
         },
       });
 
-      if (error) throw error;
+      if (error) throw await functionError(error);
 
       if (data?.plan) {
         setPreview(data.plan);

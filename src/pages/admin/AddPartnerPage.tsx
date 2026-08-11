@@ -15,6 +15,7 @@ import { ArrowLeft, Save, UserPlus, Building2, MapPin, Bell, DollarSign } from "
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { PARTNER_TYPES, REGIONS, HOW_HEARD_OPTIONS, isB2BPartnerType, getPartnerTypeLabel } from "@/config/partnerTypes";
+import { extractFunctionError } from "@/lib/functionError";
 
 const partnerFormSchema = z.object({
   contact_name: z.string().min(2, "Contact name is required"),
@@ -126,7 +127,7 @@ export default function AddPartnerPage() {
       if (response.error) {
         // Try to get the actual error message from the response
         const errorData = response.data;
-        const errorMessage = errorData?.error || response.error.message || "Failed to create partner";
+        const errorMessage = await extractFunctionError(response.error, "Failed to create partner");
         throw new Error(errorMessage);
       }
 

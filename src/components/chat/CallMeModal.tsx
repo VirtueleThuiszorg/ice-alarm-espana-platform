@@ -20,6 +20,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { functionError } from "@/lib/functionError";
 
 interface CallMeModalProps {
   open: boolean;
@@ -79,7 +80,7 @@ export function CallMeModal({
       });
 
       if (error) {
-        throw new Error(error.message || "Failed to request call");
+        throw await functionError(error, "Failed to request call");
       }
 
       if (data?.error) {

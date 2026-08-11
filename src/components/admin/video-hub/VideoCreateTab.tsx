@@ -22,6 +22,7 @@ import { useVideoBrandSettings } from "@/hooks/useVideoBrandSettings";
 import type { VideoBrandSettings } from "@/hooks/useVideoBrandSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { functionError } from "@/lib/functionError";
 
 interface VideoCreateTabProps {
   onComplete: () => void;
@@ -429,7 +430,7 @@ export function VideoCreateTab({ onComplete, editingProject, initialTemplateId, 
 
       if (error) {
         console.error("Render queue error:", error);
-        throw new Error(error.message || t("videoHub.create.renderFailed"));
+        throw await functionError(error, t("videoHub.create.renderFailed"));
       }
 
       if (data?.error) {

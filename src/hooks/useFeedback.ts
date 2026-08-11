@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { functionError } from "@/lib/functionError";
 
 export type FeedbackCategory = "service" | "app" | "support" | "other";
 
@@ -46,7 +47,7 @@ export function useFeedback() {
           },
         });
 
-        if (error) throw error;
+        if (error) throw await functionError(error);
         if (result?.error) throw new Error(result.error);
 
         // Set cooldown in localStorage

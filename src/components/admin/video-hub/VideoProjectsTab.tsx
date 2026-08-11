@@ -40,6 +40,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { StatusBadge, LanguageBadge, FormatBadge, RenderProgressBadge } from "./VideoBadges";
 import { VideoRenderDetailDialog } from "./VideoRenderDetailDialog";
 import { RenderVariantButtons } from "./RenderVariantButtons";
+import { extractFunctionError } from "@/lib/functionError";
 
 interface Filters {
   language: string;
@@ -93,7 +94,7 @@ export function VideoProjectsTab({ searchQuery, filters, onCreateNew, onEditProj
 
         if (error) {
           console.error("Render queue error:", error);
-          toast.error(error.message || t("videoHub.create.renderFailed"));
+          toast.error(await extractFunctionError(error, t("videoHub.create.renderFailed")));
         } else if (data?.error) {
           console.error("Render queue returned error:", data.error);
           toast.error(data.error);
@@ -121,7 +122,7 @@ export function VideoProjectsTab({ searchQuery, filters, onCreateNew, onEditProj
 
       if (error) {
         console.error("Render queue error:", error);
-        toast.error(error.message || t("videoHub.create.renderFailed"));
+        toast.error(await extractFunctionError(error, t("videoHub.create.renderFailed")));
       } else if (data?.error) {
         console.error("Render queue returned error:", data.error);
         toast.error(data.error);

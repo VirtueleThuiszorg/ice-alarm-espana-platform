@@ -21,6 +21,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { Database } from "@/integrations/supabase/types";
 import { generateReferralLink } from "@/lib/crmEvents";
+import { functionError } from "@/lib/functionError";
 
 type InviteStatus = Database["public"]["Enums"]["invite_status"];
 type InviteChannel = Database["public"]["Enums"]["invite_channel"];
@@ -173,7 +174,7 @@ export default function PartnerInvitesPage() {
           .from("partner_invites")
           .update({ status: "draft", sent_at: null })
           .eq("id", invite.id);
-        throw sendError;
+        throw await functionError(sendError);
       }
 
       return invite;

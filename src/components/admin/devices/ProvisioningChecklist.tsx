@@ -35,6 +35,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { extractFunctionError } from "@/lib/functionError";
 
 interface ProvisioningChecklistProps {
   deviceId: string;
@@ -251,7 +252,7 @@ function QuickProvisionButton({ deviceId: _deviceId, simPhoneNumber, onStepCompl
 
         if (error) {
           console.error(`Quick provision step ${step.key} failed:`, error);
-          toast.error(`Failed at: ${step.label}`);
+          toast.error(`Failed at: ${step.label} — ${await extractFunctionError(error, "unknown error")}`);
         } else {
           onStepComplete(step.key);
         }

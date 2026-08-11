@@ -14,6 +14,7 @@ import { logCommissionActivity } from "@/lib/auditLog";
 import { useTranslation } from "react-i18next";
 import { logCrmEvent } from "@/lib/crmEvents";
 import { Database } from "@/integrations/supabase/types";
+import { functionError } from "@/lib/functionError";
 
 type CommissionStatus = Database["public"]["Enums"]["commission_status"];
 
@@ -182,7 +183,7 @@ export default function CommissionsPage() {
   const triggerProcessing = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke("process-commissions");
-      if (error) throw error;
+      if (error) throw await functionError(error);
       return data;
     },
     onSuccess: (data) => {

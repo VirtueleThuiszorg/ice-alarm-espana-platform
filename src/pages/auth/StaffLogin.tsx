@@ -15,6 +15,7 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { Loader2, ArrowLeft, Shield, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
+import { staffPostLoginPath } from "@/config/constants";
 
 export default function StaffLogin() {
   const { refreshAuth } = useAuth();
@@ -22,7 +23,9 @@ export default function StaffLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const from = location.state?.from?.pathname || "/admin";
+  // No default here: the role decides its own home (staffPostLoginPath). Defaulting
+  // to "/admin" is what sent non-admin staff to a page they cannot open.
+  const from: string | null = location.state?.from?.pathname ?? null;
 
   // 2FA state
   const [needs2FA, setNeeds2FA] = useState(false);
@@ -51,11 +54,9 @@ export default function StaffLogin() {
     await refreshAuth();
     toast.success(t("auth.loginTitle"));
 
-    if (staffRole === "call_centre") {
-      navigate("/call-centre");
-    } else {
-      navigate(from.startsWith("/admin") ? from : "/admin");
-    }
+    // Shared with the member login page — see staffPostLoginPath for why this is
+    // an "admins vs everyone else" test and not a list of call-centre roles.
+    navigate(staffPostLoginPath(staffRole, from));
   };
 
   const onSubmit = async (values: LoginFormValues) => {

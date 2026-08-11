@@ -14,6 +14,7 @@ import { Logo } from "@/components/ui/logo";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { Loader2, ArrowLeft, Shield, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { staffPostLoginPath } from "@/config/constants";
 
 export default function Login() {
   const { t } = useTranslation();
@@ -70,11 +71,9 @@ export default function Login() {
         if (staffData && staffData.is_active) {
           await refreshAuth();
           toast.success(t("auth.loginTitle"));
-          if (staffData.role === "call_centre") {
-            navigate("/call-centre");
-          } else {
-            navigate("/admin");
-          }
+          // Same rule as the staff login page — one shared helper, so the two
+          // cannot drift apart again.
+          navigate(staffPostLoginPath(staffData.role));
           return;
         }
 

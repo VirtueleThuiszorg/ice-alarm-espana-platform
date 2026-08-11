@@ -23,6 +23,40 @@ export function isAdminRole(role: string | null | undefined): boolean {
   return role === ROLES.ADMIN || role === ROLES.SUPER_ADMIN;
 }
 
+/**
+ * Where a staff member's portal lives, by role.
+ *
+ * Deliberately expressed as "admins go to /admin, **every other** staff role goes
+ * to /call-centre" rather than as an allowlist of call-centre roles. An allowlist
+ * is what broke `call_centre_supervisor`: the login redirect tested
+ * `role === "call_centre"`, so the supervisor fell through to /admin, which
+ * `ProtectedRoute requireAdmin` then rejected to /unauthorized ("Access Denied").
+ *
+ * Since /admin is reachable only by `isAdminRole`, sending any non-admin staff
+ * role there is always wrong. Inverting the test means a future non-admin role
+ * lands somewhere it can actually reach, with no list to remember to update.
+ */
+export function staffLandingPath(role: string | null | undefined): "/admin" | "/call-centre" {
+  return isAdminRole(role) ? "/admin" : "/call-centre";
+}
+
+/**
+ * Post-login destination for a staff member, honouring an intended deep link
+ * (e.g. the page they were bounced off) only when their role can actually reach
+ * it. Falls back to the role's own portal home.
+ */
+export function staffPostLoginPath(
+  role: string | null | undefined,
+  intendedPath?: string | null
+): string {
+  const home = staffLandingPath(role);
+  if (!intendedPath) return home;
+
+  // Only honour a deep link into the portal this role belongs to; anything else
+  // would bounce straight back out to /unauthorized.
+  return intendedPath.startsWith(home) ? intendedPath : home;
+}
+
 // ============================================================
 //  Timeouts & Intervals (milliseconds)
 // ============================================================

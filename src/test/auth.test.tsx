@@ -43,6 +43,11 @@ vi.mock("lucide-react", () => ({
 
 // ---- Import the component under test AFTER mocks are set up ----
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { staffLandingPath, staffPostLoginPath } from "@/config/constants";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
+const readSrc = (p: string) => readFileSync(path.resolve(process.cwd(), p), "utf8");
 
 // ============================================================
 //  Helpers
@@ -213,6 +218,104 @@ describe("ProtectedRoute", () => {
     });
   });
 
+  // ------ Regression: call_centre_supervisor locked out of /call-centre ------
+  //
+  // Mary (call_centre_supervisor) could not reach /call-centre: the login redirect
+  // tested `role === "call_centre"`, so she fell through to /admin, which
+  // requireAdmin rejected to /unauthorized ("Access Denied"). Lee (super_admin) was
+  // unaffected because the admin bypass returns before any of that.
+  //
+  // The route itself (`/call-centre` → ProtectedRoute requireStaff) was never the
+  // bug — these tests pin that, so the guard cannot be "fixed" by loosening it.
+
+  describe.each(["call_centre", "call_centre_supervisor"])(
+    "%s reaches the call centre and is never signed out",
+    (role) => {
+      beforeEach(() => {
+        mockAuth.user = { id: "s-mary", email: "supervisor@careconneqt.es" };
+        mockAuth.isStaff = true;
+        mockAuth.staffRole = role;
+      });
+
+      it("passes the requireStaff guard that /call-centre uses", () => {
+        renderProtected({ requireStaff: true });
+        expect(screen.getByTestId("protected-content")).toBeInTheDocument();
+        expect(getNavigateTo()).toBeNull();
+      });
+
+      it("is NOT signed out when reaching the call centre", () => {
+        renderProtected({ requireStaff: true });
+        expect(mockAuth.signOut).not.toHaveBeenCalled();
+      });
+
+      it("is NOT signed out when rejected from an admin route", () => {
+        renderProtected({ requireAdmin: true });
+        // Rejection is a redirect, never a session teardown.
+        expect(getNavigateTo()).toBe("/unauthorized");
+        expect(mockAuth.signOut).not.toHaveBeenCalled();
+      });
+
+      it("keeps its session and user after an admin rejection", () => {
+        renderProtected({ requireAdmin: true });
+        expect(mockAuth.user).not.toBeNull();
+        expect(mockAuth.isStaff).toBe(true);
+        expect(mockAuth.staffRole).toBe(role);
+      });
+
+      it("is not bounced to a login page when rejected — only to /unauthorized", () => {
+        renderProtected({ requireAdmin: true });
+        const to = getNavigateTo();
+        expect(to).toBe("/unauthorized");
+        expect(to).not.toBe("/login");
+        expect(to).not.toBe("/staff/login");
+      });
+    }
+  );
+
+  describe("no ProtectedRoute rejection ever clears the session", () => {
+    // Every rejecting combination, across every role shape, must redirect without
+    // signing the user out. A rejection that tears down the session is what makes
+    // "Access Denied" look like "you have been logged out".
+    const cases: Array<{ name: string; auth: Partial<typeof defaultAuth>; props: Record<string, boolean> }> = [
+      {
+        name: "call_centre at /admin",
+        auth: { isStaff: true, staffRole: "call_centre" },
+        props: { requireAdmin: true },
+      },
+      {
+        name: "call_centre_supervisor at /admin",
+        auth: { isStaff: true, staffRole: "call_centre_supervisor" },
+        props: { requireAdmin: true },
+      },
+      {
+        name: "member at a staff route",
+        auth: { memberId: "m-1" },
+        props: { requireStaff: true },
+      },
+      {
+        name: "partner at a staff route",
+        auth: { isPartner: true, partnerId: "p-1" },
+        props: { requireStaff: true },
+      },
+      {
+        name: "roleless user at a partner route",
+        auth: {},
+        props: { requirePartner: true },
+      },
+    ];
+
+    it.each(cases)("$name redirects without signing out", ({ auth, props }) => {
+      mockAuth = { ...defaultAuth, ...auth, user: { id: "u", email: "u@test.invalid" }, signOut: vi.fn() };
+
+      renderProtected(props);
+
+      // Something happened (a redirect), and it was not a sign-out.
+      expect(getNavigateTo()).not.toBeNull();
+      expect(mockAuth.signOut).not.toHaveBeenCalled();
+      expect(mockAuth.user).not.toBeNull();
+    });
+  });
+
   // ------ Member access ------
 
   describe("member access", () => {
@@ -304,5 +407,117 @@ describe("ProtectedRoute", () => {
       renderProtected({ requirePartner: true });
       expect(getNavigateTo()).toBe("/unauthorized");
     });
+  });
+});
+
+// ============================================================
+//  Post-login destination — the actual bug
+// ============================================================
+//
+// The lockout was here, not in ProtectedRoute: the login pages tested
+// `role === "call_centre"` to decide whether to send a staff member to
+// /call-centre, so `call_centre_supervisor` fell through to /admin and was
+// rejected. These tests fail against that old allowlist.
+
+describe("staffLandingPath", () => {
+  it("sends call_centre_supervisor to /call-centre (the regression)", () => {
+    expect(staffLandingPath("call_centre_supervisor")).toBe("/call-centre");
+  });
+
+  it("sends call_centre to /call-centre", () => {
+    expect(staffLandingPath("call_centre")).toBe("/call-centre");
+  });
+
+  it("sends admin and super_admin to /admin", () => {
+    expect(staffLandingPath("admin")).toBe("/admin");
+    expect(staffLandingPath("super_admin")).toBe("/admin");
+  });
+
+  it("never sends a non-admin role to /admin, including roles that do not exist yet", () => {
+    // The point of inverting the test: an unrecognised staff role lands somewhere
+    // it can actually reach, instead of bouncing off requireAdmin.
+    for (const role of ["call_centre", "call_centre_supervisor", "some_future_role", "", null, undefined]) {
+      expect(staffLandingPath(role)).toBe("/call-centre");
+    }
+  });
+});
+
+describe("staffPostLoginPath", () => {
+  it("defaults each role to its own portal when there is no deep link", () => {
+    expect(staffPostLoginPath("call_centre_supervisor")).toBe("/call-centre");
+    expect(staffPostLoginPath("call_centre")).toBe("/call-centre");
+    expect(staffPostLoginPath("admin")).toBe("/admin");
+  });
+
+  it("returns a supervisor to the call-centre page they were bounced off", () => {
+    expect(staffPostLoginPath("call_centre_supervisor", "/call-centre/alerts")).toBe(
+      "/call-centre/alerts"
+    );
+  });
+
+  it("ignores an /admin deep link for non-admin staff instead of looping them through Access Denied", () => {
+    expect(staffPostLoginPath("call_centre_supervisor", "/admin")).toBe("/call-centre");
+    expect(staffPostLoginPath("call_centre", "/admin/members")).toBe("/call-centre");
+  });
+
+  it("honours an /admin deep link for admins", () => {
+    expect(staffPostLoginPath("admin", "/admin/members")).toBe("/admin/members");
+    expect(staffPostLoginPath("super_admin", "/admin/settings")).toBe("/admin/settings");
+  });
+
+  it("ignores a call-centre deep link for admins, landing them on /admin", () => {
+    expect(staffPostLoginPath("admin", "/call-centre/alerts")).toBe("/admin");
+  });
+
+  it("ignores unrelated deep links for every role", () => {
+    expect(staffPostLoginPath("call_centre_supervisor", "/dashboard")).toBe("/call-centre");
+    expect(staffPostLoginPath("admin", "/dashboard")).toBe("/admin");
+  });
+});
+
+// ============================================================
+//  Both login pages must use the shared helper
+// ============================================================
+//
+// Source-level assertions (the pattern holidayWorkflow.test.ts already uses) so
+// the two login pages cannot drift back into their own role allowlists — the
+// duplicate logic is why the same bug existed in both files.
+
+describe("login pages share one redirect rule", () => {
+  it.each([
+    ["src/pages/auth/StaffLogin.tsx", "staff login"],
+    ["src/pages/auth/Login.tsx", "member login"],
+  ])("%s calls staffPostLoginPath", (file) => {
+    const src = readSrc(file);
+    expect(src).toMatch(/staffPostLoginPath/);
+    expect(src).toMatch(/from "@\/config\/constants"/);
+  });
+
+  it.each([
+    ["src/pages/auth/StaffLogin.tsx"],
+    ["src/pages/auth/Login.tsx"],
+  ])("%s no longer hardcodes a call_centre role allowlist", (file) => {
+    const src = readSrc(file);
+    // The exact shape of the bug: branching the redirect on a single role literal.
+    expect(src).not.toMatch(/===\s*["']call_centre["']/);
+    expect(src).not.toMatch(/navigate\(\s*["']\/admin["']\s*\)/);
+  });
+});
+
+// ============================================================
+//  Unauthorized never signs anyone out
+// ============================================================
+
+describe("Unauthorized page", () => {
+  it("contains no sign-out call — Access Denied is not a logout", () => {
+    const src = readSrc("src/pages/auth/Unauthorized.tsx");
+    expect(src).not.toMatch(/signOut/);
+    expect(src).not.toMatch(/auth\.signOut/);
+  });
+
+  it("sends staff back to the staff login, not the member login", () => {
+    const src = readSrc("src/pages/auth/Unauthorized.tsx");
+    expect(src).toMatch(/isStaff \? "\/staff\/login" : "\/login"/);
+    expect(src).toMatch(/to=\{loginPath\}/);
   });
 });

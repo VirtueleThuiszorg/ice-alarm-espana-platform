@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Logo } from "@/components/ui/logo";
+import { functionError } from "@/lib/functionError";
 
 interface MemberData {
   id: string;
@@ -104,7 +105,7 @@ export default function MemberUpdatePage() {
         body: { token },
       });
 
-      if (error) throw error;
+      if (error) throw await functionError(error);
 
       if (!data.valid) {
         if (data.error === "token_expired") setStatus("expired");
@@ -175,7 +176,7 @@ export default function MemberUpdatePage() {
         },
       });
 
-      if (error) throw error;
+      if (error) throw await functionError(error);
 
       if (!data.success) {
         if (data.error === "token_expired") setStatus("expired");

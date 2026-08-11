@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import i18n from "@/i18n";
+import { functionError } from "@/lib/functionError";
 
 // The AI pipeline steps (enrich / rate / draft / full run) were archived with
 // their edge functions (archive/supabase-functions/) — only sending remains.
@@ -13,7 +14,7 @@ export function useOutreachPipeline() {
       const { data, error } = await supabase.functions.invoke("outreach-send-email", {
         body: draftIds && draftIds.length > 0 ? { draft_ids: draftIds } : { send_all_approved: true },
       });
-      if (error) throw error;
+      if (error) throw await functionError(error);
       return data;
     },
     onSuccess: (data) => {

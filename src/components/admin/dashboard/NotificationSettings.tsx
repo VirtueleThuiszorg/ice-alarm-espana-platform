@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Bell, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { functionError } from "@/lib/functionError";
 
 interface NotificationSettingsData {
   id?: string;
@@ -137,7 +138,7 @@ export function NotificationSettings() {
         },
       });
 
-      if (error) throw error;
+      if (error) throw await functionError(error);
 
       if (data?.results?.some((r: { status: string }) => r.status === "sent")) {
         toast.success("Test WhatsApp sent successfully!");

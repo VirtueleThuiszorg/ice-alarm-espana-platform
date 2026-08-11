@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { functionError } from "@/lib/functionError";
 
 export interface VideoRender {
   id: string;
@@ -117,7 +118,7 @@ export function useVideoRenders(projectId?: string) {
         body: { project_id: projectId }
       });
 
-      if (error) throw error;
+      if (error) throw await functionError(error);
       if (data?.error) throw new Error(data.error);
       return data;
     },

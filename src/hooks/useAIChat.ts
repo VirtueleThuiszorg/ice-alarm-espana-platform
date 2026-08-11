@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAIAgent } from "@/hooks/useAIAgents";
 import { streamIsabellaChat } from "@/lib/isabellaChatStream";
+import { functionError } from "@/lib/functionError";
 
 export interface ChatMessage {
   id: string;
@@ -337,7 +338,7 @@ export function useAIChat(options: UseAIChatOptions | string = {}) {
           body: { agentKey, context: chatContext },
         });
 
-        if (error) throw error;
+        if (error) throw await functionError(error);
 
         responseText = t("chat.fallbackMessage");
         if (data?.output) {

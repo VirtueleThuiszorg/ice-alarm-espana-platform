@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { toast } from "sonner";
+import { extractFunctionError } from "@/lib/functionError";
 
 export interface SmsCommandEntry {
   command: string;
@@ -163,7 +164,7 @@ export function useDeviceSmsCommands(deviceId: string) {
       toast.success(`Command "${entry.label}" sent`);
     },
     onError: (error: Error) => {
-      toast.error(`Failed to send command: ${error.message}`);
+      toast.error(`Failed to send command: ${await extractFunctionError(error, "unknown error")}`);
     },
   });
 

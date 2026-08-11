@@ -11,6 +11,7 @@ import { PublicHeader } from "@/components/layout/PublicHeader";
 import { CheckCircle, Heart, Send, Users, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { REGIONS, HOW_HEARD_OPTIONS } from "@/config/partnerTypes";
+import { extractFunctionError } from "@/lib/functionError";
 
 export default function PartnerOnboarding() {
   const { t } = useTranslation();
@@ -167,7 +168,7 @@ export default function PartnerOnboarding() {
                       // inspect the body for the duplicate marker.
                       const ctx = (error as { context?: Response }).context;
                       const body = ctx ? await ctx.json().catch(() => null) : null;
-                      throw new Error(body?.duplicate ? "duplicate" : body?.error || error.message);
+                      throw new Error(body?.duplicate ? "duplicate" : await extractFunctionError(error, "Failed to submit application"));
                     }
                     if (data?.error) throw new Error(data.error);
 

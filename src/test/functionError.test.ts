@@ -16,7 +16,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { FunctionsHttpError } from "@supabase/supabase-js";
-import { extractFunctionError } from "@/lib/functionError";
+import { extractFunctionError, functionError } from "@/lib/functionError";
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
 
@@ -38,15 +38,19 @@ describe("extractFunctionError — by execution", () => {
     );
   });
 
-  it("non-JSON body → falls back to the error's own message", async () => {
+  it("non-JSON body → the caller's fallback, NOT the generic non-2xx string", async () => {
     const err = httpError("<html>Bad Gateway</html>", { status: 502 });
-    // FunctionsHttpError's message is the generic non-2xx string
-    expect(await extractFunctionError(err, "fallback")).toBe(err.message);
+    // Behaviour change (deliberate): this used to return err.message, i.e. the
+    // literal "Edge Function returned a non-2xx status code" — the exact string a
+    // partner saw instead of a password rule. For a FunctionsHttpError that message
+    // is never informative, so the caller's fallback wins.
+    expect(await extractFunctionError(err, "fallback")).toBe("fallback");
+    expect(await extractFunctionError(err, "fallback")).not.toContain("non-2xx");
   });
 
   it("empty/whitespace error fields don't win over the fallback ladder", async () => {
     const err = httpError(JSON.stringify({ error: "" }));
-    expect(await extractFunctionError(err, "fallback")).toBe(err.message);
+    expect(await extractFunctionError(err, "fallback")).toBe("fallback");
   });
 
   it("plain Error → its message; unknown junk → the caller's fallback", async () => {
@@ -65,7 +69,7 @@ describe("extractFunctionError — by execution", () => {
     const response = new Response(JSON.stringify({ error: "x" }), { status: 400 });
     await response.json(); // consume it first
     const err = new FunctionsHttpError(response);
-    expect(await extractFunctionError(err, "fallback")).toBe(err.message);
+    expect(await extractFunctionError(err, "fallback")).toBe("fallback");
   });
 });
 
@@ -80,5 +84,84 @@ describe("the staff hooks actually use it (source contracts)", () => {
     const hook = read("src/hooks/useStaffInvites.ts");
     expect(hook).toMatch(/extractFunctionError\(response\.error, "Failed to send invitation"\)/);
     expect(hook).not.toMatch(/response\.error\.message \|\| "Failed to send invitation"/);
+  });
+});
+
+// ============================================================
+//  The reported production failure, asserted directly
+// ============================================================
+//
+// A partner submitted /partner/join. partner-register rejected the password and
+// logged `Validation failed: [ "password: Invalid" ]`. The browser showed only
+// "Edge Function returned a non-2xx status code".
+//
+// `_shared/validation.ts` returns
+//   { error: "Invalid request data", details: ["password: Invalid"] }
+// so `body.error` alone is "Invalid request data" — it names neither the field
+// nor the rule. These tests fail against the pre-fix helper, which returned
+// exactly that.
+
+describe("validation rejects reach the user with the field and rule", () => {
+  it("includes the details, not just the headline", async () => {
+    const err = httpError(
+      JSON.stringify({ error: "Invalid request data", details: ["password: Invalid"] }),
+      { status: 400 },
+    );
+
+    const message = await extractFunctionError(err, "Registration failed");
+
+    expect(message).toContain("password");
+    // The pre-fix helper stopped at the headline; that is the regression.
+    expect(message).not.toBe("Invalid request data");
+    expect(message).not.toContain("non-2xx");
+  });
+
+  it("joins multiple field errors so none is hidden", async () => {
+    const err = httpError(
+      JSON.stringify({
+        error: "Invalid request data",
+        details: ["password: Invalid", "payout_iban: String must contain at least 1 character(s)"],
+      }),
+      { status: 400 },
+    );
+
+    const message = await extractFunctionError(err, "Registration failed");
+
+    expect(message).toContain("password");
+    expect(message).toContain("payout_iban");
+  });
+
+  it("accepts a details string as well as an array", async () => {
+    const err = httpError(JSON.stringify({ error: "Nope", details: "password: Invalid" }), {
+      status: 400,
+    });
+    expect(await extractFunctionError(err, "fallback")).toContain("password: Invalid");
+  });
+
+  it("ignores an empty or non-string details payload", async () => {
+    const empty = httpError(JSON.stringify({ error: "Nope", details: [] }), { status: 400 });
+    expect(await extractFunctionError(empty, "fallback")).toBe("Nope");
+
+    const junk = httpError(JSON.stringify({ error: "Nope", details: { a: 1 } }), { status: 400 });
+    expect(await extractFunctionError(junk, "fallback")).toBe("Nope");
+  });
+
+  it("functionError wraps the same message as a throwable Error", async () => {
+    const err = httpError(
+      JSON.stringify({ error: "Invalid request data", details: ["password: Invalid"] }),
+      { status: 400 },
+    );
+
+    const wrapped = await functionError(err, "Registration failed");
+
+    expect(wrapped).toBeInstanceOf(Error);
+    expect(wrapped.message).toContain("password");
+  });
+
+  it("functionError defaults its fallback rather than leaking the generic string", async () => {
+    const err = httpError("<html>502</html>", { status: 502 });
+    const wrapped = await functionError(err);
+    expect(wrapped.message).not.toContain("non-2xx");
+    expect(wrapped.message).toBe("Request failed");
   });
 });

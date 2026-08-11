@@ -57,6 +57,16 @@ export function staffPostLoginPath(
   return intendedPath.startsWith(home) ? intendedPath : home;
 }
 
+/**
+ * The partner portal's home. Named so the login redirect, ProtectedRoute's
+ * partner bounce, and the sidebar cannot drift onto different paths.
+ *
+ * Reaching it requires `isPartner` in AuthContext, which `get_user_role_info`
+ * only reports for a `partners` row with `status = 'active'` — so a login page
+ * must `await refreshAuth()` before navigating here, or it races the role fetch.
+ */
+export const PARTNER_DASHBOARD_PATH = "/partner-dashboard";
+
 // ============================================================
 //  Timeouts & Intervals (milliseconds)
 // ============================================================

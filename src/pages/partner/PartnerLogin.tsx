@@ -12,6 +12,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { Loader2, Handshake } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { PARTNER_DASHBOARD_PATH } from "@/config/constants";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email"),
@@ -22,6 +24,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function PartnerLogin() {
   const { t } = useTranslation();
+  const { refreshAuth } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -71,8 +74,25 @@ export default function PartnerLogin() {
         throw new Error("Your partner account has been suspended. Please contact support.");
       }
 
+      // Populate the role context BEFORE navigating. /partner-dashboard is
+      // `ProtectedRoute requirePartner`, which reads isPartner/partnerId out of
+      // AuthContext — not out of the `partners` row we just queried above. Without
+      // this await, the redirect races AuthContext's onAuthStateChange listener and
+      // ProtectedRoute can evaluate while isPartner is still false, bouncing a
+      // legitimate partner to /unauthorized.
+      //
+      // It also covers the sticky case the listener cannot: it only refetches when
+      // `session.user.id !== lastFetchedUserId.current`, so a partner whose role was
+      // fetched earlier in this page load while still `pending` (get_user_role_info
+      // gates is_partner on status='active') would never be re-read after
+      // verification. refreshAuth forces the re-read.
+      //
+      // The staff and member login pages have always awaited refreshAuth here; this
+      // page was the only one that did not.
+      await refreshAuth();
+
       toast.success("Welcome back!");
-      navigate("/partner-dashboard");
+      navigate(PARTNER_DASHBOARD_PATH);
     } catch (error) {
       console.error("Login error:", error);
       toast.error(error instanceof Error ? error.message : "Login failed");

@@ -251,6 +251,23 @@ messages unassign `""`→`null` bug; `callCentreCrud.test.ts` 11 tests).
 
 **Test surface reality:** 23 Vitest files in `src/test/`. Still **zero** RLS/isolation tests and **zero** Playwright/E2E harness. The SOS escalation ladder now has a suite-level E2E encoding (`sosEscalation.e2e.test.ts`) plus edge-logic tests (`escalationLoop.test.ts`, `shiftTime.test.ts`) that exercise shared edge modules under vitest — but the mandated Playwright E2E paths (checkout→activation, SOS→operator UI) and the RLS-isolation/webhook-contract suites still have no corresponding files.
 
+> **CORRECTION 2026-08-11 — "zero Playwright/E2E harness" above is out of date.** Playwright
+> landed 2026-07-22: `playwright.config.ts`, the `Page Audit` CI workflow, and
+> `e2e/public.spec.ts` (14 public routes × 7 checks). This PR adds the first
+> **authenticated** journey, `e2e/partnerJourney.spec.ts`, driving register → verify →
+> log in → dashboard against the production bundle in real Chromium.
+>
+> What remains true, stated precisely so this does not rot again:
+> - The journey harness stubs **Supabase's HTTP surface** (`e2e/helpers/supabaseStub.ts`).
+>   It proves the client journey and the request contract. It does **not** prove a
+>   migration, an RLS policy, a DB constraint, GoTrue's real behaviour, or email delivery.
+>   A full-stack run needs `supabase start`, i.e. Docker.
+> - The **two mandated E2E paths are still owed**: checkout→activation and SOS→operator.
+>   The partner journey is neither of them.
+> - **RLS isolation tests remain at zero** — still the single biggest gap (§3).
+> - The `Page Audit` job is **RED on `main`** at `ed290ec`, on the `/` and `/pricing`
+>   dead-button assertions ("Monthly"/"Annual"). Not caused by this work; see §3.
+
 > **Two stacked PRs.** The escalation safety fix is a **tiny 11-file PR (PR-B)** on top of a
 > mechanical cleanup PR (**PR-A** `chore: repo-wide lint + type + test-env cleanup` — `no-explicit-any`
 > typing, `crmEvents`/`supabaseUrl` test-env, lint config; no escalation logic). **Merge order: PR-A
@@ -346,7 +363,7 @@ messages unassign `""`→`null` bug; `callCentreCrud.test.ts` 11 tests).
 ### ⬜ MISSING (expected by plan/CLAUDE.md, not present)
 - **Monorepo** (`apps/platform`, `apps/hub`, `packages/{ui,database,ai,config}`, `services/ingestion`) — none exist (see RECONCILE.md).
 - **"Clara" assistant on Anthropic** (plan WP7) — the assistant is Isabella on the Lovable gateway.
-- **E2E harness** (Playwright/Cypress) + the two mandated E2E paths (checkout→activation, SOS→operator).
+- ~~**E2E harness** (Playwright/Cypress)~~ **→ EXISTS** since 2026-07-22 (`playwright.config.ts`, `Page Audit` workflow, `e2e/public.spec.ts`), extended 2026-08-11 with the first authenticated journey (`e2e/partnerJourney.spec.ts`, Supabase HTTP stubbed — see the correction in §2). **The two mandated E2E paths are still owed:** checkout→activation and SOS→operator.
 - **RLS isolation test suite** (golden rule #2, plan §13).
 - **Webhook contract tests** (plan §13).
 - **Tool-permission tests** for the 6 hard-blocked tools (they're absent by construction, not asserted by a test).

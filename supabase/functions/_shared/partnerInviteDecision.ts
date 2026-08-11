@@ -28,6 +28,21 @@ export type InviteDecision =
 
 export function decidePartnerInvite(
   existingStatus: PartnerStatus | null | undefined,
+  /**
+   * Whether the existing row already has an `auth.users` link.
+   *
+   * REQUIRED to tell the two `pending` rows apart, which look identical otherwise:
+   *   - partner-apply  (/partner)      -> pending, NO user_id  = a true application
+   *   - partner-register (/partner/join) -> pending, user_id SET = someone who
+   *     registered themselves, chose a password, and is awaiting email verification
+   *
+   * Converting the second kind is wrong and actively harmful: it would set their
+   * status to `invited` while keeping their user_id, and an `invited` row with a
+   * user_id passes PartnerLogin's status check but is then refused by
+   * get_user_role_info (which grants is_partner only on `active`) — dropping a
+   * partner who has working credentials into /unauthorized with no way out.
+   */
+  hasUserId = false,
 ): InviteDecision {
   if (existingStatus == null) return { action: "create" };
 
@@ -36,7 +51,18 @@ export function decidePartnerInvite(
       return { action: "reinvite" };
 
     case "pending":
-      // The application path. This is the case Option C turns on.
+      if (hasUserId) {
+        // Self-registered via /partner/join and awaiting email verification. They
+        // already have credentials; re-inviting them would break the login they
+        // already hold. Resending the verification email is the correct action.
+        return {
+          action: "reject",
+          reason:
+            "This partner registered themselves and is awaiting email verification. " +
+            "Resend their verification email instead of converting the application.",
+        };
+      }
+      // A true application from /partner. This is the case Option C turns on.
       return { action: "convert" };
 
     case "active":

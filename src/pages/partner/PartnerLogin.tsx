@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { Loader2, Handshake } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { PARTNER_DASHBOARD_PATH } from "@/config/constants";
+import { partnerLoginRefusal } from "@/lib/partnerLoginRefusal";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email"),
@@ -61,17 +62,24 @@ export default function PartnerLogin() {
 
       if (!partner) {
         await supabase.auth.signOut();
-        throw new Error("No partner account found for this email. Please register first.");
+        // The lookup above is by user_id, not email — an application row from
+        // /partner has no user_id, so this is what its applicant sees. Worded to
+        // match what actually happened rather than blaming the address.
+        throw new Error(
+          "No partner account is linked to this login yet. If you applied through the partner page, we will email you an invitation once your application is reviewed."
+        );
       }
 
-      if (partner.status === "pending") {
+      // ALLOWLIST, not a denylist. get_user_role_info grants is_partner ONLY for
+      // status='active', so anything else must be refused HERE with a reason the
+      // partner can act on. The previous code denied only `pending` and
+      // `suspended`, which let `invited` fall through: the login succeeded and
+      // ProtectedRoute then bounced them to /unauthorized with no explanation.
+      // `partner_status` already gained a fourth value once (`invited`,
+      // 20260303160000), so a denylist here is a standing liability.
+      if (partner.status !== "active") {
         await supabase.auth.signOut();
-        throw new Error("Your account is pending verification. Please check your email for the verification link.");
-      }
-
-      if (partner.status === "suspended") {
-        await supabase.auth.signOut();
-        throw new Error("Your partner account has been suspended. Please contact support.");
+        throw new Error(partnerLoginRefusal(partner.status));
       }
 
       // Populate the role context BEFORE navigating. /partner-dashboard is

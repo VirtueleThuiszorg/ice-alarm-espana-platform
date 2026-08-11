@@ -873,7 +873,8 @@
     },
     "footer": {
       "links": "Links",
-      "legal": "Legal"
+      "legal": "Legal",
+      "partnerLogin": "Partner login"
     },
     "ourDifference": "Our Difference"
   },
@@ -5517,7 +5518,9 @@
     "region": "Region",
     "selectRegion": "Select your region",
     "howHeard": "How did you hear about us?",
-    "selectHowHeard": "Select option"
+    "selectHowHeard": "Select option",
+    "alreadyPartner": "Already a partner?",
+    "signIn": "Sign in to your dashboard"
   },
   "partnerLogin": {
     "title": "Partner Login",

@@ -873,7 +873,8 @@
     },
     "footer": {
       "links": "Links",
-      "legal": "Juridisch"
+      "legal": "Juridisch",
+      "partnerLogin": "Partner inloggen"
     },
     "ourDifference": "Ons verschil"
   },
@@ -5517,7 +5518,9 @@
     "region": "Regio",
     "selectRegion": "Selecteer uw regio",
     "howHeard": "Hoe heeft u over ons gehoord?",
-    "selectHowHeard": "Selecteer een optie"
+    "selectHowHeard": "Selecteer een optie",
+    "alreadyPartner": "Al partner?",
+    "signIn": "Meld je aan bij je dashboard"
   },
   "partnerLogin": {
     "title": "Partnerlogin",

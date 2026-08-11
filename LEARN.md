@@ -86,6 +86,27 @@ Deliberately **not** touched: `index.html`, `.github/workflows/deploy-functions.
 two cron migrations (`20260716120000`, `20260723120000`) — the latter are the SOS-escalation
 path and already correct.
 
+### 2026-08-11 — Staff credential resets are now scripted, guarded and reversible
+Manual credential surgery is what diverged `auth.users` from `public.staff` and broke staff
+login. Replaced by `scripts/reset-staff-logins.ts` (separate PR): env-only config, account
+list from a gitignored file, dry-run by default, `activity_logs` entry per change, passwords
+never printed or persisted. Two learnings worth keeping:
+**(1) A guard that cannot verify must refuse, not pass.** The script compares the `ref` claim
+inside the service key against the `SUPABASE_URL` host and refuses on mismatch — the exact
+failure we hit. Newer `sb_secret_*` keys are opaque, so the ref is unreadable; the script
+treats "cannot check" as a refusal (explicit loud override exists) rather than silently
+proceeding. Proven negatively by a test that feeds a mismatched pair and asserts refusal.
+**(2) Cross-system writes need a pre-flight and a halt, not a try/catch.** Every account is
+resolved against `public.staff` before the first write, so a bad account aborts while the DB
+is untouched; if the staff update fails after the auth update succeeded, the run raises and
+**halts** so no further account can diverge.
+Second admin added as migration `20260811120000` rather than a hand-run INSERT — identity
+supplied at apply time via a setting so nothing real is committed, guarded no-op when unset
+(the STAGE_0B un-guarded `current_setting` lesson again), and reversible via prior state
+captured in `activity_logs`. Verified against real PostgreSQL 16 across 8 paths including
+both rollback directions. Re-confirmed the `is_active` trap: it is GENERATED, and writing it
+directly still raises `column "is_active" can only be updated to DEFAULT`.
+
 ### 2026-07-22 — Stage 0 verified: prod functions stale since 2026-04-20; 721/day cron spike
 Tokened read-only pass on `crpsuhoixfdhjugprbuc` (parallel session). Findings: **5 migrations
 unapplied** (incl. `pricing_source` → gates Prompt 4), **2 functions never deployed**, and **all

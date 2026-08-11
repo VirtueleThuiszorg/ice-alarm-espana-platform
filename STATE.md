@@ -26,6 +26,22 @@
 | B7 | 6 email-template logo URLs | ✅ FIXED | All six `_shared/email-templates/*.tsx` carried the placeholder. Now the real ref. ⚠️ **Still owed:** upload the logo to the `email-assets/logo.png` storage object — until then the images 404 (templates are currently unreferenced by any function, so no live email is affected). |
 | B8 | Untouched by design | — | `index.html`, `.github/workflows/deploy-functions.yml`, and the two cron migrations (`20260716120000`, `20260723120000`) already name the authoritative ref. The cron pair is the **SOS-escalation path** — not edited (G1 / human gate). |
 
+## Staff credential reset tooling (2026-08-11)
+
+> Landed on a **separate branch/PR** (`…-staff-login-reset`). Recorded here because
+> `STATE.md` is the single home for status; the code is not in the docs PR.
+
+| # | Item | Status | Evidence |
+|---|---|---|---|
+| C1 | `scripts/reset-staff-logins.ts` | ✅ VERIFIED | One-shot reset of staff email+password. Env-only config; account list from a gitignored file or `STAFF_LOGINS_CONFIG`. No address, password or key committed. Dry-run default, `--apply` to write. |
+| C2 | Project-ref guard | ✅ VERIFIED — proven negatively | Refuses to run when the service key's `ref` claim ≠ the `SUPABASE_URL` host. Also refuses an opaque `sb_secret_*` key, since the check then cannot be performed. Test feeds a mismatched pair and asserts refusal; CLI exits 1. This is the failure that broke staff login. |
+| C3 | auth ↔ staff lock-step | ✅ VERIFIED | All accounts pre-flighted against `public.staff` before the first write, so an unresolvable account aborts with the DB untouched. If the staff update fails after auth succeeded, raises `DivergenceError` and halts rather than diverging further accounts. |
+| C4 | Audit trail | ✅ VERIFIED | Each change inserts an `activity_logs` row recording which fields changed. Password never printed, never stored; emails masked unless `--unmask`. |
+| C5 | Dry-run diff | ✅ VERIFIED | End-to-end test runs `main()` against a stub client: asserts the full per-account diff prints and that the **only** DB calls are the two staff lookups — no write of any kind. |
+| C6 | `20260811120000_second_admin_staff_row.sql` | ✅ VERIFIED | Creates/promotes one staff row to `role='admin'`, `status='active'`. Never writes the GENERATED `is_active` (the 20260617130000 bug). Identity supplied at apply time via a setting, so nothing real is committed. Guarded no-op when unset, so `db push` still succeeds on CI. |
+| C7 | Migration reversibility | ✅ VERIFIED — executed | Exercised against real PostgreSQL 16 across 8 paths: no-op, missing auth user (raises, no change), create, idempotent re-run, promote, rollback of the created row, rollback of the promote restoring `call_centre`/`pending` exactly, and a direct `is_active` write confirming it raises. Prior role/status captured in `activity_logs` so the header's rollback is exact. |
+| C8 | Tests | ✅ VERIFIED | 53 new tests pass; full suite 810 passed / 1 pre-existing skip. `scripts/` typechecks strict and lints clean. |
+
 ## Stage 0 — Prod backend verification (2026-07-22, LAUNCH_SCOPE.md §0)
 
 > Read-only pass on `crpsuhoixfdhjugprbuc`. **Nothing on prod was changed.** Statuses:

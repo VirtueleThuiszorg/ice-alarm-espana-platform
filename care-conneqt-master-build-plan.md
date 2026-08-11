@@ -37,7 +37,7 @@ A focused direct-to-consumer connected-care business in Spain, selling four prod
 |---|---|
 | Renovate vs rebuild | **Evolved the existing app** (rebranded ICE/Lovable base) — *not* the greenfield rebuild originally planned. Reconciled to reality 2026-06-18. |
 | Repo | **Single Vite SPA, npm** (not a monorepo); existing git history retained. |
-| Backend | **One Supabase project** (`crpsuhoixfdhjugprbuc` — care-conneqt-prod, LifeLink Sync org, Pro; LOCKED 2026-07-22 per LAUNCH_SCOPE.md §0). One identity plane, one data plane. *The planned migration to `cfwnrcogikjycjcobsay` is **CANCELLED**.* |
+| Backend | **One Supabase project** (`crpsuhoixfdhjugprbuc` — care-conneqt-prod, LifeLink Sync org, Pro; LOCKED 2026-07-22 per LAUNCH_SCOPE.md §0). One identity plane, one data plane. Dashboard-confirmed 2026-08-11. *The planned migration to `cfwnrcogikjycjcobsay` is **CANCELLED** (historical); `qkfvojbcxaptufsepupo` is **DEFERRED**, not deleted. Per-file ref map: `PROJECT_REFS.md`.* |
 | Surfaces | **One app, route-group separation:** client (`src/pages/{client,join}` + marketing) vs staff/admin (`src/pages/{admin,call-centre,staff,partner}`). |
 | HR / workforce | **Consolidated into the one backend**, walled by role (not a separate DB). |
 | Payments | **Stripe + Mollie** — Products/Prices, subscriptions, SEPA + cards, Customer Portal, webhook-driven. |

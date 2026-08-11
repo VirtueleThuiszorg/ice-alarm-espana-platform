@@ -2,6 +2,24 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
+/**
+ * Reads a required build-time env var, or aborts the build naming what is missing.
+ * Replaces the old silent placeholder fallbacks (see the `define` block below).
+ */
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(
+      `${name} is not set. The Supabase client cannot be built without it.\n` +
+        `  Local dev : copy .env.example to .env and fill it in.\n` +
+        `  CI        : set in .github/workflows/ci.yml.\n` +
+        `  Vercel    : set in the project's Environment Variables.\n` +
+        `This used to fall back to a placeholder host and fail silently at runtime.`
+    );
+  }
+  return value;
+}
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
@@ -18,15 +36,18 @@ export default defineConfig(({ mode }) => ({
     },
   },
   define: {
-    // TODO: Hardcoded Supabase fallbacks are an anti-pattern — missing env vars
-    // silently connect to the fallback instead of failing loud. Consider removing
-    // these defaults so a missing .env is caught immediately at dev startup.
+    // Fail loud, never silent (GOALS.md G2). These used to fall back to unresolved
+    // rebrand placeholders, so a missing .env produced a client pointed at a
+    // non-existent host with no error at all — auth is a critical path and it
+    // failed quietly. There is deliberately no default:
+    // substituting the real project URL would be worse still, since a missing
+    // .env would then silently connect a dev build to production.
+    // CI supplies these in .github/workflows/ci.yml; Vercel must have them set.
     "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(
-      process.env.VITE_SUPABASE_URL ?? "https://YOUR_SUPABASE_PROJECT_REF.supabase.co"
+      requireEnv("VITE_SUPABASE_URL")
     ),
     "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
-      process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
-        "YOUR_SUPABASE_ANON_KEY"
+      requireEnv("VITE_SUPABASE_PUBLISHABLE_KEY")
     ),
   },
   build: {

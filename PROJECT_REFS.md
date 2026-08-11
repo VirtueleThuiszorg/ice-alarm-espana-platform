@@ -8,29 +8,38 @@
 
 ---
 
-## 0. Verdict
+## 0. Verdict — CONFIRMED by Lee 2026-08-11
 
 **`crpsuhoixfdhjugprbuc` (care-conneqt-prod, LifeLink Sync org, Pro) is authoritative.**
 
-The `/goal` that commissioned this audit quoted `LEARN.md` **2026-06-17**, which states
-that `cfwnrcogikjycjcobsay` is live and `crpsuhoixfdhjugprbuc` is stale. **That entry was
-superseded five weeks later and is now false.** It is retained in the log because
-`LEARN.md` §4 is explicitly append-only ("Never delete entries") — its presence is not
-an assertion of current truth.
+Confirmed against the Supabase dashboard: **Pro tier, 24,299 requests at 100%, real
+migration history, backup 7 hours old.** This independently corroborates every piece of
+repo evidence in §1.
 
-Consequently the goal's stop condition — *"`grep -rn 'crpsuhoixfdhjugprbuc'` returns zero
-hits"* — is **inverted**: satisfying it would strip the live production ref out of the repo
-and replace it with a project documented as CANCELLED. See §4 for why that is unsafe and
-what was therefore *not* changed.
+The `/goal` that commissioned this audit quoted `LEARN.md` **2026-06-17**, which states
+that `cfwnrcogikjycjcobsay` is live and `crpsuhoixfdhjugprbuc` is stale. **That entry is
+wrong.** It was superseded five weeks later, and is retained only because `LEARN.md` §4 is
+append-only ("Never delete entries"). Both 2026-06-17 entries now carry an explicit
+⛔ SUPERSEDED banner in place, so the claim can never again be read as current.
+
+Consequently the goal's original stop condition — *"`grep -rn 'crpsuhoixfdhjugprbuc'`
+returns zero hits"* — was **inverted**: satisfying it would have stripped the live
+production ref out of the repo and replaced it with a cancelled project. It was **not
+executed**; see §4. The revised stop condition is in §6.
 
 ### Refs in play
 
 | Ref | Project | Status |
 |---|---|---|
-| `crpsuhoixfdhjugprbuc` | care-conneqt-prod (LifeLink Sync, Pro) | ✅ **AUTHORITATIVE** — LOCKED 2026-07-22, `LAUNCH_SCOPE.md` §0 |
-| `cfwnrcogikjycjcobsay` | Lee-owned migration target | ⛔ **CANCELLED** 2026-07-22 — never a deploy target again |
-| `qkfvojbcxaptufsepupo` | empty (VirtueleThuiszorg org, Free) | 🗑️ to be **deleted** |
+| `crpsuhoixfdhjugprbuc` | care-conneqt-prod (LifeLink Sync, Pro) | ✅ **AUTHORITATIVE** — LOCKED 2026-07-22, dashboard-confirmed 2026-08-11 |
+| `cfwnrcogikjycjcobsay` | Lee-owned migration target | ⛔ **CANCELLED** 2026-07-22 — never was live, never a deploy target again |
+| `qkfvojbcxaptufsepupo` | care-conneqt-platform (VirtueleThuiszorg, Free) | 🕓 **DEFERRED** — empty (no migrations, no backups). A possible **future** migration target. **Not** to be deleted; the earlier delete decision is **withdrawn**. |
 | `pduhccavshrhfkfbjgmj` | ICE (pre-rebrand Lovable Cloud) | ☠️ **dead** — "never touch" |
+
+> **Decision reversal recorded.** `qkfvojbcxaptufsepupo` was previously marked "to be
+> DELETED to prevent accidental use" in `LAUNCH_SCOPE.md` §0, `LAUNCH_CHECKLIST.md` and
+> `AUDIT_NIGHT.md` item 55. All three were corrected on 2026-08-11 — it is DEFERRED, not
+> stale, and deleting it is no longer a launch task.
 
 ---
 
@@ -94,14 +103,14 @@ or unresolved in a file that executes.
 | `.env.example` | 29 | `crpsuhoixfdhjugprbuc` | **CURRENT** — names backend for `supabase secrets set` |
 | `supabase/migrations/20260716120000_sos_escalation_cron.sql` | 66, 88 | `crpsuhoixfdhjugprbuc` | **CURRENT** — ⚠️ **SOS path**, see §4 |
 | `supabase/migrations/20260723120000_fix_cron_url_and_auth.sql` | 50, 72 | `crpsuhoixfdhjugprbuc` | **CURRENT** — ⚠️ applied cron URLs, see §4 |
-| `vercel.json` | 5 | `YOUR_SUPABASE_PROJECT_REF` | 🐛 **BUG** — unresolved placeholder, see §3.1 |
-| `vite.config.ts` | 25 | `YOUR_SUPABASE_PROJECT_REF` | 🐛 **BUG** — unresolved placeholder, see §3.2 |
-| `supabase/functions/_shared/email-templates/invite.tsx` | 35 | `YOUR_SUPABASE_PROJECT_REF` | 🐛 **BUG** — see §3.3 |
-| `…/signup.tsx` | 37 | `YOUR_SUPABASE_PROJECT_REF` | 🐛 **BUG** — see §3.3 |
-| `…/email-change.tsx` | 37 | `YOUR_SUPABASE_PROJECT_REF` | 🐛 **BUG** — see §3.3 |
-| `…/recovery.tsx` | 32 | `YOUR_SUPABASE_PROJECT_REF` | 🐛 **BUG** — see §3.3 |
-| `…/magic-link.tsx` | 32 | `YOUR_SUPABASE_PROJECT_REF` | 🐛 **BUG** — see §3.3 |
-| `…/reauthentication.tsx` | 27 | `YOUR_SUPABASE_PROJECT_REF` | 🐛 **BUG** — see §3.3 |
+| `vercel.json` | 5 | was `YOUR_SUPABASE_PROJECT_REF` | ✅ **FIXED** — now the authoritative ref, see §3.1 |
+| `vite.config.ts` | — | was `YOUR_SUPABASE_PROJECT_REF` | ✅ **FIXED** — placeholder removed, now fails loud, see §3.2 |
+| `supabase/functions/_shared/email-templates/invite.tsx` | 35 | was `YOUR_SUPABASE_PROJECT_REF` | ✅ **FIXED** — see §3.3 |
+| `…/signup.tsx` | 37 | was `YOUR_SUPABASE_PROJECT_REF` | ✅ **FIXED** — see §3.3 |
+| `…/email-change.tsx` | 37 | was `YOUR_SUPABASE_PROJECT_REF` | ✅ **FIXED** — see §3.3 |
+| `…/recovery.tsx` | 32 | was `YOUR_SUPABASE_PROJECT_REF` | ✅ **FIXED** — see §3.3 |
+| `…/magic-link.tsx` | 32 | was `YOUR_SUPABASE_PROJECT_REF` | ✅ **FIXED** — see §3.3 |
+| `…/reauthentication.tsx` | 27 | was `YOUR_SUPABASE_PROJECT_REF` | ✅ **FIXED** — see §3.3 |
 
 **Two findings the goal's file list anticipated but the repo refutes:**
 
@@ -138,17 +147,17 @@ cancelled runbook falsifies the history that makes the current decision auditabl
 
 | File | Line(s) | Ref | Why it is correct as-is |
 |---|---|---|---|
-| `LEARN.md` | 71, 81, 97, 102, 106, 107, 123, 130, 133, 238, 253, 255, 261, 262 | `cfwnrcogikjycjcobsay` | Append-only dated log; 2026-07-22 entry supersedes 2026-06-17 |
-| `LEARN.md` | 82 | `qkfvojbcxaptufsepupo` | Records the delete decision |
+| `LEARN.md` | 2026-06-17 entries et al. | `cfwnrcogikjycjcobsay` | Append-only dated log. **Both 2026-06-17 entries now carry an inline ⛔ SUPERSEDED banner** naming the 2026-08-11 confirmation, so the wrong claim cannot be read as current. |
+| `LEARN.md` | 2026-07-22 entry | `qkfvojbcxaptufsepupo` | Records the (now withdrawn) delete decision; the 2026-08-11 entry records the reversal to DEFERRED |
 | `LEARN.md` | 100, 262 | `pduhccavshrhfkfbjgmj` | Records "dead ICE, never touch" |
 | `LEARN.md` | 67, 98, 122, 252, 260, 265, 268 | `crpsuhoixfdhjugprbuc` | Dated entries, incl. two self-flagged stale TODOs (122, 268) |
 | `CUTOVER_RUNBOOK.md` | 1, 5, 7, 11, 15, 16, 25, 31, 232, 235, 253–256, 268, 269, 275, 298, 352, 362 | `cfwnrcogikjycjcobsay` | Whole doc is ⛔-cancelled at line 3–7 |
 | `CUTOVER_RUNBOOK.md` | 353, 363 | `crpsuhoixfdhjugprbuc` | Cancelled plan's "retire the old project" steps |
 | `CUTOVER_CHECKLIST.md` | 3, 8, 23, 45 | `cfwnrcogikjycjcobsay` | Whole doc is ⛔-cancelled at line 3 |
-| `LAUNCH_SCOPE.md` | 16, 18 | cancelled + to-delete | States the cancellation/deletion decisions |
-| `LAUNCH_CHECKLIST.md` | 87 | `qkfvojbcxaptufsepupo` | Open task: delete the empty project |
-| `AUDIT_NIGHT.md` | 224 | `qkfvojbcxaptufsepupo` | Open prod task item 55 |
-| `CLAUDE.md` | 59 | both cancelled refs | Names them *as* cancelled/to-delete — the useful form |
+| `LAUNCH_SCOPE.md` | §0 | cancelled + deferred | ✏️ **CORRECTED** — "to be DELETED" → **DEFERRED**, decision withdrawn |
+| `LAUNCH_CHECKLIST.md` | ~87 | `qkfvojbcxaptufsepupo` | ✏️ **CORRECTED** — delete task struck through and marked WITHDRAWN; no longer a launch item |
+| `AUDIT_NIGHT.md` | ~224 | `qkfvojbcxaptufsepupo` | ✏️ **CORRECTED** — item 55's deletion clause struck through and marked WITHDRAWN |
+| `CLAUDE.md` | Stack | both non-authoritative refs | ✏️ **CORRECTED** — cancelled marked historical; `qkfvojbcxaptufsepupo` now DEFERRED, not "to be deleted"; points here |
 | `care-conneqt-master-build-plan.md` | 40 | `cfwnrcogikjycjcobsay` | Names it as CANCELLED |
 | `STATE.md` | 29 | `cfwnrcogikjycjcobsay` | Records the 2026-06-17 reconciliation |
 | `TECHNICAL_SPEC.md` | 11, 169 | `pduhccavshrhfkfbjgmj` | ⚠️ **stale, not historical** — see §3.4 |
@@ -174,37 +183,54 @@ corroboration that §3.1–§3.3 are genuine, long-standing bugs and not audit a
 
 ---
 
-## 3. Real bugs this audit found
+## 3. Real bugs this audit found — three fixed, one flagged
 
 None of these are the two-project split. All four are *unresolved-placeholder* or
-*stale-predecessor* bugs that the split was masking.
+*stale-predecessor* bugs that the split was masking. §3.1–§3.3 are fixed in this change;
+§3.4 is flagged for a separate pass (different concern, different doc).
 
-### 3.1 `vercel.json:5` — sitemap rewrite points at a non-existent host
+### 3.1 `vercel.json:5` — sitemap rewrite pointed at a non-existent host ✅ FIXED
+```diff
+- "destination": "https://YOUR_SUPABASE_PROJECT_REF.supabase.co/functions/v1/generate-sitemap"
++ "destination": "https://crpsuhoixfdhjugprbuc.supabase.co/functions/v1/generate-sitemap"
 ```
-"destination": "https://YOUR_SUPABASE_PROJECT_REF.supabase.co/functions/v1/generate-sitemap"
-```
-`/sitemap.xml` in production resolves to an unregistered hostname → DNS failure. SEO
+`/sitemap.xml` in production resolved to an unregistered hostname → DNS failure. SEO
 impact only, no safety impact. Introduced by the rebrand scrub of ICE's ref
 (`REBRAND_CHECKLIST.md:142` says "Must be filled in Phase 2" — Phase 2 never filled it).
 
-### 3.2 `vite.config.ts:25` — silent placeholder fallback
+### 3.2 `vite.config.ts` — silent placeholder fallback ✅ FIXED (fails loud now)
+Previously:
 ```
 process.env.VITE_SUPABASE_URL ?? "https://YOUR_SUPABASE_PROJECT_REF.supabase.co"
 ```
-A missing `.env` yields a client pointed at a dead host **and no startup error**. The file's
-own line 21 TODO calls it an anti-pattern; `AUDIT_REPORT_2026-06.md:101` calls it
-"de-fanged … still fails silently rather than loud". This conflicts with **G2 — fail safe,
-loud, and logged — never silent**: auth is a critical path and this fails quietly. The fix
-is to *throw* on missing env, not to substitute a better default.
+A missing `.env` yielded a client pointed at a dead host **and no startup error**. The
+file's own TODO called it an anti-pattern; `AUDIT_REPORT_2026-06.md:101` called it
+"de-fanged … still fails silently rather than loud". That conflicts with **G2 — fail safe,
+loud, and logged — never silent**: auth is a critical path and this failed quietly.
 
-### 3.3 Six email templates — broken logo URLs
-`invite`, `signup`, `email-change`, `recovery`, `magic-link`, `reauthentication` all embed
-`https://YOUR_SUPABASE_PROJECT_REF.supabase.co/storage/v1/object/public/email-assets/logo.png`.
-Every transactional email renders a broken image. Per `REBRAND_CHECKLIST.md:143` this
-*also* needs a Care Conneqt logo uploaded to `email-assets/logo.png` — so fixing the ref
-alone is insufficient.
+**The fix is not "substitute the real ref"** — that would be worse, because a missing
+`.env` would then silently connect a dev build to *production*. Instead there is now no
+default at all: a `requireEnv()` helper throws, naming the missing variable and where to
+set it. Proven both directions:
 
-### 3.4 `TECHNICAL_SPEC.md:11,169` — names the dead ICE project as current
+- `vite build` with no env → fails with `VITE_SUPABASE_URL is not set…`
+- `vite build` with the env CI supplies → `✓ built in 17.72s`
+
+CI already injects both vars (`.github/workflows/ci.yml`), so this is safe there.
+⚠️ **Vercel must have `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` set** — if it
+does not, the build will now fail loudly instead of shipping a dead client. That is the
+intended behaviour, but it is a behaviour change worth knowing before the next deploy.
+
+### 3.3 Six email templates — broken logo URLs ✅ FIXED (ref), ⚠️ asset still owed
+`invite`, `signup`, `email-change`, `recovery`, `magic-link`, `reauthentication` all
+embedded the placeholder host. All six now use the authoritative ref.
+
+⚠️ **Not fully resolved:** per `REBRAND_CHECKLIST.md:143` a Care Conneqt logo must also be
+uploaded to the `email-assets/logo.png` storage object. Until then the images 404.
+Mitigating fact found during this audit: **no edge function currently imports these
+templates**, so no live email is affected today — the bug is latent, not in production.
+
+### 3.4 `TECHNICAL_SPEC.md:11,169` — names the dead ICE project as current ⚠️ FLAGGED, not fixed
 > "**Backend:** Lovable Cloud (Supabase project `pduhccavshrhfkfbjgmj`)"
 
 Stated in the present tense as current architecture, not as history. `pduhccavshrhfkfbjgmj`
@@ -212,6 +238,10 @@ is the dead ICE ref ("never touch"), and the platform is no longer on Lovable Cl
 (`CLAUDE.md`: AI runs on the Anthropic API; Lovable is a "do not reintroduce" item). Line
 169 also says "120 files" of migrations; the real count is **137**. This is a **G5 honesty**
 defect in a doc that reads as current spec.
+
+**Left for a separate pass**, deliberately: it is a different concern (rewriting a spec
+doc's architecture section), it names a *third* ref that this change was not scoped to, and
+folding it in here would mix a docs-rewrite into a ref-reconciliation PR.
 
 ---
 
@@ -235,20 +265,48 @@ The goal's stop condition would have had me rewrite all 17 non-archive
 4. **It would undo a deliberate prior fix** — `index.html`'s comment (§1.2) shows the repo
    was already corrected in the opposite direction.
 
-**Open decision for Lee.** Confirm the authoritative ref. If it is
-`crpsuhoixfdhjugprbuc` (as all evidence indicates), the goal's stop condition should be
-replaced with:
+**Resolved 2026-08-11.** Lee confirmed `crpsuhoixfdhjugprbuc` against the dashboard and
+directed: annotate the historical hits, fix the three placeholder bugs, and leave
+`index.html`, `deploy-functions.yml` and the two cron migrations alone. That is what this
+change does.
 
-```
-grep -rn 'cfwnrcogikjycjcobsay\|qkfvojbcxaptufsepupo' . \
-  --exclude-dir=docs/archive --exclude-dir=.git --exclude-dir=node_modules
-```
-…returning only HISTORICAL hits per §2.3 — which is **already true today**. In that case
-Concern 1's remaining work is §3's four bugs, not a ref migration.
+If the cutover is ever *revived*, it is a new project decision requiring its own plan
+(secrets, data, function deploy, Vercel env, prod cron correction) under the human gate —
+not a find-and-replace.
 
-If instead the cutover is being *revived*, that is a new project decision requiring its own
-plan (secrets, data, function deploy, Vercel env, prod cron correction) under the human
-gate — not a find-and-replace.
+---
+
+## 6. Stop condition (revised) — and how it verifies
+
+The original condition was inverted (§0). The operative one is:
+
+> Zero `cfwnrcogikjycjcobsay` or `qkfvojbcxaptufsepupo` hits outside `docs/archive` and the
+> historical log.
+
+**Interpretation, stated explicitly.** "Zero hits" is read as *zero hits that present either
+ref as current or actionable* — not zero occurrences of the strings. Deleting the names
+outright would erase the cancellation record Lee asked to have **annotated**, would gut two
+runbooks whose entire subject is that project, and would make this audit unable to name what
+it classifies. So every surviving occurrence outside `docs/archive` is now in exactly one of
+these four buckets, and nothing else:
+
+1. **`LEARN.md`** — the append-only historical log; the two wrong entries carry inline
+   ⛔ SUPERSEDED banners.
+2. **`CUTOVER_RUNBOOK.md` / `CUTOVER_CHECKLIST.md`** — ⛔-cancelled historical runbooks,
+   banners re-confirmed 2026-08-11.
+3. **`PROJECT_REFS.md`** (this file) — the audit record itself.
+4. **Annotated status statements** in `CLAUDE.md`, `LAUNCH_SCOPE.md`,
+   `LAUNCH_CHECKLIST.md`, `AUDIT_NIGHT.md`, `STATE.md`, `care-conneqt-master-build-plan.md`
+   — each naming the ref *as* CANCELLED (historical) or DEFERRED.
+
+**Zero remain in any runtime or config file** — that part is literal and absolute:
+
+```bash
+# Must print nothing. Runtime/config surface only.
+grep -rn 'cfwnrcogikjycjcobsay\|qkfvojbcxaptufsepupo\|YOUR_SUPABASE_PROJECT_REF' \
+  index.html vercel.json vite.config.ts .env.example \
+  src/ supabase/functions/ supabase/migrations/ .github/
+```
 
 ---
 

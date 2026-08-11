@@ -221,8 +221,10 @@
     useAlerts one is SOS-gated). Fix: dedicated pass with behavior review.
 54. sosEscalation e2e latency probe still skipped (<1s assertion TODO) —
     G1 measurement owed at the drill.
-55. [PROD] `qkfvojbcxaptufsepupo` project deletion; favicon CDN purge; key
-    rotation at go-live (all checklist items, Lee's side).
+55. [PROD] ~~`qkfvojbcxaptufsepupo` project deletion~~ **WITHDRAWN 2026-08-11** — that
+    project is a **DEFERRED** future migration target, not to be deleted
+    (`PROJECT_REFS.md` §0); favicon CDN purge; key rotation at go-live (remaining
+    items are checklist items, Lee's side).
 
 ## PROD action list for Lee (consolidated)
 

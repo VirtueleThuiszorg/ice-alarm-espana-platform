@@ -13,10 +13,12 @@
 
 - **The one true backend is `crpsuhoixfdhjugprbuc` (care-conneqt-prod, LifeLink
   Sync org, Supabase Pro).** Lee owns the org — verified 2026-07-22.
-- The planned migration to `cfwnrcogikjycjcobsay` is **CANCELLED**. Update
-  CLAUDE.md §4 and CUTOVER_RUNBOOK.md accordingly.
-- The empty project `qkfvojbcxaptufsepupo` (VirtueleThuiszorg org, Free) is to be
-  **DELETED** to prevent accidental use.
+- The planned migration to `cfwnrcogikjycjcobsay` is **CANCELLED** (historical —
+  see `PROJECT_REFS.md`). Update CLAUDE.md §4 and CUTOVER_RUNBOOK.md accordingly.
+- The empty project `qkfvojbcxaptufsepupo` (care-conneqt-platform, VirtueleThuiszorg
+  org, Free — no migrations, no backups) is **DEFERRED**: retained as a possible
+  **future** migration target, never a deploy target today. **Correction 2026-08-11:**
+  the earlier "to be DELETED" decision is **withdrawn** (Lee, dashboard-verified).
 - Stage 0 residual work on prod: connect the GitHub repo integration, diagnose
   the Postgres error spike (~694 errors / 64.3% success rate seen 2026-07-22),
   verify all secrets set, and clear the runbook hard blockers (no test

@@ -13,6 +13,19 @@
 
 ---
 
+## Backend identity — SETTLED 2026-08-11
+
+| # | Item | Status | Evidence |
+|---|---|---|---|
+| B1 | Authoritative project ref | ✅ VERIFIED | **`crpsuhoixfdhjugprbuc`** (care-conneqt-prod, LifeLink Sync, Pro). Lee confirmed in the Supabase dashboard: Pro tier, 24,299 requests at 100%, real migration history, backup 7h old. |
+| B2 | `cfwnrcogikjycjcobsay` | ✅ VERIFIED — CANCELLED | Never became live production. Cutover cancelled 2026-07-22. Appears in **no** runtime or config file — docs only, all annotated HISTORICAL. |
+| B3 | `qkfvojbcxaptufsepupo` | ✅ VERIFIED — **DEFERRED** | care-conneqt-platform (VirtueleThuiszorg, Free): no migrations, no backups, empty. Possible **future** migration target. **The earlier "to be deleted" decision is WITHDRAWN** (2026-08-11). |
+| B4 | Repo-wide ref audit | ✅ VERIFIED | `PROJECT_REFS.md` — every reference classified CURRENT / HISTORICAL / DEFERRED / BUG, per file and line, incl. all `docs/archive` hits. |
+| B5 | `vercel.json` sitemap rewrite | ✅ FIXED | Was the literal `YOUR_SUPABASE_PROJECT_REF` → `/sitemap.xml` resolved to a non-existent host. Now the real ref. |
+| B6 | `vite.config.ts` env fallback | ✅ FIXED | Silent placeholder fallback removed; the build now **throws** naming the missing var. Proven both ways: build fails without env, succeeds with the env CI supplies. |
+| B7 | 6 email-template logo URLs | ✅ FIXED | All six `_shared/email-templates/*.tsx` carried the placeholder. Now the real ref. ⚠️ **Still owed:** upload the logo to the `email-assets/logo.png` storage object — until then the images 404 (templates are currently unreferenced by any function, so no live email is affected). |
+| B8 | Untouched by design | — | `index.html`, `.github/workflows/deploy-functions.yml`, and the two cron migrations (`20260716120000`, `20260723120000`) already name the authoritative ref. The cron pair is the **SOS-escalation path** — not edited (G1 / human gate). |
+
 ## Stage 0 — Prod backend verification (2026-07-22, LAUNCH_SCOPE.md §0)
 
 > Read-only pass on `crpsuhoixfdhjugprbuc`. **Nothing on prod was changed.** Statuses:

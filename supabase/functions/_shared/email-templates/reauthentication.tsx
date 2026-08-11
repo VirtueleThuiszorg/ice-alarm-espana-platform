@@ -24,7 +24,7 @@ export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => 
     <Body style={main}>
       <Container style={container}>
         <Img
-          src="https://YOUR_SUPABASE_PROJECT_REF.supabase.co/storage/v1/object/public/email-assets/logo.png"
+          src="https://crpsuhoixfdhjugprbuc.supabase.co/storage/v1/object/public/email-assets/logo.png"
           width="64"
           height="64"
           alt="Care Conneqt"

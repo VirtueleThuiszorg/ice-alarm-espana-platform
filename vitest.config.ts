@@ -18,6 +18,12 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: { "@": path.resolve(__dirname, "./src") },
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+      // Lets tests import the REAL edge-function schemas. The functions use Deno
+      // specifiers; the repo pins the same zod version, so this maps them onto it
+      // and client/server parity can be asserted by execution instead of by regex.
+      "npm:zod@3.25.76": "zod",
+    },
   },
 });

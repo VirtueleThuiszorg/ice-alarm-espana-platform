@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,75 +14,17 @@ import { toast } from "sonner";
 import { Users, DollarSign, Send, ArrowRight, Loader2, Mail, Home, ArrowLeft, Heart, Pill, Shield, Stethoscope, Building, Globe, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { REGIONS, HOW_HEARD_OPTIONS, isB2BPartnerType } from "@/config/partnerTypes";
+import { partnerFormSchema, PARTNER_STEP_FIELDS, type PartnerFormValues } from "@/lib/partnerRegistrationSchema";
 
 // Partner type for selection
 type PartnerType = "referral" | "care" | "residential" | "pharmacy" | "insurance" | "healthcare_provider" | "real_estate" | "expat_community" | "corporate_other";
 
-const partnerFormSchema = z.object({
-  // Step 1: Partner type
-  partner_type: z.enum(["referral", "care", "residential", "pharmacy", "insurance", "healthcare_provider", "real_estate", "expat_community", "corporate_other"]),
-
-  // Step 2: Basic info
-  contact_name: z.string().min(2, "Name must be at least 2 characters"),
-  last_name: z.string().optional(),
-  company_name: z.string().optional(),
-  email: z.string().email("Please enter a valid email"),
-  phone: z.string().optional(),
-  preferred_language: z.enum(["en", "es"]),
-
-  // Step 3: Organization details (for B2B)
-  organization_type: z.string().optional(),
-  organization_registration: z.string().optional(),
-  organization_website: z.string().optional(),
-  estimated_monthly_referrals: z.string().optional(),
-  facility_address: z.string().optional(),
-  facility_resident_count: z.number().optional(),
-
-  // Step 3b: Additional fields
-  region: z.string().optional(),
-  how_heard_about_us: z.string().optional(),
-  motivation: z.string().optional(),
-  additional_notes: z.string().optional(),
-  current_client_base: z.string().optional(),
-  position_title: z.string().optional(),
-
-  // Step 4: Payout
-  payout_beneficiary_name: z.string().min(2, "Beneficiary name is required"),
-  payout_iban: z.string().min(15, "Please enter a valid IBAN").max(34),
-
-  // Step 5: Account
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  confirmPassword: z.string(),
-  accept_terms: z.boolean().refine((val) => val === true, {
-    message: "You must accept the terms and conditions",
-  }),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
-
-type PartnerFormValues = z.infer<typeof partnerFormSchema>;
 
 // Step definitions
 type Step = "info" | "type" | "contact" | "organization" | "additional" | "payout" | "account" | "success";
 
 // Fields validated before leaving each step — prevents a silent no-op submit
 // when a failing FormMessage lives on a step that is no longer rendered.
-const stepFields: Partial<Record<Step, (keyof PartnerFormValues)[]>> = {
-  type: ["partner_type"],
-  contact: ["contact_name", "last_name", "company_name", "email", "phone", "preferred_language", "position_title"],
-  organization: [
-    "organization_type",
-    "organization_registration",
-    "organization_website",
-    "estimated_monthly_referrals",
-    "facility_address",
-    "facility_resident_count",
-  ],
-  additional: ["region", "how_heard_about_us", "motivation", "additional_notes", "current_client_base"],
-  payout: ["payout_beneficiary_name", "payout_iban"],
-  account: ["password", "confirmPassword", "accept_terms"],
-};
 
 const partnerTypeOptions = [
   {
@@ -317,7 +258,7 @@ export default function PartnerJoin() {
   };
 
   const goToNextStep = async () => {
-    const fields = stepFields[step];
+    const fields = PARTNER_STEP_FIELDS[step as keyof typeof PARTNER_STEP_FIELDS];
     if (fields && !(await form.trigger(fields))) {
       toast.error("Please complete the highlighted fields");
       return;

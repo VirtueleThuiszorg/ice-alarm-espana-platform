@@ -18,7 +18,7 @@ Three separate faults, discovered in this order. Each was hiding the next.
 |---|---|---|
 | 1 | The deployed bundle had a missing/placeholder `VITE_SUPABASE_URL`, so **no client call reached the backend at all** | Fixed in Vercel. `vite.config.ts` now throws instead of substituting a placeholder (#100) |
 | 2 | With traffic arriving, `partner-register` rejected the password. The browser showed only `Edge Function returned a non-2xx status code` | Fixed — error surfacing (C1) + validation parity (C2) |
-| 3 | `partner-register` had **zero invocations**: the public nav never reaches the page that calls it | **Open decision** — §3 below |
+| 3 | `partner-register` had **zero invocations** | **Cause closed 2026-08-11:** the same placeholder URL. `partner-apply` also read **zero**, so no client call reached the project at all — neither function was being bypassed. The nav split below is a real product gap, but it was NOT what produced the zero. |
 
 Fault 1 is why the earlier "schema mismatch" hypothesis in #104 was wrong and was
 retracted: the insert was never reached, so the columns were never the problem.
@@ -64,7 +64,7 @@ Walked against the code. ✅ works · ⚠️ works with a caveat · ❌ broken o
 |---|---|---|---|
 | **Find the way in** | nav → `/partner` | ⚠️ | The nav only ever reaches the application path. §3 is the decision. |
 | **Find the way back in** | `/partner/login` | ✅ *fixed* | Was reachable only by typing the URL. Now linked from the landing footer and from `/partner` (C5). |
-| **Submit application** | `partner-apply` | ✅ | Whitelists fields, dedups by email, generates a referral code, emails terms, notifies admin. |
+| **Submit application** | `partner-apply` | ⚠️ | Whitelists fields, dedups by email, generates a referral code, emails terms, notifies admin. Had **zero** invocations too, for the placeholder-URL reason — so this path is also unproven in production. |
 | **Submit registration** | `partner-register` | ✅ *fixed* | Password rule now enforced client-side with an inline message (C2); server rejects now reach the user (C1). |
 | **Terms acceptance** | `partner-register` | ✅ *fixed* | Was UI state only — never sent, validated or stored. Now server-enforced and persisted with a timestamp + version (C3). |
 | **Verification email** | `sendEmail` | ⚠️ | Send failure is logged and does **not** fail registration — correct, but transport is still interim Gmail SMTP (~500/day, no bounce webhooks, no custom-domain DKIM). `LAUNCH_CHECKLIST.md` hard blocker. |
@@ -117,10 +117,11 @@ into an account by invite.
 - ❌ Requires admin work per application, and an admin UI to do it from.
 - ❌ Slower for a partner who wanted to self-serve immediately.
 
-### Recommendation
+### DECIDED — Option C (Lee, 2026-08-11)
 
-**Option C as the primary flow, with `/partner/join` kept reachable for partners
-who want to complete everything now.**
+Lee has chosen **Option C: admin conversion of applications**, with `/partner/join`
+kept reachable for partners who want to complete everything now. What follows was
+the recommendation and is now the decision; implementation is tracked separately.
 
 The two paths are not really in conflict once one is a *lead* and the other is
 *self-serve signup*; the bug was only ever that the second was invisible. C5 has
@@ -134,7 +135,8 @@ Concretely, if Option C is chosen:
    `/partner/join`, so a partner who wants the self-serve path can take it.
 4. Leave the nav pointing at `/partner`.
 
-**None of this is implemented.** It is a proposal awaiting Lee's call.
+**None of this is implemented yet** — the four steps above are the build. The
+decision itself is settled; only the code is outstanding.
 
 ---
 

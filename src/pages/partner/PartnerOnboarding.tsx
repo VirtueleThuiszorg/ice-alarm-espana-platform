@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -256,6 +256,16 @@ export default function PartnerOnboarding() {
               </form>
             </CardContent>
           </Card>
+
+          {/* Returning partners. This page is where the public nav sends everyone,
+              so without this a partner who already has an account had no route to
+              /partner/login except typing the URL. */}
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            {t("partnerOnboarding.alreadyPartner", "Already a partner?")}{" "}
+            <Link to="/partner/login" className="text-primary hover:underline font-medium">
+              {t("partnerOnboarding.signIn", "Sign in to your dashboard")}
+            </Link>
+          </p>
         </div>
       </main>
     </div>

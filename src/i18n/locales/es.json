@@ -873,7 +873,8 @@
     },
     "footer": {
       "links": "Enlaces",
-      "legal": "Legal"
+      "legal": "Legal",
+      "partnerLogin": "Acceso partners"
     },
     "ourDifference": "Nuestra diferencia"
   },
@@ -5517,7 +5518,9 @@
     "region": "Región",
     "selectRegion": "Seleccione su región",
     "howHeard": "¿Cómo se enteró de nosotros?",
-    "selectHowHeard": "Seleccione una opción"
+    "selectHowHeard": "Seleccione una opción",
+    "alreadyPartner": "¿Ya eres partner?",
+    "signIn": "Accede a tu panel"
   },
   "partnerLogin": {
     "title": "Acceso de Colaboradores",

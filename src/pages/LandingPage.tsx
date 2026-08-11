@@ -722,6 +722,10 @@ export default function LandingPage() {
                 <li><a href="#how-it-works" className="hover:text-sidebar-foreground transition-colors">{t("navigation.howItWorks")}</a></li>
                 <li><a href="#pricing" className="hover:text-sidebar-foreground transition-colors">{t("navigation.pricing")}</a></li>
                 <li><Link to="/partner" className="hover:text-sidebar-foreground transition-colors">{t("navigation.partners")}</Link></li>
+                {/* A returning partner had no way in from the public site: the nav and
+                    this footer both pointed only at /partner (the application page).
+                    /partner/login existed but was reachable only by typing the URL. */}
+                <li><Link to="/partner/login" className="hover:text-sidebar-foreground transition-colors">{t("landing.footer.partnerLogin")}</Link></li>
               </ul>
             </div>
             <div>

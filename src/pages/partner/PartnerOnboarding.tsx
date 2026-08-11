@@ -260,9 +260,17 @@ export default function PartnerOnboarding() {
           {/* Returning partners. This page is where the public nav sends everyone,
               so without this a partner who already has an account had no route to
               /partner/login except typing the URL. */}
-          <p className="mt-6 text-center text-sm text-muted-foreground">
+          <p className="mt-6 text-center text-base text-muted-foreground">
             {t("partnerOnboarding.alreadyPartner", "Already a partner?")}{" "}
-            <Link to="/partner/login" className="text-primary hover:underline font-medium">
+            {/* GOALS.md G3: a link sitting inside a sentence must not be
+                distinguished by colour alone (WCAG 1.4.1), so the underline is
+                persistent rather than hover-only. inline-block + py-1 gives a
+                comfortable tap target, and focus-visible makes keyboard position
+                obvious — a bare <Link> is focusable but shows nothing here. */}
+            <Link
+              to="/partner/login"
+              className="inline-block py-1 font-medium text-primary underline underline-offset-4 hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+            >
               {t("partnerOnboarding.signIn", "Sign in to your dashboard")}
             </Link>
           </p>

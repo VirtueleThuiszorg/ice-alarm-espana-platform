@@ -76,3 +76,40 @@ describe("a cold visitor can find it", () => {
     expect(linking.length).toBeGreaterThanOrEqual(2);
   });
 });
+
+// ============================================================
+//  G3 — the new link has to be usable, not just present
+// ============================================================
+//
+// GOALS.md G3 sets WCAG AA as the minimum. The first version of this link was
+// `text-primary hover:underline`, i.e. distinguished from the sentence around it by
+// COLOUR ALONE at rest — a WCAG 1.4.1 failure. Caught by auditing the change
+// against GOALS.md rather than by anything automated.
+
+describe("the sign-in link meets G3", () => {
+  const src = () => read("src/pages/partner/PartnerOnboarding.tsx");
+
+  it("does not rely on colour alone — the underline is persistent, not hover-only", () => {
+    const link = src().match(/<Link\s+to="\/partner\/login"[\s\S]*?>/)?.[0] ?? "";
+    expect(link).toMatch(/\bunderline\b/);
+    // The failure mode being pinned: an underline that only appears on hover.
+    expect(link).not.toMatch(/hover:underline/);
+  });
+
+  it("shows a visible focus state, since a bare Link shows none here", () => {
+    const link = src().match(/<Link\s+to="\/partner\/login"[\s\S]*?>/)?.[0] ?? "";
+    expect(link).toMatch(/focus-visible:ring/);
+  });
+
+  it("gives the link a tap target rather than bare inline text", () => {
+    const link = src().match(/<Link\s+to="\/partner\/login"[\s\S]*?>/)?.[0] ?? "";
+    expect(link).toMatch(/inline-block/);
+    expect(link).toMatch(/py-\d/);
+  });
+
+  it("does not shrink the surrounding copy below the base size", () => {
+    // G3: scalable, readable text. text-sm was needlessly small for a line whose
+    // whole job is to be noticed by someone who cannot find their way in.
+    expect(src()).toMatch(/text-base text-muted-foreground/);
+  });
+});

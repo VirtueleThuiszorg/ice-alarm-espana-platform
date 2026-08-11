@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 
 const read = (p: string) => readFileSync(path.resolve(process.cwd(), p), "utf8");

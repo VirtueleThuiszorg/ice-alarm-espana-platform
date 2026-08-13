@@ -117,7 +117,12 @@ export default function StaffLogin() {
           toast.info(
             t("auth.twoFactorRequired")
           );
-          navigate("/admin/settings?setup2fa=true");
+          // `?tab=security` — the param SettingsPage actually reads, validated
+          // against its SETTINGS_TABS allowlist. The earlier bespoke flag was read
+          // by nothing, so the admin landed on the default "company" tab with no
+          // enrolment UI anywhere on the page and no way to satisfy this gate.
+          // Reuses the existing deep-link mechanism rather than adding a second.
+          navigate("/admin/settings?tab=security");
           return;
         }
 

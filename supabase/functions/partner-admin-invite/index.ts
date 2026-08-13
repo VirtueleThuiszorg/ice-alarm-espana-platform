@@ -104,13 +104,16 @@ serve(async (req: Request) => {
     // Check for existing partner with this email
     const { data: existingPartner } = await adminClient
       .from("partners")
-      .select("id, status")
+      .select("id, status, user_id")
       .eq("email", normalizedEmail)
       .maybeSingle();
 
     let partnerId: string;
 
-    const decision = decidePartnerInvite(existingPartner?.status as PartnerStatus | null);
+    const decision = decidePartnerInvite(
+      existingPartner?.status as PartnerStatus | null,
+      Boolean(existingPartner?.user_id),
+    );
 
     if (existingPartner && decision.action === "reject") {
       return new Response(

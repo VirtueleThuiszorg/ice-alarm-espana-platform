@@ -225,3 +225,90 @@ delivery failure looks exactly like a partner who never bothered.
 
 Not changed by any of them: the two-path split (§3, Lee's call), and every gap in
 §4.
+
+---
+
+## 6. What a real partner experiences today (walked 2026-08-13)
+
+Lee walked `/partner`, completed the form, got the thank-you page, followed the
+"Complete full registration" button added in #114, and landed on a **second,
+different wizard**. That is what the code does. This section records the lived
+flow, not the intended design — where the two diverge, the lived flow wins.
+
+**Yes, there are two consecutive wizards, and the second cannot complete for
+anyone who finished the first.**
+
+### 6.1 The two wizards, side by side
+
+| | Wizard 1 — `/partner` | Wizard 2 — `/partner/join` |
+|---|---|---|
+| Component | `PartnerOnboarding` | `PartnerJoin` |
+| Shape | one page, 6 fields | 6 steps, 23 fields |
+| Fields | `contact_name`, `email`, `phone`, `preferred_language`, `region`, `how_heard_about_us` | **all six of those again**, plus `partner_type`, `last_name`, `company_name`, `position_title`, org fields, `motivation`, `additional_notes`, `current_client_base`, `payout_beneficiary_name`, `payout_iban`, `password`, `confirmPassword`, `accept_terms` |
+| Function | `partner-apply` | `partner-register` |
+| Writes | `partners` row, `status='pending'`, **no `user_id`** | auth user **+** `partners` row, `status='pending'`, **with `user_id`** |
+| Prefill from wizard 1 | — | **none** |
+
+### 6.2 Step by step, as actually experienced
+
+1. **`/partner`** — marketing copy, a 3-step "Register / Share / Earn" explainer,
+   then the 6-field form. Submit → `partner-apply` writes a `partners` row with
+   the email and `status='pending'`.
+2. **Thank-you page** — "Thank You for Your Interest!" The copy promises an email
+   "including what you can earn and a link to complete your registration". Two
+   buttons: **"Complete full registration"** → `/partner/join`, and "Return to
+   Homepage".
+3. **`/partner/join`** — a *different* wizard. It re-asks every field from step 1
+   with nothing carried over, then asks for 17 more including IBAN and a password,
+   plus terms acceptance.
+4. **Submit → failure.** `partner-register` checks `partners` for the email
+   *before* doing anything else and returns **409 "A partner with this email
+   already exists"** (`partner-register/index.ts` §"Check if email already exists
+   in partners table"). Step 1 created exactly that row.
+
+So a partner who follows the flow as presented fills in two forms, 29 field-entries
+in total, and is then told their email is already taken — after entering banking
+details and choosing a password. There is no path forward from that screen.
+
+### 6.3 Who `/partner/join` actually works for
+
+Only someone who **never used `/partner`**. The wizard is sound in isolation; it
+is the *sequence* that is broken. The #114 link points the one population
+guaranteed to collide — people who just applied — straight at the collision.
+
+### 6.4 Is this the intended Option C flow?
+
+**No.** Option C as decided (§3) is:
+
+> `/partner` captures the lead → an admin reviews and converts the application
+> into an invite → the partner sets their password from the invite email.
+
+The admin conversion is the intended bridge from application to account, and it
+exists (`partner-admin-invite`, #112, plus the admin UI in #115). `/partner/join`
+is the *self-serve alternative* to that bridge, for someone who wants to do
+everything immediately. Presenting it as the **continuation** of an application
+already submitted is what #114 got wrong: it chains two mutually exclusive paths
+instead of offering them as a choice.
+
+I added that link, so this is mine. The intent — don't leave the low-friction path
+as the only path — was right; the placement was not. It belongs on `/partner`
+*before* the form, as an alternative ("prefer to set everything up now?"), never on
+the thank-you page *after* the application row exists.
+
+### 6.5 What has to change (not yet done — Lee's call on which)
+
+- **Minimum:** remove or relocate the thank-you-page link so no one is routed into
+  a guaranteed 409. This alone stops the dead end.
+- **Better:** make `partner-register` treat an existing `pending` application for
+  the same email as the thing to *complete* rather than a conflict — attach the
+  auth user to that row and fill in the extra fields, instead of refusing. That
+  makes the flow Lee actually walked work as it reads.
+- **Either way:** carry the six known fields into `/partner/join` as prefill.
+  Re-asking them is what makes the second wizard feel like a mistake.
+
+Note the interaction with the `pending` + `user_id` distinction added in the
+status-allowlist work: `partner-apply` writes `pending` *without* a `user_id` and
+`partner-register` writes `pending` *with* one, and `decidePartnerInvite` now
+relies on exactly that difference to decide whether an admin may convert a row. Any
+fix to the second bullet must keep that distinction meaningful, or admin conversion
+starts mis-firing on self-registered partners again.

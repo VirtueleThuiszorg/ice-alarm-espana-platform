@@ -795,6 +795,7 @@ describe("an admin's login destination", () => {
     ]) {
       expect(readSrc(file), `${file} still references setup2fa`).not.toMatch(/setup2fa/);
     }
+    expect(settingsRedirects).toEqual(["/admin/settings?setup2fa=true"]);
   });
 
   it("only diverts an admin to settings when 2FA is NOT yet enrolled", () => {
@@ -803,6 +804,7 @@ describe("an admin's login destination", () => {
     // which is what makes the dashboard reachable at all.
     const src = readSrc("src/pages/auth/StaffLogin.tsx");
     const gateIndex = src.indexOf('"/admin/settings?tab=security"');
+    const gateIndex = src.indexOf('"/admin/settings?setup2fa=true"');
     expect(gateIndex).toBeGreaterThan(-1);
 
     // The verified-factor early return must come BEFORE the enrolment redirect,

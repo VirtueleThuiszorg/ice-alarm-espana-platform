@@ -31,13 +31,20 @@ interface ConvertApplicationDialogProps {
 }
 
 /**
- * Converts a partner APPLICATION (`status='pending'`, from /partner → partner-apply)
- * into an invited partner — the admin half of Option C (PARTNER_JOURNEY.md §3).
+ * Converts a partner APPLICATION into an invited partner — the admin half of
+ * Option C (PARTNER_JOURNEY.md §3).
  *
- * An application has no `user_id` and no credentials, so the applicant can never log
- * in: `PartnerLogin` looks up `partners` by `user_id` and `get_user_role_info`
- * requires a `user_id` match. This is the only route from "someone filled a form" to
- * "someone has an account", and it deliberately runs through an admin.
+ * An application is `status='pending'` **with no `user_id`** (from /partner →
+ * partner-apply). Both halves matter: `partner-register` (/partner/join) also writes
+ * `pending`, but with a `user_id` and a partner-chosen password, and
+ * `partner-admin-invite` refuses to convert those — it tells the admin to resend
+ * verification instead. `PartnersPage` gates this dialog on the same pair, so it is
+ * never opened for a row the server will reject.
+ *
+ * An application has no credentials, so its applicant can never log in:
+ * `PartnerLogin` looks up `partners` by `user_id` and `get_user_role_info` requires a
+ * `user_id` match. This is the only route from "someone filled a form" to "someone has
+ * an account", and it deliberately runs through an admin.
  *
  * The applicant sets their own password via the invite, so no credential is ever
  * created on their behalf. `partner-admin-invite` stamps `reviewed_by` /

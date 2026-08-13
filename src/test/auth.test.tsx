@@ -752,6 +752,49 @@ describe("an admin's login destination", () => {
     // StaffLogin has exactly ONE such redirect, and it is the 2FA enrolment gate.
     const staffLogin = readSrc("src/pages/auth/StaffLogin.tsx");
     const settingsRedirects = staffLogin.match(/\/admin\/settings[^"']*/g) ?? [];
+    expect(settingsRedirects).toEqual(["/admin/settings?tab=security"]);
+  });
+
+  // ── the gate has to be satisfiable ──────────────────────────────────────
+  //
+  // The lockout was not the redirect itself. It was that the redirect pointed at
+  // `?setup2fa=true`, which NOTHING read, and `TwoFactorSetup` was rendered
+  // NOWHERE — so the admin landed on the default "company" tab with no enrolment
+  // UI on the page. The gate could never be cleared, so it fired on every login.
+
+  it("sends the admin to a tab SettingsPage actually recognises", () => {
+    const staffLogin = readSrc("src/pages/auth/StaffLogin.tsx");
+    const settings = readSrc("src/pages/admin/SettingsPage.tsx");
+
+    const target = staffLogin.match(/\/admin\/settings\?tab=(\w+)/);
+    expect(target, "the gate must deep-link a tab").not.toBeNull();
+    const tab = target![1];
+
+    // The param is validated against SETTINGS_TABS and silently falls back to
+    // "company" when unknown — which is exactly how this broke.
+    const tabsLine = settings.match(/const SETTINGS_TABS = \[(.*?)\] as const/s)?.[1] ?? "";
+    expect(tabsLine, `SETTINGS_TABS must contain "${tab}"`).toContain(`"${tab}"`);
+
+    // And the tab must exist in the UI, not just the allowlist.
+    expect(settings).toContain(`<TabsTrigger value="${tab}">`);
+    expect(settings).toContain(`<TabsContent value="${tab}">`);
+  });
+
+  it("renders TwoFactorSetup somewhere reachable, so enrolment is possible", () => {
+    const settings = readSrc("src/pages/admin/SettingsPage.tsx");
+    expect(settings).toMatch(/import \{ TwoFactorSetup \}/);
+    expect(settings).toContain("<TwoFactorSetup />");
+  });
+
+  it("leaves no reference to the dead setup2fa param", () => {
+    // It was read by nothing. Keeping it would leave two competing mechanisms,
+    // one of which does not work.
+    for (const file of [
+      "src/pages/auth/StaffLogin.tsx",
+      "src/pages/admin/SettingsPage.tsx",
+    ]) {
+      expect(readSrc(file), `${file} still references setup2fa`).not.toMatch(/setup2fa/);
+    }
     expect(settingsRedirects).toEqual(["/admin/settings?setup2fa=true"]);
   });
 
@@ -760,6 +803,7 @@ describe("an admin's login destination", () => {
     // check has found nothing. An admin WITH 2FA falls through to completeLogin,
     // which is what makes the dashboard reachable at all.
     const src = readSrc("src/pages/auth/StaffLogin.tsx");
+    const gateIndex = src.indexOf('"/admin/settings?tab=security"');
     const gateIndex = src.indexOf('"/admin/settings?setup2fa=true"');
     expect(gateIndex).toBeGreaterThan(-1);
 

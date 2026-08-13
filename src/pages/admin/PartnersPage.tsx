@@ -35,6 +35,10 @@ interface Partner {
   partner_type: string;
   organization_type: string | null;
   facility_resident_count: number | null;
+  // Needed to tell the two kinds of `pending` apart — see the Convert gate below.
+  // The query is `select("*")`, so this was always in the payload; it was just
+  // absent from this interface, which is why the gate could not consult it.
+  user_id: string | null;
 }
 
 interface PartnerStats {
@@ -511,14 +515,22 @@ export default function PartnersPage() {
                               <Eye className="mr-2 h-4 w-4" />
                               View Dashboard
                             </DropdownMenuItem>
-                            {/* Option C: an application (`pending`, from /partner →
-                                partner-apply) has no user_id and no credentials, so
+                            {/* Option C: an APPLICATION (`pending` with NO user_id,
+                                from /partner → partner-apply) has no credentials, so
                                 its partner can never log in. Converting it sends an
-                                invite and records the review. Only offered for
-                                `pending` — partner-admin-invite refuses `active` and
-                                `suspended`, and this keeps the UI honest about that
-                                rather than showing an action that will be refused. */}
-                            {partner.status === "pending" && (
+                                invite and records the review.
+
+                                `pending` alone is not enough. partner-register also
+                                writes `pending`, but WITH a user_id and a password the
+                                partner chose, and partner-admin-invite refuses those
+                                ("registered themselves — resend verification instead").
+                                Offering Convert there showed an action guaranteed to be
+                                refused, after the admin had typed review notes.
+
+                                So the gate is `pending` AND no user_id, matching
+                                decidePartnerInvite's own condition. It also refuses
+                                `active` and `suspended`, which this never offered. */}
+                            {partner.status === "pending" && !partner.user_id && (
                               <>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={(e) => {

@@ -15,6 +15,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { decidePartnerInvite } from "../../supabase/functions/_shared/partnerInviteDecision";
 
 const read = (p: string) => readFileSync(path.resolve(process.cwd(), p), "utf8");
 
@@ -224,5 +225,67 @@ describe("convert dialog copy", () => {
       JSON.parse(read(`src/i18n/locales/${loc}.json`)).partnerConvert.convert;
     expect(value("es")).not.toBe(value("en"));
     expect(value("nl")).not.toBe(value("en"));
+  });
+});
+
+// ============================================================
+//  The Convert gate must match decidePartnerInvite's condition
+// ============================================================
+//
+// #115 (this dialog) and #116 (the hasUserId refusal) were merged 17 seconds apart,
+// neither rebased on the other, so the combination was never tested by either PR's
+// CI. It produced a real gap:
+//
+//   PartnersPage offered "Convert to Partner" for ANY `pending` row, but #116 made
+//   partner-admin-invite refuse `pending` rows that carry a `user_id` — partners who
+//   registered themselves via /partner/join and are awaiting verification. The admin
+//   saw the action, opened the dialog, typed review notes, submitted, and was refused.
+//
+// PartnersPage's own comment claimed the gating existed so as not to "show an action
+// that will be refused", which made it false as written. These pin the pair.
+
+describe("the Convert action is offered only for a convertible row", () => {
+  const page = () => read("src/pages/admin/PartnersPage.tsx");
+
+  it("gates on `pending` AND the absence of a user_id", () => {
+    expect(page()).toMatch(/partner\.status === "pending" && !partner\.user_id &&/);
+  });
+
+  it("does not gate on status alone — the state that produced the refusal", () => {
+    const src = page();
+    // A bare `status === "pending" &&` with nothing else is the regression.
+    expect(src).not.toMatch(/\{partner\.status === "pending" && \(/);
+  });
+
+  it("can actually read user_id — it must be on the Partner type, not just in the row", () => {
+    // `.select("*")` always returned it, but the local interface omitted it, so the
+    // gate could not consult it without a type error.
+    const src = page();
+    const iface = src.slice(src.indexOf("interface Partner {"), src.indexOf("interface PartnerStats"));
+    expect(iface).toMatch(/user_id: string \| null;/);
+  });
+
+  it("matches decidePartnerInvite's server-side condition exactly", () => {
+    // The UI gate and the server decision must agree on what "convertible" means,
+    // or one of them is lying to the admin. Server: pending + no user_id → convert.
+    for (const hasUserId of [true, false]) {
+      const serverConverts = decidePartnerInvite("pending", hasUserId).action === "convert";
+      const uiOffers = !hasUserId; // what the gate above evaluates to for a pending row
+      expect(serverConverts, `pending / hasUserId=${hasUserId}`).toBe(uiOffers);
+    }
+  });
+
+  it("states the two-kinds-of-pending reason where the gate is, not just in a doc", () => {
+    // The previous comment asserted the opposite of what the code did. Requiring the
+    // reason next to the condition is what stops that recurring.
+    const src = page();
+    const gate = src.slice(Math.max(0, src.indexOf('partner.status === "pending" && !partner.user_id') - 1200));
+    expect(gate).toMatch(/partner-register|registered themselves|resend/i);
+  });
+
+  it("the dialog's own doc comment no longer claims every application lacks a user_id", () => {
+    const dialog = read("src/components/admin/ConvertApplicationDialog.tsx");
+    expect(dialog).not.toMatch(/An application has no `user_id` and no credentials/);
+    expect(dialog).toMatch(/with no `user_id`/);
   });
 });

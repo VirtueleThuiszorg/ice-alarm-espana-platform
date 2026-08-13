@@ -5983,5 +5983,15 @@
     "retry": "Reintentar",
     "unreachableTitle": "MedConneqt no responde",
     "unreachableBody": "No hemos podido conectar con alarm.medconneqt.nl. Puede que el servicio esté caído o que su conexión lo esté bloqueando. Reinténtelo o ábralo en una pestaña nueva para comprobarlo."
+  },
+  "partnerConvert": {
+    "title": "Convertir solicitud en partner",
+    "description": "Se enviará a {{name}} una invitación para crear su contraseña y completar su perfil. La solicitud queda registrada como revisada por ti.",
+    "reviewNotes": "Notas de revisión (opcional)",
+    "reviewNotesPlaceholder": "Por qué apruebas esta solicitud — se guarda en la ficha del partner.",
+    "convert": "Enviar invitación",
+    "converting": "Enviando…",
+    "success": "Invitación enviada: la solicitud ya es un partner invitado.",
+    "error": "No se pudo convertir la solicitud"
   }
 }

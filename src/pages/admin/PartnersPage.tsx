@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Search, Users, DollarSign, Send, TrendingUp, ChevronLeft, ChevronRight, Eye, MoreHorizontal, Pencil, Ban, Trash2, CheckCircle } from "lucide-react";
+import { Plus, Search, Users, DollarSign, Send, TrendingUp, ChevronLeft, ChevronRight, Eye, MoreHorizontal, Pencil, Ban, Trash2, CheckCircle, UserCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format, subDays, isAfter } from "date-fns";
 import { Database } from "@/integrations/supabase/types";
@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "@/hooks/use-toast";
 import { PARTNER_TYPES, getPartnerTypeLabel } from "@/config/partnerTypes";
 import { InvitePartnerDialog } from "@/components/admin/InvitePartnerDialog";
+import { ConvertApplicationDialog, type PartnerApplication } from "@/components/admin/ConvertApplicationDialog";
 import { functionError } from "@/lib/functionError";
 
 type PartnerStatus = Database["public"]["Enums"]["partner_status"];
@@ -68,6 +69,8 @@ export default function PartnersPage() {
   const [partnerToSuspend, setPartnerToSuspend] = useState<Partner | null>(null);
   const [partnerToActivate, setPartnerToActivate] = useState<Partner | null>(null);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
+  // Option C: the application being converted into an invited partner, or null.
+  const [applicationToConvert, setApplicationToConvert] = useState<PartnerApplication | null>(null);
 
   // Mutation to update partner status
   const updateStatusMutation = useMutation({
@@ -508,6 +511,31 @@ export default function PartnersPage() {
                               <Eye className="mr-2 h-4 w-4" />
                               View Dashboard
                             </DropdownMenuItem>
+                            {/* Option C: an application (`pending`, from /partner →
+                                partner-apply) has no user_id and no credentials, so
+                                its partner can never log in. Converting it sends an
+                                invite and records the review. Only offered for
+                                `pending` — partner-admin-invite refuses `active` and
+                                `suspended`, and this keeps the UI honest about that
+                                rather than showing an action that will be refused. */}
+                            {partner.status === "pending" && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={(e) => {
+                                  e.stopPropagation();
+                                  setApplicationToConvert({
+                                    id: partner.id,
+                                    contact_name: partner.contact_name,
+                                    email: partner.email,
+                                    preferred_language: partner.preferred_language,
+                                    partner_type: partner.partner_type,
+                                  });
+                                }}>
+                                  <UserCheck className="mr-2 h-4 w-4" />
+                                  Convert to Partner
+                                </DropdownMenuItem>
+                              </>
+                            )}
                             <DropdownMenuSeparator />
                             {partner.status === "active" ? (
                               <DropdownMenuItem 
@@ -668,6 +696,11 @@ export default function PartnersPage() {
 
       {/* Invite Partner Dialog */}
       <InvitePartnerDialog open={showInviteDialog} onOpenChange={setShowInviteDialog} />
+
+      <ConvertApplicationDialog
+        application={applicationToConvert}
+        onOpenChange={(open) => { if (!open) setApplicationToConvert(null); }}
+      />
     </div>
   );
 }

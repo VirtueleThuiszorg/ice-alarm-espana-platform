@@ -295,16 +295,43 @@ as the only path — was right; the placement was not. It belongs on `/partner`
 *before* the form, as an alternative ("prefer to set everything up now?"), never on
 the thank-you page *after* the application row exists.
 
-### 6.5 What has to change (not yet done — Lee's call on which)
+### 6.5 What changed — DONE in this branch (Lee, 2026-08-13)
 
-- **Minimum:** remove or relocate the thank-you-page link so no one is routed into
-  a guaranteed 409. This alone stops the dead end.
-- **Better:** make `partner-register` treat an existing `pending` application for
-  the same email as the thing to *complete* rather than a conflict — attach the
-  auth user to that row and fill in the extra fields, instead of refusing. That
-  makes the flow Lee actually walked work as it reads.
-- **Either way:** carry the six known fields into `/partner/join` as prefill.
-  Re-asking them is what makes the second wizard feel like a mistake.
+Lee's call: **relocate the link, and do NOT make `partner-register` complete
+existing applications.** So the two paths stay mutually exclusive, and the product
+stops pretending otherwise.
+
+- **The thank-you-page link is gone.** Nothing routes an applicant into the 409 any
+  more. That screen now offers only "Return to Homepage".
+- **The choice moved to before the form**, where both options are still open. It
+  names the difference that actually matters — reviewed by us later vs. set up now —
+  and says plainly: *choose one, do not do both with the same email address.*
+- **The below-form "Prefer to do it all now?" line is gone**, folded into that
+  choice rather than left as a second, quieter version of it. `preferNow` is
+  removed from all three locales.
+- **The success copy no longer promises "a link to complete your registration."**
+  Under Option C the route from application to account is admin review followed by
+  an invitation email, so that is what it now says. The old sentence was the last
+  thing still pointing at the path that 409s.
+
+`partner-register` is deliberately **unchanged**: an existing email is still a 409.
+That keeps `partner-apply` rows (`pending`, no `user_id`) and `partner-register`
+rows (`pending`, with `user_id`) cleanly distinct — the distinction
+`decidePartnerInvite` depends on to decide whether an admin may convert a row, and
+which the admin Convert gate now also reads.
+
+### 6.6 Still open
+
+- **No prefill.** A partner who picks the direct path still types everything once;
+  a partner who applied and is later invited types their extra details then. Nothing
+  is asked twice within a single path any more, so this is now a nicety rather than
+  the defect it was when the two wizards chained.
+- **`/partner/join` remains reachable by URL for someone who already applied**, and
+  will 409 them. The pre-form choice and the warning are what steer against it; the
+  server refusal is the backstop. Making that refusal explain itself in terms of the
+  application ("you have already applied — watch for our invitation") would be the
+  next honest improvement, and is a copy change in `partner-register`, not a flow
+  change.
 
 Note the interaction with the `pending` + `user_id` distinction added in the
 status-allowlist work: `partner-apply` writes `pending` *without* a `user_id` and

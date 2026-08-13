@@ -5506,7 +5506,7 @@
     "phone": "Phone",
     "preferredLanguage": "Preferred Language",
     "successTitle": "Thank You for Your Interest!",
-    "successDesc": "Our team will send you an email shortly with full details about our partner programme, including what you can earn and a link to complete your registration.",
+    "successDesc": "Our team will review your application and email you an invitation to set up your partner account, along with full details of the programme and what you can earn.",
     "returnHome": "Return to Homepage",
     "howItWorksTitle": "How It Works",
     "step1Title": "Register",
@@ -5521,8 +5521,11 @@
     "selectHowHeard": "Select option",
     "alreadyPartner": "Already a partner?",
     "signIn": "Sign in to your dashboard",
-    "preferNow": "Prefer to do it all now?",
-    "completeNow": "Complete full registration"
+    "completeNow": "Complete full registration",
+    "choiceTitle": "Two ways to join",
+    "choiceApply": "Register your interest below and our team will review it and email you an invitation.",
+    "choiceDirect": "Or set up your account yourself right now —",
+    "choiceDirectNote": "Choose one — do not do both with the same email address."
   },
   "partnerLogin": {
     "title": "Partner Login",

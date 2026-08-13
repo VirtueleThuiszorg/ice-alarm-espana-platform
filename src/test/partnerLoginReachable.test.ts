@@ -135,23 +135,63 @@ describe("the self-serve registration path is reachable from /partner", () => {
     expect(onboarding()).toContain('to="/partner/join"');
   });
 
-  it("the success screen delivers the link its own copy promises", () => {
+  it("offers the choice BEFORE the form, not on the success screen", () => {
+    // REVERSED from the original assertion here, deliberately. The link used to sit
+    // on the thank-you page. That was a dead end: `partner-apply` has just written a
+    // `partners` row with that email, and `partner-register` refuses a duplicate
+    // email with a 409 — so the applicant filled 23 more fields, including an IBAN
+    // and a password, and was then told their email already exists
+    // (PARTNER_JOURNEY.md §6). A choice offered after it can no longer be taken is
+    // worse than no choice.
     const src = onboarding();
-    // The promise:
-    expect(src).toMatch(/link to complete your registration/);
-    // …and the delivery, inside the submitted branch.
-    const submitted = src.slice(src.indexOf("if (submitted)"), src.indexOf("if (submitted)") + 2000);
-    expect(submitted, "the success screen must link to /partner/join").toContain(
+    const submittedStart = src.indexOf("if (submitted)");
+    const submittedBranch = src.slice(submittedStart, src.indexOf("return (", submittedStart) + 2000);
+    expect(submittedBranch, "the success screen must NOT link to /partner/join").not.toContain(
       'to="/partner/join"'
+    );
+
+    // And the choice must precede the form, so both options are still open.
+    const choiceAt = src.indexOf('to="/partner/join"');
+    const formAt = src.indexOf('invoke("partner-apply"');
+    expect(choiceAt).toBeGreaterThan(-1);
+    expect(choiceAt, "the /partner/join choice must come before the application form").toBeLessThan(
+      formAt
     );
   });
 
-  it("uses translated copy in all three locales", () => {
-    expect(onboarding()).toMatch(/partnerOnboarding\.completeNow/);
+  it("stops promising a link the success screen no longer delivers", () => {
+    // The old copy said the email would contain "a link to complete your
+    // registration". With the link gone from this screen, that sentence would be the
+    // only thing still pointing at a path that 409s.
+    expect(onboarding()).not.toMatch(/successDesc", "Our team will send you an email shortly/);
     for (const loc of ["en", "es", "nl"]) {
       const dict = JSON.parse(read(`src/i18n/locales/${loc}.json`));
-      expect(dict.partnerOnboarding?.preferNow, `${loc}: preferNow`).toBeTruthy();
-      expect(dict.partnerOnboarding?.completeNow, `${loc}: completeNow`).toBeTruthy();
+      expect(dict.partnerOnboarding.successDesc, `${loc}: successDesc`).not.toMatch(
+        /link to complete|enlace para completar|link om .* te voltooien/i
+      );
+    }
+  });
+
+  it("names both paths and warns against doing both, in all three locales", () => {
+    const src = onboarding();
+    for (const key of ["choiceTitle", "choiceApply", "choiceDirect", "choiceDirectNote", "completeNow"]) {
+      expect(src, `template must use partnerOnboarding.${key}`).toMatch(
+        new RegExp(`partnerOnboarding\\.${key}`)
+      );
+    }
+    for (const loc of ["en", "es", "nl"]) {
+      const dict = JSON.parse(read(`src/i18n/locales/${loc}.json`));
+      for (const key of ["choiceTitle", "choiceApply", "choiceDirect", "choiceDirectNote", "completeNow"]) {
+        expect(dict.partnerOnboarding?.[key], `${loc}: ${key}`).toBeTruthy();
+      }
+      // The collision is the whole reason this section exists, so the warning is
+      // load-bearing copy, not decoration.
+      expect(dict.partnerOnboarding.choiceDirectNote, `${loc}: must warn about one email`).toMatch(/\S/);
+    }
+    // `preferNow` belonged to the removed below-form sentence.
+    for (const loc of ["en", "es", "nl"]) {
+      const dict = JSON.parse(read(`src/i18n/locales/${loc}.json`));
+      expect(dict.partnerOnboarding.preferNow, `${loc}: preferNow should be gone`).toBeUndefined();
     }
   });
 

@@ -5507,7 +5507,7 @@
     "phone": "Telefoon",
     "preferredLanguage": "Voorkeurstaal",
     "successTitle": "Bedankt voor uw interesse!",
-    "successDesc": "Ons team stuurt u binnenkort een e-mail met alle details over ons partnerprogramma, inclusief wat u kunt verdienen en een link om uw registratie te voltooien.",
+    "successDesc": "Ons team beoordeelt uw aanvraag en stuurt u per e-mail een uitnodiging om uw partneraccount aan te maken, met alle details over het programma en wat u kunt verdienen.",
     "returnHome": "Terug naar de homepagina",
     "howItWorksTitle": "Hoe het werkt",
     "step1Title": "Registreren",
@@ -5522,8 +5522,11 @@
     "selectHowHeard": "Selecteer een optie",
     "alreadyPartner": "Al partner?",
     "signIn": "Meld je aan bij je dashboard",
-    "preferNow": "Wil je het meteen afronden?",
-    "completeNow": "Registratie afronden"
+    "completeNow": "Registratie afronden",
+    "choiceTitle": "Twee manieren om deel te nemen",
+    "choiceApply": "Meld hieronder uw interesse aan; ons team beoordeelt deze en stuurt u een uitnodiging per e-mail.",
+    "choiceDirect": "Of stel uw account nu zelf in —",
+    "choiceDirectNote": "Kies één route — doe niet beide met hetzelfde e-mailadres."
   },
   "partnerLogin": {
     "title": "Partnerlogin",

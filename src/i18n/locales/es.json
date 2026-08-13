@@ -5507,7 +5507,7 @@
     "phone": "Teléfono",
     "preferredLanguage": "Idioma Preferido",
     "successTitle": "¡Gracias por Su Interés!",
-    "successDesc": "Nuestro equipo le enviará un email en breve con todos los detalles sobre nuestro programa de colaboradores, incluyendo lo que puede ganar y un enlace para completar su registro.",
+    "successDesc": "Nuestro equipo revisará su solicitud y le enviará por correo una invitación para crear su cuenta de socio, junto con todos los detalles del programa y lo que puede ganar.",
     "returnHome": "Volver a la Página Principal",
     "howItWorksTitle": "Cómo Funciona",
     "step1Title": "Regístrese",
@@ -5522,8 +5522,11 @@
     "selectHowHeard": "Seleccione una opción",
     "alreadyPartner": "¿Ya eres partner?",
     "signIn": "Accede a tu panel",
-    "preferNow": "¿Prefieres hacerlo todo ahora?",
-    "completeNow": "Completar el registro"
+    "completeNow": "Completar el registro",
+    "choiceTitle": "Dos formas de unirse",
+    "choiceApply": "Registre su interés abajo y nuestro equipo lo revisará y le enviará una invitación por correo.",
+    "choiceDirect": "O cree su cuenta usted mismo ahora —",
+    "choiceDirectNote": "Elija una opción: no haga las dos con el mismo correo electrónico."
   },
   "partnerLogin": {
     "title": "Acceso de Colaboradores",

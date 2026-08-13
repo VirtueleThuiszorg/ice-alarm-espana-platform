@@ -55,19 +55,23 @@ export default function PartnerOnboarding() {
                 {t("partnerOnboarding.successTitle", "Thank You for Your Interest!")}
               </CardTitle>
               <CardDescription>
-                {t("partnerOnboarding.successDesc", "Our team will send you an email shortly with full details about our partner programme, including what you can earn and a link to complete your registration.")}
+                {/* No longer promises "a link to complete your registration": under
+                    Option C the route from application to account is an admin review
+                    followed by an invitation email, and the self-serve alternative is
+                    offered before the form, not here. */}
+                {t("partnerOnboarding.successDesc", "Our team will review your application and email you an invitation to set up your partner account, along with full details of the programme and what you can earn.")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {/* The description above promises "a link to complete your
-                  registration" and used to deliver only an email. Offer the route
-                  here too, so an applicant who wants to finish now is not waiting on
-                  a send that currently runs over interim Gmail transport. */}
-              <Button asChild className="w-full">
-                <Link to="/partner/join">
-                  {t("partnerOnboarding.completeNow", "Complete full registration")}
-                </Link>
-              </Button>
+              {/* NO link to /partner/join here — deliberately.
+                  It used to sit on this screen, and it was a dead end:
+                  `partner-apply` has just written a `partners` row with this
+                  email, and `partner-register` refuses any email already in
+                  `partners` with a 409. So the applicant filled 23 more fields,
+                  including an IBAN and a password, and was then told their email
+                  already exists, with no way forward (PARTNER_JOURNEY.md §6).
+                  The choice between the two paths belongs BEFORE the form, where
+                  it is still a choice — it is offered there now. */}
               <Button variant="outline" onClick={() => navigate("/")}>
                 {t("partnerOnboarding.returnHome", "Return to Homepage")}
               </Button>
@@ -138,6 +142,42 @@ export default function PartnerOnboarding() {
                   <p className="text-sm text-muted-foreground">{t("partnerOnboarding.step3Desc", "Earn a commission for every person who signs up through your link.")}</p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* The choice between the two paths, stated BEFORE the form.
+              It used to sit on the thank-you page, where it was not a choice at all:
+              `partner-apply` had already written a `partners` row with that email and
+              `partner-register` refuses a duplicate email with a 409, so following it
+              after applying was a guaranteed dead end (PARTNER_JOURNEY.md §6).
+              Here both options are still open, and the difference that actually
+              matters to the reader — reviewed by us later vs. set up now — is named
+              rather than implied. */}
+          <Card className="max-w-lg mx-auto mb-4 border-dashed">
+            <CardContent className="pt-6 space-y-2">
+              <p className="text-base font-medium">
+                {t("partnerOnboarding.choiceTitle", "Two ways to join")}
+              </p>
+              <p className="text-base text-muted-foreground">
+                {t(
+                  "partnerOnboarding.choiceApply",
+                  "Register your interest below and our team will review it and email you an invitation."
+                )}
+              </p>
+              <p className="text-base text-muted-foreground">
+                {t("partnerOnboarding.choiceDirect", "Or set up your account yourself right now —")}{" "}
+                <Link
+                  to="/partner/join"
+                  className="inline-block py-1 font-medium text-primary underline underline-offset-4 hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+                >
+                  {t("partnerOnboarding.completeNow", "Complete full registration")}
+                </Link>
+                {". "}
+                {t(
+                  "partnerOnboarding.choiceDirectNote",
+                  "Choose one — do not do both with the same email address."
+                )}
+              </p>
             </CardContent>
           </Card>
 
@@ -266,20 +306,6 @@ export default function PartnerOnboarding() {
               </form>
             </CardContent>
           </Card>
-
-          {/* Option C keeps /partner as lead capture, but a partner who would rather
-              self-serve should not have to guess that /partner/join exists. Same
-              persistent-underline + tap-target treatment as the sign-in link below
-              (G3 / WCAG 1.4.1) rather than a second, differently-styled link. */}
-          <p className="mt-6 text-center text-base text-muted-foreground">
-            {t("partnerOnboarding.preferNow", "Prefer to do it all now?")}{" "}
-            <Link
-              to="/partner/join"
-              className="inline-block py-1 font-medium text-primary underline underline-offset-4 hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
-            >
-              {t("partnerOnboarding.completeNow", "Complete full registration")}
-            </Link>
-          </p>
 
           {/* Returning partners. This page is where the public nav sends everyone,
               so without this a partner who already has an account had no route to

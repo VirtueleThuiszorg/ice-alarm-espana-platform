@@ -674,3 +674,164 @@ describe("get_user_role_info partner contract", () => {
     expect(sql).toMatch(/'partner_id', _partner_id/);
   });
 });
+
+// ============================================================
+//  Admin post-login destination — the reported "lands on settings" bug
+// ============================================================
+//
+// Report: admin@careconneqt.es (super_admin, staff row correct, user_id linked)
+// landed on a settings page after login instead of the admin dashboard.
+//
+// Three candidate causes were named. Two are ruled out by the assertions below,
+// and the third is not a defect but a deliberate feature:
+//
+//  1. `/admin`'s index route resolving to something other than AdminDashboard —
+//     it does not; `<Route index element={<AdminDashboard />} />`.
+//  2. A first-login / incomplete-profile check — there is no *profile* check, but
+//     there IS a mandatory-2FA-enrolment gate, and that is the actual cause.
+//  3. `staffPostLoginPath` honouring an intended deep link — it would need `from`
+//     to already be `/admin/settings`, and a fresh login carries no `from`.
+//
+// THE ACTUAL CAUSE (StaffLogin.onSubmit): an admin or super_admin with no
+// *verified* TOTP factor is sent to `/admin/settings?setup2fa=true` and the
+// handler RETURNS — so `completeLogin`, and therefore `staffPostLoginPath`, never
+// run. This fires on EVERY login until 2FA is enrolled, which is why it reads as
+// a broken redirect rather than a one-off setup step.
+//
+// That gate is deliberate (mandatory 2FA for admins on a life-safety product with
+// PHI), so these tests assert the real contract: the destination depends on 2FA
+// state. An admin WITH 2FA reaches the dashboard; an admin WITHOUT it is enrolled
+// first, by design.
+
+describe("an admin's login destination", () => {
+  it.each(["admin", "super_admin"])(
+    "%s with no intended path goes to /admin, never a sub-page",
+    (role) => {
+      const target = staffPostLoginPath(role);
+      expect(target).toBe("/admin");
+      // The specific symptom reported. `/admin` renders AdminDashboard via the
+      // index route; any deeper path would be a different page.
+      expect(target).not.toMatch(/settings/);
+    }
+  );
+
+  it.each(["admin", "super_admin"])(
+    "%s logging in again with no intended path still goes to /admin",
+    (role) => {
+      // "Subsequent login" differs from the first only in what the caller passes
+      // as `from`. Nothing in the app persists a route across logins — no
+      // localStorage/sessionStorage of the last path — so a plain re-login is
+      // indistinguishable from a first one, and must land in the same place.
+      expect(staffPostLoginPath(role, null)).toBe("/admin");
+      expect(staffPostLoginPath(role, undefined)).toBe("/admin");
+    }
+  );
+
+  it("resolves /admin's index to the dashboard, not a settings page", () => {
+    const src = readSrc("src/App.tsx");
+    expect(src).toMatch(/<Route index element=\{<AdminDashboard \/>\} \/>/);
+    // The failure mode being pinned: an index route pointing at settings, or a
+    // redirect standing in front of the dashboard.
+    expect(src).not.toMatch(/<Route index element=\{<SettingsPage \/>\} \/>/);
+    expect(src).not.toMatch(/index element=\{<Navigate to="\/admin\/settings"/);
+  });
+
+  it("has no incomplete-PROFILE diversion — the only settings redirect is the 2FA gate", () => {
+    // Distinguishes the two. A profile-completeness check would strand an admin
+    // whose staff row is already correct, which is what was suspected here; the
+    // account's row was fine, and no such check exists.
+    for (const file of [
+      "src/pages/auth/Login.tsx",
+      "src/components/auth/ProtectedRoute.tsx",
+    ]) {
+      expect(readSrc(file), `${file} must not route anyone to /admin/settings`).not.toMatch(
+        /\/admin\/settings/
+      );
+    }
+
+    // StaffLogin has exactly ONE such redirect, and it is the 2FA enrolment gate.
+    const staffLogin = readSrc("src/pages/auth/StaffLogin.tsx");
+    const settingsRedirects = staffLogin.match(/\/admin\/settings[^"']*/g) ?? [];
+    expect(settingsRedirects).toEqual(["/admin/settings?tab=security"]);
+  });
+
+  // ── the gate has to be satisfiable ──────────────────────────────────────
+  //
+  // The lockout was not the redirect itself. It was that the redirect pointed at
+  // `?setup2fa=true`, which NOTHING read, and `TwoFactorSetup` was rendered
+  // NOWHERE — so the admin landed on the default "company" tab with no enrolment
+  // UI on the page. The gate could never be cleared, so it fired on every login.
+
+  it("sends the admin to a tab SettingsPage actually recognises", () => {
+    const staffLogin = readSrc("src/pages/auth/StaffLogin.tsx");
+    const settings = readSrc("src/pages/admin/SettingsPage.tsx");
+
+    const target = staffLogin.match(/\/admin\/settings\?tab=(\w+)/);
+    expect(target, "the gate must deep-link a tab").not.toBeNull();
+    const tab = target![1];
+
+    // The param is validated against SETTINGS_TABS and silently falls back to
+    // "company" when unknown — which is exactly how this broke.
+    const tabsLine = settings.match(/const SETTINGS_TABS = \[(.*?)\] as const/s)?.[1] ?? "";
+    expect(tabsLine, `SETTINGS_TABS must contain "${tab}"`).toContain(`"${tab}"`);
+
+    // And the tab must exist in the UI, not just the allowlist.
+    expect(settings).toContain(`<TabsTrigger value="${tab}">`);
+    expect(settings).toContain(`<TabsContent value="${tab}">`);
+  });
+
+  it("renders TwoFactorSetup somewhere reachable, so enrolment is possible", () => {
+    const settings = readSrc("src/pages/admin/SettingsPage.tsx");
+    expect(settings).toMatch(/import \{ TwoFactorSetup \}/);
+    expect(settings).toContain("<TwoFactorSetup />");
+  });
+
+  it("leaves no reference to the dead setup2fa param", () => {
+    // It was read by nothing. Keeping it would leave two competing mechanisms,
+    // one of which does not work.
+    for (const file of [
+      "src/pages/auth/StaffLogin.tsx",
+      "src/pages/admin/SettingsPage.tsx",
+    ]) {
+      expect(readSrc(file), `${file} still references setup2fa`).not.toMatch(/setup2fa/);
+    }
+    expect(settingsRedirects).toEqual(["/admin/settings?setup2fa=true"]);
+  });
+
+  it("only diverts an admin to settings when 2FA is NOT yet enrolled", () => {
+    // The gate's condition, pinned: it is reached only after the verified-factor
+    // check has found nothing. An admin WITH 2FA falls through to completeLogin,
+    // which is what makes the dashboard reachable at all.
+    const src = readSrc("src/pages/auth/StaffLogin.tsx");
+    const gateIndex = src.indexOf('"/admin/settings?tab=security"');
+    const gateIndex = src.indexOf('"/admin/settings?setup2fa=true"');
+    expect(gateIndex).toBeGreaterThan(-1);
+
+    // The verified-factor early return must come BEFORE the enrolment redirect,
+    // or an admin who already has 2FA would be sent to enrol again every login.
+    const verifiedReturn = src.indexOf("setNeeds2FA(true)");
+    expect(verifiedReturn).toBeGreaterThan(-1);
+    expect(verifiedReturn).toBeLessThan(gateIndex);
+
+    // And completeLogin must still be reachable after the gate.
+    expect(src.indexOf("completeLogin(staffData.role)")).toBeGreaterThan(gateIndex);
+  });
+
+  it("gates mandatory 2FA on isAdminRole, not a duplicated role list", () => {
+    // A hardcoded ["admin","super_admin"] is the same anti-pattern #102 removed
+    // from the redirect (see "no longer hardcodes a call_centre role allowlist").
+    // Here it is worse than a redirect bug: a future admin-tier role added to
+    // isAdminRole would silently be EXEMPT from mandatory 2FA while still holding
+    // admin access.
+    const src = readSrc("src/pages/auth/StaffLogin.tsx");
+    expect(src).not.toMatch(/\[\s*"admin",\s*"super_admin"\s*\]\s*\.includes/);
+    expect(src).toMatch(/isAdminRole\(staffData\.role\)/);
+  });
+
+  it("does not send an admin to the call centre — the #102 regression class", () => {
+    // isAdminRole covers both admin roles; if it ever stopped, admins would land
+    // on /call-centre and be bounced, which is the bug #102 fixed for supervisors.
+    expect(staffPostLoginPath("admin")).not.toBe("/call-centre");
+    expect(staffPostLoginPath("super_admin")).not.toBe("/call-centre");
+  });
+});

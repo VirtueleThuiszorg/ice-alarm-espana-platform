@@ -332,6 +332,16 @@ which the admin Convert gate now also reads.
   application ("you have already applied — watch for our invitation") would be the
   next honest improvement, and is a copy change in `partner-register`, not a flow
   change.
+### 6.5 What has to change (not yet done — Lee's call on which)
+
+- **Minimum:** remove or relocate the thank-you-page link so no one is routed into
+  a guaranteed 409. This alone stops the dead end.
+- **Better:** make `partner-register` treat an existing `pending` application for
+  the same email as the thing to *complete* rather than a conflict — attach the
+  auth user to that row and fill in the extra fields, instead of refusing. That
+  makes the flow Lee actually walked work as it reads.
+- **Either way:** carry the six known fields into `/partner/join` as prefill.
+  Re-asking them is what makes the second wizard feel like a mistake.
 
 Note the interaction with the `pending` + `user_id` distinction added in the
 status-allowlist work: `partner-apply` writes `pending` *without* a `user_id` and

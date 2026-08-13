@@ -15,7 +15,7 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { Loader2, ArrowLeft, Shield, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
-import { staffPostLoginPath } from "@/config/constants";
+import { isAdminRole, staffPostLoginPath } from "@/config/constants";
 
 export default function StaffLogin() {
   const { refreshAuth } = useAuth();
@@ -105,13 +105,24 @@ export default function StaffLogin() {
           return;
         }
 
-        // No 2FA — for admin/super_admin, redirect to 2FA setup
-        if (["admin", "super_admin"].includes(staffData.role)) {
+        // No verified 2FA factor — admins must enrol before reaching the portal.
+        //
+        // `isAdminRole` rather than a literal ["admin","super_admin"]: the two are
+        // the same set today, but the duplicate is a security trap, not just a
+        // style point. Adding an admin-tier role to `isAdminRole` grants it /admin
+        // (ProtectedRoute requireAdmin) while leaving it EXEMPT from mandatory 2FA
+        // here. One source of truth for "is this an admin" closes that.
+        if (isAdminRole(staffData.role)) {
           await refreshAuth();
           toast.info(
             t("auth.twoFactorRequired")
           );
-          navigate("/admin/settings?setup2fa=true");
+          // `?tab=security` — the param SettingsPage actually reads, validated
+          // against its SETTINGS_TABS allowlist. The earlier bespoke flag was read
+          // by nothing, so the admin landed on the default "company" tab with no
+          // enrolment UI anywhere on the page and no way to satisfy this gate.
+          // Reuses the existing deep-link mechanism rather than adding a second.
+          navigate("/admin/settings?tab=security");
           return;
         }
 

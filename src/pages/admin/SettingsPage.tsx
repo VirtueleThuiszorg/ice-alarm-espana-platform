@@ -29,6 +29,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ImagesSettingsTab } from "@/components/admin/settings/ImagesSettingsTab";
 import { DocumentationSettingsTab } from "@/components/admin/settings/DocumentationSettingsTab";
+import { TwoFactorSetup } from "@/components/auth/TwoFactorSetup";
 import { CommunicationsTab } from "@/components/admin/settings/CommunicationsTab";
 import { DevicesSettingsTab } from "@/components/admin/settings/DevicesSettingsTab";
 import { PRICING } from "@/config/pricing";
@@ -80,7 +81,11 @@ const KEY = {
   FB_PAGE_TOKEN: "settings_facebook_page_access_token",
 } as const;
 
-const SETTINGS_TABS = ["company", "pricing", "payments", "communications", "devices", "images", "documentation"] as const;
+// "security" is where `TwoFactorSetup` lives, and it is the tab StaffLogin deep-links
+// to when it blocks an admin for having no verified TOTP factor. Without it in this
+// list the param is dropped and the tab falls back to "company" — which is how the
+// gate came to redirect somewhere that did not offer enrolment.
+const SETTINGS_TABS = ["company", "pricing", "payments", "communications", "devices", "images", "documentation", "security"] as const;
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -470,6 +475,7 @@ export default function SettingsPage() {
           <TabsTrigger value="devices">{t("adminSettings.devices", "Devices")}</TabsTrigger>
           <TabsTrigger value="images">{t("adminSettings.images", "Images")}</TabsTrigger>
           <TabsTrigger value="documentation">{t("adminSettings.documentation", "Docs")}</TabsTrigger>
+          <TabsTrigger value="security">{t("adminSettings.security", "Security")}</TabsTrigger>
         </TabsList>
 
         {/* Company Tab */}
@@ -984,6 +990,13 @@ export default function SettingsPage() {
         {/* Documentation Tab */}
         <TabsContent value="documentation">
           <DocumentationSettingsTab />
+        </TabsContent>
+
+        {/* Security Tab — the destination of StaffLogin's mandatory-2FA redirect.
+            `TwoFactorSetup` already existed and was complete, but was rendered
+            NOWHERE, so an admin sent here to enrol had nothing to enrol with. */}
+        <TabsContent value="security">
+          <TwoFactorSetup />
         </TabsContent>
       </Tabs>
     </div>

@@ -126,7 +126,11 @@ const SERVER_REJECTS: Array<{ name: string; patch: Record<string, unknown> }> = 
   { name: "payout_iban empty", patch: { payout_iban: "" } },
 
   // Enums.
-  { name: "preferred_language not en/es", patch: { preferred_language: "nl" } },
+  // `nl` was the unsupported example here until Dutch became a launch language
+  // (LAUNCH_SCOPE §6, migration 20260814130000). It is now accepted by BOTH
+  // schemas, so it no longer tests anything — replaced with a language we really
+  // do not support, which keeps the case adversarial instead of stale.
+  { name: "preferred_language outside en/es/nl", patch: { preferred_language: "fr" } },
   { name: "partner_type unknown", patch: { partner_type: "something_else" } },
 ];
 

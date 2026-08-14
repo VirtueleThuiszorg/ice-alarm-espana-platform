@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { hasVerifiedMfaFactor } from "@/lib/hasVerifiedMfaFactor";
 import { setSentryUser, clearSentryUser } from "@/lib/sentry";
 import { TIMEOUTS } from "@/config/constants";
 
@@ -101,11 +102,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // network call blipped.
       try {
         const { data: mfaData, error: mfaError } = await supabase.auth.mfa.listFactors();
-        setHasVerifiedFactor(
-          mfaError
-            ? null
-            : (mfaData?.totp ?? []).some((f) => (f.status as string) === "verified")
-        );
+        // `all`, not `totp` — see hasVerifiedMfaFactor. Reading the TOTP array
+        // alone made a passkey-only admin look unenrolled, so the gate would have
+        // locked out someone who had done exactly what it demanded.
+        setHasVerifiedFactor(mfaError ? null : hasVerifiedMfaFactor(mfaData));
       } catch {
         setHasVerifiedFactor(null);
       }

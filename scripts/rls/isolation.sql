@@ -238,6 +238,48 @@ SELECT pg_temp.check(
   OR (SELECT role FROM public.staff WHERE user_id = '55555555-5555-5555-5555-555555555555') = 'call_centre',
   'guarded by staff_self_update_guard');
 
+-- The policy must refuse escalation ON ITS OWN, with the trigger out of the way.
+--
+-- Until 20260814120000 the UPDATE policy was USING/WITH CHECK (user_id = auth.uid())
+-- with no column restriction, so RLS permitted a role change and only
+-- staff_self_update_guard stopped it. That made one trigger the sole control on
+-- privilege escalation. Disabling the trigger here isolates the policy layer, so
+-- this fails if the WITH CHECK is ever loosened again — which the test above
+-- cannot detect, because the trigger would mask it.
+DO $block$
+DECLARE blocked boolean := false;
+BEGIN
+  ALTER TABLE public.staff DISABLE TRIGGER staff_self_update_guard;
+  BEGIN
+    PERFORM pg_temp.exec_as('55555555-5555-5555-5555-555555555555',
+      'UPDATE public.staff SET role = ''super_admin'' WHERE user_id = ''55555555-5555-5555-5555-555555555555''');
+    -- A WITH CHECK violation raises; a USING mismatch silently affects 0 rows.
+    blocked := (SELECT role FROM public.staff
+                WHERE user_id = '55555555-5555-5555-5555-555555555555') = 'call_centre';
+  EXCEPTION WHEN OTHERS THEN
+    blocked := true;
+  END;
+  ALTER TABLE public.staff ENABLE TRIGGER staff_self_update_guard;
+
+  PERFORM pg_temp.check(
+    'the POLICY alone refuses a role change, with the trigger disabled',
+    blocked,
+    'defence in depth: policy and trigger are independent controls');
+END $block$;
+
+-- NOTE — a pre-existing defect found while writing this, NOT introduced here and
+-- deliberately not pinned as a passing assertion:
+--
+--   `guard_staff_self_update` raises on ANY self-update by a non-super-admin,
+--   including a plain first_name change. `is_active` is a GENERATED column, and
+--   in a BEFORE trigger NEW.is_active is not yet computed (NULL) while OLD holds
+--   the stored value, so `NEW.is_active IS DISTINCT FROM OLD.is_active` is always
+--   true. "Staff update own row" is therefore effectively dead today.
+--
+--   That makes the policy tightening below strictly safer, not riskier — but it
+--   means self-service staff edits do not work at all. Fixing it means editing
+--   the guard, which is security-sensitive and belongs behind the human gate.
+
 SELECT pg_temp.check(
   'the role is still call_centre after the attempt',
   (SELECT role::text FROM public.staff WHERE user_id = '55555555-5555-5555-5555-555555555555') = 'call_centre');

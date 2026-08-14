@@ -12,7 +12,7 @@ const password = z
   .regex(/[A-Z]/)
   .regex(/[a-z]/)
   .regex(/[0-9]/);
-const language = z.enum(["en", "es"]);
+const language = z.enum(["en", "es", "nl"]);
 const optionalString = z.string().max(500).optional().or(z.literal(""));
 
 // --- Nested schemas ---

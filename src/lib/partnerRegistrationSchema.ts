@@ -68,7 +68,7 @@ const boundedOptional = (max: number, label: string) =>
     .or(z.literal(""));
 
 /** Server: `z.enum(["en", "es"])`. See PARTNER_JOURNEY.md on the missing `nl`. */
-export const PARTNER_LANGUAGES = ["en", "es"] as const;
+export const PARTNER_LANGUAGES = ["en", "es", "nl"] as const;
 
 /** Server: the same nine values. */
 export const PARTNER_TYPES = [

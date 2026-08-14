@@ -105,6 +105,41 @@ serve(async (req) => {
       .delete()
       .eq("member_id", memberId);
 
+    // 5b. Revoke outstanding record-update tokens.
+    //
+    // `member_update_tokens` rows carry a bearer token that grants read AND write
+    // access to this member's profile, medical information and emergency contacts
+    // with no second factor — anyone holding the email holds the data.
+    //
+    // They are NOT cleaned up by the anonymisation in step 6. The table declares
+    // `member_id ... ON DELETE CASCADE`, but step 6 UPDATEs the member row rather
+    // than deleting it ("keep for referential integrity"), so the cascade never
+    // fires. Before this, an unexpired token issued shortly before an erasure
+    // request stayed valid afterwards and still resolved to the member — a live
+    // access path to health data surviving the request to erase it.
+    //
+    // Deleted rather than marked used: under data minimisation there is no reason
+    // to retain a token for a member who has asked to be erased, and a deleted row
+    // cannot be un-marked. `created_by` / `created_at` audit of the *request* lives
+    // in activity_logs, which is handled separately below.
+    const { error: tokenError, count: tokensRevoked } = await supabase
+      .from("member_update_tokens")
+      .delete({ count: "exact" })
+      .eq("member_id", memberId);
+
+    if (tokenError) {
+      // Loud, not silent: leaving a live data-access path behind is exactly the
+      // failure this step exists to prevent, so an operator has to see it.
+      console.error("GDPR: FAILED to revoke member_update_tokens", {
+        member_id: memberId,
+        code: tokenError.code,
+        message: tokenError.message,
+      });
+      throw new Error("GDPR deletion aborted: update tokens could not be revoked");
+    }
+
+    console.log("GDPR: revoked update tokens", { member_id: memberId, count: tokensRevoked ?? 0 });
+
     // 6. Anonymise the member record (keep for referential integrity)
     await supabase
       .from("members")

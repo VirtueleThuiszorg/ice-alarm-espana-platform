@@ -140,6 +140,24 @@ export async function findNoOpButtons(
       ).length,
       expanded: document.querySelectorAll('[aria-expanded="true"]').length,
       domSize: document.body.innerHTML.length,
+      // Selection state of every stateful control on the page.
+      //
+      // Without this the only signal for "something happened" is a >40 character
+      // swing in innerHTML, which misses a control whose whole effect is a state
+      // flip plus a short text change. Measured: switching /pricing from monthly
+      // to annual moves exactly 29 characters — the prices and the /month → /year
+      // suffixes — so a working toggle was reported as a dead button. On / the
+      // same switch moves 157 and passed, which is why one page looked worse than
+      // the other for no real reason.
+      controlState: Array.from(
+        document.querySelectorAll("[data-state],[aria-checked],[aria-pressed],[aria-selected]")
+      )
+        .map(
+          (el) =>
+            `${el.getAttribute("data-state") ?? ""}|${el.getAttribute("aria-checked") ?? ""}|` +
+            `${el.getAttribute("aria-pressed") ?? ""}|${el.getAttribute("aria-selected") ?? ""}`
+        )
+        .join(","),
     }));
 
   await gotoAudited(page, path, lng);
@@ -166,6 +184,24 @@ export async function findNoOpButtons(
 
     if (BUTTON_NOOP_ALLOWLIST.some((re) => re.test(name))) continue;
 
+    // An already-selected radio / toggle / tab is SUPPOSED to do nothing when
+    // clicked — re-picking the option you are already on is a no-op by design,
+    // not a dead handler. Flagging it made a correct control look broken and gave
+    // the reader nothing to fix. The other option in the same group is still
+    // clicked on its own iteration, so the group's behaviour is still covered.
+    const alreadySelected = await btn
+      .evaluate(
+        (el) =>
+          el.getAttribute("aria-checked") === "true" ||
+          el.getAttribute("aria-pressed") === "true" ||
+          el.getAttribute("aria-selected") === "true" ||
+          el.getAttribute("data-state") === "on" ||
+          el.getAttribute("data-state") === "active" ||
+          el.getAttribute("data-state") === "checked"
+      )
+      .catch(() => false);
+    if (alreadySelected) continue;
+
     const before = await snapshot();
     await btn.click({ trial: false, timeout: 2500 }).catch(() => {});
     await page.waitForTimeout(500);
@@ -176,6 +212,7 @@ export async function findNoOpButtons(
       before.dialogs !== after.dialogs ||
       before.toasts !== after.toasts ||
       before.expanded !== after.expanded ||
+      before.controlState !== after.controlState ||
       Math.abs(before.domSize - after.domSize) > 40;
 
     if (!changed) dead.push({ index: i, name: name || "(unnamed)" });

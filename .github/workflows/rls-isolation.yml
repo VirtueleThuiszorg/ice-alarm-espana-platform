@@ -1,0 +1,56 @@
+name: RLS Isolation
+
+# Golden rule 2: "RLS on every table. No table ships without Row-Level Security
+# and a test proving isolation." This is that proof, and it runs on every PR.
+#
+# It needs no Supabase project and no ephemeral cluster: RLS is a pure PostgreSQL
+# feature, so a stock `postgres:16` service is enough to evaluate the real
+# policies from the real migration set. See scripts/rls/run.sh.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Superseding is safe for PR pushes, but every verdict on main has to survive —
+  # the same reasoning as ci.yml, after the 2026-07-25 burst hid a red main.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  isolation:
+    name: Cross-tenant isolation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        # Without this the first psql can race the container's startup.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install psql client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client
+
+      - name: Run RLS isolation suite
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+        run: ./scripts/rls/run.sh

@@ -274,6 +274,44 @@ messages unassign `""`→`null` bug; `callCentreCrud.test.ts` 11 tests).
 > policy — deny-all, which is correct for a service-role-only table, and is declared
 > as an intentional exception rather than silently skipped.
 
+> **UPDATE 2026-08-14 — G4 consent scoping now exists and is tested. NOT MERGED.**
+> `PRELAUNCH_AUDIT.md` recorded G4 ("family sees only what the member has consented
+> to share") as **not met, with nothing to test** — there was no family carer in the
+> schema at all. Design: `CONSENT_MODEL.md`. Migration:
+> `20260814140000_care_access_grants.sql`. Both are **open PRs awaiting the human
+> gate on RLS policies**; neither is on `main`, so nothing below is live yet.
+>
+> What the branch establishes, by execution on real PostgreSQL: **137 migrations
+> applied, 0 failed, 77 isolation checks green** (up from 29). The consent section
+> is negative-first — a carer granted `alerts` over member A is proven **unable** to
+> read that member's `medical_information`, `devices`, `emergency_contacts`,
+> `subscriptions`, or `public.members` itself; unable to read member B's alerts;
+> unable to write anything anywhere; and unable to grant themselves more. Revocation
+> is asserted **in the same run**, microseconds after the revoking statement, and is
+> per-category.
+>
+> **Proven able to fail, by mutation, not assumed:** deleting `AND g.revoked_at IS
+> NULL` from `has_care_consent` turns the immediacy check red; deleting `AND
+> g.category = _category` turns five checks red. Both were run, both went red, and
+> the migration was restored byte-identical.
+>
+> **What is honestly NOT closed by this work:**
+> - G4's *"every access is auditable"* is **partially** met. The grant lifecycle is
+>   fully auditable — every grant and revocation is a durable row with a timestamp
+>   and a named actor, and no client can delete one. **Per-read logging does not
+>   exist** and is not built (`CONSENT_MODEL.md` §8).
+> - There is **no family portal UI**, no carer invite flow, and no carer account
+>   claim. The database can enforce consent; nothing yet renders it. That order is
+>   deliberate.
+> - A `location` grant currently exposes the whole `devices` row including `imei`
+>   and `sim_phone_number`, because Postgres cannot column-scope while staff,
+>   members and carers all share the `authenticated` role (`CONSENT_MODEL.md` §3.2).
+> - **Consent on behalf of an adult with diminished capacity is unresolved and
+>   deliberately unimplemented.** `consent_basis` has exactly two values and neither
+>   is a legal representative; the isolation suite fails if a third is added. Open
+>   with a Spanish data protection lawyer (`CONSENT_MODEL.md` §7). Until it returns,
+>   **a member who cannot consent personally cannot have a carer granted access.**
+
 > **CORRECTION 2026-08-11 — "zero Playwright/E2E harness" above is out of date.** Playwright
 > landed 2026-07-22: `playwright.config.ts`, the `Page Audit` CI workflow, and
 > `e2e/public.spec.ts` (14 public routes × 7 checks). This PR adds the first

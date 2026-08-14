@@ -45,19 +45,81 @@ describe("member-self-service — scoped service-role routing", () => {
     expect(fn).toMatch(/checkRateLimit\(`member-self-service:\$\{user\.id\}`/);
   });
 
+  // The three tables whose member writes this function exists to route.
+  const ROUTED = ["medical_information", "activity_logs", "notification_log"];
+
+  // A SELECT policy on a routed table cannot loosen a write, so it is not what
+  // this guard is defending — but it must still be looked at by a human rather
+  // than slipping through, so each one is declared here with its reason. Same
+  // pattern as the deny-all exception list in scripts/rls/isolation.sql.
+  const DECLARED_READ_POLICIES: Record<string, string> = {
+    "Consented carers view member medical information":
+      "20260814140000 — G4 consent scoping. SELECT only, gated on a live care_access_grants row. Reads, never writes. CONSENT_MODEL.md.",
+  };
+
+  // Strip line comments first. A rollback block quoting the CREATE POLICY it
+  // would restore is documentation, not a policy, and matching it would make
+  // this test fail on a comment.
+  const statements = (sql: string) =>
+    sql
+      .split("\n")
+      .map((l) => l.replace(/--.*$/, ""))
+      .join("\n")
+      .match(/CREATE\s+POLICY[^;]*;/gi) ?? [];
+
+  const routedPolicies = () => {
+    const dir = join(ROOT, "supabase/migrations");
+    const found: { migration: string; policy: string; table: string; stmt: string }[] = [];
+    for (const m of readdirSync(dir).filter((f) => f >= "20260724160000")) {
+      for (const stmt of statements(readFileSync(join(dir, m), "utf8"))) {
+        const table = stmt.match(/ON\s+public\.(\w+)/i)?.[1] ?? "";
+        if (!ROUTED.includes(table.toLowerCase())) continue;
+        found.push({
+          migration: m,
+          policy: stmt.match(/CREATE\s+POLICY\s+"([^"]+)"/i)?.[1] ?? "<unnamed>",
+          table,
+          stmt,
+        });
+      }
+    }
+    return found;
+  };
+
   it("ZERO policy changes: no migration ever grants non-staff writes on the routed tables", () => {
     // The whole point is routing, not policy loosening. Any migration dated
-    // after this work started (2026-07-24 16:00) must not touch the three
-    // routed tables' policies. (The original "no new migrations at all" pin
-    // was too broad — it tripped when the unrelated partner guard-trigger
-    // migration from the same night merged alongside this fix.)
-    const dir = join(ROOT, "supabase/migrations");
-    for (const m of readdirSync(dir).filter((f) => f >= "20260724160000")) {
-      const sql = readFileSync(join(dir, m), "utf8");
+    // after this work started (2026-07-24 16:00) must not add a policy that
+    // can WRITE one of the three routed tables. A policy with no FOR clause
+    // defaults to ALL, so anything that is not explicitly FOR SELECT fails.
+    //
+    // (The original pin forbade CREATE POLICY outright. That was broader than
+    // this test's own name and comment — "grants non-staff WRITES" — and it
+    // blocked the G4 consent-scoping read policy, which cannot loosen a write
+    // by construction. Narrowed to the thing actually being defended; the write
+    // case is unchanged and is mutation-tested below.)
+    for (const { migration, policy, table, stmt } of routedPolicies()) {
       expect(
-        /CREATE POLICY[^;]*ON public\.(medical_information|activity_logs|notification_log)/i.test(sql),
-        `${m} adds a policy on a member-self-service routed table — the fix must stay routing, not policy loosening`,
-      ).toBe(false);
+        /\bFOR\s+SELECT\b/i.test(stmt),
+        `${migration} adds policy "${policy}" on routed table ${table} without FOR SELECT — the fix must stay routing, not policy loosening`,
+      ).toBe(true);
+    }
+  });
+
+  it("every read policy added to a routed table is declared, with a reason", () => {
+    for (const { migration, policy, table } of routedPolicies()) {
+      expect(
+        DECLARED_READ_POLICIES[policy],
+        `${migration} adds read policy "${policy}" on ${table} — add it to DECLARED_READ_POLICIES with the reason it is safe, so it gets read by a human`,
+      ).toBeTruthy();
+    }
+  });
+
+  it("the declarations stay real — a removed policy must not sit here implying otherwise", () => {
+    const live = new Set(routedPolicies().map((p) => p.policy));
+    for (const declared of Object.keys(DECLARED_READ_POLICIES)) {
+      expect(
+        live.has(declared),
+        `"${declared}" is declared but no migration creates it any more — remove the declaration`,
+      ).toBe(true);
     }
   });
 });

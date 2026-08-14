@@ -91,16 +91,41 @@ serve(async (req: Request): Promise<Response> => {
     if (validated.error) return validated.error;
     const data = validated.data as PartnerRegistrationRequest;
 
-    // Check if email already exists in partners table
+    // Check if email already exists in partners table.
+    //
+    // `status` and `user_id` are selected because the refusal below depends on
+    // WHICH kind of row this is. The previous single message — that a partner with
+    // this email was already on file — was true but useless: the largest group who
+    // hit it are people who applied at /partner minutes earlier, and telling them
+    // their email is taken reads as a rejection of a thing they just did
+    // successfully.
     const { data: existingPartner } = await supabase
       .from("partners")
-      .select("id")
+      .select("id, status, user_id")
       .eq("email", data.email)
       .maybeSingle();
 
     if (existingPartner) {
+      // The two rows look identical on `status` alone. `partner-apply` (/partner)
+      // writes `pending` with NO user_id — an application awaiting review.
+      // `partner-register` (this function) writes `pending` WITH one. The same
+      // distinction `decidePartnerInvite` relies on, used here for wording.
+      const isUnclaimedApplication =
+        existingPartner.status === "pending" && !existingPartner.user_id;
+
+      const message = isUnclaimedApplication
+        ? "You have already applied to the partner programme with this email. " +
+          "Our team is reviewing it and will email you an invitation to set up your " +
+          "account — there is nothing more you need to do right now."
+        : existingPartner.status === "suspended"
+          ? "This email belongs to a suspended partner account. Please contact support."
+          : "An account already exists for this email. Please sign in instead, or use " +
+            "the password reset link if you cannot remember your password.";
+
       return new Response(
-        JSON.stringify({ error: "A partner with this email already exists" }),
+        // `already_applied` lets the client distinguish "come back later" from
+        // "go and sign in" without parsing prose.
+        JSON.stringify({ error: message, already_applied: isUnclaimedApplication }),
         { status: 409, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }

@@ -277,9 +277,10 @@ messages unassign `""`→`null` bug; `callCentreCrud.test.ts` 11 tests).
 > **UPDATE 2026-08-14 — G4 consent scoping now exists and is tested. NOT MERGED.**
 > `PRELAUNCH_AUDIT.md` recorded G4 ("family sees only what the member has consented
 > to share") as **not met, with nothing to test** — there was no family carer in the
-> schema at all. Design: `CONSENT_MODEL.md`. Migration:
-> `20260814140000_care_access_grants.sql`. Both are **open PRs awaiting the human
-> gate on RLS policies**; neither is on `main`, so nothing below is live yet.
+> schema at all. Design: `CONSENT_MODEL.md` — **merged to `main` 2026-08-14** (#134).
+> Implementation: `20260814140000_care_access_grants.sql` — **open PR (#135), behind
+> the human gate on RLS policies**. So the model is agreed and on `main`; the
+> enforcement is not, and nothing below is live in the database yet.
 >
 > What the branch establishes, by execution on real PostgreSQL: **137 migrations
 > applied, 0 failed, 77 isolation checks green** (up from 29). The consent section

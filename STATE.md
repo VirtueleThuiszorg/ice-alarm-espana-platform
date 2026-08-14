@@ -251,6 +251,29 @@ messages unassign `""`→`null` bug; `callCentreCrud.test.ts` 11 tests).
 
 **Test surface reality:** 23 Vitest files in `src/test/`. Still **zero** RLS/isolation tests and **zero** Playwright/E2E harness. The SOS escalation ladder now has a suite-level E2E encoding (`sosEscalation.e2e.test.ts`) plus edge-logic tests (`escalationLoop.test.ts`, `shiftTime.test.ts`) that exercise shared edge modules under vitest — but the mandated Playwright E2E paths (checkout→activation, SOS→operator UI) and the RLS-isolation/webhook-contract suites still have no corresponding files.
 
+> **CORRECTION 2026-08-13 — "zero RLS/isolation tests" above is no longer true.**
+> `scripts/rls/run.sh` builds a throwaway PostgreSQL, applies the Supabase-compatible
+> scaffolding (`scripts/rls/bootstrap.sql`) and then the **real** migration set, and
+> runs 28 cross-tenant checks (`scripts/rls/isolation.sql`). It runs on every PR via
+> the `RLS Isolation` workflow — a stock `postgres:16` service, no Supabase project,
+> no ephemeral cluster, because RLS is a pure PostgreSQL feature.
+>
+> Established by that run, on the real schema: **112 tables in `public`, all 112 with
+> RLS enabled, 277 policies.** Covered: member↔member (SELECT/UPDATE/DELETE), PHI
+> (`medical_information`, `emergency_contacts`), partner↔partner, partner→member,
+> anonymous, a signed-in user with no rows, golden rule 3 (a call-centre operator
+> cannot escalate their own role — the `staff_self_update_guard` trigger fires) and
+> golden rule 4 (a member cannot move their own `subscriptions.status` or
+> `plan_type`).
+>
+> **It is proven able to fail**, not merely green: adding a single `USING (true)`
+> SELECT policy to `members` flips the relevant checks to FAIL and exits non-zero.
+>
+> Still true: the two mandated **E2E** paths (checkout→activation, SOS→operator) and
+> the **webhook contract** tests remain owed. `webhook_events` is RLS-on with no
+> policy — deny-all, which is correct for a service-role-only table, and is declared
+> as an intentional exception rather than silently skipped.
+
 > **CORRECTION 2026-08-11 — "zero Playwright/E2E harness" above is out of date.** Playwright
 > landed 2026-07-22: `playwright.config.ts`, the `Page Audit` CI workflow, and
 > `e2e/public.spec.ts` (14 public routes × 7 checks). This PR adds the first
@@ -364,7 +387,7 @@ messages unassign `""`→`null` bug; `callCentreCrud.test.ts` 11 tests).
 - **Monorepo** (`apps/platform`, `apps/hub`, `packages/{ui,database,ai,config}`, `services/ingestion`) — none exist (see RECONCILE.md).
 - **"Clara" assistant on Anthropic** (plan WP7) — the assistant is Isabella on the Lovable gateway.
 - ~~**E2E harness** (Playwright/Cypress)~~ **→ EXISTS** since 2026-07-22 (`playwright.config.ts`, `Page Audit` workflow, `e2e/public.spec.ts`), extended 2026-08-11 with the first authenticated journey (`e2e/partnerJourney.spec.ts`, Supabase HTTP stubbed — see the correction in §2). **The two mandated E2E paths are still owed:** checkout→activation and SOS→operator.
-- **RLS isolation test suite** (golden rule #2, plan §13).
+- ~~**RLS isolation test suite** (golden rule #2, plan §13)~~ **→ EXISTS 2026-08-13.** `scripts/rls/` + the `RLS Isolation` CI job: real PostgreSQL, the real migration set (134 of 139 applied; the 5 skipped are pg_cron/pg_net scheduling with zero policies), 28 checks. Proven able to fail by mutation — adding one `USING (true)` policy to `members` turns it red.
 - **Webhook contract tests** (plan §13).
 - **Tool-permission tests** for the 6 hard-blocked tools (they're absent by construction, not asserted by a test).
 - **One clean migration set** — reality is 126 accreted migrations (plan §5 wanted "not 83 accreted ones").

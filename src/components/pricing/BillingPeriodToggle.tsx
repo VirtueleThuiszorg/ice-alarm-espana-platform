@@ -33,6 +33,12 @@ export function BillingPeriodToggle({ value, onChange, savingsLabel, className }
         onValueChange={(next) => {
           if (next === "monthly" || next === "annual") onChange(next);
         }}
+        // Radix gives each item role="radio" for type="single", but leaves the root
+        // as role="group". A radio outside a radiogroup is invalid ARIA: assistive
+        // tech announces two unrelated radios instead of "Billing period, 1 of 2",
+        // and arrow-key semantics are not implied. G3 sets WCAG AA as the minimum,
+        // and this is the control that decides what a member is quoted.
+        role="radiogroup"
         aria-label={t("pricing.billingPeriod", "Billing period")}
         className="rounded-full border bg-muted/40 p-1"
       >

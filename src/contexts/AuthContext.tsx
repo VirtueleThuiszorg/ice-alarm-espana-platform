@@ -17,6 +17,14 @@ interface AuthContextType {
   partnerId: string | null;
   isPartner: boolean;
   roleLoadFailed: boolean;
+  /**
+   * Does this user hold a VERIFIED TOTP factor?
+   *
+   * `null` while unknown — either not yet fetched or the lookup failed. Guards
+   * must treat null as "do not decide yet" and never as "no factor", or a slow
+   * MFA lookup would bounce a properly-enrolled admin out of the portal.
+   */
+  hasVerifiedFactor: boolean | null;
   signOut: () => Promise<void>;
   refreshAuth: () => Promise<void>;
   retryRoleLoad: () => Promise<void>;
@@ -28,6 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasVerifiedFactor, setHasVerifiedFactor] = useState<boolean | null>(null);
   const [isStaff, setIsStaff] = useState(false);
   const [staffRole, setStaffRole] = useState<StaffRole>(null);
   const [memberId, setMemberId] = useState<string | null>(null);
@@ -64,6 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPartnerId(null);
     setIsPartner(false);
     setRoleLoadFailed(false);
+    setHasVerifiedFactor(null);
     
     fetchInProgress.current = true;
     lastFetchedUserId.current = userId;
@@ -81,6 +91,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         partner_id: string | null;
         member_id: string | null;
       };
+
+      // MFA factors, for the mandatory-2FA gate on admin routes. Read alongside
+      // the role because the guard needs both to decide, and a separate later
+      // fetch would let an admin through for the interval in between.
+      //
+      // Failure leaves it null rather than false: null means "unknown", and the
+      // guard holds instead of locking out a properly-enrolled admin because a
+      // network call blipped.
+      try {
+        const { data: mfaData, error: mfaError } = await supabase.auth.mfa.listFactors();
+        setHasVerifiedFactor(
+          mfaError
+            ? null
+            : (mfaData?.totp ?? []).some((f) => (f.status as string) === "verified")
+        );
+      } catch {
+        setHasVerifiedFactor(null);
+      }
 
       // Set Sentry user context for error tracking
       setSentryUser({
@@ -278,6 +306,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         partnerId,
         isPartner,
         roleLoadFailed,
+        hasVerifiedFactor,
         signOut: handleSignOut,
         refreshAuth,
         retryRoleLoad,

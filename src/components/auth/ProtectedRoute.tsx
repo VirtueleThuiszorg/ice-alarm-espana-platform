@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { isAdminRole as checkAdminRole } from "@/config/constants";
+import { isAdminRole as checkAdminRole, ADMIN_2FA_SETUP_PATH, ADMIN_2FA_SETUP_ROUTE } from "@/config/constants";
 import { Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -27,6 +27,7 @@ export function ProtectedRoute({
     memberId, 
     isPartner,
     roleLoadFailed,
+    hasVerifiedFactor,
     retryRoleLoad,
   } = useAuth();
   const location = useLocation();
@@ -67,6 +68,35 @@ export function ProtectedRoute({
         </div>
       </div>
     );
+  }
+
+  // MANDATORY 2FA FOR ADMINS — enforced here, not merely suggested at login.
+  //
+  // StaffLogin redirects an admin with no verified TOTP factor to the Security
+  // tab, but that is only a redirect: an admin who typed a URL, used a bookmark,
+  // or clicked a sidebar link kept full access to medical records and emergency
+  // contacts with no second factor. The redirect was advice; this is the control.
+  //
+  // Ordering matters. This sits ABOVE the admin override below, because that
+  // override grants admins every route unconditionally — enforcing after it would
+  // never run.
+  //
+  // Two things it must not do:
+  //  - lock an admin out of enrolment. ADMIN_2FA_SETUP_PATH stays reachable so
+  //    they can always obtain the factor the gate demands. Everything else under
+  //    /admin is refused until they do.
+  //  - act on an unknown. `hasVerifiedFactor === null` means the lookup has not
+  //    resolved or failed, so we hold rather than bounce a properly-enrolled
+  //    admin on a slow network.
+  //
+  // Non-admin staff are untouched: call_centre and call_centre_supervisor keep
+  // reaching /call-centre exactly as before.
+  if (isAdminRole && hasVerifiedFactor === false) {
+    const onSetupPage = location.pathname.startsWith(ADMIN_2FA_SETUP_PATH);
+    if (!onSetupPage) {
+      return <Navigate to={ADMIN_2FA_SETUP_ROUTE} replace />;
+    }
+    return <>{children}</>;
   }
 
   // ADMIN OVERRIDE: Admins have access to ALL pages

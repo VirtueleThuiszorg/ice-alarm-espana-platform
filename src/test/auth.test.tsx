@@ -3,12 +3,13 @@ import { render, screen } from "@testing-library/react";
 
 // ---- Mock react-router-dom ----
 const mockNavigate = vi.fn();
+let mockPathname = "/some-protected-page";
 vi.mock("react-router-dom", () => ({
   Navigate: (props: { to: string; replace?: boolean; state?: unknown }) => {
     // Render a data attribute so tests can inspect where we navigate to
     return <div data-testid="navigate" data-to={props.to} />;
   },
-  useLocation: () => ({ pathname: "/some-protected-page" }),
+  useLocation: () => ({ pathname: mockPathname }),
   useNavigate: () => mockNavigate,
 }));
 
@@ -24,6 +25,9 @@ const defaultAuth = {
   partnerId: null as string | null,
   isPartner: false,
   roleLoadFailed: false,
+  // null = unknown. Admins default to enrolled here so the pre-existing suite
+  // keeps asserting what it always did; the 2FA tests set it explicitly.
+  hasVerifiedFactor: true as boolean | null,
   signOut: vi.fn(),
   refreshAuth: vi.fn(),
   retryRoleLoad: vi.fn(),
@@ -78,6 +82,7 @@ function getNavigateTo(): string | null {
 describe("ProtectedRoute", () => {
   beforeEach(() => {
     mockAuth = { ...defaultAuth };
+    mockPathname = "/some-protected-page";
     vi.clearAllMocks();
   });
 
@@ -750,9 +755,12 @@ describe("an admin's login destination", () => {
     }
 
     // StaffLogin has exactly ONE such redirect, and it is the 2FA enrolment gate.
-    const staffLogin = readSrc("src/pages/auth/StaffLogin.tsx");
-    const settingsRedirects = staffLogin.match(/\/admin\/settings[^"']*/g) ?? [];
-    expect(settingsRedirects).toEqual(["/admin/settings?tab=security"]);
+    // The literal now lives in config/constants (ADMIN_2FA_SETUP_ROUTE) so the
+    // login redirect and ProtectedRoute's guard cannot drift apart; assert there.
+    const constants = readSrc("src/config/constants.ts");
+    const settingsRedirects = constants.match(/\/admin\/settings[^"']*/g) ?? [];
+    expect(settingsRedirects).toEqual(["/admin/settings", "/admin/settings?tab=security"]);
+    expect(readSrc("src/pages/auth/StaffLogin.tsx")).toMatch(/navigate\(ADMIN_2FA_SETUP_ROUTE\)/);
   });
 
   // ── the gate has to be satisfiable ──────────────────────────────────────
@@ -763,7 +771,7 @@ describe("an admin's login destination", () => {
   // UI on the page. The gate could never be cleared, so it fired on every login.
 
   it("sends the admin to a tab SettingsPage actually recognises", () => {
-    const staffLogin = readSrc("src/pages/auth/StaffLogin.tsx");
+    const staffLogin = readSrc("src/config/constants.ts");
     const settings = readSrc("src/pages/admin/SettingsPage.tsx");
 
     const target = staffLogin.match(/\/admin\/settings\?tab=(\w+)/);
@@ -802,7 +810,7 @@ describe("an admin's login destination", () => {
     // check has found nothing. An admin WITH 2FA falls through to completeLogin,
     // which is what makes the dashboard reachable at all.
     const src = readSrc("src/pages/auth/StaffLogin.tsx");
-    const gateIndex = src.indexOf('"/admin/settings?tab=security"');
+    const gateIndex = src.indexOf("navigate(ADMIN_2FA_SETUP_ROUTE)");
     expect(gateIndex).toBeGreaterThan(-1);
 
     // The verified-factor early return must come BEFORE the enrolment redirect,
@@ -831,5 +839,143 @@ describe("an admin's login destination", () => {
     // on /call-centre and be bounced, which is the bug #102 fixed for supervisors.
     expect(staffPostLoginPath("admin")).not.toBe("/call-centre");
     expect(staffPostLoginPath("super_admin")).not.toBe("/call-centre");
+  });
+});
+
+// ============================================================
+//  Mandatory 2FA for admins — enforced, not advisory
+// ============================================================
+//
+// StaffLogin already redirected an admin with no verified TOTP factor to the
+// Security tab. That was only a redirect: an admin who typed a URL, used a
+// bookmark, or clicked the sidebar's Dashboard link kept full access to medical
+// records and emergency contacts with no second factor. Nothing in
+// ProtectedRoute or AdminLayout enforced it.
+//
+// These pin the enforcement, and — just as important — pin that it does not lock
+// an admin out of the one page where they can obtain the factor it demands.
+
+describe("mandatory 2FA is enforced on admin routes", () => {
+  const asAdmin = (role: string, factor: boolean | null) => {
+    mockAuth.user = { id: "a1", email: "admin@careconneqt.es" };
+    mockAuth.isStaff = true;
+    mockAuth.staffRole = role;
+    mockAuth.hasVerifiedFactor = factor;
+  };
+
+  describe.each(["admin", "super_admin"])("%s with NO verified factor", (role) => {
+    it("is refused an ordinary admin route and sent to enrolment", () => {
+      asAdmin(role, false);
+      mockPathname = "/admin/members";
+      renderProtected({ requireStaff: true, requireAdmin: true });
+      expect(getNavigateTo()).toBe("/admin/settings?tab=security");
+      expect(screen.queryByTestId("protected-content")).not.toBeInTheDocument();
+    });
+
+    it("is refused the admin dashboard itself", () => {
+      asAdmin(role, false);
+      mockPathname = "/admin";
+      renderProtected({ requireStaff: true, requireAdmin: true });
+      expect(getNavigateTo()).toBe("/admin/settings?tab=security");
+    });
+
+    it("is refused member and partner routes too, not just /admin", () => {
+      // The admin override granted every route, so enforcement has to cover all
+      // of them — otherwise medical data stays reachable via /dashboard.
+      asAdmin(role, false);
+      mockPathname = "/dashboard";
+      renderProtected({ requireMember: true });
+      expect(getNavigateTo()).toBe("/admin/settings?tab=security");
+    });
+
+    it("CAN reach the enrolment page, so the gate is satisfiable", () => {
+      asAdmin(role, false);
+      mockPathname = "/admin/settings";
+      renderProtected({ requireStaff: true, requireAdmin: true });
+      expect(screen.getByTestId("protected-content")).toBeInTheDocument();
+      expect(getNavigateTo()).toBeNull();
+    });
+
+    it("reaches enrolment even when the tab query is present", () => {
+      asAdmin(role, false);
+      mockPathname = "/admin/settings";
+      renderProtected({ requireAdmin: true });
+      expect(screen.getByTestId("protected-content")).toBeInTheDocument();
+    });
+  });
+
+  describe.each(["admin", "super_admin"])("%s WITH a verified factor", (role) => {
+    it("reaches every admin route as before", () => {
+      asAdmin(role, true);
+      mockPathname = "/admin/members";
+      renderProtected({ requireStaff: true, requireAdmin: true });
+      expect(screen.getByTestId("protected-content")).toBeInTheDocument();
+      expect(getNavigateTo()).toBeNull();
+    });
+
+    it("keeps the admin override on member and partner routes", () => {
+      asAdmin(role, true);
+      renderProtected({ requireMember: true });
+      expect(screen.getByTestId("protected-content")).toBeInTheDocument();
+    });
+  });
+
+  describe("an unknown factor state is not treated as absent", () => {
+    it.each(["admin", "super_admin"])(
+      "%s is NOT bounced while the MFA lookup is unresolved",
+      (role) => {
+        // null means the listFactors call has not resolved or failed. Treating
+        // that as "no factor" would throw a correctly-enrolled admin out of the
+        // portal on a slow network — a self-inflicted outage.
+        asAdmin(role, null);
+        mockPathname = "/admin/members";
+        renderProtected({ requireStaff: true, requireAdmin: true });
+        expect(screen.getByTestId("protected-content")).toBeInTheDocument();
+      }
+    );
+  });
+
+  describe("non-admin staff are unaffected", () => {
+    it.each(["call_centre", "call_centre_supervisor"])(
+      "%s reaches staff routes with no factor at all",
+      (role) => {
+        mockAuth.user = { id: "s1", email: "cc@careconneqt.es" };
+        mockAuth.isStaff = true;
+        mockAuth.staffRole = role;
+        mockAuth.hasVerifiedFactor = false;
+        mockPathname = "/call-centre";
+        renderProtected({ requireStaff: true });
+        expect(screen.getByTestId("protected-content")).toBeInTheDocument();
+        expect(getNavigateTo()).not.toBe("/admin/settings?tab=security");
+      }
+    );
+
+    it("a member with no factor is untouched", () => {
+      mockAuth.user = { id: "m1", email: "member@example.com" };
+      mockAuth.memberId = "m-1";
+      mockAuth.hasVerifiedFactor = false;
+      renderProtected({ requireMember: true });
+      expect(screen.getByTestId("protected-content")).toBeInTheDocument();
+    });
+  });
+
+  it("enforcement sits ABOVE the unconditional admin override", () => {
+    // The override returns children for any admin on any route. Enforcing after
+    // it would never execute, so the order is the control.
+    const src = readSrc("src/components/auth/ProtectedRoute.tsx");
+    const gate = src.indexOf("hasVerifiedFactor === false");
+    const override = src.indexOf("// ADMIN OVERRIDE");
+    expect(gate).toBeGreaterThan(-1);
+    expect(override).toBeGreaterThan(-1);
+    expect(gate).toBeLessThan(override);
+  });
+
+  it("the login redirect and the guard use one shared path constant", () => {
+    // A mismatch would either lock every admin out or leave the gate bypassable.
+    const guard = readSrc("src/components/auth/ProtectedRoute.tsx");
+    const login = readSrc("src/pages/auth/StaffLogin.tsx");
+    expect(guard).toMatch(/ADMIN_2FA_SETUP_ROUTE/);
+    expect(guard).not.toMatch(/"\/admin\/settings\?tab=security"/);
+    expect(login).toMatch(/ADMIN_2FA_SETUP_ROUTE|\/admin\/settings\?tab=security/);
   });
 });

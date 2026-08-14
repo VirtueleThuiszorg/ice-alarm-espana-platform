@@ -67,6 +67,18 @@ export function staffPostLoginPath(
  */
 export const PARTNER_DASHBOARD_PATH = "/partner-dashboard";
 
+/**
+ * Where an admin enrols the TOTP factor that mandatory 2FA requires.
+ *
+ * Named once so StaffLogin's redirect, ProtectedRoute's enforcement gate and the
+ * Security tab cannot drift onto different paths — a mismatch here would either
+ * lock every admin out of the portal or leave the gate trivially bypassable.
+ * PATH is the bare route (used for "am I already here?"); ROUTE carries the tab
+ * query SettingsPage reads.
+ */
+export const ADMIN_2FA_SETUP_PATH = "/admin/settings";
+export const ADMIN_2FA_SETUP_ROUTE = "/admin/settings?tab=security";
+
 // ============================================================
 //  Timeouts & Intervals (milliseconds)
 // ============================================================

@@ -15,7 +15,7 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { Loader2, ArrowLeft, Shield, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
-import { isAdminRole, staffPostLoginPath } from "@/config/constants";
+import { ADMIN_2FA_SETUP_ROUTE, isAdminRole, staffPostLoginPath } from "@/config/constants";
 
 export default function StaffLogin() {
   const { refreshAuth } = useAuth();
@@ -122,7 +122,7 @@ export default function StaffLogin() {
           // by nothing, so the admin landed on the default "company" tab with no
           // enrolment UI anywhere on the page and no way to satisfy this gate.
           // Reuses the existing deep-link mechanism rather than adding a second.
-          navigate("/admin/settings?tab=security");
+          navigate(ADMIN_2FA_SETUP_ROUTE);
           return;
         }
 

@@ -31,6 +31,7 @@ import { ImagesSettingsTab } from "@/components/admin/settings/ImagesSettingsTab
 import { DocumentationSettingsTab } from "@/components/admin/settings/DocumentationSettingsTab";
 import { TwoFactorSetup } from "@/components/auth/TwoFactorSetup";
 import { CommunicationsTab } from "@/components/admin/settings/CommunicationsTab";
+import type { TwilioKeys } from "@/components/admin/settings/PhoneSmsSection";
 import { DevicesSettingsTab } from "@/components/admin/settings/DevicesSettingsTab";
 import { PRICING } from "@/config/pricing";
 import { PricingPlansEditor } from "@/components/admin/PricingPlansEditor";
@@ -145,9 +146,11 @@ export default function SettingsPage() {
   });
 
   // Twilio non-secret fields (safe to populate from DB)
-  const [twilioKeys, setTwilioKeys] = useState({
+  const [twilioKeys, setTwilioKeys] = useState<TwilioKeys>({
     account_sid: "",
     phone_number: "",
+    sms_number: "",
+    voice_caller_id: "",
     whatsapp_number: "",
   });
 

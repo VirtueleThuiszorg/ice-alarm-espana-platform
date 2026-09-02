@@ -19,17 +19,27 @@ import {
 import { useState } from "react";
 import { VoiceSettingsSection } from "./VoiceSettingsSection";
 
+/**
+ * The Twilio numbers this section edits, declared once and shared with
+ * SettingsPage, which owns the state.
+ *
+ * sms_number and voice_caller_id came with the number split: one number cannot
+ * both send SMS and be the caller ID. The inputs, the load and the save were
+ * all added, but this shape and SettingsPage's useState initialiser were not,
+ * so the two fields were absent from the type in three places at once. Keeping
+ * one exported type means the next field cannot go missing the same way.
+ */
+export interface TwilioKeys {
+  account_sid: string;
+  phone_number: string;
+  sms_number: string;
+  voice_caller_id: string;
+  whatsapp_number: string;
+}
+
 interface PhoneSmsSectionProps {
-  twilioKeys: {
-    account_sid: string;
-    phone_number: string;
-    whatsapp_number: string;
-  };
-  setTwilioKeys: React.Dispatch<React.SetStateAction<{
-    account_sid: string;
-    phone_number: string;
-    whatsapp_number: string;
-  }>>;
+  twilioKeys: TwilioKeys;
+  setTwilioKeys: React.Dispatch<React.SetStateAction<TwilioKeys>>;
   twilioAuthTokenInput: string;
   setTwilioAuthTokenInput: React.Dispatch<React.SetStateAction<string>>;
   twilioAuthTokenStored: boolean;

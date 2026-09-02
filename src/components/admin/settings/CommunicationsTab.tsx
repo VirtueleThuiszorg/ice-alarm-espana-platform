@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Phone, Mail, Share2, MessageCircle, Map, Check, AlertCircle } from "lucide-react";
-import { PhoneSmsSection } from "./PhoneSmsSection";
+import { PhoneSmsSection, type TwilioKeys } from "./PhoneSmsSection";
 import { WhatsAppSection } from "./WhatsAppSection";
 import { SocialMediaSection } from "./SocialMediaSection";
 import { MapsSection } from "./MapsSection";
@@ -10,16 +10,8 @@ import { EmailTemplatesTab } from "./EmailTemplatesTab";
 
 interface CommunicationsTabProps {
   // Twilio
-  twilioKeys: {
-    account_sid: string;
-    phone_number: string;
-    whatsapp_number: string;
-  };
-  setTwilioKeys: React.Dispatch<React.SetStateAction<{
-    account_sid: string;
-    phone_number: string;
-    whatsapp_number: string;
-  }>>;
+  twilioKeys: TwilioKeys;
+  setTwilioKeys: React.Dispatch<React.SetStateAction<TwilioKeys>>;
   twilioAuthTokenInput: string;
   setTwilioAuthTokenInput: React.Dispatch<React.SetStateAction<string>>;
   twilioAuthTokenStored: boolean;

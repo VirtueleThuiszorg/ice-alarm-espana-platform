@@ -11,8 +11,15 @@
  *  KNOWN-BROKEN or RULE-VIOLATING, awaiting Lee's product decisions
  *  (pinned as an exact list — a NEW offender fails this suite):
  *   - partner ResidentialDashboard members insert (no partner RLS path)
- *   - admin wizard PaymentStep client-side member+subscription activation
- *     (works under staff RLS but violates golden rule #4)
+ *
+ *  CLOSED since:
+ *   - admin wizard PaymentStep client-side member+subscription activation.
+ *     AddMemberWizard was replaced with an honest "not available" notice, which
+ *     left all ten step components orphaned — nothing imported them, and they
+ *     still referenced a WizardData type the page no longer exported, so they
+ *     could not compile either. Deleted 2026-09-02. That removed the golden
+ *     rule #4 violation and, with it, a form that collected a card number,
+ *     expiry and CVC into React state and sent them nowhere.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";

@@ -181,7 +181,12 @@ interface RegistrationRequest {
     utm_term?: string;
     utm_content?: string;
   };
-  testMode?: boolean; // If true, skip Stripe and mark everything as completed
+  /**
+   * IGNORED. Accepted only so an older client does not fail validation; the
+   * value is never read for a decision. Test mode comes from
+   * system_settings.registration_test_mode_enabled. See the note below.
+   */
+  testMode?: boolean;
 }
 
 serve(async (req) => {
@@ -214,7 +219,12 @@ serve(async (req) => {
     const { data: settingsData } = await supabase
       .from("system_settings")
       .select("key, value")
-      .in("key", ["registration_fee_enabled", "registration_fee_discount", "settings_active_payment_gateway"]);
+      .in("key", [
+        "registration_fee_enabled",
+        "registration_fee_discount",
+        "registration_test_mode_enabled",
+        "settings_active_payment_gateway",
+      ]);
 
     const settingsMap = (settingsData || []).reduce((acc, s) => {
       acc[s.key] = s.value;
@@ -224,6 +234,26 @@ serve(async (req) => {
     const registrationFeeEnabled = settingsMap.registration_fee_enabled !== "false";
     const registrationFeeDiscount = parseFloat(settingsMap.registration_fee_discount || "0");
     const activeGateway = settingsMap.settings_active_payment_gateway || "stripe";
+
+    // ─── TEST MODE IS SERVER-DECIDED. ────────────────────────────────────
+    // This used to be `body.testMode`, taken straight from the request. The RPC
+    // acts on it by marking the payment completed, the order completed, the
+    // subscription active with registration_fee_paid = true, and the member(s)
+    // active — a fully paid-up membership with a monitored device allocation and
+    // no money collected. This function runs with verify_jwt = false, so anyone
+    // who could read the site's JavaScript could POST that flag and mint one.
+    //
+    // It is now read from system_settings and the request field is ignored
+    // entirely. FAIL CLOSED: anything other than the exact string "true" — a
+    // missing row, a null, a failed settings query — means live mode, which
+    // charges rather than gives away. Pinned by src/test/testModeServerSide.test.ts.
+    const testMode = settingsMap.registration_test_mode_enabled === "true";
+    if (body.testMode !== undefined && body.testMode !== testMode) {
+      console.warn(
+        `[submit-registration] ignoring client testMode=${body.testMode}; ` +
+          `server setting is ${testMode}`,
+      );
+    }
 
     // ── SINGLE SOURCE OF TRUTH: fetch canonical pricing from the DB. ──
     // Server-authoritative: we recompute the total here from DB prices and the request
@@ -278,7 +308,7 @@ serve(async (req) => {
       includePendant: body.includePendant,
       activeGateway,
       pendantCount,
-      testMode: body.testMode || false,
+      testMode,
       partnerRef: body.partnerRef || null,
       refPostId: body.refPostId || null,
       utmParams: body.utmParams || null,

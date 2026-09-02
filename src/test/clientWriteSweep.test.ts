@@ -8,11 +8,21 @@
  *   - staff self-writes (on-call toggle, own preferences): new self-update
  *     policy + privilege-escalation guard trigger
  *
+ *  CLOSED since:
+ *   - admin wizard PaymentStep client-side member+subscription activation:
+ *     the whole orphaned wizard is deleted on fix/payment-activation. It was
+ *     never caught by the sweep below — src/components/admin/wizard is a staff
+ *     surface — so it is recorded here and nowhere else.
+ *   - partner ResidentialDashboard members insert: removed. The insert could
+ *     never have succeeded — no partner INSERT policy on `members`, and it
+ *     omitted five NOT NULL columns — and the design it needs is still an open
+ *     decision (payer vs monitored member, MEMBER_ONBOARDING.md Q1). The screen
+ *     now says so instead of offering a button that fails.
+ *
  *  KNOWN-BROKEN or RULE-VIOLATING, awaiting Lee's product decisions
  *  (pinned as an exact list — a NEW offender fails this suite):
- *   - partner ResidentialDashboard members insert (no partner RLS path)
- *   - admin wizard PaymentStep client-side member+subscription activation
- *     (works under staff RLS but violates golden rule #4)
+ *   - none. The list is empty, and it must stay that way: a new entry means a
+ *     non-staff surface started writing a sensitive table client-side again.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -87,9 +97,9 @@ describe("sweep invariant — the broken/violating list cannot silently grow", (
   // Surfaces executed by non-staff users (anon / member / partner).
   const NON_STAFF_DIRS = ["src/pages/auth", "src/pages/client", "src/pages/partner", "src/pages/join", "src/components/partner"];
   // The pinned, Lee-acknowledged exceptions (awaiting product decisions).
-  const KNOWN = new Set([
-    "src/components/partner/ResidentialDashboard.tsx", // partner→members insert, broken, needs partner-member design
-  ]);
+  // Empty — and the assertion at the end of this test keeps it honest, so an
+  // entry cannot be added here without the offending file actually existing.
+  const KNOWN = new Set<string>([]);
 
   it("no NEW client-side write to a sensitive table from a non-staff surface", () => {
     const pattern = new RegExp(
@@ -123,5 +133,23 @@ describe("sweep invariant — the broken/violating list cannot silently grow", (
     ).toEqual([]);
     // …and the known-broken pin must still be accurate (fixing it should update this test)
     expect(offenders.filter((o) => KNOWN.has(o))).toEqual([...KNOWN]);
+  });
+
+  it("ResidentialDashboard does not write to members, and says why", () => {
+    // The specific regression this closes: a partner-facing screen inserting a
+    // monitored person straight from the browser. It is worth its own assertion
+    // rather than relying on the sweep, because the sweep only fails when the
+    // file reappears in a list — this fails on the exact write coming back.
+    const dash = read("src/components/partner/ResidentialDashboard.tsx");
+    expect(dash, "no client-side insert into members").not.toMatch(
+      /from\(["']members["']\)\s*\.insert/,
+    );
+    expect(dash, "no client-side write to subscriptions either").not.toMatch(
+      /from\(["']subscriptions["']\)\s*\.(insert|update|upsert|delete)/,
+    );
+    expect(
+      dash,
+      "the screen must explain that adding a resident is not available, not just drop the button",
+    ).toMatch(/addUnavailable/);
   });
 });

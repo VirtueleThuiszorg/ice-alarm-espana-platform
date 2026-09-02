@@ -1,16 +1,12 @@
 import { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { useAddPartnerMember } from "@/hooks/usePartnerMembers";
-import { supabase } from "@/integrations/supabase/client";
-import type { TablesInsert } from "@/integrations/supabase/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -32,29 +28,57 @@ import {
   Upload,
   Activity,
   CheckCircle,
-  Clock,
-  Signal
+  Clock
 } from "lucide-react";
 import { usePartnerMembers } from "@/hooks/usePartnerMembers";
 import { usePartnerAlertNotifications } from "@/hooks/usePartnerAlertNotifications";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
+/**
+ * A resident's real membership state.
+ *
+ * `members.status` is nullable and a partner cannot read the `members` row at
+ * all today (no partner SELECT policy), so the joined record can be missing
+ * entirely. Both cases render as "Unknown" rather than as a green tick — a
+ * facility must never be shown cover that may not exist.
+ */
+function residentStatusBadge(status: string | null) {
+  switch (status) {
+    case "active":
+      return (
+        <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+          Active
+        </Badge>
+      );
+    case "inactive":
+      return <Badge variant="secondary">Pending activation</Badge>;
+    case "suspended":
+      return <Badge variant="destructive">Suspended</Badge>;
+    default:
+      return <Badge variant="outline">Unknown</Badge>;
+  }
+}
+
 interface ResidentialDashboardProps {
   partnerId: string;
   alertVisibilityEnabled?: boolean;
+  /** `partners.billing_model` — 'commission' | 'per_resident' | 'custom'. */
+  billingModel?: string | null;
+  /** `partners.custom_rate_monthly`, only meaningful when billingModel is 'custom'. */
+  customRateMonthly?: number | null;
 }
 
 export function ResidentialDashboard({
   partnerId,
-  alertVisibilityEnabled = false
+  alertVisibilityEnabled = false,
+  billingModel = null,
+  customRateMonthly = null
 }: ResidentialDashboardProps) {
   const { t } = useTranslation();
-  const addMember = useAddPartnerMember();
   const [activeTab, setActiveTab] = useState("overview");
   const [memberSearch, setMemberSearch] = useState("");
   const [addResidentOpen, setAddResidentOpen] = useState(false);
-  const [newResident, setNewResident] = useState({ firstName: "", lastName: "", email: "", phone: "" });
   const csvInputRef = useRef<HTMLInputElement>(null);
 
   const { data: members, isLoading: membersLoading } = usePartnerMembers(partnerId);
@@ -62,13 +86,41 @@ export function ResidentialDashboard({
 
   // Calculate stats
   const totalResidents = members?.length || 0;
-  const activeMembers = members?.filter(m => !m.removed_at).length || 0;
-  const pendingMembers = 0;
+  // "Active" means the member row says active — not merely that the link to this
+  // facility has not been removed. The two were conflated, so every resident
+  // counted as active however their membership actually stood.
+  const activeMembers = members?.filter(m => m.member?.status === "active").length || 0;
+  // Was the literal `0`. A resident is pending until their membership activates,
+  // which happens on the payment webhook and nowhere else.
+  const pendingMembers = members?.filter(m => m.member?.status && m.member.status !== "active").length || 0;
   const alertsThisMonth = alertNotifications?.filter(a => {
     const sentDate = new Date(a.sent_at);
     const now = new Date();
     return sentDate.getMonth() === now.getMonth() && sentDate.getFullYear() === now.getFullYear();
   }).length || 0;
+
+  // What this facility actually agreed to, from `partners.billing_model`.
+  const billingModelLabel =
+    billingModel === "per_resident"
+      ? t("partner.residential.billing.perResident", "Per-Resident Monthly")
+      : billingModel === "custom"
+        ? t("partner.residential.billing.custom", "Custom Arrangement")
+        : billingModel === "commission"
+          ? t("partner.residential.billing.commission", "Referral Commission")
+          : t("partner.residential.billing.notSet", "Not set");
+
+  const billingModelDescription =
+    billingModel === "per_resident"
+      ? t("partner.residential.billing.perResidentDesc", "Your facility is invoiced monthly for each active resident.")
+      : billingModel === "custom"
+        ? (customRateMonthly
+            ? t("partner.residential.billing.customDescRate", "A rate agreed with the office: {{rate}} € per month.", {
+                rate: customRateMonthly.toFixed(2).replace(".", ","),
+              })
+            : t("partner.residential.billing.customDesc", "A rate agreed with the office."))
+        : billingModel === "commission"
+          ? t("partner.residential.billing.commissionDesc", "Residents' families pay their own membership. Your facility is not invoiced; you receive a commission on each referral.")
+          : t("partner.residential.billing.notSetDesc", "No arrangement is recorded against your account. Call the office on 950 473 199.");
 
   // Filter members by search
   const filteredMembers = members?.filter(m => {
@@ -76,42 +128,24 @@ export function ResidentialDashboard({
     return memberName.includes(memberSearch.toLowerCase());
   });
 
-  // Add Resident handler
-  const handleAddResident = async () => {
-    if (!newResident.firstName.trim() || !newResident.lastName.trim()) {
-      toast.error(t("partner.residential.nameRequired", "First name and last name are required"));
-      return;
-    }
-
-    try {
-      const { data: member, error: memberError } = await supabase
-        .from("members")
-        .insert({
-          first_name: newResident.firstName.trim(),
-          last_name: newResident.lastName.trim(),
-          email: newResident.email.trim() || null,
-          phone: newResident.phone.trim() || null,
-          status: "active",
-        } as unknown as TablesInsert<"members">)
-        .select()
-        .single();
-
-      if (memberError) throw memberError;
-
-      await addMember.mutateAsync({
-        partnerId,
-        memberId: member.id,
-        relationshipType: "resident",
-      });
-
-      toast.success(t("partner.residential.residentAdded", { name: `${newResident.firstName} ${newResident.lastName}` }));
-      setAddResidentOpen(false);
-      setNewResident({ firstName: "", lastName: "", email: "", phone: "" });
-    } catch (err) {
-      console.error("Add resident error:", err);
-      toast.error(t("partner.residential.addFailed", "Failed to add resident"));
-    }
-  };
+  /**
+   * Adding a resident from this screen is not available, and this is the honest
+   * version of that rather than a button that appears to work.
+   *
+   * The old handler inserted straight into `members` from the browser. Three
+   * things were wrong with it. There is no partner INSERT policy on `members`,
+   * so RLS rejected it. It omitted `date_of_birth`, `address_line_1`, `city`,
+   * `province` and `postal_code`, all NOT NULL, so it would have failed even
+   * with a policy. And it created a monitored person with no subscription and
+   * no payer, which is the open design question — for a care home the bill may
+   * go to the facility or to the family, depending on the partner, and the
+   * schema carries no payer distinct from the monitored member
+   * (MEMBER_ONBOARDING.md Q1).
+   *
+   * Building half of it before that decision would mean migrating real resident
+   * records afterwards. So the dialog explains the position and gives the
+   * office number, exactly as AddMemberWizard does on the admin side.
+   */
 
   // Export members to CSV
   const handleExportMembers = () => {
@@ -383,7 +417,6 @@ export function ResidentialDashboard({
                     <TableRow>
                       <TableHead>{t("common.name", "Name")}</TableHead>
                       <TableHead>{t("common.status", "Status")}</TableHead>
-                      <TableHead>{t("partner.residential.table.device", "Device")}</TableHead>
                       <TableHead>{t("partner.residential.table.relationship", "Relationship")}</TableHead>
                       <TableHead>{t("partner.residential.table.added", "Added")}</TableHead>
                     </TableRow>
@@ -392,18 +425,22 @@ export function ResidentialDashboard({
                     {filteredMembers?.map((member) => (
                       <TableRow key={member.id}>
                         <TableCell className="font-medium">
-                          {member.member?.first_name} {member.member?.last_name}
+                          {member.member
+                            ? `${member.member.first_name} ${member.member.last_name}`
+                            : (
+                              <span className="text-muted-foreground italic">
+                                {t("partner.residential.table.detailsUnavailable", "Details not available")}
+                              </span>
+                            )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                            {t("common.active", "Active")}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Signal className="h-4 w-4 text-green-500" />
-                            <span className="text-sm">{t("common.online", "Online")}</span>
-                          </div>
+                          {/* Was a hardcoded green "Active" on every row, and a hardcoded
+                              "Online" device column beside it — neither read any data.
+                              A facility looking at this screen was being told every
+                              resident was covered and every pendant was connected,
+                              whatever the truth. The device column is gone because this
+                              query fetches no device state; status is the real column. */}
+                          {residentStatusBadge(member.member?.status ?? null)}
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary">
@@ -555,12 +592,20 @@ export function ResidentialDashboard({
               <CardDescription>{t("partner.residential.billing.planDesc", "Your facility billing arrangement")}</CardDescription>
             </CardHeader>
             <CardContent>
+              {/* This card used to state "Per-Resident Monthly / Billed monthly per
+                  active resident" with an Active badge, hardcoded, for every partner
+                  — including commission partners, whose residents' families pay and
+                  who are never invoiced at all. It now reads `partners.billing_model`.
+                  Nothing on the payment path acts on that column yet, so the card
+                  says what was agreed, and does not imply a live billing run. */}
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div>
-                  <h3 className="font-semibold">{t("partner.residential.billing.perResident", "Per-Resident Monthly")}</h3>
-                  <p className="text-sm text-muted-foreground">{t("partner.residential.billing.perResidentDesc", "Billed monthly per active resident")}</p>
+                  <h3 className="font-semibold">{billingModelLabel}</h3>
+                  <p className="text-sm text-muted-foreground">{billingModelDescription}</p>
                 </div>
-                <Badge>{t("common.active", "Active")}</Badge>
+                <Badge variant="secondary">
+                  {t("partner.residential.billing.agreedWithOffice", "As agreed")}
+                </Badge>
               </div>
             </CardContent>
           </Card>
@@ -578,6 +623,12 @@ export function ResidentialDashboard({
               <div className="text-center py-8 text-muted-foreground">
                 <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>{t("partner.residential.billing.noInvoices", "No invoices yet")}</p>
+                <p className="text-sm mt-2">
+                  {t(
+                    "partner.residential.billing.invoicesByOffice",
+                    "Invoices are issued by the office. Call 950 473 199 for a copy.",
+                  )}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -596,13 +647,18 @@ export function ResidentialDashboard({
                   <p className="text-3xl font-bold text-primary">{alertsThisMonth}</p>
                   <p className="text-sm text-muted-foreground">{t("partner.residential.stats.alertsThisMonth", "Alerts This Month")}</p>
                 </div>
+                {/* "100% Devices Online" and "<2min Avg Response Time" were literals
+                    in the JSX — a service-level claim, shown to a business partner,
+                    computed from nothing. Replaced with figures this component can
+                    actually derive. Real device uptime and response times belong in
+                    a monthly report generated server-side from `alerts`. */}
                 <div className="text-center p-4 border rounded-lg">
-                  <p className="text-3xl font-bold text-green-600">100%</p>
-                  <p className="text-sm text-muted-foreground">{t("partner.residential.reports.devicesOnline", "Devices Online")}</p>
+                  <p className="text-3xl font-bold text-primary">{activeMembers}</p>
+                  <p className="text-sm text-muted-foreground">{t("partner.residential.stats.activeResidents", "Active Residents")}</p>
                 </div>
                 <div className="text-center p-4 border rounded-lg">
-                  <p className="text-3xl font-bold text-blue-600">&lt;2min</p>
-                  <p className="text-sm text-muted-foreground">{t("partner.residential.reports.avgResponseTime", "Avg Response Time")}</p>
+                  <p className="text-3xl font-bold text-yellow-600">{pendingMembers}</p>
+                  <p className="text-sm text-muted-foreground">{t("partner.residential.stats.pending", "Pending Activation")}</p>
                 </div>
               </div>
             </CardContent>
@@ -629,56 +685,50 @@ export function ResidentialDashboard({
         </TabsContent>
       </Tabs>
 
-      {/* Add Resident Dialog */}
+      {/* Add Resident Dialog — deliberately not a form. See the note above
+          handleAddResident: the write it used to make could not succeed, and the
+          design it needs is an open decision. */}
       <Dialog open={addResidentOpen} onOpenChange={setAddResidentOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("partner.residential.addResident", "Add Resident")}</DialogTitle>
-            <DialogDescription>{t("partner.residential.addResidentDesc", "Register a new resident for ICE Alarm España protection")}</DialogDescription>
+            <DialogTitle>
+              {t("partner.residential.addResident", "Add Resident")}
+            </DialogTitle>
+            <DialogDescription>
+              {t(
+                "partner.residential.addUnavailable",
+                "Adding a resident from this screen isn't available yet.",
+              )}
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>{t("partner.residential.firstName", "First Name")}</Label>
-                <Input
-                  value={newResident.firstName}
-                  onChange={e => setNewResident(prev => ({ ...prev, firstName: e.target.value }))}
-                  placeholder={t("partner.residential.firstName", "First name")}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{t("partner.residential.lastName", "Last Name")}</Label>
-                <Input
-                  value={newResident.lastName}
-                  onChange={e => setNewResident(prev => ({ ...prev, lastName: e.target.value }))}
-                  placeholder={t("partner.residential.lastName", "Last name")}
-                />
-              </div>
+          <div className="space-y-4 py-2 text-sm">
+            <p>
+              {t(
+                "partner.residential.addUnavailableWhy",
+                "A resident needs a full record and a payment arrangement before their pendant can be monitored, and who is billed differs from one facility to the next. We set that up with you rather than have this screen guess it.",
+              )}
+            </p>
+            <div className="rounded-lg border bg-muted/40 p-4">
+              <p className="font-medium">
+                {t("partner.residential.addUnavailableCallTitle", "To add a resident")}
+              </p>
+              <p className="text-muted-foreground mt-1">
+                {t(
+                  "partner.residential.addUnavailableCallBody",
+                  "Call the office on 950 473 199, or email partners@icealarm.es with the resident's name. They are usually set up the same day.",
+                )}
+              </p>
             </div>
-            <div className="space-y-2">
-              <Label>{t("common.email", "Email")}</Label>
-              <Input
-                type="email"
-                value={newResident.email}
-                onChange={e => setNewResident(prev => ({ ...prev, email: e.target.value }))}
-                placeholder="email@example.com"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>{t("common.phone", "Phone")}</Label>
-              <Input
-                value={newResident.phone}
-                onChange={e => setNewResident(prev => ({ ...prev, phone: e.target.value }))}
-                placeholder="+34..."
-              />
-            </div>
+            <p className="text-muted-foreground">
+              {t(
+                "partner.residential.addUnavailableSoon",
+                "Self-service resident registration is on the roadmap. Residents already registered appear in this dashboard automatically.",
+              )}
+            </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddResidentOpen(false)}>
-              {t("common.cancel", "Cancel")}
-            </Button>
-            <Button onClick={handleAddResident} disabled={addMember.isPending}>
-              {addMember.isPending ? t("common.saving", "Saving...") : t("partner.residential.addResident", "Add Resident")}
+            <Button onClick={() => setAddResidentOpen(false)}>
+              {t("common.close", "Close")}
             </Button>
           </DialogFooter>
         </DialogContent>

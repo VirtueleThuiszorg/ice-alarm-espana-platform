@@ -173,9 +173,11 @@ export default function PartnerDashboard() {
             </span>
           </div>
         )}
-        <ResidentialDashboard 
-          partnerId={partner.id} 
+        <ResidentialDashboard
+          partnerId={partner.id}
           alertVisibilityEnabled={partner.alert_visibility_enabled || false}
+          billingModel={partner.billing_model ?? null}
+          customRateMonthly={partner.custom_rate_monthly ?? null}
         />
       </div>
     );

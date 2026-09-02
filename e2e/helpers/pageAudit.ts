@@ -1,7 +1,31 @@
 import type { Page } from "@playwright/test";
 
 /** Strings that must NEVER appear in rendered public output (LAUNCH_SCOPE.md §7). */
-export const FORBIDDEN_BRAND_STRINGS = ["icealarm", "icehealthsync", "ICE Alarm"];
+/**
+ * Brand names that must NOT appear in rendered public output.
+ *
+ * This list used to read ["icealarm", "icehealthsync", "ICE Alarm"], from when
+ * the platform was moving ICE Alarm España -> Care Conneqt
+ * (REBRAND_CHECKLIST.md). That direction reversed on 2026-09-02: the rebrand
+ * settled on ICE Alarm España as the brand, and BRAND_IDENTITY.md — "single
+ * source of truth", same date — makes the lockup literally `ICE Alarm` +
+ * `España` and records the Care Conneqt mark as retired.
+ *
+ * So the list was forbidding the required brand. "ICE Alarm" occurs 68 times in
+ * en.json alone, which is why this check failed on all 14 public routes at once
+ * while 90 other assertions passed — a gate that is red for every page cannot
+ * show a real leak on any of them.
+ *
+ * It now names the retired brand instead. All of these are currently absent
+ * from src/, so the check passes and starts catching regressions again.
+ */
+export const FORBIDDEN_BRAND_STRINGS = [
+  "care conneqt",
+  "careconneqt",
+  "care-conneqt",
+  "icehealthsync",
+  "ice health sync",
+];
 
 /**
  * Buttons whose action cannot be detected by the no-op heuristic (they open a

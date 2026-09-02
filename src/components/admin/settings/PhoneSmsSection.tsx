@@ -139,12 +139,44 @@ export function PhoneSmsSection({
             </div>
 
             <div className="space-y-2">
-              <Label>Phone Number (Voice/SMS)</Label>
+              <Label>SMS number</Label>
+              <Input
+                value={twilioKeys.sms_number}
+                onChange={(e) => setTwilioKeys((prev) => ({ ...prev, sms_number: e.target.value }))}
+                placeholder="+34 6.. or 7.."
+              />
+              <p className="text-xs text-muted-foreground">
+                Sends the emergency-contact alerts and receives replies. Must be a
+                mobile — a Spanish landline cannot send SMS at all, and the alerts
+                would fail silently.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Caller ID for outgoing calls</Label>
+              <Input
+                value={twilioKeys.voice_caller_id}
+                onChange={(e) => setTwilioKeys((prev) => ({ ...prev, voice_caller_id: e.target.value }))}
+                placeholder="+34 950..."
+              />
+              <p className="text-xs text-muted-foreground">
+                The number people see when we ring them. Use the published line so
+                families recognise it at 3am. A landline is fine here, and it does
+                not have to be a Twilio number — a verified caller ID works.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">Phone Number (legacy)</Label>
               <Input
                 value={twilioKeys.phone_number}
                 onChange={(e) => setTwilioKeys((prev) => ({ ...prev, phone_number: e.target.value }))}
                 placeholder="+34..."
               />
+              <p className="text-xs text-muted-foreground">
+                Used only as a fallback where the two above are blank. Once both are
+                set, this can be cleared.
+              </p>
             </div>
           </div>
 

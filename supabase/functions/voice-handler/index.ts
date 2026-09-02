@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { loadTwilioNumbers } from "../_shared/twilio-numbers.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 const VERSION = "v2.1.0";
@@ -677,17 +678,21 @@ Deno.serve(async (req) => {
         phoneCfg?.forEach((s) => {
           phones[s.key] = s.value;
         });
+        // The number the caller SEES is its own setting now — a landline is
+        // fine here, and 950 473 199 is what members and their families
+        // recognise. See _shared/twilio-numbers.ts.
+        const twilioNumbers = await loadTwilioNumbers(sb);
         const escPhone =
           phones.settings_call_centre_phone ||
           phones.settings_emergency_phone ||
-          cfg.settings_twilio_phone_number;
+          twilioNumbers.voice;
 
         return twiml(
           (reply
             ? `<Say language="${ln}" voice="${voice}">${esc(reply)}</Say>`
             : "") +
             `<Say language="${ln}" voice="${voice}">${lang.startsWith("es") ? "Conectándole con un especialista." : "Connecting you to a specialist."}</Say>` +
-            `<Dial timeout="30" callerId="${cfg.settings_twilio_phone_number}">${escPhone}</Dial>` +
+            `<Dial timeout="30" callerId="${twilioNumbers.voice}">${escPhone}</Dial>` +
             `<Say language="${ln}" voice="${voice}">${lang.startsWith("es") ? "Operadores ocupados. Intente luego." : "Operators busy. Try later."}</Say>` +
             `<Hangup/>`,
         );

@@ -66,6 +66,8 @@ const KEY = {
   TWILIO_SID: "settings_twilio_account_sid",
   TWILIO_TOKEN: "settings_twilio_auth_token",
   TWILIO_PHONE: "settings_twilio_phone_number",
+  TWILIO_SMS_NUMBER: "settings_twilio_sms_number",
+  TWILIO_VOICE_CALLER_ID: "settings_twilio_voice_caller_id",
   TWILIO_WA: "settings_twilio_whatsapp_number",
 
   // Maps
@@ -228,6 +230,8 @@ export default function SettingsPage() {
     setTwilioKeys({
       account_sid: settingsMap[KEY.TWILIO_SID] || "",
       phone_number: settingsMap[KEY.TWILIO_PHONE] || "",
+      sms_number: settingsMap[KEY.TWILIO_SMS_NUMBER] || "",
+      voice_caller_id: settingsMap[KEY.TWILIO_VOICE_CALLER_ID] || "",
       whatsapp_number: settingsMap[KEY.TWILIO_WA] || "",
     });
     
@@ -373,6 +377,8 @@ export default function SettingsPage() {
     // Non-secret fields
     if (twilioKeys.account_sid) updates[KEY.TWILIO_SID] = twilioKeys.account_sid;
     if (twilioKeys.phone_number) updates[KEY.TWILIO_PHONE] = twilioKeys.phone_number;
+    if (twilioKeys.sms_number) updates[KEY.TWILIO_SMS_NUMBER] = twilioKeys.sms_number;
+    if (twilioKeys.voice_caller_id) updates[KEY.TWILIO_VOICE_CALLER_ID] = twilioKeys.voice_caller_id;
     if (twilioKeys.whatsapp_number) updates[KEY.TWILIO_WA] = twilioKeys.whatsapp_number;
 
     // Secret fields - only include if user typed something new

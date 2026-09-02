@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useMembersRealtime } from "@/hooks/useMembersRealtime";
 import type { Tables } from "@/integrations/supabase/types";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -65,6 +66,9 @@ type MemberRow = Tables<"members"> & {
 
 export default function MembersPage() {
   const { t } = useTranslation();
+  // Roster reflects inserts/updates from imports, the wizard and other admins
+  // without a manual reload.
+  useMembersRealtime();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [planFilter, setPlanFilter] = useState<string>("all");

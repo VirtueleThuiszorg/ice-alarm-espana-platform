@@ -3,7 +3,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { PRICING } from "@/config/pricing";
 import { STALE_TIMES } from "@/config/constants";
 
-type PaymentGateway = "stripe" | "mollie";
+export type PaymentGateway = "stripe" | "mollie";
+
+const KNOWN_GATEWAYS: readonly PaymentGateway[] = ["stripe", "mollie"];
+
+/**
+ * The active gateway, or `null` when it cannot be established.
+ *
+ * This used to be `... || "stripe"`, twice — once on the parsed row and once on
+ * the whole query result. So a missing row, an empty value, a typo, or a failed
+ * settings fetch all silently resolved to Stripe: the join flow would call
+ * `create-checkout` while the server had recorded the registration against
+ * Mollie, and the payment would land at a gateway whose webhook nobody was
+ * listening to.
+ *
+ * There is no correct default, so callers get `null` and must handle it. The
+ * join flow already has a "gateway not configured" state for exactly this.
+ */
+function parseGateway(value: string | undefined): PaymentGateway | null {
+  const v = value?.trim();
+  return v && (KNOWN_GATEWAYS as readonly string[]).includes(v) ? (v as PaymentGateway) : null;
+}
 
 interface PricingSettings {
   registrationFeeEnabled: boolean;
@@ -11,7 +31,7 @@ interface PricingSettings {
   registrationFeeBase: number;
   registrationFeeFinal: number;
   testModeEnabled: boolean;
-  activeGateway: PaymentGateway;
+  activeGateway: PaymentGateway | null;
   isLoading: boolean;
 }
 
@@ -35,7 +55,7 @@ export function usePricingSettings(): PricingSettings {
         registrationFeeEnabled: settingsMap.registration_fee_enabled !== "false",
         registrationFeeDiscount: parseFloat(settingsMap.registration_fee_discount || "0"),
         testModeEnabled: settingsMap.registration_test_mode_enabled === "true",
-        activeGateway: (settingsMap.settings_active_payment_gateway as PaymentGateway) || "stripe",
+        activeGateway: parseGateway(settingsMap.settings_active_payment_gateway),
       };
     },
     staleTime: STALE_TIMES.VERY_LONG,
@@ -44,7 +64,7 @@ export function usePricingSettings(): PricingSettings {
   const registrationFeeEnabled = settings?.registrationFeeEnabled ?? true;
   const registrationFeeDiscount = settings?.registrationFeeDiscount ?? 0;
   const testModeEnabled = settings?.testModeEnabled ?? false;
-  const activeGateway = settings?.activeGateway ?? "stripe";
+  const activeGateway = settings?.activeGateway ?? null;
   const registrationFeeBase = PRICING.registration.amount;
 
   // Calculate final fee

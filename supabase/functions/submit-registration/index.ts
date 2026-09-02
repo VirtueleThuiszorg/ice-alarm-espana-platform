@@ -233,7 +233,34 @@ serve(async (req) => {
 
     const registrationFeeEnabled = settingsMap.registration_fee_enabled !== "false";
     const registrationFeeDiscount = parseFloat(settingsMap.registration_fee_discount || "0");
-    const activeGateway = settingsMap.settings_active_payment_gateway || "stripe";
+    // ─── THE GATEWAY IS RESOLVED STRICTLY, WITH NO DEFAULT. ──────────────
+    // This used to be `settingsMap.settings_active_payment_gateway || "stripe"`.
+    // The seed migration writes 'stripe' and the row is never touched again
+    // unless an admin changes it, so a missing row, an empty string, a typo, or
+    // a failed settings query all resolved to Stripe — the gateway we are
+    // leaving. The failure is silent and expensive: the registration is created,
+    // the customer is sent to a Stripe checkout nobody is watching, and the
+    // member never activates because the Mollie webhook that activates them is
+    // never called.
+    //
+    // There is no safe default here, so there is no default. An unrecognised
+    // value stops the request before a single row is written.
+    const KNOWN_GATEWAYS = ["stripe", "mollie"] as const;
+    const activeGateway = settingsMap.settings_active_payment_gateway?.trim();
+    if (!activeGateway || !KNOWN_GATEWAYS.includes(activeGateway as typeof KNOWN_GATEWAYS[number])) {
+      console.error(
+        `[submit-registration] settings_active_payment_gateway is ` +
+        `${activeGateway === undefined ? "missing" : `"${activeGateway}"`}; ` +
+        `expected one of ${KNOWN_GATEWAYS.join(", ")}. Refusing the registration.`,
+      );
+      return new Response(
+        JSON.stringify({
+          error: "Payment gateway is not configured",
+          code: "GATEWAY_NOT_CONFIGURED",
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     // ─── TEST MODE IS SERVER-DECIDED. ────────────────────────────────────
     // This used to be `body.testMode`, taken straight from the request. The RPC

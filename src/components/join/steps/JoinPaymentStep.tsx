@@ -54,6 +54,17 @@ export function JoinPaymentStep({ data, onUpdate, onPaymentInitiated }: JoinPaym
 
       let checkoutUrl: string;
 
+      // No gateway, no checkout. `activeGateway` is null when the setting is
+      // missing, empty, unrecognised, or the settings query failed. It used to
+      // fall back to "stripe", which sent the customer to the gateway we are
+      // leaving — and, worse, disagreed with what the server had just recorded
+      // against the registration. The server refuses the registration in the
+      // same situation, so this is the belt to that braces.
+      if (activeGateway !== "mollie" && activeGateway !== "stripe") {
+        setError(t("joinWizard.payment.gatewayNotConfigured"));
+        return;
+      }
+
       if (activeGateway === "mollie") {
         const { data: checkoutResult, error: checkoutError } = await supabase.functions.invoke("create-mollie-checkout", { body: { memberId: registrationResult.memberId, orderId: registrationResult.orderId, paymentId: registrationResult.paymentId, subscriptionId: registrationResult.subscriptionId, lineItems: registrationResult.lineItems, customerEmail: data.primaryMember.email, customerName: `${data.primaryMember.firstName} ${data.primaryMember.lastName}`, successUrl, cancelUrl, billingFrequency: data.billingFrequency, subscriptionAmount: order.subscriptionFinal, metadata: partnerMeta } });
         if (checkoutError) { if (checkoutResult?.code === "MOLLIE_NOT_CONFIGURED") { setError(t("joinWizard.payment.gatewayNotConfigured")); return; } throw new Error(checkoutError.message || "Failed to create checkout"); }

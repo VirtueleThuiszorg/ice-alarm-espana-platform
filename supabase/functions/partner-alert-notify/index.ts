@@ -125,7 +125,7 @@ serve(async (req: Request): Promise<Response> => {
                 subject: `🚨 Alerta de ${member.first_name} ${member.last_name}`,
                 html: `
                   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h1 style="color: #dc2626;">🚨 Alerta Activada</h1>
+                    <h1 style="color: #C8102E;">🚨 Alerta Activada</h1>
                     <p>Hola ${partner.contact_name},</p>
                     <p>Se ha activado una alerta para un residente bajo su supervisión:</p>
                     <div style="background-color: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -135,7 +135,7 @@ serve(async (req: Request): Promise<Response> => {
                       ${alert.location_address ? `<p style="margin: 5px 0;"><strong>Ubicación:</strong> ${alert.location_address}</p>` : ''}
                     </div>
                     <p>Nuestro equipo de respuesta está gestionando esta alerta.</p>
-                    <p>Saludos,<br>El equipo de Care Conneqt</p>
+                    <p>Saludos,<br>El equipo de ICE Alarm España</p>
                   </div>
                 `
               }
@@ -143,7 +143,7 @@ serve(async (req: Request): Promise<Response> => {
                 subject: `🚨 Alert from ${member.first_name} ${member.last_name}`,
                 html: `
                   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h1 style="color: #dc2626;">🚨 Alert Activated</h1>
+                    <h1 style="color: #C8102E;">🚨 Alert Activated</h1>
                     <p>Hello ${partner.contact_name},</p>
                     <p>An alert has been triggered for a resident under your care:</p>
                     <div style="background-color: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -153,7 +153,7 @@ serve(async (req: Request): Promise<Response> => {
                       ${alert.location_address ? `<p style="margin: 5px 0;"><strong>Location:</strong> ${alert.location_address}</p>` : ''}
                     </div>
                     <p>Our response team is handling this alert.</p>
-                    <p>Best regards,<br>The Care Conneqt Team</p>
+                    <p>Best regards,<br>The ICE Alarm España Team</p>
                   </div>
                 `
               };
@@ -165,7 +165,7 @@ serve(async (req: Request): Promise<Response> => {
               Authorization: `Bearer ${RESEND_API_KEY}`,
             },
             body: JSON.stringify({
-              from: "Care Conneqt Alerts <alerts@careconneqt.es>",
+              from: "ICE Alarm España Alerts <alerts@icealarm.es>",
               to: [partner.email],
               subject: emailContent.subject,
               html: emailContent.html,

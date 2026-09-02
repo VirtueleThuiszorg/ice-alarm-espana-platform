@@ -666,7 +666,7 @@ export default function PartnerSettingsPage() {
               <Separator className="my-4" />
 
               {/* Alert visibility is READ-ONLY here: it gates access to the
-                  resident SOS-alert stream and is granted by Care Conneqt
+                  resident SOS-alert stream and is granted by ICE Alarm España
                   admins only (guard trigger enforces this server-side). */}
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
@@ -677,7 +677,7 @@ export default function PartnerSettingsPage() {
                   <p className="text-sm text-muted-foreground">
                     {facilityData.alertVisibilityEnabled
                       ? "Enabled — you receive notifications when your residents trigger SOS alerts"
-                      : "Not enabled — contact Care Conneqt to enable resident alert notifications"}
+                      : "Not enabled — contact ICE Alarm España to enable resident alert notifications"}
                   </p>
                 </div>
                 <Badge variant={facilityData.alertVisibilityEnabled ? "default" : "outline"}>

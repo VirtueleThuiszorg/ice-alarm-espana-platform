@@ -126,7 +126,7 @@ serve(async (req) => {
           currency: "EUR",
           value: totalAmount.toFixed(2),
         },
-        description: `Care Conneqt - Order ${body.orderId}`,
+        description: `ICE Alarm España - Order ${body.orderId}`,
         redirectUrl: body.successUrl,
         webhookUrl,
         metadata: {

@@ -25,7 +25,7 @@ serve(async (req) => {
             h1 { font-size: 1.5rem; margin-bottom: 1rem; }
             p { color: #666; margin-bottom: 1.5rem; }
             button { background: #3b82f6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer; font-size: 1rem; }
-            button:hover { background: #2563eb; }
+            button:hover { background: #C8102E; }
           </style>
         </head>
         <body>
@@ -151,7 +151,7 @@ serve(async (req) => {
       .eq("integration_type", "youtube_oauth_state");
 
     const message = channelMismatch
-      ? `Connected to "${channelName}" (Warning: Channel ID does not match expected Care Conneqt channel)`
+      ? `Connected to "${channelName}" (Warning: Channel ID does not match expected ICE Alarm España channel)`
       : `Successfully connected to "${channelName}"`;
 
     return htmlResponse(message, true);

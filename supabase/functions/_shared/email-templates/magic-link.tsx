@@ -25,23 +25,23 @@ export const MagicLinkEmail = ({
 }: MagicLinkEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Your login link for Care Conneqt</Preview>
+    <Preview>Your login link for ICE Alarm España</Preview>
     <Body style={main}>
       <Container style={container}>
         <Img
           src="https://crpsuhoixfdhjugprbuc.supabase.co/storage/v1/object/public/email-assets/logo.png"
           width="64"
           height="64"
-          alt="Care Conneqt"
+          alt="ICE Alarm España"
           style={logo}
         />
         <Heading style={h1}>Your login link</Heading>
         <Text style={text}>
-          Click the button below to securely log in to Care Conneqt. This link will expire
+          Click the button below to securely log in to ICE Alarm España. This link will expire
           shortly.
         </Text>
         <Button style={button} href={confirmationUrl}>
-          Log In to Care Conneqt
+          Log In to ICE Alarm España
         </Button>
         <Text style={footer}>
           If you didn't request this link, you can safely ignore this email.
@@ -69,7 +69,7 @@ const text = {
   margin: '0 0 25px',
 }
 const button = {
-  backgroundColor: '#E74C3C',
+  backgroundColor: '#C8102E',
   color: '#ffffff',
   fontSize: '14px',
   fontWeight: 'bold' as const,

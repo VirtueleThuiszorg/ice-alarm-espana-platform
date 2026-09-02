@@ -232,7 +232,7 @@ Deno.serve(async (req) => {
                 body: new URLSearchParams({
                   To: phone,
                   From: outboundNumber,
-                  Body: `Care Conneqt update: The emergency alert for ${memberName} has been resolved. ${resolution_type === "ambulance_dispatched" ? "An ambulance was dispatched." : "The situation has been handled."} Thank you for your assistance.`,
+                  Body: `ICE Alarm España update: The emergency alert for ${memberName} has been resolved. ${resolution_type === "ambulance_dispatched" ? "An ambulance was dispatched." : "The situation has been handled."} Thank you for your assistance.`,
                 }),
               });
             }

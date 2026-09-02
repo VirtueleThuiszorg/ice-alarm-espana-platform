@@ -34,8 +34,8 @@ interface VoiceSettings {
 }
 
 const PLACEHOLDERS: VoiceSettings = {
-  voice_greeting_es: "Gracias por llamar a Care Conneqt. Soy Isabella, su asistente virtual.",
-  voice_greeting_en: "Thank you for calling Care Conneqt Spain. I'm Isabella, your virtual assistant.",
+  voice_greeting_es: "Gracias por llamar a ICE Alarm España. Soy Isabella, su asistente virtual.",
+  voice_greeting_en: "Thank you for calling ICE Alarm España. I'm Isabella, your virtual assistant.",
   voice_recording_notice_es: "Esta llamada puede ser grabada para mejorar el servicio.",
   voice_recording_notice_en: "This call may be recorded to improve our service.",
   voice_hold_es: "Por favor, permanezca en la línea. Le conectamos en breve.",

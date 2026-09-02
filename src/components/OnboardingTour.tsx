@@ -332,7 +332,7 @@ export default function OnboardingTour({
             width: cutout.width,
             height: cutout.height,
             borderRadius: cutout.borderRadius,
-            boxShadow: "0 0 0 3px #E74C3C, 0 0 12px rgba(231,76,60,0.4)",
+            boxShadow: "0 0 0 3px #C8102E, 0 0 12px rgba(231,76,60,0.4)",
             pointerEvents: "none",
             transition: "all 0.3s ease",
           }}
@@ -438,7 +438,7 @@ export default function OnboardingTour({
           <button
             onClick={handleNext}
             style={{
-              background: "#E74C3C",
+              background: "#C8102E",
               border: "none",
               color: "#ffffff",
               borderRadius: 8,
@@ -452,7 +452,7 @@ export default function OnboardingTour({
               ((e.target as HTMLButtonElement).style.background = "#c0392b")
             }
             onMouseLeave={(e) =>
-              ((e.target as HTMLButtonElement).style.background = "#E74C3C")
+              ((e.target as HTMLButtonElement).style.background = "#C8102E")
             }
           >
             {currentStep < steps.length - 1 ? "Next" : "Finish"}

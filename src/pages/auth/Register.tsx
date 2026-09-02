@@ -57,7 +57,7 @@ export default function Register() {
 
       if (data.user) {
         await reportEvent('new_signup', {
-          label: `New Care Conneqt member`,
+          label: `New ICE Alarm España member`,
           metadata: { email: values.email }
         });
         await updateDailyMetrics({ newSignups: 1 });

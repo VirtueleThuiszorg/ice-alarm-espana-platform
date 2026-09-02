@@ -128,8 +128,8 @@ serve(async (req) => {
 
       // Build message (bilingual based on contact preference)
       const smsMessage = useSpanish
-        ? `Care Conneqt - ${alertLabel.es}: ${memberName} necesita ayuda. ${alert.message || ""}${locationText}\nLlame al 112 si es necesario.`
-        : `Care Conneqt - ${alertLabel.en}: ${memberName} needs help. ${alert.message || ""}${locationText}\nCall 112 if necessary.`;
+        ? `ICE Alarm España - ${alertLabel.es}: ${memberName} necesita ayuda. ${alert.message || ""}${locationText}\nLlame al 112 si es necesario.`
+        : `ICE Alarm España - ${alertLabel.en}: ${memberName} needs help. ${alert.message || ""}${locationText}\nCall 112 if necessary.`;
 
       // --- Send SMS via Twilio ---
       if (hasTwilio && contact.phone) {
@@ -176,8 +176,8 @@ serve(async (req) => {
       if (contact.email) {
         try {
           const subject = useSpanish
-            ? `Care Conneqt - ${alertLabel.es} para ${memberName}`
-            : `Care Conneqt - ${alertLabel.en} for ${memberName}`;
+            ? `ICE Alarm España - ${alertLabel.es} para ${memberName}`
+            : `ICE Alarm España - ${alertLabel.en} for ${memberName}`;
 
           const mapLink =
             alert.location_lat && alert.location_lng
@@ -186,24 +186,24 @@ serve(async (req) => {
 
           const emailHtml = useSpanish
             ? `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
-                <h2 style="color:#dc2626;">Care Conneqt - ${alertLabel.es}</h2>
+                <h2 style="color:#C8102E;">ICE Alarm España - ${alertLabel.es}</h2>
                 <p><strong>${memberName}</strong> ha activado una alerta de emergencia.</p>
                 <p><strong>Tipo:</strong> ${alertLabel.es}</p>
                 ${alert.message ? `<p><strong>Mensaje:</strong> ${alert.message}</p>` : ""}
                 ${mapLink ? `<p><strong>Ubicación:</strong> <a href="${mapLink}">Ver en mapa</a></p>` : ""}
                 ${alert.location_address ? `<p><strong>Dirección:</strong> ${alert.location_address}</p>` : ""}
-                <p style="color:#dc2626;font-weight:bold;">Si cree que es una emergencia real, llame al 112 inmediatamente.</p>
-                <hr><p style="color:#6b7280;font-size:12px;">Este es un mensaje automático de Care Conneqt.</p>
+                <p style="color:#C8102E;font-weight:bold;">Si cree que es una emergencia real, llame al 112 inmediatamente.</p>
+                <hr><p style="color:#6b7280;font-size:12px;">Este es un mensaje automático de ICE Alarm España.</p>
               </div>`
             : `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
-                <h2 style="color:#dc2626;">Care Conneqt - ${alertLabel.en}</h2>
+                <h2 style="color:#C8102E;">ICE Alarm España - ${alertLabel.en}</h2>
                 <p><strong>${memberName}</strong> has triggered an emergency alert.</p>
                 <p><strong>Type:</strong> ${alertLabel.en}</p>
                 ${alert.message ? `<p><strong>Message:</strong> ${alert.message}</p>` : ""}
                 ${mapLink ? `<p><strong>Location:</strong> <a href="${mapLink}">View on map</a></p>` : ""}
                 ${alert.location_address ? `<p><strong>Address:</strong> ${alert.location_address}</p>` : ""}
-                <p style="color:#dc2626;font-weight:bold;">If you believe this is a real emergency, call 112 immediately.</p>
-                <hr><p style="color:#6b7280;font-size:12px;">This is an automated message from Care Conneqt.</p>
+                <p style="color:#C8102E;font-weight:bold;">If you believe this is a real emergency, call 112 immediately.</p>
+                <hr><p style="color:#6b7280;font-size:12px;">This is an automated message from ICE Alarm España.</p>
               </div>`;
 
           const emailResult = await sendEmail(contact.email, subject, emailHtml);

@@ -94,7 +94,7 @@ describe("drill edge function — safety contract (source)", () => {
   });
 
   it("uses the dedicated, clearly-labelled drill member and refuses one with contacts", () => {
-    expect(fnSource).toContain("sos-drill@care-conneqt.internal");
+    expect(fnSource).toContain("sos-drill@ice-alarm-espana.internal");
     expect(fnSource).toContain("SOS DRILL — not a real emergency");
     expect(fnSource).toMatch(/from\("emergency_contacts"\)/);
     expect(fnSource).toContain("refusing to create a drill alert");

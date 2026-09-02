@@ -1,4 +1,4 @@
-Sitemap: https://careconneqt.es/sitemap.xml
+Sitemap: https://icealarm.es/sitemap.xml
 
 User-agent: Googlebot
 Allow: /

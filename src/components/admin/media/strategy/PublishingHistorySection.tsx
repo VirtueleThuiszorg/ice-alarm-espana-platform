@@ -42,7 +42,7 @@ export function PublishingHistorySection() {
     if (!externalId) return null;
     switch (platform) {
       case "blog":
-        return `https://careconneqt.es/blog/${externalId}`;
+        return `https://icealarm.es/blog/${externalId}`;
       case "facebook":
         return `https://facebook.com/${externalId}`;
       default:

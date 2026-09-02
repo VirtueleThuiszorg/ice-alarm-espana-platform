@@ -18,9 +18,9 @@ export default function BlogListPage() {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="Care Conneqt Blog - Safety, Care & Updates"
-        description="Read the latest articles about personal safety, elderly care, and emergency response from Care Conneqt."
-        canonicalUrl="https://careconneqt.es/blog"
+        title="ICE Alarm España Blog - Safety, Care & Updates"
+        description="Read the latest articles about personal safety, elderly care, and emergency response from ICE Alarm España."
+        canonicalUrl="https://icealarm.es/blog"
         ogType="website"
       />
 
@@ -119,7 +119,7 @@ export default function BlogListPage() {
       {/* Footer */}
       <footer className="py-8 px-4 bg-sidebar text-sidebar-foreground">
         <div className="container mx-auto text-center text-sm text-sidebar-foreground/60">
-          <p>© {new Date().getFullYear()} Care Conneqt. {t("landing.allRightsReserved")}</p>
+          <p>© {new Date().getFullYear()} ICE Alarm España. {t("landing.allRightsReserved")}</p>
         </div>
       </footer>
     </div>

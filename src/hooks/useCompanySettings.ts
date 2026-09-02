@@ -9,9 +9,9 @@ interface CompanySettings {
 }
 
 const DEFAULT_SETTINGS: CompanySettings = {
-  company_name: "Care Conneqt",
+  company_name: "ICE Alarm España",
   emergency_phone: "+34 900 123 456",
-  support_email: "info@careconneqt.es",
+  support_email: "info@icealarm.es",
   address: "Calle Principal 1, Albox, 04800 Almería"
 };
 

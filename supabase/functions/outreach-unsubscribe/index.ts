@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
 h1{color:#333;margin-bottom:16px}p{color:#666;line-height:1.6}</style></head>
 <body><div class="card">
 <h1>✓ Unsubscribed</h1>
-<p>You have been successfully unsubscribed from Care Conneqt outreach emails.</p>
+<p>You have been successfully unsubscribed from ICE Alarm España outreach emails.</p>
 <p>You will no longer receive marketing communications from us.</p>
 </div></body></html>`;
 

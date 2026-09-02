@@ -10,7 +10,7 @@
  *    GMAIL_APP_PASSWORD + SENDER_EMAIL. The development transport.
  *  - "resend" → Resend API, RESEND_API_KEY, from address from
  *    email_settings.from_email. The go-live transport — flip the provider
- *    in admin ONLY after careconneqt.es is verified in Resend (DKIM/SPF
+ *    in admin ONLY after icealarm.es is verified in Resend (DKIM/SPF
  *    aligned); until then Resend can't send from the domain.
  *
  * Fail-safe: if the settings lookup fails for any reason, we fall back to
@@ -57,8 +57,8 @@ async function sendViaResend(
     return { success: false, error: "RESEND_API_KEY is not configured" };
   }
 
-  const fromName = settings.from_name || Deno.env.get("SENDER_NAME") || "Care Conneqt";
-  const fromEmail = settings.from_email || "noreply@careconneqt.es";
+  const fromName = settings.from_name || Deno.env.get("SENDER_NAME") || "ICE Alarm España";
+  const fromEmail = settings.from_email || "noreply@icealarm.es";
 
   try {
     const res = await fetch("https://api.resend.com/emails", {
@@ -96,9 +96,9 @@ async function sendViaGmail(
 ): Promise<{ success: boolean; error?: string }> {
   const appPassword = Deno.env.get("GMAIL_APP_PASSWORD");
   const senderEmail =
-    Deno.env.get("SENDER_EMAIL") || "careconneqtespana@gmail.com";
+    Deno.env.get("SENDER_EMAIL") || "icealarmespana@gmail.com";
   const senderName =
-    Deno.env.get("SENDER_NAME") || "Care Conneqt";
+    Deno.env.get("SENDER_NAME") || "ICE Alarm España";
 
   if (!appPassword) {
     return { success: false, error: "GMAIL_APP_PASSWORD not configured" };

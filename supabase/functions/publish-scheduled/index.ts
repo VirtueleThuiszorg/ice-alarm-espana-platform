@@ -3,7 +3,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 
 
 
-const SITE_URL = "https://careconneqt.es";
+const SITE_URL = "https://icealarm.es";
 
 // ─────────────────────────── HELPERS ───────────────────────────
 
@@ -205,7 +205,7 @@ Deno.serve(async (req) => {
           // Compose content
           const blogIntro = slot.generated_blog_intro || "";
           const blogContent = slot.generated_blog_content || postText;
-          const ctaLine = `\n\nLearn more about Care Conneqt services at ${SITE_URL}`;
+          const ctaLine = `\n\nLearn more about ICE Alarm España services at ${SITE_URL}`;
           const composedContent = blogIntro
             ? `${blogIntro}\n\n---\n\n${blogContent}${ctaLine}`
             : `${blogContent}${ctaLine}`;

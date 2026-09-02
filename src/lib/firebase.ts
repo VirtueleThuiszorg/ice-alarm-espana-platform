@@ -84,7 +84,7 @@ export async function onForegroundMessage(
 
     const unsubscribe = onMessage(messagingInstance, (payload) => {
       callback({
-        title: payload.notification?.title || "Care Conneqt",
+        title: payload.notification?.title || "ICE Alarm España",
         body: payload.notification?.body || "",
         data: payload.data,
       });

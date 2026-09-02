@@ -11,7 +11,7 @@ export function initSentry() {
   Sentry.init({
     dsn,
     environment: import.meta.env.MODE,
-    release: `care-conneqt@${import.meta.env.VITE_APP_VERSION || "0.0.0"}`,
+    release: `ice-alarm-espana@${import.meta.env.VITE_APP_VERSION || "0.0.0"}`,
 
     integrations: [
       Sentry.browserTracingIntegration(),

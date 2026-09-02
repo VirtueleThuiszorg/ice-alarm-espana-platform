@@ -90,26 +90,26 @@ function buildWelcomeEmail(
       </head>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #dc2626;">Care Conneqt</h1>
+          <h1 style="color: #C8102E;">ICE Alarm España</h1>
         </div>
         
         <h2 style="color: #1f2937;">¡Bienvenido al Programa de Socios!</h2>
         
         <p>Hola ${contactName},</p>
         
-        <p>¡Tu cuenta de socio ha sido creada por nuestro equipo de administración! Ahora formas parte del Programa de Socios de Care Conneqt.</p>
+        <p>¡Tu cuenta de socio ha sido creada por nuestro equipo de administración! Ahora formas parte del Programa de Socios de ICE Alarm España.</p>
         
         <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3 style="margin-top: 0; color: #1f2937;">Tus credenciales de acceso:</h3>
           <p style="margin: 5px 0;"><strong>Email:</strong> ${email}</p>
           <p style="margin: 5px 0;"><strong>Contraseña temporal:</strong> ${tempPassword}</p>
-          <p style="margin: 5px 0;"><strong>Tu código de referido:</strong> <span style="font-size: 18px; font-weight: bold; color: #dc2626;">${referralCode}</span></p>
+          <p style="margin: 5px 0;"><strong>Tu código de referido:</strong> <span style="font-size: 18px; font-weight: bold; color: #C8102E;">${referralCode}</span></p>
         </div>
         
-        <p style="color: #dc2626; font-weight: bold;">⚠️ Por favor, inicia sesión y cambia tu contraseña inmediatamente.</p>
+        <p style="color: #C8102E; font-weight: bold;">⚠️ Por favor, inicia sesión y cambia tu contraseña inmediatamente.</p>
         
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${loginUrl}" style="background-color: #dc2626; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">Iniciar Sesión</a>
+          <a href="${loginUrl}" style="background-color: #C8102E; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">Iniciar Sesión</a>
         </div>
         
         <p>Si tienes alguna pregunta, no dudes en contactar con nuestro equipo.</p>
@@ -118,7 +118,7 @@ function buildWelcomeEmail(
         
         <p style="color: #6b7280; font-size: 14px;">
           Saludos cordiales,<br>
-          El Equipo de Care Conneqt
+          El Equipo de ICE Alarm España
         </p>
       </body>
       </html>
@@ -135,26 +135,26 @@ function buildWelcomeEmail(
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #dc2626;">Care Conneqt</h1>
+        <h1 style="color: #C8102E;">ICE Alarm España</h1>
       </div>
       
       <h2 style="color: #1f2937;">Welcome to the Partner Program!</h2>
       
       <p>Hello ${contactName},</p>
       
-      <p>Your partner account has been created by our admin team! You are now part of the Care Conneqt Partner Program.</p>
+      <p>Your partner account has been created by our admin team! You are now part of the ICE Alarm España Partner Program.</p>
       
       <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
         <h3 style="margin-top: 0; color: #1f2937;">Your login credentials:</h3>
         <p style="margin: 5px 0;"><strong>Email:</strong> ${email}</p>
         <p style="margin: 5px 0;"><strong>Temporary Password:</strong> ${tempPassword}</p>
-        <p style="margin: 5px 0;"><strong>Your Referral Code:</strong> <span style="font-size: 18px; font-weight: bold; color: #dc2626;">${referralCode}</span></p>
+        <p style="margin: 5px 0;"><strong>Your Referral Code:</strong> <span style="font-size: 18px; font-weight: bold; color: #C8102E;">${referralCode}</span></p>
       </div>
       
-      <p style="color: #dc2626; font-weight: bold;">⚠️ Please log in and change your password immediately.</p>
+      <p style="color: #C8102E; font-weight: bold;">⚠️ Please log in and change your password immediately.</p>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${loginUrl}" style="background-color: #dc2626; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">Login to Partner Portal</a>
+        <a href="${loginUrl}" style="background-color: #C8102E; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">Login to Partner Portal</a>
       </div>
       
       <p>If you have any questions, don't hesitate to contact our team.</p>
@@ -163,7 +163,7 @@ function buildWelcomeEmail(
       
       <p style="color: #6b7280; font-size: 14px;">
         Best regards,<br>
-        The Care Conneqt Team
+        The ICE Alarm España Team
       </p>
     </body>
     </html>
@@ -416,7 +416,7 @@ Deno.serve(async (req) => {
     });
 
     // Send welcome email via Gmail SMTP
-    const loginUrl = `${req.headers.get("origin") || "https://careconneqt.es"}/partner/login`;
+    const loginUrl = `${req.headers.get("origin") || "https://icealarm.es"}/partner/login`;
     
     const emailHtml = buildWelcomeEmail(
       body.contact_name,
@@ -428,8 +428,8 @@ Deno.serve(async (req) => {
     );
 
     const emailSubject = body.preferred_language === "en" 
-      ? "Welcome to Care Conneqt Partner Program - Your Login Credentials"
-      : "Bienvenido al Programa de Socios Care Conneqt - Tus Credenciales";
+      ? "Welcome to ICE Alarm España Partner Program - Your Login Credentials"
+      : "Bienvenido al Programa de Socios ICE Alarm España - Tus Credenciales";
 
     const emailResult = await sendEmail(email, emailSubject, emailHtml);
 

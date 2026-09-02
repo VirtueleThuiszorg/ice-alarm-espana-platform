@@ -156,7 +156,7 @@ export default function PendantPage() {
                 <div className="relative z-10 aspect-square overflow-hidden rounded-2xl shadow-2xl bg-muted">
                   <ImageWithPlaceholder
                     imageUrl="/pendant1.webp"
-                    altText={pendantHeroImage.altText || "The Care Conneqt pendant on its charging cradle in a sunlit home"}
+                    altText={pendantHeroImage.altText || "The ICE Alarm España pendant on its charging cradle in a sunlit home"}
                     imgClassName="object-cover"
                     placeholderText="Product Image"
                     priority={true}
@@ -332,7 +332,7 @@ export default function PendantPage() {
                 <ImageWithPlaceholder
                   imageUrl="/pendant2.webp"
                   sources={[{ srcSet: "/pendant2.avif", type: "image/avif" }]}
-                  altText="A Care Conneqt member hiking a Spanish mountain trail wearing the pendant"
+                  altText="A ICE Alarm España member hiking a Spanish mountain trail wearing the pendant"
                   imgClassName="object-cover"
                   width={800}
                   height={1000}
@@ -400,7 +400,7 @@ export default function PendantPage() {
               <div className="aspect-square max-w-sm mx-auto overflow-hidden rounded-2xl shadow-xl bg-muted">
                 <ImageWithPlaceholder
                   imageUrl="/pendant3.webp"
-                  altText={pendantSpecsImage.altText || "A Care Conneqt member wearing the pendant at home in Spain"}
+                  altText={pendantSpecsImage.altText || "A ICE Alarm España member wearing the pendant at home in Spain"}
                   imgClassName="object-cover"
                   placeholderText="Specifications Image"
                 />

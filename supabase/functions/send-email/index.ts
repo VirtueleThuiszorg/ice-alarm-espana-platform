@@ -67,7 +67,7 @@ async function sendViaResend(
   }
 
   const resend = new Resend(resendApiKey);
-  const fromName = settings.from_name || "Care Conneqt";
+  const fromName = settings.from_name || "ICE Alarm España";
   const fromEmail = settings.from_email || "onboarding@resend.dev";
 
   const emailPayload: ResendPayload = {
@@ -295,7 +295,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Determine from email for logging
     const fromEmail = settings.from_email || 
-      (provider === "gmail" ? settings.gmail_smtp_user : "noreply@careconneqt.es");
+      (provider === "gmail" ? settings.gmail_smtp_user : "noreply@icealarm.es");
 
     // Log to email_log
     const logEntry = {

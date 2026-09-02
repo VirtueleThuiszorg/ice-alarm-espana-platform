@@ -177,7 +177,7 @@ export default function HowItWorksPage() {
                   })}
                   altText={
                     heroImage.altText ||
-                    "Elderly woman at home protected by Care Conneqt pendant"
+                    "Elderly woman at home protected by ICE Alarm España pendant"
                   }
                   priority={true}
                   width={800}

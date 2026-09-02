@@ -97,15 +97,15 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Build the update link
-    const baseUrl = Deno.env.get("SITE_URL") || "https://careconneqt.es";
+    const baseUrl = Deno.env.get("SITE_URL") || "https://icealarm.es";
     const updateLink = `${baseUrl}/member-update?token=${token}`;
 
     // Send bilingual email via Gmail SMTP
     const isSpanish = preferredLanguage === "es";
 
     const emailSubject = isSpanish 
-      ? "Por favor actualice su información - Care Conneqt"
-      : "Please Update Your Information - Care Conneqt";
+      ? "Por favor actualice su información - ICE Alarm España"
+      : "Please Update Your Information - ICE Alarm España";
 
     const emailHtml = `
 <!DOCTYPE html>
@@ -115,16 +115,16 @@ const handler = async (req: Request): Promise<Response> => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: #dc2626; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+    .header { background: #C8102E; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
     .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
-    .button { display: inline-block; background: #dc2626; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .button { display: inline-block; background: #C8102E; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
     .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; }
     .divider { border-top: 1px dashed #d1d5db; margin: 20px 0; }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1 style="margin: 0;">Care Conneqt</h1>
+    <h1 style="margin: 0;">ICE Alarm España</h1>
   </div>
   <div class="content">
     <h2>${isSpanish ? "Hola" : "Hello"} ${memberName},</h2>
@@ -154,7 +154,7 @@ const handler = async (req: Request): Promise<Response> => {
       : "Necesitamos información adicional para poder asistirle mejor en caso de emergencia. Por favor haga clic en el botón de arriba para actualizar su información."}</p>
     
     <div class="footer">
-      <p>Care Conneqt - ${isSpanish ? "Protegiendo a nuestros mayores" : "Protecting our elderly"}</p>
+      <p>ICE Alarm España - ${isSpanish ? "Protegiendo a nuestros mayores" : "Protecting our elderly"}</p>
       <p>${isSpanish 
         ? "Si no solicitó esta actualización, por favor ignore este correo."
         : "If you did not request this update, please ignore this email."}</p>

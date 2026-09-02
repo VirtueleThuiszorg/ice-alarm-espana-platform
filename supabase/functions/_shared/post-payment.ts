@@ -252,7 +252,7 @@ export async function handleSuccessfulPayment(
       try {
         const orderNum = orderData?.order_number || orderId;
         const lang = memberData?.preferred_language || "es";
-        const dashboardUrl = "https://careconneqt.es/dashboard";
+        const dashboardUrl = "https://icealarm.es/dashboard";
 
         const emailHtml = buildMemberWelcomeEmail(
           memberData.first_name,

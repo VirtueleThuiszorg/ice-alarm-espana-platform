@@ -411,7 +411,7 @@ export default function FinanceDashboard() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t("adminFinance.title", "Finance Dashboard")}</h1>
           <p className="text-muted-foreground">
-            {t("adminFinance.subtitle", "Financial overview and key metrics for Care Conneqt")}
+            {t("adminFinance.subtitle", "Financial overview and key metrics for ICE Alarm España")}
           </p>
         </div>
         <div className="flex gap-2">

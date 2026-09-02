@@ -30,19 +30,19 @@ export const EmailChangeEmail = ({
 }: EmailChangeEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Confirm your email change for Care Conneqt</Preview>
+    <Preview>Confirm your email change for ICE Alarm España</Preview>
     <Body style={main}>
       <Container style={container}>
         <Img
           src="https://crpsuhoixfdhjugprbuc.supabase.co/storage/v1/object/public/email-assets/logo.png"
           width="64"
           height="64"
-          alt="Care Conneqt"
+          alt="ICE Alarm España"
           style={logo}
         />
         <Heading style={h1}>Confirm your email change</Heading>
         <Text style={text}>
-          You requested to change your email address for Care Conneqt from{' '}
+          You requested to change your email address for ICE Alarm España from{' '}
           <Link href={`mailto:${email}`} style={link}>
             {email}
           </Link>{' '}
@@ -84,9 +84,9 @@ const text = {
   lineHeight: '1.6',
   margin: '0 0 25px',
 }
-const link = { color: '#E74C3C', textDecoration: 'underline' }
+const link = { color: '#C8102E', textDecoration: 'underline' }
 const button = {
-  backgroundColor: '#E74C3C',
+  backgroundColor: '#C8102E',
   color: '#ffffff',
   fontSize: '14px',
   fontWeight: 'bold' as const,

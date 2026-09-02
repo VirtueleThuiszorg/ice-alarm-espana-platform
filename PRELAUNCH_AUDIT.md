@@ -105,6 +105,15 @@ This is the best-built flow in the product. It should not be rebuilt — only ti
 
 **G4 is not met.** There is no consent scoping to test.
 
+> **Follow-up 2026-08-14 — the consent-scope half of that row is answered; the portal half is not.**
+> `CONSENT_MODEL.md` designs it (**merged**, #134) and `20260814140000_care_access_grants.sql`
+> implements it, with 48 new checks in `scripts/rls/isolation.sql` (29 → 77), written
+> negative-first. The implementation is an **open PR behind the RLS human gate — not merged**,
+> so the row above is still true of the database. When it lands, what
+> changes is "no consent-scope model exists"; what does **not** change is **MISSING** for the
+> family portal itself (no UI, no carer invite, no carer account), nor for per-read access
+> logging. See STATE.md for the precise split.
+
 ### 2.5 Staff (employee lifecycle)
 
 | Step | Status |

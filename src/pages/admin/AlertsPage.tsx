@@ -71,6 +71,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
+import { formatDate } from "@/lib/formatDate";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -175,7 +176,7 @@ export default function AlertsPage() {
 
   const handleEditClick = (alert: AlertRow) => {
     setSelectedAlert(alert);
-    setEditStatus(alert.status);
+    setEditStatus(alert.status ?? "");
     setEditNotes(alert.resolution_notes || "");
     setEditIsFalseAlarm(alert.is_false_alarm || false);
     setEditDialogOpen(true);
@@ -250,7 +251,9 @@ export default function AlertsPage() {
 
   const totalPages = Math.ceil((data?.totalCount || 0) / ITEMS_PER_PAGE);
 
-  const getStatusBadge = (status: string) => {
+  // Every status column in this schema is nullable; a row with no status
+  // should render as unknown rather than crash the switch.
+  const getStatusBadge = (status: string | null) => {
     switch (status) {
       case "incoming":
         return <Badge variant="destructive" className="animate-pulse">{t("adminAlerts.incoming", "Incoming")}</Badge>;
@@ -407,7 +410,7 @@ export default function AlertsPage() {
                     </TableCell>
                     <TableCell>{getStatusBadge(alert.status)}</TableCell>
                     <TableCell>
-                      {format(new Date(alert.received_at), "dd MMM yyyy, HH:mm")}
+                      {formatDate(alert.received_at, "dd MMM yyyy, HH:mm")}
                     </TableCell>
                     <TableCell>
                       {alert.resolved_at

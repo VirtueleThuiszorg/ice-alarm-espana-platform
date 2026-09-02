@@ -19,7 +19,7 @@ const categoryIcons: Record<string, typeof MapPin> = {
 
 export default function ProductDetailPage() {
   const { slug } = useParams<{ slug: string }>();
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const { data: product, isLoading, error } = useProductBySlug(slug ?? "");
   const locale = i18n.language?.split("-")[0] || "en";
 

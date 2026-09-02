@@ -53,6 +53,22 @@ interface CatalogProduct {
   features_i18n: Record<string, string[]>;
 }
 
+/**
+ * The three translated free-text fields, as a union rather than `string`.
+ *
+ * The editor used to reach into the product with
+ * `(editingProduct as Record<string, Record<string, string>>)[field]`, which is
+ * a lie in two directions: most of a product's fields are not translation maps
+ * at all, and `features_i18n` is a map of *arrays*. Naming the three fields that
+ * really are `Record<string, string>` lets the indexing type-check on its own,
+ * and stops a future `updateI18n("features_i18n", …)` from compiling — that call
+ * would have written a string where the renderer expects a list.
+ */
+type I18nTextField = "name_i18n" | "short_description_i18n" | "long_description_i18n";
+
+/** What the save mutation sends: a whole product, with `id` only on an update. */
+type ProductWrite = Omit<CatalogProduct, "id"> & { id?: string };
+
 const LANGUAGES = ["en", "es", "nl"] as const;
 const LANG_LABELS: Record<string, string> = { en: "English", es: "Spanish", nl: "Dutch" };
 const STATUS_OPTIONS = ["active", "coming_soon", "inactive"] as const;
@@ -104,7 +120,7 @@ export default function ProductCatalogPage() {
   const [deleteTarget, setDeleteTarget] = useState<CatalogProduct | null>(null);
 
   const saveMutation = useMutation({
-    mutationFn: async (product: Partial<CatalogProduct> & { id?: string }) => {
+    mutationFn: async (product: ProductWrite) => {
       const { id, ...data } = product;
       if (id) {
         const { error } = await supabase.from("products").update(data).eq("id", id);
@@ -150,10 +166,15 @@ export default function ProductCatalogPage() {
 
   const handleSave = () => {
     if (!editingProduct) return;
-    const payload: Record<string, unknown> = { ...editingProduct };
-    if (isNewProduct) delete payload.id;
-    payload.is_active = editingProduct.status === "active";
-    saveMutation.mutate(payload as Partial<CatalogProduct> & { id?: string });
+    const { id, ...rest } = editingProduct;
+    const payload: ProductWrite = {
+      ...rest,
+      // The catalogue's public visibility follows the status field; the boolean
+      // is kept in sync here rather than being editable on its own.
+      is_active: editingProduct.status === "active",
+    };
+    if (!isNewProduct && id) payload.id = id;
+    saveMutation.mutate(payload);
   };
 
   const updateField = (field: string, value: unknown) => {
@@ -161,9 +182,9 @@ export default function ProductCatalogPage() {
     setEditingProduct({ ...editingProduct, [field]: value });
   };
 
-  const updateI18n = (field: string, lang: string, value: string) => {
+  const updateI18n = (field: I18nTextField, lang: string, value: string) => {
     if (!editingProduct) return;
-    const current = (editingProduct as Record<string, Record<string, string>>)[field] ?? {};
+    const current = editingProduct[field] ?? {};
     setEditingProduct({ ...editingProduct, [field]: { ...current, [lang]: value } });
   };
 
@@ -318,12 +339,12 @@ export default function ProductCatalogPage() {
                         {field === "long_description_i18n" ? (
                           <textarea
                             className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
-                            value={((editingProduct as Record<string, Record<string, string>>)[field] ?? {})[lang] ?? ""}
+                            value={(editingProduct[field] ?? {})[lang] ?? ""}
                             onChange={(e) => updateI18n(field, lang, e.target.value)}
                           />
                         ) : (
                           <Input
-                            value={((editingProduct as Record<string, Record<string, string>>)[field] ?? {})[lang] ?? ""}
+                            value={(editingProduct[field] ?? {})[lang] ?? ""}
                             onChange={(e) => updateI18n(field, lang, e.target.value)}
                           />
                         )}

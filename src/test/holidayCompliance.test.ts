@@ -59,7 +59,7 @@ describe("statutory 30-day minimum", () => {
       const note = d.holidays?.naturalDaysNote as string | undefined;
       expect(note, `${loc}: holidays.naturalDaysNote missing`).toBeTruthy();
       expect(note).toContain("30");
-      expect(note.toLowerCase()).toMatch(/naturales|kalenderdagen|natural/);
+      expect(note!.toLowerCase()).toMatch(/naturales|kalenderdagen|natural/);
     }
   });
 

@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
-import { format } from "date-fns";
+import { formatDate } from "@/lib/formatDate";
 import { updateDailyMetrics } from "@/lib/syncHub";
 import { LeadsWidget } from "@/components/dashboard/LeadsWidget";
 import { SalesCommandStrip } from "@/components/admin/dashboard/SalesCommandStrip";
@@ -327,7 +327,7 @@ export default function AdminDashboard() {
                           {alert.member && ` — ${alert.member.first_name} ${alert.member.last_name}`}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {format(new Date(alert.received_at), "HH:mm - dd MMM")}
+                          {formatDate(alert.received_at, "HH:mm - dd MMM")}
                         </p>
                       </div>
                     </div>
@@ -371,7 +371,7 @@ export default function AdminDashboard() {
                         <span className="text-muted-foreground">{activity.action}</span>
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {format(new Date(activity.created_at), "HH:mm - dd MMM yyyy")}
+                        {formatDate(activity.created_at, "HH:mm - dd MMM yyyy")}
                       </p>
                     </div>
                   </div>

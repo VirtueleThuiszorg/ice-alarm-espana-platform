@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { formatDate, toDate } from "@/lib/formatDate";
 import { useTranslation } from "react-i18next";
-import { format, subDays } from "date-fns";
+import { subDays } from "date-fns";
 import {
   Clock,
   AlertTriangle,
@@ -32,15 +33,17 @@ interface ShiftNote {
   noteContent: string;
   requiresFollowup: boolean;
   followupCompleted: boolean;
-  createdAt: Date;
+  /** Nullable in the schema. Coercing it would render a missing timestamp as
+   *  1 January 1970, which on a shift log reads as a real, very old entry. */
+  createdAt: Date | null;
   memberName?: string;
 }
 
 interface AlertHandled {
   id: string;
   alertType: string;
-  status: string;
-  receivedAt: Date;
+  status: string | null;
+  receivedAt: Date | null;
   resolvedAt?: Date;
   memberName: string;
 }
@@ -48,7 +51,7 @@ interface AlertHandled {
 interface MessageThread {
   id: string;
   subject: string;
-  lastMessageAt: Date;
+  lastMessageAt: Date | null;
   memberName: string;
   messageCount: number;
 }
@@ -162,9 +165,9 @@ export default function ShiftHistoryPage() {
       (data || []).map((note) => ({
         id: note.id,
         noteContent: note.note_content,
-        requiresFollowup: note.requires_followup,
-        followupCompleted: note.followup_completed,
-        createdAt: new Date(note.created_at),
+        requiresFollowup: note.requires_followup ?? false,
+        followupCompleted: note.followup_completed ?? false,
+        createdAt: toDate(note.created_at),
         memberName: note.member ? `${note.member.first_name} ${note.member.last_name}` : undefined,
       }))
     );
@@ -192,8 +195,8 @@ export default function ShiftHistoryPage() {
         id: alert.id,
         alertType: alert.alert_type,
         status: alert.status,
-        receivedAt: new Date(alert.received_at),
-        resolvedAt: alert.resolved_at ? new Date(alert.resolved_at) : undefined,
+        receivedAt: toDate(alert.received_at),
+        resolvedAt: toDate(alert.resolved_at) ?? undefined,
         memberName: alert.member ? `${alert.member.first_name} ${alert.member.last_name}` : "Unknown",
       }))
     );
@@ -219,7 +222,7 @@ export default function ShiftHistoryPage() {
       (data || []).map((conv) => ({
         id: conv.id,
         subject: conv.subject || "No Subject",
-        lastMessageAt: new Date(conv.last_message_at),
+        lastMessageAt: toDate(conv.last_message_at),
         memberName: conv.member ? `${conv.member.first_name} ${conv.member.last_name}` : "Unknown",
         messageCount: conv.messages?.length || 0,
       }))
@@ -406,7 +409,7 @@ export default function ShiftHistoryPage() {
                               <div>
                                 <p className="font-medium text-sm">{alert.memberName}</p>
                                 <p className="text-xs text-muted-foreground">
-                                  {format(alert.receivedAt, "dd MMM, HH:mm")}
+                                  {formatDate(alert.receivedAt, "dd MMM, HH:mm")}
                                 </p>
                               </div>
                             </div>
@@ -454,7 +457,7 @@ export default function ShiftHistoryPage() {
                               )}
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">
-                              {format(note.createdAt, "dd MMM, HH:mm")}
+                              {formatDate(note.createdAt, "dd MMM, HH:mm")}
                               {note.memberName && ` • Re: ${note.memberName}`}
                             </p>
                           </div>
@@ -481,7 +484,7 @@ export default function ShiftHistoryPage() {
                             <div className="flex items-center gap-2 mt-2 flex-wrap">
                               <Badge variant="outline" className="text-xs">
                                 <Clock className="w-3 h-3 mr-1" />
-                                {format(note.createdAt, "dd MMM yyyy, HH:mm")}
+                                {formatDate(note.createdAt, "dd MMM yyyy, HH:mm")}
                               </Badge>
                               {note.memberName && (
                                 <Badge variant="secondary" className="text-xs">
@@ -532,12 +535,12 @@ export default function ShiftHistoryPage() {
                               <p className="font-medium">{alert.memberName}</p>
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <Clock className="w-3 h-3" />
-                                {format(alert.receivedAt, "dd MMM yyyy, HH:mm")}
-                                {alert.resolvedAt && (
+                                {formatDate(alert.receivedAt, "dd MMM yyyy, HH:mm")}
+                                {alert.resolvedAt && alert.receivedAt && (
                                   <>
                                     <span>•</span>
                                     <span>
-                                      {t("shiftHistory.resolvedIn", "Resolved in {{minutes}} min", { minutes: Math.round((alert.resolvedAt.getTime() - alert.receivedAt.getTime()) / 60000) })}
+                                      {t("shiftHistory.resolvedIn", "Resolved in {{minutes}} min", { minutes: Math.round((alert.resolvedAt.getTime() - alert.receivedAt!.getTime()) / 60000) })}
                                     </span>
                                   </>
                                 )}
@@ -592,7 +595,7 @@ export default function ShiftHistoryPage() {
                           </div>
                           <Badge variant="outline">
                             <Clock className="w-3 h-3 mr-1" />
-                            {format(thread.lastMessageAt, "dd MMM, HH:mm")}
+                            {formatDate(thread.lastMessageAt, "dd MMM, HH:mm")}
                           </Badge>
                         </div>
                       </CardContent>

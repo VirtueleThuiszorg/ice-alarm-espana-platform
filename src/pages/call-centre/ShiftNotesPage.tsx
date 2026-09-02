@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { formatDate } from "@/lib/formatDate";
+import { toDate } from "@/lib/formatDate";
 import { useTranslation } from "react-i18next";
 import {
   Plus,
@@ -50,11 +52,13 @@ interface ShiftNote {
   noteContent: string;
   requiresFollowup: boolean;
   followupCompleted: boolean;
-  createdAt: Date;
+  /** Null when the row has no created_at. Never coerce it: `new Date(null)` is
+   *  the Unix epoch, so a missing timestamp would render as 1 January 1970. */
+  createdAt: Date | null;
   staffId: string | null;
   staffName: string;
   memberName?: string;
-  memberId?: string;
+  memberId?: string | null;
 }
 
 export default function ShiftNotesPage() {
@@ -116,6 +120,7 @@ export default function ShiftNotesPage() {
           followup_completed,
           created_at,
           staff_id,
+          member_id,
           staff:staff_id (
             first_name,
             last_name
@@ -133,9 +138,11 @@ export default function ShiftNotesPage() {
       const formattedNotes: ShiftNote[] = (data || []).map((note) => ({
         id: note.id,
         noteContent: note.note_content,
-        requiresFollowup: note.requires_followup,
-        followupCompleted: note.followup_completed,
-        createdAt: new Date(note.created_at),
+        // Both flags are nullable in the schema. Absent means "not flagged",
+        // which is the safe reading for a follow-up marker.
+        requiresFollowup: note.requires_followup ?? false,
+        followupCompleted: note.followup_completed ?? false,
+        createdAt: toDate(note.created_at),
         staffId: note.staff_id,
         staffName: note.staff ? `${note.staff.first_name} ${note.staff.last_name}` : "Unknown",
         memberName: note.member ? `${note.member.first_name} ${note.member.last_name}` : undefined,
@@ -234,6 +241,12 @@ export default function ShiftNotesPage() {
 
   const handleEditNote = async () => {
     if (!editingNote || editingNote.staffId !== currentStaffId) return;
+    if (!currentStaffId) {
+      // Without a staff id the .eq("staff_id", …) below matches nothing, so the
+      // update would quietly do nothing while telling the operator it worked.
+      toast({ title: t("common.error", "Error"), description: t("shiftNotes.noStaffId", "Could not confirm who you are — reload and try again"), variant: "destructive" });
+      return;
+    }
     if (!editContent.trim()) {
       toast({ title: t("common.error", "Error"), description: t("shiftNotes.noteRequired", "Note content is required"), variant: "destructive" });
       return;
@@ -261,6 +274,10 @@ export default function ShiftNotesPage() {
 
   const handleDeleteNote = async () => {
     if (!noteToDelete || noteToDelete.staffId !== currentStaffId) return;
+    if (!currentStaffId) {
+      toast({ title: t("common.error", "Error"), description: t("shiftNotes.noStaffId", "Could not confirm who you are — reload and try again"), variant: "destructive" });
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -414,7 +431,7 @@ export default function ShiftNotesPage() {
                         </Badge>
                         <Badge variant="outline" className="text-xs">
                           <Clock className="w-3 h-3 mr-1" />
-                          {note.createdAt.toLocaleDateString()} {note.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {formatDate(note.createdAt, "dd/MM/yyyy HH:mm")}
                         </Badge>
                         {note.memberName && (
                           <Badge variant="secondary" className="text-xs">

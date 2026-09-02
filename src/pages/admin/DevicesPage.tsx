@@ -137,7 +137,9 @@ export default function DevicesPage() {
 
   const totalPages = Math.ceil((data?.totalCount || 0) / ITEMS_PER_PAGE);
 
-  const getStatusBadge = (status: string) => {
+  // Every status column in this schema is nullable; a row with no status
+  // should render as unknown rather than crash the switch.
+  const getStatusBadge = (status: string | null) => {
     switch (status) {
       case "in_stock":
         return <Badge variant="outline">{t("admin.devices.statuses.in_stock")}</Badge>;

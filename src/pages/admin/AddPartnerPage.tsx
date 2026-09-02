@@ -126,7 +126,7 @@ export default function AddPartnerPage() {
       // Handle edge function errors - parse the response body for details
       if (response.error) {
         // Try to get the actual error message from the response
-        const errorData = response.data;
+        
         const errorMessage = await extractFunctionError(response.error, "Failed to create partner");
         throw new Error(errorMessage);
       }

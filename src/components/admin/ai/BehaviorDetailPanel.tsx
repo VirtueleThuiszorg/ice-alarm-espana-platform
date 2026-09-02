@@ -472,12 +472,14 @@ function PersonalityTab({ agent: _agent, config }: { agent: AIAgent; config: AIA
     const { toast } = useToast();
     const updateConfig = useUpdateAgentConfig();
 
-    const langPolicy = config.language_policy || {};
+    // `language_policy` is a jsonb column; `LanguagePolicy` in useAIAgents names
+    // the keys this tab reads and writes, so no cast is needed here any more.
+    const langPolicy = config.language_policy ?? {};
     const [tone, setTone] = useState(langPolicy.tone || "professional");
     const [formality, setFormality] = useState(langPolicy.formality || "semi-formal");
     const [responseLength, setResponseLength] = useState(langPolicy.response_length || "concise");
     const [language, setLanguage] = useState(langPolicy.primary_language || "en");
-    const [empathy, setEmpathy] = useState(langPolicy.empathy_level ?? 7);
+    const [empathy, setEmpathy] = useState<number>(langPolicy.empathy_level ?? 7);
 
     const handleSave = async () => {
         try {

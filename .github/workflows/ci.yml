@@ -36,8 +36,15 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Both referenced projects explicitly. `npx tsc --noEmit` reads the root
+      # tsconfig.json, which is a project-references stub: it has "files": []
+      # and no "include", so outside of --build mode it typechecks NOTHING and
+      # exits 0. That is not a theory: on 5ed5bbf the app project had 20 real
+      # errors while this step passed green.
       - name: Type check
-        run: npx tsc --noEmit
+        run: |
+          npx tsc -p tsconfig.app.json --noEmit
+          npx tsc -p tsconfig.node.json --noEmit
 
       - name: Build
         run: npm run build

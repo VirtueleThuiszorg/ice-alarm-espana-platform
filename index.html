@@ -8,21 +8,20 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#1e5a9c" />
+    <meta name="theme-color" content="#C8102E" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Care Conneqt" />
+    <meta name="apple-mobile-web-app-title" content="ICE Alarm" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <title>Care Conneqt - Connected Health. Human Care.</title>
-    <meta name="description" content="Care Conneqt provides 24/7 bilingual connected care for seniors and expats across Spain, UK, and Netherlands. GPS tracking, fall detection, nurse-led monitoring, and instant help at the push of a button.">
-    <meta name="author" content="Care Conneqt" />
-    <link rel="canonical" href="https://care-conneqt-platform.vercel.app" />
+    <title>ICE Alarm España — Siempre responde alguien</title>
+    <meta name="description" content="ICE Alarm España provides 24-hour personal emergency response for residents and expatriates across Spain. GPS pendants with fall detection, connected to a monitoring centre staffed by real people in Spanish, English and Dutch.">
+    <meta name="author" content="ICE Alarm España" />
+    <link rel="canonical" href="https://icealarm.es" />
 
-    <!-- Google Fonts: DM Sans (wordmark + headings) + Open Sans (body). Poppins kept for legacy usages. -->
+    <!-- Google Fonts: Archivo (wordmark + headings) + Source Sans 3 (body). -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Poppins removed: loaded but referenced nowhere in src/ or tailwind config -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
 
     <!-- Preconnect to critical domains for faster loading -->
     <!-- Supabase project (LOCKED): crpsuhoixfdhjugprbuc — care-conneqt-prod (LAUNCH_SCOPE.md §0).
@@ -34,18 +33,18 @@
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Care Conneqt" />
-    <meta property="og:url" content="https://care-conneqt-platform.vercel.app" />
+    <meta property="og:site_name" content="ICE Alarm España" />
+    <meta property="og:url" content="https://icealarm.es" />
     <meta property="og:image" content="/og-image.png">
-    <meta property="og:title" content="Care Conneqt - Connected Health. Human Care.">
-    <meta property="og:description" content="Care Conneqt provides 24/7 bilingual connected care for seniors and expats across Spain, UK, and Netherlands. GPS tracking, fall detection, nurse-led monitoring, and instant help at the push of a button.">
+    <meta property="og:title" content="ICE Alarm España — Siempre responde alguien">
+    <meta property="og:description" content="ICE Alarm España provides 24-hour personal emergency response for residents and expatriates across Spain. GPS pendants with fall detection, connected to a monitoring centre staffed by real people in Spanish, English and Dutch.">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@CareConneqt" />
+    <meta name="twitter:site" content="@icealarmes" />
     <meta name="twitter:image" content="/og-image.png">
-    <meta name="twitter:title" content="Care Conneqt - Connected Health. Human Care.">
-    <meta name="twitter:description" content="Care Conneqt provides 24/7 bilingual connected care for seniors and expats across Spain, UK, and Netherlands. GPS tracking, fall detection, nurse-led monitoring, and instant help at the push of a button.">
+    <meta name="twitter:title" content="ICE Alarm España — Siempre responde alguien">
+    <meta name="twitter:description" content="ICE Alarm España provides 24-hour personal emergency response for residents and expatriates across Spain. GPS pendants with fall detection, connected to a monitoring centre staffed by real people in Spanish, English and Dutch.">
   </head>
 
   <body>
@@ -57,10 +56,10 @@
           navigator.serviceWorker
             .register("/sw.js")
             .then(function (reg) {
-              console.log("[Care Conneqt] Service worker registered:", reg.scope);
+              console.log("[ICE Alarm] Service worker registered:", reg.scope);
             })
             .catch(function (err) {
-              console.warn("[Care Conneqt] Service worker registration failed:", err);
+              console.warn("[ICE Alarm] Service worker registration failed:", err);
             });
         });
       }

@@ -1,21 +1,54 @@
 {
-  "name": "Care Conneqt",
-  "short_name": "Care Conneqt",
-  "description": "Connected Health. Human Care. 24/7 nurse-led care and emergency monitoring for seniors across Spain, UK, and Netherlands.",
+  "name": "ICE Alarm España",
+  "short_name": "ICE Alarm",
+  "description": "Siempre responde alguien. 24-hour personal emergency response across Spain — GPS pendant, fall detection, real people day and night.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#1e5a9c",
+  "theme_color": "#C8102E",
   "orientation": "portrait-primary",
-  "categories": ["health", "medical", "lifestyle"],
-  "lang": "en",
+  "categories": [
+    "health",
+    "medical",
+    "lifestyle"
+  ],
+  "lang": "es",
   "dir": "ltr",
   "scope": "/",
   "prefer_related_applications": false,
   "icons": [
-    { "src": "/favicon.ico", "sizes": "16x16 32x32 48x48 64x64 128x128 256x256", "type": "image/x-icon" },
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+    {
+      "src": "/favicon.ico",
+      "sizes": "16x16 32x32 48x48",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
   ]
 }

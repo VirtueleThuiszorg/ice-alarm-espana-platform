@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { formatDate } from "@/lib/formatDate";
 import {
   Euro,
   TrendingUp,
@@ -377,14 +378,16 @@ export default function FinanceDashboard() {
     staleTime: 1000 * 60 * 2,
   });
 
-  const getStatusBadge = (status: string) => {
+  // Every status column in this schema is nullable; a row with no status
+  // should render as unknown rather than crash the switch.
+  const getStatusBadge = (status: string | null) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
       completed: "default",
       pending: "secondary",
       failed: "destructive",
       refunded: "outline",
     };
-    return <Badge variant={variants[status] || "secondary"}>{status}</Badge>;
+    return <Badge variant={(status && variants[status]) || "secondary"}>{status ?? "—"}</Badge>;
   };
 
   const formatCurrency = (amount: number) => `€${amount.toLocaleString("es-ES", { minimumFractionDigits: 2 })}`;
@@ -799,7 +802,7 @@ export default function FinanceDashboard() {
                         {payment.member?.first_name} {payment.member?.last_name}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {format(new Date(payment.created_at), "dd MMM yyyy, HH:mm")}
+                        {formatDate(payment.created_at, "dd MMM yyyy, HH:mm")}
                       </p>
                     </div>
                     <div className="text-right">
@@ -838,7 +841,7 @@ export default function FinanceDashboard() {
                         {order.order_number || order.id.slice(0, 8)}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {order.member?.first_name} {order.member?.last_name} • {format(new Date(order.created_at), "dd MMM")}
+                        {order.member?.first_name} {order.member?.last_name} • {formatDate(order.created_at, "dd MMM")}
                       </p>
                     </div>
                     <div className="text-right">

@@ -50,11 +50,11 @@ describe("widget SSE parser — proof by execution", () => {
     const fetchMock = vi.fn(async () => sseResponse(['data: {"done":true,"response":"x"}\n\n', ""]));
     vi.stubGlobal("fetch", fetchMock);
     await streamIsabellaChat({ ...baseOpts, onDelta: () => {} }).catch(() => {});
-    const [url, init] = fetchMock.mock.calls[0];
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(String(url)).toMatch(/\/functions\/v1\/ai-run$/);
-    const parsed = JSON.parse((init as RequestInit).body as string);
+    const parsed = JSON.parse(init.body as string);
     expect(parsed.context.stream).toBe(true);
-    expect((init as RequestInit).headers).toHaveProperty("apikey");
+    expect(init.headers).toHaveProperty("apikey");
   });
 
   it("throws StreamUnavailableError when the server errors BEFORE any delta (fallback trigger)", async () => {

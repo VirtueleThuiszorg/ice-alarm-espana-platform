@@ -23,23 +23,32 @@ import {
 import { Search, Phone, MessageSquare, Eye, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
+/**
+ * A member row as the call centre reads it.
+ *
+ * Nullable where the schema is nullable, deliberately: `status`,
+ * `preferred_language` and every joined column can come back null, and the
+ * previous non-null shape meant TypeScript could not warn about the render
+ * sites that assumed otherwise. An operator screen must show "unknown", never
+ * a confident wrong answer.
+ */
 interface Member {
   id: string;
   first_name: string;
   last_name: string;
   email: string;
   phone: string;
-  status: string;
-  preferred_language: string;
+  status: string | null;
+  preferred_language: string | null;
   subscription?: {
-    plan_type: string;
-    status: string;
-  };
+    plan_type: string | null;
+    status: string | null;
+  } | null;
   device?: {
-    status: string;
-    device_type: string;
-    is_online: boolean;
-  };
+    status: string | null;
+    device_type: string | null;
+    is_online: boolean | null;
+  } | null;
 }
 
 export default function MembersPage() {
@@ -97,7 +106,7 @@ export default function MembersPage() {
     return matchesSearch && matchesStatus && matchesPlan;
   });
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string | null) => {
     switch (status) {
       case 'active':
         return <Badge className="bg-status-active/20 text-status-active border-status-active/30">{t("common.active", "Active")}</Badge>;
@@ -106,7 +115,7 @@ export default function MembersPage() {
       case 'suspended':
         return <Badge variant="destructive">{t("common.suspended", "Suspended")}</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline">{status ?? t("common.unknown", "Unknown")}</Badge>;
     }
   };
 

@@ -19,7 +19,7 @@ export const RemotionRoot: React.FC = () => {
           ctaText: "Call Now",
           contactLine: "+34 900 123 456",
           logoUrl: null,
-          primaryColor: "#E63946",
+          primaryColor: "#C8102E",
           duration: 15,
           format: "16:9",
           language: "en",

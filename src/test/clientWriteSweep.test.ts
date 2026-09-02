@@ -23,6 +23,16 @@
  *  (pinned as an exact list — a NEW offender fails this suite):
  *   - none. The list is empty, and it must stay that way: a new entry means a
  *     non-staff surface started writing a sensitive table client-side again.
+ *   - partner ResidentialDashboard members insert (no partner RLS path)
+ *
+ *  CLOSED since:
+ *   - admin wizard PaymentStep client-side member+subscription activation.
+ *     AddMemberWizard was replaced with an honest "not available" notice, which
+ *     left all ten step components orphaned — nothing imported them, and they
+ *     still referenced a WizardData type the page no longer exported, so they
+ *     could not compile either. Deleted 2026-09-02. That removed the golden
+ *     rule #4 violation and, with it, a form that collected a card number,
+ *     expiry and CVC into React state and sent them nowhere.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";

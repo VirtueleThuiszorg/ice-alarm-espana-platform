@@ -1,5 +1,6 @@
 // Twilio Outbound Call Handler - staff-initiated outbound calls
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { loadTwilioNumbers } from "../_shared/twilio-numbers.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
@@ -53,7 +54,7 @@ Deno.serve(async (req) => {
       headers: { "Authorization": `Basic ${auth}`, "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         To: to,
-        From: twilioConfig.settings_twilio_phone_number || "+34900000000",
+        From: (await loadTwilioNumbers(supabase)).voice,
         Record: "true",
         StatusCallback: `${baseUrl}/functions/v1/twilio-voice?action=status`,
         RecordingStatusCallback: `${baseUrl}/functions/v1/twilio-voice?action=recording`,

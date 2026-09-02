@@ -13,17 +13,25 @@ export interface ProvisioningStep {
   smsCommand?: string;
 }
 
-export interface ProvisioningStepState {
+/**
+ * A type alias, not an interface, on purpose. `provisioning_checklist` is a
+ * jsonb column, so this shape has to satisfy the generated `Json` type — and
+ * an interface never does: TypeScript gives implicit index signatures to type
+ * aliases but not to interfaces, so an interface fails Json's recursive
+ * constraint no matter how JSON-shaped its fields are.
+ */
+export type ProvisioningStepState = {
   completed: boolean;
   completed_at: string | null;
   completed_by: string | null;
   notes: string | null;
-}
+};
 
 export type ProvisioningChecklist = Record<string, ProvisioningStepState>;
 
-// `provisioning_checklist` is a Json column not reflected in the generated
-// Supabase types, so these local shapes describe how it is read and written.
+// `provisioning_checklist` is now in the generated types as a Json column
+// (it was missing until the 2026-09-02 types sync). These local aliases narrow
+// that Json to the shape this hook actually reads and writes.
 type DeviceWithChecklist = { provisioning_checklist?: ProvisioningChecklist | null };
 type DeviceProvisioningUpdate = TablesUpdate<"devices"> & {
   provisioning_checklist?: ProvisioningChecklist;

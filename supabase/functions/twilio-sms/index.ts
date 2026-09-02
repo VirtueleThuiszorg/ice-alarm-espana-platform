@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { loadTwilioNumbers, warnIfSmsNumberCannotSendSms } from "../_shared/twilio-numbers.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
@@ -148,6 +149,10 @@ serve(async (req) => {
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioConfig.settings_twilio_account_sid}/Messages.json`;
     const auth = btoa(`${twilioConfig.settings_twilio_account_sid}:${twilioConfig.settings_twilio_auth_token}`);
 
+    const twilioNumbers = await loadTwilioNumbers(supabase);
+    warnIfSmsNumberCannotSendSms(twilioNumbers, "twilio-sms");
+    const smsFrom = twilioNumbers.sms;
+
     const smsResponse = await fetch(twilioUrl, {
       method: "POST",
       headers: {
@@ -156,7 +161,7 @@ serve(async (req) => {
       },
       body: new URLSearchParams({
         To: to,
-        From: twilioConfig.settings_twilio_phone_number || "+34900000000",
+        From: smsFrom,
         Body: message,
       }),
     });

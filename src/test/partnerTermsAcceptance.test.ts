@@ -66,7 +66,7 @@ describe("the server enforces terms acceptance", () => {
     const result = partnerRegisterSchema.safeParse({ ...VALID, accept_terms: false });
     expect(result.success).toBe(false);
     if (!result.success) {
-      const paths = result.error.issues.map((i) => i.path.join("."));
+      const paths = result.error.issues.map((i: { path: (string | number)[] }) => i.path.join("."));
       expect(paths).toContain("accept_terms");
     }
   });

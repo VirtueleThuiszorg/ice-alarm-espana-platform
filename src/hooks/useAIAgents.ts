@@ -15,13 +15,37 @@ export interface AIAgent {
   updated_at: string;
 }
 
+/**
+ * The `ai_agent_configs.language_policy` jsonb column, named.
+ *
+ * It was `Record<string, unknown>`, which the Supabase client rejects on write:
+ * `unknown` is not `Json`, so `useUpdateAgentConfig` could not compile. Widening
+ * it to `Json` would have been the small change, but it would also have made
+ * every field `{}` at the read sites and pushed a cast into each one — the admin
+ * Behaviour tab already carried such a cast. These are the keys that are
+ * actually read and written; `default` and `strict` are the pair the original
+ * seed migration ships.
+ *
+ * A `type` rather than an `interface` on purpose: only a type alias gets an
+ * implicit index signature, which is what makes it assignable to `Json`.
+ */
+export type LanguagePolicy = {
+  tone?: string;
+  formality?: string;
+  response_length?: string;
+  primary_language?: string;
+  empathy_level?: number;
+  default?: string;
+  strict?: boolean;
+};
+
 export interface AIAgentConfig {
   id: string;
   agent_id: string;
   system_instruction: string;
   business_context: string | null;
   tool_policy: Record<string, boolean>;
-  language_policy: Record<string, unknown>;
+  language_policy: LanguagePolicy;
   read_permissions: string[];
   write_permissions: string[];
   triggers: string[];

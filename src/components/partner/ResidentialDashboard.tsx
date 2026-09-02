@@ -146,6 +146,49 @@ export function ResidentialDashboard({
    * records afterwards. So the dialog explains the position and gives the
    * office number, exactly as AddMemberWizard does on the admin side.
    */
+  // Add Resident handler
+  const handleAddResident = async () => {
+    if (!newResident.firstName.trim() || !newResident.lastName.trim()) {
+      toast.error(t("partner.residential.nameRequired", "First name and last name are required"));
+      return;
+    }
+
+    try {
+      const { data: member, error: memberError } = await supabase
+        .from("members")
+        .insert({
+          first_name: newResident.firstName.trim(),
+          last_name: newResident.lastName.trim(),
+          email: newResident.email.trim() || null,
+          phone: newResident.phone.trim() || null,
+          // No status. It used to say "active", which handed a resident a
+          // monitored, billable membership straight from the browser — golden
+          // rule #4 says only the payment webhook may do that. The column now
+          // defaults to 'inactive' (20260902140000), so this fails safe.
+          //
+          // The wider question — who pays for a residential resident, and how a
+          // partner is allowed to create one at all — is still open, and this
+          // insert still has no partner RLS path. Pinned in clientWriteSweep.
+        } as unknown as TablesInsert<"members">)
+        .select()
+        .single();
+
+      if (memberError) throw memberError;
+
+      await addMember.mutateAsync({
+        partnerId,
+        memberId: member.id,
+        relationshipType: "resident",
+      });
+
+      toast.success(t("partner.residential.residentAdded", { name: `${newResident.firstName} ${newResident.lastName}` }));
+      setAddResidentOpen(false);
+      setNewResident({ firstName: "", lastName: "", email: "", phone: "" });
+    } catch (err) {
+      console.error("Add resident error:", err);
+      toast.error(t("partner.residential.addFailed", "Failed to add resident"));
+    }
+  };
 
   // Export members to CSV
   const handleExportMembers = () => {

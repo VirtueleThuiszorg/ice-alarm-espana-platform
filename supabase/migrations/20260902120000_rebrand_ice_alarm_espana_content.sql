@@ -54,57 +54,61 @@ DECLARE
     ARRAY['icehealthsync.com',              'icealarm.es']
   ];
 
-  -- table, column, kind ('text' | 'jsonb'). Slug/identifier columns excluded.
+  -- table, column. The TYPE is looked up from information_schema below rather
+  -- than written down here: a hand-maintained 'text'/'jsonb' column was wrong
+  -- for ai_agent_configs.language_policy and .tool_policy, and a wrong label
+  -- fails the whole migration with "function replace(jsonb, ...) does not
+  -- exist". Slug and identifier columns are deliberately absent.
   targets text[][] := ARRAY[
-    ARRAY['email_templates',   'subject_en',         'text'],
-    ARRAY['email_templates',   'subject_es',         'text'],
-    ARRAY['email_templates',   'body_html_en',       'text'],
-    ARRAY['email_templates',   'body_html_es',       'text'],
-    ARRAY['email_templates',   'body_text_en',       'text'],
-    ARRAY['email_templates',   'body_text_es',       'text'],
-    ARRAY['email_templates',   'name',               'text'],
-    ARRAY['email_templates',   'description',        'text'],
+    ARRAY['email_templates',   'subject_en'],
+    ARRAY['email_templates',   'subject_es'],
+    ARRAY['email_templates',   'body_html_en'],
+    ARRAY['email_templates',   'body_html_es'],
+    ARRAY['email_templates',   'body_text_en'],
+    ARRAY['email_templates',   'body_text_es'],
+    ARRAY['email_templates',   'name'],
+    ARRAY['email_templates',   'description'],
 
-    ARRAY['products',          'name',               'text'],
-    ARRAY['products',          'description',        'text'],
-    ARRAY['products',          'name_i18n',          'jsonb'],
-    ARRAY['products',          'short_description_i18n', 'jsonb'],
-    ARRAY['products',          'long_description_i18n',  'jsonb'],
-    ARRAY['products',          'features_i18n',      'jsonb'],
+    ARRAY['products',          'name'],
+    ARRAY['products',          'description'],
+    ARRAY['products',          'name_i18n'],
+    ARRAY['products',          'short_description_i18n'],
+    ARRAY['products',          'long_description_i18n'],
+    ARRAY['products',          'features_i18n'],
 
-    ARRAY['documentation',     'title',              'text'],
-    ARRAY['documentation',     'content',            'text'],
+    ARRAY['documentation',     'title'],
+    ARRAY['documentation',     'content'],
 
-    ARRAY['ai_agent_configs',  'system_instruction', 'text'],
-    ARRAY['ai_agent_configs',  'business_context',   'text'],
-    ARRAY['ai_agent_configs',  'language_policy',    'text'],
-    ARRAY['ai_agent_configs',  'tool_policy',        'text'],
+    ARRAY['ai_agent_configs',  'system_instruction'],
+    ARRAY['ai_agent_configs',  'business_context'],
+    ARRAY['ai_agent_configs',  'language_policy'],
+    ARRAY['ai_agent_configs',  'tool_policy'],
 
-    ARRAY['ai_agents',         'name',               'text'],
-    ARRAY['ai_agents',         'description',        'text'],
+    ARRAY['ai_agents',         'name'],
+    ARRAY['ai_agents',         'description'],
 
-    ARRAY['testimonials',      'quote_en',           'text'],
-    ARRAY['testimonials',      'quote_es',           'text'],
+    ARRAY['testimonials',      'quote_en'],
+    ARRAY['testimonials',      'quote_es'],
 
-    ARRAY['blog_posts',        'title',              'text'],
-    ARRAY['blog_posts',        'excerpt',            'text'],
-    ARRAY['blog_posts',        'content',            'text'],
-    ARRAY['blog_posts',        'ai_intro',           'text'],
-    ARRAY['blog_posts',        'seo_title',          'text'],
-    ARRAY['blog_posts',        'seo_description',    'text'],
+    ARRAY['blog_posts',        'title'],
+    ARRAY['blog_posts',        'excerpt'],
+    ARRAY['blog_posts',        'content'],
+    ARRAY['blog_posts',        'ai_intro'],
+    ARRAY['blog_posts',        'seo_title'],
+    ARRAY['blog_posts',        'seo_description'],
 
-    ARRAY['video_templates',   'name',               'text'],
-    ARRAY['video_templates',   'description',        'text'],
+    ARRAY['video_templates',   'name'],
+    ARRAY['video_templates',   'description'],
 
-    ARRAY['media_goals',       'name',               'text'],
-    ARRAY['media_goals',       'description',        'text'],
-    ARRAY['media_audiences',   'name',               'text'],
-    ARRAY['media_audiences',   'description',        'text'],
+    ARRAY['media_goals',       'name'],
+    ARRAY['media_goals',       'description'],
+    ARRAY['media_audiences',   'name'],
+    ARRAY['media_audiences',   'description'],
 
-    ARRAY['ai_memory',         'title',              'text'],
-    ARRAY['ai_memory',         'content',            'text'],
+    ARRAY['ai_memory',         'title'],
+    ARRAY['ai_memory',         'content'],
 
-    ARRAY['system_settings',   'value',              'text']
+    ARRAY['system_settings',   'value']
   ];
 
   t          text;
@@ -118,19 +122,25 @@ DECLARE
   grand      bigint := 0;
 BEGIN
   FOR i IN 1 .. array_length(targets, 1) LOOP
-    t    := targets[i][1];
-    c    := targets[i][2];
-    kind := targets[i][3];
+    t := targets[i][1];
+    c := targets[i][2];
 
-    -- Skip anything this database does not have, rather than failing the whole
-    -- migration over an optional table.
-    CONTINUE WHEN NOT EXISTS (
-      SELECT 1 FROM information_schema.columns
-      WHERE table_schema = 'public' AND table_name = t AND column_name = c
-    );
+    -- Ask the database what the column is. Skips anything this database does
+    -- not have, rather than failing the whole migration over an optional table.
+    kind := NULL;
+    SELECT data_type INTO kind
+    FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = t AND column_name = c;
+
+    CONTINUE WHEN kind IS NULL;
+
+    IF kind NOT IN ('text', 'character varying', 'jsonb', 'json') THEN
+      RAISE NOTICE 'rebrand: skipping %.% — not a text or json column (%)', t, c, kind;
+      CONTINUE;
+    END IF;
 
     -- Build replace(replace(... col ...)) once per column.
-    expr := CASE WHEN kind = 'jsonb' THEN format('%I::text', c) ELSE format('%I', c) END;
+    expr := CASE WHEN kind IN ('jsonb', 'json') THEN format('%I::text', c) ELSE format('%I', c) END;
     -- Wrap forward so pairs[1] ends up INNERMOST and therefore runs FIRST:
     -- 'Care Conneqt España' must be consumed before the shorter 'Care Conneqt'
     -- can match its prefix.
@@ -141,8 +151,8 @@ BEGIN
                              CASE WHEN pred = '' THEN '' ELSE ' OR ' END,
                              c, '%' || pairs[j][1] || '%');
     END LOOP;
-    IF kind = 'jsonb' THEN
-      expr := format('(%s)::jsonb', expr);
+    IF kind IN ('jsonb', 'json') THEN
+      expr := format('(%s)::%s', expr, kind);
     END IF;
 
     EXECUTE format('UPDATE public.%I SET %I = %s WHERE %s', t, c, expr, pred);

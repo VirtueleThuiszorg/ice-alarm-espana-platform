@@ -7,6 +7,9 @@
  * of them, which is why this is one table-driven suite rather than a file per
  * portal:
  *
+ * Since the ICE rebrand every portal shares ONE warm neutral family (28-40deg)
+ * rather than a hue per portal, so the ranges below are identical by design.
+ *
  *  1. The wash never touches safety-critical colour. Red belongs to SOS and
  *     emergencies; --alert-*, --status-* and --destructive are functional UI
  *     state, not brand, and no portal block may redefine them.
@@ -29,15 +32,10 @@ interface Portal {
 }
 
 const PORTALS: Portal[] = [
-  { theme: "theme-staff", layout: "components/layout/CallCentreLayout.tsx", hue: [180, 195] },
-  // Partner is external-facing; the hue range covers both the aqua wash and the
-  // warm public alternative (36deg), so swapping palettes needs no guard edit.
-  { theme: "theme-partner", layout: "components/layout/PartnerLayout.tsx", hue: [30, 195] },
-  // Member is the one customer-facing portal; the hue range is deliberately wide
-  // enough to cover both the aqua wash and the warm public alternative (36deg),
-  // so swapping palettes does not require editing the guard.
-  { theme: "theme-member", layout: "components/layout/ClientLayout.tsx", hue: [30, 195] },
-  { theme: "theme-admin", layout: "components/layout/AdminLayout.tsx", hue: [180, 195] },
+  { theme: "theme-staff", layout: "components/layout/CallCentreLayout.tsx", hue: [28, 40] },
+  { theme: "theme-partner", layout: "components/layout/PartnerLayout.tsx", hue: [28, 40] },
+  { theme: "theme-member", layout: "components/layout/ClientLayout.tsx", hue: [28, 40] },
+  { theme: "theme-admin", layout: "components/layout/AdminLayout.tsx", hue: [28, 40] },
 ];
 
 const css = readFileSync(join(process.cwd(), "src/index.css"), "utf8");

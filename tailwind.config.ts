@@ -85,9 +85,9 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["Source Sans 3", "system-ui", "sans-serif"],
         // Brand display/heading font (matches the logo wordmark).
-        display: ["DM Sans", "system-ui", "sans-serif"],
+        display: ["Archivo", "system-ui", "sans-serif"],
       },
       keyframes: {
         "accordion-down": {
@@ -129,8 +129,8 @@ export default {
         "pulse-slow": "pulse-slow 2s ease-in-out infinite",
       },
       boxShadow: {
-        "glow": "0 0 20px hsl(4, 78%, 57%, 0.3)",
-        "glow-lg": "0 0 40px hsl(4, 78%, 57%, 0.4)",
+        "glow": "0 0 20px hsl(350, 85%, 42%, 0.3)",
+        "glow-lg": "0 0 40px hsl(350, 85%, 42%, 0.4)",
       },
     },
   },

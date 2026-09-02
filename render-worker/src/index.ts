@@ -84,7 +84,7 @@ async function processRenderJob(renderId: string, projectId: string) {
       ctaText: project.data_json?.ctaText || brandSettings?.default_cta_en || "Call Now",
       contactLine: project.data_json?.contactLine || "",
       logoUrl: brandSettings?.logo_url || null,
-      primaryColor: brandSettings?.primary_color || "#E63946",
+      primaryColor: brandSettings?.primary_color || "#C8102E",
       duration: project.duration,
       format: project.format,
       language: project.language,

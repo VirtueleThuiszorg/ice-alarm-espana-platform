@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { loadTwilioNumbers, warnIfSmsNumberCannotSendSms } from "../_shared/twilio-numbers.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { sendEmail } from "../_shared/email.ts";
 
@@ -87,6 +88,11 @@ serve(async (req) => {
         "settings_twilio_phone_number",
       ]);
 
+    // Which number the SMS goes out FROM is now its own setting: this alert is
+    // the reason the split exists. See _shared/twilio-numbers.ts.
+    const twilioNumbers = await loadTwilioNumbers(supabase);
+    warnIfSmsNumberCannotSendSms(twilioNumbers, "emergency-contact-notify");
+
     const twilioConfig = (settings || []).reduce((acc, s) => {
       acc[s.key] = s.value;
       return acc;
@@ -95,7 +101,7 @@ serve(async (req) => {
     const hasTwilio = !!(
       twilioConfig.settings_twilio_account_sid &&
       twilioConfig.settings_twilio_auth_token &&
-      twilioConfig.settings_twilio_phone_number
+      twilioNumbers.sms
     );
 
     // Alert type labels for messages
@@ -147,7 +153,7 @@ serve(async (req) => {
             },
             body: new URLSearchParams({
               To: contact.phone,
-              From: twilioConfig.settings_twilio_phone_number,
+              From: twilioNumbers.sms,
               Body: smsMessage,
             }),
           });

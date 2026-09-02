@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { loadTwilioNumbers } from "../_shared/twilio-numbers.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 const FN = "twilio-call-me";
@@ -179,7 +180,7 @@ Deno.serve(async (req) => {
       },
       body: new URLSearchParams({
         To: cleanPhone,
-        From: twilioConfig.settings_twilio_phone_number,
+        From: (await loadTwilioNumbers(supabase)).voice,
         Url: voiceUrl,
         Method: "POST",
         StatusCallback: statusUrl,

@@ -117,12 +117,14 @@ describe("fix 4 — no policy loosening, no other client-side member inserts app
       const src = readFileSync(file, "utf8");
       if (/from\(["']members["']\)\s*\.insert/.test(src)) offenders.push(file.replace(SRC, "src"));
     }
-    // KNOWN-BROKEN (flagged to Lee, out of this hotfix's scope): the partner
-    // ResidentialDashboard "add resident" also inserts members client-side and
-    // no RLS policy allows partners to insert — same bug class, separate
-    // (gated) fix. Pinning it here means any NEW offender fails this test.
-    expect(offenders, `Client-side member inserts outside staff surfaces: ${offenders.join(", ")}`).toEqual([
-      "src/components/partner/ResidentialDashboard.tsx",
-    ]);
+    // The list was `["src/components/partner/ResidentialDashboard.tsx"]` — the
+    // partner "add resident" flow, pinned as known-broken. That insert is now
+    // gone: no partner INSERT policy on `members` ever allowed it, it omitted
+    // five NOT NULL columns, and the design it needs (who pays for a resident)
+    // is still an open decision. The screen explains that instead.
+    //
+    // Empty is the correct state, and it must stay empty: any client-side
+    // member insert outside a staff surface fails this test by name.
+    expect(offenders, `Client-side member inserts outside staff surfaces: ${offenders.join(", ")}`).toEqual([]);
   });
 });

@@ -40,7 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { format } from "date-fns";
+import { formatDate } from "@/lib/formatDate";
 import { useOrderActions } from "@/hooks/useOrderActions";
 
 const ITEMS_PER_PAGE = 20;
@@ -86,7 +86,9 @@ export default function OrdersPage() {
 
   const totalPages = Math.ceil((data?.totalCount || 0) / ITEMS_PER_PAGE);
 
-  const getStatusBadge = (status: string) => {
+  // Every status column in this schema is nullable; a row with no status
+  // should render as unknown rather than crash the switch.
+  const getStatusBadge = (status: string | null) => {
     switch (status) {
       case "pending":
         return <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">{t("common.pending")}</Badge>;
@@ -188,7 +190,7 @@ export default function OrdersPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {format(new Date(order.created_at), "dd MMM yyyy")}
+                      {formatDate(order.created_at, "dd MMM yyyy")}
                     </TableCell>
                     <TableCell className="font-medium">
                       €{Number(order.total_amount).toFixed(2)}

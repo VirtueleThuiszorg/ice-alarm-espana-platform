@@ -1101,10 +1101,10 @@ export default function LeadsPage() {
                         <span>{selectedDraft.wizard_data.address.city}</span>
                       </div>
                     )}
-                    {selectedDraft.wizard_data.emergencyContacts?.length > 0 && (
+                    {(selectedDraft.wizard_data.emergencyContacts?.length ?? 0) > 0 && (
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Emergency Contacts:</span>
-                        <span>{selectedDraft.wizard_data.emergencyContacts.length} added</span>
+                        <span>{selectedDraft.wizard_data.emergencyContacts?.length ?? 0} added</span>
                       </div>
                     )}
                   </div>

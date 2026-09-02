@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { format } from "date-fns";
+import { formatDate } from "@/lib/formatDate";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -80,7 +81,9 @@ export default function PaymentsPage() {
 
   const totalPages = Math.ceil((data?.totalCount || 0) / ITEMS_PER_PAGE);
 
-  const getStatusBadge = (status: string) => {
+  // Every status column in this schema is nullable; a row with no status
+  // should render as unknown rather than crash the switch.
+  const getStatusBadge = (status: string | null) => {
     switch (status) {
       case "completed":
         return <Badge className="bg-alert-resolved text-alert-resolved-foreground">{t("adminPayments.completed", "Completed")}</Badge>;
@@ -129,10 +132,10 @@ export default function PaymentsPage() {
             p.payment_type,
             p.payment_method,
             p.status,
-            p.paid_at ? format(new Date(p.paid_at), "yyyy-MM-dd") : format(new Date(p.created_at), "yyyy-MM-dd"),
+            formatDate(p.paid_at ?? p.created_at, "yyyy-MM-dd", ""),
             p.invoice_number || "",
           ]);
-          const csv = [headers, ...rows].map(r => r.map((c: string) => `"${c}"`).join(",")).join("\n");
+          const csv = [headers, ...rows].map(r => r.map((c: string | null) => `"${c ?? ""}"`).join(",")).join("\n");
           const blob = new Blob([csv], { type: "text/csv" });
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
@@ -238,7 +241,7 @@ export default function PaymentsPage() {
                     <TableCell>
                       {payment.paid_at 
                         ? format(new Date(payment.paid_at), "dd MMM yyyy")
-                        : format(new Date(payment.created_at), "dd MMM yyyy")
+                        : formatDate(payment.created_at, "dd MMM yyyy")
                       }
                     </TableCell>
                     <TableCell>

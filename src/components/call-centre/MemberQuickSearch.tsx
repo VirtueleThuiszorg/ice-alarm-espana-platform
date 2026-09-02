@@ -72,7 +72,11 @@ export function MemberQuickSearch({ onSelectMember }: MemberQuickSearchProps) {
             lastName: m.last_name,
             phone: m.phone,
             email: m.email,
-            status: m.status,
+            // `members.status` is nullable in the schema. Coercing a missing
+            // status to "unknown" rather than letting null through keeps the
+            // operator-facing type honest: a row with no status is not active,
+            // and must never be read as if it were.
+            status: m.status ?? "unknown",
             hasPendant: activeSubscription?.has_pendant || false,
             planType: activeSubscription?.plan_type || 'unknown',
             address: `${m.address_line_1}, ${m.city}`,

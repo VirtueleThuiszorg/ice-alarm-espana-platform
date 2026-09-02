@@ -13,7 +13,6 @@ const password = z
   .regex(/[a-z]/)
   .regex(/[0-9]/);
 const language = z.enum(["en", "es", "nl"]);
-const optionalString = z.string().max(500).optional().or(z.literal(""));
 
 // --- Nested schemas ---
 
@@ -263,7 +262,7 @@ export function validateRequest<T>(
   const result = schema.safeParse(data);
   if (!result.success) {
     const issues = result.error.issues.map(
-      (i) => `${i.path.join(".")}: ${i.message}`
+      (i: z.ZodIssue) => `${i.path.join(".")}: ${i.message}`
     );
     console.error("Validation failed:", issues);
     return {

@@ -24,7 +24,7 @@ export function PublicHeader() {
         </Link>
         <nav className="hidden md:flex items-center gap-6">
           {navItems.map((item) =>
-            item.isAnchor ? (
+            "isAnchor" in item && item.isAnchor ? (
               <Link
                 key={item.to}
                 to={item.to}

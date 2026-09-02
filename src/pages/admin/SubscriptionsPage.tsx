@@ -182,7 +182,9 @@ export default function SubscriptionsPage() {
 
   const totalPages = Math.ceil((data?.totalCount || 0) / ITEMS_PER_PAGE);
 
-  const getStatusBadge = (status: string) => {
+  // Every status column in this schema is nullable; a row with no status
+  // should render as unknown rather than crash the switch.
+  const getStatusBadge = (status: string | null) => {
     switch (status) {
       case "active":
         return <Badge className="bg-alert-resolved text-alert-resolved-foreground">Active</Badge>;

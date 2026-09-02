@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Upload, FileText, AlertCircle, CheckCircle2, Users, UserX, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ type ImportMode = 'members_only' | 'members_and_contacts';
 export default function CRMImportPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [parsedRows, setParsedRows] = useState<ParsedCRMRow[]>([]);
   const [importing, setImporting] = useState(false);
@@ -191,8 +193,18 @@ export default function CRMImportPage() {
       
       setImportResults({ imported, failed, skipped });
       setImportComplete(true);
+
+      // The import writes members, contacts, devices and CRM profiles straight
+      // through the Supabase client, so nothing tells React Query its cached
+      // lists are out of date. Without this, "View Members" renders the roster
+      // cached before the import and only a hard reload shows the new rows.
+      // Invalidating here keeps the roster correct regardless of whether a
+      // realtime subscription is also listening on the table.
+      queryClient.invalidateQueries({ queryKey: ["admin-members"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-dashboard-stats"] });
+
       toast.success(`Import complete: ${imported} imported, ${failed} failed, ${skipped} skipped`);
-      
+
     } catch (error) {
       console.error('Import error:', error);
       toast.error("Import failed");

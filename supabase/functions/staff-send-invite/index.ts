@@ -163,7 +163,7 @@ serve(async (req: Request) => {
     let emailSent = false;
     let emailErrorReason: string | null = null;
     try {
-      const baseUrl = req.headers.get("origin") || "https://careconneqt.es";
+      const baseUrl = req.headers.get("origin") || "https://icealarm.es";
       const inviteLink = `${baseUrl}/staff/invite?token=${inviteToken}`;
       const lang = staffMember.preferred_language || "en";
       const roleDisplay = lang === "es"
@@ -174,12 +174,12 @@ serve(async (req: Request) => {
         ? `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: linear-gradient(135deg, #1e40af, #3b82f6); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-              <h1 style="color: white; margin: 0; font-size: 24px;">Care Conneqt</h1>
+              <h1 style="color: white; margin: 0; font-size: 24px;">ICE Alarm España</h1>
               <p style="color: #bfdbfe; margin: 8px 0 0 0;">Portal de Personal</p>
             </div>
             <div style="padding: 30px; background: white; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
               <h2 style="color: #1f2937; margin-top: 0;">¡Hola ${staffMember.first_name}!</h2>
-              <p style="color: #4b5563;">Has sido invitado/a a unirte al equipo de Care Conneqt como <strong>${roleDisplay}</strong>.</p>
+              <p style="color: #4b5563;">Has sido invitado/a a unirte al equipo de ICE Alarm España como <strong>${roleDisplay}</strong>.</p>
               <p style="color: #4b5563;">Haz clic en el botón de abajo para configurar tu cuenta y empezar.</p>
               <div style="text-align: center; margin: 30px 0;">
                 <a href="${inviteLink}" style="background-color: #3b82f6; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Configurar Mi Cuenta</a>
@@ -191,12 +191,12 @@ serve(async (req: Request) => {
         : `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: linear-gradient(135deg, #1e40af, #3b82f6); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-              <h1 style="color: white; margin: 0; font-size: 24px;">Care Conneqt</h1>
+              <h1 style="color: white; margin: 0; font-size: 24px;">ICE Alarm España</h1>
               <p style="color: #bfdbfe; margin: 8px 0 0 0;">Staff Portal</p>
             </div>
             <div style="padding: 30px; background: white; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
               <h2 style="color: #1f2937; margin-top: 0;">Hello ${staffMember.first_name}!</h2>
-              <p style="color: #4b5563;">You have been invited to join the Care Conneqt team as a <strong>${roleDisplay}</strong>.</p>
+              <p style="color: #4b5563;">You have been invited to join the ICE Alarm España team as a <strong>${roleDisplay}</strong>.</p>
               <p style="color: #4b5563;">Click the button below to set up your account and get started.</p>
               <div style="text-align: center; margin: 30px 0;">
                 <a href="${inviteLink}" style="background-color: #3b82f6; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Set Up My Account</a>
@@ -207,8 +207,8 @@ serve(async (req: Request) => {
         `;
 
       const emailSubject = lang === "es"
-        ? "Invitación al Portal de Personal de Care Conneqt"
-        : "Invitation to Care Conneqt Staff Portal";
+        ? "Invitación al Portal de Personal de ICE Alarm España"
+        : "Invitation to ICE Alarm España Staff Portal";
 
       const emailResult = await sendEmail(staffMember.email, emailSubject, emailContent);
 

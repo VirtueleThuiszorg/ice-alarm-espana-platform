@@ -51,7 +51,7 @@ const MEMBER_FACING = ["support", "legal", "joinWizard", "landing", "pricing"];
 const IDENTICAL_TO_EN_BY_DESIGN: Record<(typeof TRANSLATED)[number], string[]> = {
   // AEPD's registered name and Madrid address — a proper noun, not copy.
   es: ["legal.privacy.s15Authority"],
-  // Same, plus "Contact: info@careconneqt.es" — "Contact" is the Dutch word too.
+  // Same, plus "Contact: info@icealarm.es" — "Contact" is the Dutch word too.
   nl: ["legal.privacy.s15Authority", "legal.terms.s2p2"],
 };
 

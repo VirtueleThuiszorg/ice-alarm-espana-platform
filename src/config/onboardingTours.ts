@@ -7,7 +7,7 @@ import type { TourStep } from "@/components/OnboardingTour";
 export const memberDashboardTour: TourStep[] = [
   {
     target: "[data-tour='member-welcome']",
-    title: "Welcome to Care Conneqt",
+    title: "Welcome to ICE Alarm España",
     content:
       "This is your personal dashboard. From here you can manage your medical profile, emergency contacts, and connected devices. Let us show you around!",
     placement: "bottom",

@@ -47,13 +47,13 @@ describe("provider selection honours email_settings", () => {
     expect(helper).toMatch(/settings\?\.provider === "resend"/);
     expect(helper).toMatch(/RESEND_API_KEY is not configured/);
     expect(helper).toMatch(/https:\/\/api\.resend\.com\/emails/);
-    expect(helper).toMatch(/settings\.from_email \|\| "noreply@careconneqt\.es"/);
+    expect(helper).toMatch(/settings\.from_email \|\| "noreply@icealarm\.es"/);
   });
 
   it("gmail branch is byte-compatible with the historical transport", () => {
     expect(helper).toMatch(/GMAIL_APP_PASSWORD not configured/);
     expect(helper).toMatch(/smtp\.gmail\.com/);
-    expect(helper).toMatch(/careconneqtespana@gmail\.com/);
+    expect(helper).toMatch(/icealarmespana@gmail\.com/);
   });
 
   it("FAIL-SAFE: unknown provider or settings-lookup failure falls back to Gmail", () => {

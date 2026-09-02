@@ -9,15 +9,15 @@
 
 ### Domain & email  *(added 2026-07-22)*
 - [ ] **Launch domain owned + DNS controlled + attached to Vercel + email SPF/DKIM verified.**
-  - **Status 2026-07-22:** `careconneqt.es` is **owned by a known partner**.
+  - **Status 2026-07-22:** `icealarm.es` is **owned by a known partner**.
     Attaching it to Vercel + DNS + email verification (SPF/DKIM/DMARC and
     Resend/Gmail domain verification) is a **final, coordinated go-live step** —
     done together with the partner at cutover, not before.
-  - Until then the repo uses `careconneqt.es` in `public/robots.txt` (sitemap)
+  - Until then the repo uses `icealarm.es` in `public/robots.txt` (sitemap)
     and the `auth-email-hook` sender domain as the intended value; **email
-    sending from `@careconneqt.es` remains unverified**, and **development
+    sending from `@icealarm.es` remains unverified**, and **development
     continues on the `*.vercel.app` URL**.
-- [ ] **Email transport = Resend on the verified `careconneqt.es` domain** *(Lee,
+- [ ] **Email transport = Resend on the verified `icealarm.es` domain** *(Lee,
       2026-07-24)*. The provider-aware shared helper is **MERGED (#69) but DORMANT**:
       `email_settings.provider` is `NOT NULL DEFAULT 'gmail'` and the singleton row
       was created with defaults, so every send stays on the Gmail path until the
@@ -26,9 +26,9 @@
       transactional functions inherit through the helper (test-pinned in
       `emailTransport.test.ts`). **Resend activates via the admin toggle at domain
       cutover** — steps, in order:
-      1. verify `careconneqt.es` in Resend (SPF/DKIM DNS, with the domain partner);
+      1. verify `icealarm.es` in Resend (SPF/DKIM DNS, with the domain partner);
       2. `supabase secrets set RESEND_API_KEY=... --project-ref crpsuhoixfdhjugprbuc`;
-      3. set `email_settings.from_email` to a `@careconneqt.es` address and flip
+      3. set `email_settings.from_email` to a `@icealarm.es` address and flip
          `provider` to `resend` in Admin → Settings → Email;
       4. redeploy the email functions; smoke-test an invite + a recovery email.
       Sanity check when next in admin: confirm the Email Settings provider toggle
@@ -133,10 +133,10 @@
       matches. The only return scenario is the 14-day withdrawal window, where
       the consumer pays return postage. All surfaces aligned in en/es/nl, pinned
       by `deviceOwnership.test.ts`.
-- [ ] Favicon + meta + OG branded (LAUNCH_SCOPE §7): repo icon set is the Care Conneqt
+- [ ] Favicon + meta + OG branded (LAUNCH_SCOPE §7): repo icon set is the ICE Alarm España
       "v" mark (favicon.ico/16/32/48, icon-192/512, apple-touch, icon.svg) and og-image.png
       is the two-C wordmark — both on-brand, no ICE. `index.html` `<title>`, meta description,
-      og:site_name/og:title/og:image and twitter:* are Care Conneqt.
+      og:site_name/og:title/og:image and twitter:* are ICE Alarm España.
       **Prod still serves the OLD icon (2026-07-22) — root cause is a stale deploy / CDN
       cache, NOT the repo** (STATE.md "Favicon" note: `dist/favicon.ico` sha256
       `d8e3315f…` = the "v" mark). To clear: **redeploy current `main`, then purge the

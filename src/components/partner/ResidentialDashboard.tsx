@@ -510,7 +510,7 @@ export function ResidentialDashboard({
             <Card>
               <CardHeader>
                 <CardTitle>{t("partner.residential.onboarding.addSingle", "Add Single Resident")}</CardTitle>
-                <CardDescription>{t("partner.residential.onboarding.addSingleDesc", "Register a new resident for Care Conneqt protection")}</CardDescription>
+                <CardDescription>{t("partner.residential.onboarding.addSingleDesc", "Register a new resident for ICE Alarm España protection")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Button className="w-full" onClick={() => setAddResidentOpen(true)}>
@@ -634,7 +634,7 @@ export function ResidentialDashboard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("partner.residential.addResident", "Add Resident")}</DialogTitle>
-            <DialogDescription>{t("partner.residential.addResidentDesc", "Register a new resident for Care Conneqt protection")}</DialogDescription>
+            <DialogDescription>{t("partner.residential.addResidentDesc", "Register a new resident for ICE Alarm España protection")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">

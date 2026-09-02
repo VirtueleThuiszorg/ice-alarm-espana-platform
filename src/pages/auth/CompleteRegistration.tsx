@@ -111,7 +111,7 @@ export default function CompleteRegistration() {
       }
       if (data?.no_membership) {
         // No member record for this email: membership comes from the join flow.
-        toast.info(t("registration.noMembershipFound", "We couldn't find a membership for this email. Join Care Conneqt to get started."));
+        toast.info(t("registration.noMembershipFound", "We couldn't find a membership for this email. Join ICE Alarm España to get started."));
         navigate("/join");
         return;
       }

@@ -59,7 +59,7 @@ export function InlineAIChat({ memberContext = false }: InlineAIChatProps) {
         </Avatar>
         <div className="flex-1">
           <h3 className="font-semibold text-sm">
-            {t("chat.assistantName", "Care Conneqt Assistant")}
+            {t("chat.assistantName", "ICE Alarm España Assistant")}
           </h3>
           <p className="text-xs opacity-80 flex items-center gap-1">
             <span className="h-2 w-2 rounded-full bg-green-400 inline-block" />

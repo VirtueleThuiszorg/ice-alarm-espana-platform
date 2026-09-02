@@ -593,7 +593,7 @@ export function AlertDetailPanel({
                             className="flex-1"
                             disabled={sendingContactId === contact.id}
                             onClick={() => handleSendSms(
-                              `Care Conneqt: Alert received for ${alert.member?.firstName} ${alert.member?.lastName}. Please contact us.`,
+                              `ICE Alarm España: Alert received for ${alert.member?.firstName} ${alert.member?.lastName}. Please contact us.`,
                               contact.phone,
                               'emergency_contact',
                               contact.id
@@ -613,7 +613,7 @@ export function AlertDetailPanel({
                             variant="outline" 
                             className="flex-1"
                             onClick={() => handleSendWhatsApp(
-                              `Care Conneqt: Alert received for ${alert.member?.firstName} ${alert.member?.lastName}. Please contact us.`,
+                              `ICE Alarm España: Alert received for ${alert.member?.firstName} ${alert.member?.lastName}. Please contact us.`,
                               contact.phone,
                               'emergency_contact'
                             )}

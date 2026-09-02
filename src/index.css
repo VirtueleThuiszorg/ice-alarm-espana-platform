@@ -2,15 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Care Conneqt Design System
-   Connected Health. Human Care.
-   Brand: Deep Blue (#1e5a9c / HSL 215 85% 35%) + Teal accent (HSL 185 75% 45%)
+/* ICE Alarm España Design System
+   Siempre responde alguien.
+   Brand: ICE Red (#C8102E / HSL 350 85% 42%) on warm neutrals.
    ——————————————————————————————————————————————————————————————
-   NOTE: This file preserves 100% of ICE v1's functional tokens
-   (alerts, status, shadows, radius, structure). Only the BRAND
-   hues (primary/accent/ring/sidebar/glow/gradients) have changed.
-   Emergency/SOS/Fall/Battery alert colors are intentionally kept
-   identical to ICE — they are functional UI states, not brand.
+   ONE brand hue, deliberately. The three palettes that used to coexist
+   here (deep blue + teal, the indigo/orange "v" theme, the aqua portal
+   wash) are gone; every surface is now warm neutral ground with ICE Red
+   as the single accent.
+
+   RED IS RATIONED. --primary is ICE Red on the public, member and partner
+   surfaces, where nothing is on fire. On .theme-staff / .theme-admin the
+   operator looks at this screen for eight hours, so --primary is Ink and
+   red is left free to mean one thing: an emergency.
+
+   NOT TOUCHED, as before: --alert-* (sos/fall/battery/checkin/resolved),
+   --status-*, --destructive, radius and the shadow scale. They are
+   functional UI state, not brand. Operators have learned them.
+   Pinned by src/test/portalTheme.test.ts.
 */
 
 @layer base {
@@ -25,8 +34,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 15% 20%;
 
-    /* Primary - Care Conneqt Deep Blue */
-    --primary: 215 85% 35%;
+    /* Primary - ICE Red */
+    --primary: 350 85% 42%;
     --primary-foreground: 0 0% 100%;
 
     /* Secondary - Warm Gray (preserved from ICE for layout neutrality) */
@@ -36,23 +45,25 @@
     --muted: 220 14% 96%;
     --muted-foreground: 220 10% 46%;
 
-    /* Accent - Soft Blue (was Soft Coral) */
-    --accent: 215 65% 94%;
-    --accent-foreground: 215 85% 30%;
+    /* Accent - Red Wash */
+    --accent: 353 68% 95%;
+    --accent-foreground: 351 85% 30%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 215 85% 35%;
+    --ring: 350 85% 42%;
 
     --radius: 0.75rem;
 
-    /* Care Conneqt Brand Teal (new — use for highlights/CTAs alongside primary blue) */
-    --brand-teal: 185 75% 45%;
+    /* Legacy token name, re-pointed. ICE has one brand hue, so this now
+       resolves to the deeper red used for hover/pressed states. Kept rather
+       than renamed because four components still reference it. */
+    --brand-teal: 351 85% 34%;
     --brand-teal-foreground: 0 0% 100%;
-    --brand-teal-soft: 185 65% 90%;
+    --brand-teal-soft: 353 68% 95%;
 
     /* Alert State Colors (UNCHANGED — functional, not brand) */
     --alert-sos: 0 84% 55%;
@@ -72,27 +83,27 @@
     --status-pending: 45 93% 47%;
     --status-error: 0 84% 55%;
 
-    /* Sidebar - Care Conneqt command centre (dark blue-grey + teal accent) */
-    --sidebar-background: 215 30% 18%;
-    --sidebar-foreground: 210 20% 95%;
-    --sidebar-primary: 185 75% 45%;
+    /* Sidebar - ICE Alarm España command centre (dark blue-grey + teal accent) */
+    --sidebar-background: 218 22% 10%;
+    --sidebar-foreground: 210 14% 92%;
+    --sidebar-primary: 350 85% 42%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 30% 24%;
-    --sidebar-accent-foreground: 210 20% 95%;
-    --sidebar-border: 215 30% 22%;
-    --sidebar-ring: 185 75% 45%;
+    --sidebar-accent: 218 20% 16%;
+    --sidebar-accent-foreground: 210 14% 92%;
+    --sidebar-border: 218 20% 18%;
+    --sidebar-ring: 350 85% 42%;
 
     /* Gradients - Care blue-to-teal */
-    --gradient-primary: linear-gradient(135deg, hsl(215, 85%, 35%) 0%, hsl(185, 75%, 45%) 100%);
-    --gradient-header: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(220, 14%, 98%) 100%);
-    --gradient-card-hover: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(215, 65%, 98%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(350, 85%, 42%) 0%, hsl(351, 85%, 34%) 100%);
+    --gradient-header: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(30, 33%, 98%) 100%);
+    --gradient-card-hover: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(353, 68%, 98%) 100%);
 
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
     --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    --shadow-glow: 0 0 20px hsl(215, 85%, 35%, 0.3);
+    --shadow-glow: 0 0 20px hsl(350, 85%, 42%, 0.3);
   }
 
   .dark {
@@ -106,7 +117,7 @@
     --popover-foreground: 220 10% 95%;
 
     /* Primary in dark mode - flips to brand teal for pop (mirrors Care reference) */
-    --primary: 185 75% 45%;
+    --primary: 350 85% 48%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 15% 18%;
@@ -115,27 +126,27 @@
     --muted: 220 15% 18%;
     --muted-foreground: 220 10% 60%;
 
-    --accent: 215 60% 22%;
-    --accent-foreground: 215 85% 75%;
+    --accent: 351 45% 20%;
+    --accent-foreground: 350 85% 78%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 220 15% 20%;
     --input: 220 15% 20%;
-    --ring: 185 75% 45%;
+    --ring: 350 85% 48%;
 
-    --sidebar-background: 215 35% 10%;
-    --sidebar-foreground: 210 20% 95%;
-    --sidebar-primary: 185 75% 45%;
+    --sidebar-background: 218 26% 7%;
+    --sidebar-foreground: 210 14% 92%;
+    --sidebar-primary: 350 85% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 35% 15%;
-    --sidebar-accent-foreground: 210 20% 95%;
-    --sidebar-border: 215 35% 12%;
-    --sidebar-ring: 185 75% 45%;
+    --sidebar-accent: 218 24% 13%;
+    --sidebar-accent-foreground: 210 14% 92%;
+    --sidebar-border: 218 24% 11%;
+    --sidebar-ring: 350 85% 48%;
 
     /* Dark mode gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(215, 85%, 35%) 0%, hsl(185, 75%, 45%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(350, 85%, 48%) 0%, hsl(351, 85%, 38%) 100%);
     --gradient-header: linear-gradient(180deg, hsl(220, 15%, 12%) 0%, hsl(220, 15%, 8%) 100%);
     --gradient-card-hover: linear-gradient(180deg, hsl(220, 15%, 14%) 0%, hsl(220, 15%, 12%) 100%);
 
@@ -144,7 +155,7 @@
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.2);
     --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.2);
-    --shadow-glow: 0 0 20px hsl(185, 75%, 45%, 0.25);
+    --shadow-glow: 0 0 20px hsl(350, 85%, 48%, 0.25);
 
     /* Dark alert colors (slightly muted for contrast) */
     --alert-battery-foreground: 45 93% 90%;
@@ -158,12 +169,12 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Open Sans', system-ui, -apple-system, sans-serif;
+    font-family: 'Source Sans 3', system-ui, -apple-system, sans-serif;
     font-feature-settings: "cv11", "ss01";
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'DM Sans', system-ui, sans-serif;
+    font-family: 'Archivo', system-ui, sans-serif;
   }
 
   /* Smooth scrolling */
@@ -173,57 +184,61 @@
 }
 
 /* ———————————————————————————————————————————————————————————————
-   Stage 4b — PUBLIC SURFACE theme (FRONTEND_REDESIGN.md §2–3)
-   Warm "v"-mark palette (indigo / orange / cream, BRAND_ASSETS.md), scoped to
-   the public marketing + join + auth routes via <PublicThemeLayout> ("theme-public").
-   Admin / call-centre / client-dashboard keep the legacy tokens above, untouched.
-   Direction chosen by Lee 2026-07-22: warm-and-human primary, premium accents.
-   All pairs meet WCAG AA; semantic red stays reserved for SOS/emergency only.
+   PUBLIC SURFACE theme (FRONTEND_REDESIGN.md §2–3)
+   Scoped to the public marketing + join + auth routes via <PublicThemeLayout>.
+   Warm Paper ground, Ink type, ICE Red as the single action colour — the
+   indigo/orange "v" palette it replaces is retired along with that mark.
+
+   The orange --cta is gone. There is now ONE red action colour on the public
+   surface, used once per page and repeated down it, which is what the brand
+   guidelines ask for. --cta is kept as a token (five references) and resolves
+   to ICE Red so the button override below is a no-op rather than a divergence.
+
+   All pairs meet WCAG AA: Ink on Paper 17.0:1, ICE Red on white 5.9:1,
+   Slate on Paper 5.9:1. Alert red stays reserved for SOS/emergency only.
    ——————————————————————————————————————————————————————————————— */
 @layer base {
   .theme-public {
-    --background: 36 50% 97%;            /* warm cream / paper */
-    --foreground: 240 30% 18%;           /* deep indigo ink */
+    --background: 30 33% 98%;            /* Paper #FBF9F7 */
+    --foreground: 218 22% 10%;           /* Ink #14181F, 17.0:1 on Paper */
 
-    --card: 40 56% 99%;                  /* lifted warm white */
-    --card-foreground: 240 30% 18%;
-    --popover: 40 56% 99%;
-    --popover-foreground: 240 30% 18%;
+    --card: 0 0% 100%;                   /* crisp white lifts off Paper */
+    --card-foreground: 218 22% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 218 22% 10%;
 
-    /* MOCK (teal brand tie-in): brand PRIMARY = logo blue #0D4CA5; teal = secondary
-       accent (ripple + soft tints); orange reserved for CTAs (see --cta). */
-    --primary: 215 85% 35%;              /* logo blue — brand primary / structure */
-    --primary-foreground: 40 56% 99%;
+    --primary: 350 85% 42%;              /* ICE Red — brand and action */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 36 34% 92%;             /* warm sand */
-    --secondary-foreground: 215 60% 24%;
+    --secondary: 32 32% 93%;             /* warm sand */
+    --secondary-foreground: 218 22% 16%;
 
-    --muted: 36 30% 93%;
-    --muted-foreground: 240 12% 38%;     /* AA on cream */
+    --muted: 32 28% 94%;
+    --muted-foreground: 213 11% 40%;     /* Slate, 5.9:1 on Paper */
 
-    --accent: 185 45% 92%;               /* soft TEAL tint — subtle bg / hover */
-    --accent-foreground: 190 80% 22%;
+    --accent: 353 68% 95%;               /* Red Wash — subtle bg / hover */
+    --accent-foreground: 351 85% 30%;
 
     --destructive: 0 84% 55%;            /* semantic red — SOS/emergency only */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 36 24% 86%;
-    --input: 36 24% 86%;
-    --ring: 215 85% 40%;                 /* blue focus ring */
+    --border: 32 20% 88%;
+    --input: 32 20% 88%;
+    --ring: 350 85% 42%;                 /* ICE Red focus ring */
 
     --radius: 1rem;                      /* softer, rounded-not-childish */
 
-    /* Secondary accent = TEAL (deliberate): ripple, small highlights. */
-    --brand-accent: 185 75% 45%;
+    /* Deeper red for hover/pressed and small highlights (the ripple). */
+    --brand-accent: 351 85% 34%;
     --brand-accent-foreground: 0 0% 100%;
-    --brand-ink: 215 85% 35%;
-    /* CTA = orange (dark ink for AA on the vivid orange). */
-    --cta: 33 93% 54%;
-    --cta-foreground: 240 30% 16%;
+    --brand-ink: 218 22% 10%;
+    /* One action colour. Same value as --primary, deliberately. */
+    --cta: 350 85% 42%;
+    --cta-foreground: 0 0% 100%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(215 85% 35%) 0%, hsl(190 75% 42%) 100%);
-    --gradient-warm: linear-gradient(160deg, hsl(36 55% 97%) 0%, hsl(185 40% 94%) 100%);
-    --shadow-glow: 0 0 40px hsl(185 75% 45% / 0.20);
+    --gradient-primary: linear-gradient(135deg, hsl(350 85% 42%) 0%, hsl(351 85% 34%) 100%);
+    --gradient-warm: linear-gradient(160deg, hsl(30 33% 98%) 0%, hsl(353 68% 96%) 100%);
+    --shadow-glow: 0 0 40px hsl(350 85% 42% / 0.18);
   }
 
   /* 18px body floor for the public audience (§3): bare paragraphs/list text.
@@ -234,11 +249,10 @@
   }
 }
 
-/* CTAs = orange (the action colour), while --primary stays the brand blue for
-   structure/links/focus. Every FILLED default button on the public surface (shadcn
-   `bg-primary`, rendered as <button> or, via asChild, <a>) becomes orange; outline/
-   ghost/secondary buttons keep the blue for hierarchy. `.btn-cta` is an explicit
-   opt-in for the same treatment. Dark ink text holds WCAG AA on the vivid orange. */
+/* Retained from the two-colour era: --cta now equals --primary, so this rule
+   changes nothing visually. It stays because `.btn-cta` is used explicitly in
+   five places and removing the token would break them. If a second action
+   colour is ever wanted, this is the hook. */
 .theme-public :is(button, a).bg-primary,
 .theme-public .btn-cta {
   background-color: hsl(var(--cta));
@@ -246,7 +260,7 @@
 }
 .theme-public :is(button, a).bg-primary:hover,
 .theme-public .btn-cta:hover {
-  background-color: hsl(30 92% 48%);
+  background-color: hsl(351 85% 34%);
 }
 
 /* ———————————————————————————————————————————————————————————————
@@ -260,11 +274,14 @@
    — a 1% difference. On an operator's screen the cards had no edge at all, so
    the whole portal read as one flat white sheet.
 
-   Approach: tint the PAGE, not the cards. The wash is the brand teal #1CBAC8
-   (= hsl(185 75% 45%), the --brand-teal token) mixed ~6% into white, which is
-   rgb(242 249 250) — visible as "not white" but nowhere near a saturated or
-   clinical aqua. Cards stay pure white with a cool-grey border and a soft
-   shadow, so they lift off the wash instead of merging into it.
+   Approach: tint the PAGE, not the cards. The wash is a warm sand — the same
+   family as Paper, one step deeper — so cards lift off it while the page stays
+   unmistakably "not white". It is deliberately NOT tinted with ICE Red: on the
+   one screen where a real emergency appears, red must mean exactly one thing.
+
+   For the same reason --primary here is Ink, not ICE Red. An operator's
+   buttons are dark; the only red on a call-centre screen is an alert. This is
+   the single place in the app where the brand hue steps back on purpose.
 
    NOT TOUCHED, deliberately: --alert-* (sos/fall/battery/checkin/resolved),
    --status-*, --destructive and the sidebar tokens. Red stays reserved for
@@ -277,32 +294,37 @@
 @layer base {
   .theme-staff,
   .theme-admin {
-    --background: 185 45% 96.5%;         /* the aqua wash — ~6% brand teal on white */
-    --foreground: 205 25% 17%;           /* cool near-black ink, 14.9:1 on the wash */
+    --background: 32 38% 96%;            /* warm sand wash */
+    --foreground: 218 22% 10%;           /* Ink, 16.4:1 on the wash */
 
     --card: 0 0% 100%;                   /* crisp white — the lift comes from here */
-    --card-foreground: 205 25% 17%;
+    --card-foreground: 218 22% 10%;
     --popover: 0 0% 100%;                /* dropdowns/menus stay crisp too */
-    --popover-foreground: 205 25% 17%;
+    --popover-foreground: 218 22% 10%;
+
+    /* Primary is INK here, not ICE Red. See the note above: red is rationed on
+       the one screen where an emergency appears. */
+    --primary: 218 22% 10%;
+    --primary-foreground: 0 0% 100%;
 
     /* One step deeper than the wash, so muted panels read as recessed against
        both the page and the white cards. */
-    --muted: 190 28% 93%;
-    --muted-foreground: 205 16% 38%;     /* 7.4:1 on card, 6.8:1 on the wash */
+    --muted: 32 28% 92%;
+    --muted-foreground: 213 11% 38%;     /* 6.4:1 on card, 6.0:1 on the wash */
 
-    --secondary: 190 30% 92%;
-    --secondary-foreground: 205 30% 22%;
+    --secondary: 32 30% 92%;
+    --secondary-foreground: 218 22% 18%;
 
-    --accent: 185 42% 91%;               /* hover/selected tint, same family */
-    --accent-foreground: 190 80% 20%;
+    --accent: 32 34% 90%;                /* hover/selected tint, same family */
+    --accent-foreground: 218 22% 16%;
 
-    --border: 195 20% 87%;               /* cool border — defines the card edge */
-    --input: 195 20% 87%;
-    --ring: 185 70% 38%;                 /* teal focus ring, AA against both surfaces */
+    --border: 32 20% 87%;                /* warm border — defines the card edge */
+    --input: 32 20% 87%;
+    --ring: 350 85% 42%;                 /* ICE Red focus ring — transient, and
+                                            keyboard focus must be unmissable */
 
-    /* Soft, cool-tinted card shadow. Neutral black shadows go muddy on a tinted
-       page; keying the shadow to the wash's hue keeps it clean. */
-    --shadow-card: 0 1px 2px 0 hsl(196 32% 28% / 0.05), 0 4px 10px -3px hsl(196 32% 28% / 0.10);
+    /* Warm-keyed card shadow. A cool grey shadow reads dirty on a warm page. */
+    --shadow-card: 0 1px 2px 0 hsl(28 25% 30% / 0.05), 0 4px 10px -3px hsl(28 25% 30% / 0.10);
   }
 }
 
@@ -324,12 +346,10 @@
 
    WHY WARM (decided by Lee, 2026-07-26): this is the only CUSTOMER-facing
    logged-in surface. The public site — marketing, /pricing, the join wizard,
-   auth — runs .theme-public on warm cream #FBF8F4, so a member who signs up and
-   logs in should not cross a palette boundary at the door. The values below
-   mirror .theme-public's page/ink/muted/secondary/border/ring exactly, so the
-   two surfaces are the same palette rather than merely similar ones; --accent
-   stays the soft TEAL tint .theme-public uses, which keeps the brand accent
-   present without turning the page aqua.
+   auth — runs .theme-public on Paper, so a member who signs up and logs in
+   should not cross a palette boundary at the door. The values below mirror
+   .theme-public's page/ink/muted/secondary/border/ring exactly, so the two
+   surfaces are the same palette rather than merely similar ones.
 
    Cards stay pure white — on cream that is what lifts them — with the shadow
    re-keyed warm, because a cool grey shadow reads dirty on a cream page.
@@ -342,29 +362,32 @@
    ——————————————————————————————————————————————————————————————— */
 @layer base {
   .theme-member {
-    --background: 36 50% 97%;            /* warm cream #FBF8F4 — same as .theme-public */
-    --foreground: 240 30% 18%;           /* deep indigo ink, 14.9:1 on the cream */
+    --background: 30 33% 98%;            /* Paper #FBF9F7 — same as .theme-public */
+    --foreground: 218 22% 10%;           /* Ink, 17.0:1 on Paper */
 
-    --card: 0 0% 100%;                   /* crisp white — what lifts a card off cream */
-    --card-foreground: 240 30% 18%;
+    --card: 0 0% 100%;                   /* crisp white — what lifts a card off Paper */
+    --card-foreground: 218 22% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 30% 18%;
+    --popover-foreground: 218 22% 10%;
 
-    --muted: 36 30% 93%;                 /* warm sand, one step down from the page */
-    --muted-foreground: 240 12% 38%;     /* 7.2:1 on card, 6.8:1 on the cream */
+    --primary: 350 85% 42%;              /* ICE Red — a member's screen is not an alert screen */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 36 34% 92%;
-    --secondary-foreground: 215 60% 24%;
+    --muted: 32 28% 94%;                 /* warm sand, one step down from the page */
+    --muted-foreground: 213 11% 40%;     /* Slate, 5.9:1 on Paper */
 
-    --accent: 185 45% 92%;               /* soft TEAL tint — brand accent, as on public */
-    --accent-foreground: 190 80% 22%;
+    --secondary: 32 32% 93%;
+    --secondary-foreground: 218 22% 16%;
 
-    --border: 36 24% 86%;                /* warm border — defines the card edge */
-    --input: 36 24% 86%;
-    --ring: 215 85% 40%;                 /* blue focus ring, 6.3:1 on cream */
+    --accent: 353 68% 95%;               /* Red Wash — brand accent, as on public */
+    --accent-foreground: 351 85% 30%;
 
-    /* Warm-keyed: a cool grey shadow reads dirty on a cream page. */
-    --shadow-card: 0 1px 2px 0 hsl(30 25% 30% / 0.05), 0 4px 10px -3px hsl(30 25% 30% / 0.10);
+    --border: 32 20% 88%;                /* warm border — defines the card edge */
+    --input: 32 20% 88%;
+    --ring: 350 85% 42%;                 /* ICE Red focus ring */
+
+    /* Warm-keyed: a cool grey shadow reads dirty on a warm page. */
+    --shadow-card: 0 1px 2px 0 hsl(28 25% 30% / 0.05), 0 4px 10px -3px hsl(28 25% 30% / 0.10);
   }
 }
 
@@ -380,15 +403,11 @@
    white. Its own block, not the internal one, for the same reason as the
    member dashboard — partners are external users, not staff.
 
-   BRAND NOTE (open decision, flagged for Lee): partners arrive through the
-   public warm-cream funnel (/partner, /partner/join, /partner/login all run
-   .theme-public) and then land here. The clash is milder than the member
-   dashboard's — a partner is a business user on a working tool, and their
-   funnel is shorter — but it is the same seam. Alternative, drop-in, same AA
-   math (worst pair 5.40:1 either way):
-       --background: 36 50% 97%;  --muted: 36 30% 93%;
-       --secondary: 36 34% 92%;   --border: 36 24% 86%;
-       --accent: 36 40% 92%;      --ring: 215 85% 40%;
+   BRAND NOTE (closed, 2026-09-02): partners arrive through the public funnel
+   (/partner, /partner/join, /partner/login all run .theme-public) and then
+   land here. The aqua wash made that a palette seam. Resolved by taking the
+   warm option this note used to offer — the partner portal now shares the
+   member/public ground, so the whole funnel is one palette end to end.
 
    NOT TOUCHED: --alert-*, --status-*, --destructive, sidebar tokens. The
    admin-view-mode amber banner keeps its own colours.
@@ -396,28 +415,30 @@
    ——————————————————————————————————————————————————————————————— */
 @layer base {
   .theme-partner {
-    --background: 185 45% 96.5%;         /* aqua wash — ~6% brand teal on white */
-    --foreground: 205 25% 17%;
+    --background: 30 33% 98%;            /* Paper — same ground as public and member */
+    --foreground: 218 22% 10%;           /* Ink, 17.0:1 on Paper */
 
     --card: 0 0% 100%;
-    --card-foreground: 205 25% 17%;
+    --card-foreground: 218 22% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 205 25% 17%;
+    --popover-foreground: 218 22% 10%;
 
-    --muted: 190 28% 93%;
-    --muted-foreground: 205 16% 38%;
+    --muted: 32 28% 94%;
+    --muted-foreground: 213 11% 40%;
 
-    --secondary: 190 30% 92%;
-    --secondary-foreground: 205 30% 22%;
+    --secondary: 32 32% 93%;
+    --secondary-foreground: 218 22% 16%;
 
-    --accent: 185 42% 91%;
-    --accent-foreground: 190 80% 20%;
+    --accent: 353 68% 95%;
+    --accent-foreground: 351 85% 30%;
 
-    --border: 195 20% 87%;
-    --input: 195 20% 87%;
-    --ring: 185 70% 38%;
+    --border: 32 20% 88%;
+    --input: 32 20% 88%;
+    --ring: 350 85% 42%;
+    --primary: 350 85% 42%;
+    --primary-foreground: 0 0% 100%;
 
-    --shadow-card: 0 1px 2px 0 hsl(196 32% 28% / 0.05), 0 4px 10px -3px hsl(196 32% 28% / 0.10);
+    --shadow-card: 0 1px 2px 0 hsl(28 25% 30% / 0.05), 0 4px 10px -3px hsl(28 25% 30% / 0.10);
   }
 }
 

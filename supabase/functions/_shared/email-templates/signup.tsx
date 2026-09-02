@@ -30,21 +30,21 @@ export const SignupEmail = ({
 }: SignupEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Confirm your email for Care Conneqt</Preview>
+    <Preview>Confirm your email for ICE Alarm España</Preview>
     <Body style={main}>
       <Container style={container}>
         <Img
           src="https://crpsuhoixfdhjugprbuc.supabase.co/storage/v1/object/public/email-assets/logo.png"
           width="64"
           height="64"
-          alt="Care Conneqt"
+          alt="ICE Alarm España"
           style={logo}
         />
-        <Heading style={h1}>Welcome to Care Conneqt</Heading>
+        <Heading style={h1}>Welcome to ICE Alarm España</Heading>
         <Text style={text}>
           Thank you for registering with{' '}
           <Link href={siteUrl} style={link}>
-            <strong>Care Conneqt</strong>
+            <strong>ICE Alarm España</strong>
           </Link>
           . We're here to keep you safe.
         </Text>
@@ -59,7 +59,7 @@ export const SignupEmail = ({
           Confirm My Email
         </Button>
         <Text style={footer}>
-          If you didn't create an account with Care Conneqt, you can safely ignore this email.
+          If you didn't create an account with ICE Alarm España, you can safely ignore this email.
         </Text>
       </Container>
     </Body>
@@ -83,9 +83,9 @@ const text = {
   lineHeight: '1.6',
   margin: '0 0 25px',
 }
-const link = { color: '#E74C3C', textDecoration: 'underline' }
+const link = { color: '#C8102E', textDecoration: 'underline' }
 const button = {
-  backgroundColor: '#E74C3C',
+  backgroundColor: '#C8102E',
   color: '#ffffff',
   fontSize: '14px',
   fontWeight: 'bold' as const,

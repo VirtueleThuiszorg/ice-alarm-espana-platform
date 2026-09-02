@@ -1,7 +1,7 @@
 # LEGAL.md — Regulated-surface map & review tripwire (Spain · Netherlands · UK)
 
 > ## ⚠️ READ FIRST — what this file is and is NOT
-> This is **NOT legal advice** and following it does **NOT** make Care Conneqt
+> This is **NOT legal advice** and following it does **NOT** make ICE Alarm España
 > compliant. It is a *map* of where the law touches this product and a *tripwire*
 > that tells Claude Code to **stop and flag for human/legal review** before building
 > anything on a regulated surface. Compliance requires **qualified legal counsel** —
@@ -86,7 +86,7 @@ work covers it.
   standards (ES/NL/UK each differ).
 - **Clinical staffing:** if nurses give clinical advice, professional-regulation and
   scope-of-practice rules apply per country.
-- **Needs counsel:** whether Care Conneqt is regulated as a care provider in each market.
+- **Needs counsel:** whether ICE Alarm España is regulated as a care provider in each market.
 
 ### F. Consumer / marketing / accessibility — 🟡/🔴
 - Distance-selling & consumer-rights rules (cancellation, pricing transparency) across
@@ -111,7 +111,7 @@ work covers it.
 
 1. Is the wearable/fall-detection device a **medical device** in EU (MDR) and UK (MHRA)?
    What claims keep it out of that class — or what does CE/UKCA require if it's in?
-2. Is Care Conneqt a **regulated care/telecare provider** in ES, NL, and UK?
+2. Is ICE Alarm España a **regulated care/telecare provider** in ES, NL, and UK?
 3. Lawful basis + **DPIA** for processing health + location data of vulnerable adults.
 4. Is Isabella **high-risk under the AI Act**, and what's our real deadline given the
    Digital Omnibus deferral once it's adopted?

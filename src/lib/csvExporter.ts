@@ -1,4 +1,4 @@
-// CSV Export Utility for Care Conneqt
+// CSV Export Utility for ICE Alarm España
 // Generates downloadable CSV files from any data shape, with proper escaping
 // and Excel-compatible UTF-8 encoding (BOM prefix).
 

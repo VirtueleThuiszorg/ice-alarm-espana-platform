@@ -274,7 +274,7 @@ export function SocialMediaSection({
                       {youtubeIntegration.channel_mismatch && (
                         <span className="text-amber-600 flex items-center gap-1 ml-2">
                           <AlertCircle className="h-3 w-3" />
-                          Not Care Conneqt
+                          Not ICE Alarm España
                         </span>
                       )}
                     </p>
@@ -289,7 +289,7 @@ export function SocialMediaSection({
                   <div className="p-3 rounded-md bg-amber-500/10 border border-amber-500/20">
                     <p className="text-sm text-amber-700">
                       <AlertCircle className="inline h-4 w-4 mr-1" />
-                      Warning: Connected channel ID does not match the expected Care Conneqt channel ({EXPECTED_CHANNEL_ID}).
+                      Warning: Connected channel ID does not match the expected ICE Alarm España channel ({EXPECTED_CHANNEL_ID}).
                     </p>
                   </div>
                 )}
@@ -340,7 +340,7 @@ export function SocialMediaSection({
                     <Input
                       value={defaultTags}
                       onChange={(e) => setDefaultTags(e.target.value)}
-                      placeholder="care conneqt, elderly care, spain"
+                      placeholder="ice alarm, elderly care, spain"
                     />
                     <p className="text-xs text-muted-foreground">Comma-separated tags</p>
                   </div>
@@ -350,7 +350,7 @@ export function SocialMediaSection({
                     <Input
                       value={defaultDescriptionFooter}
                       onChange={(e) => setDefaultDescriptionFooter(e.target.value)}
-                      placeholder="Care Conneqt - www.careconneqt.es"
+                      placeholder="ICE Alarm España - www.icealarm.es"
                     />
                     <p className="text-xs text-muted-foreground">Appended to all video descriptions</p>
                   </div>

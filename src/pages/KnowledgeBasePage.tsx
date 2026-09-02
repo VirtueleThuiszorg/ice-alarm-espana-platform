@@ -163,7 +163,7 @@ export default function KnowledgeBasePage() {
           <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
             {t(
               "help.subheading",
-              "Search our knowledge base for guides, FAQs, and helpful information about Care Conneqt services."
+              "Search our knowledge base for guides, FAQs, and helpful information about ICE Alarm España services."
             )}
           </p>
 

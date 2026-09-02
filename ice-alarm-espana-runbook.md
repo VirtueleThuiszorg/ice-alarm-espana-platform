@@ -1,4 +1,4 @@
-# Care Conneqt — Claude Code Run-Book
+# ICE Alarm España — Claude Code Run-Book
 
 Copy-paste prompts to drive the whole build. Paste **one at a time**, let each loop finish, review the human-gate items, then move to the next.
 
@@ -7,14 +7,14 @@ Copy-paste prompts to drive the whole build. Paste **one at a time**, let each l
 **Companion files (must be in the repo):**
 - `CLAUDE.md` → repo **root** (CC reads it automatically).
 - `GOALS.md` → repo **root** (standing acceptance criteria every loop is measured against).
-- `care-conneqt-master-build-plan.md` → repo root or `/docs`.
+- `ice-alarm-espana-master-build-plan.md` → repo root or `/docs`.
 - This run-book → `/docs` (reference for you).
 
 ---
 
 ## Before your first paste (human, ~10 min)
-1. Create the new empty repo `care-conneqt` on GitHub. Connect it in CC browser.
-2. Add `CLAUDE.md` and `care-conneqt-master-build-plan.md` to it (root).
+1. Create the new empty repo `ice-alarm-espana` on GitHub. Connect it in CC browser.
+2. Add `CLAUDE.md` and `ice-alarm-espana-master-build-plan.md` to it (root).
 3. Keep the two old repos (`care-conneqt`, `care-conneqt-hub`) accessible as **read-only reference**. Never build in them.
 4. Set a turn cap you're comfortable with (start ~30–50 per goal; raise if it's genuinely progressing).
 
@@ -47,7 +47,7 @@ tracked/historical secret is listed for rotation.
 
 ## WP0 — Foundation
 ```
-/goal Read CLAUDE.md and care-conneqt-master-build-plan.md. Execute WP0 (Foundation):
+/goal Read CLAUDE.md and ice-alarm-espana-master-build-plan.md. Execute WP0 (Foundation):
 pnpm-workspace monorepo with apps/platform, apps/hub, packages/ui, packages/database,
 packages/ai, packages/config, services/ingestion. Add CI (typecheck, lint, build),
 Sentry, security headers (CSP/HSTS/X-Frame-Options) on Vercel, .env.example, and a

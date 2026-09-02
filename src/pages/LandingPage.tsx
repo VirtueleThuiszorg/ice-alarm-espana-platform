@@ -156,7 +156,7 @@ export default function LandingPage() {
                     ],
                     sizes: "(min-width: 1024px) 50vw, 100vw",
                   })}
-                  altText={heroImage.altText || "Happy multigenerational family enjoying peace of mind with Care Conneqt protection"}
+                  altText={heroImage.altText || "Happy multigenerational family enjoying peace of mind with ICE Alarm España protection"}
                   placeholderText="Hero Image"
                   placeholderSubtext="Coming Soon"
                   priority={true}
@@ -305,7 +305,7 @@ export default function LandingPage() {
               <div className="relative z-10 rounded-3xl overflow-hidden shadow-2xl shadow-primary/10 aspect-square bg-white">
                 <ImageWithPlaceholder
                   imageUrl={pendantPromoImage.imageUrl || "/assets/pendant-product.png"}
-                  altText={pendantPromoImage.altText || "Care Conneqt SOS pendant with its charging cradle"}
+                  altText={pendantPromoImage.altText || "ICE Alarm España SOS pendant with its charging cradle"}
                   imgClassName="object-contain p-8"
                   placeholderText="Pendant product shot"
                   width={640}
@@ -645,7 +645,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Latest from Care Conneqt - Blog Section */}
+      {/* Latest from ICE Alarm España - Blog Section */}
       {latestPosts && latestPosts.length > 0 && (
         <section className="py-20 px-4">
           <div className="container mx-auto">
@@ -738,7 +738,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-sidebar-border pt-8 text-center text-sm text-sidebar-foreground/60">
-            <p>&copy; {new Date().getFullYear()} Care Conneqt Espa&ntilde;a. {t("landing.allRightsReserved")}</p>
+            <p>&copy; {new Date().getFullYear()} ICE Alarm España Espa&ntilde;a. {t("landing.allRightsReserved")}</p>
           </div>
         </div>
       </footer>

@@ -1,8 +1,8 @@
 {
-  "name": "care-conneqt-platform",
+  "name": "ice-alarm-espana-platform",
   "private": true,
   "version": "1.0.0",
-  "description": "Care Conneqt — Connected health monitoring and emergency response platform",
+  "description": "ICE Alarm España — Connected health monitoring and emergency response platform",
   "author": "Care Conneqt",
   "type": "module",
   "scripts": {

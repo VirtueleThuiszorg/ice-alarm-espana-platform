@@ -237,7 +237,7 @@ describe("ProtectedRoute", () => {
     "%s reaches the call centre and is never signed out",
     (role) => {
       beforeEach(() => {
-        mockAuth.user = { id: "s-mary", email: "supervisor@careconneqt.es" };
+        mockAuth.user = { id: "s-mary", email: "supervisor@icealarm.es" };
         mockAuth.isStaff = true;
         mockAuth.staffRole = role;
       });
@@ -684,7 +684,7 @@ describe("get_user_role_info partner contract", () => {
 //  Admin post-login destination — the reported "lands on settings" bug
 // ============================================================
 //
-// Report: admin@careconneqt.es (super_admin, staff row correct, user_id linked)
+// Report: admin@icealarm.es (super_admin, staff row correct, user_id linked)
 // landed on a settings page after login instead of the admin dashboard.
 //
 // Three candidate causes were named. Two are ruled out by the assertions below,
@@ -857,7 +857,7 @@ describe("an admin's login destination", () => {
 
 describe("mandatory 2FA is enforced on admin routes", () => {
   const asAdmin = (role: string, factor: boolean | null) => {
-    mockAuth.user = { id: "a1", email: "admin@careconneqt.es" };
+    mockAuth.user = { id: "a1", email: "admin@icealarm.es" };
     mockAuth.isStaff = true;
     mockAuth.staffRole = role;
     mockAuth.hasVerifiedFactor = factor;
@@ -939,7 +939,7 @@ describe("mandatory 2FA is enforced on admin routes", () => {
     it.each(["call_centre", "call_centre_supervisor"])(
       "%s reaches staff routes with no factor at all",
       (role) => {
-        mockAuth.user = { id: "s1", email: "cc@careconneqt.es" };
+        mockAuth.user = { id: "s1", email: "cc@icealarm.es" };
         mockAuth.isStaff = true;
         mockAuth.staffRole = role;
         mockAuth.hasVerifiedFactor = false;

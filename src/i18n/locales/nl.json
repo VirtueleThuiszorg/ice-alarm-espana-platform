@@ -613,7 +613,7 @@
     "signOut": "Afmelden",
     "register": {
       "title": "Maak uw account aan",
-      "subtitle": "Begin vandaag met uw Care Conneqt-bescherming",
+      "subtitle": "Begin vandaag met uw ICE Alarm España-bescherming",
       "emailPlaceholder": "uw@email.com",
       "passwordMin8": "Wachtwoord moet minstens 8 tekens bevatten",
       "creating": "Account aanmaken...",
@@ -628,11 +628,11 @@
     "forgotPassword": "Wachtwoord vergeten?",
     "resetPassword": "Wachtwoord opnieuw instellen",
     "loginTitle": "Welkom terug",
-    "loginSubtitle": "Log in op uw Care Conneqt-account",
+    "loginSubtitle": "Log in op uw ICE Alarm España-account",
     "registerTitle": "Account aanmaken",
-    "registerSubtitle": "Word lid van Care Conneqt",
+    "registerSubtitle": "Word lid van ICE Alarm España",
     "memberLogin": "Ledenlogin",
-    "memberLoginDesc": "Log in om toegang te krijgen tot uw Care Conneqt-dashboard",
+    "memberLoginDesc": "Log in om toegang te krijgen tot uw ICE Alarm España-dashboard",
     "staffLogin": "Medewerkerslogin",
     "staffLoginDesc": "Toegang tot het beheer- of callcenterdashboard",
     "signingIn": "Inloggen...",
@@ -641,7 +641,7 @@
     "backToHome": "Terug naar home",
     "staffMember": "Medewerker?",
     "loginHere": "Log hier in",
-    "memberQuestion": "Care Conneqt-lid?",
+    "memberQuestion": "ICE Alarm España-lid?",
     "accountSettings": "Accountinstellingen",
     "forgotPasswordDesc": "Voer uw e-mailadres in en we sturen u een link om uw wachtwoord opnieuw in te stellen.",
     "sendResetLink": "Verstuur resetlink",
@@ -732,7 +732,7 @@
   "blog": {
     "title": "Blog",
     "subtitle": "Blijf op de hoogte met onze laatste updates over persoonlijke veiligheid, ouderenzorg en noodrespons.",
-    "latestFrom": "Laatste van Care Conneqt",
+    "latestFrom": "Laatste van ICE Alarm España",
     "viewAll": "Alle artikelen bekijken",
     "readMore": "Lees meer",
     "postedOn": "Geplaatst op",
@@ -769,7 +769,7 @@
     "floatingMonitored": "Altijd bewaakt",
     "floatingResponse": "24/7-respons",
     "floatingResponseDesc": "Getraind tweetalig team",
-    "whyChoose": "Waarom families voor Care Conneqt kiezen",
+    "whyChoose": "Waarom families voor ICE Alarm España kiezen",
     "whyChooseDesc": "Meer dan alleen een alarmknop. Onze 24/7-bewakingsdienst combineert directe respons met realtime technologie — speciaal ontworpen voor het leven in Spanje.",
     "featureMonitoring": "24/7-bewaking en respons",
     "featureMonitoringDesc": "Wanneer u belt of op uw SOS-knop drukt, reageert onze bewakingsdienst — direct, in uw taal, 24 uur per dag, 365 dagen per jaar. Geen wachtrij, geen automatische menu's. Gewoon rustige, bekwame hulp wanneer u die nodig heeft.",
@@ -780,7 +780,7 @@
     "featureDashboard": "Uw veiligheidsdashboard",
     "featureDashboardDesc": "Log in op uw privéportaal vanaf elk apparaat om de batterij van uw hanger, de verbindingsstatus en uw accountgegevens te bekijken. Krijg altijd hulp of antwoorden. Alles op één plek, altijd beschikbaar.",
     "howItWorks": {
-      "title": "Hoe Care Conneqt u beschermt",
+      "title": "Hoe ICE Alarm España u beschermt",
       "description": "Vanaf het moment dat u op de knop drukt tot het moment dat hulp arriveert — dit is precies wat er gebeurt.",
       "step1Title": "Druk op de SOS-knop",
       "step1Desc": "Druk op de knop van uw hanger — of het systeem detecteert automatisch een val. Direct ontvangt onze bewakingsdienst uw melding met uw naam, locatie en medische informatie.",
@@ -824,12 +824,12 @@
       "pendant": {
         "recommended": "Aanbevolen voor volledige bescherming",
         "subtitle": "Draag hem als hanger of om uw pols. Eén knop verbindt u direct met ons team.",
-        "title": "Care Conneqt GPS-hanger"
+        "title": "ICE Alarm España GPS-hanger"
       }
     },
     "dashboard": {
       "title": "Uw veiligheid, altijd zichtbaar",
-      "description": "Elk Care Conneqt-lid krijgt toegang tot een privé online portaal — op uw telefoon, tablet of computer.",
+      "description": "Elk ICE Alarm España-lid krijgt toegang tot een privé online portaal — op uw telefoon, tablet of computer.",
       "deviceTitle": "Apparaatstatus",
       "deviceDesc": "Bekijk in één oogopslag het batterijniveau, de verbindingsstatus en de laatst bekende locatie van uw hanger.",
       "chatTitle": "Neem contact met ons op",
@@ -844,12 +844,12 @@
       "trustLine": "Families beschermen aan de Costa Blanca, Costa del Sol, de Balearen en in heel Spanje."
     },
     "partners": {
-      "title": "Care Conneqt voor gemeenschappen en partners",
+      "title": "ICE Alarm España voor gemeenschappen en partners",
       "description": "We werken samen met woongemeenschappen, urbanisaties, zorgaanbieders en lokale bedrijven in heel Spanje om veiligheid te bieden aan hun bewoners en klanten.",
       "benefit1Title": "Bescherm uw bewoners",
-      "benefit1Desc": "Bied Care Conneqt aan als inbegrepen of optionele dienst voor uw gemeenschap. Wij regelen alles — installatie, bewaking, ondersteuning — in het Engels en Spaans.",
+      "benefit1Desc": "Bied ICE Alarm España aan als inbegrepen of optionele dienst voor uw gemeenschap. Wij regelen alles — installatie, bewaking, ondersteuning — in het Engels en Spaans.",
       "benefit2Title": "Maak het verschil in uw gemeenschap",
-      "benefit2Desc": "Help de mensen om u heen zich veiliger en zelfstandiger te voelen. Als uw bewoners of klanten lid worden van Care Conneqt, weet u dat ze 24/7 beschermd zijn.",
+      "benefit2Desc": "Help de mensen om u heen zich veiliger en zelfstandiger te voelen. Als uw bewoners of klanten lid worden van ICE Alarm España, weet u dat ze 24/7 beschermd zijn.",
       "benefit3Title": "Toegewijde partnerondersteuning",
       "benefit3Desc": "Uw eigen accountmanager, co-branded materialen en prioritaire ondersteuning. We maken het u gemakkelijk om veiligheid van wereldklasse aan uw gemeenschap te bieden.",
       "benefit4Title": "Eenvoudige uitnodigingstools",
@@ -858,7 +858,7 @@
       "idealFor": "Ideaal voor: urbanisaties, woongemeenschappen, zorgtehuizen, fysiotherapiepraktijken, verzekeringsmakelaars en makelaars."
     },
     "readyToJoin": "Start vandaag met uw bescherming",
-    "readyToJoinDesc": "Word in enkele minuten lid van Care Conneqt. Geen technici, geen installatie, geen langlopende contracten. Uw hanger komt gebruiksklaar aan — en ons team staat klaar om u te verwelkomen.",
+    "readyToJoinDesc": "Word in enkele minuten lid van ICE Alarm España. Geen technici, geen installatie, geen langlopende contracten. Uw hanger komt gebruiksklaar aan — en ons team staat klaar om u te verwelkomen.",
     "haveQuestions": "Vragen?",
     "callUsAnytime": "Bel ons of stuur een WhatsApp — ons team staat klaar om te helpen.",
     "allRightsReserved": "Alle rechten voorbehouden.",
@@ -1323,7 +1323,7 @@
     "welcomeBack": "Welcome back",
     "needHelp": "Need Help?",
     "emergencyTeamReady": "Our 24/7 emergency response team is always ready to help",
-    "callIceAlarm": "Call Care Conneqt",
+    "callIceAlarm": "Call ICE Alarm España",
     "whatsAppUs": "WhatsApp Us",
     "callUs": "Call Us",
     "whatsappUs": "WhatsApp Us",
@@ -1334,7 +1334,7 @@
     "updateContacts": "Update Contacts",
     "announcement": "Service Announcement",
     "deviceWorking": "Your pendant is working properly",
-    "contactIceAlarm": "Contact Care Conneqt",
+    "contactIceAlarm": "Contact ICE Alarm España",
     "noDeviceAssigned": "No device assigned",
     "contactSupportDevice": "Please contact support to get your device set up.",
     "noActiveSubscription": "No active subscription",
@@ -1343,7 +1343,7 @@
     "batteryLevel": "Battery",
     "deviceStatus": "Device",
     "serviceAnnouncement": "Service Announcement",
-    "announcementText": "We've upgraded our response system! Your alerts now reach our team 30% faster. Thank you for trusting Care Conneqt with your safety.",
+    "announcementText": "We've upgraded our response system! Your alerts now reach our team 30% faster. Thank you for trusting ICE Alarm España with your safety.",
     "unread": "unread",
     "unreadMessages": "{{count}} unread messages",
     "tapToRead": "Tap to read and reply",
@@ -1389,7 +1389,7 @@
     "noGeoFencing": "No boundary alerts available",
     "addPendant": "Add a Pendant for Full Protection",
     "getComplete": "Get complete peace of mind with our GPS pendant",
-    "pendantName": "Care Conneqt GPS Pendant",
+    "pendantName": "ICE Alarm España GPS Pendant",
     "shipping": "shipping",
     "purchasePendant": "Purchase Pendant",
     "gpsTracking": "GPS Location Tracking",
@@ -1652,7 +1652,7 @@
   "admin": {
     "members": {
       "title": "Members",
-      "subtitle": "Manage all Care Conneqt members and their information.",
+      "subtitle": "Manage all ICE Alarm España members and their information.",
       "addMember": "Add Member",
       "exportCsv": "Export CSV",
       "crmImport": "CRM Import",
@@ -1763,7 +1763,7 @@
   },
   "finance": {
     "dashboard": "Finance Dashboard",
-    "description": "Financial overview and key metrics for Care Conneqt",
+    "description": "Financial overview and key metrics for ICE Alarm España",
     "monthlyRevenue": "Monthly Revenue",
     "annualRevenue": "Annual Revenue",
     "activeSubscriptions": "Active Subscriptions",
@@ -1997,7 +1997,7 @@
   },
   "adminDashboard": {
     "title": "Dashboard",
-    "welcome": "Welcome back! Here's an overview of Care Conneqt.",
+    "welcome": "Welcome back! Here's an overview of ICE Alarm España.",
     "addMember": "Add Member",
     "activeMembers": "Active Members",
     "activeAlerts": "Active Alerts",
@@ -2207,7 +2207,7 @@
     "resourceFAQDesc": "Detailed answers to common questions",
     "faqTitle": "Frequently Asked Questions",
     "faq1Q": "How do I earn commissions?",
-    "faq1A": "You earn a commission for every person who signs up through your unique referral link and receives their Care Conneqt pendant. Commissions are created automatically when the device is delivered.",
+    "faq1A": "You earn a commission for every person who signs up through your unique referral link and receives their ICE Alarm España pendant. Commissions are created automatically when the device is delivered.",
     "faq2Q": "When do I get paid?",
     "faq2A": "Commissions enter a 7-day holding period after device delivery, then move to 'approved' status. Payments are processed monthly via bank transfer to the IBAN on file.",
     "faq3Q": "How do I share my referral link?",
@@ -2219,7 +2219,7 @@
     "faq6Q": "How do I update my bank details?",
     "faq6A": "Go to Settings > Payout Information and update your IBAN and beneficiary name. Changes take effect for the next payout cycle.",
     "faq7Q": "Can I refer from outside Spain?",
-    "faq7A": "Care Conneqt currently operates in Spain and Portugal. Your referred customers must reside in these regions, but you can be based anywhere.",
+    "faq7A": "ICE Alarm España currently operates in Spain and Portugal. Your referred customers must reside in these regions, but you can be based anywhere.",
     "faq8Q": "What if my referral cancels?",
     "faq8A": "If a customer cancels within the 7-day holding period, the commission is automatically cancelled. After the holding period, earned commissions are yours to keep."
   },
@@ -2375,12 +2375,12 @@
     "hero": {
       "badge": "Ontworpen voor expats in Spanje",
       "title": "Uw reddingslijn in Spanje",
-      "subtitle": "De Care Conneqt persoonlijke GPS-hanger geeft u en uw dierbaren gemoedsrust, waar u ook bent in Spanje.",
+      "subtitle": "De ICE Alarm España persoonlijke GPS-hanger geeft u en uw dierbaren gemoedsrust, waar u ook bent in Spanje.",
       "feature1": "24/7-ondersteuning in Engels en Spaans",
       "feature2": "GPS-locatietracking",
       "feature3": "Automatische valdetectie",
       "feature4": "Tweerichtingscommunicatie",
-      "cta": "Word vandaag lid van Care Conneqt",
+      "cta": "Word vandaag lid van ICE Alarm España",
       "startingFrom": "Vanaf",
       "perMonth": "/maand",
       "plusPendant": "+ hanger",
@@ -2398,7 +2398,7 @@
     },
     "features": {
       "title": "Kenmerken van de hanger",
-      "subtitle": "De Care Conneqt-hanger zit vol met levensreddende technologie.",
+      "subtitle": "De ICE Alarm España-hanger zit vol met levensreddende technologie.",
       "gps": {
         "title": "GPS-locatietracking",
         "description": "Wanneer u op de SOS-knop drukt, wordt uw exacte locatie direct naar ons callcenter verzonden. U hoeft niet uit te leggen waar u bent - we weten het al en kunnen hulp rechtstreeks naar u sturen.",
@@ -2516,12 +2516,12 @@
     "testimonials": {
       "title": "Wat onze leden zeggen",
       "badge": "Vertrouwd door duizenden",
-      "quote1": "Care Conneqt gaf me mijn zelfstandigheid terug. Ik voel me veilig in de wetenschap dat hulp slechts één druk op de knop verwijderd is.",
+      "quote1": "ICE Alarm España gaf me mijn zelfstandigheid terug. Ik voel me veilig in de wetenschap dat hulp slechts één druk op de knop verwijderd is.",
       "author1": "Margaret",
       "location1": "Alicante",
       "quote2": "Toen mijn vader viel, belde de hanger automatisch om hulp. Het team was geweldig en sprak Engels met hem. Ze hebben zijn leven gered.",
       "author2": "David",
-      "location2": "Zoon van een Care Conneqt-lid",
+      "location2": "Zoon van een ICE Alarm España-lid",
       "quote3": "De gemoedsrust die dit onze familie geeft is onbetaalbaar. Mam kan zelfstandig leven, wetende dat we gebeld worden als er iets gebeurt.",
       "author3": "Sarah",
       "location3": "Málaga"
@@ -2544,9 +2544,9 @@
       "a7": "Geen langlopende contracten! U kunt altijd opzeggen. We bieden maandelijkse en jaarlijkse facturatieopties."
     },
     "cta": {
-      "title": "Klaar om lid te worden van de Care Conneqt-familie?",
-      "subtitle": "Krijg 24/7 gemoedsrust voor u en uw dierbaren. Sluit u aan bij duizenden families in heel Spanje die Care Conneqt vertrouwen.",
-      "button": "Word vandaag lid van Care Conneqt",
+      "title": "Klaar om lid te worden van de ICE Alarm España-familie?",
+      "subtitle": "Krijg 24/7 gemoedsrust voor u en uw dierbaren. Sluit u aan bij duizenden families in heel Spanje die ICE Alarm España vertrouwen.",
+      "button": "Word vandaag lid van ICE Alarm España",
       "whatsapp": "Of stuur ons altijd een WhatsApp"
     },
     "footer": {
@@ -2560,7 +2560,7 @@
       "legal": "Juridisch",
       "termsOfService": "Servicevoorwaarden",
       "privacyPolicy": "Privacybeleid",
-      "companyInfo": "Care Conneqt S.L. • CIF: B24731531",
+      "companyInfo": "ICE Alarm España S.L. • CIF: B24731531",
       "allRightsReserved": "Alle rechten voorbehouden."
     }
   },
@@ -2864,11 +2864,11 @@
       "paymentError": "Betalingsfout",
       "paymentSuccess": "Betaling geslaagd!",
       "paymentSuccessDesc": "Uw registratie is voltooid. Klik op \"Doorgaan\" om uw bevestiging te bekijken.",
-      "success": "Betaling geslaagd! Welkom bij Care Conneqt.",
+      "success": "Betaling geslaagd! Welkom bij ICE Alarm España.",
       "cancelled": "De betaling is geannuleerd. U kunt het opnieuw proberen wanneer u er klaar voor bent."
     },
     "confirmation": {
-      "title": "Welkom bij Care Conneqt!",
+      "title": "Welkom bij ICE Alarm España!",
       "subtitle": "Bedankt voor uw aanmelding, {{name}}! Uw lidmaatschap is nu actief en u bent 24/7 beschermd.",
       "registrationComplete": "Registratie voltooid",
       "orderReference": "Bestelreferentie",
@@ -2920,19 +2920,19 @@
     "openChat": "Chat openen",
     "closeChat": "Chat sluiten",
     "newChat": "Nieuwe chat",
-    "assistantName": "Care Conneqt-assistent",
+    "assistantName": "ICE Alarm España-assistent",
     "memberAssistantName": "Uw persoonlijke assistent",
     "available": "24/7 beschikbaar",
     "memberAssistantAvailable": "Hier om u te helpen",
     "placeholder": "Typ uw bericht...",
     "send": "Verzenden",
-    "welcomeMessage": "Hallo! 👋 Ik ben uw virtuele Care Conneqt-assistent. Hoe kan ik u vandaag helpen? Ik kan vragen beantwoorden over onze diensten en prijzen of u op weg helpen.",
+    "welcomeMessage": "Hallo! 👋 Ik ben uw virtuele ICE Alarm España-assistent. Hoe kan ik u vandaag helpen? Ik kan vragen beantwoorden over onze diensten en prijzen of u op weg helpen.",
     "errorMessage": "Sorry, er was een verbindingsprobleem. Probeer het later opnieuw.",
     "fallbackMessage": "Sorry, ik kon uw bericht niet verwerken. Probeer het opnieuw."
   },
   "partnerAgreement": {
     "title": "Partner Agreement",
-    "pageDescription": "Your partnership agreement with Care Conneqt",
+    "pageDescription": "Your partnership agreement with ICE Alarm España",
     "requiredMessage": "Please review and sign the partner agreement to continue",
     "mustSignWarning": "You must sign this agreement before accessing your partner dashboard. Commission payments require a signed agreement.",
     "version": "Version",
@@ -2975,7 +2975,7 @@
     "sections": {
       "parties": {
         "title": "CONTRACTING PARTIES",
-        "content": "<strong>Care Conneqt S.L.</strong>, with registered office at Calle Principal 1, Albox, 04800 Almería, Spain, and CIF B24731531, represented by its legal administrator (hereinafter \"THE COMPANY\").<br/><br/>And the <strong>Partner</strong>, whose details are registered in our partner portal system at the time of signing this agreement (hereinafter \"THE PARTNER\")."
+        "content": "<strong>ICE Alarm España S.L.</strong>, with registered office at Calle Principal 1, Albox, 04800 Almería, Spain, and CIF B24731531, represented by its legal administrator (hereinafter \"THE COMPANY\").<br/><br/>And the <strong>Partner</strong>, whose details are registered in our partner portal system at the time of signing this agreement (hereinafter \"THE PARTNER\")."
       },
       "definitions": {
         "title": "DEFINITIONS",
@@ -3057,7 +3057,7 @@
     "pleaseLogin": "Log eerst in",
     "pleaseLoginFirst": "Gelieve",
     "toComplete": "om uw registratie te voltooien",
-    "noMembershipFound": "We konden geen lidmaatschap vinden voor dit e-mailadres. Word lid van Care Conneqt om te beginnen.",
+    "noMembershipFound": "We konden geen lidmaatschap vinden voor dit e-mailadres. Word lid van ICE Alarm España om te beginnen.",
     "emailNotConfirmed": "Bevestig eerst uw e-mailadres — controleer uw inbox voor de bevestigingslink."
   },
   "contact": {
@@ -3093,7 +3093,7 @@
       "support": "Technische ondersteuning"
     },
     "whyTrust": {
-      "title": "Waarom Care Conneqt vertrouwen?",
+      "title": "Waarom ICE Alarm España vertrouwen?",
       "protection": "24/7 bescherming",
       "protectionDesc": "Doorlopende noodbewaking en een responsteam dat altijd klaarstaat om te helpen.",
       "bilingual": "Tweetalige ondersteuning",
@@ -3273,7 +3273,7 @@
   },
   "products": {
     "title": "Onze producten",
-    "subtitle": "Verbonden gezondheidsapparaten die u veilig houden en uw familie op de hoogte houden. Allemaal geïntegreerd in het Care Conneqt-platform.",
+    "subtitle": "Verbonden gezondheidsapparaten die u veilig houden en uw familie op de hoogte houden. Allemaal geïntegreerd in het ICE Alarm España-platform.",
     "loadError": "Producten kunnen niet worden geladen. Probeer het later opnieuw.",
     "comingSoon": "Binnenkort beschikbaar",
     "learnMore": "Meer informatie",
@@ -3294,16 +3294,16 @@
     },
     "terms": {
       "title": "Servicevoorwaarden",
-      "company": "Care Conneqt — Verbonden zorg. Menselijke aandacht.",
+      "company": "ICE Alarm España — Verbonden zorg. Menselijke aandacht.",
       "lastUpdated": "Laatst bijgewerkt: juni 2026",
       "importantWarning": "BELANGRIJK: LEES DEZE VOORWAARDEN ZORGVULDIG VOORDAT U ONZE DIENSTEN GEBRUIKT.",
       "emergencyWarning": "DIT IS EEN PERSOONLIJKE ALARMERINGSDIENST, GEEN VERVANGING VAN DE HULPDIENSTEN (112). BEL BIJ LEVENSGEVAAR ALTIJD ZELF 112 ALS DAT MOGELIJK IS.",
       "s1Title": "1. Aanvaarding van de voorwaarden",
-      "s1p1": "Door een account aan te maken, een abonnement te nemen of gebruik te maken van een dienst van Care Conneqt, aanvaardt u deze servicevoorwaarden (\"voorwaarden\"), ons privacybeleid en eventuele aanvullende voorwaarden die voor specifieke diensten gelden.",
+      "s1p1": "Door een account aan te maken, een abonnement te nemen of gebruik te maken van een dienst van ICE Alarm España, aanvaardt u deze servicevoorwaarden (\"voorwaarden\"), ons privacybeleid en eventuele aanvullende voorwaarden die voor specifieke diensten gelden.",
       "s1p2": "Bent u niet met deze voorwaarden akkoord, maak dan geen gebruik van onze diensten.",
       "s2Title": "2. Wie wij zijn",
-      "s2p1": "<strong>Care Conneqt</strong> (\"wij\", \"ons\", \"onze\", \"Care Conneqt\") levert persoonlijke alarmeringsdiensten, waaronder bewaking via een GPS-hanger, de afhandeling van noodmeldingen en bijbehorende ondersteuning.",
-      "s2p2": "Contact: info@careconneqt.es",
+      "s2p1": "<strong>ICE Alarm España</strong> (\"wij\", \"ons\", \"onze\", \"ICE Alarm España\") levert persoonlijke alarmeringsdiensten, waaronder bewaking via een GPS-hanger, de afhandeling van noodmeldingen en bijbehorende ondersteuning.",
+      "s2p2": "Contact: info@icealarm.es",
       "s3Title": "3. Beschrijving van de diensten",
       "s3_1Title": "3.1 Wat wij leveren",
       "s3_1Items": [
@@ -3327,7 +3327,7 @@
       ],
       "s4Title": "4. Belangrijke beperkingen en disclaimers",
       "s4_1Title": "4.1 Geen vervanging van de hulpdiensten",
-      "s4_1Warning": "CARE CONNEQT IS EEN AANVULLENDE DIENST. WIJ ZIJN GEEN HULPDIENST.",
+      "s4_1Warning": "ICE ALARM ESPAÑA IS EEN AANVULLENDE DIENST. WIJ ZIJN GEEN HULPDIENST.",
       "s4_1Items": [
         "Kunt u bij een noodgeval zelf 112 bellen, doe dat dan",
         "Onze dienst is afhankelijk van techniek die kan uitvallen",
@@ -3452,7 +3452,7 @@
       "s9_1Intro": "U kunt uw abonnement op elk moment opzeggen via:",
       "s9_1Items": [
         "Uw ledendashboard",
-        "Een e-mail aan info@careconneqt.es",
+        "Een e-mail aan info@icealarm.es",
         "Een telefoontje naar onze klantenservice"
       ],
       "s9_1p1": "U kunt op elk moment opzeggen. Er is geen minimumtermijn en geen opzegtermijn. De opzegging gaat in aan het einde van de factuurperiode die u al hebt betaald; tot dan blijft de bewaking actief.",
@@ -3512,7 +3512,7 @@
         "Uw wettelijke rechten als consument"
       ],
       "s11Title": "11. Vrijwaring",
-      "s11p1": "U vrijwaart Care Conneqt, haar bestuurders, directeuren, werknemers en partners van alle vorderingen, schade, verliezen, aansprakelijkheden, kosten en uitgaven (waaronder juridische kosten) die voortvloeien uit:",
+      "s11p1": "U vrijwaart ICE Alarm España, haar bestuurders, directeuren, werknemers en partners van alle vorderingen, schade, verliezen, aansprakelijkheden, kosten en uitgaven (waaronder juridische kosten) die voortvloeien uit:",
       "s11Items": [
         "Uw schending van deze voorwaarden",
         "Uw misbruik van de dienst of de apparaten",
@@ -3569,7 +3569,7 @@
       "s16p1": "Bent u niet akkoord met de bijgewerkte voorwaarden, dan dient u het gebruik van onze diensten te staken en uw abonnement op te zeggen.",
       "s17Title": "17. Geschillenbeslechting",
       "s17_1Title": "17.1 Informele oplossing",
-      "s17_1p1": "Voordat u een formele procedure start, stemt u ermee in eerst contact met ons op te nemen via info@careconneqt.es om het geschil informeel op te lossen.",
+      "s17_1p1": "Voordat u een formele procedure start, stemt u ermee in eerst contact met ons op te nemen via info@icealarm.es om het geschil informeel op te lossen.",
       "s17_2Title": "17.2 Toepasselijk recht",
       "s17_2p1": "Op deze voorwaarden is Spaans recht van toepassing.",
       "s17_3Title": "17.3 Bevoegde rechter",
@@ -3578,7 +3578,7 @@
       "s17_4p1": "Bent u consument in de EU, dan hebt u toegang tot het Europese platform voor onlinegeschillenbeslechting op:",
       "s18Title": "18. Algemene bepalingen",
       "s18_1Title": "18.1 Volledige overeenkomst",
-      "s18_1p1": "Deze voorwaarden vormen samen met ons privacybeleid de volledige overeenkomst tussen u en Care Conneqt.",
+      "s18_1p1": "Deze voorwaarden vormen samen met ons privacybeleid de volledige overeenkomst tussen u en ICE Alarm España.",
       "s18_2Title": "18.2 Deelbaarheid",
       "s18_2p1": "Wordt een bepaling van deze voorwaarden niet-uitvoerbaar bevonden, dan blijven de overige bepalingen van kracht.",
       "s18_3Title": "18.3 Geen afstand van recht",
@@ -3588,7 +3588,7 @@
       "s18_5Title": "18.5 Overmacht",
       "s18_5p1": "Wij zijn niet aansprakelijk voor tekortkomingen door omstandigheden buiten onze redelijke macht, waaronder natuurrampen, oorlog, pandemieën, netwerkstoringen of overheidsmaatregelen.",
       "s19Title": "19. Contact",
-      "s19Content": "<strong>Care Conneqt</strong><br/><br/>Algemene vragen: info@careconneqt.es<br/>Ondersteuning: support@careconneqt.es<br/>Privacy: privacy@careconneqt.es",
+      "s19Content": "<strong>ICE Alarm España</strong><br/><br/>Algemene vragen: info@icealarm.es<br/>Ondersteuning: support@icealarm.es<br/>Privacy: privacy@icealarm.es",
       "s20Title": "20. Bevestiging",
       "s20Warning": "DOOR ONZE DIENSTEN TE GEBRUIKEN, BEVESTIGT U DAT:",
       "s20Items": [
@@ -3601,10 +3601,10 @@
         "U bij levensgevaar altijd zelf 112 belt wanneer dat mogelijk is"
       ],
       "effectiveDate": "Deze servicevoorwaarden gelden vanaf de hierboven vermelde datum van laatste bijwerking.",
-      "tagline": "Care Conneqt — Altijd verbonden, altijd veilig",
+      "tagline": "ICE Alarm España — Altijd verbonden, altijd veilig",
       "s9_2Items": [
         "<strong>Start van de termijn:</strong> hebt u een GPS-hanger besteld, dan op de dag waarop u — of iemand die u aanwijst — het apparaat fysiek in bezit krijgt. Hebt u zich geabonneerd zonder apparaat, dan op de dag waarop de overeenkomst is gesloten.",
-        "<strong>Hoe u het uitoefent:</strong> laat het ons binnen de 14 dagen weten met een ondubbelzinnige verklaring — per e-mail naar info@careconneqt.es, schriftelijk naar ons vestigingsadres, of met het modelformulier hieronder. U hoeft geen reden op te geven.",
+        "<strong>Hoe u het uitoefent:</strong> laat het ons binnen de 14 dagen weten met een ondubbelzinnige verklaring — per e-mail naar info@icealarm.es, schriftelijk naar ons vestigingsadres, of met het modelformulier hieronder. U hoeft geen reden op te geven.",
         "<strong>Wat wij terugbetalen:</strong> alle betalingen die wij van u hebben ontvangen, inclusief het inschrijfgeld en de kosten van standaardlevering. Koos u een duurdere verzendwijze, dan vergoeden wij de standaardkosten.",
         "<strong>Wanneer wij terugbetalen:</strong> binnen 14 dagen na ontvangst van uw herroeping, via hetzelfde betaalmiddel dat u hebt gebruikt en zonder kosten voor u.",
         "<strong>De hanger terugsturen:</strong> stuur deze zonder onnodige vertraging terug, en in ieder geval binnen 14 dagen nadat u het ons hebt gemeld. De retourkosten zijn voor uw rekening. U bent alleen aansprakelijk voor waardevermindering door een behandeling die verder gaat dan nodig is om de werking vast te stellen.",
@@ -3613,16 +3613,16 @@
       ],
       "s9_2FormTitle": "Modelformulier voor herroeping",
       "s9_2FormIntro": "U mag dit formulier gebruiken, maar dat is niet verplicht.",
-      "s9_2FormBody": "Aan Care Conneqt, info@careconneqt.es:<br/><br/>Hiermee deel ik/delen wij u mee dat ik/wij onze overeenkomst herroep(en) voor de levering van de volgende dienst en/of goederen: ______________________<br/><br/>Besteld op / ontvangen op: ______________________<br/>Naam consument(en): ______________________<br/>Adres consument(en): ______________________<br/>Handtekening consument(en) (alleen als dit formulier op papier wordt verzonden): ______________________<br/>Datum: ______________________"
+      "s9_2FormBody": "Aan ICE Alarm España, info@icealarm.es:<br/><br/>Hiermee deel ik/delen wij u mee dat ik/wij onze overeenkomst herroep(en) voor de levering van de volgende dienst en/of goederen: ______________________<br/><br/>Besteld op / ontvangen op: ______________________<br/>Naam consument(en): ______________________<br/>Adres consument(en): ______________________<br/>Handtekening consument(en) (alleen als dit formulier op papier wordt verzonden): ______________________<br/>Datum: ______________________"
     },
     "privacy": {
       "title": "Privacybeleid",
-      "company": "Care Conneqt — Verbonden zorg. Menselijke aandacht.",
+      "company": "ICE Alarm España — Verbonden zorg. Menselijke aandacht.",
       "lastUpdated": "Laatst bijgewerkt: juni 2026",
       "s1Title": "1. Wie wij zijn",
-      "s1p1": "<strong>Care Conneqt</strong> (\"wij\", \"ons\", \"onze\") verzorgt de persoonlijke alarmeringsdienst die beschikbaar is via careconneqt.es.",
-      "s1p2": "<strong>Verwerkingsverantwoordelijke:</strong><br/>Care Conneqt<br/>E-mail: info@careconneqt.es",
-      "s1p3": "Met vragen over privacy kunt u terecht bij: privacy@careconneqt.es",
+      "s1p1": "<strong>ICE Alarm España</strong> (\"wij\", \"ons\", \"onze\") verzorgt de persoonlijke alarmeringsdienst die beschikbaar is via icealarm.es.",
+      "s1p2": "<strong>Verwerkingsverantwoordelijke:</strong><br/>ICE Alarm España<br/>E-mail: info@icealarm.es",
+      "s1p3": "Met vragen over privacy kunt u terecht bij: privacy@icealarm.es",
       "s2Title": "2. Waar dit beleid over gaat",
       "s2Intro": "Dit privacybeleid legt uit:",
       "s2Items": [
@@ -3909,8 +3909,8 @@
       "s9Warning": "Belangrijk: trekt u uw toestemming voor de verwerking van medische gegevens in of verzoekt u om verwijdering, dan kunnen wij mogelijk geen effectieve hulp bij noodgevallen meer bieden. In dat geval kunnen wij uw lidmaatschap voor uw eigen veiligheid moeten beëindigen.",
       "s9_8Title": "9.8 Hoe u uw rechten uitoefent",
       "s9_8Items": [
-        "<strong>Online:</strong> via uw ledendashboard op careconneqt.es/dashboard",
-        "<strong>E-mail:</strong> privacy@careconneqt.es"
+        "<strong>Online:</strong> via uw ledendashboard op icealarm.es/dashboard",
+        "<strong>E-mail:</strong> privacy@icealarm.es"
       ],
       "s9_8p1": "Wij reageren binnen 30 dagen. Wij kunnen uw identiteit moeten vaststellen voordat wij een verzoek in behandeling nemen.",
       "s10Title": "10. Beveiliging van gegevens",
@@ -3955,7 +3955,7 @@
       "s15p2": "U hebt ook het recht om naar de rechter te stappen.",
       "s16Title": "16. Contact",
       "s16Intro": "<strong>Voor alle vragen over privacy:</strong>",
-      "s16Content": "Care Conneqt<br/>E-mail: privacy@careconneqt.es<br/>Algemene vragen: info@careconneqt.es",
+      "s16Content": "ICE Alarm España<br/>E-mail: privacy@icealarm.es<br/>Algemene vragen: info@icealarm.es",
       "governedBy": "Op dit privacybeleid is Spaans recht van toepassing, evenals de Algemene verordening gegevensbescherming (EU) 2016/679."
     }
   },
@@ -4786,8 +4786,8 @@
       "serviceOverview": "Service Overview",
       "deviceFocus": "Device Focus",
       "reassuranceTrust": "Reassurance / Trust",
-      "locked": "Care Conneqt Template",
-      "description": "Pre-built video templates designed for Care Conneqt marketing",
+      "locked": "ICE Alarm España Template",
+      "description": "Pre-built video templates designed for ICE Alarm España marketing",
       "useTemplate": "Use Template"
     },
     "exports": {
@@ -4839,17 +4839,17 @@
     },
     "settings": {
       "brandIdentity": "Brand Identity",
-      "brandIdentityDesc": "Care Conneqt brand elements - locked for consistency",
+      "brandIdentityDesc": "ICE Alarm España brand elements - locked for consistency",
       "locked": "Locked",
       "brandRules": "Brand Rules",
-      "brandRulesDesc": "These settings are locked to maintain Care Conneqt brand consistency",
+      "brandRulesDesc": "These settings are locked to maintain ICE Alarm España brand consistency",
       "logo": "Logo",
       "colors": "Brand Colors",
       "colorsLocked": "Colors are locked to maintain healthcare-trust aesthetic",
       "fontFamily": "Font Family",
       "fontLocked": "Font is locked for readability and brand consistency",
       "watermark": "Logo Watermark",
-      "watermarkEnabled": "Show Care Conneqt logo watermark on videos",
+      "watermarkEnabled": "Show ICE Alarm España logo watermark on videos",
       "accessibility": "Accessibility & Safety",
       "accessibilityDesc": "Healthcare-trust standards for readable, accessible content",
       "captionsDefault": "Captions Always On",
@@ -4974,7 +4974,7 @@
     },
     "assets": {
       "logoLocked": "Logo is locked to maintain brand consistency",
-      "defaultLogo": "Care Conneqt Logo",
+      "defaultLogo": "ICE Alarm España Logo",
       "backgroundUrl": "Background Image/Video URL",
       "backgroundHint": "Optional: Enter a URL for a background image or video",
       "productIcons": "Product Icons",
@@ -4994,7 +4994,7 @@
       "createTitle": "Create Video",
       "createDesc": "Use the step-by-step wizard to create new videos. Choose a template, set the format, add content, and render.",
       "templatesTitle": "Templates",
-      "templatesDesc": "Browse pre-built Care Conneqt templates designed for healthcare marketing. Each template is optimized for different goals.",
+      "templatesDesc": "Browse pre-built ICE Alarm España templates designed for healthcare marketing. Each template is optimized for different goals.",
       "exportsTitle": "Exports",
       "exportsDesc": "Download your rendered videos in MP4 format. Captions are available in SRT and VTT formats for accessibility.",
       "settingsTitle": "Settings",
@@ -5492,7 +5492,7 @@
     }
   },
   "partnerOnboarding": {
-    "title": "Word een Care Conneqt-partner",
+    "title": "Word een ICE Alarm España-partner",
     "subtitle": "Help de mensen in uw gemeenschap te beschermen — registreer uw interesse en ons team neemt contact met u op met alles wat u moet weten.",
     "benefit1Title": "Steun uw gemeenschap",
     "benefit1Desc": "Help de mensen om wie u geeft veilig en zelfstandig te blijven met 24/7-bescherming.",
@@ -5535,7 +5535,7 @@
   "help": {
     "title": "Helpcentrum",
     "heading": "Hoe kunnen we u helpen?",
-    "subheading": "Doorzoek onze kennisbank voor handleidingen, veelgestelde vragen en nuttige informatie over de diensten van Care Conneqt.",
+    "subheading": "Doorzoek onze kennisbank voor handleidingen, veelgestelde vragen en nuttige informatie over de diensten van ICE Alarm España.",
     "searchPlaceholder": "Artikelen zoeken...",
     "allCategories": "Alle categorieën",
     "userGuide": "Gebruikershandleiding",
@@ -5876,8 +5876,8 @@
       "time": "Seconden later",
       "title": "Een echt mens neemt op",
       "description": "Een rustige menselijke stem klinkt door de hanger — Ana, van ons meldkamerteam:",
-      "responseQuote": "\"Hola María, le habla Care Conneqt. Estoy aquí con usted. ¿Qué ha pasado?\"",
-      "responseQuoteTranslation": "(\"Hallo Maria, u spreekt met Care Conneqt. Ik ben hier bij u. Wat is er gebeurd?\")",
+      "responseQuote": "\"Hola María, le habla ICE Alarm España. Estoy aquí con usted. ¿Qué ha pasado?\"",
+      "responseQuoteTranslation": "(\"Hallo Maria, u spreekt met ICE Alarm España. Ik ben hier bij u. Wat is er gebeurd?\")",
       "detail1": "Ana ziet dat Maria Spaans spreekt nog vóór ze iets zegt — Maria wordt dus in haar eigen taal begroet",
       "detail2": "Geen keuzemenu's, geen wachtmuziek, geen robot — een echt mens, dat haar bij naam noemt, kalm en geruststellend",
       "detail3": "Maria staat niet in de wacht. Ze heeft vanaf het eerste moment iemand bij zich."
@@ -5926,8 +5926,8 @@
       "time": "Minuten later",
       "title": "Uw telefoon gaat",
       "subtitle": "Dit is het moment dat er het meest toe doet.",
-      "description": "Sarah zit in haar kantoor in Londen. Haar telefoon gaat. Het is Care Conneqt.",
-      "agentQuote": "\"Hallo Sarah, u spreekt met Ana van Care Conneqt. Uw moeder Maria is enkele minuten geleden in haar keuken gevallen. Ze is bij bewustzijn, ze praat, en er is een ambulance onderweg. Ze heeft wat pijn aan haar heup maar ze is rustig — ik heb de hele tijd met haar gesproken.\"",
+      "description": "Sarah zit in haar kantoor in Londen. Haar telefoon gaat. Het is ICE Alarm España.",
+      "agentQuote": "\"Hallo Sarah, u spreekt met Ana van ICE Alarm España. Uw moeder Maria is enkele minuten geleden in haar keuken gevallen. Ze is bij bewustzijn, ze praat, en er is een ambulance onderweg. Ze heeft wat pijn aan haar heup maar ze is rustig — ik heb de hele tijd met haar gesproken.\"",
       "emotionalNote": "Sarah hoorde het niet uren later. Ze kreeg geen gemiste oproep van een onbekend Spaans nummer. Ze kreeg een helder, rustig en professioneel telefoontje — in het Engels — minuten nadat het gebeurde.",
       "detail1": "Sarah wordt via de hanger met Maria verbonden",
       "detail2": "Ze kan de stem van haar moeder horen en weten dat het goed met haar gaat",
@@ -5939,7 +5939,7 @@
       "description": "De ambulance arriveert. Maria wordt naar het ziekenhuis gebracht voor controle. Ze heeft blauwe plekken maar niets is gebroken.",
       "detail1": "Ana heeft de ambulancebemanning geïnformeerd over Maria's medische voorgeschiedenis",
       "detail2": "Sarah wordt gedurende het hele proces op de hoogte gehouden",
-      "detail3": "De volgende dag neemt Care Conneqt contact op met Maria om te controleren of het goed met haar gaat",
+      "detail3": "De volgende dag neemt ICE Alarm España contact op met Maria om te controleren of het goed met haar gaat",
       "note": "Dit is geen eenmalige respons. Het is een doorlopende relatie. Maria krijgt een opvolggesprek en haar incident wordt geregistreerd zodat ons team weet dat het bij haar moet controleren."
     },
     "whatIf": {
@@ -5977,7 +5977,7 @@
   "medconneqt": {
     "title": "MedConneqt",
     "subtitle": "Meldingen van de medicijndispenser, naast uw meldkamerwachtrij",
-    "loginNote": "MedConneqt is een apart systeem met een eigen login — inloggen bij Care Conneqt logt u daar niet in.",
+    "loginNote": "MedConneqt is een apart systeem met een eigen login — inloggen bij ICE Alarm España logt u daar niet in.",
     "sessionNote": "Blijft u in deze weergave niet ingelogd bij MedConneqt, dan blokkeert uw browser de cookies in een ingesloten frame; gebruik dan \"Openen in nieuw tabblad\".",
     "openInNewTab": "Openen in nieuw tabblad",
     "frameTitle": "MedConneqt-alarmplatform",

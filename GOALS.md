@@ -2,7 +2,7 @@
 
 These are the goals **every** loop is measured against, on top of each work package's own Definition of Done. They do not change between WPs. A loop has not met its goal until all of these hold. "Clean", "good", "done", "complete" are never acceptable stop words — the criteria below are provable or they don't count.
 
-Read alongside `CLAUDE.md` (the rules) and `care-conneqt-master-build-plan.md` §16 (the professional bar). Where they overlap, the stricter wording wins.
+Read alongside `CLAUDE.md` (the rules) and `ice-alarm-espana-master-build-plan.md` §16 (the professional bar). Where they overlap, the stricter wording wins.
 
 ---
 

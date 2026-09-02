@@ -32,14 +32,14 @@ import { EmailChangeEmail } from '../_shared/email-templates/email-change.tsx'
 import { ReauthenticationEmail } from '../_shared/email-templates/reauthentication.tsx'
 
 const EMAIL_SUBJECTS: Record<string, string> = {
-  signup: 'Welcome to Care Conneqt — Confirm your email',
-  invite: "You've been invited to Care Conneqt",
-  magiclink: 'Your login link for Care Conneqt',
-  recovery: 'Reset your Care Conneqt password',
-  email_change: 'Confirm your email change — Care Conneqt',
-  email_change_current: 'Confirm your email change — Care Conneqt',
-  email_change_new: 'Confirm your email change — Care Conneqt',
-  reauthentication: 'Your Care Conneqt verification code',
+  signup: 'Welcome to ICE Alarm España — Confirm your email',
+  invite: "You've been invited to ICE Alarm España",
+  magiclink: 'Your login link for ICE Alarm España',
+  recovery: 'Reset your ICE Alarm España password',
+  email_change: 'Confirm your email change — ICE Alarm España',
+  email_change_current: 'Confirm your email change — ICE Alarm España',
+  email_change_new: 'Confirm your email change — ICE Alarm España',
+  reauthentication: 'Your ICE Alarm España verification code',
 }
 
 const EMAIL_TEMPLATES: Record<string, React.ComponentType<Record<string, unknown>>> = {
@@ -53,8 +53,8 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<Record<string, unknown
   reauthentication: ReauthenticationEmail,
 }
 
-const SITE_NAME = 'Care Conneqt'
-const ROOT_DOMAIN = 'careconneqt.es'
+const SITE_NAME = 'ICE Alarm España'
+const ROOT_DOMAIN = 'icealarm.es'
 
 // Standard Supabase send-email hook payload (relevant fields).
 interface SendEmailHookPayload {
@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
   // Recipient: email-change confirmations for the NEW address go to it.
   const to = emailType === 'email_change_new' && user.new_email ? user.new_email : user.email
 
-  const result = await sendEmail(to, EMAIL_SUBJECTS[emailType] || 'Care Conneqt notification', html)
+  const result = await sendEmail(to, EMAIL_SUBJECTS[emailType] || 'ICE Alarm España notification', html)
   if (!result.success) {
     console.error('Auth email send failed', { emailType, error: result.error })
     return new Response(JSON.stringify({ error: 'Failed to send email' }), {

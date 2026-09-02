@@ -99,7 +99,7 @@ describe("sanitizeText", () => {
 
 describe("sanitizeEmail", () => {
   it("lowercases and trims email", () => {
-    expect(sanitizeEmail("  User@careconneqt.com  ")).toBe("user@careconneqt.com");
+    expect(sanitizeEmail("  User@icealarm.es  ")).toBe("user@icealarm.es");
   });
 
   it("removes angle brackets", () => {

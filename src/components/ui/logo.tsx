@@ -9,10 +9,26 @@ interface LogoProps {
 }
 
 /**
- * Care Conneqt Logo
- * Two interlocking "C" shapes — teal + navy — forming the "Connected" mark.
- * API preserved from ICE v1's Logo component so no other usages break.
+ * ICE Alarm España — "The Guardian"
+ *
+ * A shield for protection, a heartbeat for what is protected. The heartbeat is
+ * KNOCKED OUT of the shield rather than drawn over it: one shape, so it engraves,
+ * embroiders and prints in a single colour pass and cannot come apart at 16px.
+ *
+ * Canonical vector source is `public/icon.svg` — the geometry below must stay in
+ * step with it. Every raster in the icon set is exported from that file.
+ *
+ * Primary lockup is the FULL NAME ON ONE LINE ("ICE Alarm España"), matching the
+ * registered company. The stacked form is for narrow columns; below ~150px wide
+ * use `showText={false}` and let the mark stand alone.
+ *
+ * Props are unchanged from the previous component so no caller breaks.
  */
+
+const SHIELD_D =
+  "M50 7 L87 21 V50 C87 71.5 71 87.5 50 93.5 C29 87.5 13 71.5 13 50 V21 Z";
+const HEARTBEAT_D = "M25 52 H37 L43 38 L52 66 L58 52 H75";
+
 export const Logo = forwardRef<HTMLDivElement, LogoProps>(
   function Logo({ variant = "default", size = "md", showText = true, className }, ref) {
     const sizeClasses = {
@@ -28,63 +44,66 @@ export const Logo = forwardRef<HTMLDivElement, LogoProps>(
     };
 
     const textSizes = {
-      sm: "text-lg",
+      sm: "text-base",
       md: "text-xl",
       lg: "text-2xl",
     };
 
-    // Brand colors for the two-C mark
-    // Left C = teal, Right C = deep blue (matches Care Conneqt reference)
+    /**
+     * shield = the solid body, beat = the heartbeat knocked out of it.
+     * On dark grounds the shield goes white and the beat takes the ground colour,
+     * so the mark reverses without a second asset.
+     */
     const markColors = {
-      default: { left: "hsl(185, 75%, 45%)", right: "hsl(215, 85%, 35%)" },
-      white:   { left: "hsl(0, 0%, 100%)",   right: "hsl(0, 0%, 100%)" },
-      dark:    { left: "hsl(185, 75%, 45%)", right: "hsl(215, 85%, 35%)" },
-      sidebar: { left: "hsl(185, 75%, 45%)", right: "hsl(215, 85%, 35%)" },
+      default: { shield: "hsl(350, 85%, 42%)", beat: "hsl(0, 0%, 100%)" },
+      white: { shield: "hsl(0, 0%, 100%)", beat: "hsl(218, 22%, 10%)" },
+      dark: { shield: "hsl(218, 22%, 10%)", beat: "hsl(30, 33%, 98%)" },
+      sidebar: { shield: "hsl(0, 0%, 100%)", beat: "hsl(218, 22%, 10%)" },
     };
 
     const textColors = {
-      default: { main: "text-foreground", accent: "text-primary" },
-      white:   { main: "text-white",       accent: "text-white/80" },
-      dark:    { main: "text-slate-900",   accent: "text-primary" },
-      sidebar: { main: "text-white",       accent: "text-[hsl(185,75%,55%)]" },
+      default: { main: "text-foreground", accent: "text-muted-foreground" },
+      white: { main: "text-white", accent: "text-white/75" },
+      dark: { main: "text-slate-900", accent: "text-slate-500" },
+      sidebar: { main: "text-white", accent: "text-white/70" },
     };
 
-    const { left: leftColor, right: rightColor } = markColors[variant];
+    const { shield, beat } = markColors[variant];
     const text = textColors[variant];
 
     return (
-      <div ref={ref} className={cn("flex items-center gap-2", sizeClasses[size], className)}>
+      <div ref={ref} className={cn("flex items-center gap-2.5", sizeClasses[size], className)}>
         <svg
           viewBox="0 0 100 100"
-          fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className={iconSizes[size]}
-          aria-label="Care Conneqt"
+          className={cn("shrink-0", iconSizes[size])}
+          role="img"
+          aria-label="ICE Alarm España"
         >
-          {/* Left C */}
+          <path d={SHIELD_D} fill={shield} />
           <path
-            d="M0 20 C0 8.95 8.95 0 20 0 L50 0 L50 25 L25 25 C22.24 25 20 27.24 20 30 L20 45 L50 45 L50 70 L20 70 C8.95 70 0 61.05 0 50 L0 20 Z"
-            fill={leftColor}
-          />
-          {/* Right C */}
-          <path
-            d="M100 80 C100 91.05 91.05 100 80 100 L50 100 L50 75 L75 75 C77.76 75 80 72.76 80 70 L80 55 L50 55 L50 30 L80 30 C91.05 30 100 38.95 100 50 L100 80 Z"
-            fill={rightColor}
+            d={HEARTBEAT_D}
+            fill="none"
+            stroke={beat}
+            strokeWidth={7}
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
         </svg>
 
         {showText && (
-          <div className="flex flex-col leading-none">
-            {/* Wordmark — DM Sans (display/sans), weight ~600. Tagline stays sans. */}
-            <span className={cn("font-semibold tracking-tight font-display", textSizes[size], text.main)}>
-              Care Conneqt
-            </span>
-            <span className={cn("text-xs font-medium", text.accent)}>
-              Connected Health
-            </span>
-          </div>
+          /* Primary lockup: one line, Archivo 700 for "ICE Alarm", 500 for "España". */
+          <span
+            className={cn(
+              "font-display font-bold tracking-tight leading-none whitespace-nowrap",
+              textSizes[size],
+              text.main,
+            )}
+          >
+            ICE Alarm <span className={cn("font-medium", text.accent)}>España</span>
+          </span>
         )}
       </div>
     );
-  }
+  },
 );

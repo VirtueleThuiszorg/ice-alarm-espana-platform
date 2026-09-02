@@ -46,21 +46,21 @@ const partnerTypeOptions = [
     type: "residential" as PartnerType,
     icon: Home,
     title: "Care Home / Residential",
-    tagline: "Protect residents with Care Conneqt",
+    tagline: "Protect residents with ICE Alarm España",
     description: "Resident management, alert visibility",
   },
   {
     type: "pharmacy" as PartnerType,
     icon: Pill,
     title: "Pharmacy",
-    tagline: "Recommend Care Conneqt to your customers",
+    tagline: "Recommend ICE Alarm España to your customers",
     description: "In-store referral materials provided",
   },
   {
     type: "insurance" as PartnerType,
     icon: Shield,
     title: "Insurance Provider",
-    tagline: "Add Care Conneqt to your client packages",
+    tagline: "Add ICE Alarm España to your client packages",
     description: "Bundle with existing insurance products",
   },
   {
@@ -314,7 +314,7 @@ export default function PartnerJoin() {
           <div className="max-w-2xl w-full space-y-8">
             <div className="text-center space-y-4">
               <h1 className="text-4xl font-bold tracking-tight">
-                Become an Care Conneqt Partner
+                Become an ICE Alarm España Partner
               </h1>
               <p className="text-xl text-muted-foreground">
                 Help protect seniors in your community while earning commissions
@@ -408,7 +408,7 @@ export default function PartnerJoin() {
         <main className="flex-1 flex items-center justify-center px-4 pb-16">
           <Card className="max-w-4xl w-full">
             <CardHeader className="text-center pb-2">
-              <CardTitle className="text-2xl">Care Conneqt Partner Program</CardTitle>
+              <CardTitle className="text-2xl">ICE Alarm España Partner Program</CardTitle>
               <CardDescription className="text-lg mt-2">
                 What best describes you?
               </CardDescription>
@@ -816,7 +816,7 @@ export default function PartnerJoin() {
                       name="motivation"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Why do you want to partner with Care Conneqt?</FormLabel>
+                          <FormLabel>Why do you want to partner with ICE Alarm España?</FormLabel>
                           <FormControl>
                             <Input placeholder="Optional" {...field} />
                           </FormControl>

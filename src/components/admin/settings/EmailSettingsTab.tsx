@@ -135,7 +135,7 @@ export const EmailSettingsTab = React.forwardRef<HTMLDivElement, object>(
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Recommended for production. Requires verified domain (careconneqt.es).
+                    Recommended for production. Requires verified domain (icealarm.es).
                   </p>
                 </div>
               </div>
@@ -240,7 +240,7 @@ export const EmailSettingsTab = React.forwardRef<HTMLDivElement, object>(
                 <Input
                   value={formState.from_name || ""}
                   onChange={(e) => setFormState((prev) => ({ ...prev, from_name: e.target.value }))}
-                  placeholder="Care Conneqt"
+                  placeholder="ICE Alarm España"
                 />
                 <p className="text-xs text-muted-foreground">
                   The name that appears in the "From" field
@@ -253,7 +253,7 @@ export const EmailSettingsTab = React.forwardRef<HTMLDivElement, object>(
                   type="email"
                   value={formState.from_email || ""}
                   onChange={(e) => setFormState((prev) => ({ ...prev, from_email: e.target.value }))}
-                  placeholder={isGmail ? formState.gmail_smtp_user || "your@gmail.com" : "noreply@careconneqt.es"}
+                  placeholder={isGmail ? formState.gmail_smtp_user || "your@gmail.com" : "noreply@icealarm.es"}
                 />
                 <p className="text-xs text-muted-foreground">
                   {isGmail 
@@ -269,7 +269,7 @@ export const EmailSettingsTab = React.forwardRef<HTMLDivElement, object>(
                   type="email"
                   value={formState.reply_to_email || ""}
                   onChange={(e) => setFormState((prev) => ({ ...prev, reply_to_email: e.target.value }))}
-                  placeholder="support@careconneqt.es"
+                  placeholder="support@icealarm.es"
                 />
                 <p className="text-xs text-muted-foreground">
                   Where replies should be directed (if different from sender)
@@ -284,7 +284,7 @@ export const EmailSettingsTab = React.forwardRef<HTMLDivElement, object>(
               <Textarea
                 value={formState.signature_html || ""}
                 onChange={(e) => setFormState((prev) => ({ ...prev, signature_html: e.target.value }))}
-                placeholder="<p>Best regards,<br/>Care Conneqt Team</p>"
+                placeholder="<p>Best regards,<br/>ICE Alarm España Team</p>"
                 rows={4}
               />
               <p className="text-xs text-muted-foreground">

@@ -33,14 +33,14 @@ function buildRegistrationConfirmationEmail(
       </head>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #dc2626;">Care Conneqt</h1>
+          <h1 style="color: #C8102E;">ICE Alarm España</h1>
         </div>
 
         <h2 style="color: #1f2937;">¡Tu registro está casi completo!</h2>
 
         <p>Hola ${firstName},</p>
 
-        <p>¡Gracias por comenzar tu registro en Care Conneqt! Tu inscripción está casi lista.</p>
+        <p>¡Gracias por comenzar tu registro en ICE Alarm España! Tu inscripción está casi lista.</p>
 
         <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
           <p style="margin: 0; color: #92400e;">
@@ -64,7 +64,7 @@ function buildRegistrationConfirmationEmail(
 
         <p style="color: #6b7280; font-size: 14px;">
           Saludos cordiales,<br>
-          El Equipo de Care Conneqt
+          El Equipo de ICE Alarm España
         </p>
       </body>
       </html>
@@ -81,14 +81,14 @@ function buildRegistrationConfirmationEmail(
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #dc2626;">Care Conneqt</h1>
+        <h1 style="color: #C8102E;">ICE Alarm España</h1>
       </div>
 
       <h2 style="color: #1f2937;">Your registration is almost complete!</h2>
 
       <p>Hello ${firstName},</p>
 
-      <p>Thank you for starting your Care Conneqt registration! Your enrollment is almost ready.</p>
+      <p>Thank you for starting your ICE Alarm España registration! Your enrollment is almost ready.</p>
 
       <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
         <p style="margin: 0; color: #92400e;">
@@ -112,7 +112,7 @@ function buildRegistrationConfirmationEmail(
 
       <p style="color: #6b7280; font-size: 14px;">
         Best regards,<br>
-        The Care Conneqt Team
+        The ICE Alarm España Team
       </p>
     </body>
     </html>
@@ -325,8 +325,8 @@ serve(async (req) => {
         );
 
         const emailSubject = body.primaryMember.preferredLanguage === "es"
-          ? "Completa tu registro en Care Conneqt"
-          : "Complete Your Care Conneqt Registration";
+          ? "Completa tu registro en ICE Alarm España"
+          : "Complete Your ICE Alarm España Registration";
 
         const emailResult = await sendEmail(body.primaryMember.email, emailSubject, emailHtml);
 

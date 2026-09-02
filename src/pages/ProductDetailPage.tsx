@@ -163,7 +163,7 @@ export default function ProductDetailPage() {
       </section>
 
       <footer className="py-8 text-center text-sm text-muted-foreground border-t mt-16">
-        <p>&copy; {new Date().getFullYear()} Care Conneqt. Connected Health. Human Care.</p>
+        <p>&copy; {new Date().getFullYear()} ICE Alarm España. Siempre responde alguien.</p>
       </footer>
     </div>
   );

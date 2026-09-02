@@ -25,19 +25,19 @@ export const RecoveryEmail = ({
 }: RecoveryEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Reset your password for Care Conneqt</Preview>
+    <Preview>Reset your password for ICE Alarm España</Preview>
     <Body style={main}>
       <Container style={container}>
         <Img
           src="https://crpsuhoixfdhjugprbuc.supabase.co/storage/v1/object/public/email-assets/logo.png"
           width="64"
           height="64"
-          alt="Care Conneqt"
+          alt="ICE Alarm España"
           style={logo}
         />
         <Heading style={h1}>Reset your password</Heading>
         <Text style={text}>
-          We received a request to reset your password for Care Conneqt. Click
+          We received a request to reset your password for ICE Alarm España. Click
           the button below to choose a new password.
         </Text>
         <Button style={button} href={confirmationUrl}>
@@ -70,7 +70,7 @@ const text = {
   margin: '0 0 25px',
 }
 const button = {
-  backgroundColor: '#E74C3C',
+  backgroundColor: '#C8102E',
   color: '#ffffff',
   fontSize: '14px',
   fontWeight: 'bold' as const,

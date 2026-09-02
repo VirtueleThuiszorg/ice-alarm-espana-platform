@@ -1,6 +1,6 @@
 /**
  * Partner Agreement Terms - Spanish Law Compliant
- * Care Conneqt S.L. (CIF: B24731531)
+ * ICE Alarm España S.L. (CIF: B24731531)
  * 
  * This agreement is governed by Spanish law and contains
  * the full terms and conditions for partner relationships.

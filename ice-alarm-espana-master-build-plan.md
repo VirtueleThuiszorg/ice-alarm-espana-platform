@@ -1,4 +1,4 @@
-# Care Conneqt — Master Build Plan (v1)
+# ICE Alarm España — Master Build Plan (v1)
 
 **For:** VirtueleThuiszorg — new Spain launch
 **Build tool:** Claude Code in VS Code
@@ -237,7 +237,7 @@ Staff: **Nurse** (summarize/draft) · **Alarm operator** (retrieve profile + log
 | **WP0 — Foundation** | **DONE-BY-EVOLUTION / N/A.** No monorepo to scaffold — single Vite SPA already deploys on Vercel against one Supabase project. *Residual:* lint gate is red (345 err/62 warn) and `.env.example` completeness — fold into WP8. | n/a (superseded) |
 | **WP1 — Backend & auth (harden + PROVE)** | Schema exists (~126 migrations); roles trigger/admin-only by policy. **Gap: no RLS isolation tests.** Add the negative-assertion isolation suite. | Isolation tests prove member/family/partner cannot cross tenants; no client-writable role or plan (STATE.md §3 closed) |
 | **WP2 — The funnel (CLOSE + PROVE)** | Both rails (Stripe/Mollie) wired to `_shared/post-payment.ts`. **Gaps: no webhook contract/E2E test; 3 client-side activation bypasses.** | E2E test: test-mode purchase activates a member via webhook ONLY; the 3 bypasses (PaymentStep, ResidentialDashboard, submit-registration `testMode`) closed (STATE.md §2) |
-| **WP3 — Design system + rebrand** | Largely **DONE** — Care Conneqt tokens/logo/DM Sans live in `src/components` (one in-repo design system; no `packages/ui`). *Residual:* a11y (WCAG AA contrast + scalable fonts) pass. | a11y contrast + font-size pass on key flows |
+| **WP3 — Design system + rebrand** | Largely **DONE** — ICE Alarm España tokens/logo/DM Sans live in `src/components` (one in-repo design system; no `packages/ui`). *Residual:* a11y (WCAG AA contrast + scalable fonts) pass. | a11y contrast + font-size pass on key flows |
 | **WP4 — Device ingestion + SOS (PROVE + FIX)** | Real code end-to-end (`gps-gateway` → `ev07b-sos-alert` → `alerts` → realtime → operator). **Gaps: no SOS E2E test; <1s latency unmeasured; `sos-escalation-runner` + `staff-shift-monitor` have NO cron.** | E2E test: SOS reaches operator screen with **measured** <1s; escalation + shift-monitor scheduled (pg_cron) and proven to fire (STATE.md §1) |
 | **WP5 — Client dashboards (VERIFY)** | Member/client dashboard pages exist; UNVERIFIED. | Live device data + alerts render; consent-scoped family access verified by test |
 | **WP6 — Hub v2 (VERIFY)** | Call-centre/admin/shifts/tickets exist; mostly UNVERIFIED. Twilio/WhatsApp/Resend integrations present. | Operators run a shift end-to-end; HR role-walled; key flows tested |
@@ -323,7 +323,7 @@ We don't prompt CC step-by-step. We define **loops** — a goal with a determini
 Each WP in §12 is run as a goal loop whose stop condition **is** its definition of done. Pattern:
 
 ```
-/goal Execute WP<n> from care-conneqt-master-build-plan.md. Read CLAUDE.md first.
+/goal Execute WP<n> from ice-alarm-espana-master-build-plan.md. Read CLAUDE.md first.
 Stop only when its Definition of Done is met AND every item in §16 (professional
 standard) holds: proven not claimed, zero type/lint errors, critical-path tests
 green, RLS + isolation test on new tables, one concern per branch/PR, STATE.md

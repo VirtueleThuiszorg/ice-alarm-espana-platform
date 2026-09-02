@@ -13,7 +13,7 @@
  * - It does NOT go through the ev07b-sos-alert ingress, so no
  *   emergency-contact-notify / partner-alert-notify / notify-admin fires.
  * - It belongs to a dedicated, clearly-labelled drill member
- *   (sos-drill@care-conneqt.internal) that this function REFUSES to use if it
+ *   (sos-drill@ice-alarm-espana.internal) that this function REFUSES to use if it
  *   somehow has emergency contacts.
  * - The only side effects are operator-facing: realtime queue/dashboard/SOS
  *   pending list + browser tone for logged-in operators. That is the point of
@@ -29,7 +29,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 const FN = "sos-drill";
-const DRILL_MEMBER_EMAIL = "sos-drill@care-conneqt.internal";
+const DRILL_MEMBER_EMAIL = "sos-drill@ice-alarm-espana.internal";
 const DRILL_LABEL = "🧪 SOS DRILL — not a real emergency";
 
 Deno.serve(async (req) => {

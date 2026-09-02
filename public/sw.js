@@ -1,9 +1,9 @@
 /* ================================================================== */
-/*  Care Conneqt  -  Service Worker                               */
+/*  ICE Alarm España  -  Service Worker                               */
 /*  Cache-first for statics, network-first for API, offline fallback  */
 /* ================================================================== */
 
-const CACHE_VERSION = "care-conneqt-v6";
+const CACHE_VERSION = "ice-alarm-espana-v7";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 
@@ -21,7 +21,7 @@ const STATIC_EXTENSIONS = /\.(js|css|woff2?|ttf|eot|otf|png|jpe?g|gif|svg|ico|we
 // Brand identity assets must NEVER be pinned by a stale cache: the tab icon is
 // what users (and Lee) see. Served network-first with HTTP-cache revalidation;
 // the SW cache is only an offline fallback for these.
-const ICON_PATHS = /^\/(favicon(-\d+x\d+)?\.(ico|png)|icon(-\d+)?\.(png|svg)|apple-touch-icon\.png|og-image\.png|manifest\.json)$/i;
+const ICON_PATHS = /^\/(favicon(-\d+x\d+)?\.(ico|png)|icon(-[\w-]+)?\.(png|svg)|apple-touch-icon\.png|og-image\.png|manifest\.json)$/i;
 const SUPABASE_HOST = "supabase.co";
 
 /* ================================================================== */
@@ -186,7 +186,7 @@ function offlineFallback() {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Care Conneqt - Offline</title>
+  <title>ICE Alarm España - Offline</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -203,14 +203,14 @@ function offlineFallback() {
     .container { max-width: 420px; }
     .icon {
       width: 64px; height: 64px; margin: 0 auto 24px;
-      background: #1e5a9c; border-radius: 50%;
+      background: #C8102E; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       color: white; font-size: 28px; font-weight: bold;
     }
     h1 { font-size: 22px; margin-bottom: 12px; }
     p { color: #64748b; line-height: 1.6; margin-bottom: 24px; }
     button {
-      background: #1e5a9c; color: white; border: none;
+      background: #C8102E; color: white; border: none;
       padding: 12px 32px; border-radius: 8px; font-size: 16px;
       font-weight: 600; cursor: pointer;
     }
@@ -222,7 +222,7 @@ function offlineFallback() {
     <div class="icon">!</div>
     <h1>You are offline</h1>
     <p>
-      Care Conneqt requires an internet connection. Please check your
+      ICE Alarm España requires an internet connection. Please check your
       network and try again. In a medical emergency, call
       <strong>112</strong> directly.
     </p>

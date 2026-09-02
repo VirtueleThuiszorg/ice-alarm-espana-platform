@@ -27,11 +27,11 @@
 | **Glucose Monitor product** | `products.hero_image_url` (slug `glucose-monitor`) | catalog (coming-soon card/detail) | ~1200×900 4:3 | webp/jpg | ⚠️ generic **Unsplash stock** | wired via DB column |
 | **How-it-works hero** | `public/images/how-it-works-hero.jpg` (+ key `how_it_works_hero`) | /how-it-works hero | ~1600×1200 4:3 | jpg/webp | ✅ present (163 KB) | wired (path + optional DB row) |
 | **Homepage pendant promo** | `website_images` key `homepage_pendant_promo` | (fetched in LandingPage but **never rendered** — dead) | — | — | n/a | ⚠️ orphaned lookup — remove from code, no image needed |
-| **Logo (vector)** | `src/assets/care-conneqt-logo.svg` + inline SVG in `logo.tsx` | header/footer logo | vector | svg | ✅ present (two-C) | wired |
+| **Logo (vector)** | `public/icon.svg` + inline SVG in `logo.tsx` | header/footer logo | vector | svg | ✅ present (Guardian shield) | wired |
 | **Blog post images** | `blog_posts.image_url` (per post) | blog list/post cards | ~1200×630 | jpg/webp | n/a — author-supplied per post; **no default placeholder** | admin-supplied; a fallback placeholder is optional |
 
 ## Notes / flags
 - **Homepage hero file size (7.5 MB) is the top issue** — it will hurt LCP/mobile badly. Re-export at ~1600px wide, webp, target <300 KB before launch.
 - **GPS Pendant 404** is a launch blocker on `main` until `feat/frontend-polish` (copies the asset to `public/assets/`) is merged — or copy `src/assets/pendant-product.png` → `public/assets/pendant-product.png`.
 - For `pendant_hero` / `pendant_specs`, the source assets already exist in `src/assets/` — they just need uploading into the `website-images` bucket (no new art required).
-- The `og-image` and all favicons/PWA icons are already correct Care Conneqt branding — no action needed there.
+- The `og-image` and the full favicon/PWA set were regenerated from `public/icon.svg` for the ICE Alarm España rebrand (2026-09-02). See BRAND_ASSETS.md.

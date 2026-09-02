@@ -1,4 +1,4 @@
-// Pricing for Care Conneqt — frontend entry point.
+// Pricing for ICE Alarm España — frontend entry point.
 //
 // SINGLE SOURCE OF TRUTH = the DB (pricing_plans + pricing_settings). The pure math lives in
 // supabase/functions/_shared/pricing-calc.ts and is shared with the charge path

@@ -78,7 +78,7 @@ describe("lovable debris — contained and shrinking", () => {
     for (const fn of ["partner-register", "send-member-update-request"]) {
       const src = readFileSync(join(FN_DIR, fn, "index.ts"), "utf8");
       expect(src, `${fn} must not fall back to a dead lovable.app URL`).not.toMatch(/lovable\.app/);
-      expect(src).toMatch(/https:\/\/careconneqt\.es/);
+      expect(src).toMatch(/https:\/\/icealarm\.es/);
     }
   });
 

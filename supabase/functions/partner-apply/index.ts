@@ -164,8 +164,8 @@ async function respondCreated(
 
 function confirmationSubject(lang?: string): string {
   return lang === "es"
-    ? "Hemos recibido tu solicitud de colaborador — Care Conneqt"
-    : "We've received your partner application — Care Conneqt";
+    ? "Hemos recibido tu solicitud de colaborador — ICE Alarm España"
+    : "We've received your partner application — ICE Alarm España";
 }
 
 function confirmationHtml(values: Record<string, string>): string {
@@ -174,12 +174,12 @@ function confirmationHtml(values: Record<string, string>): string {
     return `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: linear-gradient(135deg, #1e40af, #3b82f6); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 24px;">Care Conneqt</h1>
+          <h1 style="color: white; margin: 0; font-size: 24px;">ICE Alarm España</h1>
           <p style="color: #bfdbfe; margin: 8px 0 0 0;">Programa de Colaboradores</p>
         </div>
         <div style="padding: 30px; background: white; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
           <h2 style="color: #1f2937; margin-top: 0;">¡Hola ${name}!</h2>
-          <p style="color: #4b5563;">Hemos recibido tu solicitud para ser colaborador de Care Conneqt. Nuestro equipo la revisará y te avisaremos en cuanto tu cuenta esté activada.</p>
+          <p style="color: #4b5563;">Hemos recibido tu solicitud para ser colaborador de ICE Alarm España. Nuestro equipo la revisará y te avisaremos en cuanto tu cuenta esté activada.</p>
           <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin: 20px 0;">
             <p style="color: #1e40af; font-weight: bold; margin: 0 0 8px 0;">Condiciones de comisión</p>
             <p style="color: #1f2937; margin: 0;">Ganas <strong>50 € por cada colgante vendido</strong> a través de tu enlace de referido. Es una <strong>tarifa fija</strong>: sin escalas por volumen y sin descuentos por vender más.</p>
@@ -193,12 +193,12 @@ function confirmationHtml(values: Record<string, string>): string {
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background: linear-gradient(135deg, #1e40af, #3b82f6); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-        <h1 style="color: white; margin: 0; font-size: 24px;">Care Conneqt</h1>
+        <h1 style="color: white; margin: 0; font-size: 24px;">ICE Alarm España</h1>
         <p style="color: #bfdbfe; margin: 8px 0 0 0;">Partner Programme</p>
       </div>
       <div style="padding: 30px; background: white; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
         <h2 style="color: #1f2937; margin-top: 0;">Hello ${name}!</h2>
-        <p style="color: #4b5563;">We've received your application to become a Care Conneqt partner. Our team will review it and let you know as soon as your account is activated.</p>
+        <p style="color: #4b5563;">We've received your application to become a ICE Alarm España partner. Our team will review it and let you know as soon as your account is activated.</p>
         <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin: 20px 0;">
           <p style="color: #1e40af; font-weight: bold; margin: 0 0 8px 0;">Commission terms</p>
           <p style="color: #1f2937; margin: 0;">You earn <strong>€50 for every pendant sold</strong> through your referral link. This is a <strong>flat rate</strong> — no volume tiers, and no discounts for selling more.</p>

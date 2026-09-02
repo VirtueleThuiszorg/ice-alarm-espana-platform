@@ -122,7 +122,7 @@ export default function JoinWizard() {
 
             reportEvent('new_sale', {
               amount: totalPence,
-              label: `New Care Conneqt sale — €${(totalPence / 100).toFixed(2)}`,
+              label: `New ICE Alarm España sale — €${(totalPence / 100).toFixed(2)}`,
               metadata: {
                 planName: parsed.membershipType,
                 orderId: orderNumber,

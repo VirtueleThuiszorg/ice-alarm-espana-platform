@@ -82,7 +82,7 @@ export function FeedbackWidget() {
                 <p className="text-sm font-medium leading-tight">
                   {t(
                     "feedback.quickPrompt",
-                    "How's your experience with Care Conneqt?"
+                    "How's your experience with ICE Alarm España?"
                   )}
                 </p>
                 <div className="flex gap-1.5 mt-2">
@@ -142,7 +142,7 @@ export function FeedbackWidget() {
           <p className="text-sm text-muted-foreground mb-3">
             {t(
               "feedback.npsQuestion",
-              "How likely are you to recommend Care Conneqt to a friend or colleague?"
+              "How likely are you to recommend ICE Alarm España to a friend or colleague?"
             )}
           </p>
 

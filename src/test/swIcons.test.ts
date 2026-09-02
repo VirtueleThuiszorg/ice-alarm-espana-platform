@@ -30,6 +30,7 @@ const ICON_FILES = [
   "icon.svg",
   "icon-192.png",
   "icon-512.png",
+  "icon-maskable-512.png",
   "apple-touch-icon.png",
 ];
 
@@ -44,7 +45,7 @@ function extractIconPathsRegex(): RegExp {
 
 describe("sw.js never pins a stale brand icon", () => {
   it("cache version moved past the poisoned v5 caches", () => {
-    const m = swSource.match(/CACHE_VERSION = "care-conneqt-v(\d+)"/);
+    const m = swSource.match(/CACHE_VERSION = "ice-alarm-espana-v(\d+)"/);
     expect(m).not.toBeNull();
     expect(Number(m![1])).toBeGreaterThanOrEqual(6);
   });

@@ -58,7 +58,7 @@ describe("public portal night audit — source contracts", () => {
       }
     };
     walk(join(ROOT, "src"));
-    expect(offenders, "LifeLink/£ remnants — this is Care Conneqt, in euros").toEqual([]);
+    expect(offenders, "LifeLink/£ remnants — this is ICE Alarm España, in euros").toEqual([]);
   });
 
   it("JoinContactsStep surfaces missing required fields instead of a silent return", () => {

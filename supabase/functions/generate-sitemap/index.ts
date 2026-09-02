@@ -4,7 +4,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 
 
 
-const BASE_URL = "https://careconneqt.es";
+const BASE_URL = "https://icealarm.es";
 
 interface SitemapPage {
   path: string;

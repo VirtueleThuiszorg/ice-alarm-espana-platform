@@ -312,44 +312,44 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Get base URL from request origin, SITE_URL, or the canonical launch domain
-    const origin = req.headers.get("origin") || Deno.env.get("SITE_URL") || "https://careconneqt.es";
+    const origin = req.headers.get("origin") || Deno.env.get("SITE_URL") || "https://icealarm.es";
     const verificationUrl = `${origin}/partner/verify?token=${token}`;
 
     // Send verification email
     const emailContent = data.preferred_language === "es" 
       ? {
-          subject: "Verifica tu cuenta de socio - Care Conneqt",
+          subject: "Verifica tu cuenta de socio - ICE Alarm España",
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h1 style="color: #1a365d;">¡Bienvenido a Care Conneqt!</h1>
+              <h1 style="color: #1a365d;">¡Bienvenido a ICE Alarm España!</h1>
               <p>Hola ${data.contact_name},</p>
               <p>Gracias por registrarte como socio. Por favor verifica tu dirección de correo electrónico haciendo clic en el botón de abajo:</p>
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${verificationUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                <a href="${verificationUrl}" style="background-color: #C8102E; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
                   Verificar Mi Cuenta
                 </a>
               </div>
               <p>Este enlace expirará en 24 horas.</p>
               <p>Tu código de referido es: <strong>${referralCode}</strong></p>
-              <p>Saludos,<br>El equipo de Care Conneqt</p>
+              <p>Saludos,<br>El equipo de ICE Alarm España</p>
             </div>
           `
         }
       : {
-          subject: "Verify your partner account - Care Conneqt",
+          subject: "Verify your partner account - ICE Alarm España",
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h1 style="color: #1a365d;">Welcome to Care Conneqt!</h1>
+              <h1 style="color: #1a365d;">Welcome to ICE Alarm España!</h1>
               <p>Hello ${data.contact_name},</p>
               <p>Thank you for registering as a partner. Please verify your email address by clicking the button below:</p>
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${verificationUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                <a href="${verificationUrl}" style="background-color: #C8102E; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
                   Verify My Account
                 </a>
               </div>
               <p>This link will expire in 24 hours.</p>
               <p>Your referral code is: <strong>${referralCode}</strong></p>
-              <p>Best regards,<br>The Care Conneqt Team</p>
+              <p>Best regards,<br>The ICE Alarm España Team</p>
             </div>
           `
         };

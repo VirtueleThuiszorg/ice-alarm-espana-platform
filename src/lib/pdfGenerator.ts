@@ -1,4 +1,4 @@
-// PDF Invoice Generator for Care Conneqt
+// PDF Invoice Generator for ICE Alarm España
 // Uses browser print dialog to generate PDF invoices — no external dependencies required.
 
 export interface InvoiceLineItem {
@@ -28,11 +28,11 @@ export interface CompanyInfo {
 }
 
 const DEFAULT_COMPANY: Required<CompanyInfo> = {
-  company_name: 'Care Conneqt S.L.',
+  company_name: 'ICE Alarm España S.L.',
   cif: 'B93557218',
   address: 'Costa del Sol, Málaga, Spain',
-  email: 'info@careconneqtespana.es',
-  website: 'www.careconneqtespana.es',
+  email: 'info@icealarmespana.es',
+  website: 'www.icealarmespana.es',
   phone: '+34 900 123 456',
   iban: 'ES00 0000 0000 0000 0000 0000',
   bic: 'CAIXESBBXXX',
@@ -255,7 +255,7 @@ export function generateInvoicePdf(order: InvoiceData, locale: Locale = 'es'): v
 <html lang="${locale}">
 <head>
   <meta charset="UTF-8">
-  <title>${l.invoiceTitle} ${escapeHtml(order.invoiceNumber)} - Care Conneqt</title>
+  <title>${l.invoiceTitle} ${escapeHtml(order.invoiceNumber)} - ICE Alarm España</title>
   <style>
     * {
       margin: 0;
@@ -280,7 +280,7 @@ export function generateInvoicePdf(order: InvoiceData, locale: Locale = 'es'): v
       justify-content: space-between;
       align-items: flex-start;
       padding-bottom: 24px;
-      border-bottom: 3px solid #dc2626;
+      border-bottom: 3px solid #C8102E;
       margin-bottom: 32px;
     }
 
@@ -291,7 +291,7 @@ export function generateInvoicePdf(order: InvoiceData, locale: Locale = 'es'): v
     .company-name {
       font-size: 22px;
       font-weight: 700;
-      color: #dc2626;
+      color: #C8102E;
       margin-bottom: 4px;
     }
 
@@ -433,7 +433,7 @@ export function generateInvoicePdf(order: InvoiceData, locale: Locale = 'es'): v
     .grand-total-row td.grand-total-amount {
       background: #fef2f2;
       border-radius: 4px;
-      color: #dc2626;
+      color: #C8102E;
     }
 
     /* ---- NOTES ---- */
@@ -582,7 +582,7 @@ export function generateInvoicePdf(order: InvoiceData, locale: Locale = 'es'): v
     <div class="payment-label">${l.paymentInfo}</div>
     <div class="payment-detail">IBAN: ${escapeHtml(company.iban)}</div>
     <div class="payment-detail">BIC/SWIFT: ${escapeHtml(company.bic)}</div>
-    <div class="payment-detail">${locale === 'es' ? 'Beneficiario' : 'Beneficiary'}: Care Conneqt S.L.</div>
+    <div class="payment-detail">${locale === 'es' ? 'Beneficiario' : 'Beneficiary'}: ICE Alarm España S.L.</div>
     <div class="payment-detail">${locale === 'es' ? 'Referencia' : 'Reference'}: ${escapeHtml(order.invoiceNumber)}</div>
   </div>
 

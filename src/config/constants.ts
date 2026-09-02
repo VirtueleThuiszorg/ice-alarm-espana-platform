@@ -1,4 +1,4 @@
-// Centralized configuration constants for Care Conneqt
+// Centralized configuration constants for ICE Alarm España
 // Replaces magic numbers and hardcoded strings scattered across the codebase
 
 // ============================================================

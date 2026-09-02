@@ -80,7 +80,7 @@ export default function ReportsPage() {
         <div>
            <h1 className="text-3xl font-bold tracking-tight">{t("adminReports.title", "Reports")}</h1>
            <p className="text-muted-foreground">
-             {t("adminReports.subtitle", "Analytics and insights for Care Conneqt.")}
+             {t("adminReports.subtitle", "Analytics and insights for ICE Alarm España.")}
            </p>
         </div>
         <div className="flex items-center gap-2">

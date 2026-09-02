@@ -41,7 +41,7 @@ export default function ProductsPage() {
               {t("products.title", "Our Products")}
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              {t("products.subtitle", "Connected health devices that keep you safe and your family informed. All integrated into the Care Conneqt platform.")}
+              {t("products.subtitle", "Connected health devices that keep you safe and your family informed. All integrated into the ICE Alarm España platform.")}
             </p>
           </div>
 
@@ -119,7 +119,7 @@ export default function ProductsPage() {
       </section>
 
       <footer className="py-8 text-center text-sm text-muted-foreground border-t">
-        <p>&copy; {new Date().getFullYear()} Care Conneqt. Connected Health. Human Care.</p>
+        <p>&copy; {new Date().getFullYear()} ICE Alarm España. Siempre responde alguien.</p>
       </footer>
     </div>
   );

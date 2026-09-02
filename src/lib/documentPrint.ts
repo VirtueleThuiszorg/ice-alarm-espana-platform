@@ -60,7 +60,7 @@ export function printDocument(doc: Documentation): void {
     <html lang="${doc.language}">
       <head>
         <meta charset="UTF-8">
-        <title>${doc.title} - Care Conneqt</title>
+        <title>${doc.title} - ICE Alarm España</title>
         <style>
           * {
             margin: 0;
@@ -78,14 +78,14 @@ export function printDocument(doc: Documentation): void {
           }
           
           header {
-            border-bottom: 2px solid #dc2626;
+            border-bottom: 2px solid #C8102E;
             padding-bottom: 20px;
             margin-bottom: 30px;
           }
           
           .company-name {
             font-size: 14px;
-            color: #dc2626;
+            color: #C8102E;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -157,7 +157,7 @@ export function printDocument(doc: Documentation): void {
           }
           
           .content blockquote {
-            border-left: 4px solid #dc2626;
+            border-left: 4px solid #C8102E;
             padding-left: 16px;
             margin: 16px 0;
             color: #4b5563;
@@ -204,7 +204,7 @@ export function printDocument(doc: Documentation): void {
       </head>
       <body>
         <header>
-          <div class="company-name">Care Conneqt</div>
+          <div class="company-name">ICE Alarm España</div>
           <span class="category-badge">${CATEGORY_LABELS[doc.category]}</span>
           <h1 class="document-title">${doc.title}</h1>
           <div class="document-meta">
@@ -217,7 +217,7 @@ export function printDocument(doc: Documentation): void {
         </main>
         
         <footer>
-          <span>Care Conneqt - Confidential</span>
+          <span>ICE Alarm España - Confidential</span>
           <span>Document ID: ${doc.slug}</span>
         </footer>
       </body>

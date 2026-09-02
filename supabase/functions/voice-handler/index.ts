@@ -7,8 +7,8 @@ const FN = "voice-handler";
 const FALLBACK_TWIML =
   `<?xml version="1.0" encoding="UTF-8"?>` +
   `<Response>` +
-  `<Say voice="alice" language="es-ES">Gracias por llamar a Care Conneqt. Un operador le atenderá en breve.</Say>` +
-  `<Say voice="alice" language="en-GB">Thank you for calling Care Conneqt. An operator will assist you shortly.</Say>` +
+  `<Say voice="alice" language="es-ES">Gracias por llamar a ICE Alarm España. Un operador le atenderá en breve.</Say>` +
+  `<Say voice="alice" language="en-GB">Thank you for calling ICE Alarm España. An operator will assist you shortly.</Say>` +
   `<Hangup/>` +
   `</Response>`;
 
@@ -376,8 +376,8 @@ Deno.serve(async (req) => {
             const statusUrl = `${baseUrl}/functions/v1/sos-conference-status`;
             const greetMsg =
               memberLang === "es"
-                ? `${memberName ? `${memberName}, ` : ""}esto es Care Conneqt. Hemos recibido su alerta de emergencia. Un operador se conectará en breve. Por favor permanezca en línea.`
-                : `${memberName ? `${memberName}, ` : ""}this is Care Conneqt. We have received your emergency alert. An operator will connect shortly. Please stay on the line.`;
+                ? `${memberName ? `${memberName}, ` : ""}esto es ICE Alarm España. Hemos recibido su alerta de emergencia. Un operador se conectará en breve. Por favor permanezca en línea.`
+                : `${memberName ? `${memberName}, ` : ""}this is ICE Alarm España. We have received your emergency alert. An operator will connect shortly. Please stay on the line.`;
             const twimlLang = memberLang === "es" ? "es-ES" : "en-GB";
 
             return twiml(
@@ -499,12 +499,12 @@ Deno.serve(async (req) => {
         const name = member?.first_name || callerName || "";
 
         const greetEs = name
-          ? `Hola ${name}, bienvenido a Care Conneqt. Soy Isabel. ${recEs} ¿En qué puedo ayudarle?`
-          : `${getSetting("voice_greeting_es", "Gracias por llamar a Care Conneqt. Soy Isabel.")} ${recEs} ¿En qué puedo ayudarle?`;
+          ? `Hola ${name}, bienvenido a ICE Alarm España. Soy Isabel. ${recEs} ¿En qué puedo ayudarle?`
+          : `${getSetting("voice_greeting_es", "Gracias por llamar a ICE Alarm España. Soy Isabel.")} ${recEs} ¿En qué puedo ayudarle?`;
 
         const greetEn = name
-          ? `Hello ${name}, welcome to Care Conneqt. I'm Isabel. ${recEn} How can I help?`
-          : `${getSetting("voice_greeting_en", "Thank you for calling Care Conneqt. I'm Isabel.")} ${recEn} How can I help?`;
+          ? `Hello ${name}, welcome to ICE Alarm España. I'm Isabel. ${recEn} How can I help?`
+          : `${getSetting("voice_greeting_en", "Thank you for calling ICE Alarm España. I'm Isabel.")} ${recEn} How can I help?`;
 
         // Log greeting as conversation message
         if (convId) {
@@ -533,7 +533,7 @@ Deno.serve(async (req) => {
         console.error(`[${FN} ${VERSION}] Incoming error:`, e);
         return twiml(
           `<Say language="es-ES" voice="alice">Gracias por llamar. Un operador le atenderá.</Say>` +
-            `<Enqueue waitUrl="${baseUrl}/functions/v1/${FN}?action=wait">care-conneqt-queue</Enqueue>`,
+            `<Enqueue waitUrl="${baseUrl}/functions/v1/${FN}?action=wait">ice-alarm-espana-queue</Enqueue>`,
         );
       }
     }

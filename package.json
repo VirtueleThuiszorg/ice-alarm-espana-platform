@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "description": "ICE Alarm España — Connected health monitoring and emergency response platform",
-  "author": "Care Conneqt",
+  "author": "ICE Alarm España S.L.",
   "type": "module",
   "scripts": {
     "dev": "vite",

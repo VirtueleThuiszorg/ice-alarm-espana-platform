@@ -1,6 +1,6 @@
 # CLAUDE.md — operating rules for this repo
 
-You are building the Care Conneqt platform. Read `care-conneqt-master-build-plan.md` for the full plan, and `GOALS.md` for the standing acceptance criteria every loop is measured against. This file is the set of rules you must never break. If a request conflicts with these, stop and flag it.
+You are building the ICE Alarm España platform. Read `ice-alarm-espana-master-build-plan.md` for the full plan, and `GOALS.md` for the standing acceptance criteria every loop is measured against. This file is the set of rules you must never break. If a request conflicts with these, stop and flag it.
 
 ## What this is
 A direct-to-consumer connected-care business in Spain: 4 devices (Vivago SOS watch/pendant, glucose monitor, Dosell dispenser, family health pack) sold with a recurring monitoring subscription. **One Vite SPA on one Supabase backend**, with the two surfaces separated by route group inside the single app: the client surface (`src/pages/{client,join}` + marketing) and the staff/admin surface (`src/pages/{admin,call-centre,staff,partner}`). One AI assistant, Isabella. This is a life-safety product — a real SOS must reach a real operator.

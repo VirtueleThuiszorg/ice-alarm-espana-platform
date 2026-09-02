@@ -374,7 +374,7 @@ All under `supabase/functions/<name>/index.ts`. Default `verify_jwt = false` per
 |---|---|
 | `send-email` | Generic Gmail SMTP send (`_shared/email.ts`). |
 | `send-test-email` | Settings test. |
-| `auth-email-hook` | Supabase Auth hook. Renders branded React Email templates (`_shared/email-templates/`) for signup, recovery, magic-link, invite, email-change, reauthentication. Uses `notify.icehealthsync.com`. |
+| `auth-email-hook` | Supabase Auth hook. Renders branded React Email templates (`_shared/email-templates/`) for signup, recovery, magic-link, invite, email-change, reauthentication. Uses `notify.icealarm.es`. |
 | `email-inbound-webhook` | Inbound email parser → `inbound_email_log`. |
 | `send-member-update-request` | Sends `/member-update` token email. |
 | `validate-member-update-token` / `submit-member-update` | Public token validation + submit. |
@@ -438,7 +438,7 @@ All under `supabase/functions/<name>/index.ts`. Default `verify_jwt = false` per
 ### 5.4 Email (Gmail SMTP + Resend)
 
 - **Primary outbound:** Gmail SMTP via `_shared/email.ts` (secret `GMAIL_APP_PASSWORD`, user from `settings_gmail_user`). Used by send-email, partner-*, staff-*, outreach-send-email, gdpr-delete-member, emergency-contact-notify, shift-daily-reminders.
-- **Branded auth emails:** `auth-email-hook` uses `@lovable.dev/email-js` + React Email templates in `_shared/email-templates/`. Domain `notify.icehealthsync.com`. Brand color `#E74C3C`. Logo in `email-assets` public bucket.
+- **Branded auth emails:** `auth-email-hook` uses `@lovable.dev/email-js` + React Email templates in `_shared/email-templates/`. Domain `notify.icealarm.es`. Brand color `#E74C3C`. Logo in `email-assets` public bucket.
 - **Resend:** `partner-alert-notify` only (key `RESEND_API_KEY`).
 - **Inbound:** `email-inbound-webhook` → `inbound_email_log`.
 

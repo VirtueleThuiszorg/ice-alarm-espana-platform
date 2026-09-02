@@ -162,7 +162,7 @@ describe("redaction", () => {
   });
 
   it("does not leak the full local part of an address", () => {
-    expect(maskEmail("supervisor@careconneqt.com")).not.toContain("supervisor");
+    expect(maskEmail("supervisor@icealarm.es")).not.toContain("supervisor");
   });
 
   it("handles a single-character local part", () => {

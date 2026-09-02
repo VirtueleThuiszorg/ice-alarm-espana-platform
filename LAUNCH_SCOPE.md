@@ -1,4 +1,4 @@
-# LAUNCH_SCOPE.md — Care Conneqt pendant-first launch
+# LAUNCH_SCOPE.md — ICE Alarm España pendant-first launch
 
 > **Status: DRAFT for Lee's sign-off — not yet committed.**
 > Decided in planning session 2026-07-22. This document owns the launch scope:
@@ -15,7 +15,7 @@
   Sync org, Supabase Pro).** Lee owns the org — verified 2026-07-22.
 - The planned migration to `cfwnrcogikjycjcobsay` is **CANCELLED** (historical —
   see `PROJECT_REFS.md`). Update CLAUDE.md §4 and CUTOVER_RUNBOOK.md accordingly.
-- The empty project `qkfvojbcxaptufsepupo` (care-conneqt-platform, VirtueleThuiszorg
+- The empty project `qkfvojbcxaptufsepupo` (ice-alarm-espana-platform, VirtueleThuiszorg
   org, Free — no migrations, no backups) is **DEFERRED**: retained as a possible
   **future** migration target, never a deploy target today. **Correction 2026-08-11:**
   the earlier "to be DELETED" decision is **withdrawn** (Lee, dashboard-verified).
@@ -132,9 +132,9 @@
 
 ## 7. Branding
 
-- Every rendered page conforms to BRAND_ASSETS.md (Care Conneqt only).
+- Every rendered page conforms to BRAND_ASSETS.md (ICE Alarm España only).
 - Zero ICE leftovers in output: no icealarm.es (robots.txt/sitemap), no
-  icehealthsync.com senders, no old brand colour, no fake claims
+  icealarm.es senders, no old brand colour, no fake claims
   ("4.9/5, 2,000+ reviews" hardcoded literals removed or replaced with real,
   verifiable content), no "Coming Soon" placeholder images on launch pages
   (IMAGE_SPEC.md launch-critical images seeded).

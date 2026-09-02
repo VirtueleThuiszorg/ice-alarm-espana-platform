@@ -33,7 +33,7 @@ executed**; see §4. The revised stop condition is in §6.
 |---|---|---|
 | `crpsuhoixfdhjugprbuc` | care-conneqt-prod (LifeLink Sync, Pro) | ✅ **AUTHORITATIVE** — LOCKED 2026-07-22, dashboard-confirmed 2026-08-11 |
 | `cfwnrcogikjycjcobsay` | Lee-owned migration target | ⛔ **CANCELLED** 2026-07-22 — never was live, never a deploy target again |
-| `qkfvojbcxaptufsepupo` | care-conneqt-platform (VirtueleThuiszorg, Free) | 🕓 **DEFERRED** — empty (no migrations, no backups). A possible **future** migration target. **Not** to be deleted; the earlier delete decision is **withdrawn**. |
+| `qkfvojbcxaptufsepupo` | ice-alarm-espana-platform (VirtueleThuiszorg, Free) | 🕓 **DEFERRED** — empty (no migrations, no backups). A possible **future** migration target. **Not** to be deleted; the earlier delete decision is **withdrawn**. |
 | `pduhccavshrhfkfbjgmj` | ICE (pre-rebrand Lovable Cloud) | ☠️ **dead** — "never touch" |
 
 > **Decision reversal recorded.** `qkfvojbcxaptufsepupo` was previously marked "to be
@@ -73,7 +73,7 @@ Ordered strongest first. Nothing here rests on a doc simply asserting a conclusi
 
 5. **Every canonical doc agrees.** `CLAUDE.md` Stack (the only auto-loaded doc),
    `LAUNCH_SCOPE.md` §0 (canonical for locked scope per `LEARN.md` §1), and
-   `care-conneqt-master-build-plan.md` §Architecture line 40 all name
+   `ice-alarm-espana-master-build-plan.md` §Architecture line 40 all name
    `crpsuhoixfdhjugprbuc` as the one true backend and mark the migration CANCELLED.
 
 6. **Both cutover docs are banner-cancelled at the top.** `CUTOVER_RUNBOOK.md` line 4 and
@@ -132,7 +132,7 @@ All correct; no action.
 |---|---|
 | `CLAUDE.md` | 59 (Stack) |
 | `LAUNCH_SCOPE.md` | 14 |
-| `care-conneqt-master-build-plan.md` | 40 |
+| `ice-alarm-espana-master-build-plan.md` | 40 |
 | `STATE.md` | 18, 27, 54 |
 | `LAUNCH_CHECKLIST.md` | 30, 75 |
 | `STAGE_0B_PLAN.md` | 5, 28, 44, 86, 109 |
@@ -158,7 +158,7 @@ cancelled runbook falsifies the history that makes the current decision auditabl
 | `LAUNCH_CHECKLIST.md` | ~87 | `qkfvojbcxaptufsepupo` | ✏️ **CORRECTED** — delete task struck through and marked WITHDRAWN; no longer a launch item |
 | `AUDIT_NIGHT.md` | ~224 | `qkfvojbcxaptufsepupo` | ✏️ **CORRECTED** — item 55's deletion clause struck through and marked WITHDRAWN |
 | `CLAUDE.md` | Stack | both non-authoritative refs | ✏️ **CORRECTED** — cancelled marked historical; `qkfvojbcxaptufsepupo` now DEFERRED, not "to be deleted"; points here |
-| `care-conneqt-master-build-plan.md` | 40 | `cfwnrcogikjycjcobsay` | Names it as CANCELLED |
+| `ice-alarm-espana-master-build-plan.md` | 40 | `cfwnrcogikjycjcobsay` | Names it as CANCELLED |
 | `STATE.md` | 29 | `cfwnrcogikjycjcobsay` | Records the 2026-06-17 reconciliation |
 | `TECHNICAL_SPEC.md` | 11, 169 | `pduhccavshrhfkfbjgmj` | ⚠️ **stale, not historical** — see §3.4 |
 | `REBRAND_CHECKLIST.md` | 142, 143 | `pduhccavshrhfkfbjgmj` + placeholders | Frozen rebrand record; also flags §3.1/§3.3 |
@@ -225,7 +225,7 @@ intended behaviour, but it is a behaviour change worth knowing before the next d
 `invite`, `signup`, `email-change`, `recovery`, `magic-link`, `reauthentication` all
 embedded the placeholder host. All six now use the authoritative ref.
 
-⚠️ **Not fully resolved:** per `REBRAND_CHECKLIST.md:143` a Care Conneqt logo must also be
+⚠️ **Not fully resolved:** per `REBRAND_CHECKLIST.md:143` a ICE Alarm España logo must also be
 uploaded to the `email-assets/logo.png` storage object. Until then the images 404.
 Mitigating fact found during this audit: **no edge function currently imports these
 templates**, so no live email is affected today — the bug is latent, not in production.
@@ -296,7 +296,7 @@ these four buckets, and nothing else:
    banners re-confirmed 2026-08-11.
 3. **`PROJECT_REFS.md`** (this file) — the audit record itself.
 4. **Annotated status statements** in `CLAUDE.md`, `LAUNCH_SCOPE.md`,
-   `LAUNCH_CHECKLIST.md`, `AUDIT_NIGHT.md`, `STATE.md`, `care-conneqt-master-build-plan.md`
+   `LAUNCH_CHECKLIST.md`, `AUDIT_NIGHT.md`, `STATE.md`, `ice-alarm-espana-master-build-plan.md`
    — each naming the ref *as* CANCELLED (historical) or DEFERRED.
 
 **Zero remain in any runtime or config file** — that part is literal and absolute:
@@ -321,3 +321,17 @@ done
 grep -rn 'YOUR_SUPABASE_PROJECT_REF' . --exclude-dir=.git --exclude-dir=node_modules \
                                        --exclude-dir=dist --exclude-dir=test-results
 ```
+
+
+## External names deliberately unchanged (ICE rebrand, 2026-09-02)
+
+The rebrand renamed the product, not the infrastructure. These keep their
+original names because renaming them changes URLs, CI wiring and deploy hooks,
+and that belongs to the domain cutover, not to a branding pass:
+
+- Supabase project **`care-conneqt-prod`** (`crpsuhoixfdhjugprbuc`)
+- GitHub repo **`VirtueleThuiszorg/care-conneqt-platform`**
+- The Vercel project linked to it
+
+`package.json` `name` **was** changed to `ice-alarm-espana-platform`; it is an npm
+field with no external consumer.

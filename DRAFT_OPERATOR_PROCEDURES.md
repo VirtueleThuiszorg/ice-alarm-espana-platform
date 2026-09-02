@@ -67,7 +67,7 @@ still says "Click Claim Alert" and promises "< 30 seconds".*
 > ### 2. Speak to the member through the pendant
 > Two-way voice opens on the pendant itself. You do not need to dial.
 >
-> > "Hello [name], this is [your name] from Care Conneqt. I can see your alert.
+> > "Hello [name], this is [your name] from ICE Alarm España. I can see your alert.
 > > Are you all right?"
 >
 > Listen before asking a second question — a member who has fallen may need time.
@@ -215,7 +215,7 @@ emergency-services-called flag), `AlertDetailPanel.tsx` `handleCall112`.
 > The other mistake costs a life.
 >
 > ### What to say
-> 1. "Care Conneqt monitoring centre" and your name
+> 1. "ICE Alarm España monitoring centre" and your name
 > 2. Member's name, age, exact address, access notes
 > 3. GPS coordinates if they are outdoors
 > 4. What has happened and their current state
@@ -260,7 +260,7 @@ Depends on PR #91.
 > ## MedConneqt Is Not Loading
 >
 > MedConneqt handles medication-dispenser alarms. It is a **separate company's
-> system** with its own login — your Care Conneqt sign-in does not sign you in
+> system** with its own login — your ICE Alarm España sign-in does not sign you in
 > there, and their alarms do not appear in our queue.
 >
 > ### If the page shows "MedConneqt can't be displayed inside the portal"
@@ -278,7 +278,7 @@ Depends on PR #91.
 > **Open in new tab** and log in there.
 >
 > ### What this never affects
-> Care Conneqt SOS alerts are entirely separate. A MedConneqt outage does not
+> ICE Alarm España SOS alerts are entirely separate. A MedConneqt outage does not
 > touch pendant alerts, the escalation ladder, or 112.
 
 ---

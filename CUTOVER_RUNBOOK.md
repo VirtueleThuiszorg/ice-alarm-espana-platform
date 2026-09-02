@@ -10,7 +10,7 @@
 > real migration history, recent backup): `crpsuhoixfdhjugprbuc` is authoritative. Every
 > `cfwnrcogikjycjcobsay` mention in this file is HISTORICAL. See `PROJECT_REFS.md`.
 >
-> Gated runbook for cutting Care Conneqt over from the Lovable-managed Supabase
+> Gated runbook for cutting ICE Alarm España over from the Lovable-managed Supabase
 > (`crpsuhoixfdhjugprbuc`, current live prod) to Lee's own project
 > (`cfwnrcogikjycjcobsay`). **Clean start — NO data migration.**
 > Created 2026-06-16. Schema already applied (123 migrations). See `CLAUDE.md` §4 for refs.
@@ -163,11 +163,11 @@ accounts so Lee can log in as each role and verify the access boundaries below:
 
 | Email | Role | Temp password |
 |---|---|---|
-| `lee@careconneqt.com` | `super_admin` (via the bootstrap fn) | `Test@1234` |
-| `mary@careconneqt.com` | `call_centre_supervisor` | `Test@1234` |
-| `carmen@careconneqt.com` | `call_centre` | `Test@1234` |
-| `albert@careconneqt.com` | `call_centre` | `Test@1234` |
-| `travis@careconneqt.com` | `call_centre` | `Test@1234` |
+| `lee@icealarm.es` | `super_admin` (via the bootstrap fn) | `Test@1234` |
+| `mary@icealarm.es` | `call_centre_supervisor` | `Test@1234` |
+| `carmen@icealarm.es` | `call_centre` | `Test@1234` |
+| `albert@icealarm.es` | `call_centre` | `Test@1234` |
+| `travis@icealarm.es` | `call_centre` | `Test@1234` |
 
 > 🔴 `Test@1234` is a SHARED TEST password — **pre-launch verification only**. It must NOT
 > survive to go-live (see the **Step F blocking gate**). Real staff accounts are created via

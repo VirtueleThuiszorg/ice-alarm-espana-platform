@@ -1,4 +1,4 @@
-# STATE.md — the honest state of Care Conneqt
+# STATE.md — the honest state of ICE Alarm España
 
 > **This file tells the truth or it is a bug (GOALS.md G5).** Every "VERIFIED WORKING" line
 > names the test or click-through that proves it. Nothing is marked working on the strength of
@@ -19,7 +19,7 @@
 |---|---|---|---|
 | B1 | Authoritative project ref | ✅ VERIFIED | **`crpsuhoixfdhjugprbuc`** (care-conneqt-prod, LifeLink Sync, Pro). Lee confirmed in the Supabase dashboard: Pro tier, 24,299 requests at 100%, real migration history, backup 7h old. |
 | B2 | `cfwnrcogikjycjcobsay` | ✅ VERIFIED — CANCELLED | Never became live production. Cutover cancelled 2026-07-22. Appears in **no** runtime or config file — docs only, all annotated HISTORICAL. |
-| B3 | `qkfvojbcxaptufsepupo` | ✅ VERIFIED — **DEFERRED** | care-conneqt-platform (VirtueleThuiszorg, Free): no migrations, no backups, empty. Possible **future** migration target. **The earlier "to be deleted" decision is WITHDRAWN** (2026-08-11). |
+| B3 | `qkfvojbcxaptufsepupo` | ✅ VERIFIED — **DEFERRED** | ice-alarm-espana-platform (VirtueleThuiszorg, Free): no migrations, no backups, empty. Possible **future** migration target. **The earlier "to be deleted" decision is WITHDRAWN** (2026-08-11). |
 | B4 | Repo-wide ref audit | ✅ VERIFIED | `PROJECT_REFS.md` — every reference classified CURRENT / HISTORICAL / DEFERRED / BUG, per file and line, incl. all `docs/archive` hits. |
 | B5 | `vercel.json` sitemap rewrite | ✅ FIXED | Was the literal `YOUR_SUPABASE_PROJECT_REF` → `/sitemap.xml` resolved to a non-existent host. Now the real ref. |
 | B6 | `vite.config.ts` env fallback | ✅ FIXED | Silent placeholder fallback removed; the build now **throws** naming the missing var. Proven both ways: build fails without env, succeeds with the env CI supplies. |
@@ -182,7 +182,7 @@ sandbox network policy 403s outbound to `*.vercel.app`).** Findings:
 
 - **Repo and build output are CORRECT.** `dist/` is byte-identical to `public/` for every
   icon (sha256 MATCH on favicon.ico/16/32/48, icon-192/512, apple-touch); the built
-  `favicon.ico` is the Care Conneqt "v" mark (`sha256 d8e3315f…`, 5687 B). `main`'s
+  `favicon.ico` is the ICE Alarm España "v" mark (`sha256 d8e3315f…`, 5687 B). `main`'s
   `index.html` has the correct `<link rel="icon">` set (#23) and **zero** references to the
   cancelled project. So nothing in git or the build is the old ICE image.
 - **Therefore the wrong file is introduced at deploy/serve time**, consistent with the
@@ -198,11 +198,11 @@ sandbox network policy 403s outbound to `*.vercel.app`).** Findings:
 
 ### ⚠️ Launch domain & email — NOT verified (2026-07-22)
 
-The launch domain **`careconneqt.es` is owned by a known partner**. Attaching it to Vercel +
+The launch domain **`icealarm.es` is owned by a known partner**. Attaching it to Vercel +
 DNS + email verification (SPF/DKIM/DMARC, Resend/Gmail domain verification) is a **final,
 coordinated go-live step** done with the partner at cutover — not before. The repo uses it in
 `public/robots.txt` (sitemap) and the `auth-email-hook` sender domain as the *intended* value;
-until cutover **email sending from `@careconneqt.es` remains unverified** and **development
+until cutover **email sending from `@icealarm.es` remains unverified** and **development
 continues on the `*.vercel.app` URL**. Tracked as a HARD launch blocker in `LAUNCH_CHECKLIST.md`.
 
 ---
@@ -497,7 +497,7 @@ messages unassign `""`→`null` bug; `callCentreCrud.test.ts` 11 tests).
 - **Lovable-debris containment (2026-07-24, goal item 2).** Audit of all 13 remaining
   Lovable-referencing functions delivered (report in session). Executed so far:
   **PR #61** — dead `shelter-span.lovable.app` fallbacks fixed in `partner-register` +
-  `send-member-update-request` (→ `careconneqt.es`), `*.lovable.app` CORS origin patterns
+  `send-member-update-request` (→ `icealarm.es`), `*.lovable.app` CORS origin patterns
   dropped from `_shared/cors.ts`, zero-invoker `outreach-followup-runner` deleted;
   **PR #62 (stacked, AUTH-CRITICAL — review carefully)** — `auth-email-hook` rewritten from
   `@lovable.dev/email-js`+`webhooks-js` onto the standard Supabase send-email hook

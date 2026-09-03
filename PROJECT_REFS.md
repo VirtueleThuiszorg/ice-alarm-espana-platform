@@ -10,7 +10,10 @@
 
 ## 0. Verdict — CONFIRMED by Lee 2026-08-11
 
-**`crpsuhoixfdhjugprbuc` (care-conneqt-prod, LifeLink Sync org, Pro) is authoritative.**
+**`crpsuhoixfdhjugprbuc` (ice-alarm-espana-prod, LifeLink Sync org, Pro) is authoritative.**
+
+> Renamed in the Supabase dashboard 2026-09-03 (was `care-conneqt-prod`). The **ref** is
+> what identifies the project and it has not changed; the display name is cosmetic.
 
 Confirmed against the Supabase dashboard: **Pro tier, 24,299 requests at 100%, real
 migration history, backup 7 hours old.** This independently corroborates every piece of
@@ -31,7 +34,7 @@ executed**; see §4. The revised stop condition is in §6.
 
 | Ref | Project | Status |
 |---|---|---|
-| `crpsuhoixfdhjugprbuc` | care-conneqt-prod (LifeLink Sync, Pro) | ✅ **AUTHORITATIVE** — LOCKED 2026-07-22, dashboard-confirmed 2026-08-11 |
+| `crpsuhoixfdhjugprbuc` | ice-alarm-espana-prod (LifeLink Sync, Pro) | ✅ **AUTHORITATIVE** — LOCKED 2026-07-22, dashboard-confirmed 2026-08-11, renamed 2026-09-03 |
 | `cfwnrcogikjycjcobsay` | Lee-owned migration target | ⛔ **CANCELLED** 2026-07-22 — never was live, never a deploy target again |
 | `qkfvojbcxaptufsepupo` | ice-alarm-espana-platform (VirtueleThuiszorg, Free) | 🕓 **DEFERRED** — empty (no migrations, no backups). A possible **future** migration target. **Not** to be deleted; the earlier delete decision is **withdrawn**. |
 | `pduhccavshrhfkfbjgmj` | ICE (pre-rebrand Lovable Cloud) | ☠️ **dead** — "never touch" |
@@ -323,15 +326,25 @@ grep -rn 'YOUR_SUPABASE_PROJECT_REF' . --exclude-dir=.git --exclude-dir=node_mod
 ```
 
 
-## External names deliberately unchanged (ICE rebrand, 2026-09-02)
+## External names (ICE rebrand, 2026-09-02; infrastructure renamed 2026-09-03)
 
-The rebrand renamed the product, not the infrastructure. These keep their
-original names because renaming them changes URLs, CI wiring and deploy hooks,
-and that belongs to the domain cutover, not to a branding pass:
+The 2026-09-02 rebrand renamed the product only, and this section recorded the
+infrastructure names as deliberately left alone. Two of them have since been
+renamed, so the record is updated rather than left contradicting reality:
 
-- Supabase project **`care-conneqt-prod`** (`crpsuhoixfdhjugprbuc`)
-- GitHub repo **`VirtueleThuiszorg/care-conneqt-platform`**
-- The Vercel project linked to it
+- Supabase project — **renamed** `care-conneqt-prod` → **`ice-alarm-espana-prod`**
+  (2026-09-03). Ref unchanged: `crpsuhoixfdhjugprbuc`. Nothing in the repo keys off
+  the display name.
+- GitHub repo — **renamed** `VirtueleThuiszorg/care-conneqt-platform` →
+  **`VirtueleThuiszorg/ice-alarm-espana-platform`**. GitHub redirects the old path, so
+  existing remotes and API calls keep working; re-point remotes at your convenience,
+  not urgently.
+- The Vercel project linked to it — not verified renamed. Treat as unchanged until
+  someone checks the dashboard.
 
-`package.json` `name` **was** changed to `ice-alarm-espana-platform`; it is an npm
-field with no external consumer.
+`package.json` `name` was changed to `ice-alarm-espana-platform` in the rebrand; it is
+an npm field with no external consumer.
+
+**Do not confuse the two ICE-named projects.** `qkfvojbcxaptufsepupo` is *also* named for
+the ICE brand and is the **empty, DEFERRED** project — never a deploy target. Production
+is the *ref* `crpsuhoixfdhjugprbuc`, not whichever project has "ice-alarm" in its name.

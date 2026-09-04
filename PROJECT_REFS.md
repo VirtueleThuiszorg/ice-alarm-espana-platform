@@ -330,8 +330,20 @@ original names because renaming them changes URLs, CI wiring and deploy hooks,
 and that belongs to the domain cutover, not to a branding pass:
 
 - Supabase project **`care-conneqt-prod`** (`crpsuhoixfdhjugprbuc`)
-- GitHub repo **`VirtueleThuiszorg/care-conneqt-platform`**
 - The Vercel project linked to it
 
 `package.json` `name` **was** changed to `ice-alarm-espana-platform`; it is an npm
 field with no external consumer.
+
+**Correction 2026-09-04 — the GitHub repo is no longer on this list.** It was
+renamed and is now **`VirtueleThuiszorg/ice-alarm-espana-platform`** (confirmed
+against `git remote -v`). This section previously listed it as deliberately
+unchanged, which stopped being true when the rename happened. A stale repo name
+here is not cosmetic: this file is the per-file reference map that other sessions
+read to decide what is current, and a wrong repo name sends them to a URL that
+404s or, worse, to a different repository.
+
+`package-lock.json` still carries `"name": "care-conneqt-platform"` (lines 2 and 8)
+while `package.json` says `ice-alarm-espana-platform`. Left alone deliberately —
+npm rewrites that field on the next lockfile-touching install, and hand-editing a
+lockfile to fix a cosmetic name is not worth the diff.

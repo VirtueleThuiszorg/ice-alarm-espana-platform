@@ -130,19 +130,41 @@ is invisible. It is also a **WCAG AA contrast failure**: `zinc-500` (#71717a) on
 relative-luminance formula — under the 4.5:1 required for text at that size. GOALS.md G3 ("emergency actions must be reachable and obvious under stress")
 is not met. The information is technically present and practically absent.
 
-### 1-F What is NOT broken (corrections to the goal brief)
+### 1-F The CI command is fixed; `main` is nevertheless RED
 
-Two items in the brief are already fixed on `main` and this design does not touch them:
+The brief's two CI claims split apart, and the split matters:
 
-- **CI typecheck.** The brief states `.github/workflows/ci.yml:40` runs `npx tsc --noEmit`
-  against the `{"files": []}` stub and so checks nothing. That was true; it was fixed on
-  `main` in **`cf2ae84` "fix(ci): the typecheck gate was checking nothing"**, which now runs
-  `npx tsc -p tsconfig.app.json --noEmit` *and* `-p tsconfig.node.json --noEmit`, with the
-  reasoning recorded in a comment above the step and guarded by
-  `src/test/ciTypecheckGate.test.ts`.
-- **The 78 errors.** `npx tsc -p tsconfig.app.json --noEmit` on `dff29b7` exits **0** with
-  **zero** errors (run 2026-09-04 in this sandbox). They were cleared in `1dc74e7`
-  (`chore/typecheck-green`). "Green main" is meaningful again; the real typecheck is the gate.
+- **The command is fixed.** The brief states `.github/workflows/ci.yml:40` runs
+  `npx tsc --noEmit` against the `{"files": []}` stub and so checks nothing. That was true; it
+  was fixed on `main` in **`cf2ae84` "fix(ci): the typecheck gate was checking nothing"**,
+  which now runs `npx tsc -p tsconfig.app.json --noEmit` *and*
+  `-p tsconfig.node.json --noEmit`, with the reasoning in a comment above the step and guarded
+  by `src/test/ciTypecheckGate.test.ts`. **Goal item 4 needs no increment — it is already
+  done.**
+- **The 78 errors are still there.** `npx tsc -p tsconfig.app.json --noEmit` on a pristine
+  `dff29b7` worktree produces **78 errors across 81 locations, 75 of them in `src/`** —
+  exactly the count the brief gives. The `tsconfig.node.json` project is clean.
+
+> **⚠️ Correction, recorded rather than quietly fixed (GOALS.md G5).** An earlier revision of
+> this section claimed the typecheck exits 0 and that the errors had been cleared in `1dc74e7`.
+> **That was wrong.** It came from one run of `tsc` in this sandbox that reported zero errors;
+> re-run against a clean `git worktree` of `main` with no local changes, the same command
+> reports 78. The brief was right and the earlier claim was not. It is corrected here, in the
+> commit history, and in the PR description rather than edited away — because "typecheck is
+> green" is exactly the kind of unearned all-clear G5 exists to forbid, and it was asserted
+> about the very gate whose falseness is item 4 of this goal.
+
+**Consequence for this goal: "cut from a green `main`" is not currently possible.** The
+typecheck job on `main` fails, so every increment below is cut from a `main` that is red on a
+gate unrelated to it. Two things follow:
+
+1. Each increment's typecheck claim is stated as **"no new errors, and every file the
+   increment touches is clean"**, proven by diffing the sorted `tsc` output against the same
+   command on a pristine `main` worktree — never as "typecheck green", which would be false.
+2. **Clearing the 75 `src/` errors is its own concern and its own PR, and it is not in this
+   goal.** It spans ~34 files across the app and has nothing to do with readiness; folding it
+   in would be the God commit the engineering bar forbids, and it would bury SOS-path changes
+   that need a human's full attention. **Flagged** — §8, question 5.
 
 Nothing else in the brief's verified list was contradicted: 1-A, 1-D and the absence of any
 readiness concept all reproduce exactly as described.
@@ -460,7 +482,8 @@ never fire.
 | 2 | `…-gm9vg2-operator-card` | Operator card loud zero state + `ICE_OPERATOR_CARD_SPEC.md` | **YES — SOS/alert path** |
 | 3 | `…-gm9vg2-readiness-view` | The `security_invoker` view migration + isolation assertions §6-A | **YES — RLS** |
 | 4 | `…-gm9vg2-admin-queue` | Admin member-list column + paid-but-not-ready queue | no |
-| — | — | **CI typecheck: already fixed on `main` in `cf2ae84`.** No increment. See §1-F | — |
+| — | — | **CI typecheck command: already fixed on `main` in `cf2ae84`.** No increment. §1-F | — |
+| — | — | **The 75 `src/` type errors: NOT in this goal.** Own concern, own PR, ~34 files. §1-F, §8 q5 | — |
 
 Increment 2 depends on nothing (the card already has the count). Increment 4 depends on 3's
 view; it is cut from `main` regardless and is not merged until 3 is, which is the "never
@@ -468,6 +491,12 @@ stacked" rule applied honestly rather than by pretending the dependency is absen
 
 `CLAUDE.md`'s merge discipline applies: serially, on a green `main`, never red, and the human
 gate on 1, 2 and 3 before any of them merges. **Nothing in this goal is merged by the loop.**
+
+Do not paper over the tension this creates. `CLAUDE.md` says *"CI failing on a PR means the
+merge does not happen"*, and the typecheck job is red on `main` and will therefore be red on
+every one of these PRs. **None of these increments should be merged until the 75 `src/` errors
+are cleared by their own PR.** That ordering is the human's decision, not the loop's — it is
+the same "never merge red" rule whose breach caused both production outages.
 
 ---
 
@@ -487,3 +516,8 @@ gate on 1, 2 and 3 before any of them merges. **Nothing in this goal is merged b
    being right, and golden rule 4 is the thing that keeps it true.
 4. **Existing views bypass RLS** (§2 note). Three views are `security_definer` by default.
    Out of scope here; probably a finding worth its own PR.
+5. **The 75 `src/` type errors block merging anything** (§1-F). The CI typecheck command is
+   correctly wired and correctly failing on `main`. Who clears them, and in which PR? Until
+   that lands, "never merge red" blocks every increment in this goal — including the ones
+   behind the human gate. This is the biggest blocker this design surfaced, and it is not
+   readiness work.

@@ -26,6 +26,50 @@
 | B7 | 6 email-template logo URLs | ✅ FIXED | All six `_shared/email-templates/*.tsx` carried the placeholder. Now the real ref. ⚠️ **Still owed:** upload the logo to the `email-assets/logo.png` storage object — until then the images 404 (templates are currently unreferenced by any function, so no live email is affected). |
 | B8 | Untouched by design | — | `index.html`, `.github/workflows/deploy-functions.yml`, and the two cron migrations (`20260716120000`, `20260723120000`) already name the authoritative ref. The cron pair is the **SOS-escalation path** — not edited (G1 / human gate). |
 
+## Emergency-contact readiness (2026-09-04) — the second axis
+
+> Design: `READINESS_MODEL.md` (PR #150). Increments: PR #151 (notify outcome), #152 (operator
+> card), #153 (readiness view). **NONE IS MERGED.** Everything below marked "fix open" is the
+> broken behaviour on `main` today.
+
+| # | Item | Status | Evidence |
+|---|---|---|---|
+| R1 | `emergency-contact-notify` reports a member with **zero** emergency contacts as `{success: true, notified: 0}` at **HTTP 200** | 🔴 BROKEN on main · fix open in **#151** | `emergency-contact-notify/index.ts:73-78`. A caller checking `success` cannot tell "nobody to call" from "the whole chain was reached". Live. |
+| R2 | The same branch swallows `contactsError`, so a **failed read** of `emergency_contacts` returns the byte-identical payload as an empty table | 🔴 BROKEN on main · fix open in **#151** | Same lines. Opposite facts, one response, on the highest-priority path. Not in the original brief. |
+| R3 | Neither ingest caller reads the notify response at all | 🔴 BROKEN on main · fix open in **#151** | `ev07b-sos-alert/index.ts:197`, `ev07b-checkin/index.ts:221` — `await fetch(...)` then the `Response` is discarded. No `.json()`, no `.ok`. **Fixing R1 alone would change nothing observable.** |
+| R4 | Level 5 of the escalation ladder is **silent** for a member with no contacts, then records the tier as *reached* | 🔴 BROKEN on main · fix open in **#151** | `_shared/escalation-outcome.ts:58,69` — zero contacts ⇒ `attempted=false` ⇒ `fireCallFailedAlert=false`. The comment's "the shift monitor covers it" is true for L2–L4 (staff) and false for L5 (next of kin — nothing watches those). |
+| R5 | The operator card renders "no emergency contacts" as 12px grey-on-dark, buried below the fold | 🔴 BROKEN on main · fix open in **#152** | `SOSActionPanel.tsx:346`, `text-xs text-zinc-500` = **3.2:1** by the WCAG 2.1 formula, under the 4.5:1 floor. G3 unmet on the emergency path. |
+| R6 | No completeness/readiness concept exists anywhere in the product | ⬜ MISSING on main · fix open in **#153** | `grep profile_complete\|monitoring_ready\|setup_complete\|onboarding_complete` returns nothing. A member is `active` or not. |
+| R7 | Admin queue of paid-but-not-ready members | ⬜ **MISSING — NOT BUILT** | Increment 4 of the design. Not started; the loop stopped at its turn cap. Nothing exists, in any PR. |
+| R8 | Readiness view isolation | ✅ VERIFIED (in PR #153, not on main) | 18 assertions in `scripts/rls/isolation.sql`, 77 → 95, all PASS. Mutation-proven: `security_invoker = off` turns 7 red including cross-member reads. Rollback executed — view gone, 0 rows/policies/indexes lost. |
+
+### CI is a gate again, and it is RED
+
+| # | Item | Status | Evidence |
+|---|---|---|---|
+| R9 | The CI typecheck command checked **zero files** | ✅ FIXED on main | `cf2ae84`. `ci.yml` now runs `npx tsc -p tsconfig.app.json --noEmit` **and** `-p tsconfig.node.json --noEmit`; guarded by `src/test/ciTypecheckGate.test.ts`. |
+| R10 | The 78 type errors are **still there** | 🔴 BROKEN on main — **not in any PR** | `tsc -p tsconfig.app.json --noEmit` on a pristine `dff29b7` worktree: **78 errors, 81 locations, 75 in `src/`** across ~34 files. `tsconfig.node.json` is clean. So `main` fails CI, and `CLAUDE.md`'s **never merge red** blocks #151–#153. Nobody owns this yet. |
+| R11 | The RLS isolation harness does not run on main at all | 🔴 BROKEN on main · fix open in **`fix/rebrand-migration-jsonb`** | `20260902120000_rebrand_ice_alarm_espana_content.sql:159` → `function replace(jsonb, unknown, unknown) does not exist`. `run.sh` aborts: "the schema under test is incomplete". **Golden rule 2's proof is currently not executing.** Reproduced 3× with zero local changes. |
+
+### Retracted
+
+**An earlier revision of `READINESS_MODEL.md` §1-F claimed the real typecheck exits 0 on
+`dff29b7` and that the 78 errors were cleared in `1dc74e7`. That was wrong** — see R10. It came
+from a single sandbox run reporting zero errors, and was written down without a second run,
+about the very gate whose falseness the goal was checking. Corrected in `1de439d` and recorded
+here rather than edited away (G5).
+
+### Not asserted
+
+- No browser click-through of the operator card was performed. R5's fix is proven by a
+  **rendering** test (12 assertions, both absences mutation-proven), not by a human looking at
+  a live SOS.
+- R1–R4's fixes are proven by unit and source-level tests. **No end-to-end SOS drill was run
+  against a real device or a real Twilio call**, so the latency target and the live delivery
+  path are unchanged and unverified by this work.
+- Nothing above is on `main`. Three PRs are open; three of the four increments carry the
+  mandatory human gate (SOS path ×2, RLS ×1).
+
 ## Partner journey (2026-08-11) — traced end to end
 
 > Full reasoning, both signup paths and the open decision: **`PARTNER_JOURNEY.md`**.

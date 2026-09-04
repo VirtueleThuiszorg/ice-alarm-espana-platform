@@ -2910,7 +2910,10 @@
       "returnHome": "Volver al inicio",
       "questionsTitle": "¿Preguntas? Nuestro equipo de soporte está aquí para ayudar.",
       "callUsAt": "Llámenos al",
-      "orEmail": "o escriba a"
+      "orEmail": "o escriba a",
+      "oneThingLeftTitle": "Falta una cosa: sus contactos de emergencia",
+      "oneThingLeftBody": "Hasta que tengamos al menos una persona a la que llamar, podemos atender su alarma pero no podemos avisar a su familia.",
+      "oneThingLeftHow": "Use el enlace que le hemos enviado por correo, o llámenos y tomamos los datos ahora — lo que le resulte más fácil."
     },
     "validation": {
       "enterFullName": "Por favor introduzca su nombre completo",
@@ -6025,5 +6028,12 @@
     "converting": "Enviando…",
     "success": "Invitación enviada: la solicitud ya es un partner invitado.",
     "error": "No se pudo convertir la solicitud"
+  },
+  "clientDashboard": {
+    "notReady": {
+      "title": "No tenemos a nadie a quien llamar por usted",
+      "body": "Su alarma funciona y un operador la atenderá. Pero no tenemos ni un contacto de emergencia en su ficha, así que no podemos avisar a su familia.",
+      "how": "Use el enlace que le enviamos por correo, o llámenos y tomamos los datos por teléfono."
+    }
   }
 }

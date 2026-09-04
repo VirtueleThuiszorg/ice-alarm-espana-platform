@@ -4922,6 +4922,7 @@ export type Database = {
           converted_member_id: string | null
           created_at: string
           current_step: number
+          schema_version: number
           email: string | null
           first_name: string | null
           id: string
@@ -4938,6 +4939,7 @@ export type Database = {
           converted_member_id?: string | null
           created_at?: string
           current_step?: number
+          schema_version?: number
           email?: string | null
           first_name?: string | null
           id?: string
@@ -4954,6 +4956,7 @@ export type Database = {
           converted_member_id?: string | null
           created_at?: string
           current_step?: number
+          schema_version?: number
           email?: string | null
           first_name?: string | null
           id?: string

@@ -90,6 +90,7 @@ interface RegistrationDraft {
   first_name: string | null;
   last_name: string | null;
   current_step: number;
+  schema_version?: number;
   wizard_data: {
     membershipType?: string;
     billingFrequency?: string;
@@ -111,18 +112,47 @@ interface Staff {
   last_name: string;
 }
 
-const STEP_NAMES = [
-  "Not Started",
-  "Plan Selection",
-  "Personal Details",
-  "Address",
-  "Medical Info",
-  "Emergency Contacts",
-  "Device Selection",
-  "Review & Checkout",
-  "Payment",
-  "Complete"
-];
+/**
+ * Step names PER DRAFT SCHEMA VERSION.
+ *
+ * This was a single flat array with a hardcoded "of 8" denominator, and it was wrong twice
+ * over: the wizard had NINE steps, and the array listed "Medical Info" at index 4 with
+ * "Emergency Contacts" at 5 while the wizard had contacts at 4 and medical at 5. So an
+ * abandoned draft was reported at the wrong step, by name, with the wrong percentage.
+ *
+ * A raw step number is only interpretable together with the version that wrote it
+ * (registration_drafts.schema_version). ONBOARDING_SPLIT.md §4-B.
+ */
+const STEP_NAMES_BY_VERSION: Record<number, string[]> = {
+  // v1 — the nine-step wizard. Contacts at 4, medical at 5, as the wizard actually had them.
+  1: [
+    "Not Started",
+    "Plan Selection",
+    "Personal Details",
+    "Address",
+    "Emergency Contacts",
+    "Medical Info",
+    "Device Selection",
+    "Review & Checkout",
+    "Payment",
+    "Complete",
+  ],
+  // v2 — the seven-step wizard. Contacts and medical are collected after payment.
+  2: [
+    "Not Started",
+    "Plan Selection",
+    "Personal Details",
+    "Address",
+    "Device Selection",
+    "Review & Checkout",
+    "Payment",
+    "Complete",
+  ],
+};
+
+/** Steps a member actually walks, excluding the "Not Started" sentinel at index 0. */
+const stepTotalForVersion = (version: number) =>
+  (STEP_NAMES_BY_VERSION[version] ?? STEP_NAMES_BY_VERSION[2]).length - 1;
 
 export default function LeadsPage() {
   const { t } = useTranslation();
@@ -374,9 +404,19 @@ export default function LeadsPage() {
     return <Badge className="bg-blue-500/20 text-blue-700 border-blue-500/30">In Progress</Badge>;
   };
 
-  const getStepProgress = (step: number) => {
-    const percentage = Math.round((step / 8) * 100);
-    return { step, total: 8, percentage, name: STEP_NAMES[step] || `Step ${step}` };
+  const getStepProgress = (step: number, schemaVersion = 1) => {
+    const names = STEP_NAMES_BY_VERSION[schemaVersion] ?? STEP_NAMES_BY_VERSION[2];
+    const total = stepTotalForVersion(schemaVersion);
+    // Clamped: a step beyond the version's own length means the row and the version disagree,
+    // and reporting 137% would hide that rather than show it.
+    const percentage = total > 0 ? Math.min(100, Math.round((step / total) * 100)) : 0;
+    return {
+      step,
+      total,
+      percentage,
+      name: names[step] || `Step ${step}`,
+      version: schemaVersion,
+    };
   };
 
   const formatDraftName = (draft: RegistrationDraft) => {
@@ -766,7 +806,7 @@ export default function LeadsPage() {
                     </TableRow>
                   ) : (
                     filteredDrafts.map((draft) => {
-                      const progress = getStepProgress(draft.current_step);
+                      const progress = getStepProgress(draft.current_step, draft.schema_version ?? 1);
                       return (
                         <TableRow 
                           key={draft.id} 
@@ -1065,10 +1105,19 @@ export default function LeadsPage() {
                 <Label className="text-xs text-muted-foreground">Registration Progress</Label>
                 <div className="mt-2">
                   <div className="flex items-center justify-between text-sm mb-2">
-                    <span>Step {selectedDraft.current_step} of 8: {STEP_NAMES[selectedDraft.current_step]}</span>
-                    <span className="text-muted-foreground">{Math.round((selectedDraft.current_step / 8) * 100)}%</span>
+                    <span>
+                      Step {selectedDraft.current_step} of{" "}
+                      {getStepProgress(selectedDraft.current_step, selectedDraft.schema_version ?? 1).total}:{" "}
+                      {getStepProgress(selectedDraft.current_step, selectedDraft.schema_version ?? 1).name}
+                      {(selectedDraft.schema_version ?? 1) === 1 && (
+                        <span className="ml-1 text-xs text-muted-foreground">(v1, pre-split)</span>
+                      )}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {getStepProgress(selectedDraft.current_step, selectedDraft.schema_version ?? 1).percentage}%
+                    </span>
                   </div>
-                  <Progress value={(selectedDraft.current_step / 8) * 100} className="h-2" />
+                  <Progress value={getStepProgress(selectedDraft.current_step, selectedDraft.schema_version ?? 1).percentage} className="h-2" />
                 </div>
               </div>
 

@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { JoinWizardData } from "@/types/wizard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PartyPopper, CheckCircle2, Mail, Phone, Calendar, Smartphone, Package, ArrowRight, Download } from "lucide-react";
+import { PartyPopper, CheckCircle2, Mail, Phone, Calendar, Smartphone, Package, ArrowRight, Download , ShieldAlert} from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 
@@ -48,6 +48,42 @@ export function JoinConfirmationStep({ data }: JoinConfirmationStepProps) {
               {t("joinWizard.confirmation.orderReference")}: <span className="font-mono">{data.orderId}</span>
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      {/*
+        ONE THING LEFT. The wizard no longer collects emergency contacts, so at this moment the
+        member has paid, their pendant is shipping, and NOBODY CAN BE CALLED FOR THEM. This
+        screen is the one surface we know they see — email is not deliverable yet — so it must
+        not say "you're all set", and it must offer BOTH routes: their link, and a phone number.
+        ONBOARDING_SPLIT.md §6-A.
+      */}
+      <Card role="alert" className="border-2 border-destructive bg-destructive/5 text-left">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base font-bold uppercase tracking-wide text-destructive">
+            <ShieldAlert className="h-5 w-5 shrink-0" aria-hidden="true" />
+            {t("joinWizard.confirmation.oneThingLeftTitle", "One thing left: your emergency contacts")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <p className="text-sm font-semibold">
+            {t(
+              "joinWizard.confirmation.oneThingLeftBody",
+              "Until we have at least one person to call, we can answer your alarm but we cannot reach your family.",
+            )}
+          </p>
+          <p className="text-sm">
+            {t(
+              "joinWizard.confirmation.oneThingLeftHow",
+              "Use the link we have emailed you, or call us and we will take the details now — whichever is easier.",
+            )}{" "}
+            <a
+              href={`tel:${companySettings.emergency_phone.replace(/\s/g, "")}`}
+              className="font-semibold text-primary underline underline-offset-2"
+            >
+              {companySettings.emergency_phone}
+            </a>
+          </p>
         </CardContent>
       </Card>
 

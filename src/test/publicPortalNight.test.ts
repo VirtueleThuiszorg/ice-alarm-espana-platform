@@ -30,14 +30,17 @@ describe("public portal night audit — source contracts", () => {
     expect(src).toMatch(/finally\s*\{\s*setIsSubmitting\(false\)/);
   });
 
-  it("JoinWizard payment-recovery catch still confirms the paid customer (step 9)", () => {
+  it("JoinWizard payment-recovery catch still confirms the paid customer (STEP_COMPLETE)", () => {
     const src = read("src/pages/join/JoinWizard.tsx");
     const catchStart = src.indexOf('console.error("Failed to parse saved wizard data:", e);');
     expect(catchStart).toBeGreaterThan(-1);
     const block = src.slice(catchStart, catchStart + 600);
     expect(block).toMatch(/paymentComplete:\s*true/);
     expect(block).toMatch(/orderId:\s*orderNumber/);
-    expect(block).toMatch(/setCurrentStep\(9\)/);
+    // Was pinned on the literal 9. The wizard is now seven steps and the jump goes through a
+    // named constant derived from `steps` — which is the point: a renumbering can no longer
+    // silently strand a paid customer on the wrong screen. ONBOARDING_SPLIT.md §4-A.
+    expect(block).toMatch(/setCurrentStep\(STEP_COMPLETE\)/);
     expect(block).toMatch(/joinWizard\.paymentSuccessRecovered/);
   });
 

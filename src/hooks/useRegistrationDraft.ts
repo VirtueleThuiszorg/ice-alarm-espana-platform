@@ -27,7 +27,10 @@ export function useRegistrationDraft() {
 
   // Save draft to database. Returns { success } so callers can decide how to
   // surface a failure — the wizard shows a non-blocking warning and continues.
-  const saveDraft = useCallback(async (currentStep: number, wizardData: JoinWizardData): Promise<{ success: boolean }> => {
+  // schemaVersion travels with the step, because a step number is meaningless without knowing
+  // which wizard produced it. v1 = the nine-step wizard (contacts at 4, medical at 5), v2 = the
+  // seven-step wizard. ONBOARDING_SPLIT.md §4-B.
+  const saveDraft = useCallback(async (currentStep: number, wizardData: JoinWizardData, schemaVersion = 2): Promise<{ success: boolean }> => {
     if (!sessionId) return { success: false };
 
     setIsSaving(true);
@@ -37,6 +40,7 @@ export function useRegistrationDraft() {
           sessionId,
           currentStep,
           wizardData,
+          schemaVersion,
         },
       });
 
@@ -67,7 +71,9 @@ export function useRegistrationDraft() {
       const { error } = await supabase.functions.invoke("save-registration-draft", {
         body: {
           sessionId,
-          currentStep: 9,
+          // The final step of the CURRENT wizard, not a literal that silently ages.
+          currentStep: 7,
+          schemaVersion: 2,
           wizardData: { converted: true },
           status: "converted",
           convertedMemberId: memberId,

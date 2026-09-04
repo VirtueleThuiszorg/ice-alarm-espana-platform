@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     const rawBody = await req.json();
     const validated = validateRequest(saveDraftSchema, rawBody, corsHeaders);
     if (validated.error) return validated.error;
-    const { sessionId, currentStep, wizardData } = validated.data;
+    const { sessionId, currentStep, wizardData, schemaVersion } = validated.data;
 
     // Validate payload size to prevent storage abuse
     const wizardDataStr = JSON.stringify(wizardData);
@@ -61,6 +61,8 @@ Deno.serve(async (req) => {
           first_name: firstName,
           last_name: lastName,
           current_step: currentStep,
+          // Which wizard wrote this step. Without it the number is uninterpretable.
+          schema_version: schemaVersion ?? 2,
           wizard_data: wizardData,
           source: "join_wizard",
           status: "in_progress",

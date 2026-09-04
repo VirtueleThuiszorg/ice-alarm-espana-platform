@@ -2910,7 +2910,10 @@
       "returnHome": "Terug naar home",
       "questionsTitle": "Vragen? Ons ondersteuningsteam staat voor u klaar.",
       "callUsAt": "Bel ons op",
-      "orEmail": "of e-mail"
+      "orEmail": "of e-mail",
+      "oneThingLeftTitle": "Nog één ding: uw noodcontacten",
+      "oneThingLeftBody": "Zolang we niemand hebben om te bellen, kunnen we uw alarm aannemen maar uw familie niet bereiken.",
+      "oneThingLeftHow": "Gebruik de link die we u gemaild hebben, of bel ons en we nemen de gegevens nu op — wat u makkelijker vindt."
     },
     "validation": {
       "enterFullName": "Voer uw volledige naam in",
@@ -6025,5 +6028,12 @@
     "converting": "Versturen…",
     "success": "Uitnodiging verstuurd — de aanvraag is nu een uitgenodigde partner.",
     "error": "Aanvraag kon niet worden omgezet"
+  },
+  "clientDashboard": {
+    "notReady": {
+      "title": "We hebben niemand om voor u te bellen",
+      "body": "Uw alarm werkt en een operator neemt het aan. Maar we hebben geen enkel noodcontact vastgelegd, dus we kunnen uw familie niet bereiken.",
+      "how": "Gebruik de link die we u gemaild hebben, of bel ons en we nemen de gegevens telefonisch op."
+    }
   }
 }

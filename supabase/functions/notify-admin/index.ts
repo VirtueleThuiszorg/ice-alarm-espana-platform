@@ -5,7 +5,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 
 
 interface NotifyPayload {
-  event_type: "sale.paid" | "partner.joined" | "hot.sales" | "test" | "ev07b.alert" | "shift.no_show" | "shift.no_coverage" | "shift.disconnected" | "system.runner_failure" | "escalation.call_failed";
+  event_type: "sale.paid" | "partner.joined" | "hot.sales" | "test" | "ev07b.alert" | "shift.no_show" | "shift.no_coverage" | "shift.disconnected" | "system.runner_failure" | "escalation.call_failed" | "escalation.no_emergency_contacts" | "escalation.contacts_not_notified";
   entity_type?: string;
   entity_id?: string;
   payload: {
@@ -18,6 +18,8 @@ interface NotifyPayload {
     sweep_index?: number;
     // Escalation-call-failed fields (escalation.call_failed)
     escalation_level?: number;
+    // Contacts-not-notified fields (escalation.contacts_not_notified)
+    notify_outcome?: string;
     target_type?: string;
     phone_masked?: string;
     customer_name?: string;
@@ -162,6 +164,29 @@ function formatEscalationCallFailedMessage(payload: NotifyPayload["payload"], ti
 ➡️ Admin: /admin/alerts/${payload.alert_id || ""}`;
 }
 
+function formatNoEmergencyContactsMessage(payload: NotifyPayload["payload"], timestamp: string): string {
+  const member = payload.member_name || payload.member_id || "a member";
+  const level = payload.escalation_level;
+  return `🆘 NO EMERGENCY CONTACTS
+👤 Member: ${member}
+🚫 This member has NO emergency contacts on file. Nobody can be called for them.${
+    level ? `\n📞 Escalation level ${level} could not be served.` : ""
+  }
+🚨 Handle this alert directly and PHONE THIS MEMBER to get their next of kin.
+🕒 ${timestamp}
+➡️ Admin: /admin/alerts/${payload.alert_id || ""}`;
+}
+
+function formatContactsNotNotifiedMessage(payload: NotifyPayload["payload"], timestamp: string): string {
+  const member = payload.member_name || payload.member_id || "a member";
+  return `🆘 EMERGENCY CONTACTS NOT NOTIFIED
+👤 Member: ${member}
+🚫 Outcome: ${payload.notify_outcome || "unknown"} — no emergency contact was reached.
+🚨 Call the member's contacts MANUALLY now.
+🕒 ${timestamp}
+➡️ Admin: /admin/alerts/${payload.alert_id || ""}`;
+}
+
 function formatEV07BAlertMessage(payload: NotifyPayload["payload"], timestamp: string): string {
   const alertInfo = ALERT_TYPE_LABELS[payload.alert_type || ""] || { emoji: "🔔", label: "DEVICE ALERT" };
   const memberName = payload.member_name || "Unknown member";
@@ -287,6 +312,17 @@ serve(async (req) => {
           // Life-safety: a rung of the SOS ladder failed to reach a human — always loud.
           shouldSend = true;
           message = formatEscalationCallFailedMessage(payload, timestamp);
+          break;
+        case "escalation.no_emergency_contacts":
+          // Life-safety: this member has NO emergency contacts, so the terminal rung of the
+          // SOS ladder can never be served for them. Always loud — nothing else watches it.
+          shouldSend = true;
+          message = formatNoEmergencyContactsMessage(payload, timestamp);
+          break;
+        case "escalation.contacts_not_notified":
+          // Life-safety: contacts exist but none was reached, or the result could not be read.
+          shouldSend = true;
+          message = formatContactsNotNotifiedMessage(payload, timestamp);
           break;
         case "test":
           shouldSend = true;

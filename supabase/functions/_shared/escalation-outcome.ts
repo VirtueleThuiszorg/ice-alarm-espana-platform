@@ -43,6 +43,17 @@ export interface LevelDecisionInput {
 export interface LevelDecision {
   /** ≥1 target connected this sweep. */
   connected: boolean;
+  /**
+   * Fire the LOUD notify-admin `escalation.no_emergency_contacts` alert?
+   *
+   * Level 5 is the ONLY tier where "no targets to dial" is a member-data defect rather than a
+   * staffing gap: its targets are the member's own emergency contacts, and nothing watches
+   * those. Before this field, zero contacts made `attempted` false, which made
+   * `fireCallFailedAlert` false, so a member with no next of kin walked the entire ladder and
+   * the terminal tier produced no attempt, no alert, and — past the grace — a record saying
+   * the tier was *reached*. See READINESS_MODEL.md §1-C.
+   */
+  fireNoTargetsAlert: boolean;
   /** Advance the ladder (set escalation_level_reached = level)? */
   markReached: boolean;
   /** Fire the LOUD notify-admin `escalation.call_failed` alert? */
@@ -60,13 +71,26 @@ export function decideLevelOutcome(input: LevelDecisionInput): LevelDecision {
 
   // Happy path (unchanged behaviour): a human was dialled → advance the ladder.
   if (connected) {
-    return { connected: true, markReached: true, fireCallFailedAlert: false, retrying: false };
+    return {
+      connected: true,
+      markReached: true,
+      fireCallFailedAlert: false,
+      fireNoTargetsAlert: false,
+      retrying: false,
+    };
   }
 
   // No connection this sweep. Fire the loud alert once — on the FIRST failed attempt at this tier
   // that actually placed calls (avoids a 10s alert storm on retries, and doesn't alert when the tier
   // simply had no targets to dial — that is a staffing gap the shift monitor covers).
   const fireCallFailedAlert = attempted && !input.priorAttemptExists;
+
+  // ...EXCEPT at Level 5, where "no targets" is not a staffing gap. L5's targets are the
+  // member's own emergency contacts; `staff-shift-monitor` covers L2–L4's staff and covers
+  // nothing here. Zero contacts means the terminal rung of the SOS ladder can never be served
+  // for this member, so it is a failure to escalate and must be loud. Same once-per-tier
+  // anti-storm rule as fireCallFailedAlert. Levels 2–4 are untouched.
+  const fireNoTargetsAlert = input.level === 5 && !attempted && !input.priorAttemptExists;
 
   // Bounded retry: L2–L4 are advanced by the caller's nextLevel-by-elapsed once the next tier's
   // timeout passes, so we leave them unmarked to allow retry. L5 is terminal — bound it by a grace.
@@ -75,5 +99,11 @@ export function decideLevelOutcome(input: LevelDecisionInput): LevelDecision {
     markReached = true; // give up retrying the terminal tier (loud alert already fired)
   }
 
-  return { connected: false, markReached, fireCallFailedAlert, retrying: !markReached };
+  return {
+    connected: false,
+    markReached,
+    fireCallFailedAlert,
+    fireNoTargetsAlert,
+    retrying: !markReached,
+  };
 }

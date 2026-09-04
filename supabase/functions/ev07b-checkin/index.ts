@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { authenticateEv07bRequest } from "../_shared/ev07b-auth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { notifyEmergencyContacts } from "../_shared/notify-emergency-contacts.ts";
 
 interface CheckinPayload {
   imei: string;
@@ -217,19 +218,12 @@ serve(async (req) => {
           console.log(`Created ${alertType} alert for device ${body.imei}`);
           alertsCreated.push(alertType);
 
-          // HIGHEST PRIORITY: Notify emergency contacts first (SOS, fall)
-          try {
-            await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/emergency-contact-notify`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-              },
-              body: JSON.stringify({ alert_id: newAlert.id, member_id: currentDevice.member_id }),
-            });
-          } catch (ecNotifyErr) {
-            console.error("Emergency contact notification error:", ecNotifyErr);
-          }
+          // HIGHEST PRIORITY: Notify emergency contacts first (SOS, fall) — and read the answer.
+          await notifyEmergencyContacts(
+            Deno.env.get("SUPABASE_URL")!,
+            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+            { alert_id: newAlert.id, member_id: currentDevice.member_id, alert_type: alertType },
+          );
 
           // Notify partners
           try {

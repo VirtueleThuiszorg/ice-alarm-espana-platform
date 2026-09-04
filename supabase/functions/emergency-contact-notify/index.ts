@@ -2,6 +2,13 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { loadTwilioNumbers, warnIfSmsNumberCannotSendSms } from "../_shared/twilio-numbers.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { sendEmail } from "../_shared/email.ts";
+import {
+  NOTIFY_OUTCOME_STATUS,
+  resultForAttempted,
+  resultForNoContacts,
+  resultForUnreadable,
+  type NotifyResult,
+} from "../_shared/contact-notify-outcome.ts";
 
 /**
  * Emergency Contact Notification Function (C2)
@@ -11,7 +18,20 @@ import { sendEmail } from "../_shared/email.ts";
  *
  * Called from: ev07b-checkin, ev07b-sos-alert
  * Expects: { alert_id, member_id }
+ *
+ * Returns a discriminated union on `outcome` — notified / all_failed / no_contacts /
+ * contacts_unreadable — with a non-2xx status on every outcome that is not `notified`.
+ * `success: true` means contacts were actually reached and nothing else. See
+ * _shared/contact-notify-outcome.ts for why, and READINESS_MODEL.md §5 for the outcome table.
  */
+/** One place that maps an outcome to its status code, so no branch can drift back to 200. */
+function respond(result: NotifyResult, extra: Record<string, unknown> = {}): Response {
+  return new Response(JSON.stringify({ ...result, ...extra }), {
+    status: NOTIFY_OUTCOME_STATUS[result.outcome],
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204 });
@@ -70,12 +90,35 @@ serve(async (req) => {
       .eq("member_id", member_id)
       .order("priority_order", { ascending: true });
 
-    if (contactsError || !contacts || contacts.length === 0) {
-      console.log("No emergency contacts found for member:", member_id);
-      return new Response(
-        JSON.stringify({ success: true, notified: 0, reason: "no_contacts" }),
-        { headers: { "Content-Type": "application/json" } }
+    // A failed READ and an empty table are OPPOSITE facts and must not share a response:
+    // "I read the table and it was empty" vs "I could not read the table, and there may well
+    // be contacts I have just failed to call". They were folded into one branch, which meant
+    // an outage in this read was indistinguishable from a member who was never set up.
+    if (contactsError) {
+      console.error(
+        JSON.stringify({
+          fn: "emergency-contact-notify",
+          event: "contacts_unreadable",
+          alert_id,
+          member_id,
+          error: contactsError.message,
+        })
       );
+      return respond(resultForUnreadable());
+    }
+
+    if (!contacts || contacts.length === 0) {
+      // NOT a success. Nobody can be called for this member. The caller fires the loud admin
+      // alert; the escalation ladder treats its terminal tier as a failure to escalate.
+      console.error(
+        JSON.stringify({
+          fn: "emergency-contact-notify",
+          event: "no_emergency_contacts",
+          alert_id,
+          member_id,
+        })
+      );
+      return respond(resultForNoContacts());
     }
 
     // Fetch Twilio credentials
@@ -235,12 +278,21 @@ serve(async (req) => {
     }
 
     const notified = results.filter((r) => r.sms || r.email).length;
-    console.log(`Emergency contacts notified: ${notified}/${contacts.length} for alert ${alert_id}`);
-
-    return new Response(
-      JSON.stringify({ success: true, notified, total: contacts.length, results }),
-      { headers: { "Content-Type": "application/json" } }
+    const result = resultForAttempted(notified, contacts.length);
+    console.log(
+      JSON.stringify({
+        fn: "emergency-contact-notify",
+        event: "notify_complete",
+        outcome: result.outcome,
+        alert_id,
+        notified,
+        total: contacts.length,
+      })
     );
+
+    // `all_failed` (contacts existed, every channel failed for every one) is also not a
+    // success and also carries a non-2xx status.
+    return respond(result, { results });
   } catch (error) {
     console.error("Emergency contact notification error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";

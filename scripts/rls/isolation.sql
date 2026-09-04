@@ -1478,6 +1478,63 @@ SELECT pg_temp.check(
   'if this fails the harness is broken, not the policies');
 
 -- ============================================================
+--  members.status is not self-writable (golden rule 4)
+-- ============================================================
+--
+-- The subscriptions half of webhook-only activation has been proven here since #123. The
+-- members.status half was never tested, and was never enforced — a member could set their own
+-- status to 'active' (measured, one row). This is that gap closed and asserted.
+
+SELECT pg_temp.check(
+  'A MEMBER CANNOT SET THEIR OWN members.status TO active (webhook-only activation)',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET status = ''active''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''));
+
+SELECT pg_temp.check(
+  'a member cannot set their own status to ANY value, not just active',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET status = ''suspended''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''));
+
+SELECT pg_temp.check(
+  'a member cannot smuggle a status change inside an ordinary profile update',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET phone = ''+34600009999'', status = ''active''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''));
+
+SELECT pg_temp.check(
+  'a member CAN still update their own profile — the guard is not a blanket lock',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET phone = ''+34600008888''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111''') = 1,
+  'if this fails the guard is too wide and member self-service is broken');
+
+SELECT pg_temp.check(
+  'a no-op status write is not refused (idempotent update, same value)',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET status = status
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111''') = 1);
+
+SELECT pg_temp.check(
+  'STAFF can still change a member''s status — suspending is a real operator action',
+  pg_temp.exec_as('55555555-5555-5555-5555-555555555555',
+    'UPDATE public.members SET status = ''suspended''
+      WHERE id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 1);
+
+-- service_role has no auth.uid(), so the guard lets it through. That is golden rule 4 stated
+-- as a code path: the webhook is the only route by which a member becomes active. This runs as
+-- service_role (the harness's default connection), so it IS that route.
+UPDATE public.members SET status = 'active'
+ WHERE id = 'bbbbbbbb-0000-0000-0000-000000000002';
+
+SELECT pg_temp.check(
+  'service_role (the webhook) CAN still activate — the only route that may',
+  (SELECT status::text FROM public.members
+    WHERE id = 'bbbbbbbb-0000-0000-0000-000000000002') = 'active',
+  'if this fails the guard has locked out the payment webhook itself');
+
+-- ============================================================
 --  Report
 -- ============================================================
 

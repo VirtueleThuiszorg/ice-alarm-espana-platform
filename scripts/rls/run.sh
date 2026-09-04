@@ -43,6 +43,90 @@ SKIP_MIGRATIONS=(
 
 log() { printf '\033[1m→ %s\033[0m\n' "$*"; }
 
+# ── two failures that must never look alike ────────────────────────────────
+#
+# PR #136 merged with this job red. The red meant "the migrations would not
+# apply, so no isolation check ran" — a fail-safe refusing to certify. In the
+# PR UI that is a red X on "Cross-tenant isolation", pixel-identical to the red
+# X you would get if a tenant could read another tenant's rows. It was read as
+# noise and waved through, and settling which of the two it had actually been
+# took a repro on a throwaway Postgres the next day.
+#
+# So the two exits are now labelled, loudly, and they carry different codes:
+#
+#   exit 3  NO VERDICT       — the detector could not run. Says nothing about
+#                             isolation, in either direction.
+#   exit 1  BREACH SUSPECTED — the detector ran and something failed.
+#
+# Both write a banner to $GITHUB_STEP_SUMMARY when it exists, so the verdict is
+# the first thing on the job summary rather than something you find by reading
+# 600 lines of psql output, and both emit a ::error:: annotation so the title
+# shows on the PR's Checks tab without opening the log.
+emit_summary() {
+  [[ -n "${GITHUB_STEP_SUMMARY:-}" ]] || return 0
+  printf '%s\n' "$1" >> "$GITHUB_STEP_SUMMARY"
+}
+
+no_verdict() {
+  local list="$1"
+  {
+    echo ''
+    echo '################################################################'
+    echo '#                                                              #'
+    echo '#   NO VERDICT — schema incomplete, isolation NOT evaluated    #'
+    echo '#                                                              #'
+    echo '#   This is NOT an isolation failure. Not one cross-tenant     #'
+    echo '#   check ran. This job is refusing to certify, because the    #'
+    echo '#   schema it would have tested never finished building.       #'
+    echo '#                                                              #'
+    echo '################################################################'
+    echo ''
+    echo 'Migrations that would not apply:'
+    echo "$list"
+    echo ''
+    echo 'Fix those, then this job can say something about isolation.'
+    echo 'Until it does, treat isolation as UNKNOWN — not as passing, and'
+    echo 'not as broken.'
+    echo ''
+  } >&2
+  echo "::error title=NO VERDICT — isolation not evaluated::${failed} migration(s) would not apply, so no cross-tenant check ran. This is not an isolation failure; it is the absence of a result."
+  emit_summary "## 🟠 NO VERDICT — isolation not evaluated
+
+**Not an isolation failure.** No cross-tenant check ran at all.
+
+\`${failed}\` migration(s) would not apply, so the schema under test was
+incomplete and this job refused to certify:
+
+\`\`\`
+${list}
+\`\`\`
+
+Isolation is **UNKNOWN** for this commit — neither proven nor disproven.
+Fix the migrations to get a verdict."
+  exit 3
+}
+
+breach_suspected() {
+  {
+    echo ''
+    echo '################################################################'
+    echo '#                                                              #'
+    echo '#   ISOLATION CHECK FAILED — a cross-tenant assertion is red   #'
+    echo '#                                                              #'
+    echo '#   The detector RAN and something did not hold. Read the      #'
+    echo '#   FAIL rows above. Do not merge.                             #'
+    echo '#                                                              #'
+    echo '################################################################'
+    echo ''
+  } >&2
+  echo '::error title=ISOLATION CHECK FAILED::A cross-tenant assertion is red. The suite ran and something did not hold — read the FAIL rows in the log.'
+  emit_summary '## 🔴 ISOLATION CHECK FAILED
+
+A cross-tenant assertion is red. The suite **ran**, so this is a result, not
+an absence of one. Read the `FAIL` rows in the job log. Do not merge.'
+  exit 1
+}
+
 # ── get a server ───────────────────────────────────────────────────────────
 if [[ -n "${DATABASE_URL:-}" ]]; then
   log "Using DATABASE_URL"
@@ -114,12 +198,11 @@ done
 
 echo "   applied=$applied  skipped=$skipped (cron/net, no policies)  failed=$failed"
 if [[ $failed -gt 0 ]]; then
-  echo "ERROR: migrations failed to apply, so the schema under test is incomplete:" >&2
-  echo "$failed_list" >&2
-  echo "Fix these before trusting any isolation result." >&2
-  exit 1
+  no_verdict "$failed_list"
 fi
 
 # ── the suite ──────────────────────────────────────────────────────────────
 log "Running isolation checks"
-psql_db -f "$ISOLATION"
+if ! psql_db -f "$ISOLATION"; then
+  breach_suspected
+fi

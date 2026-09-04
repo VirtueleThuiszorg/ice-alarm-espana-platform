@@ -6735,6 +6735,24 @@ export type Database = {
       }
     }
     Views: {
+      member_monitoring_readiness: {
+        Row: {
+          emergency_contact_count: number | null
+          member_id: string | null
+          member_since: string | null
+          monitoring_ready: boolean | null
+          paid_since: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emergency_contacts_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partner_monthly_referral_counts: {
         Row: {
           invites_sent: number | null

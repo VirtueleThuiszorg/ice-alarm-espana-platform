@@ -1003,6 +1003,138 @@ BEGIN
 END $$;
 
 -- ============================================================
+--  Monitoring readiness (member_monitoring_readiness)
+-- ============================================================
+--
+-- Readiness is DERIVED — a security_invoker view over emergency_contacts, no column and no
+-- trigger (READINESS_MODEL.md §2). A view cannot carry RLS of its own, so golden rule 2's
+-- "isolation test on every new table" is satisfied here by proving the DELEGATION holds
+-- rather than by a new policy. Negative-first: the load-bearing assertions are that nobody
+-- reads anyone else's readiness, and that the view has no write path.
+
+-- The MECHANISM, asserted first. Without this, every negative read below could pass for the
+-- wrong reason on a definer view owned by a role that happens to see little — the assertions
+-- would then be about the owner's luck rather than about RLS.
+SELECT pg_temp.check(
+  'the readiness view really has security_invoker = on (not merely the right answers)',
+  EXISTS (
+    SELECT 1 FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relname = 'member_monitoring_readiness'
+      AND c.reloptions @> ARRAY['security_invoker=on']
+  ),
+  COALESCE((SELECT array_to_string(c.reloptions, ',') FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = 'public' AND c.relname = 'member_monitoring_readiness'),
+           'view missing'));
+
+-- Both seeded members have one contact each, so start from the TRUE case.
+SELECT pg_temp.check(
+  'readiness is TRUE for a member with one emergency contact',
+  (SELECT monitoring_ready FROM public.member_monitoring_readiness
+    WHERE member_id = 'aaaaaaaa-0000-0000-0000-000000000001') IS TRUE);
+
+SELECT pg_temp.check(
+  'the contact count is the real count, not a boolean in disguise',
+  (SELECT emergency_contact_count FROM public.member_monitoring_readiness
+    WHERE member_id = 'aaaaaaaa-0000-0000-0000-000000000001') = 1);
+
+-- Make member B the zero-contact case. Deleting the row rather than seeding a third member
+-- (which would break the CONTROL "exactly two members" check) also proves the value is
+-- DERIVED: a cached or trigger-maintained flag would not move.
+DELETE FROM public.emergency_contacts
+WHERE member_id = 'bbbbbbbb-0000-0000-0000-000000000002';
+
+SELECT pg_temp.check(
+  'readiness is FALSE for a member with ZERO emergency contacts',
+  (SELECT monitoring_ready FROM public.member_monitoring_readiness
+    WHERE member_id = 'bbbbbbbb-0000-0000-0000-000000000002') IS FALSE);
+
+SELECT pg_temp.check(
+  'a zero-contact member still APPEARS in the view (not filtered out and silently missing)',
+  (SELECT count(*) FROM public.member_monitoring_readiness
+    WHERE member_id = 'bbbbbbbb-0000-0000-0000-000000000002') = 1);
+
+SELECT pg_temp.check(
+  'readiness is DERIVED: deleting the last contact flipped it, with no trigger involved',
+  (SELECT emergency_contact_count FROM public.member_monitoring_readiness
+    WHERE member_id = 'bbbbbbbb-0000-0000-0000-000000000002') = 0);
+
+-- the negatives: nobody reads anybody else's readiness
+SELECT pg_temp.check(
+  'member A CANNOT read member B''s readiness',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT member_id FROM public.member_monitoring_readiness
+      WHERE member_id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 0);
+
+SELECT pg_temp.check(
+  'member A CANNOT read member B''s emergency_contacts (re-anchored beside readiness)',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.emergency_contacts
+      WHERE member_id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 0);
+
+SELECT pg_temp.check(
+  'member A sees EXACTLY ONE readiness row — their own is the ONLY row they can see',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT member_id FROM public.member_monitoring_readiness') = 1);
+
+SELECT pg_temp.check(
+  'member B, who has no contacts, still reads their OWN readiness row',
+  pg_temp.count_as('22222222-2222-2222-2222-222222222222',
+    'SELECT member_id FROM public.member_monitoring_readiness') = 1);
+
+SELECT pg_temp.check(
+  'a carer holding a live consent grant reads NO readiness (never a granted category)',
+  pg_temp.count_as('88888888-8888-8888-8888-888888888888',
+    'SELECT member_id FROM public.member_monitoring_readiness') = 0);
+
+SELECT pg_temp.check(
+  'a partner reads NO readiness — partners are not a member-data route',
+  pg_temp.count_as('33333333-3333-3333-3333-333333333333',
+    'SELECT member_id FROM public.member_monitoring_readiness') = 0);
+
+SELECT pg_temp.check(
+  'a user with no role at all reads NO readiness',
+  pg_temp.count_as('66666666-6666-6666-6666-666666666666',
+    'SELECT member_id FROM public.member_monitoring_readiness') = 0);
+
+SELECT pg_temp.check(
+  'staff DO read readiness for every member (the admin queue depends on it)',
+  pg_temp.count_as('55555555-5555-5555-5555-555555555555',
+    'SELECT member_id FROM public.member_monitoring_readiness') = 2);
+
+-- A derived fact has no write path. Writing through the view must not become an alternative
+-- route to anything, least of all to a member's contact rows.
+SELECT pg_temp.check(
+  'the readiness view is NOT writable by a member',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.member_monitoring_readiness SET monitoring_ready = true
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001'''));
+
+SELECT pg_temp.check(
+  'a member cannot INSERT a readiness row for anybody',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO public.member_monitoring_readiness
+      (member_id, emergency_contact_count, monitoring_ready)
+      VALUES (''bbbbbbbb-0000-0000-0000-000000000002'', 9, true)'));
+
+-- Restore the fixture so nothing after this block sees a mutated seed.
+INSERT INTO public.emergency_contacts
+  (member_id, contact_name, relationship, phone, priority_order)
+VALUES ('bbbbbbbb-0000-0000-0000-000000000002', 'Contact B', 'son', '+34622222222', 1);
+
+SELECT pg_temp.check(
+  'readiness flips back to TRUE on insert — derived in both directions',
+  (SELECT monitoring_ready FROM public.member_monitoring_readiness
+    WHERE member_id = 'bbbbbbbb-0000-0000-0000-000000000002') IS TRUE);
+
+SELECT pg_temp.check(
+  'CONTROL: service_role sees BOTH members'' readiness (else this whole block is vacuous)',
+  (SELECT count(*) FROM public.member_monitoring_readiness) = 2,
+  'if this fails the harness is broken, not the policies');
+
+-- ============================================================
 --  Report
 -- ============================================================
 

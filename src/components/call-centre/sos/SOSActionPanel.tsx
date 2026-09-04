@@ -92,6 +92,11 @@ export function SOSActionPanel({
 }: SOSActionPanelProps) {
   const { t } = useTranslation();
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
+  // `contacts` is [] while the query is in flight as well as when the member genuinely has
+  // none, so the two states are indistinguishable without this. A NO EMERGENCY CONTACTS
+  // banner that flashes on every alert open is a banner operators learn to ignore, which
+  // would be a worse failure than the grey text it replaces. READINESS_MODEL.md §4-A.
+  const [contactsLoaded, setContactsLoaded] = useState(false);
   const [previousAlerts, setPreviousAlerts] = useState<PreviousAlert[]>([]);
   const [notes, setNotes] = useState("");
   const [emergencyServicesCalled, setEmergencyServicesCalled] = useState(false);
@@ -102,15 +107,25 @@ export function SOSActionPanel({
 
   // Fetch emergency contacts
   useEffect(() => {
+    let cancelled = false;
+    setContactsLoaded(false);
     const fetchContacts = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("emergency_contacts")
         .select("id, contact_name, relationship, phone, email, speaks_spanish, is_primary, priority_order, notes")
         .eq("member_id", memberId)
         .order("priority_order");
+      if (cancelled) return;
       if (data) setContacts(data);
+      // A failed read must NOT settle into "this member has no contacts" — that is the same
+      // conflation emergency-contact-notify had (READINESS_MODEL.md §1-A). Leaving it
+      // unsettled shows neither the list nor the banner, which is honest: we do not know.
+      if (!error) setContactsLoaded(true);
     };
     fetchContacts();
+    return () => {
+      cancelled = true;
+    };
   }, [memberId]);
 
   // Fetch member phone and hospital preference
@@ -206,9 +221,47 @@ export function SOSActionPanel({
 
   const falseAlarmCount = previousAlerts.filter((a) => a.is_false_alarm).length;
 
+  // Settled zero: the query returned and this member has nobody who can be called.
+  const hasNoEmergencyContacts = contactsLoaded && contacts.length === 0;
+
   return (
     <ScrollArea className="h-full">
       <div className="space-y-3 p-1 pr-3">
+        {/*
+          NO EMERGENCY CONTACTS — the loudest thing on the panel, above the join button.
+          This state used to render as `text-xs text-zinc-500` buried inside the contacts
+          panel: 3.2:1 contrast, 12px, grey on dark, below the fold. Effectively invisible to
+          an operator under stress, which is GOALS.md G3 unmet on the emergency path.
+          Not colour alone (icon + uppercase heading + sentence), not collapsible, not
+          dismissible. See ICE_OPERATOR_CARD_SPEC.md §5.1 (PR #154) and READINESS_MODEL.md §4-A.
+        */}
+        {hasNoEmergencyContacts && (
+          <div
+            role="alert"
+            data-testid="sos-no-emergency-contacts"
+            className="w-full rounded-lg border-2 border-red-500 bg-red-950 p-3 space-y-1"
+          >
+            <div className="flex items-center gap-2">
+              <Siren className="h-5 w-5 shrink-0 text-red-300" aria-hidden="true" />
+              <p className="text-base font-bold uppercase tracking-wide text-red-100">
+                {t("sos.action.noContactsHeading", "No emergency contacts")}
+              </p>
+            </div>
+            <p className="text-sm font-semibold text-red-100">
+              {t(
+                "sos.action.noContactsBody",
+                "Nobody can be called for this member. Level 5 of the escalation ladder will do nothing.",
+              )}
+            </p>
+            <p className="text-sm text-red-200">
+              {t(
+                "sos.action.noContactsAdvice",
+                "Speak to the member directly. Escalate to 112 on your own judgement.",
+              )}
+            </p>
+          </div>
+        )}
+
         {/* Join Call Button */}
         {!isInConference ? (
           <Button
@@ -344,7 +397,13 @@ export function SOSActionPanel({
             )}
 
             {contacts.length === 0 ? (
-              <p className="text-xs text-zinc-500">{t("sos.action.noContacts", "No emergency contacts on file")}</p>
+              // The loud banner at the top of the panel is the real signal now; this line
+              // only labels the empty list. It stays readable rather than zinc-500 (3.2:1).
+              <p className="text-sm font-medium text-red-300">
+                {contactsLoaded
+                  ? t("sos.action.noContacts", "No emergency contacts on file")
+                  : t("sos.action.contactsLoading", "Loading emergency contacts…")}
+              </p>
             ) : (
               contacts.map((contact) => (
                 <div key={contact.id} className="bg-zinc-900/50 border border-zinc-700/30 rounded-lg p-2 space-y-1.5">

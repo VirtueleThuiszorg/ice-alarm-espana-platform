@@ -39,20 +39,32 @@ describe("AddMemberWizard does not claim what it cannot do", () => {
     expect(src).not.toMatch(/Complete Registration/i);
   });
 
-  it("says plainly that it is unavailable", () => {
-    expect(read(WIZARD)).toMatch(/not available yet/i);
+  it("no longer says it is unavailable — because it now works", () => {
+    // This assertion inverted when the stub became the real thing. Kept rather than deleted:
+    // the pin now guards the OTHER direction, so a future regression to a do-nothing screen
+    // fails here instead of passing quietly.
+    expect(read(WIZARD)).not.toMatch(/not available yet/i);
   });
 
-  it("warns staff not to enter details that would be lost", () => {
+  it("tells staff exactly what it does and does not do", () => {
     // The concrete harm was details collected and discarded, so the page has to
     // say so — a neutral "coming soon" would still invite data entry.
-    expect(read(WIZARD)).toMatch(/do not collect|nowhere for them to go/i);
+    const src = read(WIZARD);
+    // It writes, so the warning is replaced by a statement of effect — including the two
+    // things an operator would otherwise assume: that the member is live, and that we emailed.
+    expect(src).toMatch(/INACTIVE/);
+    expect(src).toMatch(/Sends nothing/i);
   });
 
-  it("still collects nothing — no inputs, no multi-step state", () => {
+  it("now collects details AND has somewhere to put them", () => {
     const src = read(WIZARD);
-    expect(src).not.toMatch(/<Input\b/);
-    expect(src).not.toMatch(/currentStep|setStep\(/);
+    // The stub deliberately had no inputs, because inputs with no write path are the defect.
+    // Inputs are fine now — what must be true is that a write path exists alongside them.
+    expect(src).toMatch(/<Input\b/);
+    expect(src).toMatch(/from\("members"\)\s*\n?\s*\.insert/);
+    // And still no client-side activation.
+    expect(src).not.toMatch(/status:\s*["']active["']/);
+    expect(src).not.toMatch(/from\(["']subscriptions["']\)\s*\.insert/);
   });
 
   it("points at something that does work", () => {

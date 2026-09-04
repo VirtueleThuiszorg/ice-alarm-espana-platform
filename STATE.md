@@ -29,8 +29,9 @@
 ## Emergency-contact readiness (2026-09-04) — the second axis
 
 > Design: `READINESS_MODEL.md` (PR #150). Increments: PR #151 (notify outcome), #152 (operator
-> card), #153 (readiness view). **NONE IS MERGED.** Everything below marked "fix open" is the
-> broken behaviour on `main` today.
+> card), #153 (readiness view), #155 (paid-but-not-ready queue). Spec: PR #154.
+> **NONE IS MERGED.** Everything below marked "fix open" is the broken behaviour on `main`
+> today. Merge order: #154 before #152; #153 before #155.
 
 | # | Item | Status | Evidence |
 |---|---|---|---|
@@ -40,8 +41,9 @@
 | R4 | Level 5 of the escalation ladder is **silent** for a member with no contacts, then records the tier as *reached* | 🔴 BROKEN on main · fix open in **#151** | `_shared/escalation-outcome.ts:58,69` — zero contacts ⇒ `attempted=false` ⇒ `fireCallFailedAlert=false`. The comment's "the shift monitor covers it" is true for L2–L4 (staff) and false for L5 (next of kin — nothing watches those). |
 | R5 | The operator card renders "no emergency contacts" as 12px grey-on-dark, buried below the fold | 🔴 BROKEN on main · fix open in **#152** | `SOSActionPanel.tsx:346`, `text-xs text-zinc-500` = **3.2:1** by the WCAG 2.1 formula, under the 4.5:1 floor. G3 unmet on the emergency path. |
 | R6 | No completeness/readiness concept exists anywhere in the product | ⬜ MISSING on main · fix open in **#153** | `grep profile_complete\|monitoring_ready\|setup_complete\|onboarding_complete` returns nothing. A member is `active` or not. |
-| R7 | Admin queue of paid-but-not-ready members | ⬜ **MISSING — NOT BUILT** | Increment 4 of the design. Not started; the loop stopped at its turn cap. Nothing exists, in any PR. |
+| R7 | Admin queue of paid-but-not-ready members | 🟡 BUILT, not on main · **PR #155** | `/admin/members/readiness-queue`: `active` but not monitoring-ready, oldest paid first, days waiting, `tel:` link per row, own sidebar entry. Reads the #153 view — never re-derives. **No automated chase** (email undeliverable; a silent chase failure looks like a member ignoring you). 12 harness assertions, 95 → 109 all PASS, mutation-proven. The earlier "NOT BUILT" entry is superseded. |
 | R8 | Readiness view isolation | ✅ VERIFIED (in PR #153, not on main) | 18 assertions in `scripts/rls/isolation.sql`, 77 → 95, all PASS. Mutation-proven: `security_invoker = off` turns 7 red including cross-member reads. Rollback executed — view gone, 0 rows/policies/indexes lost. |
+| R12 | The operator-card spec is in git, canonical and undated | 🟡 **PR #154** | `ICE_OPERATOR_CARD_SPEC.md` reconciles the Claude-project card design with this goal's emergency-contact state contract, retained **verbatim** as §5.1. Header: "Living document. Do not date the filename." The four `ICE_*_2026-09-02.md` files were Claude-project docs and have never been in git — reporting them absent was correct. Merge **before** PR #152, which no longer carries its own copy. |
 
 ### CI is a gate, and it is GREEN
 
@@ -94,8 +96,11 @@ measuring, and never treat a local `main` as authoritative without checking it a
 - R1–R4's fixes are proven by unit and source-level tests. **No end-to-end SOS drill was run
   against a real device or a real Twilio call**, so the latency target and the live delivery
   path are unchanged and unverified by this work.
-- Nothing above is on `main`. Three PRs are open; three of the four increments carry the
-  mandatory human gate (SOS path ×2, RLS ×1).
+- Nothing above is on `main`. Five PRs are open; three of the four increments carry the
+  mandatory human gate (SOS path ×2, RLS ×1). #154 (spec) and #155 (queue) do not.
+- The queue's preventive value is **unproven in use**: no operator has worked it, and no
+  member has been phoned off the back of it. It is proven to list the right people and to
+  refuse to lie about a failed read; that it actually gets worked is a human fact, not a test.
 
 ## Partner journey (2026-08-11) — traced end to end
 

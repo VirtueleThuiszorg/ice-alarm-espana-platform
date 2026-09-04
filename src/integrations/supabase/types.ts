@@ -5890,10 +5890,52 @@ export type Database = {
           },
         ]
       }
+      payers: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string
+          full_name: string
+          id: string
+          phone: string | null
+          relationship: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email: string
+          full_name: string
+          id?: string
+          phone?: string | null
+          relationship?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          relationship?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           id: string
           member_id: string
+          payer_id: string | null
           plan_type: Database["public"]["Enums"]["plan_type"]
           billing_frequency: Database["public"]["Enums"]["billing_frequency"]
           amount: number
@@ -5912,6 +5954,7 @@ export type Database = {
         Insert: {
           id?: string
           member_id: string
+          payer_id?: string | null
           plan_type: Database["public"]["Enums"]["plan_type"]
           billing_frequency: Database["public"]["Enums"]["billing_frequency"]
           amount: number
@@ -5930,6 +5973,7 @@ export type Database = {
         Update: {
           id?: string
           member_id?: string
+          payer_id?: string | null
           plan_type?: Database["public"]["Enums"]["plan_type"]
           billing_frequency?: Database["public"]["Enums"]["billing_frequency"]
           amount?: number

@@ -35,6 +35,7 @@ export function TwoFactorSetup() {
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
   const [verifyCode, setVerifyCode] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isCancellingPending, setIsCancellingPending] = useState(false);
 
   const loadFactors = async () => {
     try {
@@ -70,6 +71,33 @@ export function TwoFactorSetup() {
       setEnrollmentData(null);
       setVerifyCode("");
       loadFactors();
+    }
+  };
+
+  /**
+   * Clear every half-finished enrolment.
+   *
+   * This is the escape hatch the deadlock needed: it removes only `unverified`
+   * factors, so it can never take away a working second factor and can never
+   * be a route around the mandatory-2FA gate.
+   */
+  const handleCancelPending = async () => {
+    setIsCancellingPending(true);
+    try {
+      let cleared = 0;
+      for (const factor of factors.unverified) {
+        if (await unenroll(factor.id)) cleared++;
+      }
+      if (cleared > 0) {
+        toast.success(
+          cleared === 1
+            ? "Unfinished setup cleared — you can start again"
+            : `${cleared} unfinished setups cleared — you can start again`
+        );
+      }
+      await loadFactors();
+    } finally {
+      setIsCancellingPending(false);
     }
   };
 
@@ -146,6 +174,39 @@ export function TwoFactorSetup() {
                 Use an authenticator app (Google Authenticator, Authy, etc.) to
                 generate verification codes for sign-in.
               </p>
+              {/*
+                An abandoned enrolment leaves an unverified factor behind. It was
+                loaded into state here and never rendered, so the user had no way
+                to see it or clear it — and on 2026-09-03 that turned into a
+                lockout needing manual database surgery. Enrolling now clears
+                these automatically, but showing them matters anyway: the person
+                staring at a failed setup should be able to see why and act.
+              */}
+              {factors.unverified.length > 0 && (
+                <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
+                  <p className="text-sm">
+                    <strong>Unfinished setup found.</strong> An earlier attempt
+                    was started but never confirmed with a code
+                    {factors.unverified.length > 1
+                      ? ` (${factors.unverified.length} of them)`
+                      : ""}
+                    . Starting again clears it automatically — or clear it now.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancelPending}
+                    disabled={isCancellingPending}
+                  >
+                    {isCancellingPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <ShieldOff className="h-4 w-4 mr-2" />
+                    )}
+                    Cancel pending setup
+                  </Button>
+                </div>
+              )}
               <Button onClick={handleEnroll} disabled={isEnrolling}>
                 {isEnrolling ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

@@ -140,6 +140,37 @@ async function fireEscalationCallFailed(
   }
 }
 
+async function fireNoEmergencyContacts(
+  baseUrl: string,
+  serviceKey: string,
+  detail: {
+    alert_id: string;
+    member_id: string;
+    member_name: string;
+    escalation_level: number;
+  },
+): Promise<void> {
+  try {
+    await fetch(`${baseUrl}/functions/v1/notify-admin`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+      body: JSON.stringify({
+        event_type: "escalation.no_emergency_contacts",
+        entity_type: "alert",
+        entity_id: detail.alert_id,
+        payload: {
+          alert_id: detail.alert_id,
+          member_id: detail.member_id,
+          member_name: detail.member_name,
+          escalation_level: detail.escalation_level,
+        },
+      }),
+    });
+  } catch (err) {
+    log({ event: "no_contacts_alert_send_failed", error: err instanceof Error ? err.message : String(err) });
+  }
+}
+
 async function placeEscalationCall(
   creds: { accountSid: string; authToken: string; sosNumber: string },
   baseUrl: string,
@@ -391,6 +422,19 @@ async function runEscalationSweep(
         escalation_level: nextLevel,
         target_type: failed?.targetType ?? "mobile_call",
         phone: failed?.phone ?? "",
+      });
+    }
+
+    if (decision.fireNoTargetsAlert) {
+      // The terminal tier has NO targets: this member has no emergency contacts, so L5 can
+      // never be served for them. Nothing else watches this (the shift monitor covers staff,
+      // not next of kin), so it is loud here or it is silent forever. READINESS_MODEL.md §1-C.
+      log({ event: "escalation_no_emergency_contacts", alert_id: alert.id, level: nextLevel });
+      await fireNoEmergencyContacts(baseUrl, serviceKey, {
+        alert_id: alert.id,
+        member_id: alert.member_id,
+        member_name: memberName,
+        escalation_level: nextLevel,
       });
     }
 

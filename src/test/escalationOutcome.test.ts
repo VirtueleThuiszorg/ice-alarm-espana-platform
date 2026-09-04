@@ -5,6 +5,8 @@
 // (_shared/escalation-outcome.ts) — the Deno runner itself can't be imported under vitest.
 
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { decideLevelOutcome } from "../../supabase/functions/_shared/escalation-outcome";
 
 const NORMAL = { 1: 15_000, 2: 30_000, 3: 60_000, 4: 90_000, 5: 120_000 } as const;
@@ -96,5 +98,75 @@ describe("decideLevelOutcome — a failed call is loud, never silently 'reached'
     expect(d.fireCallFailedAlert).toBe(false);
     expect(d.connected).toBe(false);
     expect(d.markReached).toBe(false);
+  });
+});
+
+// L5's targets are the MEMBER'S OWN emergency contacts, not staff. `staff-shift-monitor`
+// covers a staffing gap at L2-L4 and covers nothing here, so before this change a member with
+// zero emergency contacts walked the whole ladder and the terminal rung produced no attempt,
+// no alert, and — past the grace — a record saying the tier was *reached*.
+// READINESS_MODEL.md §1-C.
+describe("decideLevelOutcome — L5 with no emergency contacts is loud, not silent", () => {
+  it("L5 with NO targets fires the no-targets alert", () => {
+    const d = decideLevelOutcome({ ...base, level: 5, elapsedMs: 125_000, outcomes: [] });
+    expect(d.fireNoTargetsAlert).toBe(true); // <-- the fix: it was silent
+    expect(d.connected).toBe(false);
+  });
+
+  it("it is a DISTINCT signal from call_failed — nothing was dialled, so nothing failed", () => {
+    const d = decideLevelOutcome({ ...base, level: 5, elapsedMs: 125_000, outcomes: [] });
+    expect(d.fireCallFailedAlert).toBe(false);
+    expect(d.fireNoTargetsAlert).toBe(true);
+  });
+
+  it("L2-L4 with no targets stay EXACTLY as they were — no alert storm", () => {
+    for (const level of [2, 3, 4]) {
+      const d = decideLevelOutcome({ ...base, level, outcomes: [] });
+      expect(d.fireNoTargetsAlert).toBe(false);
+      expect(d.fireCallFailedAlert).toBe(false);
+    }
+  });
+
+  it("L5 no-targets does not re-fire on every 10s sweep (once per tier)", () => {
+    const d = decideLevelOutcome({
+      ...base,
+      level: 5,
+      elapsedMs: 125_000,
+      outcomes: [],
+      priorAttemptExists: true,
+    });
+    expect(d.fireNoTargetsAlert).toBe(false);
+  });
+
+  it("L5 with contacts that all FAILED is still call_failed, not no-targets", () => {
+    const d = decideLevelOutcome({
+      ...base,
+      level: 5,
+      elapsedMs: 125_000,
+      outcomes: [{ targetType: "emergency_contact_call", phone: "+34600000005", connected: false }],
+    });
+    expect(d.fireCallFailedAlert).toBe(true);
+    expect(d.fireNoTargetsAlert).toBe(false);
+  });
+
+  it("a CONNECTED tier fires neither alert (unchanged happy path)", () => {
+    const d = decideLevelOutcome({
+      ...base,
+      level: 5,
+      elapsedMs: 125_000,
+      outcomes: [{ targetType: "emergency_contact_call", phone: "+34600000005", connected: true }],
+    });
+    expect(d.fireNoTargetsAlert).toBe(false);
+    expect(d.fireCallFailedAlert).toBe(false);
+    expect(d.markReached).toBe(true);
+  });
+
+  it("the runner acts on the decision instead of dropping it", () => {
+    const src = readFileSync(
+      resolve(__dirname, "../../supabase/functions/sos-escalation-runner/index.ts"),
+      "utf8",
+    );
+    expect(src).toContain("decision.fireNoTargetsAlert");
+    expect(src).toContain("escalation.no_emergency_contacts");
   });
 });

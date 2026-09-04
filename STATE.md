@@ -26,81 +26,90 @@
 | B7 | 6 email-template logo URLs | ✅ FIXED | All six `_shared/email-templates/*.tsx` carried the placeholder. Now the real ref. ⚠️ **Still owed:** upload the logo to the `email-assets/logo.png` storage object — until then the images 404 (templates are currently unreferenced by any function, so no live email is affected). |
 | B8 | Untouched by design | — | `index.html`, `.github/workflows/deploy-functions.yml`, and the two cron migrations (`20260716120000`, `20260723120000`) already name the authoritative ref. The cron pair is the **SOS-escalation path** — not edited (G1 / human gate). |
 
-## Emergency-contact readiness (2026-09-04) — the second axis
+## Emergency-contact readiness (2026-09-04) — the second axis · **SHIPPED to main**
 
-> Design: `READINESS_MODEL.md` (PR #150). Increments: PR #151 (notify outcome), #152 (operator
-> card), #153 (readiness view), #155 (paid-but-not-ready queue). Spec: PR #154.
-> **NONE IS MERGED.** Everything below marked "fix open" is the broken behaviour on `main`
-> today. Merge order: #154 before #152; #153 before #155.
-
-| # | Item | Status | Evidence |
-|---|---|---|---|
-| R1 | `emergency-contact-notify` reports a member with **zero** emergency contacts as `{success: true, notified: 0}` at **HTTP 200** | 🔴 BROKEN on main · fix open in **#151** | `emergency-contact-notify/index.ts:73-78`. A caller checking `success` cannot tell "nobody to call" from "the whole chain was reached". Live. |
-| R2 | The same branch swallows `contactsError`, so a **failed read** of `emergency_contacts` returns the byte-identical payload as an empty table | 🔴 BROKEN on main · fix open in **#151** | Same lines. Opposite facts, one response, on the highest-priority path. Not in the original brief. |
-| R3 | Neither ingest caller reads the notify response at all | 🔴 BROKEN on main · fix open in **#151** | `ev07b-sos-alert/index.ts:197`, `ev07b-checkin/index.ts:221` — `await fetch(...)` then the `Response` is discarded. No `.json()`, no `.ok`. **Fixing R1 alone would change nothing observable.** |
-| R4 | Level 5 of the escalation ladder is **silent** for a member with no contacts, then records the tier as *reached* | 🔴 BROKEN on main · fix open in **#151** | `_shared/escalation-outcome.ts:58,69` — zero contacts ⇒ `attempted=false` ⇒ `fireCallFailedAlert=false`. The comment's "the shift monitor covers it" is true for L2–L4 (staff) and false for L5 (next of kin — nothing watches those). |
-| R5 | The operator card renders "no emergency contacts" as 12px grey-on-dark, buried below the fold | 🔴 BROKEN on main · fix open in **#152** | `SOSActionPanel.tsx:346`, `text-xs text-zinc-500` = **3.2:1** by the WCAG 2.1 formula, under the 4.5:1 floor. G3 unmet on the emergency path. |
-| R6 | No completeness/readiness concept exists anywhere in the product | ⬜ MISSING on main · fix open in **#153** | `grep profile_complete\|monitoring_ready\|setup_complete\|onboarding_complete` returns nothing. A member is `active` or not. |
-| R7 | Admin queue of paid-but-not-ready members | 🟡 BUILT, not on main · **PR #155** | `/admin/members/readiness-queue`: `active` but not monitoring-ready, oldest paid first, days waiting, `tel:` link per row, own sidebar entry. Reads the #153 view — never re-derives. **No automated chase** (email undeliverable; a silent chase failure looks like a member ignoring you). 12 harness assertions, 95 → 109 all PASS, mutation-proven. The earlier "NOT BUILT" entry is superseded. |
-| R8 | Readiness view isolation | ✅ VERIFIED (in PR #153, not on main) | 18 assertions in `scripts/rls/isolation.sql`, 77 → 95, all PASS. Mutation-proven: `security_invoker = off` turns 7 red including cross-member reads. Rollback executed — view gone, 0 rows/policies/indexes lost. |
-| R12 | The operator-card spec is in git, canonical and undated | 🟡 **PR #154** | `ICE_OPERATOR_CARD_SPEC.md` reconciles the Claude-project card design with this goal's emergency-contact state contract, retained **verbatim** as §5.1. Header: "Living document. Do not date the filename." The four `ICE_*_2026-09-02.md` files were Claude-project docs and have never been in git — reporting them absent was correct. Merge **before** PR #152, which no longer carries its own copy. |
-
-### CI is a gate, and it is GREEN
+> Design: `READINESS_MODEL.md` (#150). Increments: #151 (notify outcome), #152 (operator card),
+> #153 (readiness view), #155 (paid-but-not-ready queue). Spec: `ICE_OPERATOR_CARD_SPEC.md` (#154).
+> **ALL SIX ARE NOW MERGED** — `main` at `2b9444b`. The rows below record what `main` does today;
+> the "BROKEN on main · fix open in #15x" wording they carried while the PRs were open is
+> superseded, not deleted, so the before/after stays legible.
 
 | # | Item | Status | Evidence |
 |---|---|---|---|
-| R9 | The CI typecheck command checked **zero files** | ✅ FIXED on main | `cf2ae84`. `ci.yml` runs `npx tsc -p tsconfig.app.json --noEmit` **and** `-p tsconfig.node.json --noEmit`; guarded by `src/test/ciTypecheckGate.test.ts`. |
-| R10 | ~~The 78 type errors are still there~~ | ✅ **FIXED on main — the earlier BROKEN entry is WITHDRAWN** | Cleared in `1dc74e7` (PR #142, `chore/typecheck-green`, "78 → 0"). On `dff29b7` **both** projects typecheck with **0 errors**, re-verified 2026-09-04. **Do not re-derive this as a blocker** — see "Retracted" below for why it was ever written. |
-| R11 | ~~The RLS isolation harness cannot run on main~~ | ✅ **RUNS on main — the earlier BROKEN entry is WITHDRAWN** | `20260902120000_rebrand_ice_alarm_espana_content.sql` was fixed in `ee20053` (PR #137, `fix/rebrand-migration-jsonb`) and now looks column types up from `information_schema` instead of hard-coding `text`/`jsonb`. `scripts/rls/run.sh` on `dff29b7` with **no** local changes: **141 migrations applied, 0 failed, 77/77 checks PASS**. Golden rule 2's proof **is** executing. |
+| R1 | `emergency-contact-notify` reported a member with **zero** contacts as `{success: true, notified: 0}` at HTTP 200 | ✅ FIXED on main (#151) | Now a union on `outcome`: `notified` 200 / `all_failed` 502 / `no_contacts` **409** / `contacts_unreadable` **503**, `success` true only for `notified`. `src/test/emergencyContactOutcome.test.ts` sweeps every constructor so no branch can pair `success:true` with `notified:0` again. |
+| R2 | The same branch swallowed `contactsError`, so a **failed read** returned the byte-identical payload as an empty table | ✅ FIXED on main (#151) | Split into `contacts_unreadable` (503, retryable) vs `no_contacts` (409). Asserted distinct in outcome **and** status. |
+| R3 | Neither ingest caller read the notify response at all | ✅ FIXED on main (#151) | Both routed through `_shared/notify-emergency-contacts.ts` — one implementation. Asserted: no bare fetch to the function remains in either caller, and the helper reads `res.json()`. |
+| R4 | Level 5 was **silent** for a member with no contacts, then recorded the tier as *reached* | ✅ FIXED on main (#151) | `fireNoTargetsAlert`, L5-only. `escalationOutcome.test.ts` asserts L2–L4 no-targets are unchanged, so the fix did not become an alert storm. |
+| R5 | The operator card rendered "no emergency contacts" at 12px grey-on-dark (3.2:1), below the fold | ✅ FIXED on main (#152) | Loud non-dismissible `role="alert"` banner above JOIN CALL. 12 rendering tests; the two load-bearing **absences** (no banner while loading, none on a failed read) were mutation-proven. |
+| R6 | No completeness/readiness concept existed anywhere | ✅ FIXED on main (#153) | `public.member_monitoring_readiness`, `security_invoker = on`, derived — no column, no trigger, no stored flag. |
+| R7 | Admin queue of paid-but-not-ready members | ✅ SHIPPED on main (#155) | `/admin/members/readiness-queue`: `active` but not monitoring-ready, oldest paid first, days waiting, `tel:` per row, own sidebar entry. Reads the R6 view — never re-derives (asserted). **No automated chase** (email undeliverable; a silent chase failure is indistinguishable from a member ignoring you). |
+| R8 | Readiness + queue isolation under RLS | ✅ VERIFIED on main | `scripts/rls/isolation.sql`: **125 checks, 0 FAIL, 153 migrations applied, 0 failed** on `2b9444b`. Re-run post-merge, not inherited from the PR runs. |
+| R12 | The operator-card spec is in git, canonical and undated | ✅ DONE (#154) | `ICE_OPERATOR_CARD_SPEC.md`, "Living document. Do not date the filename." §5.1 is the emergency-contact state contract verbatim. The four `ICE_*_2026-09-02.md` files were Claude-project docs and had never been in git — reporting them absent was correct. |
+| R13 | Call actions use `tel:` where spec §3 requires Twilio | 🔴 **BROKEN on main — tracked, not fixed** | **Issue #156.** 47 real call-action sites; **7 on the live-alert card**, two of them `tel:112`. Worst: `SOSActionPanel.tsx:494` sets `emergency_services_called` **on click, not on connection** — the incident record says 112 was called because somebody clicked. Also `window.open(..., "_self")` navigates the operator off the alert screen. Human gate (G1). |
 
-> **R10 and R11 must not be re-derived.** Both were entered as BROKEN on 2026-09-04 and both
-> were false of `main`. They were measured against a **stale local `main` ref at `17960fc`**
-> (PR #136, `feat/ice-rebrand`) — two days and eight merges behind `origin/main` at `dff29b7`.
-> The figures (78 errors / 75 in `src/`; the `replace(jsonb, unknown, unknown)` migration
-> failure) are entirely real **for `17960fc`**, which is why they reproduced repeatedly and
-> matched the brief's numbers. A future session that measures `main` will find both green; if
-> it finds 78 errors, it is on the wrong commit — run `git fetch --all` and check
-> `git log --oneline origin/main -1` before concluding anything.
+### Post-merge verification — the merge commit is not what the PR runs tested
 
-### Retracted
+`#155` landed via a hand-resolved `Merge branch 'main' into …admin-queue` (`68662ad`). `CLAUDE.md`
+names that exact commit shape as where both production outages were created, and
+`scripts/rls/isolation.sql` was the interleaved file. So it was re-checked on `main` rather than
+trusted:
 
-**The 2026-09-04 "main is red" entries are retracted.** An earlier revision of this section
-claimed the opposite of what is now recorded in R10/R11: that `main` carried 78 type errors and
-that the RLS harness could not run. Both claims came from a **stale local `main` ref at
-`17960fc`** rather than `origin/main` at `dff29b7`.
+| Check | Result |
+|---|---|
+| Every assertion from #153-as-authored present on `main` | **yes** — set difference empty |
+| Every assertion from #155-as-authored present on `main` | **yes** — set difference empty |
+| Duplicate check names (the "keep both sides" signature) | **none** |
+| Conflict markers in `isolation.sql`, `src/`, `supabase/` | **none** |
+| Duplicate readiness migration files | **none** — exactly 1 |
+| Harness on `2b9444b` | **125 PASS, 0 FAIL**, 153 applied, 0 failed |
 
-The sequence is worth recording, because the second mistake was worse than the first:
+**All three queue mutations re-proven on `main`**, because a rebased assertion that has not been
+made to fail has not been re-proven:
 
-1. The first measurement — taken on the checked-out branch, which *was* at `dff29b7` — reported
-   **0 type errors** and a **clean 141/0 harness run**. Both were correct.
-2. Subsequent measurements were taken after `git checkout -b <new> main`, which resolved to the
-   stale `17960fc`. They reported 78 errors and a failing rebrand migration. Both are true of
-   `17960fc` and false of `main`.
-3. On the strength of step 2 I **retracted the correct step-1 finding**, wrote "main IS red"
-   into `READINESS_MODEL.md` §1-F, and added a false merge blocker to four PR descriptions.
+| Mutation | Went red |
+|---|---|
+| `security_invoker = off` | **all 6** queue negatives (member / other-member / partner / carer / role-less / own-row-only), plus 2 from the R6 block |
+| readiness forced always-**true** | "a member with ZERO contacts always appears", "staff see the zero-contact paid member", "readiness is FALSE with zero contacts" |
+| readiness forced always-**false** | "a member with ONE contact never appears", "empties on insert", "readiness is TRUE with one contact", + 3 more |
 
-Two tells were in my own output and both were missed: `git log --oneline main..HEAD` listed
-`1dc74e7` (the typecheck-green merge) among commits *not in `main`*, which I read as "the branch
-equals main"; and I borrowed the jsonb migration fix from `fix/rebrand-migration-jsonb` without
-asking why a branch I needed to borrow from had already merged as PR #137.
-
-**The lesson for the next session is procedural, not factual:** `git fetch --all` before
-measuring, and never treat a local `main` as authoritative without checking it against
-`origin/main`. Recorded rather than edited away (G5).
+Restored after each: 125 PASS, 0 FAIL, clean tree.
 
 ### Not asserted
 
-- No browser click-through of the operator card was performed. R5's fix is proven by a
-  **rendering** test (12 assertions, both absences mutation-proven), not by a human looking at
-  a live SOS.
-- R1–R4's fixes are proven by unit and source-level tests. **No end-to-end SOS drill was run
-  against a real device or a real Twilio call**, so the latency target and the live delivery
-  path are unchanged and unverified by this work.
-- Nothing above is on `main`. Five PRs are open; three of the four increments carry the
-  mandatory human gate (SOS path ×2, RLS ×1). #154 (spec) and #155 (queue) do not.
-- The queue's preventive value is **unproven in use**: no operator has worked it, and no
-  member has been phoned off the back of it. It is proven to list the right people and to
-  refuse to lie about a failed read; that it actually gets worked is a human fact, not a test.
+- **No browser click-through** of the operator card. R5 is proven by a rendering test, not by a
+  human looking at a live SOS.
+- **No end-to-end SOS drill** against a real device or a real Twilio call. The sub-second latency
+  target is untouched and unverified by this work.
+- **The queue's preventive value is unproven in use.** Nobody has worked it and no member has been
+  phoned off the back of it. It is proven to list the right people, in the right order, and to
+  refuse to report a failed read as an empty queue. That it actually gets worked is a human fact,
+  not a test.
+- **R13 means the operator card still cannot tell whether a call connected**, including to 112.
+  Readiness is now honest about *who can be called*; the card is still not honest about *whether
+  anyone was*.
+
+### Retracted
+
+**The 2026-09-04 "main is red" entries are retracted.** An earlier revision claimed `main` carried
+78 type errors and that the RLS harness could not run. Both came from a **stale local `main` ref at
+`17960fc`** rather than `origin/main`. The figures are real for `17960fc` and false for `main`.
+
+The sequence matters, because the second mistake was worse than the first:
+
+1. The first measurement — on the checked-out branch, which *was* current — reported **0 type
+   errors** and a clean **141/0** harness run. Both were correct.
+2. Later measurements ran after `git checkout -b <new> main`, resolving to the stale `17960fc`.
+   They reported 78 errors and a failing rebrand migration. True of `17960fc`, false of `main`.
+3. On the strength of step 2 I **retracted the correct step-1 finding**, wrote "main IS red" into
+   the design doc, and added a false merge blocker to four PR descriptions.
+
+Two tells were in my own output and both were missed: `git log --oneline main..HEAD` listed
+`1dc74e7` (the typecheck-green merge) among commits *not in* `main`, which I read as "the branch
+equals main"; and I borrowed a migration fix from `fix/rebrand-migration-jsonb` without asking why
+a branch I needed to borrow from had already merged as #137.
+
+**The lesson is procedural:** `git fetch --all` before measuring, and never treat a local `main`
+as authoritative without checking it against `origin/main`. Recorded rather than edited away (G5).
 
 ## Partner journey (2026-08-11) — traced end to end
 

@@ -23,6 +23,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # The migration-drift gate below diffs this branch against its merge base. The default
+          # shallow clone has no merge base, and the gate then treats the PR as adding nothing —
+          # which is the strict direction, so an ordinary one-migration PR would fail for the
+          # wrong reason and the gate would be switched off within a week. Full history instead.
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -35,6 +41,13 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      # Production is not auto-migrated (deploy-functions.yml), so the repo can run ahead of the
+      # database — it did, by 6 weeks and 24 migrations, and only a failing query revealed it.
+      # This fails a PR that adds a migration while an EARLIER one is still unapplied. One
+      # pending migration is normal; two means the first was never pushed.
+      - name: Migration drift gate
+        run: node scripts/check-migration-drift.mjs origin/${{ github.base_ref || 'main' }}
 
       # Both referenced projects explicitly. `npx tsc --noEmit` reads the root
       # tsconfig.json, which is a project-references stub: it has "files": []

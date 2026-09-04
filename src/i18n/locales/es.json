@@ -3167,7 +3167,9 @@
     "medicalSection": "Información Médica",
     "contactsSection": "Contactos de Emergencia",
     "contactsDescription": "Por favor asegúrese de tener al menos 2 contactos de emergencia con información válida.",
-    "submitUpdate": "Enviar Actualización"
+    "submitUpdate": "Enviar Actualización",
+    "writeFailed": "No pudimos guardar sus datos. No se ha guardado nada y su enlace sigue funcionando — inténtelo de nuevo o llámenos.",
+    "nothingSubmitted": "Añada al menos un contacto de emergencia antes de enviar — sin uno no tenemos a nadie a quien llamar por usted."
   },
   "documentation": {
     "title": "Centro de Documentación",

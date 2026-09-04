@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ArrowRight, Check, User, Users, MapPin, Phone, HeartPulse, Smartphone, FileText, CreditCard, PartyPopper } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, User, Users, MapPin, Smartphone, FileText, CreditCard, PartyPopper } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { JoinWizardData, initialJoinWizardData } from "@/types/wizard";
 import { Logo } from "@/components/ui/logo";
@@ -20,24 +20,44 @@ import { reportEvent, updateDailyMetrics } from "@/lib/syncHub";
 import { JoinMembershipStep } from "@/components/join/steps/JoinMembershipStep";
 import { JoinPersonalStep } from "@/components/join/steps/JoinPersonalStep";
 import { JoinAddressStep } from "@/components/join/steps/JoinAddressStep";
-import { JoinContactsStep } from "@/components/join/steps/JoinContactsStep";
 import { JoinPendantStep } from "@/components/join/steps/JoinPendantStep";
 import { JoinSummaryStep } from "@/components/join/steps/JoinSummaryStep";
 import { JoinPaymentStep } from "@/components/join/steps/JoinPaymentStep";
 import { JoinConfirmationStep } from "@/components/join/steps/JoinConfirmationStep";
-import { JoinMedicalStep } from "@/components/join/steps/JoinMedicalStep";
 
+/**
+ * SEVEN steps. Emergency contacts and medical information used to be steps 4 and 5; they are
+ * collected AFTER payment via the member_update_tokens second stage (ONBOARDING_SPLIT.md).
+ *
+ * The step numbers are referenced from named constants below and never written as literals.
+ * The Stripe-return path used to hardcode setCurrentStep(9) and (8) in four places — get one
+ * wrong during a renumbering and a member coming back from payment lands on the wrong screen.
+ */
 const steps = [
   { id: 1, titleKey: "joinWizard.steps.plan", icon: Users, shortTitleKey: "joinWizard.steps.plan" },
   { id: 2, titleKey: "joinWizard.steps.personal", icon: User, shortTitleKey: "joinWizard.steps.personal" },
   { id: 3, titleKey: "joinWizard.steps.address", icon: MapPin, shortTitleKey: "joinWizard.steps.address" },
-  { id: 4, titleKey: "joinWizard.steps.contacts", icon: Phone, shortTitleKey: "joinWizard.steps.contacts" },
-  { id: 5, titleKey: "joinWizard.steps.medical", icon: HeartPulse, shortTitleKey: "joinWizard.steps.medical" },
-  { id: 6, titleKey: "joinWizard.steps.device", icon: Smartphone, shortTitleKey: "joinWizard.steps.device" },
-  { id: 7, titleKey: "joinWizard.steps.review", icon: FileText, shortTitleKey: "joinWizard.steps.review" },
-  { id: 8, titleKey: "joinWizard.steps.payment", icon: CreditCard, shortTitleKey: "joinWizard.steps.payment" },
-  { id: 9, titleKey: "joinWizard.steps.complete", icon: PartyPopper, shortTitleKey: "joinWizard.steps.complete" },
+  { id: 4, titleKey: "joinWizard.steps.device", icon: Smartphone, shortTitleKey: "joinWizard.steps.device" },
+  { id: 5, titleKey: "joinWizard.steps.review", icon: FileText, shortTitleKey: "joinWizard.steps.review" },
+  { id: 6, titleKey: "joinWizard.steps.payment", icon: CreditCard, shortTitleKey: "joinWizard.steps.payment" },
+  { id: 7, titleKey: "joinWizard.steps.complete", icon: PartyPopper, shortTitleKey: "joinWizard.steps.complete" },
 ];
+
+/** Derived from `steps`, so adding or removing a step cannot leave a stale literal behind. */
+const STEP_PLAN = 1;
+const STEP_PERSONAL = 2;
+const STEP_ADDRESS = 3;
+const STEP_DEVICE = 4;
+const STEP_REVIEW = 5;
+const STEP_PAYMENT = steps.length - 1; // 6
+const STEP_COMPLETE = steps.length;    // 7
+
+/**
+ * Draft schema version. v1 = the nine-step wizard, whose drafts carry contacts/medical and a
+ * step number this wizard has no screen for. Bumped so a v1 draft is never resumed here and the
+ * admin abandoned-registration view can label it honestly. ONBOARDING_SPLIT.md §4-B.
+ */
+const DRAFT_SCHEMA_VERSION = 2;
 
 const WIZARD_STORAGE_KEY = "join_wizard_data";
 
@@ -139,7 +159,7 @@ export default function JoinWizard() {
             paymentComplete: true,
             orderId: orderNumber,
           });
-          setCurrentStep(9); // Go to confirmation step
+          setCurrentStep(STEP_COMPLETE);
           toast.success(t("joinWizard.payment.success"));
         } catch (e) {
           console.error("Failed to parse saved wizard data:", e);
@@ -149,7 +169,7 @@ export default function JoinWizard() {
             paymentComplete: true,
             orderId: orderNumber,
           }));
-          setCurrentStep(9);
+          setCurrentStep(STEP_COMPLETE);
           toast.success(t("joinWizard.paymentSuccessRecovered", "Payment received! Your order is confirmed."));
         }
       } else {
@@ -159,7 +179,7 @@ export default function JoinWizard() {
           paymentComplete: true,
           orderId: orderNumber,
         }));
-        setCurrentStep(9);
+        setCurrentStep(STEP_COMPLETE);
         toast.success(t("joinWizard.payment.success"));
       }
       // Clear saved data and registration session
@@ -174,7 +194,7 @@ export default function JoinWizard() {
         try {
           const parsed = JSON.parse(savedData);
           setWizardData(parsed);
-          setCurrentStep(8); // Go back to payment step
+          setCurrentStep(STEP_PAYMENT);
         } catch (e) {
           console.error("Failed to parse saved wizard data:", e);
         }
@@ -191,9 +211,9 @@ export default function JoinWizard() {
 
   const validateCurrentStep = (): boolean => {
     switch (currentStep) {
-      case 1:
+      case STEP_PLAN:
         return !!wizardData.membershipType;
-      case 2: {
+      case STEP_PERSONAL: {
         const primaryValid = !!(
           wizardData.primaryMember.firstName &&
           wizardData.primaryMember.lastName &&
@@ -213,7 +233,7 @@ export default function JoinWizard() {
         }
         return primaryValid;
       }
-      case 3: {
+      case STEP_ADDRESS: {
         const primaryAddressValid = !!(
           wizardData.address.addressLine1 &&
           wizardData.address.city &&
@@ -231,17 +251,13 @@ export default function JoinWizard() {
         }
         return primaryAddressValid;
       }
-      case 4:
-        return wizardData.emergencyContacts.length >= 1;
-      case 5:
-        return true; // Medical info is optional but recommended
-      case 6:
+      case STEP_DEVICE:
         return true; // Pendant option always valid
-      case 7:
+      case STEP_REVIEW:
         return wizardData.acceptTerms && wizardData.acceptPrivacy;
-      case 8:
+      case STEP_PAYMENT:
         return wizardData.paymentComplete;
-      case 9:
+      case STEP_COMPLETE:
         return true;
       default:
         return true;
@@ -250,7 +266,7 @@ export default function JoinWizard() {
 
   const getValidationMessage = (): string | null => {
     switch (currentStep) {
-      case 2:
+      case STEP_PERSONAL:
         if (!wizardData.primaryMember.firstName || !wizardData.primaryMember.lastName) {
           return t("joinWizard.validation.enterFullName");
         }
@@ -306,9 +322,7 @@ export default function JoinWizard() {
           }
         }
         return null;
-      case 4:
-        return t("joinWizard.validation.addEmergencyContact");
-      case 7:
+      case STEP_REVIEW:
         if (!wizardData.acceptTerms) {
           return t("joinWizard.validation.acceptTerms");
         }
@@ -329,7 +343,7 @@ export default function JoinWizard() {
       try {
         // Save progress to database before advancing
         // This ensures we capture data even if user abandons later
-        const { success } = await saveDraft(currentStep, wizardData);
+        const { success } = await saveDraft(currentStep, wizardData, DRAFT_SCHEMA_VERSION);
         if (!success) {
           // Non-blocking: a failed draft save must never stop the customer
           toast.warning(t("joinWizard.draftSaveFailed", "We couldn't save your progress — you can continue, but don't close this tab."));
@@ -357,7 +371,7 @@ export default function JoinWizard() {
 
   const handleStepClick = (stepId: number) => {
     // Allow navigation to completed steps or current step (but not beyond, and not after completion)
-    if (stepId <= currentStep && currentStep < 9) {
+    if (stepId <= currentStep && currentStep < STEP_COMPLETE) {
       setCurrentStep(stepId);
     }
   };
@@ -371,21 +385,17 @@ export default function JoinWizard() {
 
   const renderStepContent = () => {
     switch (currentStep) {
-      case 1:
+      case STEP_PLAN:
         return <JoinMembershipStep data={wizardData} onUpdate={updateWizardData} />;
-      case 2:
+      case STEP_PERSONAL:
         return <JoinPersonalStep data={wizardData} onUpdate={updateWizardData} />;
-      case 3:
+      case STEP_ADDRESS:
         return <JoinAddressStep data={wizardData} onUpdate={updateWizardData} />;
-      case 4:
-        return <JoinContactsStep data={wizardData} onUpdate={updateWizardData} />;
-      case 5:
-        return <JoinMedicalStep data={wizardData} onUpdate={updateWizardData} />;
-      case 6:
+      case STEP_DEVICE:
         return <JoinPendantStep data={wizardData} onUpdate={updateWizardData} />;
-      case 7:
+      case STEP_REVIEW:
         return <JoinSummaryStep data={wizardData} onUpdate={updateWizardData} />;
-      case 8:
+      case STEP_PAYMENT:
         return (
           <JoinPaymentStep
             data={wizardData}
@@ -393,7 +403,7 @@ export default function JoinWizard() {
             onPaymentInitiated={handlePaymentInitiated}
           />
         );
-      case 9:
+      case STEP_COMPLETE:
         return <JoinConfirmationStep data={wizardData} />;
       default:
         return null;
@@ -401,7 +411,7 @@ export default function JoinWizard() {
   };
 
   // Don't show navigation buttons on payment step (handled internally) or confirmation step
-  const showNavigationButtons = currentStep !== 8 && currentStep !== 9;
+  const showNavigationButtons = currentStep !== STEP_PAYMENT && currentStep !== STEP_COMPLETE;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">

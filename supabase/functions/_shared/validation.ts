@@ -228,6 +228,9 @@ export const saveDraftSchema = z.object({
   sessionId: z.string().min(1).max(200),
   currentStep: z.unknown(),
   wizardData: z.unknown(),
+  // Which wizard wrote currentStep. 1 = nine-step, 2 = seven-step. Optional so a client that
+  // has not been redeployed still saves; the function defaults it rather than guessing later.
+  schemaVersion: z.number().int().min(1).max(99).optional(),
 });
 
 export const sendEmailSchema = z.object({

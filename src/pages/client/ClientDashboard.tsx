@@ -1,4 +1,5 @@
-import { Phone, MessageCircle, ArrowRight, Calendar, CreditCard, AlertTriangle, CheckCircle2, Eye, ArrowLeft, MessageSquare, Inbox } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Phone, MessageCircle, ArrowRight, Calendar, CreditCard, AlertTriangle, CheckCircle2, Eye, ArrowLeft, MessageSquare, Inbox , ShieldAlert} from "lucide-react";
 import { DeviceStatusCard } from "@/components/dashboard/DeviceStatusCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,28 @@ export default function ClientDashboard() {
   const memberIdParam = searchParams.get("memberId");
   const isTemplatePreview = isAdminRole && !memberIdParam;
   const effectiveMemberId = isAdminRole ? memberIdParam : authMemberId;
+
+  // Readiness is DERIVED (READINESS_MODEL.md §2) and read, never recomputed here. `undefined`
+  // means "not known yet" and renders nothing — a banner that flashes on every dashboard load
+  // is a banner members learn to ignore, the same failure mode as the operator card's.
+  const [monitoringReady, setMonitoringReady] = useState<boolean | undefined>(undefined);
+
+  useEffect(() => {
+    if (!effectiveMemberId) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("member_monitoring_readiness")
+        .select("monitoring_ready")
+        .eq("member_id", effectiveMemberId)
+        .maybeSingle();
+      if (cancelled || error) return; // a failed read stays unknown, never a false all-clear
+      setMonitoringReady(data?.monitoring_ready ?? undefined);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveMemberId]);
 
   // Fetch member data
   const { data: member, isLoading: memberLoading } = useQuery({
@@ -194,6 +217,43 @@ export default function ClientDashboard() {
 
   return (
     <div className="space-y-6">
+      {/*
+        NOT MONITORING-READY. The member-facing counterpart of the operator banner, deferred
+        out of READINESS_MODEL.md §4-D until the wizard split made it necessary: a member can
+        now pay, receive a pendant, and have nobody who can be called for them.
+
+        Reads member_monitoring_readiness — a member reads exactly their own row (proven in the
+        #123 harness), so no second derivation and no cache to invalidate. It disappears the
+        moment a contact exists. Not dismissible: a member who dismisses it is a member who
+        stays unreachable. ONBOARDING_SPLIT.md §6-C.
+      */}
+      {!isTemplatePreview && monitoringReady === false && (
+        <div
+          role="alert"
+          data-testid="client-not-monitoring-ready"
+          className="flex items-start gap-4 rounded-lg border-2 border-destructive bg-destructive/10 p-4"
+        >
+          <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-destructive" aria-hidden="true" />
+          <div className="flex-1 space-y-1">
+            <p className="text-sm font-bold uppercase tracking-wide text-destructive">
+              {t("clientDashboard.notReady.title", "We have nobody to call for you")}
+            </p>
+            <p className="text-sm font-medium">
+              {t(
+                "clientDashboard.notReady.body",
+                "Your alarm works and an operator will answer it. But we do not have a single emergency contact on file, so we cannot reach your family.",
+              )}
+            </p>
+            <p className="text-sm">
+              {t(
+                "clientDashboard.notReady.how",
+                "Use the link we emailed you, or call us and we will take the details over the phone.",
+              )}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Template Preview Banner */}
       {isTemplatePreview && (
         <div className="flex items-center gap-4 p-4 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-lg">

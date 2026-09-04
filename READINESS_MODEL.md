@@ -130,57 +130,74 @@ is invisible. It is also a **WCAG AA contrast failure**: `zinc-500` (#71717a) on
 relative-luminance formula — under the 4.5:1 required for text at that size. GOALS.md G3 ("emergency actions must be reachable and obvious under stress")
 is not met. The information is technically present and practically absent.
 
-### 1-F The CI command is fixed; `main` is nevertheless RED
+### 1-F The CI typecheck was already fixed, and `main` is GREEN
 
-The brief's two CI claims split apart, and the split matters:
+Both of the brief's CI claims were already resolved on `main` before this goal started, and
+**neither needs an increment**:
 
-- **The command is fixed.** The brief states `.github/workflows/ci.yml:40` runs
-  `npx tsc --noEmit` against the `{"files": []}` stub and so checks nothing. That was true; it
-  was fixed on `main` in **`cf2ae84` "fix(ci): the typecheck gate was checking nothing"**,
-  which now runs `npx tsc -p tsconfig.app.json --noEmit` *and*
-  `-p tsconfig.node.json --noEmit`, with the reasoning in a comment above the step and guarded
-  by `src/test/ciTypecheckGate.test.ts`. **Goal item 4 needs no increment — it is already
-  done.**
-- **The 78 errors are still there.** `npx tsc -p tsconfig.app.json --noEmit` on a pristine
-  `dff29b7` worktree produces **78 errors across 81 locations, 75 of them in `src/`** —
-  exactly the count the brief gives. The `tsconfig.node.json` project is clean.
+- **The command.** `.github/workflows/ci.yml` runs `npx tsc -p tsconfig.app.json --noEmit`
+  **and** `npx tsc -p tsconfig.node.json --noEmit`, with the reasoning in a comment above the
+  step and guarded by `src/test/ciTypecheckGate.test.ts`. The `{"files": []}` stub problem was
+  real and was fixed in **`cf2ae84`**.
+- **The 78 errors.** Cleared in **`1dc74e7`** (PR #142, `chore/typecheck-green`, "78 errors →
+  0"). On `dff29b7` both projects typecheck with **zero errors** (re-verified 2026-09-04).
 
-> **⚠️ Correction, recorded rather than quietly fixed (GOALS.md G5).** An earlier revision of
-> this section claimed the typecheck exits 0 and that the errors had been cleared in `1dc74e7`.
-> **That was wrong.** It came from one run of `tsc` in this sandbox that reported zero errors;
-> re-run against a clean `git worktree` of `main` with no local changes, the same command
-> reports 78. The brief was right and the earlier claim was not. It is corrected here, in the
-> commit history, and in the PR description rather than edited away — because "typecheck is
-> green" is exactly the kind of unearned all-clear G5 exists to forbid, and it was asserted
-> about the very gate whose falseness is item 4 of this goal.
+**Goal item 4 was done before this goal was written.** Nothing here changes CI.
 
-**Consequence for this goal: "cut from a green `main`" is not currently possible.** The
-typecheck job on `main` fails, so every increment below is cut from a `main` that is red on a
-gate unrelated to it. Two things follow:
+> **⚠️ Correction — I got this wrong twice, in opposite directions. Recorded rather than
+> quietly fixed (GOALS.md G5).**
+>
+> The first revision of this section said the typecheck exits 0. **That was right.** I then
+> "corrected" it to say `main` carries 78 errors, 75 in `src/`, and added a merge blocker
+> across every increment PR on the strength of it. **That was wrong, and it was the more
+> damaging error: I replaced a true statement with a false one and then propagated it.**
+>
+> **Root cause: a stale local `main` ref.** The local `main` branch pointed at **`17960fc`**
+> (PR #136, `feat/ice-rebrand`) — two days and eight merges behind `origin/main` at `dff29b7`.
+> Every "pristine `main`" measurement, including the `git worktree` I set up specifically to be
+> authoritative, was taken against `17960fc`. The 78/75 figure is entirely real **for
+> `17960fc`**, which is why it reproduced three times and matched the brief's number exactly.
+> It is false for `main`.
+>
+> The tell was in my own output and I read it backwards. `git log --oneline main..HEAD` listed
+> `1dc74e7` — the typecheck-green merge — among the commits **in `HEAD` but not in `main`**. I
+> read that list as "the branch equals `main`". The second tell was in my own report: I
+> borrowed the jsonb migration fix from `fix/rebrand-migration-jsonb` and did not ask why a
+> branch I had to borrow from was already merged as PR #137.
+>
+> Verified after `git fetch --all` and `git checkout -B main origin/main`:
+> `tsc -p tsconfig.app.json --noEmit` → **0 errors**; `tsc -p tsconfig.node.json --noEmit` →
+> **0 errors**; `git merge-base --is-ancestor` confirms **both** `1dc74e7` (#142) and
+> `ee20053` (#137) are ancestors of `main`.
 
-1. Each increment's typecheck claim is stated as **"no new errors, and every file the
-   increment touches is clean"**, proven by diffing the sorted `tsc` output against the same
-   command on a pristine `main` worktree — never as "typecheck green", which would be false.
-2. **Clearing the 75 `src/` errors is its own concern and its own PR, and it is not in this
-   goal.** It spans ~34 files across the app and has nothing to do with readiness; folding it
-   in would be the God commit the engineering bar forbids, and it would bury SOS-path changes
-   that need a human's full attention. **Flagged** — §8, question 5.
+**Consequence: increments are cut from a green `main`, and each states its typecheck result
+as green outright** — not as the "no new errors versus a pristine worktree" hedge the earlier
+revision introduced. That hedge existed only to work around a measurement error.
 
 Nothing else in the brief's verified list was contradicted: 1-A, 1-D and the absence of any
 readiness concept all reproduce exactly as described.
 
-### 1-G Three referenced documents do not exist
+### 1-G Four referenced documents were never in git — they are Claude-project docs
 
-`ICE_LIVE_READINESS_2026-09-02.md`, `ICE_OPERATOR_CARD_SPEC_2026-09-02.md` and
-`ICE_PAYER_DESIGN_2026-09-02.md` are **absent from the working tree and from every branch and
-commit in this repository** (`git log --all --diff-filter=A --name-only` finds no add of any
-of them). This document therefore cannot be written "against" them and the operator-card spec
-cannot be "updated in the same PR" — there is nothing to update.
+`ICE_LIVE_READINESS_2026-09-02.md`, `ICE_OPERATOR_CARD_SPEC_2026-09-02.md`,
+`ICE_PAYER_DESIGN_2026-09-02.md` and `ICE_FIELD_MAPPING_SPEC_2026-09-02.md` are **absent from
+the working tree and from every branch and commit in this repository**
+(`git log --all --diff-filter=A --name-only` finds no add of any of them).
 
-What increment 2 does instead: it **creates** `ICE_OPERATOR_CARD_SPEC.md` (undated name, so it
-is a living spec rather than a snapshot) containing the operator-card contract for the
-readiness states defined in §4 below. If the dated file exists somewhere outside this repo,
-that content should be reconciled into it and this decision revisited — flagged, not guessed.
+**Confirmed 2026-09-04: they are Claude-project documents and have never been in git.** The
+brief that referenced them was wrong; reporting them missing and declining to invent them was
+correct. So this document could not be written "against" them, and the operator-card spec could
+not be "updated" — there was nothing in the repository to update.
+
+**Resolved.** PR #154 (`docs/operator-card-spec-reconciled`) brings the operator-card spec into
+git as one canonical, **undated** `ICE_OPERATOR_CARD_SPEC.md`, reconciling the Claude-project
+card design with the emergency-contact state contract this goal produced — which is retained
+**verbatim** as its **§5.1**, including the loading-vs-settled-zero argument. Its header carries
+"Living document. Do not date the filename." so the same split cannot recur.
+
+Increment 2 therefore carries **no** spec file of its own: it implements §5.1 of the canonical
+spec, and **PR #154 merges before it**. The other three dated documents remain outside git and
+are not this goal's to reconcile.
 
 ---
 
@@ -298,7 +315,8 @@ Readiness appears **only where a human makes a decision**. Not as decoration.
 
 ### 4-A Operator alert card — the loud one
 
-Spec written in full in `ICE_OPERATOR_CARD_SPEC.md` (created by increment 2). Contract:
+Spec written in full in `ICE_OPERATOR_CARD_SPEC.md` §5.1 (PR #154, which merges before
+increment 2). Contract:
 
 | State | Presentation |
 |---|---|
@@ -479,11 +497,10 @@ never fire.
 |---|---|---|---|
 | 0 | `…-gm9vg2` | **This document.** No code. | no |
 | 1 | `…-gm9vg2-notify-outcome` | `emergency-contact-notify` outcome union; both callers read it; `decideLevelOutcome` Level-5 no-targets; tests §6-B | **YES — SOS/alert path** |
-| 2 | `…-gm9vg2-operator-card` | Operator card loud zero state + `ICE_OPERATOR_CARD_SPEC.md` | **YES — SOS/alert path** |
+| 2 | `…-gm9vg2-operator-card` | Operator card loud zero state (implements spec §5.1; carries no spec file — PR #154 does) | **YES — SOS/alert path** |
 | 3 | `…-gm9vg2-readiness-view` | The `security_invoker` view migration + isolation assertions §6-A | **YES — RLS** |
 | 4 | `…-gm9vg2-admin-queue` | Admin member-list column + paid-but-not-ready queue | no |
-| — | — | **CI typecheck command: already fixed on `main` in `cf2ae84`.** No increment. §1-F | — |
-| — | — | **The 75 `src/` type errors: NOT in this goal.** Own concern, own PR, ~34 files. §1-F, §8 q5 | — |
+| — | — | **CI typecheck: already done before this goal (`cf2ae84` + `1dc74e7`).** No increment. §1-F | — |
 
 Increment 2 depends on nothing (the card already has the count). Increment 4 depends on 3's
 view; it is cut from `main` regardless and is not merged until 3 is, which is the "never
@@ -492,20 +509,18 @@ stacked" rule applied honestly rather than by pretending the dependency is absen
 `CLAUDE.md`'s merge discipline applies: serially, on a green `main`, never red, and the human
 gate on 1, 2 and 3 before any of them merges. **Nothing in this goal is merged by the loop.**
 
-Do not paper over the tension this creates. `CLAUDE.md` says *"CI failing on a PR means the
-merge does not happen"*, and the typecheck job is red on `main` and will therefore be red on
-every one of these PRs. **None of these increments should be merged until the 75 `src/` errors
-are cleared by their own PR.** That ordering is the human's decision, not the loop's — it is
-the same "never merge red" rule whose breach caused both production outages.
+`main` is green on every gate, so each increment is cut from a green `main` as the rule
+requires, and nothing external blocks any of them. The merge order that does matter is
+documented per PR: PR #154 (the reconciled `ICE_OPERATOR_CARD_SPEC.md`) merges before
+increment 2, and increment 4 merges after increment 3 because it reads increment 3's view.
 
 ---
 
 ## 8. Open questions for the human
 
-1. **`ICE_LIVE_READINESS_2026-09-02.md`, `ICE_OPERATOR_CARD_SPEC_2026-09-02.md` and
-   `ICE_PAYER_DESIGN_2026-09-02.md` are not in this repository** (§1-G). If they exist
-   elsewhere, this design needs reconciling against them before increment 2's spec is taken as
-   authoritative.
+1. ~~The three missing `ICE_*` documents.~~ **ANSWERED** — they are Claude-project docs, never
+   in git (§1-G). The operator-card half is reconciled into one canonical undated spec by
+   PR #154, which merges before increment 2.
 2. **Is one contact really enough?** This design says readiness ⇔ `count > 0`, as decided.
    A single contact who does not answer leaves the ladder's terminal tier effectively empty,
    which is the same hole one rung further in. A `contacts_sufficient` threshold of 2 is a
@@ -516,8 +531,6 @@ the same "never merge red" rule whose breach caused both production outages.
    being right, and golden rule 4 is the thing that keeps it true.
 4. **Existing views bypass RLS** (§2 note). Three views are `security_definer` by default.
    Out of scope here; probably a finding worth its own PR.
-5. **The 75 `src/` type errors block merging anything** (§1-F). The CI typecheck command is
-   correctly wired and correctly failing on `main`. Who clears them, and in which PR? Until
-   that lands, "never merge red" blocks every increment in this goal — including the ones
-   behind the human gate. This is the biggest blocker this design surfaced, and it is not
-   readiness work.
+5. ~~**The 75 `src/` type errors block merging anything.**~~ **WITHDRAWN — this was never
+   true of `main`.** It came from measuring a stale local `main` at `17960fc`. See the
+   correction in §1-F. `main` typechecks clean on both projects and nothing blocks these PRs.

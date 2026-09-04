@@ -43,21 +43,48 @@
 | R7 | Admin queue of paid-but-not-ready members | ⬜ **MISSING — NOT BUILT** | Increment 4 of the design. Not started; the loop stopped at its turn cap. Nothing exists, in any PR. |
 | R8 | Readiness view isolation | ✅ VERIFIED (in PR #153, not on main) | 18 assertions in `scripts/rls/isolation.sql`, 77 → 95, all PASS. Mutation-proven: `security_invoker = off` turns 7 red including cross-member reads. Rollback executed — view gone, 0 rows/policies/indexes lost. |
 
-### CI is a gate again, and it is RED
+### CI is a gate, and it is GREEN
 
 | # | Item | Status | Evidence |
 |---|---|---|---|
-| R9 | The CI typecheck command checked **zero files** | ✅ FIXED on main | `cf2ae84`. `ci.yml` now runs `npx tsc -p tsconfig.app.json --noEmit` **and** `-p tsconfig.node.json --noEmit`; guarded by `src/test/ciTypecheckGate.test.ts`. |
-| R10 | The 78 type errors are **still there** | 🔴 BROKEN on main — **not in any PR** | `tsc -p tsconfig.app.json --noEmit` on a pristine `dff29b7` worktree: **78 errors, 81 locations, 75 in `src/`** across ~34 files. `tsconfig.node.json` is clean. So `main` fails CI, and `CLAUDE.md`'s **never merge red** blocks #151–#153. Nobody owns this yet. |
-| R11 | The RLS isolation harness does not run on main at all | 🔴 BROKEN on main · fix open in **`fix/rebrand-migration-jsonb`** | `20260902120000_rebrand_ice_alarm_espana_content.sql:159` → `function replace(jsonb, unknown, unknown) does not exist`. `run.sh` aborts: "the schema under test is incomplete". **Golden rule 2's proof is currently not executing.** Reproduced 3× with zero local changes. |
+| R9 | The CI typecheck command checked **zero files** | ✅ FIXED on main | `cf2ae84`. `ci.yml` runs `npx tsc -p tsconfig.app.json --noEmit` **and** `-p tsconfig.node.json --noEmit`; guarded by `src/test/ciTypecheckGate.test.ts`. |
+| R10 | ~~The 78 type errors are still there~~ | ✅ **FIXED on main — the earlier BROKEN entry is WITHDRAWN** | Cleared in `1dc74e7` (PR #142, `chore/typecheck-green`, "78 → 0"). On `dff29b7` **both** projects typecheck with **0 errors**, re-verified 2026-09-04. **Do not re-derive this as a blocker** — see "Retracted" below for why it was ever written. |
+| R11 | ~~The RLS isolation harness cannot run on main~~ | ✅ **RUNS on main — the earlier BROKEN entry is WITHDRAWN** | `20260902120000_rebrand_ice_alarm_espana_content.sql` was fixed in `ee20053` (PR #137, `fix/rebrand-migration-jsonb`) and now looks column types up from `information_schema` instead of hard-coding `text`/`jsonb`. `scripts/rls/run.sh` on `dff29b7` with **no** local changes: **141 migrations applied, 0 failed, 77/77 checks PASS**. Golden rule 2's proof **is** executing. |
+
+> **R10 and R11 must not be re-derived.** Both were entered as BROKEN on 2026-09-04 and both
+> were false of `main`. They were measured against a **stale local `main` ref at `17960fc`**
+> (PR #136, `feat/ice-rebrand`) — two days and eight merges behind `origin/main` at `dff29b7`.
+> The figures (78 errors / 75 in `src/`; the `replace(jsonb, unknown, unknown)` migration
+> failure) are entirely real **for `17960fc`**, which is why they reproduced repeatedly and
+> matched the brief's numbers. A future session that measures `main` will find both green; if
+> it finds 78 errors, it is on the wrong commit — run `git fetch --all` and check
+> `git log --oneline origin/main -1` before concluding anything.
 
 ### Retracted
 
-**An earlier revision of `READINESS_MODEL.md` §1-F claimed the real typecheck exits 0 on
-`dff29b7` and that the 78 errors were cleared in `1dc74e7`. That was wrong** — see R10. It came
-from a single sandbox run reporting zero errors, and was written down without a second run,
-about the very gate whose falseness the goal was checking. Corrected in `1de439d` and recorded
-here rather than edited away (G5).
+**The 2026-09-04 "main is red" entries are retracted.** An earlier revision of this section
+claimed the opposite of what is now recorded in R10/R11: that `main` carried 78 type errors and
+that the RLS harness could not run. Both claims came from a **stale local `main` ref at
+`17960fc`** rather than `origin/main` at `dff29b7`.
+
+The sequence is worth recording, because the second mistake was worse than the first:
+
+1. The first measurement — taken on the checked-out branch, which *was* at `dff29b7` — reported
+   **0 type errors** and a **clean 141/0 harness run**. Both were correct.
+2. Subsequent measurements were taken after `git checkout -b <new> main`, which resolved to the
+   stale `17960fc`. They reported 78 errors and a failing rebrand migration. Both are true of
+   `17960fc` and false of `main`.
+3. On the strength of step 2 I **retracted the correct step-1 finding**, wrote "main IS red"
+   into `READINESS_MODEL.md` §1-F, and added a false merge blocker to four PR descriptions.
+
+Two tells were in my own output and both were missed: `git log --oneline main..HEAD` listed
+`1dc74e7` (the typecheck-green merge) among commits *not in `main`*, which I read as "the branch
+equals main"; and I borrowed the jsonb migration fix from `fix/rebrand-migration-jsonb` without
+asking why a branch I needed to borrow from had already merged as PR #137.
+
+**The lesson for the next session is procedural, not factual:** `git fetch --all` before
+measuring, and never treat a local `main` as authoritative without checking it against
+`origin/main`. Recorded rather than edited away (G5).
 
 ### Not asserted
 

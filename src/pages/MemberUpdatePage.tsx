@@ -181,7 +181,24 @@ export default function MemberUpdatePage() {
       if (!data.success) {
         if (data.error === "token_expired") setStatus("expired");
         else if (data.error === "token_used") setStatus("used");
-        else throw new Error(data.error);
+        else if (data.error === "write_failed") {
+          // The submission did NOT save. The link is deliberately still usable, so say so
+          // rather than showing a generic failure the member cannot act on. Previously a
+          // failed write returned success and the member was told they were done.
+          toast.error(
+            t(
+              "memberUpdate.writeFailed",
+              "We could not save your details. Nothing was saved and your link still works — please try again, or call us.",
+            ),
+          );
+        } else if (data.error === "nothing_submitted") {
+          toast.error(
+            t(
+              "memberUpdate.nothingSubmitted",
+              "Please add at least one emergency contact before submitting — without one we have nobody to call for you.",
+            ),
+          );
+        } else throw new Error(data.error);
         return;
       }
 

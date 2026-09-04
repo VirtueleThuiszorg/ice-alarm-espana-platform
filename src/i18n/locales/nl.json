@@ -3167,7 +3167,9 @@
     "medicalSection": "Medical Information",
     "contactsSection": "Emergency Contacts",
     "contactsDescription": "Please ensure you have at least 2 emergency contacts with valid information.",
-    "submitUpdate": "Submit Update"
+    "submitUpdate": "Submit Update",
+    "writeFailed": "We konden uw gegevens niet opslaan. Er is niets opgeslagen en uw link werkt nog — probeer het opnieuw of bel ons.",
+    "nothingSubmitted": "Voeg minstens één noodcontact toe voordat u verzendt — zonder contact hebben we niemand om voor u te bellen."
   },
   "documentation": {
     "title": "Documentation Center",

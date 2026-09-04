@@ -3167,7 +3167,9 @@
     "medicalSection": "Medical Information",
     "contactsSection": "Emergency Contacts",
     "contactsDescription": "Please ensure you have at least 2 emergency contacts with valid information.",
-    "submitUpdate": "Submit Update"
+    "submitUpdate": "Submit Update",
+    "writeFailed": "We could not save your details. Nothing was saved and your link still works — please try again, or call us.",
+    "nothingSubmitted": "Please add at least one emergency contact before submitting — without one we have nobody to call for you."
   },
   "documentation": {
     "title": "Documentation Center",

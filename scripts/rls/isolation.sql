@@ -1255,6 +1255,229 @@ SELECT pg_temp.check(
   'this is the whole point of the screen: work the row, the row disappears');
 
 -- ============================================================
+--  Second-stage provenance and the token endpoint
+-- ============================================================
+--
+-- Once the join wizard stops collecting emergency contacts, submit-member-update is the only
+-- route to monitoring-readiness, and the admin tabs are the only other writer of the same rows.
+-- Provenance is therefore enforced by a BEFORE trigger rather than by either code path
+-- (20260904150000). Negative-first: the load-bearing assertions are that a member cannot reach
+-- another member's health data by any route, and that an operator cannot write anonymously.
+
+-- Staff row for attribution assertions. The seed's call-centre staff member is the operator.
+CREATE TEMP TABLE _prov AS
+SELECT (SELECT id FROM public.staff WHERE user_id = '55555555-5555-5555-5555-555555555555') AS staff_id;
+
+-- ── the token table is not a member-reachable surface ───────────────────────
+
+INSERT INTO public.member_update_tokens (member_id, token, requested_fields, expires_at)
+VALUES ('aaaaaaaa-0000-0000-0000-000000000001', 'tok-A-live',
+        ARRAY['medical_information','emergency_contacts'], now() + interval '7 days');
+
+SELECT pg_temp.check(
+  'a member reads ZERO update tokens — not even their OWN, so none can be enumerated',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.member_update_tokens') = 0,
+  'the table is staff-only FOR ALL; a member never needs to read it, they are handed the token');
+
+SELECT pg_temp.check(
+  'a member cannot read ANOTHER member''s update token',
+  pg_temp.count_as('22222222-2222-2222-2222-222222222222',
+    'SELECT id FROM public.member_update_tokens
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 0);
+
+SELECT pg_temp.check(
+  'a member cannot MINT a token for themselves',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO public.member_update_tokens (member_id, token, requested_fields, expires_at)
+      VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''forged-self'', ARRAY[''medical_information''],
+              now() + interval ''7 days'')'));
+
+SELECT pg_temp.check(
+  'a member cannot mint a token pointed at ANOTHER member',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO public.member_update_tokens (member_id, token, requested_fields, expires_at)
+      VALUES (''bbbbbbbb-0000-0000-0000-000000000002'', ''forged-other'', ARRAY[''medical_information''],
+              now() + interval ''7 days'')'));
+
+SELECT pg_temp.check(
+  'a member cannot un-expire or un-use a token',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.member_update_tokens
+        SET expires_at = now() + interval ''999 days'', used_at = NULL
+      WHERE token = ''tok-A-live''') = 0);
+
+SELECT pg_temp.check(
+  'a partner reads ZERO update tokens',
+  pg_temp.count_as('33333333-3333-3333-3333-333333333333',
+    'SELECT id FROM public.member_update_tokens') = 0);
+
+-- ── a member cannot read or write another member's health data, by any route ──
+
+SELECT pg_temp.check(
+  'a member CANNOT READ another member''s medical_information',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.medical_information
+      WHERE member_id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 0);
+
+SELECT pg_temp.check(
+  'a member CANNOT WRITE another member''s medical_information',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.medical_information SET allergies = ARRAY[''forged'']
+      WHERE member_id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 0);
+
+SELECT pg_temp.check(
+  'a member CANNOT INSERT medical_information against another member''s id',
+  COALESCE(pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO public.medical_information (member_id, allergies)
+      VALUES (''bbbbbbbb-0000-0000-0000-000000000002'', ARRAY[''forged''])'), false)
+  OR (SELECT count(*) FROM public.medical_information
+        WHERE member_id = 'bbbbbbbb-0000-0000-0000-000000000002'
+          AND allergies = ARRAY['forged']) = 0);
+
+SELECT pg_temp.check(
+  'a member CANNOT INSERT an emergency contact against another member''s id',
+  COALESCE(pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO public.emergency_contacts (member_id, contact_name, relationship, phone, priority_order)
+      VALUES (''bbbbbbbb-0000-0000-0000-000000000002'', ''Forged'', ''none'', ''+34600000999'', 9)'), false)
+  OR (SELECT count(*) FROM public.emergency_contacts
+        WHERE member_id = 'bbbbbbbb-0000-0000-0000-000000000002'
+          AND contact_name = 'Forged') = 0);
+
+-- ── provenance: forced from identity, not accepted from the writer ───────────
+
+-- The write and the assertion MUST be separate statements: a scalar subquery in the target
+-- list reads the statement-start snapshot and cannot see a row the FROM clause just inserted.
+SELECT pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+  'INSERT INTO public.emergency_contacts
+     (member_id, contact_name, relationship, phone, priority_order, recorded_via, recorded_by_staff)
+   VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''Member Claimed'', ''self'', ''+34600000111'', 8,
+           ''operator_assisted'', NULL)');
+
+SELECT pg_temp.check(
+  'a MEMBER''s own write is stamped member_self, whatever they claim',
+  (SELECT recorded_via FROM public.emergency_contacts
+    WHERE member_id = 'aaaaaaaa-0000-0000-0000-000000000001'
+      AND contact_name = 'Member Claimed') = 'member_self',
+  COALESCE((SELECT recorded_via FROM public.emergency_contacts
+    WHERE member_id = 'aaaaaaaa-0000-0000-0000-000000000001'
+      AND contact_name = 'Member Claimed'), 'no row'));
+
+SELECT pg_temp.check(
+  'a member CANNOT claim an operator recorded their data — recorded_by_staff is forced NULL',
+  (SELECT recorded_by_staff FROM public.emergency_contacts
+    WHERE member_id = 'aaaaaaaa-0000-0000-0000-000000000001'
+      AND contact_name = 'Member Claimed') IS NULL);
+
+SELECT pg_temp.exec_as('55555555-5555-5555-5555-555555555555',
+  'INSERT INTO public.emergency_contacts
+     (member_id, contact_name, relationship, phone, priority_order)
+   VALUES (''bbbbbbbb-0000-0000-0000-000000000002'', ''Operator Entered'', ''daughter'', ''+34600000222'', 7)');
+
+SELECT pg_temp.check(
+  'AN OPERATOR-ENTERED RECORD IS ATTRIBUTED TO THAT OPERATOR',
+  (SELECT recorded_via FROM public.emergency_contacts
+    WHERE member_id = 'bbbbbbbb-0000-0000-0000-000000000002'
+      AND contact_name = 'Operator Entered') = 'operator_assisted',
+  COALESCE((SELECT recorded_via FROM public.emergency_contacts
+    WHERE member_id = 'bbbbbbbb-0000-0000-0000-000000000002'
+      AND contact_name = 'Operator Entered'), 'no row'));
+
+SELECT pg_temp.check(
+  'and names WHICH operator — an operator cannot record anonymously',
+  (SELECT recorded_by_staff FROM public.emergency_contacts
+    WHERE member_id = 'bbbbbbbb-0000-0000-0000-000000000002'
+      AND contact_name = 'Operator Entered') = (SELECT staff_id FROM _prov));
+
+SELECT pg_temp.exec_as('55555555-5555-5555-5555-555555555555',
+  'INSERT INTO public.emergency_contacts
+     (member_id, contact_name, relationship, phone, priority_order, recorded_via, recorded_by_staff)
+   VALUES (''bbbbbbbb-0000-0000-0000-000000000002'', ''Operator Disguised'', ''son'', ''+34600000333'', 6,
+           ''member_self'', NULL)');
+
+SELECT pg_temp.check(
+  'an operator cannot attribute their write to the member',
+  (SELECT recorded_via FROM public.emergency_contacts
+    WHERE member_id = 'bbbbbbbb-0000-0000-0000-000000000002'
+      AND contact_name = 'Operator Disguised') = 'operator_assisted',
+  COALESCE((SELECT recorded_via FROM public.emergency_contacts
+    WHERE member_id = 'bbbbbbbb-0000-0000-0000-000000000002'
+      AND contact_name = 'Operator Disguised'), 'no row'));
+
+SELECT pg_temp.exec_as('55555555-5555-5555-5555-555555555555',
+  'UPDATE public.medical_information SET doctor_name = ''Dr Operator''
+    WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''');
+
+SELECT pg_temp.check(
+  'an UPDATE by an operator is re-stamped too — provenance follows the latest writer',
+  (SELECT recorded_via FROM public.medical_information
+    WHERE member_id = 'aaaaaaaa-0000-0000-0000-000000000001') = 'operator_assisted',
+  COALESCE((SELECT recorded_via FROM public.medical_information
+    WHERE member_id = 'aaaaaaaa-0000-0000-0000-000000000001'), 'no row'));
+
+-- ── the token's attribution shape is a database constraint, not a code path ──
+
+SELECT pg_temp.check(
+  'AN OPERATOR SUBMISSION WITH NO OPERATOR IS REFUSED BY THE DATABASE',
+  (SELECT NOT EXISTS (
+    SELECT 1 FROM (
+      SELECT pg_temp.raises_as('55555555-5555-5555-5555-555555555555',
+        'UPDATE public.member_update_tokens
+            SET submitted_via = ''operator_assisted'', submitted_by_staff = NULL
+          WHERE token = ''tok-A-live''') AS r
+    ) _x WHERE r = false)),
+  'the CHECK refuses it — an anonymous operator record cannot exist');
+
+SELECT pg_temp.check(
+  'a member_link submission cannot name an operator',
+  pg_temp.raises_as('55555555-5555-5555-5555-555555555555',
+    'UPDATE public.member_update_tokens
+        SET submitted_via = ''member_link'',
+            submitted_by_staff = (SELECT id FROM public.staff LIMIT 1)
+      WHERE token = ''tok-A-live'''));
+
+SELECT pg_temp.check(
+  'a coherent operator attribution IS accepted',
+  pg_temp.exec_as('55555555-5555-5555-5555-555555555555',
+    'UPDATE public.member_update_tokens
+        SET submitted_via = ''operator_assisted'',
+            submitted_by_staff = (SELECT id FROM public.staff
+                                   WHERE user_id = ''55555555-5555-5555-5555-555555555555''),
+            used_at = now()
+      WHERE token = ''tok-A-live''') = 1);
+
+-- ── an expired or used token writes nothing ─────────────────────────────────
+-- The endpoint refuses these before any write (submit-member-update, and the same three checks
+-- in validate-member-update-token). What the DATABASE must guarantee is that neither state is
+-- reachable by the member: a token they cannot read, update or mint cannot be revived.
+
+INSERT INTO public.member_update_tokens (member_id, token, requested_fields, expires_at)
+VALUES ('bbbbbbbb-0000-0000-0000-000000000002', 'tok-B-expired',
+        ARRAY['emergency_contacts'], now() - interval '1 day');
+
+INSERT INTO public.member_update_tokens (member_id, token, requested_fields, expires_at, used_at)
+VALUES ('bbbbbbbb-0000-0000-0000-000000000002', 'tok-B-used',
+        ARRAY['emergency_contacts'], now() + interval '7 days', now());
+
+SELECT pg_temp.check(
+  'an EXPIRED token cannot be extended by the member it belongs to',
+  pg_temp.exec_as('22222222-2222-2222-2222-222222222222',
+    'UPDATE public.member_update_tokens SET expires_at = now() + interval ''7 days''
+      WHERE token = ''tok-B-expired''') = 0);
+
+SELECT pg_temp.check(
+  'a USED token cannot be un-used by the member it belongs to',
+  pg_temp.exec_as('22222222-2222-2222-2222-222222222222',
+    'UPDATE public.member_update_tokens SET used_at = NULL
+      WHERE token = ''tok-B-used''') = 0);
+
+SELECT pg_temp.check(
+  'CONTROL: both fixture tokens really exist (else the two checks above are vacuous)',
+  (SELECT count(*) FROM public.member_update_tokens
+    WHERE token IN ('tok-B-expired','tok-B-used')) = 2,
+  'if this fails the harness is broken, not the policies');
+
+-- ============================================================
 --  Report
 -- ============================================================
 

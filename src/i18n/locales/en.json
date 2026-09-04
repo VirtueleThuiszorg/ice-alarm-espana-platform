@@ -1759,6 +1759,27 @@
       "dashboard": "'s dashboard",
       "backToMembers": "Back to Members",
       "backToPartners": "Back to Partners"
+    },
+    "readinessQueue": {
+      "title": "Paid — no emergency contacts",
+      "subtitle": "These members have paid and their pendant has shipped, but nobody can be called for them. Phone them, oldest first, and record their emergency contacts.",
+      "noAutoChase": "This queue does not send anything automatically. Email delivery is not yet verified, and a chase that fails silently is indistinguishable from a member who ignored it. Call them.",
+      "loadFailed": "This queue could not be loaded",
+      "loadFailedBody": "This is NOT the same as an empty queue — members may be waiting and unseen. Retry, and escalate if it persists.",
+      "waiting": "Members waiting",
+      "longestWait": "longest {{days}}d",
+      "loading": "Loading queue…",
+      "empty": "Every paid member has at least one emergency contact.",
+      "member": "Member",
+      "phone": "Phone",
+      "city": "City",
+      "language": "Lang",
+      "paidSince": "Paid since",
+      "waitingFor": "Waiting",
+      "action": "Action",
+      "noPhone": "NO PHONE ON FILE",
+      "days": "{{days}}d",
+      "openMember": "Open & record"
     }
   },
   "finance": {
@@ -2569,6 +2590,7 @@
     "medconneqt": "MedConneqt",
     "people": "People",
     "members": "Members",
+    "readinessQueue": "Readiness queue",
     "leads": "Leads",
     "devices": "Devices",
     "alerts": "Alerts",

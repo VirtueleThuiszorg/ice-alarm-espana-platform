@@ -1759,6 +1759,27 @@
       "dashboard": " panel",
       "backToMembers": "Volver a Socios",
       "backToPartners": "Volver a Socios"
+    },
+    "readinessQueue": {
+      "title": "Pagado — sin contactos de emergencia",
+      "subtitle": "Estos miembros han pagado y su colgante ha sido enviado, pero no se puede llamar a nadie por ellos. Llámeles, empezando por los más antiguos, y registre sus contactos de emergencia.",
+      "noAutoChase": "Esta lista no envía nada automáticamente. La entrega de correo aún no está verificada, y un aviso que falla en silencio es indistinguible de un miembro que lo ignoró. Llámeles.",
+      "loadFailed": "No se pudo cargar esta lista",
+      "loadFailedBody": "Esto NO es lo mismo que una lista vacía: puede haber miembros esperando sin ser vistos. Reinténtelo y escale si persiste.",
+      "waiting": "Miembros esperando",
+      "longestWait": "máx. {{days}}d",
+      "loading": "Cargando lista…",
+      "empty": "Todos los miembros que han pagado tienen al menos un contacto de emergencia.",
+      "member": "Miembro",
+      "phone": "Teléfono",
+      "city": "Ciudad",
+      "language": "Idioma",
+      "paidSince": "Pagado desde",
+      "waitingFor": "Esperando",
+      "action": "Acción",
+      "noPhone": "SIN TELÉFONO EN FICHA",
+      "days": "{{days}}d",
+      "openMember": "Abrir y registrar"
     }
   },
   "finance": {
@@ -2569,6 +2590,7 @@
     "medconneqt": "MedConneqt",
     "people": "Personas",
     "members": "Socios",
+    "readinessQueue": "Lista de preparación",
     "leads": "Leads",
     "devices": "Dispositivos",
     "alerts": "Alertas",

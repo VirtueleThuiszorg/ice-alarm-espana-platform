@@ -84,6 +84,9 @@ const StaffInvitePage = lazyWithRetry(() => import("./pages/staff/StaffInvitePag
 const ProductCatalogPage = lazyWithRetry(() => import("./pages/admin/ProductCatalogPage"));
 const AdminDashboard = lazyWithRetry(() => import("./pages/admin/AdminDashboard"));
 const MembersPage = lazyWithRetry(() => import("./pages/admin/MembersPage"));
+const MonitoringReadinessQueuePage = lazyWithRetry(
+  () => import("./pages/admin/MonitoringReadinessQueuePage"),
+);
 const DevicesPage = lazyWithRetry(() => import("./pages/admin/DevicesPage"));
 const DeviceDetailPage = lazyWithRetry(() => import("./pages/admin/DeviceDetailPage"));
 const OrdersPage = lazyWithRetry(() => import("./pages/admin/OrdersPage"));
@@ -375,6 +378,10 @@ const App = () => {
                     >
                       <Route index element={<AdminDashboard />} />
                       <Route path="members" element={<MembersPage />} />
+                      <Route
+                        path="members/readiness-queue"
+                        element={<MonitoringReadinessQueuePage />}
+                      />
                       <Route path="devices" element={<DevicesPage />} />
                       <Route path="devices/:id" element={<DeviceDetailPage />} />
                       <Route path="finance" element={<FinanceDashboard />} />

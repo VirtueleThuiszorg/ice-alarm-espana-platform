@@ -1759,6 +1759,27 @@
       "dashboard": "'s dashboard",
       "backToMembers": "Back to Members",
       "backToPartners": "Back to Partners"
+    },
+    "readinessQueue": {
+      "title": "Betaald — geen noodcontacten",
+      "subtitle": "Deze leden hebben betaald en hun hanger is verzonden, maar er kan niemand voor hen gebeld worden. Bel ze, oudste eerst, en leg hun noodcontacten vast.",
+      "noAutoChase": "Deze lijst stuurt niets automatisch. E-mailbezorging is nog niet verifieerd, en een herinnering die stil mislukt is niet te onderscheiden van een lid dat hem negeerde. Bel ze.",
+      "loadFailed": "Deze lijst kon niet geladen worden",
+      "loadFailedBody": "Dit is NIET hetzelfde als een lege lijst — er kunnen leden ongezien wachten. Probeer opnieuw en escaleer als het blijft.",
+      "waiting": "Wachtende leden",
+      "longestWait": "langst {{days}}d",
+      "loading": "Lijst laden…",
+      "empty": "Elk betalend lid heeft minstens één noodcontact.",
+      "member": "Lid",
+      "phone": "Telefoon",
+      "city": "Plaats",
+      "language": "Taal",
+      "paidSince": "Betaald sinds",
+      "waitingFor": "Wacht",
+      "action": "Actie",
+      "noPhone": "GEEN TELEFOON BEKEND",
+      "days": "{{days}}d",
+      "openMember": "Openen & vastleggen"
     }
   },
   "finance": {
@@ -2569,6 +2590,7 @@
     "medconneqt": "MedConneqt",
     "people": "People",
     "members": "Members",
+    "readinessQueue": "Gereedheidslijst",
     "leads": "Leads",
     "devices": "Devices",
     "alerts": "Alerts",

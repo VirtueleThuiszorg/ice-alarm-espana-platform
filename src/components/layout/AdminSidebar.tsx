@@ -31,6 +31,7 @@ import {
   MessageSquareQuote,
   CalendarDays,
   Palmtree,
+  UserRoundX,
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -87,6 +88,13 @@ const menuGroups: MenuGroup[] = [
     labelKey: "sidebar.people",
     items: [
       { icon: Users, labelKey: "sidebar.members", path: "/admin/members" },
+      // The preventive readiness control. It is a worklist somebody has to work, so it gets its
+      // own nav entry rather than living as a filter inside the member list.
+      {
+        icon: UserRoundX,
+        labelKey: "sidebar.readinessQueue",
+        path: "/admin/members/readiness-queue",
+      },
       { icon: Contact, labelKey: "sidebar.leads", path: "/admin/leads" },
       { icon: Smartphone, labelKey: "sidebar.devices", path: "/admin/devices" },
       { icon: Bell, labelKey: "sidebar.alerts", path: "/admin/alerts" }

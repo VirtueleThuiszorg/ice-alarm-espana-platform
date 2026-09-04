@@ -780,7 +780,142 @@ SELECT pg_temp.check(
   (SELECT count(*) FROM public.alerts) = 2);
 
 -- ============================================================
---  9. Controls — the suite must be capable of failing
+--  9. ICE import tables — golden rule 2 for WP-B's three new tables
+-- ============================================================
+--
+-- `member_addresses`, `member_access` and `member_end_of_life` arrive with
+-- WP-B. `src/test/iceImportSchema.test.ts` greps their migrations and proves a
+-- policy *exists*; that is not proof that it *isolates*. Golden rule 2 asks for
+-- "a test proving isolation", so these are the behavioural assertions — written
+-- negative-first, and covering cross-tenant WRITE as well as read, because
+-- `member_addresses` is the only one of the three a member may write at all.
+--
+-- `member_access` holds front-door key-safe codes. Its migration says to treat
+-- them as a credential, so the interesting assertion is not that member B is
+-- refused — it is that CALL-CENTRE STAFF are refused, since those policies are
+-- `is_admin`, not `is_staff`, and an operator reading a key safe would be a
+-- silent widening if someone ever copy-pasted the `is_staff` shape onto it.
+
+INSERT INTO public.member_addresses (member_id, address_type, address_line_1, city, postal_code)
+VALUES
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'postal',  'Apartado 1, Albox',  'Albox', '04800'),
+  ('bbbbbbbb-0000-0000-0000-000000000002', 'billing', 'Calle Facturas 2',   'Albox', '04800');
+
+INSERT INTO public.member_access (member_id, key_safe_location, key_safe_code, access_notes)
+VALUES
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'left of porch', '1701', 'dog in kitchen'),
+  ('bbbbbbbb-0000-0000-0000-000000000002', 'meter cupboard', '2402', 'side gate unlocked');
+
+INSERT INTO public.member_end_of_life (member_id, funeral_plan, policy_number, wishes)
+VALUES
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'Plan A', 'EOL-A-1', 'no resuscitation discussion on file'),
+  ('bbbbbbbb-0000-0000-0000-000000000002', 'Plan B', 'EOL-B-2', 'family to be called first');
+
+-- ── member_addresses: read ─────────────────────────────────────────────────
+SELECT pg_temp.check(
+  'member A cannot read member B''s member_addresses',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.member_addresses
+      WHERE member_id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 0);
+
+SELECT pg_temp.check(
+  'member A sees only their own member_addresses',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.member_addresses') = 1);
+
+SELECT pg_temp.check(
+  'an unrelated signed-in user sees no member_addresses at all',
+  pg_temp.count_as('66666666-6666-6666-6666-666666666666',
+    'SELECT id FROM public.member_addresses') = 0);
+
+-- ── member_addresses: write ────────────────────────────────────────────────
+-- "Members can manage own addresses" is FOR ALL with USING and no WITH CHECK.
+-- Postgres then applies USING as the INSERT/UPDATE check, so a member cannot
+-- file an address against somebody else. Proving it means the day someone adds
+-- an explicit WITH CHECK, this catches a widened one.
+SELECT pg_temp.check(
+  'member A cannot INSERT an address belonging to member B',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO public.member_addresses (member_id, address_type, city)
+      VALUES (''bbbbbbbb-0000-0000-0000-000000000002'', ''other'', ''Albox'')'));
+
+SELECT pg_temp.check(
+  'member A cannot UPDATE member B''s address',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.member_addresses SET city = ''Madrid''
+      WHERE member_id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 0);
+
+SELECT pg_temp.check(
+  'member A cannot DELETE member B''s address',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'DELETE FROM public.member_addresses
+      WHERE member_id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 0);
+
+-- CONTROL: member A really can manage their own, so the four denials above are
+-- not passing because the whole table is unreachable.
+SELECT pg_temp.check(
+  'CONTROL: member A can UPDATE their own address',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.member_addresses SET city = ''Albox''
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 1);
+
+-- ── member_access: the key-safe codes ──────────────────────────────────────
+SELECT pg_temp.check(
+  'member A cannot read member B''s key safe code',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT member_id FROM public.member_access
+      WHERE member_id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 0);
+
+SELECT pg_temp.check(
+  'call-centre staff cannot read member_access — these policies are is_admin, not is_staff',
+  pg_temp.count_as('55555555-5555-5555-5555-555555555555',
+    'SELECT member_id FROM public.member_access') = 0,
+  'key_safe_code is a credential; an operator route to it would be a silent widening');
+
+SELECT pg_temp.check(
+  'a member cannot change their own key safe code (SELECT-only policy, no member write)',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.member_access SET key_safe_code = ''0000''
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 0);
+
+SELECT pg_temp.check(
+  'CONTROL: member A can read their OWN access row (so the denials are scoping, not a dead table)',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT member_id FROM public.member_access') = 1);
+
+-- ── member_end_of_life ─────────────────────────────────────────────────────
+SELECT pg_temp.check(
+  'member A cannot read member B''s end-of-life record',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT member_id FROM public.member_end_of_life
+      WHERE member_id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 0);
+
+SELECT pg_temp.check(
+  'call-centre staff cannot read member_end_of_life — is_admin, not is_staff',
+  pg_temp.count_as('55555555-5555-5555-5555-555555555555',
+    'SELECT member_id FROM public.member_end_of_life') = 0);
+
+SELECT pg_temp.check(
+  'a member cannot write their own end-of-life record (SELECT-only policy)',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.member_end_of_life SET wishes = ''changed''
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 0);
+
+SELECT pg_temp.check(
+  'CONTROL: member A can read their OWN end-of-life record',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT member_id FROM public.member_end_of_life') = 1);
+
+-- A partner is not a care route into any of the three.
+SELECT pg_temp.check(
+  'a partner sees none of the three ICE tables',
+  pg_temp.count_as('33333333-3333-3333-3333-333333333333',
+    'SELECT member_id FROM public.member_access
+      UNION ALL SELECT member_id FROM public.member_end_of_life
+      UNION ALL SELECT member_id FROM public.member_addresses') = 0);
+
+-- ============================================================
+--  10. Controls — the suite must be capable of failing
 -- ============================================================
 --
 -- If impersonation silently did nothing, every test above would pass vacuously.
@@ -802,7 +937,7 @@ BEGIN
 END $$;
 
 -- ============================================================
---  10. Blanket golden-rule-2 sweep over every table
+--  11. Blanket golden-rule-2 sweep over every table
 -- ============================================================
 
 DO $$

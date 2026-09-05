@@ -18,10 +18,11 @@ make the manifest lie, and the drift gate (#164) depends on that manifest being 
 
 | # | Migration | What it does | Reversible |
 |---|---|---|---|
-| 1 | `20260905100000_staff_delete_fk_rules.sql` | Every **nullable** FK pointing at `staff`/`auth.users` becomes `ON DELETE SET NULL`, so a staff member can be deleted without destroying audit history. Also converts the `member_update_tokens` attribution CHECK into a trigger — see D-1 | Yes, block written out in the file |
+| _(none yet this run)_ | | | |
 
-> After pushing: `git pull`, append the filenames above to `APPLIED_TO_PROD.txt`, commit, merge.
-> The drift gate will fail the next migration-bearing PR until you do.
+> **Deliberately empty — see D-3.** No migration is merged into `main` this run. The one that was
+> ready is an open PR in §5. Merging it turns every build red until you push, so it waits for you
+> rather than blocking the rest of the work.
 
 ---
 
@@ -73,19 +74,37 @@ the shift is reassigned — arguably right for `staff_shift_covers`), or make th
 first. **A departing staff member with an open shift cover still cannot be deleted** until this
 is settled.
 
-### D-3 — the migration drift gate blocks this run to one migration at a time
+### D-3 — the drift gate stops **everything**, not just the next migration, and that is why the repo has no migration in it right now
 
-The gate I built in #164 fails a PR that adds a migration while an **earlier one is still
-unapplied**. That is exactly right in normal operation. In this run it means: once migration 1
-above is merged, **every later migration-bearing PR fails CI until you push and update the
-manifest.**
+I got this wrong and then found out the hard way, so here it is plainly.
 
-I have not weakened the gate to get around my own run — that is precisely the "turn the gate off
-because it is inconvenient" failure it was built to prevent. Instead, later migration-bearing
-work is **prepared, gated on its own merits, and left OPEN** with the reason stated, listed in
-§5. One `supabase db push` plus one manifest commit unblocks all of them at once.
+The gate I built in #164 does two things. The one I remembered: it fails a PR that **adds** a
+migration while an earlier one is unapplied. The one I forgot, though I wrote the assertion for
+it myself — `migrationDrift.test.ts`, *"the steady-state alarm: drift does not become acceptable
+just because this PR is innocent"* — it fails **every** build while any migration is unapplied.
+Every pull request, whatever it touches, and `main`'s own build too.
 
----
+So when I merged `20260905100000_staff_delete_fk_rules.sql` (PR #170), **main went red and would
+have stayed red until you ran `supabase db push`** — blocking every remaining piece of this run,
+including a fix that removes a wrong emergency phone number from live member pages.
+
+Two ways out, and I want to be explicit about which I took and why:
+
+- **Weaken the gate** so a PR adding no migrations passes. I did **not** do this. There is a
+  deliberate, commented test asserting the current behaviour; deleting it because it caught me is
+  the "turn the gate off because it is inconvenient" failure the gate exists to prevent, and it
+  would have been me quietly overruling a decision of yours while you were away.
+- **Take the migration back out of main until you can push it.** This is what I did. The merge
+  was reverted (a revert commit, not a history rewrite), the migration is an **open PR** in §5
+  with its body and all six harness assertions intact, and main is green again.
+
+**Nothing is lost and nothing was watered down** — the migration is one merge away the moment
+production is level. But it does mean this run ships **no schema changes at all**; everything
+merged is application code, tests and docs.
+
+**If you would rather the gate warned instead of failed when a PR adds nothing**, that is a
+one-line change in `scripts/migrationDrift.ts` plus its test — but it is your call, not mine, and
+I would want the drift to stay loudly visible in the build output either way.
 
 ## 3. Per-channel flags (D7) — turn on only when proven
 
@@ -114,7 +133,7 @@ is off is skipped and logged, never silently failed.
 
 | PR | Why it is open |
 |---|---|
-| _(none yet this run)_ | |
+| **#175** — `20260905100000_staff_delete_fk_rules.sql` | **Merge this one FIRST, and only when you are at a keyboard.** Merging it turns `main` red until `supabase db push` lands (D-3). Everything in it is proven — RLS harness 190/190, three mutations red — it is queued on *your* availability, not on its own quality. Suggested order: merge → `supabase db push` → append the filename to `APPLIED_TO_PROD.txt` → merge that → main green |
 
 > Per the brief: any PR touching `supabase/functions/stripe-webhook` or
 > `supabase/functions/create-checkout` stays open. A broken webhook means no member ever

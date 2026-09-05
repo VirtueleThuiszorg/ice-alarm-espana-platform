@@ -6,12 +6,15 @@ import { PartyPopper, CheckCircle2, Mail, Phone, Calendar, Smartphone, Package, 
 import { Link } from "react-router-dom";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 
+import { telHref } from "@/lib/phone";
 interface JoinConfirmationStepProps {
   data: JoinWizardData;
 }
 
 export function JoinConfirmationStep({ data }: JoinConfirmationStepProps) {
   const { settings: companySettings } = useCompanySettings();
+  // Null when settings_emergency_phone is unset (PENDING_FOR_LEE.md S6).
+  const phoneHref = telHref(companySettings.emergency_phone);
   const { t } = useTranslation();
   
   const nextSteps = [
@@ -72,21 +75,37 @@ export function JoinConfirmationStep({ data }: JoinConfirmationStepProps) {
               "Until we have at least one person to call, we can answer your alarm but we cannot reach your family.",
             )}
           </p>
-          <p className="text-sm">
-            {t(
-              "joinWizard.confirmation.oneThingLeftHow",
-              // No emailed-link promise: no such email is sent (GMAIL_APP_PASSWORD unset,
-              // icealarm.es unverified with Resend, SPF/DKIM/DMARC unpublished). Only the two
-              // routes that actually work.
-              "Call us and we will take the details now, or add them yourself once you sign in.",
-            )}{" "}
-            <a
-              href={`tel:${companySettings.emergency_phone.replace(/\s/g, "")}`}
-              className="font-semibold text-primary underline underline-offset-2"
-            >
-              {companySettings.emergency_phone}
-            </a>
-          </p>
+          {/*
+            Two sentences, not one sentence with an optional number stuck on the end. "Call us
+            and we will take the details now" is a PROMISE; making it while rendering no number
+            to call would be the same class of defect as the invented number this replaced. If
+            settings_emergency_phone is unset (PENDING_FOR_LEE.md S6) the member is offered only
+            the route that actually works.
+          */}
+          {phoneHref ? (
+            <p className="text-sm">
+              {t(
+                "joinWizard.confirmation.oneThingLeftHow",
+                // No emailed-link promise: no such email is sent (GMAIL_APP_PASSWORD unset,
+                // icealarm.es unverified with Resend, SPF/DKIM/DMARC unpublished). Only the two
+                // routes that actually work.
+                "Call us and we will take the details now, or add them yourself once you sign in.",
+              )}{" "}
+              <a
+                href={phoneHref}
+                className="font-semibold text-primary underline underline-offset-2"
+              >
+                {companySettings.emergency_phone}
+              </a>
+            </p>
+          ) : (
+            <p className="text-sm">
+              {t(
+                "joinWizard.confirmation.oneThingLeftHowNoPhone",
+                "Add them yourself once you sign in — it takes a minute.",
+              )}
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -139,9 +158,13 @@ export function JoinConfirmationStep({ data }: JoinConfirmationStepProps) {
       <div className="text-sm text-muted-foreground">
         <p>{t("joinWizard.confirmation.questionsTitle")}</p>
         <p>
-          {t("joinWizard.confirmation.callUsAt")}{" "}
-          <a href={`tel:${companySettings.emergency_phone.replace(/\s/g, "")}`} className="text-primary hover:underline">{t("joinWizard.callUs")}</a>{" "}
-          {t("joinWizard.confirmation.orEmail")}{" "}
+          {phoneHref && (
+            <>
+              {t("joinWizard.confirmation.callUsAt")}{" "}
+              <a href={phoneHref} className="text-primary hover:underline">{t("joinWizard.callUs")}</a>{" "}
+              {t("joinWizard.confirmation.orEmail")}{" "}
+            </>
+          )}
           <a href={`mailto:${companySettings.support_email}`} className="text-primary hover:underline">{companySettings.support_email}</a>
         </p>
       </div>

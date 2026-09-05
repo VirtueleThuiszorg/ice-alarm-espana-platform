@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { InlineAIChat } from "@/components/chat/InlineAIChat";
+import { telHref } from "@/lib/phone";
 import { 
   Phone, 
   Mail, 
@@ -28,6 +29,9 @@ import {
 export default function ContactPage() {
   const { t } = useTranslation();
   const { settings: companySettings } = useCompanySettings();
+  // Null when settings_emergency_phone is unset. Both call affordances below are conditional on
+  // it: a "Call us" card with no number in it is worse than no card.
+  const phoneHref = telHref(companySettings.emergency_phone);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [formData, setFormData] = useState({
@@ -91,12 +95,14 @@ export default function ContactPage() {
                     {t("contact.success.returnHome")}
                   </Link>
                 </Button>
-                <Button variant="outline" asChild className="w-full">
-                  <a href={`tel:${companySettings.emergency_phone.replace(/\s/g, '')}`}>
-                    <Phone className="h-4 w-4 mr-2" />
-                    {t("contact.success.callNow")}
-                  </a>
-                </Button>
+                {phoneHref && (
+                  <Button variant="outline" asChild className="w-full">
+                    <a href={phoneHref}>
+                      <Phone className="h-4 w-4 mr-2" />
+                      {t("contact.success.callNow")}
+                    </a>
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -125,25 +131,24 @@ export default function ContactPage() {
           <div className="grid lg:grid-cols-3 gap-6 max-w-6xl mx-auto items-start">
             {/* Contact Info Cards - Left Column */}
             <div className="space-y-6">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-start gap-4">
-                    <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <Phone className="h-6 w-6 text-primary" />
+              {phoneHref && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start gap-4">
+                      <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <Phone className="h-6 w-6 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold mb-1">{t("contact.info.callUs")}</h3>
+                        <p className="text-muted-foreground text-sm mb-2">{t("contact.info.callUsDesc")}</p>
+                        <a href={phoneHref} className="text-primary font-medium hover:underline">
+                          {t("common.callNow")}
+                        </a>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold mb-1">{t("contact.info.callUs")}</h3>
-                      <p className="text-muted-foreground text-sm mb-2">{t("contact.info.callUsDesc")}</p>
-                      <a 
-                        href={`tel:${companySettings.emergency_phone.replace(/\s/g, '')}`} 
-                        className="text-primary font-medium hover:underline"
-                      >
-                        {t("common.callNow")}
-                      </a>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
 
               <Card>
                 <CardContent className="pt-6">

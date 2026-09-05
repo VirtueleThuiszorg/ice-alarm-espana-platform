@@ -32,13 +32,15 @@ describe("a cold visitor can find it", () => {
   });
 
   it("the page the public nav actually reaches links to it", () => {
-    // PublicHeader sends everyone to /partner, so that page has to offer the way
-    // in — this is the entry point that matters most.
+    // PublicHeader sends everyone to /partner/join, so that page has to offer the
+    // way in — this is the entry point that matters most.
     const header = read("src/components/layout/PublicHeader.tsx");
-    expect(header, "PublicHeader still points at /partner").toMatch(/to:\s*["']\/partner["']/);
+    expect(header, "PublicHeader must point at /partner/join").toMatch(
+      /to:\s*["']\/partner\/join["']/
+    );
 
-    const onboarding = read("src/pages/partner/PartnerOnboarding.tsx");
-    expect(onboarding, "/partner must offer a route to the partner login").toContain(
+    const join = read("src/pages/partner/PartnerJoin.tsx");
+    expect(join, "/partner/join must offer a route to the partner login").toContain(
       `to="${LOGIN_PATH}"`
     );
   });
@@ -71,7 +73,7 @@ describe("a cold visitor can find it", () => {
   it("is reachable from at least two distinct public pages", () => {
     // One link is a single point of failure; a redesign of either page would
     // orphan the route again.
-    const publicPages = ["src/pages/LandingPage.tsx", "src/pages/partner/PartnerOnboarding.tsx"];
+    const publicPages = ["src/pages/LandingPage.tsx", "src/pages/partner/PartnerJoin.tsx"];
     const linking = publicPages.filter((f) => read(f).includes(`to="${LOGIN_PATH}"`));
     expect(linking.length).toBeGreaterThanOrEqual(2);
   });
@@ -211,9 +213,12 @@ describe("the self-serve registration path is reachable from /partner", () => {
     expect(joinLink).toMatch(/focus-visible:ring-2/);
   });
 
-  it("still keeps the nav pointed at /partner — Option C is lead capture first", () => {
+  it("the nav points at /partner/join — there is one way in", () => {
+    // REVERSED from the Option-C assertion that stood here. The lead-capture path is
+    // retired from the public site (PARTNER_JOURNEY.md); full registration is the
+    // only entry point the nav offers.
     const header = read("src/components/layout/PublicHeader.tsx");
-    expect(header).toMatch(/to:\s*["']\/partner["']/);
-    expect(header).not.toMatch(/to:\s*["']\/partner\/join["']/);
+    expect(header).toMatch(/to:\s*["']\/partner\/join["']/);
+    expect(header).not.toMatch(/to:\s*["']\/partner["']/);
   });
 });

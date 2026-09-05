@@ -135,7 +135,6 @@ const RotaPage = lazyWithRetry(() => import("./pages/admin/RotaPage"));
 const AdminHolidaysPage = lazyWithRetry(() => import("./pages/admin/HolidaysPage"));
 
 // Partner Pages - Lazy loaded
-const PartnerOnboarding = lazyWithRetry(() => import("./pages/partner/PartnerOnboarding"));
 const PartnerJoin = lazyWithRetry(() => import("./pages/partner/PartnerJoin"));
 const PartnerVerify = lazyWithRetry(() => import("./pages/partner/PartnerVerify"));
 const PartnerLogin = lazyWithRetry(() => import("./pages/partner/PartnerLogin"));
@@ -414,7 +413,11 @@ const App = () => {
                     </Route>
 
                     {/* Partner Public Routes */}
-                    <Route path="/partner" element={<PartnerOnboarding />} />
+                    {/* Partners have ONE way in: full registration at /partner/join.
+                        /partner kept as a permanent redirect — external links, printed
+                        material and search results still point at it. vercel.json serves
+                        a 308 for a cold hit; this covers client-side navigation. */}
+                    <Route path="/partner" element={<Navigate to="/partner/join" replace />} />
                     <Route path="/partner/join" element={<PartnerJoin />} />
                     <Route path="/partner/verify" element={<PartnerVerify />} />
                     <Route path="/partner/login" element={<PartnerLogin />} />

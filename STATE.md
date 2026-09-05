@@ -174,10 +174,13 @@ attached (G5).
 - The **live** partner journey is unverified after these PRs, because none is merged.
 - `partner-apply`'s invocation count on prod is unknown, so whether the application
   path itself ever reached the backend has not been confirmed.
-- The consolidation of 2026-09-05 is proven by tests and a clean production build,
-  **not** by a browser click-through. Nobody has walked `/partner` → `/partner/join`
-  in a real browser, and the 308 in `vercel.json` has not been observed on a
-  deployed URL. Both are cheap for a human to check and neither is claimed here.
+- The consolidation of 2026-09-05 **was** walked in a real browser, once: Chromium
+  against the production build served by `vite preview` — `/partner` lands on
+  `/partner/join` and renders "Become an ICE Alarm España Partner". That is the
+  router redirect. **The 308 in `vercel.json` has NOT been observed on a deployed
+  URL** — `vite preview` does not apply Vercel's redirect rules, so the HTTP status
+  a search engine will see is asserted from config, not measured. One `curl -I`
+  against the deployed `/partner` closes it.
 - **The count of pending applications on prod is unknown** — that is exactly what
   `PENDING_FOR_LEE.md` S6 asks Lee to run.
 

@@ -116,7 +116,10 @@ export default function SettingsPage() {
   // Company settings state (UI values)
   const [companySettings, setCompanySettings] = useState({
     company_name: "ICE Alarm España",
-    emergency_phone: "+34 900 123 456",
+    // Deliberately EMPTY. This form used to pre-fill a placeholder number, and Save wrote it
+    // straight into system_settings — which is how an invented emergency number got into the
+    // database and onto the public site. An unset setting must show an empty field.
+    emergency_phone: "",
     support_email: "info@icealarm.es",
     address: "Calle Principal 1, Albox, 04800 Almería",
   });

@@ -25,6 +25,7 @@ import { JoinSummaryStep } from "@/components/join/steps/JoinSummaryStep";
 import { JoinPaymentStep } from "@/components/join/steps/JoinPaymentStep";
 import { JoinConfirmationStep } from "@/components/join/steps/JoinConfirmationStep";
 
+import { telHref } from "@/lib/phone";
 /**
  * SEVEN steps. Emergency contacts and medical information used to be steps 4 and 5; they are
  * collected AFTER payment via the member_update_tokens second stage (ONBOARDING_SPLIT.md).
@@ -97,6 +98,8 @@ export default function JoinWizard() {
 
   // Company settings for dynamic phone/email
   const { settings: companySettings } = useCompanySettings();
+  // Null when settings_emergency_phone is unset (PENDING_FOR_LEE.md S6).
+  const phoneHref = telHref(companySettings.emergency_phone);
   const { registrationFeeEnabled, registrationFeeDiscount } = usePricingSettings();
 
   // Progressive save hook
@@ -565,10 +568,15 @@ export default function JoinWizard() {
         <div className="container max-w-4xl text-center text-sm text-muted-foreground">
           <p>
             {t("joinWizard.needHelp")}{" "}
-            <a href={`tel:${companySettings.emergency_phone.replace(/\s/g, "")}`} className="text-primary hover:underline">
-              {t("joinWizard.callUs")}
-            </a>{" "}
-            {t("common.or")}{" "}
+            {/* No number configured -> no "call us, or email us", just "email us". */}
+            {phoneHref && (
+              <>
+                <a href={phoneHref} className="text-primary hover:underline">
+                  {t("joinWizard.callUs")}
+                </a>{" "}
+                {t("common.or")}{" "}
+              </>
+            )}
             <a href={`mailto:${companySettings.support_email}`} className="text-primary hover:underline">
               {t("joinWizard.emailUs")}
             </a>

@@ -121,7 +121,7 @@ as authoritative without checking it against `origin/main`. Recorded rather than
 > locale namespace are deleted; `partner-apply` is still deployed but called by
 > nothing. The admin conversion path (`ConvertApplicationDialog`,
 > `partner-admin-invite`) is KEPT — production may hold pending applications
-> (`PENDING_FOR_LEE.md` S6). Proven by `src/test/partnerSingleEntry.test.ts`.
+> (`PENDING_FOR_LEE.md` S7). Proven by `src/test/partnerSingleEntry.test.ts`.
 >
 > ⚠️ **Everything marked "fix open" below is in an OPEN PR and is NOT on `main`.** The
 > live behaviour is still the broken behaviour until those merge. Nothing here is
@@ -157,7 +157,7 @@ as authoritative without checking it against `origin/main`. Recorded rather than
 | P9 | `preferred_language` is `en`/`es` only — CHECK constraint, server enum and form all agree | Consistent, so parity holds, but Dutch is consistently **rejected**, against LAUNCH_SCOPE §6. Needs a migration + scope decision; not bundled into a parity PR. |
 | P10 | `/partner-dashboard` is hard-blocked on first arrival by `AgreementRequiredModal` (`open={true}`, non-dismissible) | Intended, but the first-run experience has never been click-tested. |
 | P11 | Verification email runs on interim Gmail SMTP | Already a `LAUNCH_CHECKLIST.md` hard blocker. A silent delivery failure is indistinguishable from a partner who never bothered. |
-| P12 | `partner-apply` writes no `user_id` and issues no verification token | An application is a lead and terminal without admin action. No longer reachable from the public site (P6), but the function stays deployed and the admin conversion path stays wired, because production may hold pending rows — `PENDING_FOR_LEE.md` S6 carries the count query that decides whether they can all go. |
+| P12 | `partner-apply` writes no `user_id` and issues no verification token | An application is a lead and terminal without admin action. No longer reachable from the public site (P6), but the function stays deployed and the admin conversion path stays wired, because production may hold pending rows — `PENDING_FOR_LEE.md` S7 carries the count query that decides whether they can all go. |
 
 ### Retracted
 
@@ -182,7 +182,7 @@ attached (G5).
   a search engine will see is asserted from config, not measured. One `curl -I`
   against the deployed `/partner` closes it.
 - **The count of pending applications on prod is unknown** — that is exactly what
-  `PENDING_FOR_LEE.md` S6 asks Lee to run.
+  `PENDING_FOR_LEE.md` S7 asks Lee to run.
 
 ## Staff credential reset tooling (2026-08-11)
 

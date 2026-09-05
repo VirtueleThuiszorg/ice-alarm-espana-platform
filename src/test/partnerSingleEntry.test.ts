@@ -154,7 +154,7 @@ describe("the application path is absent from the public site", () => {
   it("but the ADMIN conversion path survives — production may hold pending rows", () => {
     // The brief is explicit: `ConvertApplicationDialog` and `partner_applications`
     // stay until Lee confirms `select count(*) from partner_applications where
-    // status='pending'` is 0 (PENDING_FOR_LEE.md S6). Deleting them would strand
+    // status='pending'` is 0 (PENDING_FOR_LEE.md S7). Deleting them would strand
     // every application already taken.
     const root = process.cwd();
     expect(existsSync(path.resolve(root, "src/components/admin/ConvertApplicationDialog.tsx"))).toBe(

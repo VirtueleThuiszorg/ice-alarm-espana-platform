@@ -8,7 +8,7 @@
  * registration at `/partner/join` — but PRODUCTION MAY STILL HOLD PENDING
  * APPLICATIONS, and an admin must be able to convert each of them into a real
  * account. So the decision, the function and the admin dialog all stay until Lee
- * confirms the count is zero (PENDING_FOR_LEE.md S6).
+ * confirms the count is zero (PENDING_FOR_LEE.md S7).
  *
  * These assertions are therefore load-bearing in the other direction now: they are
  * what stops the conversion path being deleted as "dead code" alongside the page

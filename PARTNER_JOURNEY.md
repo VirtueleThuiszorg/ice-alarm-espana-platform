@@ -171,7 +171,7 @@ who filled in a form. So:
 the dialog, the function and the `convert` outcome all still exist, so the
 conversion path is not deleted as "dead code" alongside the page that fed it.
 
-**Lee's call, recorded in `PENDING_FOR_LEE.md` S6:** run
+**Lee's call, recorded in `PENDING_FOR_LEE.md` S7:** run
 
 ```sql
 select count(*) from partner_applications where status = 'pending';

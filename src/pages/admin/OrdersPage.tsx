@@ -2,6 +2,13 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import {
+  ORDER_STATUSES,
+  ORDER_STATUS_BADGE,
+  ORDER_STATUS_LABEL,
+  ORDER_STATUS_NEXT,
+  type OrderStatus,
+} from "@/lib/orderStatus";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { 
@@ -74,7 +81,7 @@ export default function OrdersPage() {
       }
 
       if (statusFilter !== "all") {
-        query = query.eq("status", statusFilter as "pending" | "processing" | "shipped" | "delivered" | "cancelled");
+        query = query.eq("status", statusFilter as OrderStatus);
       }
 
       const { data: orders, count, error } = await query;
@@ -86,23 +93,28 @@ export default function OrdersPage() {
 
   const totalPages = Math.ceil((data?.totalCount || 0) / ITEMS_PER_PAGE);
 
-  // Every status column in this schema is nullable; a row with no status
-  // should render as unknown rather than crash the switch.
+  /** Icon for the button that MOVES an order into each state. Only the three states
+   *  ORDER_STATUS_NEXT can return are reachable from this menu; anything else falls back to the
+   *  generic one rather than rendering nothing. */
+  const NEXT_ACTION_ICON: Partial<Record<OrderStatus, typeof Package>> = {
+    processing: Package,
+    shipped: Truck,
+    delivered: CheckCircle,
+  };
+
+  // Every status column in this schema is nullable; a row with no status should render as
+  // unknown rather than crash. Known values come from ORDER_STATUS_BADGE, which the compiler
+  // forces to cover the whole enum — so a value added by a future migration cannot fall through
+  // to the grey `default` chip the way `awaiting_stock` did.
   const getStatusBadge = (status: string | null) => {
-    switch (status) {
-      case "pending":
-        return <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">{t("common.pending")}</Badge>;
-      case "processing":
-        return <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">{t("common.processing")}</Badge>;
-      case "shipped":
-        return <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-500/20">{t("common.shipped")}</Badge>;
-      case "delivered":
-        return <Badge className="bg-alert-resolved text-alert-resolved-foreground">{t("common.delivered")}</Badge>;
-      case "cancelled":
-        return <Badge variant="destructive">{t("common.cancelled")}</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
+    const known = ORDER_STATUSES.find((s) => s === status);
+    if (!known) return <Badge variant="outline">{status ?? "—"}</Badge>;
+    const { key, fallback } = ORDER_STATUS_LABEL[known];
+    return (
+      <Badge variant="outline" className={ORDER_STATUS_BADGE[known]}>
+        {t(key, fallback)}
+      </Badge>
+    );
   };
 
   return (
@@ -139,11 +151,11 @@ export default function OrdersPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t("common.all")} {t("common.status")}</SelectItem>
-                <SelectItem value="pending">{t("common.pending")}</SelectItem>
-                <SelectItem value="processing">{t("common.processing")}</SelectItem>
-                <SelectItem value="shipped">{t("common.shipped")}</SelectItem>
-                <SelectItem value="delivered">{t("common.delivered")}</SelectItem>
-                <SelectItem value="cancelled">{t("common.cancelled")}</SelectItem>
+                {ORDER_STATUSES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {t(ORDER_STATUS_LABEL[s].key, ORDER_STATUS_LABEL[s].fallback)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -217,45 +229,39 @@ export default function OrdersPage() {
                             {t("admin.orders.viewDetails")}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          {order.status === "pending" && (
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              updateOrderStatus.mutate({
-                                orderId: order.id,
-                                status: "processing",
-                                memberId: order.member_id,
-                              });
-                            }}>
-                              <Package className="mr-2 h-4 w-4" />
-                              {t("admin.orders.markProcessing")}
-                            </DropdownMenuItem>
-                          )}
-                          {order.status === "processing" && (
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              updateOrderStatus.mutate({
-                                orderId: order.id,
-                                status: "shipped",
-                                memberId: order.member_id,
-                              });
-                            }}>
-                              <Truck className="mr-2 h-4 w-4" />
-                              {t("admin.orders.markShipped")}
-                            </DropdownMenuItem>
-                          )}
-                          {order.status === "shipped" && (
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              updateOrderStatus.mutate({
-                                orderId: order.id,
-                                status: "delivered",
-                                memberId: order.member_id,
-                              });
-                            }}>
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                              {t("admin.orders.markDelivered")}
-                            </DropdownMenuItem>
-                          )}
+                          {(() => {
+                            /*
+                              One affordance, driven by ORDER_STATUS_NEXT, instead of three
+                              hardcoded `order.status === "..."` blocks. Those blocks were why an
+                              order in `confirmed` or `awaiting_stock` offered NO action at all —
+                              a paid member whose pendant could not be allocated had a row an
+                              admin could look at and nothing they could do to it.
+
+                              This is a UI affordance, not the state machine. The real ordering
+                              and the D9 role rules belong in a database trigger; see
+                              FULFILMENT_MODEL.md §1-E.
+                            */
+                            const known = ORDER_STATUSES.find((v) => v === order.status);
+                            const next = known ? ORDER_STATUS_NEXT[known] : null;
+                            if (!next) return null;
+                            const Icon = NEXT_ACTION_ICON[next] ?? Package;
+                            const label = ORDER_STATUS_LABEL[next];
+                            return (
+                              <DropdownMenuItem onClick={(e) => {
+                                e.stopPropagation();
+                                updateOrderStatus.mutate({
+                                  orderId: order.id,
+                                  status: next,
+                                  memberId: order.member_id,
+                                });
+                              }}>
+                                <Icon className="mr-2 h-4 w-4" />
+                                {t("admin.orders.markAs", "Mark as {{status}}", {
+                                  status: t(label.key, label.fallback).toLowerCase(),
+                                })}
+                              </DropdownMenuItem>
+                            );
+                          })()}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

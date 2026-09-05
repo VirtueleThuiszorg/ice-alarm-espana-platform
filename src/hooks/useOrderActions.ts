@@ -3,10 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logCommissionActivity } from "@/lib/auditLog";
 import { logCrmEvent } from "@/lib/crmEvents";
+import type { OrderStatus } from "@/lib/orderStatus";
 
 interface UpdateOrderStatusParams {
   orderId: string;
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  /**
+   * Derived from the database enum, never hand-listed. The five values written here previously
+   * were the enum as it stood in January; `confirmed` and `awaiting_stock` were added in
+   * 20260228170000 and this signature made them unrepresentable. See src/lib/orderStatus.ts.
+   */
+  status: OrderStatus;
   memberId: string;
 }
 

@@ -111,9 +111,17 @@ a branch I needed to borrow from had already merged as #137.
 **The lesson is procedural:** `git fetch --all` before measuring, and never treat a local `main`
 as authoritative without checking it against `origin/main`. Recorded rather than edited away (G5).
 
-## Partner journey (2026-08-11) — traced end to end
+## Partner journey (2026-08-11, consolidated 2026-09-05) — traced end to end
 
-> Full reasoning, both signup paths and the open decision: **`PARTNER_JOURNEY.md`**.
+> Full reasoning and the current single path: **`PARTNER_JOURNEY.md`**.
+>
+> **2026-09-05 — the two-path split is closed.** Partners have ONE way in: full
+> registration at `/partner/join`. `/partner` is a permanent redirect (router
+> `<Navigate replace>` + a 308 in `vercel.json`); `PartnerOnboarding` and its
+> locale namespace are deleted; `partner-apply` is still deployed but called by
+> nothing. The admin conversion path (`ConvertApplicationDialog`,
+> `partner-admin-invite`) is KEPT — production may hold pending applications
+> (`PENDING_FOR_LEE.md` S7). Proven by `src/test/partnerSingleEntry.test.ts`.
 >
 > ⚠️ **Everything marked "fix open" below is in an OPEN PR and is NOT on `main`.** The
 > live behaviour is still the broken behaviour until those merge. Nothing here is
@@ -128,7 +136,7 @@ as authoritative without checking it against `origin/main`. Recorded rather than
 | P3 | Client password rule was `min(8)`; server also requires upper + lower + digit | 🔴 BROKEN on main · fix open in **#106** (C2) | Parity test imports the REAL server schema and runs 35 adversarial inputs; reverting the client rule fails 5. |
 | P4 | Terms acceptance was UI state only — never sent, validated or stored | 🔴 BROKEN on main · fix open in **#107** (C3) | No `accept_terms` in the server schema, no column on `partners`. Migration + server enforcement verified against real PostgreSQL 16, including rollback. |
 | P5 | `/partner/login` unreachable from the public site | 🔴 BROKEN on main · fix open in **#108** (C5) | Nav and landing footer both pointed only at `/partner`. Reverting both pages fails 4 of 7 tests. |
-| P6 | The nav reaches `/partner` → `partner-apply`, never `/partner/join` | 🔴 BROKEN — **DECIDED 2026-08-11: Option C** (admin conversion of applications), `/partner/join` kept reachable. Not yet implemented. | `PARTNER_JOURNEY.md` §3. **The zero-invocation count was NOT caused by this**: `partner-apply` read zero too, both from the placeholder `VITE_SUPABASE_URL`. The nav split is a real gap; it was not the cause of the zero. |
+| P6 | The nav reaches `/partner` → `partner-apply`, never `/partner/join` | ✅ **FIXED 2026-09-05** — the application path is retired; every public link points at `/partner/join` and `/partner` permanently redirects there | `src/test/partnerSingleEntry.test.ts` (15 assertions): route present and renders `<Navigate replace>`, `vercel.json` 308, no wildcard that would loop, header + both landing links, a walk of `src/` finds no remaining `/partner` complete-path link, the page is deleted, nothing invokes `partner-apply`, the locale namespace is gone, and the admin convert path still exists. **The zero-invocation count was NOT caused by this**: `partner-apply` read zero too, both from the placeholder `VITE_SUPABASE_URL`. |
 
 ### Verified by execution, not inspection
 
@@ -144,11 +152,12 @@ as authoritative without checking it against `origin/main`. Recorded rather than
 | # | Gap | Why it is left |
 |---|---|---|
 | P7 | `PartnerLogin` blocks only `pending`/`suspended` (denylist); `get_user_role_info` grants only `active` (allowlist) | Same asymmetry as #102. No status outside the enum exists today, so it is latent. Needs prod's distinct values checked first. |
-| P8 | "No partner account found for this email" — the lookup is by `user_id`, not email | Every `partner-apply` row has no `user_id`, so this is exactly what an application-path partner sees. Wording fix is trivial; the underlying cause is P6. |
+| P8 | "No partner account found for this email" — the lookup is by `user_id`, not email | Every legacy `partner-apply` row has no `user_id`, so this is exactly what an application-path partner sees — and since P6, trying to log in is the only way one can arrive. Wording fix is trivial. |
+| **P13** | **`/partner/join` is hardcoded English end to end** — 970 lines, two `t()` calls, no `useTranslation` | 🔴 **NEW SEVERITY as of P6's fix.** It was survivable while the nav reached the fully-translated `/partner`; it is now the **sole** public partner entry point, against LAUNCH_SCOPE §6 (EN + ES + NL, full coverage at launch). Translating a 970-line wizard is its own work package. Deliberately NOT papered over with two translated strings — see `PARTNER_JOURNEY.md` §3.1 and the comment in `partnerLoginReachable.test.ts`. |
 | P9 | `preferred_language` is `en`/`es` only — CHECK constraint, server enum and form all agree | Consistent, so parity holds, but Dutch is consistently **rejected**, against LAUNCH_SCOPE §6. Needs a migration + scope decision; not bundled into a parity PR. |
 | P10 | `/partner-dashboard` is hard-blocked on first arrival by `AgreementRequiredModal` (`open={true}`, non-dismissible) | Intended, but the first-run experience has never been click-tested. |
 | P11 | Verification email runs on interim Gmail SMTP | Already a `LAUNCH_CHECKLIST.md` hard blocker. A silent delivery failure is indistinguishable from a partner who never bothered. |
-| P12 | `partner-apply` writes no `user_id` and issues no verification token | This IS P6. An application is a lead and terminal without admin action. |
+| P12 | `partner-apply` writes no `user_id` and issues no verification token | An application is a lead and terminal without admin action. No longer reachable from the public site (P6), but the function stays deployed and the admin conversion path stays wired, because production may hold pending rows — `PENDING_FOR_LEE.md` S7 carries the count query that decides whether they can all go. |
 
 ### Retracted
 
@@ -164,7 +173,16 @@ attached (G5).
   either a test, a real-PostgreSQL run, or a source reading — never "looks right".
 - The **live** partner journey is unverified after these PRs, because none is merged.
 - `partner-apply`'s invocation count on prod is unknown, so whether the application
-  path itself is currently reaching the backend has not been confirmed.
+  path itself ever reached the backend has not been confirmed.
+- The consolidation of 2026-09-05 **was** walked in a real browser, once: Chromium
+  against the production build served by `vite preview` — `/partner` lands on
+  `/partner/join` and renders "Become an ICE Alarm España Partner". That is the
+  router redirect. **The 308 in `vercel.json` has NOT been observed on a deployed
+  URL** — `vite preview` does not apply Vercel's redirect rules, so the HTTP status
+  a search engine will see is asserted from config, not measured. One `curl -I`
+  against the deployed `/partner` closes it.
+- **The count of pending applications on prod is unknown** — that is exactly what
+  `PENDING_FOR_LEE.md` S7 asks Lee to run.
 
 ## Staff credential reset tooling (2026-08-11)
 

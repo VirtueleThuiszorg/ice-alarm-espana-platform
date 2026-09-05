@@ -54,7 +54,9 @@ const PUBLIC_ROUTES: { path: string; name: string }[] = [
   { path: "/privacy", name: "privacy" },
   { path: "/join", name: "join-step1" },
   { path: "/login", name: "login" },
-  { path: "/partner", name: "partner" },
+  // `/partner` is not audited as a page: it is a permanent redirect to
+  // /partner/join (partnerSingleEntry.test.ts), so auditing it would audit
+  // /partner/join twice under a name that no longer describes a page.
   { path: "/partner/join", name: "partner-join" },
   { path: "/partner/login", name: "partner-login" },
 ];

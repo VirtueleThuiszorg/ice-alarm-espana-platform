@@ -2,7 +2,8 @@
  * Partner commission terms: €50 per pendant sold, FLAT (Lee, 2026-07-24).
  * No volume tiers, no discounts for more. Three surfaces must agree:
  *
- *  1. The PUBLIC /partner page shows NO commission figures at all —
+ *  1. The PUBLIC partner page (/partner/join; /partner redirects to it) shows
+ *     NO commission figures at all —
  *     general value prop only; terms are stated in the confirmation email.
  *  2. The application confirmation email (partner-apply) states the flat
  *     terms explicitly, in the applicant's language, non-blocking.
@@ -19,16 +20,20 @@ const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
 const apply = read("supabase/functions/partner-apply/index.ts");
 const orderActions = read("src/hooks/useOrderActions.ts");
 
-describe("1 — public /partner page carries no commission figures", () => {
-  it("PartnerOnboarding has no euro amounts and no tier copy", () => {
-    const page = read("src/pages/partner/PartnerOnboarding.tsx");
+describe("1 — the public partner page carries no commission figures", () => {
+  // Surface 1 used to be `/partner` (PartnerOnboarding). That page is retired and
+  // `/partner` now redirects here, so PartnerJoin IS the public partner page.
+  it("PartnerJoin states no figure (terms come by email)", () => {
+    const page = read("src/pages/partner/PartnerJoin.tsx");
     expect(page).not.toMatch(/€\s?\d/);
     expect(page).not.toMatch(/commissionTitle|commBase|comm10|comm20/);
   });
 
-  it("PartnerJoin states no figure either (terms come by email)", () => {
-    const page = read("src/pages/partner/PartnerJoin.tsx");
-    expect(page).not.toMatch(/€\s?\d/);
+  it("no locale carries the retired page's tier copy either", () => {
+    for (const loc of ["en", "es", "nl"]) {
+      const dict = JSON.parse(read(`src/i18n/locales/${loc}.json`));
+      expect(dict.partnerOnboarding, `${loc}: partnerOnboarding is dead copy`).toBeUndefined();
+    }
   });
 });
 

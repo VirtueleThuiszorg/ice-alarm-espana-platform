@@ -35,8 +35,8 @@
  *     expiry and CVC into React state and sent them nowhere.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
+import { join, sep } from "node:path";
 
 const ROOT = process.cwd();
 const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
@@ -49,10 +49,33 @@ function migration(prefix: string): string {
 }
 
 describe("partner application goes through the server", () => {
-  it("PartnerOnboarding invokes partner-apply and no longer inserts partners", () => {
-    const page = read("src/pages/partner/PartnerOnboarding.tsx");
-    expect(page).toMatch(/functions\.invoke\("partner-apply"/);
-    expect(page).not.toMatch(/from\(["']partners["']\)\s*\.insert/);
+  it("no client calls partner-apply at all — the public application path is retired", () => {
+    // Stronger than the assertion this replaces. That one required the application
+    // page to go through the server rather than inserting `partners` directly; the
+    // page is now gone, so the sharper claim is that nothing in the client invokes
+    // the function, and nothing inserts `partners` from the browser either.
+    const offenders: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir)) {
+        const full = join(dir, entry);
+        if (statSync(full).isDirectory()) {
+          walk(full);
+          continue;
+        }
+        if (!/\.(tsx?|jsx?)$/.test(entry)) continue;
+        if (full.includes(`${sep}test${sep}`)) continue;
+        const src = readFileSync(full, "utf8");
+        if (/functions\.invoke\(\s*["']partner-apply["']/.test(src)) offenders.push(full);
+        if (/from\(["']partners["']\)\s*\.insert/.test(src)) offenders.push(full);
+      }
+    };
+    walk(join(ROOT, "src"));
+    expect(offenders, `still reach the application path: ${offenders.join(", ")}`).toEqual([]);
+  });
+
+  it("the application page itself is gone from the bundle", () => {
+    expect(existsSync(join(ROOT, "src/pages/partner/PartnerOnboarding.tsx"))).toBe(false);
+    expect(read("src/App.tsx")).not.toMatch(/PartnerOnboarding/);
   });
 
   it("partner-apply is service-role scoped, whitelisted, deduped, rate-limited, and NEVER creates an auth account", () => {

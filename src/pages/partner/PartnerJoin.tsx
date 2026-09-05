@@ -346,7 +346,7 @@ export default function PartnerJoin() {
 
             <p className="text-center text-sm text-muted-foreground">
               Already a partner?{" "}
-              <Link to="/partner/login" className="text-primary hover:underline">
+              <Link to="/partner/login" className="inline-block py-2 text-primary underline underline-offset-4 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
                 Sign in here
               </Link>
             </p>
@@ -458,7 +458,7 @@ export default function PartnerJoin() {
 
               <p className="text-center text-sm text-muted-foreground pt-4">
                 Already a partner?{" "}
-                <Link to="/partner/login" className="text-primary hover:underline font-medium">
+                <Link to="/partner/login" className="inline-block py-2 text-primary underline underline-offset-4 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 font-medium">
                   Sign in
                 </Link>
               </p>

@@ -582,7 +582,7 @@
     "link": "Enlace",
     "preview": "Vista Previa",
     "deleteConfirmTitle": "Confirmar eliminación",
-    "deleteConfirm": "¿Estás seguro de que quieres eliminar este elemento?",
+    "deleteConfirm": "¿Está seguro de que quiere eliminar este elemento?",
     "languages": {
       "en": "Inglés",
       "es": "Español"
@@ -676,11 +676,11 @@
       "goHome": "Ir al Inicio",
       "backToLogin": "Volver al Login"
     },
-    "twoFactorRequired": "La autenticación en dos pasos es obligatoria para las cuentas de administrador. Por favor, configúrala ahora.",
-    "twoFactorCodeLength": "Introduce un código de 6 dígitos",
+    "twoFactorRequired": "La autenticación en dos pasos es obligatoria para las cuentas de administrador. Por favor, configúrela ahora.",
+    "twoFactorCodeLength": "Introduzca un código de 6 dígitos",
     "twoFactorInvalid": "Código de verificación no válido",
     "twoFactorTitle": "Autenticación en dos pasos",
-    "twoFactorDesc": "Introduce el código de 6 dígitos de tu aplicación de autenticación",
+    "twoFactorDesc": "Introduzca el código de 6 dígitos de su aplicación de autenticación",
     "verificationCode": "Código de verificación",
     "verifying": "Verificando...",
     "verify": "Verificar"
@@ -747,15 +747,15 @@
     "fromPriceIva": "Desde {{price}}/mes · IVA incluido, sin costes ocultos",
     "pendantSection": {
       "title": "Diseñado para llevarlo puesto, no para esconderlo",
-      "description": "Un colgante discreto lo hace todo: púlsalo y nuestro equipo estará contigo en segundos. Resistente al agua, con localización GPS, detección automática de caídas y días de batería.",
+      "description": "Un colgante discreto lo hace todo: púlselo y nuestro equipo estará con usted en segundos. Resistente al agua, con localización GPS, detección automática de caídas y días de batería.",
       "waterproofTitle": "Resistente al agua (IP67)",
       "waterproofDesc": "Llévalo en la ducha o en el jardín: certificación IP67 contra agua y polvo.",
       "gpsTitle": "Localización GPS",
-      "gpsDesc": "Sabemos dónde estás en cuanto llamas, en casa o fuera.",
+      "gpsDesc": "Sabemos dónde está en cuanto llama, en casa o fuera.",
       "fallTitle": "Detección automática de caídas",
-      "fallDesc": "Una caída fuerte avisa a nuestro equipo aunque no puedas pulsar el botón.",
+      "fallDesc": "Una caída fuerte avisa a nuestro equipo aunque no pueda pulsar el botón.",
       "batteryTitle": "Días de batería",
-      "batteryDesc": "Batería de larga duración, con avisos de batería baja para ti y nuestro equipo.",
+      "batteryDesc": "Batería de larga duración, con avisos de batería baja para usted y nuestro equipo.",
       "priceLine": "Colgante {{device}} pago único · membresía desde {{monthly}}/mes, IVA incluido",
       "learnMore": "Más información sobre el colgante"
     },
@@ -979,21 +979,21 @@
     "deviceOffline": "Dispositivo sin conexión"
   },
   "alertHistory": {
-    "subtitle": "Ver tus alertas pasadas y cómo se resolvieron",
+    "subtitle": "Ver sus alertas pasadas y cómo se resolvieron",
     "totalAlerts": "Total de alertas",
     "allTypes": "Todos los tipos",
     "allStatuses": "Todos los estados",
     "noAlerts": "Sin historial de alertas",
-    "noAlertsDesc": "Tu historial de alertas aparecerá aquí cuando uses tu colgante. ¡Sin alertas significa que todo funciona perfectamente!",
+    "noAlertsDesc": "Su historial de alertas aparecerá aquí cuando use su colgante. ¡Sin alertas significa que todo funciona perfectamente!",
     "allClear": "Todos los sistemas funcionando normalmente",
     "resolvedIn": "Resuelta en",
-    "understandingAlerts": "Comprender tus alertas",
+    "understandingAlerts": "Comprender sus alertas",
     "understandingAlertsDesc": "Aprende qué significa cada tipo de alerta",
     "sos_buttonDesc": "Se activa cuando presionas y mantienes el botón SOS",
-    "fall_detectedDesc": "Se activa automáticamente cuando tu colgante detecta una caída",
-    "geo_fenceDesc": "Se activa cuando sales del límite de tu zona segura",
-    "low_batteryDesc": "Aviso cuando la batería de tu colgante está baja",
-    "check_inDesc": "Verificación regular para confirmar que estás bien"
+    "fall_detectedDesc": "Se activa automáticamente cuando su colgante detecta una caída",
+    "geo_fenceDesc": "Se activa cuando sale del límite de su zona segura",
+    "low_batteryDesc": "Aviso cuando la batería de su colgante está baja",
+    "check_inDesc": "Verificación regular para confirmar que está bien"
   },
   "messages": {
     "title": "Mensajes",
@@ -1126,9 +1126,9 @@
     "creditCard": "Tarjeta de Crédito",
     "bankTransfer": "Transferencia Bancaria",
     "title": "Suscripción y facturación",
-    "subtitle": "Gestiona tu plan y tus pagos",
+    "subtitle": "Gestione su plan y sus pagos",
     "noActiveSubscription": "Sin suscripción activa",
-    "contactSupport": "Ponte en contacto con soporte para obtener información sobre tu suscripción.",
+    "contactSupport": "Póngase en contacto con soporte para obtener información sobre su suscripción.",
     "upgrade": "Mejorar",
     "upgradeDesc": "Ahorra cambiando a la facturación anual"
   },
@@ -1982,7 +1982,7 @@
     "notesMaxLength": "Las notas deben tener menos de 2000 caracteres",
     "titleRequired": "El título es obligatorio",
     "required": "Este campo es obligatorio",
-    "invalidPhone": "Introduce un número de teléfono válido"
+    "invalidPhone": "Introduzca un número de teléfono válido"
   },
   "errors": {
     "somethingWentWrong": "Algo salió mal",
@@ -2153,7 +2153,7 @@
       }
     },
     "commissions": "Comisiones",
-    "commissionsDesc": "Consulta tus comisiones y pagos",
+    "commissionsDesc": "Consulte sus comisiones y pagos",
     "viewingCommissions": "Viendo las comisiones de {{name}}",
     "commissionStructure": "Estructura de comisiones",
     "commissionFlat": "50 € por colgante vendido: tarifa fija, sin escalas por volumen",
@@ -2164,12 +2164,12 @@
     "totalPaid": "Total pagado",
     "lifetimeEarnings": "Ganancias totales pagadas",
     "commissionHistory": "Historial de comisiones",
-    "allCommissions": "Todas tus comisiones",
+    "allCommissions": "Todas sus comisiones",
     "filterByStatus": "Filtrar por estado",
     "allStatus": "Todos los estados",
     "paid": "Pagadas",
     "noCommissions": "Aún no hay comisiones",
-    "noCommissionsDesc": "Las comisiones aparecerán aquí cuando tus referidos se registren",
+    "noCommissionsDesc": "Las comisiones aparecerán aquí cuando sus referidos se registren",
     "triggerEvent": "Evento",
     "triggered": "Generada",
     "releaseDate": "Fecha de liberación",
@@ -2183,20 +2183,20 @@
     "deleteError": "Error al eliminar el archivo. Inténtalo de nuevo.",
     "notFound": "Perfil de socio no encontrado",
     "marketingTools": "Herramientas de marketing",
-    "yourReferralLink": "Tu enlace de referido",
-    "referralLinkDescription": "Comparte este enlace para hacer seguimiento de tus referidos",
+    "yourReferralLink": "Su enlace de referido",
+    "referralLinkDescription": "Comparta este enlace para hacer seguimiento de sus referidos",
     "referralCode": "Código de referido",
-    "yourQrCode": "Tu código QR",
-    "qrCodeDescription": "Deja que los clientes escaneen este código para abrir tu enlace de referido",
+    "yourQrCode": "Su código QR",
+    "qrCodeDescription": "Deje que los clientes escaneen este código para abrir su enlace de referido",
     "downloadPng": "Descargar PNG",
     "print": "Imprimir",
     "presentations": "Presentaciones y materiales",
-    "presentationsDescription": "Sube y comparte tus materiales de venta",
+    "presentationsDescription": "Suba y comparta sus materiales de venta",
     "uploadFile": "Subir archivo",
     "copyLink": "Copiar enlace",
     "openFile": "Abrir archivo",
     "noPresentations": "Aún no hay archivos subidos",
-    "uploadHint": "Sube PDF, presentaciones o imágenes de hasta 50 MB",
+    "uploadHint": "Suba PDF, presentaciones o imágenes de hasta 50 MB",
     "residential": {
       "previewCsv": "Vista previa del CSV (importación próximamente)",
       "csvPreview_one": "Vista previa: {{count}} residente encontrado en el archivo; no se ha importado nada (importación próximamente)",
@@ -2375,13 +2375,13 @@
   "pendant": {
     "lifestyle": {
       "title": "Pensado para la vida real en España",
-      "subtitle": "Resistente al agua, con GPS y detección de caídas: sigue protegiéndote en el jardín, en la montaña o en la ducha.",
+      "subtitle": "Resistente al agua, con GPS y detección de caídas: sigue protegiéndole en el jardín, en la montaña o en la ducha.",
       "ip67Title": "Resistente al agua (IP67)",
       "ip67Why": "No hace falta quitárselo en la ducha ni bajo la lluvia: la protección no se detiene.",
       "gpsTitle": "Localización GPS",
-      "gpsWhy": "Si necesitas ayuda fuera de casa, sabemos exactamente dónde enviarla.",
+      "gpsWhy": "Si necesita ayuda fuera de casa, sabemos exactamente dónde enviarla.",
       "fallTitle": "Detección de caídas",
-      "fallWhy": "Una caída fuerte avisa a nuestro equipo automáticamente, aunque no puedas pulsar el botón.",
+      "fallWhy": "Una caída fuerte avisa a nuestro equipo automáticamente, aunque no pueda pulsar el botón.",
       "batteryTitle": "Días de batería",
       "batteryWhy": "Batería de larga duración con avisos de batería baja, lista cuando importa."
     },
@@ -2939,21 +2939,21 @@
     "paymentSuccessRecovered": "¡Pago recibido! Su pedido está confirmado.",
     "draftSaveFailed": "No hemos podido guardar su progreso. Puede continuar, pero no cierre esta pestaña.",
     "contactRequiredFields": "Por favor, rellene el nombre, la relación y el número de teléfono.",
-    "yourSelection": "Tu selección"
+    "yourSelection": "Su selección"
   },
   "chat": {
     "openChat": "Abrir chat",
     "closeChat": "Cerrar chat",
     "newChat": "Nuevo chat",
     "assistantName": "Asistente ICE Alarm España",
-    "memberAssistantName": "Tu Asistente Personal",
+    "memberAssistantName": "Su Asistente Personal",
     "available": "Disponible 24/7",
-    "memberAssistantAvailable": "Aquí para ayudarte",
-    "placeholder": "Escribe tu mensaje...",
+    "memberAssistantAvailable": "Aquí para ayudarle",
+    "placeholder": "Escriba su mensaje...",
     "send": "Enviar",
-    "welcomeMessage": "¡Hola! 👋 Soy tu asistente virtual de ICE Alarm España. ¿En qué puedo ayudarte hoy? Puedo responder preguntas sobre nuestros servicios, precios, o ayudarte a comenzar.",
+    "welcomeMessage": "¡Hola! 👋 Soy su asistente virtual de ICE Alarm España. ¿En qué puedo ayudarle hoy? Puedo responder preguntas sobre nuestros servicios, precios, o ayudarle a comenzar.",
     "errorMessage": "Lo siento, hubo un problema al conectar. Por favor, intenta de nuevo más tarde.",
-    "fallbackMessage": "Lo siento, no pude procesar tu mensaje. Por favor, intenta de nuevo."
+    "fallbackMessage": "Lo siento, no pude procesar su mensaje. Por favor, inténtelo de nuevo."
   },
   "partnerAgreement": {
     "title": "Acuerdo de Colaboración",
@@ -5572,7 +5572,7 @@
     "footer": "¿No encuentra lo que busca? Contáctenos para recibir asistencia.",
     "noResults": "No se encontraron artículos",
     "noArticles": "No hay artículos disponibles",
-    "tryDifferentSearch": "Prueba a ajustar los términos de búsqueda o explora por categoría.",
+    "tryDifferentSearch": "Pruebe a ajustar los términos de búsqueda o explore por categoría.",
     "articlesComingSoon": "Los artículos de ayuda se están preparando y estarán disponibles pronto.",
     "contactUs": "Contactar con Soporte"
   },
@@ -5950,7 +5950,7 @@
       "detail1": "Da a la ambulancia las coordenadas GPS exactas de María",
       "detail2": "Explica la caída, el dolor de cadera y su historial quirúrgico — en español",
       "detail3": "María nunca se queda sola: Ana permanece con ella a través del colgante, manteniéndola tranquila",
-      "responseQuote": "\"Lo estás haciendo muy bien, María. La ayuda ya está en camino. Intenta no moverte y nos quedamos aquí contigo.\"",
+      "responseQuote": "«Lo está haciendo muy bien, María. La ayuda ya está en camino. Intente no moverse y nos quedamos aquí con usted.»",
       "note": "La línea no se queda en silencio. Nos quedamos con María hasta que la ayuda llega físicamente."
     },
     "step7": {

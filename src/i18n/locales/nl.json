@@ -2913,7 +2913,7 @@
       "orEmail": "of e-mail",
       "oneThingLeftTitle": "Nog één ding: uw noodcontacten",
       "oneThingLeftBody": "Zolang we niemand hebben om te bellen, kunnen we uw alarm aannemen maar uw familie niet bereiken.",
-      "oneThingLeftHow": "Gebruik de link die we u gemaild hebben, of bel ons en we nemen de gegevens nu op — wat u makkelijker vindt."
+      "oneThingLeftHow": "Bel ons en we nemen de gegevens nu op, of voeg ze zelf toe zodra u inlogt."
     },
     "validation": {
       "enterFullName": "Voer uw volledige naam in",
@@ -6031,9 +6031,10 @@
   },
   "clientDashboard": {
     "notReady": {
-      "title": "We hebben niemand om voor u te bellen",
-      "body": "Uw alarm werkt en een operator neemt het aan. Maar we hebben geen enkel noodcontact vastgelegd, dus we kunnen uw familie niet bereiken.",
-      "how": "Gebruik de link die we u gemaild hebben, of bel ons en we nemen de gegevens telefonisch op."
+      "title": "We hebben nog uw noodcontacten nodig",
+      "body": "Uw alarm werkt en een operator neemt het altijd aan. Maar we hebben nog niemand die we namens u kunnen bellen.",
+      "orCall": "Liever telefonisch? Bel ons op",
+      "action": "Uw noodcontacten toevoegen"
     }
   },
   "addMember": {

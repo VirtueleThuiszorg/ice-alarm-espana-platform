@@ -2913,7 +2913,7 @@
       "orEmail": "or email",
       "oneThingLeftTitle": "One thing left: your emergency contacts",
       "oneThingLeftBody": "Until we have at least one person to call, we can answer your alarm but we cannot reach your family.",
-      "oneThingLeftHow": "Use the link we have emailed you, or call us and we will take the details now — whichever is easier."
+      "oneThingLeftHow": "Call us and we will take the details now, or add them yourself once you sign in."
     },
     "validation": {
       "enterFullName": "Please enter your full name",
@@ -6031,9 +6031,10 @@
   },
   "clientDashboard": {
     "notReady": {
-      "title": "We have nobody to call for you",
-      "body": "Your alarm works and an operator will answer it. But we do not have a single emergency contact on file, so we cannot reach your family.",
-      "how": "Use the link we emailed you, or call us and we will take the details over the phone."
+      "title": "We still need your emergency contacts",
+      "body": "Your alarm works and an operator will always answer it. But we have no one to contact on your behalf yet.",
+      "orCall": "Prefer to do it by phone? Call us on",
+      "action": "Add your emergency contacts"
     }
   },
   "addMember": {

@@ -6035,5 +6035,38 @@
       "body": "Su alarma funciona y un operador la atenderá. Pero no tenemos ni un contacto de emergencia en su ficha, así que no podemos avisar a su familia.",
       "how": "Use el enlace que le enviamos por correo, o llámenos y tomamos los datos por teléfono."
     }
+  },
+  "addMember": {
+    "title": "Añadir un miembro",
+    "subtitle": "Paso {{step}} de {{total}}. El miembro se crea inactivo — el pago es lo que lo activa.",
+    "back": "Volver a Miembros",
+    "staffOnly": "Solo personal",
+    "firstName": "Nombre",
+    "lastName": "Apellidos",
+    "email": "Correo electrónico",
+    "phone": "Teléfono",
+    "dob": "Fecha de nacimiento",
+    "address": "Dirección",
+    "city": "Ciudad",
+    "province": "Provincia",
+    "postalCode": "Código postal",
+    "someoneElsePays": "Otra persona paga por este miembro",
+    "payerExplainer": "Solo una relación de facturación. Pagar por alguien no da acceso a su información médica, ubicación ni alertas — eso requiere el consentimiento del propio miembro.",
+    "payerName": "Nombre completo del pagador",
+    "payerEmail": "Correo del pagador",
+    "payerPhone": "Teléfono del pagador",
+    "payerRelationship": "Relación con el miembro",
+    "payerHeading": "Pagado por",
+    "payerNotAttachedYet": "Registrado ahora y vinculado a la suscripción cuando se cobre el pago.",
+    "whatHappensTitle": "Qué hace esto",
+    "whatHappens1": "Crea el registro del miembro como INACTIVO. El pago es lo que lo activa.",
+    "whatHappens2": "Registra al pagador, si hay uno. No se crea ninguna suscripción.",
+    "whatHappens3": "No envía nada. No sale ningún correo — tome sus contactos de emergencia en esta llamada.",
+    "whatHappens4": "Le lleva a su ficha para que pueda añadir contactos ahora.",
+    "previous": "Atrás",
+    "next": "Siguiente",
+    "create": "Crear registro de miembro",
+    "created": "Registro de miembro creado. Todavía NO está activo — el pago lo activa.",
+    "createFailed": "No se guardó nada. {{reason}}"
   }
 }

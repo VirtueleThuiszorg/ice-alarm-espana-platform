@@ -176,3 +176,5 @@
 20260904120000_member_monitoring_readiness.sql
 20260904150000_member_health_data_provenance.sql
 20260904160000_registration_draft_schema_version.sql
+20260904170000_payer_billing_relation.sql
+20260904180000_member_status_not_self_writable.sql

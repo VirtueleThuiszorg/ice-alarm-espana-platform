@@ -1478,6 +1478,246 @@ SELECT pg_temp.check(
   'if this fails the harness is broken, not the policies');
 
 -- ============================================================
+--  Payers — a BILLING relationship, never a care route
+-- ============================================================
+--
+-- PAYER_MODEL.md §4: paying for someone grants no sight of their medical information,
+-- location, alerts or emergency contacts. Every instinct pulls the other way — "of course the
+-- daughter who pays can see mum's alerts" IS the consent bypass, because it would let a family
+-- member acquire sight of an adult's medical record BY PAYING FOR IT without that adult ever
+-- agreeing. Negative-first, and with a mechanism assertion so a future convenient policy fails
+-- this suite rather than shipping.
+
+INSERT INTO auth.users (id, email) VALUES
+  ('99999999-9999-9999-9999-999999999999', 'payer-p@example.com'),
+  ('aaaaaaaa-9999-9999-9999-999999999999', 'payer-q@example.com');
+
+-- Payer P pays for member A. Payer Q pays for nobody.
+INSERT INTO public.payers (id, user_id, full_name, email, relationship)
+VALUES
+  ('11111111-aaaa-0000-0000-000000000001', '99999999-9999-9999-9999-999999999999',
+   'Paula Payer', 'payer-p@example.com', 'daughter'),
+  ('22222222-aaaa-0000-0000-000000000002', 'aaaaaaaa-9999-9999-9999-999999999999',
+   'Quentin Payer', 'payer-q@example.com', 'son');
+
+UPDATE public.subscriptions
+   SET payer_id = '11111111-aaaa-0000-0000-000000000001'
+ WHERE member_id = 'aaaaaaaa-0000-0000-0000-000000000001';
+
+-- ── the positive controls, so the negatives below cannot pass vacuously ─────
+
+SELECT pg_temp.check(
+  'CONTROL: payer P really is attached to member A''s subscription',
+  (SELECT count(*) FROM public.subscriptions
+    WHERE payer_id = '11111111-aaaa-0000-0000-000000000001') = 1,
+  'if this fails every negative below is vacuous');
+
+SELECT pg_temp.check(
+  'a payer DOES read the subscription they pay for (else the relation is useless)',
+  pg_temp.count_as('99999999-9999-9999-9999-999999999999',
+    'SELECT id FROM public.subscriptions') = 1);
+
+SELECT pg_temp.check(
+  'a payer reads their OWN payer row',
+  pg_temp.count_as('99999999-9999-9999-9999-999999999999',
+    'SELECT id FROM public.payers') = 1);
+
+-- ── A PAYER CANNOT READ THE MEMBER THEY PAY FOR ────────────────────────────
+-- This is §4 as an executable statement: P pays for A and still sees nothing about A.
+
+SELECT pg_temp.check(
+  'A PAYER WITH NO CONSENT GRANT CANNOT READ THE MEDICAL INFORMATION OF THE MEMBER THEY PAY FOR',
+  pg_temp.count_as('99999999-9999-9999-9999-999999999999',
+    'SELECT id FROM public.medical_information
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 0);
+
+SELECT pg_temp.check(
+  'a payer cannot read the ALERTS of the member they pay for',
+  pg_temp.count_as('99999999-9999-9999-9999-999999999999',
+    'SELECT id FROM public.alerts
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 0);
+
+SELECT pg_temp.check(
+  'a payer cannot read the DEVICES (and so the location) of the member they pay for',
+  pg_temp.count_as('99999999-9999-9999-9999-999999999999',
+    'SELECT id FROM public.devices
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 0);
+
+SELECT pg_temp.check(
+  'a payer cannot read the EMERGENCY CONTACTS of the member they pay for',
+  pg_temp.count_as('99999999-9999-9999-9999-999999999999',
+    'SELECT id FROM public.emergency_contacts
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 0);
+
+SELECT pg_temp.check(
+  'a payer cannot read the MEMBERS ROW of the member they pay for',
+  pg_temp.count_as('99999999-9999-9999-9999-999999999999',
+    'SELECT id FROM public.members') = 0,
+  'not even the name — billing needs the payer''s identity, not the member''s record');
+
+SELECT pg_temp.check(
+  'a payer cannot read the READINESS of the member they pay for',
+  pg_temp.count_as('99999999-9999-9999-9999-999999999999',
+    'SELECT member_id FROM public.member_monitoring_readiness') = 0,
+  'readiness is care state and names a gap in someone''s safety chain');
+
+-- ── A PAYER CANNOT READ ANOTHER MEMBER'S DATA ──────────────────────────────
+
+SELECT pg_temp.check(
+  'A PAYER CANNOT READ ANOTHER MEMBER''S MEDICAL INFORMATION',
+  pg_temp.count_as('99999999-9999-9999-9999-999999999999',
+    'SELECT id FROM public.medical_information
+      WHERE member_id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 0);
+
+SELECT pg_temp.check(
+  'a payer cannot read another member''s alerts',
+  pg_temp.count_as('99999999-9999-9999-9999-999999999999',
+    'SELECT id FROM public.alerts
+      WHERE member_id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 0);
+
+SELECT pg_temp.check(
+  'a payer cannot read a SUBSCRIPTION they do not pay for',
+  pg_temp.count_as('99999999-9999-9999-9999-999999999999',
+    'SELECT id FROM public.subscriptions
+      WHERE member_id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 0);
+
+SELECT pg_temp.check(
+  'a payer who pays for NOBODY reads no subscriptions at all',
+  pg_temp.count_as('aaaaaaaa-9999-9999-9999-999999999999',
+    'SELECT id FROM public.subscriptions') = 0);
+
+SELECT pg_temp.check(
+  'a payer cannot read ANOTHER PAYER''s row',
+  pg_temp.count_as('99999999-9999-9999-9999-999999999999',
+    'SELECT id FROM public.payers
+      WHERE id = ''22222222-aaaa-0000-0000-000000000002''') = 0);
+
+-- ── a payer cannot acquire billing, or grant themselves anything ────────────
+
+SELECT pg_temp.check(
+  'a payer cannot REASSIGN payer_id on a subscription they already pay for',
+  pg_temp.exec_as('99999999-9999-9999-9999-999999999999',
+    'UPDATE public.subscriptions SET payer_id = ''22222222-aaaa-0000-0000-000000000002''
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 0);
+
+SELECT pg_temp.check(
+  'a payer cannot ATTACH THEMSELVES to a subscription they do not pay for',
+  pg_temp.exec_as('99999999-9999-9999-9999-999999999999',
+    'UPDATE public.subscriptions SET payer_id = ''11111111-aaaa-0000-0000-000000000001''
+      WHERE member_id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 0,
+  'otherwise paying for one member is a route to the billing of every other');
+
+SELECT pg_temp.check(
+  'a payer cannot edit their own payer row (no self-UPDATE policy, by design)',
+  pg_temp.exec_as('99999999-9999-9999-9999-999999999999',
+    'UPDATE public.payers SET email = ''hijack@example.com''
+      WHERE user_id = ''99999999-9999-9999-9999-999999999999''') = 0);
+
+SELECT pg_temp.check(
+  'a payer cannot INSERT a payer row',
+  pg_temp.raises_as('99999999-9999-9999-9999-999999999999',
+    'INSERT INTO public.payers (full_name, email) VALUES (''Forged'', ''forged@example.com'')'));
+
+SELECT pg_temp.check(
+  'a payer cannot grant THEMSELVES care access over the member they pay for',
+  pg_temp.raises_as('99999999-9999-9999-9999-999999999999',
+    'INSERT INTO public.care_access_grants
+       (member_id, grantee_name, grantee_email, relationship, grantee_user_id, category,
+        granted_by_user_id, basis)
+     VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''Paula Payer'', ''payer-p@example.com'',
+             ''daughter'', ''99999999-9999-9999-9999-999999999999'', ''medical'',
+             ''99999999-9999-9999-9999-999999999999'', ''member_self'')'),
+  'paying is not consenting — CONSENT_MODEL.md refuses third-party consent and this is that');
+
+-- ── A MEMBER CANNOT ALTER THEIR OWN BILLING, OR SEE ANOTHER MEMBER'S PAYER ──
+
+SELECT pg_temp.check(
+  'A MEMBER CANNOT ALTER THEIR OWN BILLING',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.subscriptions SET amount = 1
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 0,
+  'already true — subscriptions is SELECT-only for members. Asserted so it stays true now that
+   payer_id exists on the same table');
+
+SELECT pg_temp.check(
+  'a member cannot set their own payer_id',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.subscriptions SET payer_id = NULL
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 0);
+
+SELECT pg_temp.check(
+  'a member cannot INSERT a subscription for themselves (webhook-only activation)',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO public.subscriptions
+       (member_id, plan_type, billing_frequency, amount, start_date, renewal_date, status)
+     VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''single'', ''monthly'', 1, CURRENT_DATE,
+             CURRENT_DATE + 30, ''active'')'));
+
+SELECT pg_temp.check(
+  'A MEMBER CANNOT READ ANOTHER MEMBER''S PAYER',
+  pg_temp.count_as('22222222-2222-2222-2222-222222222222',
+    'SELECT p.id FROM public.payers p
+      JOIN public.subscriptions s ON s.payer_id = p.id
+     WHERE s.member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 0);
+
+SELECT pg_temp.check(
+  'a member cannot read the payers table at all',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.payers') = 0,
+  'a member sees WHO pays via their own subscription row, not by reading payer identities');
+
+-- ── consent is the only route, and it still works ──────────────────────────
+
+SELECT pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+  'INSERT INTO public.care_access_grants
+     (member_id, grantee_name, grantee_email, relationship, grantee_user_id, category,
+      granted_by_user_id, basis)
+   VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''Paula Payer'', ''payer-p@example.com'',
+           ''daughter'', ''99999999-9999-9999-9999-999999999999'', ''medical'',
+           ''11111111-1111-1111-1111-111111111111'', ''member_self'')');
+
+SELECT pg_temp.check(
+  'a payer WITH a member-granted medical consent DOES read medical — the grant is the route',
+  pg_temp.count_as('99999999-9999-9999-9999-999999999999',
+    'SELECT id FROM public.medical_information
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 1);
+
+SELECT pg_temp.check(
+  'and that same payer STILL reads no alerts — the grant is category-scoped, paying adds nothing',
+  pg_temp.count_as('99999999-9999-9999-9999-999999999999',
+    'SELECT id FROM public.alerts
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 0);
+
+-- ── THE MECHANISM: no care policy may ever reference payer_id ───────────────
+-- Without this, every negative above passes today and a convenient policy ships tomorrow. This
+-- asserts the ABSENCE OF A ROUTE, not the absence of a result.
+SELECT pg_temp.check(
+  'NO POLICY ON ANY CARE TABLE REFERENCES payer_id',
+  NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename IN ('members', 'medical_information', 'alerts', 'devices',
+                        'emergency_contacts', 'care_access_grants')
+      AND (COALESCE(qual, '') || ' ' || COALESCE(with_check, '')) LIKE '%payer%'
+  ),
+  COALESCE((SELECT string_agg(tablename || '.' || policyname, ', ') FROM pg_policies
+            WHERE schemaname = 'public'
+              AND tablename IN ('members', 'medical_information', 'alerts', 'devices',
+                                'emergency_contacts', 'care_access_grants')
+              AND (COALESCE(qual, '') || ' ' || COALESCE(with_check, '')) LIKE '%payer%'),
+           'clean — billing grants no care access by construction'));
+
+SELECT pg_temp.check(
+  'payer_id appears in exactly ONE policy, and it is on subscriptions',
+  (SELECT count(*) FROM pg_policies
+    WHERE schemaname = 'public'
+      AND (COALESCE(qual, '') || ' ' || COALESCE(with_check, '')) LIKE '%payer%') = 1
+  AND (SELECT tablename FROM pg_policies
+        WHERE schemaname = 'public'
+          AND (COALESCE(qual, '') || ' ' || COALESCE(with_check, '')) LIKE '%payer%')
+      = 'subscriptions');
+
+-- ============================================================
 --  Report
 -- ============================================================
 

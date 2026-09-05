@@ -6035,5 +6035,38 @@
       "body": "Uw alarm werkt en een operator neemt het aan. Maar we hebben geen enkel noodcontact vastgelegd, dus we kunnen uw familie niet bereiken.",
       "how": "Gebruik de link die we u gemaild hebben, of bel ons en we nemen de gegevens telefonisch op."
     }
+  },
+  "addMember": {
+    "title": "Een lid toevoegen",
+    "subtitle": "Stap {{step}} van {{total}}. Het lid wordt inactief aangemaakt — betaling activeert het.",
+    "back": "Terug naar Leden",
+    "staffOnly": "Alleen personeel",
+    "firstName": "Voornaam",
+    "lastName": "Achternaam",
+    "email": "E-mail",
+    "phone": "Telefoon",
+    "dob": "Geboortedatum",
+    "address": "Adres",
+    "city": "Plaats",
+    "province": "Provincie",
+    "postalCode": "Postcode",
+    "someoneElsePays": "Iemand anders betaalt voor dit lid",
+    "payerExplainer": "Alleen een factuurrelatie. Voor iemand betalen geeft geen toegang tot hun medische gegevens, locatie of alarmen — daarvoor is toestemming van het lid zelf nodig.",
+    "payerName": "Volledige naam betaler",
+    "payerEmail": "E-mail betaler",
+    "payerPhone": "Telefoon betaler",
+    "payerRelationship": "Relatie tot het lid",
+    "payerHeading": "Betaald door",
+    "payerNotAttachedYet": "Nu vastgelegd en aan het abonnement gekoppeld zodra er betaald wordt.",
+    "whatHappensTitle": "Wat dit doet",
+    "whatHappens1": "Maakt het ledenrecord aan als INACTIEF. Betaling activeert het.",
+    "whatHappens2": "Legt de betaler vast, als die er is. Er wordt geen abonnement aangemaakt.",
+    "whatHappens3": "Verstuurt niets. Er gaat geen e-mail uit — neem hun noodcontacten op tijdens dit gesprek.",
+    "whatHappens4": "Brengt u naar hun record zodat u nu contacten kunt toevoegen.",
+    "previous": "Terug",
+    "next": "Volgende",
+    "create": "Ledenrecord aanmaken",
+    "created": "Ledenrecord aangemaakt. Nog NIET actief — betaling activeert het.",
+    "createFailed": "Er is niets opgeslagen. {{reason}}"
   }
 }

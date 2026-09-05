@@ -6035,5 +6035,38 @@
       "body": "Your alarm works and an operator will answer it. But we do not have a single emergency contact on file, so we cannot reach your family.",
       "how": "Use the link we emailed you, or call us and we will take the details over the phone."
     }
+  },
+  "addMember": {
+    "title": "Add a member",
+    "subtitle": "Step {{step}} of {{total}}. The member is created inactive — taking payment is what activates them.",
+    "back": "Back to Members",
+    "staffOnly": "Staff only",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "phone": "Phone",
+    "dob": "Date of birth",
+    "address": "Address",
+    "city": "City",
+    "province": "Province",
+    "postalCode": "Postal code",
+    "someoneElsePays": "Somebody else pays for this member",
+    "payerExplainer": "A billing relationship only. Paying for someone gives no access to their medical information, location or alerts — that needs the member’s own consent.",
+    "payerName": "Payer's full name",
+    "payerEmail": "Payer's email",
+    "payerPhone": "Payer's phone",
+    "payerRelationship": "Relationship to member",
+    "payerHeading": "Paid for by",
+    "payerNotAttachedYet": "Recorded now, and linked to the subscription when payment is taken.",
+    "whatHappensTitle": "What this does",
+    "whatHappens1": "Creates the member record as INACTIVE. Payment is what activates them.",
+    "whatHappens2": "Records the payer, if there is one. No subscription is created.",
+    "whatHappens3": "Sends nothing. No email goes out — take their emergency contacts on this call.",
+    "whatHappens4": "Takes you to their record so you can add contacts now.",
+    "previous": "Back",
+    "next": "Next",
+    "create": "Create member record",
+    "created": "Member record created. They are NOT yet active — payment activates them.",
+    "createFailed": "Nothing was saved. {{reason}}"
   }
 }

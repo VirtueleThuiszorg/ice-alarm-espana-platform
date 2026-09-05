@@ -1,10 +1,18 @@
 /**
- * Option C — admin conversion of applications.
+ * Admin conversion of applications — KEPT ON PURPOSE after the public application
+ * path was retired.
  *
- * `/partner` → `partner-apply` writes an APPLICATION: `status='pending'`, no
- * `user_id`, no credentials, so that partner can never log in
- * (`PARTNER_JOURNEY.md` §1). Lee chose Option C: an admin converts the application
- * into an account by invite.
+ * `partner-apply` wrote an APPLICATION: `status='pending'`, no `user_id`, no
+ * credentials, so that partner can never log in (`PARTNER_JOURNEY.md` §1). The
+ * public site no longer offers that path — partners have one way in, full
+ * registration at `/partner/join` — but PRODUCTION MAY STILL HOLD PENDING
+ * APPLICATIONS, and an admin must be able to convert each of them into a real
+ * account. So the decision, the function and the admin dialog all stay until Lee
+ * confirms the count is zero (PENDING_FOR_LEE.md S6).
+ *
+ * These assertions are therefore load-bearing in the other direction now: they are
+ * what stops the conversion path being deleted as "dead code" alongside the page
+ * that fed it.
  *
  * The blocker this removes: `partner-admin-invite` rejected EVERY existing row whose
  * status was not already `invited`. An application is `pending`, so the admin got
@@ -16,14 +24,16 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import {
   decidePartnerInvite,
   type PartnerStatus,
 } from "../../supabase/functions/_shared/partnerInviteDecision";
 
-const read = (p: string) => readFileSync(path.resolve(process.cwd(), p), "utf8");
+const ROOT = process.cwd();
+const resolve = (p: string) => path.resolve(ROOT, p);
+const read = (p: string) => readFileSync(resolve(p), "utf8");
 const INVITE_FN = "supabase/functions/partner-admin-invite/index.ts";
 
 // ── the decision ───────────────────────────────────────────────────────────
@@ -154,5 +164,24 @@ describe("review_notes", () => {
 
   it("bounds it, like every other free-text field the server takes", () => {
     expect(schema).toMatch(/review_notes:\s*z\.string\(\)\.max\(1000\)/);
+  });
+});
+
+// ── the conversion path is not collateral damage ───────────────────────────
+
+describe("retiring the public application path did not remove the way to convert one", () => {
+  it("the admin dialog still exists", () => {
+    expect(existsSync(resolve("src/components/admin/ConvertApplicationDialog.tsx"))).toBe(
+      true
+    );
+  });
+
+  it("the edge function still exists and is still wired to the shared decision", () => {
+    expect(existsSync(resolve(INVITE_FN))).toBe(true);
+    expect(read(INVITE_FN)).toMatch(/decidePartnerInvite/);
+  });
+
+  it("`convert` is still a reachable outcome — a pending row is not orphaned", () => {
+    expect(decidePartnerInvite("pending")).toEqual({ action: "convert" });
   });
 });

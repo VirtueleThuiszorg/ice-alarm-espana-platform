@@ -45,30 +45,28 @@ describe("a cold visitor can find it", () => {
     );
   });
 
-  it("uses translated copy rather than hardcoded English", () => {
-    const onboarding = read("src/pages/partner/PartnerOnboarding.tsx");
-    expect(onboarding).toMatch(/partnerOnboarding\.alreadyPartner/);
-    expect(onboarding).toMatch(/partnerOnboarding\.signIn/);
-
+  it("the landing footer link uses translated copy rather than hardcoded English", () => {
     const landing = read("src/pages/LandingPage.tsx");
     expect(landing).toMatch(/landing\.footer\.partnerLogin/);
   });
 
-  it("the copy exists in all three locales", () => {
-    for (const loc of ["en", "es", "nl"]) {
-      const dict = JSON.parse(read(`src/i18n/locales/${loc}.json`));
-      expect(dict.partnerOnboarding?.alreadyPartner, `${loc}: alreadyPartner`).toBeTruthy();
-      expect(dict.partnerOnboarding?.signIn, `${loc}: signIn`).toBeTruthy();
-      expect(dict.landing?.footer?.partnerLogin, `${loc}: footer.partnerLogin`).toBeTruthy();
-    }
-  });
-
-  it("the three locales are actually different strings, not English copied across", () => {
+  it("the footer copy exists in all three locales, as real translations", () => {
     const value = (loc: string) =>
-      JSON.parse(read(`src/i18n/locales/${loc}.json`)).partnerOnboarding.signIn;
+      JSON.parse(read(`src/i18n/locales/${loc}.json`)).landing?.footer?.partnerLogin;
+    for (const loc of ["en", "es", "nl"]) {
+      expect(value(loc), `${loc}: footer.partnerLogin`).toBeTruthy();
+    }
     expect(value("es")).not.toBe(value("en"));
     expect(value("nl")).not.toBe(value("en"));
   });
+
+  // NOT asserted here, and not silently: `/partner/join` itself is hardcoded
+  // English end to end — 970 lines, two `t()` calls, no `useTranslation`. That was
+  // survivable while the nav reached a fully-translated page; it is now the sole
+  // public partner entry point for a business that ships EN + ES + NL
+  // (LAUNCH_SCOPE §6). Translating a 970-line wizard is its own work package —
+  // recorded as the top open gap in PARTNER_JOURNEY.md and in STATE.md, not
+  // papered over with two translated strings on an otherwise English page.
 
   it("is reachable from at least two distinct public pages", () => {
     // One link is a single point of failure; a redesign of either page would
@@ -89,7 +87,11 @@ describe("a cold visitor can find it", () => {
 // against GOALS.md rather than by anything automated.
 
 describe("the sign-in link meets G3", () => {
-  const src = () => read("src/pages/partner/PartnerOnboarding.tsx");
+  // Re-pointed at PartnerJoin: the page these guarantees were written for is gone,
+  // and the page that inherited its job had `text-primary hover:underline` — colour
+  // alone at rest, no focus state, no tap target. Deleting a page must not delete
+  // the accessibility guarantee it carried.
+  const src = () => read("src/pages/partner/PartnerJoin.tsx");
 
   it("does not rely on colour alone — the underline is persistent, not hover-only", () => {
     const link = src().match(/<Link\s+to="\/partner\/login"[\s\S]*?>/)?.[0] ?? "";
@@ -109,116 +111,26 @@ describe("the sign-in link meets G3", () => {
     expect(link).toMatch(/py-\d/);
   });
 
-  it("does not shrink the surrounding copy below the base size", () => {
-    // G3: scalable, readable text. text-sm was needlessly small for a line whose
-    // whole job is to be noticed by someone who cannot find their way in.
-    expect(src()).toMatch(/text-base text-muted-foreground/);
+  it("treats both sign-in links the same way, not just the first", () => {
+    // PartnerJoin offers the link twice — under the form and on the success screen.
+    // A fix applied to one of them is the failure mode being pinned.
+    const links = src().match(/<Link\s+to="\/partner\/login"[\s\S]*?>/g) ?? [];
+    expect(links.length).toBeGreaterThanOrEqual(2);
+    for (const link of links) {
+      expect(link).toMatch(/underline underline-offset-4/);
+      expect(link).toMatch(/focus-visible:ring-2/);
+      expect(link).not.toMatch(/hover:underline/);
+    }
   });
 });
 
 // ============================================================
-//  The self-serve path must be reachable too (Option C, 3/3)
+//  There is no second path left to be reachable from
 // ============================================================
 //
-// Option C keeps /partner as lead capture and converts applications by admin
-// invite. That only works as a product if a partner who would rather do everything
-// now can still get to /partner/join — otherwise the low-friction path is the ONLY
-// path, which is the situation that produced zero invocations on partner-register.
-//
-// The success screen matters more than it looks: its own copy promises "a link to
-// complete your registration" and used to deliver only an email — over interim
-// Gmail transport, where a silent delivery failure is indistinguishable from an
-// applicant who never bothered.
-
-describe("the self-serve registration path is reachable from /partner", () => {
-  const onboarding = () => read("src/pages/partner/PartnerOnboarding.tsx");
-
-  it("the application page offers it", () => {
-    expect(onboarding()).toContain('to="/partner/join"');
-  });
-
-  it("offers the choice BEFORE the form, not on the success screen", () => {
-    // REVERSED from the original assertion here, deliberately. The link used to sit
-    // on the thank-you page. That was a dead end: `partner-apply` has just written a
-    // `partners` row with that email, and `partner-register` refuses a duplicate
-    // email with a 409 — so the applicant filled 23 more fields, including an IBAN
-    // and a password, and was then told their email already exists
-    // (PARTNER_JOURNEY.md §6). A choice offered after it can no longer be taken is
-    // worse than no choice.
-    const src = onboarding();
-    const submittedStart = src.indexOf("if (submitted)");
-    const submittedBranch = src.slice(submittedStart, src.indexOf("return (", submittedStart) + 2000);
-    expect(submittedBranch, "the success screen must NOT link to /partner/join").not.toContain(
-      'to="/partner/join"'
-    );
-
-    // And the choice must precede the form, so both options are still open.
-    const choiceAt = src.indexOf('to="/partner/join"');
-    const formAt = src.indexOf('invoke("partner-apply"');
-    expect(choiceAt).toBeGreaterThan(-1);
-    expect(choiceAt, "the /partner/join choice must come before the application form").toBeLessThan(
-      formAt
-    );
-  });
-
-  it("stops promising a link the success screen no longer delivers", () => {
-    // The old copy said the email would contain "a link to complete your
-    // registration". With the link gone from this screen, that sentence would be the
-    // only thing still pointing at a path that 409s.
-    expect(onboarding()).not.toMatch(/successDesc", "Our team will send you an email shortly/);
-    for (const loc of ["en", "es", "nl"]) {
-      const dict = JSON.parse(read(`src/i18n/locales/${loc}.json`));
-      expect(dict.partnerOnboarding.successDesc, `${loc}: successDesc`).not.toMatch(
-        /link to complete|enlace para completar|link om .* te voltooien/i
-      );
-    }
-  });
-
-  it("names both paths and warns against doing both, in all three locales", () => {
-    const src = onboarding();
-    for (const key of ["choiceTitle", "choiceApply", "choiceDirect", "choiceDirectNote", "completeNow"]) {
-      expect(src, `template must use partnerOnboarding.${key}`).toMatch(
-        new RegExp(`partnerOnboarding\\.${key}`)
-      );
-    }
-    for (const loc of ["en", "es", "nl"]) {
-      const dict = JSON.parse(read(`src/i18n/locales/${loc}.json`));
-      for (const key of ["choiceTitle", "choiceApply", "choiceDirect", "choiceDirectNote", "completeNow"]) {
-        expect(dict.partnerOnboarding?.[key], `${loc}: ${key}`).toBeTruthy();
-      }
-      // The collision is the whole reason this section exists, so the warning is
-      // load-bearing copy, not decoration.
-      expect(dict.partnerOnboarding.choiceDirectNote, `${loc}: must warn about one email`).toMatch(/\S/);
-    }
-    // `preferNow` belonged to the removed below-form sentence.
-    for (const loc of ["en", "es", "nl"]) {
-      const dict = JSON.parse(read(`src/i18n/locales/${loc}.json`));
-      expect(dict.partnerOnboarding.preferNow, `${loc}: preferNow should be gone`).toBeUndefined();
-    }
-  });
-
-  it("the locales are real translations, not English copied across", () => {
-    const value = (loc: string) =>
-      JSON.parse(read(`src/i18n/locales/${loc}.json`)).partnerOnboarding.completeNow;
-    expect(value("es")).not.toBe(value("en"));
-    expect(value("nl")).not.toBe(value("en"));
-  });
-
-  it("does not regress the sign-in link's accessibility treatment", () => {
-    // G3 / WCAG 1.4.1: an inline link must not be distinguished by colour alone.
-    // Both links carry the same persistent underline and focus ring.
-    const src = onboarding();
-    const joinLink = src.slice(src.indexOf('to="/partner/join"'));
-    expect(joinLink).toMatch(/underline underline-offset-4/);
-    expect(joinLink).toMatch(/focus-visible:ring-2/);
-  });
-
-  it("the nav points at /partner/join — there is one way in", () => {
-    // REVERSED from the Option-C assertion that stood here. The lead-capture path is
-    // retired from the public site (PARTNER_JOURNEY.md); full registration is the
-    // only entry point the nav offers.
-    const header = read("src/components/layout/PublicHeader.tsx");
-    expect(header).toMatch(/to:\s*["']\/partner\/join["']/);
-    expect(header).not.toMatch(/to:\s*["']\/partner["']/);
-  });
-});
+// This file used to end with a block asserting that `/partner` — the application
+// page — offered the self-serve path as a choice before its form, in all three
+// locales, and did not route an applicant into `partner-register`'s 409. Every one
+// of those assertions described a page and a choice that no longer exist: partners
+// have one way in. The single entry point, and the absence of the apply path from
+// the public site, are asserted in `partnerSingleEntry.test.ts`.

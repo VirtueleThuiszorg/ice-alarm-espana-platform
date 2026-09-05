@@ -34,6 +34,7 @@ make the manifest lie, and the drift gate (#164) depends on that manifest being 
 | S3 | **Verify `icealarm.es` with Resend**, then edit the existing SPF record (one record only), publish DKIM + DMARC | Resend + DNS | Email channel stays OFF until this delivers. Nothing built this run depends on email | ⬜ |
 | S4 | **Set `GMAIL_APP_PASSWORD`** or retire the Gmail transport in favour of Resend | Supabase → Edge Function secrets | `send-member-update-request` currently fails on the missing secret | ⬜ |
 | S5 | **Disconnect the stale Vercel project** `care-conneqt-platform` (under `lee-wakemans-projects`) | Vercel | It fails on **every** PR because the repo was renamed. The live project `ice-alarm-espana-platform` (under `virtuele-thuiszorg`) deploys fine. Right now every PR shows a red X that means nothing — which is how a real red X gets ignored | ⬜ |
+| S6 | **Run `select count(*) from partner_applications where status = 'pending';`** | Supabase → SQL editor | The public application path is retired — `/partner` now redirects to `/partner/join` and nothing calls `partner-apply`. But production may still hold applications from real people, and `ConvertApplicationDialog` + the `partner_applications` table are the only way to turn one into an account, so they were **kept**. **If the count is 0**, the convert dialog, the `partner-apply` function and the table can all be deleted — say so and it will be done in one PR. If it is not 0, each row needs converting by admin invite before anything is removed. `PARTNER_JOURNEY.md` §4 | ⬜ |
 
 ---
 

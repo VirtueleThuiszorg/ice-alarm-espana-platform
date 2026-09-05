@@ -19,7 +19,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
 const read = (p: string) => readFileSync(path.resolve(process.cwd(), p), "utf8");
@@ -108,5 +108,61 @@ describe("every public link points at /partner/join", () => {
 
   it("robots.txt does not single out the retired path", () => {
     expect(read("public/robots.txt")).not.toMatch(/\/partner\b/);
+  });
+});
+
+describe("the application path is absent from the public site", () => {
+  it("the page is deleted", () => {
+    expect(existsSync(path.resolve(process.cwd(), "src/pages/partner/PartnerOnboarding.tsx"))).toBe(
+      false
+    );
+  });
+
+  it("no route renders it and nothing imports it", () => {
+    expect(app).not.toMatch(/PartnerOnboarding/);
+  });
+
+  it("nothing in the client invokes partner-apply", () => {
+    // The function may stay deployed — production may hold pending applications and
+    // the admin conversion path still reads them — but no public surface calls it.
+    const offenders: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir)) {
+        const full = path.join(dir, entry);
+        if (statSync(full).isDirectory()) {
+          walk(full);
+          continue;
+        }
+        if (!/\.(tsx?|jsx?)$/.test(entry)) continue;
+        if (full.includes(`${path.sep}test${path.sep}`)) continue;
+        if (/functions\.invoke\(\s*["']partner-apply["']/.test(readFileSync(full, "utf8"))) {
+          offenders.push(full);
+        }
+      }
+    };
+    walk(path.resolve(process.cwd(), "src"));
+    expect(offenders, `still invoke partner-apply: ${offenders.join(", ")}`).toEqual([]);
+  });
+
+  it("its copy is gone from all three locales, so no dead translation is carried", () => {
+    for (const loc of ["en", "es", "nl"]) {
+      const dict = JSON.parse(read(`src/i18n/locales/${loc}.json`));
+      expect(dict.partnerOnboarding, `${loc}: partnerOnboarding namespace`).toBeUndefined();
+    }
+  });
+
+  it("but the ADMIN conversion path survives — production may hold pending rows", () => {
+    // The brief is explicit: `ConvertApplicationDialog` and `partner_applications`
+    // stay until Lee confirms `select count(*) from partner_applications where
+    // status='pending'` is 0 (PENDING_FOR_LEE.md S6). Deleting them would strand
+    // every application already taken.
+    const root = process.cwd();
+    expect(existsSync(path.resolve(root, "src/components/admin/ConvertApplicationDialog.tsx"))).toBe(
+      true
+    );
+    expect(
+      existsSync(path.resolve(root, "supabase/functions/partner-apply/index.ts")),
+      "the function stays deployed; only the public caller is gone"
+    ).toBe(true);
   });
 });

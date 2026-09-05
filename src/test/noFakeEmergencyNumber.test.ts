@@ -116,3 +116,65 @@ describe("the helpers refuse to invent a number", () => {
     expect(telHref("   ")).toBeNull();
   });
 });
+
+/**
+ * The second half of the defect, found by the Playwright page audit rather than by me.
+ *
+ * Removing the invented number left every call affordance rendering `href={phoneHref ??
+ * undefined}` — an `<a>` with no href at all. That is not neutral: it is a link-shaped,
+ * button-shaped thing that looks live and does nothing. `e2e/helpers/pageAudit.ts`'s
+ * `findDeadAnchors` counts `href === null` as dead, and it was right to: on the member's own
+ * device page it produced a heading reading EMERGENCY NUMBER above an empty line and a
+ * WhatsApp button that swallowed the tap.
+ *
+ * The rule now is that a call affordance is RENDERED CONDITIONALLY or not at all — no dead
+ * anchors, and no `wa.me/null`, which is a URL that resolves to a WhatsApp error page.
+ */
+describe("no call affordance is rendered when there is no number to call", () => {
+  const SURFACES = [
+    "src/pages/LandingPage.tsx",
+    "src/pages/PendantPage.tsx",
+    "src/pages/ContactPage.tsx",
+    "src/pages/HowItWorksPage.tsx",
+    "src/pages/client/DevicePage.tsx",
+    "src/pages/client/SupportPage.tsx",
+    "src/pages/client/ClientDashboard.tsx",
+    "src/pages/join/JoinWizard.tsx",
+    "src/pages/partner/PartnerSupportPage.tsx",
+    "src/components/join/steps/JoinConfirmationStep.tsx",
+  ];
+
+  it.each(SURFACES)("%s renders no anchor whose href may be absent", (file) => {
+    const src = read(file);
+    // `href={... ?? undefined}` is exactly how an anchor loses its href. Guard the whole
+    // affordance instead, so it is not rendered at all.
+    expect(src, "an <a> with no href is a dead link that looks live").not.toMatch(
+      /href=\{[^}]*\?\?\s*undefined\s*\}/,
+    );
+  });
+
+  it.each(SURFACES)("%s builds no wa.me URL from a number that may be null", (file) => {
+    const src = read(file);
+    const waTemplates = [...src.matchAll(/https:\/\/wa\.me\/\$\{([^}]+)\}/g)].map((m) => m[1]);
+    for (const expr of waTemplates) {
+      // The interpolated expression must be a plain identifier that a `{x && (...)}` guard has
+      // already narrowed — never a call to waNumber(), which can return null and would render
+      // the string "wa.me/null".
+      expect(expr, `wa.me built from ${expr} in ${file}`).toMatch(/^\w+$/);
+    }
+  });
+
+  it("no page hardcodes a phone number into a tel: or wa.me link", () => {
+    // PartnerSupportPage carried +34 965 123 456 and +34 600 000 000 — two more numbers this
+    // company does not own, on a page nobody thought to check, for the same reason.
+    for (const file of SURFACES) {
+      const src = read(file);
+      // Both literal forms matter: the JSX attribute `href="tel:..."` AND the object property
+      // `href: "tel:..."`. The first draft of this assertion checked only the attribute form,
+      // and its mutation — putting `href: "tel:+34965123456"` back into PartnerSupportPage's
+      // contactMethods — passed green. An assertion that cannot fail is not an assertion.
+      expect(src, `hardcoded tel: in ${file}`).not.toMatch(/["'`]tel:[+\d]/);
+      expect(src, `hardcoded wa.me in ${file}`).not.toMatch(/["'`]https:\/\/wa\.me\/\d/);
+    }
+  });
+});

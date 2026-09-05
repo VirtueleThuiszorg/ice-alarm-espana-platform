@@ -50,7 +50,10 @@ export default function ClientDashboard() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { settings: companySettings } = useCompanySettings();
+  // Null when settings_emergency_phone is unset; the call and WhatsApp buttons are rendered
+  // conditionally on these rather than as controls that do nothing.
   const phoneHref = telHref(companySettings.emergency_phone);
+  const whatsappNumber = waNumber(companySettings.emergency_phone);
 
   // Determine if admin is viewing
   const isAdminRole = isStaff && checkAdminRole(staffRole);
@@ -240,27 +243,31 @@ export default function ClientDashboard() {
           <p className="text-muted-foreground text-sm">{currentDate}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            size="icon" 
-            variant="outline"
-            className="h-10 w-10"
-            title={t("dashboard.callUs")}
-            asChild
-          >
-            <a href={phoneHref ?? undefined}>
-              <Phone className="h-5 w-5" />
-            </a>
-          </Button>
-          <Button 
-            size="icon" 
-            className="h-10 w-10 bg-[#25D366] hover:bg-[#128C7E] text-white"
-            title={t("dashboard.whatsappUs")}
-            asChild
-          >
-            <a href={(waNumber(companySettings.emergency_phone) ? `https://wa.me/${waNumber(companySettings.emergency_phone)}` : undefined)} target="_blank" rel="noopener noreferrer">
-              <MessageCircle className="h-5 w-5" />
-            </a>
-          </Button>
+          {phoneHref && (
+            <Button
+              size="icon"
+              variant="outline"
+              className="h-10 w-10"
+              title={t("dashboard.callUs")}
+              asChild
+            >
+              <a href={phoneHref}>
+                <Phone className="h-5 w-5" />
+              </a>
+            </Button>
+          )}
+          {whatsappNumber && (
+            <Button
+              size="icon"
+              className="h-10 w-10 bg-[#25D366] hover:bg-[#128C7E] text-white"
+              title={t("dashboard.whatsappUs")}
+              asChild
+            >
+              <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noopener noreferrer">
+                <MessageCircle className="h-5 w-5" />
+              </a>
+            </Button>
+          )}
         </div>
       </div>
 

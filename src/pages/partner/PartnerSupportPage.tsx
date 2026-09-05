@@ -1,4 +1,6 @@
 import { useTranslation } from "react-i18next";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { telHref, waNumber } from "@/lib/phone";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Mail, Phone, MessageCircle, ExternalLink, HelpCircle, BookOpen } from "lucide-react";
@@ -6,30 +8,56 @@ import { Button } from "@/components/ui/button";
 
 export default function PartnerSupportPage() {
   const { t } = useTranslation();
+  const { settings: companySettings } = useCompanySettings();
 
-  const contactMethods = [
+  /*
+    These two cards used to carry an invented landline and an invented mobile, hardcoded
+    straight into the href as a dial link and a WhatsApp link. Neither is a number this
+    company owns — the same defect as the hardcoded fallback this change removes from
+    `useCompanySettings`, on a page nobody thought to check.
+
+    They now come from `system_settings.settings_emergency_phone`, and a card whose number is
+    unset is not rendered at all rather than rendered dead.
+  */
+
+  const phoneHref = telHref(companySettings.emergency_phone);
+  const whatsappNumber = waNumber(companySettings.emergency_phone);
+
+  const contactMethods: {
+    icon: typeof Mail;
+    title: string;
+    description: string;
+    action: string;
+    href: string;
+  }[] = [
     {
       icon: Mail,
       title: t("partnerSupport.emailTitle", "Email Support"),
       description: t("partnerSupport.emailDesc", "Send us an email and we'll respond within 24 hours"),
-      action: "partners@icealarm.es",
-      href: "mailto:partners@icealarm.es",
+      action: companySettings.support_email,
+      href: `mailto:${companySettings.support_email}`,
     },
-    {
+  ];
+
+  if (phoneHref) {
+    contactMethods.push({
       icon: Phone,
       title: t("partnerSupport.phoneTitle", "Phone Support"),
       description: t("partnerSupport.phoneDesc", "Call us Monday to Friday, 9am - 6pm CET"),
-      action: "+34 965 123 456",
-      href: "tel:+34965123456",
-    },
-    {
+      action: companySettings.emergency_phone ?? "",
+      href: phoneHref,
+    });
+  }
+
+  if (whatsappNumber) {
+    contactMethods.push({
       icon: MessageCircle,
       title: t("partnerSupport.whatsappTitle", "WhatsApp"),
       description: t("partnerSupport.whatsappDesc", "Quick questions? Message us on WhatsApp"),
-      action: "+34 600 000 000",
-      href: "https://wa.me/34600000000",
-    },
-  ];
+      action: companySettings.emergency_phone ?? "",
+      href: `https://wa.me/${whatsappNumber}`,
+    });
+  }
 
   // No hosted assets for these yet — render as "coming soon" rather than dead "#" links.
   const resources = [

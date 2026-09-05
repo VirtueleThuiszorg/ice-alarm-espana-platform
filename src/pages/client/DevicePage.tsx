@@ -38,7 +38,10 @@ export default function DevicePage() {
   // Realtime subscription for device updates
   useDeviceRealtime(memberId ?? undefined);
   
+  // Both null when settings_emergency_phone is unset; every call/WhatsApp affordance below is
+  // rendered conditionally on them rather than as a link that goes nowhere.
   const phoneHref = telHref(companySettings.emergency_phone);
+  const whatsappNumber = waNumber(companySettings.emergency_phone);
 
   const isLoading = deviceLoading || subLoading;
   const hasPendant = subscription?.has_pendant && device;
@@ -85,34 +88,46 @@ export default function DevicePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <p className="text-muted-foreground">
-              {t('device.contactUsAnytime', 'Contact us anytime using the number below. Save this in your phone for emergencies!')}
-            </p>
+            {/*
+              The copy above the number reads "using the number below", so the sentence and the
+              number stand or fall together. With no number configured this whole block is
+              omitted rather than rendered empty: a heading that says EMERGENCY NUMBER over
+              nothing at all is the most alarming empty state on the member's own device page.
+            */}
+            {phoneHref && (
+              <>
+                <p className="text-muted-foreground">
+                  {t('device.contactUsAnytime', 'Contact us anytime using the number below. Save this in your phone for emergencies!')}
+                </p>
 
-            {/* Emergency Number */}
-            <div className="p-6 bg-primary/5 rounded-lg text-center">
-              <p className="text-sm text-muted-foreground mb-2">{t('support.emergencyNumber')}</p>
-              <a
-                href={phoneHref ?? undefined}
-                className="text-3xl md:text-4xl font-bold text-primary hover:underline block"
-              >
-                {companySettings.emergency_phone}
-              </a>
-              <Button 
-                className="mt-4 bg-[#25D366] hover:bg-[#128C7E] text-white"
-                size="lg"
-                asChild
-              >
-                <a 
-                  href={(waNumber(companySettings.emergency_phone) ? `https://wa.me/${waNumber(companySettings.emergency_phone)}` : undefined)}
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                >
-                  <MessageCircle className="mr-2 h-5 w-5" />
-                  {t('support.whatsApp')}
-                </a>
-              </Button>
-            </div>
+                {/* Emergency Number */}
+                <div className="p-6 bg-primary/5 rounded-lg text-center">
+                  <p className="text-sm text-muted-foreground mb-2">{t('support.emergencyNumber')}</p>
+                  <a
+                    href={phoneHref}
+                    className="text-3xl md:text-4xl font-bold text-primary hover:underline block"
+                  >
+                    {companySettings.emergency_phone}
+                  </a>
+                  {whatsappNumber && (
+                    <Button
+                      className="mt-4 bg-[#25D366] hover:bg-[#128C7E] text-white"
+                      size="lg"
+                      asChild
+                    >
+                      <a
+                        href={`https://wa.me/${whatsappNumber}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <MessageCircle className="mr-2 h-5 w-5" />
+                        {t('support.whatsApp')}
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -209,16 +224,18 @@ export default function DevicePage() {
               </div>
             </div>
 
-            <Button size="lg" className="w-full touch-target" asChild>
-              <a
-                href={(waNumber(companySettings.emergency_phone) ? `https://wa.me/${waNumber(companySettings.emergency_phone)}?text=${encodeURIComponent(t('device.pendantWhatsAppMessage', 'Hello, I would like to upgrade my membership to include a GPS pendant. Can you help me?'))}` : undefined)}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <MessageCircle className="mr-2 h-5 w-5" />
-                {t('device.purchasePendant', 'Purchase Pendant')}
-              </a>
-            </Button>
+            {whatsappNumber && (
+              <Button size="lg" className="w-full touch-target" asChild>
+                <a
+                  href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(t('device.pendantWhatsAppMessage', 'Hello, I would like to upgrade my membership to include a GPS pendant. Can you help me?'))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MessageCircle className="mr-2 h-5 w-5" />
+                  {t('device.purchasePendant', 'Purchase Pendant')}
+                </a>
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>

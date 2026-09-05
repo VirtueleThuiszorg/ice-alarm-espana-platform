@@ -66,7 +66,9 @@ export default function LandingPage() {
     }
   }, [searchParams]);
 
-  // Format phone for WhatsApp (remove spaces and + sign)
+  // Both are null when settings_emergency_phone is unset. Every call affordance below is
+  // rendered CONDITIONALLY on them: a "Call now" that goes nowhere is worse than no button.
+  const phoneHref = telHref(companySettings.emergency_phone);
   const whatsappNumber = waNumber(companySettings.emergency_phone);
 
   return (
@@ -687,15 +689,14 @@ export default function LandingPage() {
               </Link>
             </Button>
           </div>
-          <p className="text-sm text-muted-foreground mt-6">
-            {t("landing.haveQuestions")}{" "}
-            <a
-              href={telHref(companySettings.emergency_phone) ?? undefined}
-              className="text-primary hover:underline"
-            >
-              {t("landing.callUsAnytime")}
-            </a>
-          </p>
+          {phoneHref && (
+            <p className="text-sm text-muted-foreground mt-6">
+              {t("landing.haveQuestions")}{" "}
+              <a href={phoneHref} className="text-primary hover:underline">
+                {t("landing.callUsAnytime")}
+              </a>
+            </p>
+          )}
         </div>
       </section>
 
@@ -712,7 +713,9 @@ export default function LandingPage() {
             <div>
               <h4 className="font-semibold mb-4">{t("navigation.contact")}</h4>
               <ul className="space-y-2 text-sm text-sidebar-foreground/70">
-                <li><a href={telHref(companySettings.emergency_phone) ?? undefined} className="hover:text-sidebar-foreground">{t("common.callNow")}</a></li>
+                {phoneHref && (
+                  <li><a href={phoneHref} className="hover:text-sidebar-foreground">{t("common.callNow")}</a></li>
+                )}
                 <li><a href={`mailto:${companySettings.support_email}`} className="hover:text-sidebar-foreground">{companySettings.support_email}</a></li>
                 <li>{companySettings.address}</li>
               </ul>
@@ -758,35 +761,39 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Button
-              size="lg"
-              className="h-20 flex-col gap-2"
-              asChild
-            >
-              <a href={telHref(companySettings.emergency_phone) ?? undefined}>
-                <Phone className="h-6 w-6" />
-                <span className="text-sm font-medium">
-                  {t("landing.contactDialog.phoneCall")}
-                </span>
-              </a>
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-20 flex-col gap-2 border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
-              asChild
-            >
-              <a
-                href={`https://wa.me/${whatsappNumber}`}
-                target="_blank"
-                rel="noopener noreferrer"
+            {phoneHref && (
+              <Button
+                size="lg"
+                className="h-20 flex-col gap-2"
+                asChild
               >
-                <MessageCircle className="h-6 w-6" />
-                <span className="text-sm font-medium">
-                  {t("landing.contactDialog.whatsapp")}
-                </span>
-              </a>
-            </Button>
+                <a href={phoneHref}>
+                  <Phone className="h-6 w-6" />
+                  <span className="text-sm font-medium">
+                    {t("landing.contactDialog.phoneCall")}
+                  </span>
+                </a>
+              </Button>
+            )}
+            {whatsappNumber && (
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-20 flex-col gap-2 border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
+                asChild
+              >
+                <a
+                  href={`https://wa.me/${whatsappNumber}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MessageCircle className="h-6 w-6" />
+                  <span className="text-sm font-medium">
+                    {t("landing.contactDialog.whatsapp")}
+                  </span>
+                </a>
+              </Button>
+            )}
           </div>
           <p className="text-xs text-center text-muted-foreground mt-4">
             {t("landing.contactDialog.voiceOnly")}

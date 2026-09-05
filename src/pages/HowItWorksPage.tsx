@@ -548,17 +548,19 @@ export default function HowItWorksPage() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-14 px-8 text-lg"
-              asChild
-            >
-              <a href={phoneHref ?? undefined}>
-                <Phone className="mr-2 h-5 w-5" />
-                {t("howItWorksPage.cta.secondaryButton")}
-              </a>
-            </Button>
+            {phoneHref && (
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-14 px-8 text-lg"
+                asChild
+              >
+                <a href={phoneHref}>
+                  <Phone className="mr-2 h-5 w-5" />
+                  {t("howItWorksPage.cta.secondaryButton")}
+                </a>
+              </Button>
+            )}
           </div>
           <div className="flex flex-wrap justify-center gap-4 text-sm text-foreground/70">
             <span className="flex items-center gap-1.5">
@@ -592,14 +594,13 @@ export default function HowItWorksPage() {
                 {t("pendant.footer.contact")}
               </h4>
               <ul className="space-y-2 text-sm text-sidebar-foreground/70">
-                <li>
-                  <a
-                    href={phoneHref ?? undefined}
-                    className="hover:text-sidebar-foreground"
-                  >
-                    {t("common.callNow")}
-                  </a>
-                </li>
+                {phoneHref && (
+                  <li>
+                    <a href={phoneHref} className="hover:text-sidebar-foreground">
+                      {t("common.callNow")}
+                    </a>
+                  </li>
+                )}
                 <li>{companySettings.support_email}</li>
                 <li>{t("pendant.footer.whatsappAvailable")}</li>
               </ul>
@@ -682,35 +683,39 @@ export default function HowItWorksPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Button
-              size="lg"
-              className="h-20 flex-col gap-2"
-              asChild
-            >
-              <a href={phoneHref ?? undefined}>
-                <Phone className="h-6 w-6" />
-                <span className="text-sm font-medium">
-                  {t("landing.contactDialog.phoneCall")}
-                </span>
-              </a>
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-20 flex-col gap-2 border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
-              asChild
-            >
-              <a
-                href={`https://wa.me/${whatsappNumber}`}
-                target="_blank"
-                rel="noopener noreferrer"
+            {phoneHref && (
+              <Button
+                size="lg"
+                className="h-20 flex-col gap-2"
+                asChild
               >
-                <MessageCircle className="h-6 w-6" />
-                <span className="text-sm font-medium">
-                  {t("landing.contactDialog.whatsapp")}
-                </span>
-              </a>
-            </Button>
+                <a href={phoneHref}>
+                  <Phone className="h-6 w-6" />
+                  <span className="text-sm font-medium">
+                    {t("landing.contactDialog.phoneCall")}
+                  </span>
+                </a>
+              </Button>
+            )}
+            {whatsappNumber && (
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-20 flex-col gap-2 border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
+                asChild
+              >
+                <a
+                  href={`https://wa.me/${whatsappNumber}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MessageCircle className="h-6 w-6" />
+                  <span className="text-sm font-medium">
+                    {t("landing.contactDialog.whatsapp")}
+                  </span>
+                </a>
+              </Button>
+            )}
           </div>
           <p className="text-xs text-center text-muted-foreground mt-4">
             {t("landing.contactDialog.voiceOnly")}

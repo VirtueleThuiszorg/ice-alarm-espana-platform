@@ -218,12 +218,14 @@ export default function PendantPage() {
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
-                <Button size="lg" variant="outline" className="h-14 px-8 text-lg" asChild>
-                  <a href={phoneHref ?? undefined}>
-                    <Phone className="mr-2 h-5 w-5" />
-                    {t("common.callNow")}
-                  </a>
-                </Button>
+                {phoneHref && (
+                  <Button size="lg" variant="outline" className="h-14 px-8 text-lg" asChild>
+                    <a href={phoneHref}>
+                      <Phone className="mr-2 h-5 w-5" />
+                      {t("common.callNow")}
+                    </a>
+                  </Button>
+                )}
               </div>
 
               <p className="text-muted-foreground">
@@ -578,23 +580,27 @@ export default function PendantPage() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button size="lg" variant="outline" className="h-14 px-8 text-lg" asChild>
-              <a href={phoneHref ?? undefined}>
-                <Phone className="mr-2 h-5 w-5" />
-                {t("common.callNow")}
-              </a>
-            </Button>
+            {phoneHref && (
+              <Button size="lg" variant="outline" className="h-14 px-8 text-lg" asChild>
+                <a href={phoneHref}>
+                  <Phone className="mr-2 h-5 w-5" />
+                  {t("common.callNow")}
+                </a>
+              </Button>
+            )}
           </div>
-          <p className="text-sm text-muted-foreground mt-6">
-            <a
-              href={`https://wa.me/${whatsappNumber}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              {t("pendant.cta.whatsapp")}
-            </a>
-          </p>
+          {whatsappNumber && (
+            <p className="text-sm text-muted-foreground mt-6">
+              <a
+                href={`https://wa.me/${whatsappNumber}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                {t("pendant.cta.whatsapp")}
+              </a>
+            </p>
+          )}
         </div>
       </section>
 
@@ -611,7 +617,9 @@ export default function PendantPage() {
             <div>
               <h4 className="font-semibold mb-4">{t("pendant.footer.contact")}</h4>
               <ul className="space-y-2 text-sm text-sidebar-foreground/70">
-                <li><a href={telHref(companySettings.emergency_phone) ?? undefined} className="hover:text-sidebar-foreground">{t("common.callNow")}</a></li>
+                {phoneHref && (
+                  <li><a href={phoneHref} className="hover:text-sidebar-foreground">{t("common.callNow")}</a></li>
+                )}
                 <li><a href={`mailto:${companySettings.support_email}`} className="hover:text-sidebar-foreground">{companySettings.support_email}</a></li>
                 <li>{t("pendant.footer.whatsappAvailable")}</li>
               </ul>

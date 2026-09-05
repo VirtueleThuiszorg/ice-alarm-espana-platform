@@ -80,7 +80,10 @@ interface Message {
 export default function SupportPage() {
   const { t } = useTranslation();
   const { settings: companySettings } = useCompanySettings();
+  // Null when settings_emergency_phone is unset. Every call/WhatsApp affordance is rendered
+  // conditionally on these rather than as a link that goes nowhere.
   const phoneHref = telHref(companySettings.emergency_phone);
+  const whatsappNumber = waNumber(companySettings.emergency_phone);
   const { memberId, isLoading: authLoading } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   
@@ -526,15 +529,17 @@ export default function SupportPage() {
                 {t("support.teamWithYou")}
               </p>
             </div>
-            <div className="flex flex-col gap-2">
-              <a 
-                href={phoneHref ?? undefined}
-                className="inline-flex items-center justify-center gap-2 bg-background text-foreground font-semibold px-6 py-3 rounded-full hover:bg-background/90 transition-colors"
-              >
-                <Phone className="h-5 w-5" />
-                {t("common.callNow", "Call Now")}
-              </a>
-            </div>
+            {phoneHref && (
+              <div className="flex flex-col gap-2">
+                <a
+                  href={phoneHref}
+                  className="inline-flex items-center justify-center gap-2 bg-background text-foreground font-semibold px-6 py-3 rounded-full hover:bg-background/90 transition-colors"
+                >
+                  <Phone className="h-5 w-5" />
+                  {t("common.callNow", "Call Now")}
+                </a>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -864,33 +869,37 @@ export default function SupportPage() {
                   <CardTitle className="text-base">{t("support.contactOptions")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <a 
-                    href={phoneHref ?? undefined}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors min-h-[48px]"
-                  >
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Phone className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">{t("support.callUs")}</p>
-                      <p className="text-primary text-sm">{t("support.tapToCall")}</p>
-                    </div>
-                  </a>
+                  {phoneHref && (
+                    <a
+                      href={phoneHref}
+                      className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors min-h-[48px]"
+                    >
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Phone className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{t("support.callUs")}</p>
+                        <p className="text-primary text-sm">{t("support.tapToCall")}</p>
+                      </div>
+                    </a>
+                  )}
 
-                  <a 
-                    href={(waNumber(companySettings.emergency_phone) ? `https://wa.me/${waNumber(companySettings.emergency_phone)}` : undefined)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 p-3 rounded-lg bg-[#25D366]/10 hover:bg-[#25D366]/20 transition-colors min-h-[48px]"
-                  >
-                    <div className="h-10 w-10 rounded-full bg-[#25D366]/20 flex items-center justify-center">
-                      <MessageCircle className="h-5 w-5 text-[#25D366]" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">WhatsApp</p>
-                      <p className="text-[#25D366] text-sm">{t("support.chatWithUs")}</p>
-                    </div>
-                  </a>
+                  {whatsappNumber && (
+                    <a
+                      href={`https://wa.me/${whatsappNumber}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-3 rounded-lg bg-[#25D366]/10 hover:bg-[#25D366]/20 transition-colors min-h-[48px]"
+                    >
+                      <div className="h-10 w-10 rounded-full bg-[#25D366]/20 flex items-center justify-center">
+                        <MessageCircle className="h-5 w-5 text-[#25D366]" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">WhatsApp</p>
+                        <p className="text-[#25D366] text-sm">{t("support.chatWithUs")}</p>
+                      </div>
+                    </a>
+                  )}
                 </CardContent>
               </Card>
 

@@ -98,6 +98,8 @@ export default function JoinWizard() {
 
   // Company settings for dynamic phone/email
   const { settings: companySettings } = useCompanySettings();
+  // Null when settings_emergency_phone is unset (PENDING_FOR_LEE.md S6).
+  const phoneHref = telHref(companySettings.emergency_phone);
   const { registrationFeeEnabled, registrationFeeDiscount } = usePricingSettings();
 
   // Progressive save hook
@@ -566,10 +568,15 @@ export default function JoinWizard() {
         <div className="container max-w-4xl text-center text-sm text-muted-foreground">
           <p>
             {t("joinWizard.needHelp")}{" "}
-            <a href={telHref(companySettings.emergency_phone) ?? undefined} className="text-primary hover:underline">
-              {t("joinWizard.callUs")}
-            </a>{" "}
-            {t("common.or")}{" "}
+            {/* No number configured -> no "call us, or email us", just "email us". */}
+            {phoneHref && (
+              <>
+                <a href={phoneHref} className="text-primary hover:underline">
+                  {t("joinWizard.callUs")}
+                </a>{" "}
+                {t("common.or")}{" "}
+              </>
+            )}
             <a href={`mailto:${companySettings.support_email}`} className="text-primary hover:underline">
               {t("joinWizard.emailUs")}
             </a>

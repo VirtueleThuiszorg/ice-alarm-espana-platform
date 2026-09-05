@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { InlineAIChat } from "@/components/chat/InlineAIChat";
+import { telHref } from "@/lib/phone";
 import { 
   Phone, 
   Mail, 
@@ -92,7 +93,7 @@ export default function ContactPage() {
                   </Link>
                 </Button>
                 <Button variant="outline" asChild className="w-full">
-                  <a href={`tel:${companySettings.emergency_phone.replace(/\s/g, '')}`}>
+                  <a href={telHref(companySettings.emergency_phone) ?? undefined}>
                     <Phone className="h-4 w-4 mr-2" />
                     {t("contact.success.callNow")}
                   </a>
@@ -135,7 +136,7 @@ export default function ContactPage() {
                       <h3 className="font-semibold mb-1">{t("contact.info.callUs")}</h3>
                       <p className="text-muted-foreground text-sm mb-2">{t("contact.info.callUsDesc")}</p>
                       <a 
-                        href={`tel:${companySettings.emergency_phone.replace(/\s/g, '')}`} 
+                        href={telHref(companySettings.emergency_phone) ?? undefined} 
                         className="text-primary font-medium hover:underline"
                       >
                         {t("common.callNow")}

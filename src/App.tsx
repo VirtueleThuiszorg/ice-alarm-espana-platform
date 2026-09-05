@@ -8,6 +8,7 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 import { PageLoader } from "@/components/ui/page-loader";
 import { PageTracker } from "@/components/analytics/PageTracker";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchCompanySettings } from "@/hooks/useCompanySettings";
 import { LanguageSelectionModal } from "@/components/LanguageSelectionModal";
 import { CookieConsentBanner } from "@/components/gdpr/CookieConsentBanner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -193,30 +194,12 @@ const queryClient = new QueryClient({
   },
 });
 
-// Prefetch company settings immediately for faster page loads
+// Prefetch company settings immediately for faster page loads.
+// Uses the SAME fetcher as useCompanySettings — this used to be a second copy of the query,
+// with its own hardcoded "+34 900 123 456" fallback that had to be fixed in two places.
 queryClient.prefetchQuery({
   queryKey: ["company-settings"],
-  queryFn: async () => {
-    const { data, error } = await supabase
-      .from("system_settings")
-      .select("key, value")
-      .in("key", ["settings_company_name", "settings_emergency_phone", "settings_support_email", "settings_address"]);
-
-    if (error) throw error;
-
-    const settingsMap = (data || []).reduce((acc, setting) => {
-      const normalizedKey = setting.key.replace(/^settings_/, '');
-      acc[normalizedKey] = setting.value;
-      return acc;
-    }, {} as Record<string, string>);
-
-    return {
-      company_name: settingsMap.company_name || "ICE Alarm España",
-      emergency_phone: settingsMap.emergency_phone || "+34 900 123 456",
-      support_email: settingsMap.support_email || "info@icealarm.es",
-      address: settingsMap.address || "Calle Principal 1, Albox, 04800 Almería"
-    };
-  },
+  queryFn: fetchCompanySettings,
   staleTime: 1000 * 60 * 30, // 30 minutes
 });
 

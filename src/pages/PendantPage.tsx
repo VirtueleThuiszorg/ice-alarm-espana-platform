@@ -38,6 +38,7 @@ import {
 import { useWebsiteImagesBatch } from "@/hooks/useWebsiteImage";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 
+import { telHref, waNumber } from "@/lib/phone";
 export default function PendantPage() {
   usePricing(); // hydrate pricing from DB
   const { t, i18n } = useTranslation();
@@ -52,9 +53,9 @@ export default function PendantPage() {
   const pendantSpecsImage = getImage("pendant_specs");
 
   // Format phone for tel: links
-  const phoneForLink = companySettings.emergency_phone.replace(/\s/g, '');
+  const phoneHref = telHref(companySettings.emergency_phone);
   // Format phone for WhatsApp (remove spaces and + sign)
-  const whatsappNumber = companySettings.emergency_phone.replace(/[\s+]/g, '');
+  const whatsappNumber = waNumber(companySettings.emergency_phone);
   const features = [
     {
       icon: MapPin,
@@ -218,7 +219,7 @@ export default function PendantPage() {
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" className="h-14 px-8 text-lg" asChild>
-                  <a href={`tel:${phoneForLink}`}>
+                  <a href={phoneHref ?? undefined}>
                     <Phone className="mr-2 h-5 w-5" />
                     {t("common.callNow")}
                   </a>
@@ -578,7 +579,7 @@ export default function PendantPage() {
               </Link>
             </Button>
             <Button size="lg" variant="outline" className="h-14 px-8 text-lg" asChild>
-              <a href={`tel:${phoneForLink}`}>
+              <a href={phoneHref ?? undefined}>
                 <Phone className="mr-2 h-5 w-5" />
                 {t("common.callNow")}
               </a>
@@ -610,7 +611,7 @@ export default function PendantPage() {
             <div>
               <h4 className="font-semibold mb-4">{t("pendant.footer.contact")}</h4>
               <ul className="space-y-2 text-sm text-sidebar-foreground/70">
-                <li><a href={`tel:${companySettings.emergency_phone.replace(/\s/g, '')}`} className="hover:text-sidebar-foreground">{t("common.callNow")}</a></li>
+                <li><a href={telHref(companySettings.emergency_phone) ?? undefined} className="hover:text-sidebar-foreground">{t("common.callNow")}</a></li>
                 <li><a href={`mailto:${companySettings.support_email}`} className="hover:text-sidebar-foreground">{companySettings.support_email}</a></li>
                 <li>{t("pendant.footer.whatsappAvailable")}</li>
               </ul>

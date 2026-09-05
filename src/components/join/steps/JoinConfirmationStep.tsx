@@ -6,6 +6,7 @@ import { PartyPopper, CheckCircle2, Mail, Phone, Calendar, Smartphone, Package, 
 import { Link } from "react-router-dom";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 
+import { telHref } from "@/lib/phone";
 interface JoinConfirmationStepProps {
   data: JoinWizardData;
 }
@@ -81,7 +82,7 @@ export function JoinConfirmationStep({ data }: JoinConfirmationStepProps) {
               "Call us and we will take the details now, or add them yourself once you sign in.",
             )}{" "}
             <a
-              href={`tel:${companySettings.emergency_phone.replace(/\s/g, "")}`}
+              href={telHref(companySettings.emergency_phone) ?? undefined}
               className="font-semibold text-primary underline underline-offset-2"
             >
               {companySettings.emergency_phone}
@@ -140,7 +141,7 @@ export function JoinConfirmationStep({ data }: JoinConfirmationStepProps) {
         <p>{t("joinWizard.confirmation.questionsTitle")}</p>
         <p>
           {t("joinWizard.confirmation.callUsAt")}{" "}
-          <a href={`tel:${companySettings.emergency_phone.replace(/\s/g, "")}`} className="text-primary hover:underline">{t("joinWizard.callUs")}</a>{" "}
+          <a href={telHref(companySettings.emergency_phone) ?? undefined} className="text-primary hover:underline">{t("joinWizard.callUs")}</a>{" "}
           {t("joinWizard.confirmation.orEmail")}{" "}
           <a href={`mailto:${companySettings.support_email}`} className="text-primary hover:underline">{companySettings.support_email}</a>
         </p>

@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { es, enGB } from "date-fns/locale";
 import i18n from "@/i18n";
 
+import { telHref, waNumber } from "@/lib/phone";
 // Mock data for template preview mode
 const MOCK_MEMBER = {
   first_name: "Demo",
@@ -49,7 +50,7 @@ export default function ClientDashboard() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { settings: companySettings } = useCompanySettings();
-  const phoneForLink = companySettings.emergency_phone.replace(/\s/g, "");
+  const phoneHref = telHref(companySettings.emergency_phone);
 
   // Determine if admin is viewing
   const isAdminRole = isStaff && checkAdminRole(staffRole);
@@ -246,7 +247,7 @@ export default function ClientDashboard() {
             title={t("dashboard.callUs")}
             asChild
           >
-            <a href={`tel:${phoneForLink}`}>
+            <a href={phoneHref ?? undefined}>
               <Phone className="h-5 w-5" />
             </a>
           </Button>
@@ -256,7 +257,7 @@ export default function ClientDashboard() {
             title={t("dashboard.whatsappUs")}
             asChild
           >
-            <a href={`https://wa.me/${phoneForLink.replace("+", "")}`} target="_blank" rel="noopener noreferrer">
+            <a href={(waNumber(companySettings.emergency_phone) ? `https://wa.me/${waNumber(companySettings.emergency_phone)}` : undefined)} target="_blank" rel="noopener noreferrer">
               <MessageCircle className="h-5 w-5" />
             </a>
           </Button>

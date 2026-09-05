@@ -56,6 +56,7 @@ import { useDocumentation } from "@/hooks/useDocumentation";
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
+import { telHref, waNumber } from "@/lib/phone";
 interface Conversation {
   id: string;
   subject: string | null;
@@ -79,7 +80,7 @@ interface Message {
 export default function SupportPage() {
   const { t } = useTranslation();
   const { settings: companySettings } = useCompanySettings();
-  const phoneForLink = companySettings.emergency_phone.replace(/\s/g, "");
+  const phoneHref = telHref(companySettings.emergency_phone);
   const { memberId, isLoading: authLoading } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   
@@ -527,7 +528,7 @@ export default function SupportPage() {
             </div>
             <div className="flex flex-col gap-2">
               <a 
-                href={`tel:${phoneForLink}`}
+                href={phoneHref ?? undefined}
                 className="inline-flex items-center justify-center gap-2 bg-background text-foreground font-semibold px-6 py-3 rounded-full hover:bg-background/90 transition-colors"
               >
                 <Phone className="h-5 w-5" />
@@ -864,7 +865,7 @@ export default function SupportPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <a 
-                    href={`tel:${phoneForLink}`}
+                    href={phoneHref ?? undefined}
                     className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors min-h-[48px]"
                   >
                     <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -877,7 +878,7 @@ export default function SupportPage() {
                   </a>
 
                   <a 
-                    href={`https://wa.me/${phoneForLink.replace("+", "")}`}
+                    href={(waNumber(companySettings.emergency_phone) ? `https://wa.me/${waNumber(companySettings.emergency_phone)}` : undefined)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 p-3 rounded-lg bg-[#25D366]/10 hover:bg-[#25D366]/20 transition-colors min-h-[48px]"

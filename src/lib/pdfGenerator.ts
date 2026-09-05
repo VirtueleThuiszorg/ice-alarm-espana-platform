@@ -33,7 +33,10 @@ const DEFAULT_COMPANY: Required<CompanyInfo> = {
   address: 'Costa del Sol, Málaga, Spain',
   email: 'info@icealarmespana.es',
   website: 'www.icealarmespana.es',
-  phone: '+34 900 123 456',
+  // No default phone. This object is spread into EVERY generated invoice, so a placeholder
+  // here is a number the company does not own, printed on a document sent to a member. The
+  // renderer omits the line when it is empty. Set it from system_settings when a caller has it.
+  phone: '',
   iban: 'ES00 0000 0000 0000 0000 0000',
   bic: 'CAIXESBBXXX',
 };

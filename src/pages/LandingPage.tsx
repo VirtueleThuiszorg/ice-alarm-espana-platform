@@ -20,6 +20,7 @@ import { usePricing } from "@/hooks/usePricing";
 import { BillingPeriodToggle } from "@/components/pricing/BillingPeriodToggle";
 import { buildJoinPath } from "@/lib/joinLink";
 import { formatPrice, getSubscriptionMonthlyFinal, getSubscriptionFinalPrice, getAnnualSavings, getPendantFinalPrice, type BillingFrequency } from "@/config/pricing";
+import { telHref, waNumber } from "@/lib/phone";
 import {
   Dialog,
   DialogContent,
@@ -66,7 +67,7 @@ export default function LandingPage() {
   }, [searchParams]);
 
   // Format phone for WhatsApp (remove spaces and + sign)
-  const whatsappNumber = companySettings.emergency_phone.replace(/[\s+]/g, '');
+  const whatsappNumber = waNumber(companySettings.emergency_phone);
 
   return (
     <div className="min-h-screen bg-background">
@@ -689,7 +690,7 @@ export default function LandingPage() {
           <p className="text-sm text-muted-foreground mt-6">
             {t("landing.haveQuestions")}{" "}
             <a
-              href={`tel:${companySettings.emergency_phone.replace(/\s/g, '')}`}
+              href={telHref(companySettings.emergency_phone) ?? undefined}
               className="text-primary hover:underline"
             >
               {t("landing.callUsAnytime")}
@@ -711,7 +712,7 @@ export default function LandingPage() {
             <div>
               <h4 className="font-semibold mb-4">{t("navigation.contact")}</h4>
               <ul className="space-y-2 text-sm text-sidebar-foreground/70">
-                <li><a href={`tel:${companySettings.emergency_phone.replace(/\s/g, '')}`} className="hover:text-sidebar-foreground">{t("common.callNow")}</a></li>
+                <li><a href={telHref(companySettings.emergency_phone) ?? undefined} className="hover:text-sidebar-foreground">{t("common.callNow")}</a></li>
                 <li><a href={`mailto:${companySettings.support_email}`} className="hover:text-sidebar-foreground">{companySettings.support_email}</a></li>
                 <li>{companySettings.address}</li>
               </ul>
@@ -762,7 +763,7 @@ export default function LandingPage() {
               className="h-20 flex-col gap-2"
               asChild
             >
-              <a href={`tel:${companySettings.emergency_phone.replace(/\s/g, '')}`}>
+              <a href={telHref(companySettings.emergency_phone) ?? undefined}>
                 <Phone className="h-6 w-6" />
                 <span className="text-sm font-medium">
                   {t("landing.contactDialog.phoneCall")}

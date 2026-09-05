@@ -30,6 +30,7 @@ import { PublicHeader } from "@/components/layout/PublicHeader";
 import { ImageWithPlaceholder } from "@/components/ui/image-placeholder";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useWebsiteImagesBatch } from "@/hooks/useWebsiteImage";
+import { telHref, waNumber } from "@/lib/phone";
 import {
   Accordion,
   AccordionContent,
@@ -77,8 +78,8 @@ export default function HowItWorksPage() {
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const revealRef = useScrollReveal();
 
-  const phoneForLink = companySettings.emergency_phone.replace(/\s/g, "");
-  const whatsappNumber = companySettings.emergency_phone.replace(/[\s+]/g, "");
+  const phoneHref = telHref(companySettings.emergency_phone);
+  const whatsappNumber = waNumber(companySettings.emergency_phone);
 
   const { getImage, isLoading: imagesLoading } = useWebsiteImagesBatch([
     "how_it_works_hero",
@@ -553,7 +554,7 @@ export default function HowItWorksPage() {
               className="h-14 px-8 text-lg"
               asChild
             >
-              <a href={`tel:${phoneForLink}`}>
+              <a href={phoneHref ?? undefined}>
                 <Phone className="mr-2 h-5 w-5" />
                 {t("howItWorksPage.cta.secondaryButton")}
               </a>
@@ -593,7 +594,7 @@ export default function HowItWorksPage() {
               <ul className="space-y-2 text-sm text-sidebar-foreground/70">
                 <li>
                   <a
-                    href={`tel:${phoneForLink}`}
+                    href={phoneHref ?? undefined}
                     className="hover:text-sidebar-foreground"
                   >
                     {t("common.callNow")}
@@ -686,7 +687,7 @@ export default function HowItWorksPage() {
               className="h-20 flex-col gap-2"
               asChild
             >
-              <a href={`tel:${phoneForLink}`}>
+              <a href={phoneHref ?? undefined}>
                 <Phone className="h-6 w-6" />
                 <span className="text-sm font-medium">
                   {t("landing.contactDialog.phoneCall")}

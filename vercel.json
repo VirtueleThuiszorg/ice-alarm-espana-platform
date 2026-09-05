@@ -1,4 +1,11 @@
 {
+  "redirects": [
+    {
+      "source": "/partner",
+      "destination": "/partner/join",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/sitemap.xml",

@@ -257,6 +257,86 @@ is easy and a banner that is present only when true is the actual requirement.
 
 ---
 
+## 5.2 The MEMBER surface — same fact, opposite register
+
+*Normative. Implemented by `src/components/client/MonitoringReadinessBar.tsx`.*
+
+The zero-contacts state has **two readers**, and the correct presentation for one is the wrong
+presentation for the other. That is not a style disagreement to be resolved; it is the point, and
+it is written here rather than in a PR body so that a future change to one surface does not get
+copied onto the other.
+
+| | Operator card (§5.1.4) | Member bar |
+|---|---|---|
+| **Reader** | A professional, mid-alert, possibly at 3am | An elderly person at home who has just bought a personal alarm |
+| **What they must do** | Know in one glance that level 5 of the ladder will do nothing, and act around it now | Add their contacts, at some point today or this week |
+| **Register** | NO EMERGENCY CONTACTS — red, uppercase, siren icon | "We still need your emergency contacts" — amber, sentence case, person icon |
+| **Time pressure** | Seconds | None |
+| **Placement** | Top of the action panel, above JOIN CALL | Top of the member layout, above the page content, on every page |
+
+**Why the member version must not shout.** Alarm-red capitals read to this reader as reproach or
+as an emergency in progress. Both produce anxiety or shame, and neither produces the action we
+need — which is a calm five-minute task. A member frightened by their own dashboard is likelier
+to close it than to complete it. The operator has no such problem: they are a professional
+looking at a screen full of red already, and for them the loudness is information.
+
+**Why it must not therefore go quiet.** §0.1 is still binding on this surface. A fact that
+changes what the reader does must be impossible to miss. So the bar keeps every structural
+property of the operator's version and changes only its voice:
+
+| Property | Member bar |
+|---|---|
+| Prominent | Full width, above all page content, unavoidable on every member route |
+| Dismissible | **No.** A member who dismisses it is a member who stays unreachable, and the dismissal would be the last anyone heard of it |
+| Collapsible | **No** |
+| Settled zero only | **Yes** — §5.1.2 applies unchanged. `undefined` renders nothing |
+| Failed read | Renders nothing. Unknown is neither a false all-clear nor a false alarm (§5.1.3) |
+| Not colour alone | Icon + full sentences; meaning survives with colour stripped |
+| Contrast | `amber-950` on `amber-50` (and inverted in dark) — far above 4.5:1 |
+| Size | ≥ 14px throughout; the heading is `text-base` |
+| Screen reader | `role="status"` — announced, but as a status rather than the operator card's `role="alert"`, because this is not an emergency |
+| Blocks anything | **No.** It informs; it gates no route and no control |
+| Queries | **One**, the readiness view — the same read, relocated from the dashboard, not a second one |
+
+### 5.2.1 It offers only routes that exist
+
+The bar previously said *"Use the link we emailed you"*. **No such email is sent:**
+`GMAIL_APP_PASSWORD` is unset, `icealarm.es` is unverified with Resend, and SPF/DKIM/DMARC are
+unpublished. Sending a member to an empty inbox to look for a message that was never sent
+teaches them that the product lies, on the one surface whose whole job is to be believed.
+
+**Rule: no member-facing copy may reference an emailed link until email is verifiably
+delivering.** The two routes offered are the two that work — the in-app button to
+`/dashboard/contacts`, and the office phone number as a `tel:` link. The same correction was
+applied to the join confirmation screen, which carried the identical sentence.
+
+### 5.2.2 Copy — PROPOSED, pending Lee's approval
+
+Not final. Recorded here so the wording is reviewable as text rather than as a screenshot.
+
+- **Heading:** "We still need your emergency contacts"
+- **Body:** "Your alarm works and an operator will always answer it. But we have no one to
+  contact on your behalf yet."
+- **Phone:** "Prefer to do it by phone? Call us on <number>"
+- **Action:** a button — "Add your emergency contacts"
+
+The body leads with **what still works** before what is missing, deliberately: the member's first
+question on seeing this is "am I unprotected?", and the honest answer is no — the alarm reaches an
+operator, what is missing is the next-of-kin chain.
+
+**Spanish uses *usted* throughout**, matching the phone scripts and the legal copy. The existing
+`es` chat strings use *tú*; that is the wrong register for this demographic and is deliberately
+not copied here.
+
+### 5.2.3 Proven by
+
+`src/test/memberReadinessBar.test.tsx` — 21 assertions, negative-first. The load-bearing ones are
+the absences (in flight, ≥1 contact, failed read, no member id), each **mutation-tested**:
+rendering on any falsy value turns 3 red; settling a failed read as not-ready turns 1 red;
+reinstating the emailed-link sentence turns 1 red; adding a dismiss button turns 1 red.
+
+---
+
 ## 6. Print view
 
 One CSS print stylesheet on the same component. Bands 1–5 only; device state and action

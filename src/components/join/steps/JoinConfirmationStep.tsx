@@ -75,7 +75,10 @@ export function JoinConfirmationStep({ data }: JoinConfirmationStepProps) {
           <p className="text-sm">
             {t(
               "joinWizard.confirmation.oneThingLeftHow",
-              "Use the link we have emailed you, or call us and we will take the details now — whichever is easier.",
+              // No emailed-link promise: no such email is sent (GMAIL_APP_PASSWORD unset,
+              // icealarm.es unverified with Resend, SPF/DKIM/DMARC unpublished). Only the two
+              // routes that actually work.
+              "Call us and we will take the details now, or add them yourself once you sign in.",
             )}{" "}
             <a
               href={`tel:${companySettings.emergency_phone.replace(/\s/g, "")}`}

@@ -2913,7 +2913,7 @@
       "orEmail": "o escriba a",
       "oneThingLeftTitle": "Falta una cosa: sus contactos de emergencia",
       "oneThingLeftBody": "Hasta que tengamos al menos una persona a la que llamar, podemos atender su alarma pero no podemos avisar a su familia.",
-      "oneThingLeftHow": "Use el enlace que le hemos enviado por correo, o llámenos y tomamos los datos ahora — lo que le resulte más fácil."
+      "oneThingLeftHow": "Llámenos y tomamos los datos ahora, o añádalos usted mismo al iniciar sesión."
     },
     "validation": {
       "enterFullName": "Por favor introduzca su nombre completo",
@@ -6031,9 +6031,10 @@
   },
   "clientDashboard": {
     "notReady": {
-      "title": "No tenemos a nadie a quien llamar por usted",
-      "body": "Su alarma funciona y un operador la atenderá. Pero no tenemos ni un contacto de emergencia en su ficha, así que no podemos avisar a su familia.",
-      "how": "Use el enlace que le enviamos por correo, o llámenos y tomamos los datos por teléfono."
+      "title": "Todavía necesitamos sus contactos de emergencia",
+      "body": "Su alarma funciona y un operador siempre la atenderá. Pero aún no tenemos a nadie a quien avisar de su parte.",
+      "orCall": "¿Prefiere hacerlo por teléfono? Llámenos al",
+      "action": "Añadir sus contactos de emergencia"
     }
   },
   "addMember": {

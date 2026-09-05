@@ -53,6 +53,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { MemberChatButton } from "@/components/chat/MemberChatButton";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { MonitoringReadinessBar } from "@/components/client/MonitoringReadinessBar";
 
 interface MenuItem {
   icon: React.ElementType;
@@ -493,6 +494,17 @@ export function ClientLayout() {
             </DropdownMenu>
           </div>
         </header>
+
+        {/*
+          The readiness bar sits INSIDE the content column, below both headers.
+          - On mobile the column already carries pt-16 to clear the fixed header, so the bar
+            lands below it and cannot overlap or displace the nav.
+          - On desktop it follows the sticky header in normal flow, so it never covers content
+            and never needs a compensating offset.
+          It is in the LAYOUT rather than on Home so it persists across every member page — a
+          member who navigates away from the dashboard does not navigate away from the fact.
+        */}
+        <MonitoringReadinessBar memberId={memberId} />
 
         <main className="p-4 md:p-6">
           <SectionErrorBoundary section="client" homePath="/dashboard">

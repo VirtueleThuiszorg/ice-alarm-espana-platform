@@ -6998,6 +6998,8 @@ export type Database = {
         | "shipped"
         | "delivered"
         | "cancelled"
+        | "confirmed"
+        | "awaiting_stock"
       participant_join_method:
         | "automatic"
         | "accepted_alert"
@@ -7261,6 +7263,8 @@ export const Constants = {
         "shipped",
         "delivered",
         "cancelled",
+        "confirmed",
+        "awaiting_stock",
       ],
       participant_join_method: [
         "automatic",

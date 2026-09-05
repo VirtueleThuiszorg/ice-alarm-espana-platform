@@ -133,7 +133,7 @@ is off is skipped and logged, never silently failed.
 
 | PR | Why it is open |
 |---|---|
-| **#175** — `20260905100000_staff_delete_fk_rules.sql` | **Merge this one FIRST, and only when you are at a keyboard.** Merging it turns `main` red until `supabase db push` lands (D-3). Everything in it is proven — RLS harness 190/190, three mutations red — it is queued on *your* availability, not on its own quality. Suggested order: merge → `supabase db push` → append the filename to `APPLIED_TO_PROD.txt` → merge that → main green |
+| **#176** — `20260905100000_staff_delete_fk_rules.sql` | **Merge this one FIRST, and only when you are at a keyboard.** Merging it turns `main` red until `supabase db push` lands (D-3). Everything in it is proven — RLS harness 190/190, three mutations red — it is queued on *your* availability, not on its own quality. Suggested order: merge → `supabase db push` → append the filename to `APPLIED_TO_PROD.txt` → merge that → main green |
 
 > Per the brief: any PR touching `supabase/functions/stripe-webhook` or
 > `supabase/functions/create-checkout` stays open. A broken webhook means no member ever

@@ -268,21 +268,130 @@ def main() -> int:
         existing = parse_existing(src)
         patched.append((name, sorted(db_cols - cols), sorted(cols - db_cols)))
 
-    # 3. Enums the new tables reference but the file has never heard of.
+    # 3. Enums: ones the file has never heard of, AND ones whose VALUES have drifted.
+    #
+    # The second half was missing and it mattered. This repo widens enums routinely —
+    # order_status gained 'confirmed' and 'awaiting_stock' (20260228170000), device_status
+    # gained four (20260202165732), app_role gained 'call_centre_supervisor', invite_status
+    # gained 'viewed', fulfilment_state gained 'cancelled' (20260907110000). Adding a value is
+    # an ALTER TYPE on an EXISTING enum, so the "have I heard of this name" check passed every
+    # time and the union stayed stale.
+    #
+    # That fails in the worst direction for a TypeScript codebase: a `switch` over the union is
+    # believed exhaustive when the database can hand you a value not in it, and the compiler
+    # agrees. `orders.status` is the live example — FULFILMENT_MODEL.md §1-B records that
+    # useOrderActions typed five values while the enum had seven, so an order in
+    # `awaiting_stock` could not be seen or moved by the admin UI. That is this bug, one layer up.
     enums = fetch_enums(args.db_url)
-    enum_at = src.index("    Enums: {")
+
+    # The Enums block for the `public` schema specifically. There is more than one Enums block
+    # in this file (graphql_public has its own), and src.index would find whichever comes first.
+    enum_at = src.index("    Enums: {", src.index("  public: {"))
     enum_end = src.index("\n    }", enum_at)
-    enum_block = src[enum_at:enum_end]
+
+    def read_enum(block: str, name: str):
+        """
+        One enum's current union, or None if it is not present.
+
+        TWO FORMATS, both real in this file. Prettier wraps a long union across lines:
+
+            payment_type:
+              | "registration"
+              | "subscription"
+
+        and leaves a short one inline:
+
+            plan_type: "single" | "couple"
+
+        Reading only the inline form is what made the first version of this report claim
+        payment_type had "gained" all five of its existing values — and the replace it would
+        then have performed keyed on an empty string, which would have corrupted the file. It
+        was caught by the dry run, which is what the dry run is for.
+        """
+        m = re.search(rf"^      {re.escape(name)}:(.*)$", block, re.M)
+        if m is None:
+            return None
+        inline = m.group(1).strip()
+        if inline:
+            return inline, m.group(0)
+        lines = block[m.end():].split("\n")[1:]
+        parts, consumed = [], [m.group(0)]
+        for line in lines:
+            if not line.startswith("        | "):
+                break
+            parts.append(line.strip()[2:].strip())
+            consumed.append(line)
+        if not parts:
+            return None
+        return " | ".join(parts), "\n".join(consumed)
+
     new_enums = []
+    changed_enums = []
     for name in sorted(enums):
-        if re.search(rf"^      {re.escape(name)}:", enum_block, re.M):
-            continue
-        new_enums.append(name)
-        src = src[:enum_end] + f"\n      {name}: {enums[name].replace(chr(39), chr(34))}" + src[enum_end:]
-        enum_at = src.index("    Enums: {")
+        want = enums[name].replace(chr(39), chr(34))
+        enum_block = src[enum_at:enum_end]
+        current = read_enum(enum_block, name)
+
+        if current is None:
+            new_enums.append(name)
+            src = src[:enum_end] + f"\n      {name}: {want}" + src[enum_end:]
+        else:
+            have, literal = current
+            if {v.strip() for v in have.split("|")} == {v.strip() for v in want.split("|")}:
+                continue
+            have_set = {v.strip() for v in have.split("|")}
+            want_set = {v.strip() for v in want.split("|")}
+            # Report the DIRECTION of the drift: a value disappearing from the database is a
+            # different event from one being added, and must not read the same in the log.
+            changed_enums.append((name, sorted(want_set - have_set), sorted(have_set - want_set)))
+            src = src.replace(literal, f"      {name}: {want}", 1)
+
+        enum_at = src.index("    Enums: {", src.index("  public: {"))
         enum_end = src.index("\n    }", enum_at)
 
+    # ── the second representation ─────────────────────────────────────────
+    # types.ts carries every enum TWICE: the type union under `Enums`, and a runtime array
+    # under `Constants` at the end of the file. The generator writes both; this script only
+    # ever wrote the first, so after a widening the two disagreed — the union knew about
+    # 'mollie' and 'nl' while the array did not.
+    #
+    # `Constants` is referenced nowhere in src/ today, so nothing was broken by it. It is
+    # still a trap: the first dropdown built from Constants.public.Enums.preferred_language
+    # silently omits Dutch, and the compiler cannot see the omission because the array is the
+    # source of the values rather than a check on them. Kept in step rather than left as a
+    # thing that is only wrong when someone finally uses it.
+    const_at = src.find("  public: {", src.find("export const Constants"))
+    const_touched = []
+    if const_at != -1:
+        for name in sorted(set(new_enums) | {n for n, _, _ in changed_enums}):
+            want_list = [v.strip().strip('"') for v in enums[name].replace(chr(39), chr(34)).split("|")]
+            block = src[const_at:]
+            m = re.search(rf"^      {re.escape(name)}: \[(.*?)\],$", block, re.M | re.S)
+            rendered = ", ".join(f'"{v}"' for v in want_list)
+            if m is None:
+                # A brand-new enum has no array yet. Insert alphabetically-agnostically at the
+                # top of the Enums map inside Constants, which is where the generator would.
+                anchor_m = re.search(r"^    Enums: \{$", block, re.M)
+                if anchor_m is None:
+                    continue
+                ins = const_at + anchor_m.end()
+                src = src[:ins] + f"\n      {name}: [{rendered}]," + src[ins:]
+            else:
+                src = src[:const_at] + block.replace(m.group(0), f"      {name}: [{rendered}],", 1)
+            const_touched.append(name)
+            const_at = src.find("  public: {", src.find("export const Constants"))
+
+    if const_touched:
+        print(f"Constants kept in step: {', '.join(const_touched)}")
+
     print(f"enums added:    {', '.join(new_enums) or 'none'}")
+    for name, gained, lost in changed_enums:
+        bits = []
+        if gained:
+            bits.append("+" + ", +".join(gained))
+        if lost:
+            bits.append("-" + ", -".join(lost))
+        print(f"enums patched:  {name}  ({'; '.join(bits)})")
     print(f"tables added:   {', '.join(added) or 'none'}")
     for name, gained, lost in patched:
         bits = []
@@ -291,7 +400,7 @@ def main() -> int:
         if lost:
             bits.append("-" + ", -".join(lost))
         print(f"tables patched: {name}  ({'; '.join(bits)})")
-    if not added and not patched and not new_enums:
+    if not added and not patched and not new_enums and not changed_enums:
         print("types.ts already matches the schema")
         return 0
 

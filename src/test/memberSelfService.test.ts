@@ -182,8 +182,17 @@ describe("member UX honesty fixes hold", () => {
   it("subscription page dead-end toasts became real support navigation", () => {
     const sub = read("src/pages/client/SubscriptionPage.tsx");
     expect(sub).not.toMatch(/toast\.info/);
-    expect(sub).toMatch(/dashboard\/support\?action=upgrade_plan/);
-    expect(sub).toMatch(/dashboard\/support\?action=update_payment/);
+    /*
+      The assertion used to pin the literal `dashboard/support?action=upgrade_plan`. The URL is
+      built by `supportActionPath()` now — one list, four callers, no hand-typed query string that
+      can drift from the subject map (see `src/lib/supportActions.ts`). The property being guarded
+      is unchanged and is what the test name says: these buttons GO somewhere real rather than
+      raising a toast that does nothing. Pinning the mechanism as well as the destination is the
+      stronger version of the same guard.
+    */
+    expect(sub).toMatch(/supportActionPath\("upgrade_plan"\)/);
+    expect(sub).toMatch(/supportActionPath\("update_payment"\)/);
+    expect(sub).not.toMatch(/support\?action=/);
   });
 
   it("device page shows the real emergency number, not a label", () => {

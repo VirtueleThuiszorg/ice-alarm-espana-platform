@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useMemberDevice, useMemberSubscription } from "@/hooks/useMemberProfile";
+import { supportActionPath } from "@/lib/supportActions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -461,11 +462,11 @@ export default function DevicePage() {
 
       {/* Actions */}
       <div className="grid gap-3 md:grid-cols-2">
-        <Button variant="outline" className="touch-target" onClick={() => navigate("/dashboard/support?action=report_issue")}>
+        <Button variant="outline" className="touch-target" onClick={() => navigate(supportActionPath("report_issue"))}>
           <Wrench className="mr-2 h-4 w-4" />
           {t('device.reportIssue')}
         </Button>
-        <Button variant="outline" className="touch-target" onClick={() => navigate("/dashboard/support?action=request_replacement")}>
+        <Button variant="outline" className="touch-target" onClick={() => navigate(supportActionPath("request_replacement"))}>
           <RefreshCw className="mr-2 h-4 w-4" />
           {t('device.requestReplacement')}
         </Button>

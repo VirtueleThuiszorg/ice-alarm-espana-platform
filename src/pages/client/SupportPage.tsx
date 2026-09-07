@@ -58,6 +58,8 @@ import { cn } from "@/lib/utils";
 
 import { telHref, waNumber } from "@/lib/phone";
 import { PageHeader } from "@/components/client/PageHeader";
+import { supportActionSpec } from "@/lib/supportActions";
+
 interface Conversation {
   id: string;
   subject: string | null;
@@ -157,13 +159,17 @@ export default function SupportPage() {
   useEffect(() => {
     const action = searchParams.get("action");
     if (action) {
-      const subjectMap: Record<string, string> = {
-        report_issue: t("support.reportIssueSubject", "Device Issue Report"),
-        request_replacement: t("support.requestReplacementSubject", "Device Replacement Request"),
-        upgrade_plan: t("support.upgradePlanSubject", "Plan Upgrade Request"),
-        update_payment: t("support.updatePaymentSubject", "Payment Method Update"),
-      };
-      setNewSubject(subjectMap[action] || t("support.generalEnquirySubject", "Support Request"));
+      // The subjects used to be a `Record<string, string>` right here, while four other pages
+      // built the URL by hand — so a renamed or mistyped key opened a generic "Support Request"
+      // and nothing failed. The list is `src/lib/supportActions.ts` now, and a test asserts no
+      // page can emit a key it does not carry. An UNRECOGNISED value still opens a request
+      // rather than doing nothing: a member following an old link deserves a conversation.
+      const spec = supportActionSpec(action);
+      setNewSubject(
+        spec
+          ? t(spec.subjectKey, spec.subjectFallback)
+          : t("support.generalEnquirySubject", "Support Request"),
+      );
       setIsDialogOpen(true);
       // Clear the action param so it doesn't re-open on navigation
       searchParams.delete("action");

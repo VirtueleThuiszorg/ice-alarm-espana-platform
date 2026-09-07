@@ -5,6 +5,7 @@ import { UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { isActionableGap, readinessGap, type ReadinessGap } from "@/lib/readinessGap";
+import { MEMBER_NOTICE_TONE } from "@/lib/memberNoticeTone";
 
 /**
  * THE READINESS NOTICE, IN THE HEADER — MEMBER_UX_RULES R3 and decision D10.
@@ -102,10 +103,10 @@ export function MemberReadinessNotice({
   /*
     Amber on cream, the colours R3 names. Not brand red — R2 reserves that, and this is a task
     rather than an emergency: the member's alarm works, and telling an 80-year-old otherwise in
-    red is how you produce anxiety instead of an action.
+    red is how you produce anxiety instead of an action. Shared with the membership notice, which
+    makes the same argument about the same reader.
   */
-  const tone =
-    "bg-[#FEF8E6] text-[#7A5C00] dark:bg-amber-950 dark:text-amber-50 border-[#F4E3A8] dark:border-amber-800";
+  const tone = MEMBER_NOTICE_TONE;
 
   const body = (
     <>

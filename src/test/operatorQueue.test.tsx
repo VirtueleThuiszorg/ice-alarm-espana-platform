@@ -205,7 +205,9 @@ describe("the operator screen, as shipped", () => {
   });
 
   it("selects the sender of the last message, or `waitingOn` has nothing to read", () => {
-    expect(src).toContain('.select("content, sender_type")');
+    // The column LIST is not the contract — `created_at` joined it when the preview fix landed.
+    // What must hold is that the last-message query asks for `sender_type` at all.
+    expect(src).toMatch(/\.select\("content[^"]*sender_type[^"]*"\)/);
     expect(src).toContain("last_message_sender: lastMsg?.sender_type");
   });
 

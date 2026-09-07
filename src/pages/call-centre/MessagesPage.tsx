@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { conversationPreview } from "@/lib/conversationPreview";
+import { fetchLastIsabellaTurn } from "@/lib/lastIsabellaTurn";
 import { createNotification, getMemberUserId } from "@/utils/notifications";
 import { staffSenderType } from "@/lib/messageSenderType";
 import { withCannedReply } from "@/lib/cannedReplies";
@@ -251,11 +253,24 @@ export default function CallCentreMessagesPage() {
             .from("messages")
             // `sender_type` as well as the preview: who spoke last is the whole of
             // `waitingOn()`, and deriving it beats storing it on a row three send paths write.
-            .select("content, sender_type")
+            // `created_at` so `conversationPreview` can compare it against Isabella's last turn.
+            .select("content, created_at, sender_type")
             .eq("conversation_id", conv.id)
             .order("created_at", { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
+
+          /*
+            The preview said the literal word "undefined" for a conversation with no
+            `messages` row — `undefined + ""` is the STRING "undefined", which is truthy, so
+            the `|| ""` never fired. Invisible until WP6 G7, because an Isabella-only
+            conversation has no messages and there is one per member who used the chat.
+            The Isabella read happens only when there is nothing ordinary to show.
+          */
+          const preview = conversationPreview(
+            lastMsg,
+            lastMsg ? null : await fetchLastIsabellaTurn(conv.id),
+          );
 
           return {
             ...conv,
@@ -265,7 +280,7 @@ export default function CallCentreMessagesPage() {
               ? (conv.staff_participants || []).map((id: string) => participantsMap.get(id)).filter(Boolean)
               : undefined,
             unread_count: count || 0,
-            last_message_preview: lastMsg?.content?.substring(0, 60) + (lastMsg?.content && lastMsg.content.length > 60 ? "..." : "") || "",
+            last_message_preview: preview.text,
             last_message_sender: lastMsg?.sender_type ?? null,
           };
         })

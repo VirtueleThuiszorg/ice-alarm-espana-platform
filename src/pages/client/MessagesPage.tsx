@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
+import { conversationPreview } from "@/lib/conversationPreview";
+import { fetchLastIsabellaTurn } from "@/lib/lastIsabellaTurn";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { notifyStaffOfMemberMessage, markMemberConversationRead } from "@/utils/notifications";
@@ -153,11 +155,23 @@ export default function MessagesPage() {
           try {
             const { data: lastMsg } = await supabase
               .from("messages")
-              .select("content, is_read, sender_type")
+              .select("content, created_at, is_read, sender_type")
               .eq("conversation_id", conv.id)
               .order("created_at", { ascending: false })
               .limit(1)
-              .single();
+              .maybeSingle();
+
+            /*
+              The preview said the literal word "undefined" for a conversation with no
+              `messages` row — `undefined + ""` is the STRING "undefined", which is truthy, so
+              the `|| ""` never fired. Invisible until WP6 G7, because an Isabella-only
+              conversation has no messages and there is one per member who used the chat.
+              The Isabella read happens only when there is nothing ordinary to show.
+            */
+            const preview = conversationPreview(
+              lastMsg,
+              lastMsg ? null : await fetchLastIsabellaTurn(conv.id),
+            );
 
             const { count } = await supabase
               .from("messages")
@@ -168,7 +182,7 @@ export default function MessagesPage() {
 
             return {
               ...conv,
-              last_message_preview: lastMsg?.content?.substring(0, 80) + (lastMsg?.content && lastMsg.content.length > 80 ? "..." : "") || "",
+              last_message_preview: preview.text,
               has_unread: (count || 0) > 0,
             };
           } catch {

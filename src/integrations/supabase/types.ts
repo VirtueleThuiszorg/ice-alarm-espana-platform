@@ -3707,6 +3707,7 @@ export type Database = {
           programmed_by: string | null
           tested_at: string | null
           tested_by: string | null
+          fulfilment_state_reason: string | null
         }
         Insert: {
           id?: string
@@ -3736,6 +3737,7 @@ export type Database = {
           programmed_by?: string | null
           tested_at?: string | null
           tested_by?: string | null
+          fulfilment_state_reason?: string | null
         }
         Update: {
           id?: string
@@ -3765,6 +3767,7 @@ export type Database = {
           programmed_by?: string | null
           tested_at?: string | null
           tested_by?: string | null
+          fulfilment_state_reason?: string | null
         }
         Relationships: [
           {
@@ -7524,7 +7527,7 @@ export type Database = {
         | "emergency_contact"
         | "external_service"
       partner_status: "invited" | "pending" | "active" | "suspended"
-      payment_method: "stripe" | "bank_transfer" | "paypal"
+      payment_method: "stripe" | "bank_transfer" | "paypal" | "mollie"
       payment_status: "pending" | "completed" | "failed" | "refunded"
       payment_type:
         | "registration"
@@ -7533,7 +7536,7 @@ export type Database = {
         | "shipping"
         | "order"
       plan_type: "single" | "couple"
-      preferred_language: "en" | "es"
+      preferred_language: "en" | "es" | "nl"
       recipient_type: "member" | "emergency_contact" | "emergency_services"
       subscription_status:
         | "active"
@@ -7553,7 +7556,7 @@ export type Database = {
       ticket_status: "open" | "in_progress" | "pending" | "resolved" | "closed"
       consent_basis: "member_self" | "staff_recorded"
       consent_category: "alerts" | "location" | "medical"
-      fulfilment_state: "paid" | "allocated" | "programmed" | "dispatched" | "delivered" | "tested"
+      fulfilment_state: "paid" | "allocated" | "programmed" | "dispatched" | "delivered" | "tested" | "cancelled"
       member_action: "renew" | "switch_to_single" | "switch_to_couple" | "add_pendant" | "pause" | "cancel"
       notification_channel: "sms" | "email" | "whatsapp"
     }
@@ -7683,6 +7686,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      fulfilment_state: ["paid", "allocated", "programmed", "dispatched", "delivered", "tested", "cancelled"],
       alert_status: ["incoming", "in_progress", "resolved", "escalated"],
       alert_type: [
         "sos_button",
@@ -7795,7 +7799,7 @@ export const Constants = {
         "external_service",
       ],
       partner_status: ["invited", "pending", "active", "suspended"],
-      payment_method: ["stripe", "bank_transfer", "paypal"],
+      payment_method: ["stripe", "bank_transfer", "paypal", "mollie"],
       payment_status: ["pending", "completed", "failed", "refunded"],
       payment_type: [
         "registration",
@@ -7805,7 +7809,7 @@ export const Constants = {
         "order",
       ],
       plan_type: ["single", "couple"],
-      preferred_language: ["en", "es"],
+      preferred_language: ["en", "es", "nl"],
       recipient_type: ["member", "emergency_contact", "emergency_services"],
       subscription_status: [
         "active",

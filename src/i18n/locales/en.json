@@ -3099,7 +3099,8 @@
     "send": "Send",
     "welcomeMessage": "Hello! 👋 I'm your ICE Alarm España virtual assistant. How can I help you today? I can answer questions about our services, pricing, or help you get started.",
     "errorMessage": "Sorry, there was a connection issue. Please try again later.",
-    "fallbackMessage": "Sorry, I couldn't process your message. Please try again."
+    "fallbackMessage": "Sorry, I couldn't process your message. Please try again.",
+    "assistant": "Assistant"
   },
   "partnerAgreement": {
     "title": "Partner Agreement",

@@ -154,6 +154,17 @@ export function ClientLayout() {
 
   const displayEmail = memberInfo?.email || user?.email || "";
 
+  /*
+    R3's "initials avatar". Initials come from the member's NAME or not at all — the fallback
+    `displayName` is an email prefix, and initials derived from `lwakeman@…` would be a plausible
+    "LW" for a person who never told us their name. A generic icon says "we do not know yet",
+    which is true; invented initials say something false quietly.
+  */
+  const initials =
+    memberInfo?.first_name && memberInfo?.last_name
+      ? `${memberInfo.first_name[0]}${memberInfo.last_name[0]}`.toUpperCase()
+      : null;
+
   // Find group containing active route and auto-expand it
   useEffect(() => {
     const activeGroup = menuGroups.find(group =>
@@ -482,9 +493,18 @@ export function ClientLayout() {
             {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="gap-2">
-                  <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-                    <User className="h-4 w-4 text-primary-foreground" />
+                <Button variant="ghost" className="gap-2" data-testid="member-account-trigger">
+                  <div
+                    className="h-8 w-8 rounded-full bg-primary flex items-center justify-center"
+                    data-testid="member-initials"
+                  >
+                    {initials ? (
+                      <span className="text-xs font-semibold text-primary-foreground">
+                        {initials}
+                      </span>
+                    ) : (
+                      <User className="h-4 w-4 text-primary-foreground" />
+                    )}
                   </div>
                   <span className="hidden lg:inline">{displayName}</span>
                 </Button>

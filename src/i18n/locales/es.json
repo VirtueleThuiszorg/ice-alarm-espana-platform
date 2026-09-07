@@ -3099,7 +3099,8 @@
     "send": "Enviar",
     "welcomeMessage": "¡Hola! 👋 Soy su asistente virtual de ICE Alarm España. ¿En qué puedo ayudarle hoy? Puedo responder preguntas sobre nuestros servicios, precios, o ayudarle a comenzar.",
     "errorMessage": "Lo siento, hubo un problema al conectar. Por favor, intenta de nuevo más tarde.",
-    "fallbackMessage": "Lo siento, no pude procesar su mensaje. Por favor, inténtelo de nuevo."
+    "fallbackMessage": "Lo siento, no pude procesar su mensaje. Por favor, inténtelo de nuevo.",
+    "assistant": "Asistente"
   },
   "partnerAgreement": {
     "title": "Acuerdo de Colaboración",

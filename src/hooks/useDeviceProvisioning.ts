@@ -3,6 +3,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { toast } from "sonner";
+import { describeStatePosition, markOrderProgrammed } from "@/lib/allocatePendant";
+import { FULFILMENT_LABEL } from "@/lib/fulfilmentState";
 
 export interface ProvisioningStep {
   key: string;
@@ -142,12 +144,48 @@ export function useDeviceProvisioning(deviceId: string) {
         .eq("id", deviceId);
 
       if (error) throw error;
-      return updated;
+
+      /*
+        COMPLETING THE CHECKLIST *IS* THE `programmed` TRANSITION.
+
+        The brief is explicit that this is not a separate button, and there is a reason beyond
+        tidiness: a button would let staff assert a pendant is configured without configuring
+        it. The only evidence that a pendant is programmed is that somebody worked through the
+        fourteen steps, so the last step is where the state moves.
+
+        Attempted only from `allocated`. `paid → programmed` is a skip the trigger refuses, and
+        walking the order up two rungs to get around that would assert an allocation nothing
+        here has checked. The outcome is returned rather than thrown: the fourteen steps are
+        saved either way, and losing the checklist because the order was in an unexpected state
+        would be losing the work to protect the bookkeeping.
+      */
+      const transition = allCompleted ? await markOrderProgrammed(deviceId) : null;
+
+      return { updated, transition };
     },
-    onSuccess: (updated) => {
+    onSuccess: ({ updated, transition }) => {
       setChecklist(updated);
       queryClient.invalidateQueries({ queryKey: ["admin-device-detail", deviceId] });
+      queryClient.invalidateQueries({ queryKey: ["member-fulfilment"] });
       toast.success("Step completed");
+
+      if (!transition) return;
+      if (transition.kind === "moved") {
+        toast.success("Provisioning complete — the order is now programmed");
+      } else if (transition.kind === "no_pendant_order") {
+        toast.warning(
+          "Provisioning complete, but this pendant is not on any order — so nothing records that it is programmed, and monitoring readiness cannot be reached for its member.",
+        );
+      } else if (transition.kind === "linked_no_transition") {
+        const label = FULFILMENT_LABEL[transition.state];
+        toast.info(
+          `Provisioning complete. The order still reads "${label.fallback}" — ${describeStatePosition(transition.state, "programmed")}.`,
+        );
+      } else {
+        toast.error(
+          `Provisioning complete, but the order could not be moved to programmed: ${transition.message}`,
+        );
+      }
     },
     onError: (error: Error) => {
       toast.error(`Failed to update checklist: ${error.message}`);

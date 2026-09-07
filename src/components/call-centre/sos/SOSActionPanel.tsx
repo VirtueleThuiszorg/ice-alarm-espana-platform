@@ -12,6 +12,7 @@ import {
   Mail,
   Shield,
   Siren,
+  ShieldAlert,
   Users,
   Star,
   Info,
@@ -224,6 +225,44 @@ export function SOSActionPanel({
   // Settled zero: the query returned and this member has nobody who can be called.
   const hasNoEmergencyContacts = contactsLoaded && contacts.length === 0;
 
+  /**
+   * THE SECOND READINESS CONDITION, on the SOS card — D4's other half.
+   *
+   * `pendantTested` is a THREE-VALUED answer and that is the whole design:
+   *   true       an operator has answered a test call from this member's home
+   *   false      nobody ever has
+   *   undefined  we have not been told yet, or the read failed
+   *
+   * `undefined` renders NOTHING. Not "tested", not "untested". This is the one screen where a
+   * read is happening while an alarm is already firing, so the rule from spec §5.1.2 is
+   * strictest here: a notice that appears on every load until the read lands is a notice an
+   * operator learns to look past, and the one they look past is the contacts banner beside it.
+   *
+   * WHAT THIS READ MUST NOT DO. It must not delay, block or alter the contacts banner above,
+   * which derives from `contacts` and nothing else (spec §5.1.4 — the card derives, the view
+   * serves the queue). If this read never returns, the card behaves exactly as it does today.
+   */
+  const [pendantTested, setPendantTested] = useState<boolean | undefined>(undefined);
+
+  useEffect(() => {
+    if (!memberId) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("member_monitoring_readiness")
+        .select("device_tested_at")
+        .eq("member_id", memberId)
+        .maybeSingle();
+      // Unknown on any failure. An operator told "not tested" because a read timed out would
+      // be given a fact about the member that nobody established.
+      if (cancelled || error || !data) return;
+      setPendantTested(!!data.device_tested_at);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [memberId]);
+
   return (
     <ScrollArea className="h-full">
       <div className="space-y-3 p-1 pr-3">
@@ -257,6 +296,45 @@ export function SOSActionPanel({
               {t(
                 "sos.action.noContactsAdvice",
                 "Speak to the member directly. Escalate to 112 on your own judgement.",
+              )}
+            </p>
+          </div>
+        )}
+
+        {/*
+          PENDANT NEVER TESTED. Secondary to the contacts banner on purpose, and it is a
+          different KIND of fact: "no contacts" tells the operator an escalation level will do
+          nothing, which changes what they do in the next thirty seconds. This tells them the
+          member has never been through a test call — so they may not know how this works, may
+          not expect a voice from the pendant, and may not have heard the operator before.
+
+          Amber, not the red above. Two red banners is one red banner, and the one that gets
+          diluted is the one about there being nobody to call.
+
+          Renders only on a settled `false`.
+        */}
+        {pendantTested === false && (
+          <div
+            role="status"
+            data-testid="sos-pendant-untested"
+            className="w-full space-y-1 rounded-lg border-2 border-amber-500 bg-amber-950 p-3"
+          >
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 shrink-0 text-amber-300" aria-hidden="true" />
+              <p className="text-base font-bold uppercase tracking-wide text-amber-100">
+                {t("sos.action.pendantUntestedHeading", "Pendant never tested")}
+              </p>
+            </div>
+            <p className="text-sm font-semibold text-amber-100">
+              {t(
+                "sos.action.pendantUntestedBody",
+                "No test call has ever been answered from this member's home. This may be the first time they have heard an operator.",
+              )}
+            </p>
+            <p className="text-sm text-amber-200">
+              {t(
+                "sos.action.pendantUntestedAdvice",
+                "Say who you are and where you are calling from before anything else. Do not assume they know the pendant can speak.",
               )}
             </p>
           </div>

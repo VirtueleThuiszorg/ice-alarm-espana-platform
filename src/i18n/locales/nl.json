@@ -5765,7 +5765,10 @@
       "previousAlerts": "Previous Alerts",
       "notes": "Notes",
       "notesPlaceholder": "Staff notes during call...",
-      "autoSave": "Auto-saves every 30 seconds"
+      "autoSave": "Auto-saves every 30 seconds",
+      "pendantUntestedHeading": "Hanger nooit getest",
+      "pendantUntestedBody": "Er is nooit een testoproep vanuit het huis van dit lid aangenomen. Dit kan de eerste keer zijn dat ze een operator horen.",
+      "pendantUntestedAdvice": "Zeg eerst wie u bent en waarvandaan u belt. Ga er niet van uit dat ze weten dat de hanger kan spreken."
     },
     "controls": {
       "unmute": "Unmute",

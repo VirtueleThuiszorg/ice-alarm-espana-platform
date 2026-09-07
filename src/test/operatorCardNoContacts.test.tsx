@@ -28,6 +28,15 @@ const read = (p: string) => readFileSync(path.resolve(process.cwd(), p), "utf8")
 
 type Rows = { data: unknown; error: unknown };
 let contactsResult: Promise<Rows>;
+/** The readiness view's row, for the pendant condition. Defaults to a tested pendant so the
+ *  contacts assertions below are never confounded by a second banner appearing. */
+let readinessResult: Promise<Rows> | Rows = {
+  data: { device_tested_at: "2026-09-01T09:00:00Z" },
+  error: null,
+};
+/** Which tables the panel actually read, so "it added no read for the contacts fact" is
+ *  provable from behaviour rather than from a grep for a table name. */
+let tablesRead: string[] = [];
 
 function tableStub(result: Promise<Rows> | Rows) {
   const p = result instanceof Promise ? result : Promise.resolve(result);
@@ -44,10 +53,12 @@ function tableStub(result: Promise<Rows> | Rows) {
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    from: (table: string) =>
-      tableStub(
-        table === "emergency_contacts" ? contactsResult : { data: null, error: null },
-      ),
+    from: (table: string) => {
+      tablesRead.push(table);
+      if (table === "emergency_contacts") return tableStub(contactsResult);
+      if (table === "member_monitoring_readiness") return tableStub(readinessResult);
+      return tableStub({ data: null, error: null });
+    },
   },
 }));
 
@@ -94,6 +105,8 @@ async function renderPanel() {
 
 beforeEach(() => {
   contactsResult = Promise.resolve({ data: [], error: null });
+  tablesRead = [];
+  readinessResult = { data: { device_tested_at: "2026-09-01T09:00:00Z" }, error: null };
 });
 afterEach(() => cleanup());
 
@@ -174,6 +187,77 @@ describe("operator card — the banner does NOT cry wolf", () => {
   });
 });
 
+describe("operator card — D4: the pendant has never been tested", () => {
+  const UNTESTED = "sos-pendant-untested";
+
+  it("shows the banner on a settled `never tested`", async () => {
+    readinessResult = { data: { device_tested_at: null }, error: null };
+    contactsResult = Promise.resolve({ data: [CONTACT], error: null });
+    await renderPanel();
+    const banner = await screen.findByTestId(UNTESTED);
+    // The advice is the point: this may be the first operator voice they have ever heard from
+    // the pendant, so the operator says who they are before anything else.
+    expect(banner.textContent).toMatch(/say who you are/i);
+  });
+
+  it("is ABSENT for a member whose pendant HAS been tested", async () => {
+    readinessResult = { data: { device_tested_at: "2026-09-01T09:00:00Z" }, error: null };
+    await renderPanel();
+    await waitFor(() => expect(tablesRead).toContain("member_monitoring_readiness"));
+    expect(screen.queryByTestId(UNTESTED)).toBeNull();
+  });
+
+  it("is ABSENT while the read is in flight — the strictest case on this screen", async () => {
+    // An alarm is already firing. A banner that appears on every load until the read lands is
+    // one an operator learns to look past, and the one they look past is the red one beside it.
+    let release: (v: Rows) => void = () => {};
+    readinessResult = new Promise<Rows>((res) => { release = res; });
+    await renderPanel();
+    expect(screen.queryByTestId(UNTESTED)).toBeNull(); // <-- load-bearing
+    release({ data: { device_tested_at: null }, error: null });
+    await waitFor(() => expect(screen.queryByTestId(UNTESTED)).not.toBeNull());
+  });
+
+  it("is ABSENT when the read FAILED — unknown is not `never tested`", async () => {
+    readinessResult = { data: null, error: { message: "timeout" } };
+    await renderPanel();
+    await waitFor(() => expect(tablesRead).toContain("member_monitoring_readiness"));
+    expect(screen.queryByTestId(UNTESTED)).toBeNull();
+  });
+
+  it("does NOT touch the contacts banner, even when its own read fails", async () => {
+    // The contract that mattered enough to narrow the old rule rather than delete it: the
+    // contacts banner derives from `contacts` and nothing else, so this read failing must
+    // leave it behaving exactly as it does today.
+    readinessResult = { data: null, error: { message: "timeout" } };
+    contactsResult = Promise.resolve({ data: [], error: null });
+    await renderPanel();
+    expect(await screen.findByTestId(BANNER)).toBeTruthy();
+  });
+
+  it("is not the same red as the contacts banner", async () => {
+    // Two red banners is one red banner, and the one that gets diluted is the one about there
+    // being nobody to call.
+    readinessResult = { data: { device_tested_at: null }, error: null };
+    contactsResult = Promise.resolve({ data: [], error: null });
+    await renderPanel();
+    const contacts = await screen.findByTestId(BANNER);
+    const pendant = await screen.findByTestId(UNTESTED);
+    expect(contacts.className).toMatch(/red/);
+    expect(pendant.className).not.toMatch(/red/);
+    // Not colour alone, either: an icon and a full uppercase heading carry it too.
+    expect(pendant.querySelector("svg")).not.toBeNull();
+  });
+
+  it("is a status, not an alert — the red banner keeps the interrupting role", async () => {
+    readinessResult = { data: { device_tested_at: null }, error: null };
+    contactsResult = Promise.resolve({ data: [], error: null });
+    await renderPanel();
+    expect((await screen.findByTestId(BANNER)).getAttribute("role")).toBe("alert");
+    expect((await screen.findByTestId(UNTESTED)).getAttribute("role")).toBe("status");
+  });
+});
+
 describe("operator card — the banner never blocks the operator", () => {
   it("does not gate JOIN CALL or resolution behind readiness", async () => {
     const src = read("src/components/call-centre/sos/SOSActionPanel.tsx");
@@ -183,10 +267,36 @@ describe("operator card — the banner never blocks the operator", () => {
   });
 
   it("adds no second query for a fact the panel already has", async () => {
+    /*
+      THIS RULE WAS NARROWED, DELIBERATELY, AND IT IS STRONGER FOR IT.
+
+      It used to be `expect(src).not.toContain("member_monitoring_readiness")` — a blanket ban
+      on the view. That was the right rule for the CONTACTS fact, which the panel already holds
+      in `contacts` and must not re-fetch (spec §5.1.4: the card derives, the view serves the
+      queue). It was the wrong rule stated too widely: the panel does NOT hold whether a
+      pendant has ever been tested, and D4 made that the second half of readiness.
+
+      So the ban is now on the thing it was protecting rather than on a table name:
+
+        1. exactly one read of emergency_contacts, as before
+        2. the view read may select `device_tested_at` and NOTHING ELSE — so it cannot become a
+           second source of truth for the contacts fact, or for readiness itself
+        3. the contacts banner's condition still comes from `contacts` alone (asserted below,
+           by rendering with the view read failing)
+    */
     const src = read("src/components/call-centre/sos/SOSActionPanel.tsx");
-    expect(src).not.toContain("member_monitoring_readiness");
-    // Exactly one read of emergency_contacts in this component.
     expect(src.match(/from\("emergency_contacts"\)/g)?.length).toBe(1);
+    expect(src.match(/from\("member_monitoring_readiness"\)/g)?.length).toBe(1);
+
+    const view = src.match(/from\("member_monitoring_readiness"\)\s*\n\s*\.select\("([^"]*)"\)/);
+    expect(view, "the view read is not in the expected shape").not.toBeNull();
+    expect(view![1].trim()).toBe("device_tested_at");
+
+    // And the contacts banner is not keyed on it.
+    const bannerCondition = src.match(/const hasNoEmergencyContacts = ([^;]+);/);
+    expect(bannerCondition).not.toBeNull();
+    expect(bannerCondition![1]).not.toContain("pendantTested");
+    expect(bannerCondition![1]).toContain("contacts");
   });
 
   it("the grey 12px zinc-500 no-contacts line is gone", async () => {

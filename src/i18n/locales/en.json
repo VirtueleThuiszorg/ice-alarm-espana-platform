@@ -5765,7 +5765,10 @@
       "previousAlerts": "Previous Alerts",
       "notes": "Notes",
       "notesPlaceholder": "Staff notes during call...",
-      "autoSave": "Auto-saves every 30 seconds"
+      "autoSave": "Auto-saves every 30 seconds",
+      "pendantUntestedHeading": "Pendant never tested",
+      "pendantUntestedBody": "No test call has ever been answered from this member's home. This may be the first time they have heard an operator.",
+      "pendantUntestedAdvice": "Say who you are and where you are calling from before anything else. Do not assume they know the pendant can speak."
     },
     "controls": {
       "unmute": "Unmute",

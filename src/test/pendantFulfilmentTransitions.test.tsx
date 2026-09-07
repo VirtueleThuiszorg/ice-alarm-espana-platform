@@ -128,7 +128,13 @@ const ITEM = (over: Row = {}): Row => ({
   device_id: "d1",
   created_at: "2026-09-01T00:00:00Z",
   item_type: "pendant",
-  orders: { id: "o1", member_id: "m1", fulfilment_state: "paid", order_number: "ICE-0001" },
+  orders: {
+    id: "o1",
+    member_id: "m1",
+    fulfilment_state: "paid",
+    status: "awaiting_stock",
+    order_number: "ICE-0001",
+  },
   ...over,
 });
 
@@ -359,6 +365,57 @@ describe("the three answers that are not a state", () => {
   });
 });
 
+describe("allocation clears the stale `awaiting_stock` status — increment 6", () => {
+  it("moves orders.status to processing when it read awaiting_stock", async () => {
+    // `awaiting_stock` is the record of post-payment TRYING and finding no pendant. Once one is
+    // allocated that record is stale, and `fulfilmentCondition()` would read "Awaiting stock"
+    // off it forever while the order sat at `allocated`.
+    orderItemRows = [ITEM({ device_id: null })];
+    const { linkDeviceToPendantOrder } = await import("@/lib/allocatePendant");
+    await linkDeviceToPendantOrder("m1", "d9");
+    expect(writes.map((w) => [w.table, w.payload])).toEqual([
+      ["order_items", { device_id: "d9" }],
+      ["orders", { fulfilment_state: "allocated" }],
+      ["orders", { status: "processing" }],
+    ]);
+  });
+
+  it("does NOT touch a status a human has already corrected", async () => {
+    // Guarded on the stale value: an order whose status somebody set by hand is not
+    // overwritten by a side-effect.
+    orderItemRows = [
+      ITEM({
+        device_id: null,
+        orders: {
+          id: "o1",
+          member_id: "m1",
+          fulfilment_state: "paid",
+          status: "confirmed",
+          order_number: "ICE-0001",
+        },
+      }),
+    ];
+    const { linkDeviceToPendantOrder } = await import("@/lib/allocatePendant");
+    await linkDeviceToPendantOrder("m1", "d9");
+    expect(writes.map((w) => w.table)).toEqual(["order_items", "orders"]);
+    expect(writes.every((w) => !("status" in w.payload))).toBe(true);
+  });
+
+  it("clears the status BEFORE the notification goes out", async () => {
+    // A member told "a pendant has been reserved for you" by a message that went out before
+    // the status was reconciled would be told something the orders screen still contradicted.
+    orderItemRows = [ITEM({ device_id: null })];
+    const { linkDeviceToPendantOrder } = await import("@/lib/allocatePendant");
+    await linkDeviceToPendantOrder("m1", "d9");
+    expect(writes).toHaveLength(3);
+    expect(invoked).toHaveLength(1);
+    const src = (await import("node:fs")).readFileSync("src/lib/allocatePendant.ts", "utf8");
+    expect(src.indexOf('status: FULFILMENT_TO_ORDER_STATUS.allocated')).toBeLessThan(
+      src.indexOf('notifyTransition(target.order_id, "allocated")'),
+    );
+  });
+});
+
 describe("WP3: every state edge rings the dispatcher", () => {
   it("allocation notifies `allocated`, with the order it moved", async () => {
     orderItemRows = [ITEM({ device_id: null })];
@@ -399,7 +456,9 @@ describe("WP3: every state edge rings the dispatcher", () => {
     const { linkDeviceToPendantOrder } = await import("@/lib/allocatePendant");
     const outcome = await linkDeviceToPendantOrder("m1", "d9");
     expect(outcome).toEqual({ kind: "moved", orderId: "o1", orderNumber: "ICE-0001" });
-    expect(writes.map((w) => w.table)).toEqual(["order_items", "orders"]);
+    // All three writes still happened: the order line, the fulfilment state, and the stale
+    // `awaiting_stock` status the allocation clears (increment 6).
+    expect(writes.map((w) => w.table)).toEqual(["order_items", "orders", "orders"]);
   });
 
   it("the staff actions notify too, and skip only `paid`", async () => {

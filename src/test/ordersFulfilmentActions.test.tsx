@@ -22,12 +22,23 @@ let orderRows: Row[] = [];
 let writes: { table: string; payload: Row }[] = [];
 let updateError: unknown = null;
 
+/** Every filter the orders query applied, so "does the condition filter both columns" is
+ *  provable rather than assumed. */
+let queryFilters: Record<string, unknown> = {};
+
 function selectChain(result: { data: unknown; count?: number; error: unknown }) {
   const chain: Record<string, unknown> = {};
   const p = Promise.resolve(result);
   chain.select = () => chain;
   chain.or = () => chain;
-  chain.eq = () => chain;
+  chain.eq = (col: string, val: unknown) => {
+    queryFilters[`eq:${col}`] = val;
+    return chain;
+  };
+  chain.neq = (col: string, val: unknown) => {
+    queryFilters[`neq:${col}`] = val;
+    return chain;
+  };
   chain.maybeSingle = () => Promise.resolve({ data: null, error: null });
   chain.single = () => Promise.resolve({ data: null, error: null });
   chain.order = () => chain;
@@ -127,6 +138,7 @@ async function openMenu() {
 }
 
 beforeEach(() => {
+  queryFilters = {};
   writes = [];
   updateError = null;
   staffRole = "call_centre";
@@ -161,6 +173,87 @@ describe("the fulfilment state is on the screen at all", () => {
     await renderOrders();
     await screen.findByText("Tested");
     expect(screen.queryByTestId("fulfilment-drift")).toBeNull();
+  });
+});
+
+describe("`awaiting_stock` on the screen it used to be invisible from — increment 6", () => {
+  it("shows the condition beside the state, and the order still reads Paid", async () => {
+    // §2: the order should still read `paid`. The reason it is stuck sits next to that rather
+    // than replacing it.
+    orderRows = [ORDER({ fulfilment_state: "paid", status: "awaiting_stock" })];
+    await renderOrders();
+    expect(await screen.findByTestId("fulfilment-condition-awaiting_stock")).toBeTruthy();
+    expect(screen.getByText("Paid")).toBeTruthy();
+  });
+
+  it("distinguishes 'needs a pendant' from 'awaiting stock'", async () => {
+    orderRows = [ORDER({ fulfilment_state: "paid", status: "confirmed" })];
+    await renderOrders();
+    expect(await screen.findByTestId("fulfilment-condition-awaiting_allocation")).toBeTruthy();
+    expect(screen.queryByTestId("fulfilment-condition-awaiting_stock")).toBeNull();
+  });
+
+  it("shows no condition once a device is allocated", async () => {
+    orderRows = [ORDER({ fulfilment_state: "allocated", status: "processing" })];
+    await renderOrders();
+    await screen.findByText("ICE-0001");
+    expect(screen.queryByTestId("fulfilment-condition-awaiting_stock")).toBeNull();
+    expect(screen.queryByTestId("fulfilment-condition-awaiting_allocation")).toBeNull();
+  });
+
+  it("offers the REAL action — allocate on the member record — not a status nudge", async () => {
+    /*
+      The old menu offered `awaiting_stock → processing`, and orderStatus.ts said in its own
+      comment that this "does not allocate a device". So the button told a staff member the
+      order had moved on while the member still had no pendant reserved.
+    */
+    orderRows = [ORDER({ fulfilment_state: "paid", status: "awaiting_stock" })];
+    await renderOrders();
+    await screen.findByText("ICE-0001");
+    await openMenu();
+    expect(await screen.findByTestId("fulfilment-allocate-awaiting_stock")).toBeTruthy();
+    // And the status nudge is gone from this row.
+    expect(screen.queryByText(/mark as processing/i)).toBeNull();
+  });
+
+  it("offers it to an ORDINARY operator, not just a supervisor", async () => {
+    // Without the condition in the guard, a call_centre operator saw no action at all on
+    // exactly the order that needs one — the §1-B failure, one layer up.
+    staffRole = "call_centre";
+    orderRows = [ORDER({ fulfilment_state: "paid", status: "awaiting_stock" })];
+    await renderOrders();
+    await screen.findByText("ICE-0001");
+    await openMenu();
+    expect(await screen.findByTestId("fulfilment-allocate-awaiting_stock")).toBeTruthy();
+    expect(screen.queryByTestId("fulfilment-correct")).toBeNull();
+  });
+
+  it("filters on BOTH columns, in the query", async () => {
+    // A condition that only narrows the current twenty rows is a filter that lies about how
+    // many orders are in that state.
+    await renderOrders();
+    await screen.findByText("ICE-0001");
+    const trigger = screen.getByLabelText("Fulfilment");
+    fireEvent.pointerDown(
+      trigger,
+      new window.PointerEvent("pointerdown", { bubbles: true, button: 0 }),
+    );
+    fireEvent.click(await screen.findByRole("option", { name: "Awaiting stock" }));
+    await waitFor(() => expect(queryFilters["eq:fulfilment_state"]).toBe("paid"));
+    expect(queryFilters["eq:status"]).toBe("awaiting_stock");
+  });
+
+  it("the 'needs a pendant' filter EXCLUDES the awaiting-stock rows", async () => {
+    await renderOrders();
+    await screen.findByText("ICE-0001");
+    const trigger = screen.getByLabelText("Fulfilment");
+    fireEvent.pointerDown(
+      trigger,
+      new window.PointerEvent("pointerdown", { bubbles: true, button: 0 }),
+    );
+    fireEvent.click(await screen.findByRole("option", { name: "Needs a pendant" }));
+    await waitFor(() => expect(queryFilters["neq:status"]).toBe("awaiting_stock"));
+    expect(queryFilters["eq:fulfilment_state"]).toBe("paid");
   });
 });
 

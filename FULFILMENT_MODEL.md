@@ -325,6 +325,71 @@ client that could write it could fabricate a delivery record.
 
 ---
 
+## 6-B. `awaiting_stock` as a condition — increment 6
+
+§2 already said what this is: *"`awaiting_stock` is not a state in this machine. It is `paid`
+with a failed allocation — a CONDITION, not a place in the sequence. Modelling it as a sequence
+state is what let it become invisible in 1-B. It should be a flag or a queue, and the order
+should still read `paid`."*
+
+### 6-B.1 Derived, not stored
+
+Two facts already recorded, and both matter:
+
+| | |
+|---|---|
+| `fulfilment_state = 'paid'` | no device is allocated |
+| `orders.status = 'awaiting_stock'` | `post-payment.ts` **tried** to allocate and found no free EV-07B — that status value is the record of the attempt |
+
+So `fulfilmentCondition()` returns `awaiting_stock` for the pair, and `awaiting_allocation` for a
+`paid` order with any other status. Those are **different pieces of work** — buying pendants
+versus walking to the shelf — and a screen that shows one number for both tells nobody what to
+do.
+
+**No new column.** There is nothing to record that is not already recorded, and a boolean
+`is_awaiting_stock` would be a third thing to keep in step with the other two. A derived
+condition cannot drift from the facts it is derived from.
+
+**It stops being a condition the moment a device is allocated**, whatever the status still says.
+An order at `allocated` reading `awaiting_stock` is *drift*, which the orders row flags
+separately and more loudly; calling it a condition too would put a permanent "Awaiting stock"
+chip on an order that has a pendant reserved.
+
+### 6-B.2 The status nudge that allocated nothing is gone
+
+`ORDER_STATUS_NEXT` offered `awaiting_stock → processing` from the orders menu, and
+`orderStatus.ts` said in its own comment that this *"does not allocate a device; allocation is
+`post-payment.ts`'s job."* So the button told a staff member the order had moved on while the
+member still had no pendant reserved.
+
+It is suppressed for any order with a condition, and replaced by the action that actually
+unsticks it: **allocate a pendant on the member's record**, where a device is chosen by serial
+and linked to the order line. Offered to an **ordinary operator**, not only a supervisor —
+without the condition in that guard a `call_centre` operator saw no action at all on exactly the
+order that needs one, which is the §1-B failure one layer up.
+
+### 6-B.3 The condition clears itself
+
+`linkDeviceToPendantOrder` now moves `orders.status` off `awaiting_stock` in the same breath as
+the fulfilment state, guarded on the stale value so a status a human already corrected is not
+overwritten by a side-effect. Without that, `fulfilmentCondition()` would read "Awaiting stock"
+forever off a record of an attempt that has since succeeded.
+
+The status write happens **before** the WP3 notification: a member told "a pendant has been
+reserved for you" by a message that went out first would be told something the orders screen
+still contradicted.
+
+A failure there is **not** fatal — the device is allocated and the fulfilment state says so, and
+a stale status is visible as drift, which beats refusing an allocation that has already happened.
+
+### 6-B.4 It is filterable, on the screen it was invisible from
+
+Both conditions are filter options on `/admin/orders`, and they filter in the **query** on both
+columns — a condition that only narrows the current twenty rows is a filter that lies about how
+many orders are in that state.
+
+---
+
 ## 7. Negative assertions — what must be PROVEN not to happen
 
 Positive tests confirm the design was implemented. These confirm it cannot be gone around, and
@@ -362,7 +427,7 @@ made to fail has not been tested.
 | 4 | `member_monitoring_readiness` gains the second condition | 3 | **merged and applied** (#180) |
 | 5 | The staff screen that moves a fulfilment state | 3 | **5a merged** — the orders screen. 5b: the checklist and the member record |
 | 5c | The readiness surfaces name WHICH condition is missing | 4 | **merged** for the queue and the member notice; the operator card is held for a human |
-| 6 | `awaiting_stock` as a condition rather than a state | 3 | open |
+| 6 | `awaiting_stock` as a condition rather than a state | 3 | **merged** |
 
 Increment 2 is deliberately first among the code: it is the live defect (an order needing human
 attention that the admin screen cannot display), it needs no schema, and it can merge today.

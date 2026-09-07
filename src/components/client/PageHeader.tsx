@@ -21,9 +21,13 @@ import { cn } from "@/lib/utils";
  *
  * WHY 28px AND NOT `text-3xl`. R5 says 28px. Tailwind's `text-3xl` is 30px and `text-2xl` is
  * 24px, and the pages used `text-2xl md:text-3xl` — so on a phone, where most of these members
- * read, the title was 24px rather than 28px. `text-[28px]` is the size the rule names; the
- * responsive step-down is gone deliberately, because the rule does not have one and a smaller
- * title on a small screen is the wrong way round for this reader.
+ * read, the title was 24px rather than 28px. The responsive step-down is gone deliberately,
+ * because the rule does not have one and a smaller title on a small screen is the wrong way
+ * round for this reader.
+ *
+ * AND IT IS `1.75rem`, NOT `28px`. Same size at the default root, but an arbitrary px value
+ * ignores the root font size, so R10's A/A control would have moved every other word on the page
+ * and left the titles where they were. R5 and R10 only agree in rem.
  *
  * ONE H1 PER PAGE. `as` exists for the rare page that needs a second header inside a section
  * (`SupportPage` has one), so that converting a page cannot introduce a second `<h1>` and break
@@ -58,7 +62,7 @@ export function PageHeader({
       )}
     >
       <div className="min-w-0">
-        <Heading className="text-[28px] font-bold leading-tight tracking-tight">{title}</Heading>
+        <Heading className="text-[1.75rem] font-bold leading-tight tracking-tight">{title}</Heading>
         {subtitle && (
           /* 16px, R10's floor, and Slate rather than the muted grey the pages used — R5 names
              the colour, and `text-muted-foreground` resolves differently in dark mode. */

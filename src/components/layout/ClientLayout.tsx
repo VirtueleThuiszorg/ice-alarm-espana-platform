@@ -54,6 +54,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { MemberChatButton } from "@/components/chat/MemberChatButton";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { MemberReadinessNotice } from "@/components/client/MemberReadinessNotice";
+import { TextSizeControl } from "@/components/client/TextSizeControl";
 
 interface MenuItem {
   icon: React.ElementType;
@@ -395,6 +396,15 @@ export function ClientLayout() {
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-sidebar h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
         <Logo variant="sidebar" size="sm" />
+        {/*
+          The A/A on mobile too, and not buried in the menu sheet. A member who cannot read the
+          screen cannot reliably find a control hidden behind a hamburger — the one thing that
+          fixes the problem must not be gated on solving it first. Two 36px buttons fit beside a
+          logo and a menu button; nothing else was competing for the space.
+        */}
+        <div className="ml-auto mr-2">
+          <TextSizeControl className="border-sidebar-border" />
+        </div>
         <Button
           variant="ghost"
           size="icon"
@@ -462,6 +472,9 @@ export function ClientLayout() {
 
             {/* Notification Bell */}
             <NotificationBell staffId={null} />
+
+            {/* R3's order: Assistant, bell, A/A text size, EN/ES, name. */}
+            <TextSizeControl />
 
             {/* Language Selector */}
             <LanguageSelector variant="icon-only" />

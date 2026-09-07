@@ -6186,5 +6186,10 @@
     "create": "Create member record",
     "created": "Member record created. They are NOT yet active — payment activates them.",
     "createFailed": "Nothing was saved. {{reason}}"
+  },
+  "textSize": {
+    "groupLabel": "Text size",
+    "normal": "Normal text size",
+    "large": "Larger text"
   }
 }

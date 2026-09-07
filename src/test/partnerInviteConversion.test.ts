@@ -10,9 +10,17 @@
  * account. So the decision, the function and the admin dialog all stay until Lee
  * confirms the count is zero (PENDING_FOR_LEE.md S7).
  *
- * These assertions are therefore load-bearing in the other direction now: they are
- * what stops the conversion path being deleted as "dead code" alongside the page
- * that fed it.
+ * RESOLVED 2026-09-07. Lee ran `select count(*) from partners where status='pending' and
+ * user_id is null` — the correct query; there has never been a `partner_applications` table,
+ * which an earlier handover note of mine wrongly claimed. It returned 2, both his own test
+ * rows, and he deleted them. So `partner-apply` and ConvertApplicationDialog are gone.
+ *
+ * `decidePartnerInvite` IS NOT, and its `convert` branch stays. partner-admin-invite is kept
+ * (Lee's instruction) and this is its decision function. `convert` fires on `status='pending'`,
+ * which nothing can create any more — partner-register always sets a user_id and
+ * partner-admin-invite writes `invited` — so the branch is defensive rather than routine now.
+ * Kept deliberately: if such a row reappears (a manual insert, a restore from backup), the
+ * admin path handles it instead of falling through to a refusal.
  *
  * The blocker this removes: `partner-admin-invite` rejected EVERY existing row whose
  * status was not already `invited`. An application is `pending`, so the admin got
@@ -169,19 +177,21 @@ describe("review_notes", () => {
 
 // ── the conversion path is not collateral damage ───────────────────────────
 
-describe("retiring the public application path did not remove the way to convert one", () => {
-  it("the admin dialog still exists", () => {
-    expect(existsSync(resolve("src/components/admin/ConvertApplicationDialog.tsx"))).toBe(
-      true
-    );
+describe("what the retirement removed, and what it deliberately did not", () => {
+  it("the partner-apply function is gone", () => {
+    expect(existsSync(resolve("supabase/functions/partner-apply"))).toBe(false);
   });
 
-  it("the edge function still exists and is still wired to the shared decision", () => {
+  it("ConvertApplicationDialog is gone", () => {
+    expect(existsSync(resolve("src/components/admin/ConvertApplicationDialog.tsx"))).toBe(false);
+  });
+
+  it("but partner-admin-invite survives, still wired to the shared decision", () => {
     expect(existsSync(resolve(INVITE_FN))).toBe(true);
     expect(read(INVITE_FN)).toMatch(/decidePartnerInvite/);
   });
 
-  it("`convert` is still a reachable outcome — a pending row is not orphaned", () => {
+  it("and `convert` is STILL a reachable outcome — defensive, not dead", () => {
     expect(decidePartnerInvite("pending")).toEqual({ action: "convert" });
   });
 });

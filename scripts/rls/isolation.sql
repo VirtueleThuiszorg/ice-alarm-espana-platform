@@ -2428,6 +2428,320 @@ SELECT pg_temp.check(
     'SELECT key FROM public.system_settings WHERE key LIKE ''notify_channel_%''') = 0);
 
 -- ============================================================
+--  WP5 — circle of care
+-- ============================================================
+--
+-- CIRCLE_OF_CARE.md. The distinction being defended: this is WHO THE PEOPLE ARE.
+-- care_access_grants is WHAT THEY MAY SEE, and WP5 does not widen it by a single row.
+
+INSERT INTO auth.users (id, email) VALUES
+  ('a7000000-0000-0000-0000-00000000000f', 'admin@example.com');
+INSERT INTO public.staff (user_id, email, first_name, last_name, role) VALUES
+  ('a7000000-0000-0000-0000-00000000000f', 'admin@example.com', 'Ada', 'Admin', 'admin');
+
+-- ── the contact list can describe the people it holds ─────────────────────
+DO $$
+DECLARE v_type text; n int := 0;
+BEGIN
+  FOREACH v_type IN ARRAY ARRAY['emergency','key_holder','carer','care_agency',
+                                'nurse','social_worker','neighbour','legal_representative']
+  LOOP
+    INSERT INTO public.emergency_contacts
+      (member_id, contact_name, relationship, phone, priority_order, contact_type)
+    VALUES ('aaaaaaaa-0000-0000-0000-000000000001', 'C ' || v_type, 'rel', '+34600', 9, v_type);
+    n := n + 1;
+  END LOOP;
+  PERFORM pg_temp.check('all EIGHT contact_type values are accepted', n = 8);
+END $$;
+
+SELECT pg_temp.check(
+  'a ninth contact_type is REFUSED — the CHECK was widened, not removed',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO public.emergency_contacts
+       (member_id, contact_name, relationship, phone, priority_order, contact_type)
+     VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''X'', ''rel'', ''+34600'', 9, ''friend'')'),
+  'a widened CHECK that accepts anything is not a widened CHECK');
+
+SELECT pg_temp.check(
+  'can_attend_in_person defaults to NULL — unknown is not the same as false',
+  (SELECT bool_and(can_attend_in_person IS NULL) FROM public.emergency_contacts),
+  'defaulting to false would assert that nobody can attend, which nobody established');
+
+-- ── away status is the member''s to set ───────────────────────────────────
+SELECT pg_temp.check(
+  'a member CAN set their own away status — the point of recording it at all',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members
+        SET away_from = CURRENT_DATE, away_until = CURRENT_DATE + 30,
+            pendant_with_member = true
+      WHERE id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 1,
+  'going to the UK for a month should not require ringing the office');
+
+SELECT pg_temp.check(
+  'CONTROL: the away status really landed',
+  (SELECT away_until IS NOT NULL AND pendant_with_member
+     FROM public.members WHERE id = 'aaaaaaaa-0000-0000-0000-000000000001'));
+
+SELECT pg_temp.check(
+  'a member CANNOT set ANOTHER member''s away status',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET away_from = CURRENT_DATE
+      WHERE id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 0);
+
+SELECT pg_temp.check(
+  'widening `members` did NOT widen the status guard — self-activation is still refused',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET status = ''active''
+      WHERE id = ''aaaaaaaa-0000-0000-0000-000000000001'''),
+  'adding member-writable columns to this table must not loosen golden rule 4');
+
+-- ── member_care: special category, admin-restricted ───────────────────────
+INSERT INTO public.member_care (member_id, agency, advance_directive_location, tsi_number)
+VALUES ('aaaaaaaa-0000-0000-0000-000000000001', 'Albox Care SL',
+        'top drawer, kitchen dresser', 'AN1234567890');
+
+SELECT pg_temp.check(
+  'a member reads their OWN care row',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT member_id FROM public.member_care') = 1);
+
+SELECT pg_temp.check(
+  'a member CANNOT read another member''s care row',
+  pg_temp.count_as('22222222-2222-2222-2222-222222222222',
+    'SELECT member_id FROM public.member_care') = 0);
+
+SELECT pg_temp.check(
+  'a member CANNOT write their own care row — it is maintained by the office',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.member_care SET agency = ''self-edited''
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 0);
+
+SELECT pg_temp.check(
+  'CONTROL: the agency is unchanged, so the refusal above was real',
+  (SELECT agency FROM public.member_care
+    WHERE member_id = 'aaaaaaaa-0000-0000-0000-000000000001') = 'Albox Care SL');
+
+SELECT pg_temp.check(
+  'ORDINARY STAFF read NO care rows — admin only, on the member_access model',
+  pg_temp.count_as('a6000000-0000-0000-0000-00000000000f',
+    'SELECT member_id FROM public.member_care') = 0,
+  'an advance-directive location must not be a side effect of a broad is_staff policy');
+
+SELECT pg_temp.check(
+  'a call_centre_supervisor reads NO care rows either — supervisor is not admin',
+  pg_temp.count_as('a5000000-0000-0000-0000-00000000000f',
+    'SELECT member_id FROM public.member_care') = 0);
+
+SELECT pg_temp.check(
+  'an ADMIN does read them (else the table would be write-only and useless)',
+  pg_temp.count_as('a7000000-0000-0000-0000-00000000000f',
+    'SELECT member_id FROM public.member_care') = 1);
+
+-- The argument in CIRCLE_OF_CARE.md §2.3, asserted: a consent grant is not a route in here.
+-- Carer C already holds a LIVE medical grant over member A — §8.8 above created it, and the
+-- one-live-per-category unique index means a second would be refused. Reusing it rather than
+-- seeding another keeps the fixture honest: this is the same grant §8.8 proved works.
+SELECT pg_temp.check(
+  'CONTROL: the medical grant is LIVE and does grant medical_information',
+  pg_temp.count_as('77777777-7777-7777-7777-777777777777',
+    'SELECT member_id FROM public.medical_information
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 1,
+  'if this is 0 the next assertion passes because the fixture is broken, not because RLS held');
+
+SELECT pg_temp.check(
+  'a carer with a LIVE MEDICAL grant still reads NO member_care',
+  pg_temp.count_as('77777777-7777-7777-7777-777777777777',
+    'SELECT member_id FROM public.member_care') = 0,
+  '`medical` means the clinical record, not the operational care picture — widening it there '
+  'would be a consent decision, not a schema one');
+
+-- ── the gate code is a credential and lives with the other credential ─────
+-- Member A already has a member_access row (seeded for the key-safe assertions above), so
+-- this adds the gate code to the row that exists rather than a second one the PK would refuse.
+UPDATE public.member_access SET gate_code = 'GATE-4412'
+WHERE member_id = 'aaaaaaaa-0000-0000-0000-000000000001';
+
+SELECT pg_temp.check(
+  'gate_code is on member_access, NOT on members',
+  EXISTS (SELECT 1 FROM information_schema.columns
+           WHERE table_schema='public' AND table_name='member_access' AND column_name='gate_code')
+  AND NOT EXISTS (SELECT 1 FROM information_schema.columns
+           WHERE table_schema='public' AND table_name='members' AND column_name='gate_code'),
+  'on members it would be readable by every is_staff policy on that table');
+
+SELECT pg_temp.check(
+  'ordinary staff read NO gate_code — admin only, same as the key safe code',
+  pg_temp.count_as('a6000000-0000-0000-0000-00000000000f',
+    'SELECT gate_code FROM public.member_access WHERE gate_code IS NOT NULL') = 0);
+
+SELECT pg_temp.check(
+  'a carer with a live medical grant reads NO gate_code',
+  pg_temp.count_as('77777777-7777-7777-7777-777777777777',
+    'SELECT gate_code FROM public.member_access WHERE gate_code IS NOT NULL') = 0);
+
+SELECT pg_temp.check(
+  'an admin DOES read it — else the column would be write-only and useless',
+  pg_temp.count_as('a7000000-0000-0000-0000-00000000000f',
+    'SELECT gate_code FROM public.member_access WHERE gate_code IS NOT NULL') = 1,
+  'filtered on NOT NULL: both seeded member_access rows are visible to an admin, only one '
+  'carries a gate code, and counting rows rather than codes would pass for the wrong reason');
+
+-- ============================================================
+--  WP6 — messaging
+-- ============================================================
+
+INSERT INTO public.conversations (id, member_id, subject)
+VALUES ('c0117777-0000-0000-0000-00000000000a', 'aaaaaaaa-0000-0000-0000-000000000001', 'Test');
+
+INSERT INTO public.messages (id, conversation_id, sender_type, content, channel)
+VALUES ('5e550000-0000-0000-0000-00000000000a', 'c0117777-0000-0000-0000-00000000000a',
+        'member', 'Hello, my pendant is beeping.', 'chat'),
+       ('5e550000-0000-0000-0000-00000000000b', 'c0117777-0000-0000-0000-00000000000a',
+        'staff_internal', 'Family disputes the invoice — do not discuss with member.', 'chat');
+
+-- THE assertion WP6's sender_type widening exists to earn. The pre-existing member policy is
+-- scoped by conversation and says nothing about sender_type, so without the RESTRICTIVE policy
+-- an internal note in the member's OWN conversation would be visible to them.
+SELECT pg_temp.check(
+  'a member NEVER reads a staff_internal message, even in their own conversation',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.messages WHERE sender_type = ''staff_internal''') = 0,
+  'this is the whole reason the value could be added at all');
+
+SELECT pg_temp.check(
+  'CONTROL: the member DOES read the ordinary message in that conversation',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.messages') = 1,
+  'if this is 0 the assertion above passed because the member sees nothing at all');
+
+SELECT pg_temp.check(
+  'staff DO read the internal note — it is for them',
+  pg_temp.count_as('a6000000-0000-0000-0000-00000000000f',
+    'SELECT id FROM public.messages WHERE sender_type = ''staff_internal''') = 1);
+
+SELECT pg_temp.check(
+  'the channel vocabulary refuses a value outside chat|voice|whatsapp|sms|email',
+  pg_temp.raises_as('a6000000-0000-0000-0000-00000000000f',
+    'INSERT INTO public.messages (conversation_id, sender_type, content, channel)
+     VALUES (''c0117777-0000-0000-0000-00000000000a'', ''staff'', ''x'', ''carrier-pigeon'')'));
+
+-- The two things the brief asked for that already existed. Asserted rather than re-added, so
+-- the claim "already there" is checkable and stays true.
+SELECT pg_temp.check(
+  'messages.read_at ALREADY existed (20260121153611) — not added twice',
+  EXISTS (SELECT 1 FROM information_schema.columns
+           WHERE table_schema='public' AND table_name='messages' AND column_name='read_at'));
+
+SELECT pg_temp.check(
+  'conversation_messages ALREADY joins conversations by FK — not added twice',
+  EXISTS (
+    SELECT 1 FROM information_schema.table_constraints tc
+    JOIN information_schema.key_column_usage kcu ON kcu.constraint_name = tc.constraint_name
+    JOIN information_schema.constraint_column_usage ccu ON ccu.constraint_name = tc.constraint_name
+    WHERE tc.constraint_type = 'FOREIGN KEY'
+      AND tc.table_name = 'conversation_messages'
+      AND kcu.column_name = 'conversation_id'
+      AND ccu.table_name = 'conversations'));
+
+-- ── canned replies ────────────────────────────────────────────────────────
+INSERT INTO public.canned_replies (shortcut, locale, title, body)
+VALUES ('/wait', 'en', 'Please hold', 'One moment while I check that for you.'),
+       ('/wait', 'es', 'Un momento', 'Un momento, por favor, lo compruebo ahora.');
+
+SELECT pg_temp.check(
+  'the same shortcut exists once PER LANGUAGE, and both rows are there',
+  (SELECT count(*) FROM public.canned_replies WHERE shortcut = '/wait') = 2);
+
+SELECT pg_temp.check(
+  'the same shortcut TWICE in one language is refused',
+  pg_temp.raises_as('a7000000-0000-0000-0000-00000000000f',
+    'INSERT INTO public.canned_replies (shortcut, locale, title, body)
+     VALUES (''/wait'', ''en'', ''dupe'', ''dupe'')'),
+  'an operator typing /wait must get exactly one answer');
+
+SELECT pg_temp.check(
+  'a member reads NO canned replies — the operator''s script is not the product',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.canned_replies') = 0);
+
+SELECT pg_temp.check(
+  'staff DO read them',
+  pg_temp.count_as('a6000000-0000-0000-0000-00000000000f',
+    'SELECT id FROM public.canned_replies') = 2);
+
+SELECT pg_temp.check(
+  'ordinary staff cannot EDIT them — admin only',
+  pg_temp.exec_as('a6000000-0000-0000-0000-00000000000f',
+    'UPDATE public.canned_replies SET body = ''tampered''') = 0);
+
+-- ============================================================
+--  WP7 — staff actions on the member record, attributed
+-- ============================================================
+--
+-- These five actions change what a vulnerable person pays and what protection they have.
+-- "Who cancelled this member, and why?" must be answerable from the log alone.
+
+SELECT pg_temp.check(
+  'an ordinary log row is unaffected — no reason, no staff_id, still fine',
+  pg_temp.raises_as('a7000000-0000-0000-0000-00000000000f',
+    'INSERT INTO public.activity_logs (action, entity_type, entity_id)
+     VALUES (''viewed'', ''member'', ''aaaaaaaa-0000-0000-0000-000000000001'')') = false,
+  'the guard must cost an ordinary CRUD log exactly nothing');
+
+SELECT pg_temp.check(
+  'a member_action with NO REASON is refused',
+  pg_temp.raises_as('a7000000-0000-0000-0000-00000000000f',
+    'INSERT INTO public.activity_logs
+       (action, entity_type, entity_id, member_action, staff_id)
+     VALUES (''cancel'', ''member'', ''aaaaaaaa-0000-0000-0000-000000000001'', ''cancel'',
+             (SELECT id FROM public.staff WHERE email = ''admin@example.com''))'));
+
+SELECT pg_temp.check(
+  'a BLANK reason is refused too — whitespace is not a reason',
+  pg_temp.raises_as('a7000000-0000-0000-0000-00000000000f',
+    'INSERT INTO public.activity_logs
+       (action, entity_type, entity_id, member_action, staff_id, reason)
+     VALUES (''cancel'', ''member'', ''aaaaaaaa-0000-0000-0000-000000000001'', ''cancel'',
+             (SELECT id FROM public.staff WHERE email = ''admin@example.com''), ''   '')'));
+
+SELECT pg_temp.check(
+  'a member_action with NO STAFF_ID is refused — unattributed is not an audit record',
+  pg_temp.raises_as('a7000000-0000-0000-0000-00000000000f',
+    'INSERT INTO public.activity_logs
+       (action, entity_type, entity_id, member_action, reason)
+     VALUES (''cancel'', ''member'', ''aaaaaaaa-0000-0000-0000-000000000001'', ''cancel'',
+             ''member moved into residential care'')'));
+
+SELECT pg_temp.check(
+  'a member_action pointing at the wrong entity_type is refused',
+  pg_temp.raises_as('a7000000-0000-0000-0000-00000000000f',
+    'INSERT INTO public.activity_logs
+       (action, entity_type, entity_id, member_action, staff_id, reason)
+     VALUES (''cancel'', ''order'', ''aaaaaaaa-0000-0000-0000-000000000001'', ''cancel'',
+             (SELECT id FROM public.staff WHERE email = ''admin@example.com''), ''reason'')'));
+
+SELECT pg_temp.check(
+  'a COMPLETE member_action row is accepted — the guard blocks the bad shape, not the action',
+  pg_temp.raises_as('a7000000-0000-0000-0000-00000000000f',
+    'INSERT INTO public.activity_logs
+       (action, entity_type, entity_id, member_action, staff_id, reason)
+     VALUES (''cancel'', ''member'', ''aaaaaaaa-0000-0000-0000-000000000001'', ''cancel'',
+             (SELECT id FROM public.staff WHERE email = ''admin@example.com''),
+             ''member moved into residential care'')') = false);
+
+SELECT pg_temp.check(
+  'CONTROL: that row is in the log, with its reason and its actor',
+  (SELECT count(*) FROM public.activity_logs
+    WHERE member_action = 'cancel'
+      AND btrim(reason) <> ''
+      AND staff_id IS NOT NULL) = 1);
+
+SELECT pg_temp.check(
+  'all five staff actions exist in the enum',
+  (SELECT count(*) FROM unnest(enum_range(NULL::public.member_action))) = 6,
+  'renew, switch_to_single, switch_to_couple, add_pendant, pause, cancel');
+
+-- ============================================================
 --  Report
 -- ============================================================
 

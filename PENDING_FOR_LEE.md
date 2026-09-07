@@ -22,6 +22,10 @@ make the manifest lie, and the drift gate (#164) depends on that manifest being 
 
 > **Nothing is outstanding right now, and that is a real state rather than an empty table.**
 >
+> **One is waiting in §5 and deliberately unmerged**: #219, the seed bundle. It is not listed above
+> because it is not in `main` — merging a migration before you can push it turns the drift gate red
+> for every pull request behind it (D-3). Apply it, append the filename here, then merge it.
+>
 > `20260905100000_staff_delete_fk_rules.sql` — the one that was held in §5 on 5 September — is
 > **applied and recorded**: you merged #176, pushed it, and #179 appended it to
 > `APPLIED_TO_PROD.txt`. Production is level with the repo, and `main` is green.
@@ -498,8 +502,9 @@ the member's own per-channel opt-in. A flag on its own no longer sends anything.
 |---|---|
 | ~~**#176**~~ | ✅ **Done.** Merged, pushed, and recorded in `APPLIED_TO_PROD.txt` by #179. Production is level. |
 | ~~**#180**~~, ~~**#187**~~ | ✅ **Done.** Merged and pushed; recorded in `APPLIED_TO_PROD.txt` by #185 and #189. Production is level. The monitoring-ready count is **zero** and that is the first honest number this system has produced — see S8/S9 for the two queries that confirm the backfill |
-
-| **the held seed bundle** — not yet raised | **One PR, raised at the end of this run, carrying every row this run needs seeded and nothing else.** Two are known already: WP6 G5's `canned_replies` (the picker is merged and renders its empty state until they exist) and WP3 N7's `notification_templates` (the dispatcher reads `skipped_no_template` for every event until they exist). It is one PR for the reason D-3 gives: a migration merged before you can push it turns the drift gate red on **every** subsequent PR, so the gate is paid once. Apply it, append the filename to `APPLIED_TO_PROD.txt`, merge |
+| **#219 — the held seed bundle** | **The only unapplied migration, and it must not be merged before it is applied.** Rows plus one enum value: WP6 G5's canned replies (six shortcuts × three languages), WP3 N7's notification templates (four transitions × three channels × three languages, member-only), and WP7 W7's `resume` on `member_action` — **with the button that uses it**, because a client writing an enum value the database does not have fails at the insert. Order: `supabase db push`, append the filename to `APPLIED_TO_PROD.txt`, merge. Nothing sends because of it: the three `notify_channel_*` flags are still off (§3). Merging it before pushing turns the drift gate red for every PR behind it (D-3) |
+| **#215 — inbound SMS and WhatsApp into the member's conversation** | Green on every check and **not** on the brief's excluded list, so this is my judgement rather than a rule I was handed. Two reasons. It changes what happens to a member's message **during an open alert** — the `alert_communications` write is unchanged but now sits downstream of a signature check that can refuse — and that is the SOS/alert path, where CLAUDE.md's human gate is mandatory. And it is the same failure shape the webhook exception exists to prevent: a broken inbound webhook means no member's message arrives, silently. The fix itself is not in question — today those messages are **dropped** unless an alert happens to be open, while the auto-reply says an operator will review them. What it needs is **S14**: one real text message after it deploys |
+| **#196 — the operator card names the second readiness condition** | The SOS path. Green throughout; queued on you, not on its quality. Retargeted to `main` (its old base is fully merged) and refreshed against it, so the diff you see is only this change |
 | **the `paid → allocated` line in `_shared/post-payment.ts`** — not yet raised | The webhook allocates a pendant and never moves the fulfilment state, so the first rung of the ladder has no writer on the payment path. It is one `.update({ fulfilment_state: "allocated" })` after the device is allocated — but `_shared/post-payment.ts` is imported by **both** `stripe-webhook` and `mollie-webhook`, so per the brief it stays open for you. **The staff allocation path is already fixed and merged** (`DeviceTab.assignDevice` → `linkDeviceToPendantOrder`), so allocation by hand works today; only webhook allocation is affected. S11 finds the rows |
 
 > Per the brief: any PR touching `supabase/functions/stripe-webhook` or

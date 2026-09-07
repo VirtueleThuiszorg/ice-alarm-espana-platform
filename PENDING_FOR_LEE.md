@@ -404,6 +404,34 @@ trigger branch above and the bucket with its four `storage.objects` policies sco
 upload UI goes in it, because shipping an upload button against a bucket that does not exist
 would be worse than not having one.
 
+### D-15 — Dutch is translated, tested, storable — and was unreachable (2026-09-07)
+
+`nl.json` is a **complete** translation. `localeParse.test.ts` enforces it key-for-key against
+English, checks array lengths, and fails if a member-facing value is left in English. Every
+increment this run has added Dutch alongside Spanish because that test requires it.
+`members.preferred_language` is the enum `en | es | nl`.
+
+**And no member or staff member could select it.** Two places offer a language and both hard-coded
+their own two-value array — the header `LanguageSelector` and the profile form. So the Dutch
+translation is maintained effort that reached nobody.
+
+It was also a live defect rather than only a missing option. `MemberProfile` declared
+`preferred_language: "en" | "es"` for a nullable three-value column and the profile form's schema
+was `z.enum(["en", "es"])`, so **a member whose row says `nl` — set by staff, or by the CRM
+import — could not be loaded into their own profile form at all.** The compiler said so the moment
+the type was corrected to the generated row.
+
+**What I have done, and the assumption in it.** One list, `src/lib/memberLanguages.ts`, derived
+from the enum and shared by both selectors, so Dutch is now selectable and a stored `nl`
+round-trips. MEMBER_UX_RULES **R3 says the header carries "EN/ES"**, and I have read that as
+shorthand for "the language selector" rather than an instruction to hide a language the product
+already ships, translates, tests and stores — the operating company is Dutch.
+
+**If EN/ES was meant literally, say so and it is one line**: delete the `nl` entry from
+`MEMBER_LANGUAGES` and both selectors follow. But then the second question is worth answering
+deliberately rather than by omission: a 6,000-line translation and a CI gate defending it are a
+real running cost, and either it is a market or it is not.
+
 ### D-6 — five alert/badge colours are below WCAG AA, and fixing them changes safety colour
 
 Measured on the base `:root` palette (`publicPaletteContrast.test.ts`). All are white-or-near-

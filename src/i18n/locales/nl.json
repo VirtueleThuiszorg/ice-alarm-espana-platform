@@ -1421,7 +1421,17 @@
     "contactInfo": "Contact Information",
     "selectLanguage": "Select language",
     "identityLockedReason": "Bel ons om dit te wijzigen — we moeten controleren wie u bent.",
-    "countryLockedReason": "Wij bewaken alleen adressen in Spanje."
+    "countryLockedReason": "Wij bewaken alleen adressen in Spanje.",
+    "urbanizacion": "Urbanización",
+    "bloque": "Bloque",
+    "portal": "Portal",
+    "escalera": "Escalera",
+    "awayTitle": "Gaat u weg?",
+    "awayHelp": "Geef ons de data door, dan weten we dat uw alarm stil is omdat u weg bent en niet omdat er iets mis is.",
+    "awayFrom": "Weg vanaf",
+    "awayUntil": "Terug op",
+    "pendantWithMe": "Ik neem mijn hanger mee",
+    "pendantWithMeHelp": "Als u hem thuis laat, verwachten we niet dat hij beweegt."
   },
   "dashboard": {
     "welcomeBack": "Welcome back",

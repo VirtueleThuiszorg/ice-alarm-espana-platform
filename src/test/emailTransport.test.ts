@@ -28,7 +28,6 @@ const INHERITORS = [
   "gdpr-delete-member",
   "partner-admin-create",
   "partner-admin-invite",
-  "partner-apply",
   "partner-register",
   "partner-send-invite",
   "send-email",

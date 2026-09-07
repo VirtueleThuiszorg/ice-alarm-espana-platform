@@ -5,8 +5,8 @@
  *  1. The PUBLIC partner page (/partner/join; /partner redirects to it) shows
  *     NO commission figures at all —
  *     general value prop only; terms are stated in the confirmation email.
- *  2. The application confirmation email (partner-apply) states the flat
- *     terms explicitly, in the applicant's language, non-blocking.
+ *  2. (RETIRED) partner-apply's confirmation email stated the terms. That
+ *     function is deleted; see the note where its block used to be.
  *  3. The actual payout math (useOrderActions) pays the same flat €50 —
  *     the old €55/€60 volume-tier calculation is gone everywhere, including
  *     the partner-portal copy that advertised it.
@@ -17,7 +17,6 @@ import { join } from "node:path";
 
 const ROOT = process.cwd();
 const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
-const apply = read("supabase/functions/partner-apply/index.ts");
 const orderActions = read("src/hooks/useOrderActions.ts");
 
 describe("1 — the public partner page carries no commission figures", () => {
@@ -37,27 +36,11 @@ describe("1 — the public partner page carries no commission figures", () => {
   });
 });
 
-describe("2 — confirmation email states the flat terms", () => {
-  it("partner-apply sends the applicant a confirmation via the shared transport", () => {
-    expect(apply).toMatch(/from "\.\.\/_shared\/email\.ts"/);
-    expect(apply).toMatch(/sendEmail\(\s*values\.email/);
-  });
-
-  it("terms are €50 per pendant, flat, no tiers — in English and Spanish", () => {
-    expect(apply).toMatch(/€50 for every pendant sold/);
-    expect(apply).toMatch(/flat rate/);
-    expect(apply).toMatch(/no volume tiers/);
-    expect(apply).toMatch(/50 € por cada colgante vendido/);
-    expect(apply).toMatch(/tarifa fija/);
-  });
-
-  it("email failure never blocks or fakes the application response", () => {
-    // the send sits in a try/catch that only logs; the saved application
-    // still returns success — and the failure is logged loudly, not hidden
-    expect(apply).toMatch(/confirmation email FAILED \(application saved\)/);
-  });
-});
-
+// SURFACE 2 IS GONE. The flat terms used to be stated in partner-apply's confirmation email,
+// and that function was deleted when the application path was retired (Lee confirmed zero
+// pending applications). The terms now reach a partner through the invite and the agreement,
+// not through an application acknowledgement — so there is no email here to assert on, and a
+// test reading a deleted file would be worse than no test.
 describe("3 — payout math and portal copy match the emailed terms", () => {
   it("useOrderActions pays a flat €50 constant — tier calculation deleted", () => {
     expect(orderActions).toMatch(/COMMISSION_PER_PENDANT_EUR = 50/);

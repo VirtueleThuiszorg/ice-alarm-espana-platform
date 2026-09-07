@@ -106,7 +106,7 @@ serve(async (req: Request): Promise<Response> => {
       .maybeSingle();
 
     if (existingPartner) {
-      // The two rows look identical on `status` alone. `partner-apply` (/partner)
+      // The two rows look identical on `status` alone. the retired `partner-apply` (/partner)
       // writes `pending` with NO user_id — an application awaiting review.
       // `partner-register` (this function) writes `pending` WITH one. The same
       // distinction `decidePartnerInvite` relies on, used here for wording.

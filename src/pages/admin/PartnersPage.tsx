@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Search, Users, DollarSign, Send, TrendingUp, ChevronLeft, ChevronRight, Eye, MoreHorizontal, Pencil, Ban, Trash2, CheckCircle, UserCheck } from "lucide-react";
+import { Plus, Search, Users, DollarSign, Send, TrendingUp, ChevronLeft, ChevronRight, Eye, MoreHorizontal, Pencil, Ban, Trash2, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format, subDays, isAfter } from "date-fns";
 import { Database } from "@/integrations/supabase/types";
@@ -17,7 +17,6 @@ import { useTranslation } from "react-i18next";
 import { toast } from "@/hooks/use-toast";
 import { PARTNER_TYPES, getPartnerTypeLabel } from "@/config/partnerTypes";
 import { InvitePartnerDialog } from "@/components/admin/InvitePartnerDialog";
-import { ConvertApplicationDialog, type PartnerApplication } from "@/components/admin/ConvertApplicationDialog";
 import { functionError } from "@/lib/functionError";
 
 type PartnerStatus = Database["public"]["Enums"]["partner_status"];
@@ -35,9 +34,9 @@ interface Partner {
   partner_type: string;
   organization_type: string | null;
   facility_resident_count: number | null;
-  // Needed to tell the two kinds of `pending` apart — see the Convert gate below.
-  // The query is `select("*")`, so this was always in the payload; it was just
-  // absent from this interface, which is why the gate could not consult it.
+  // Distinguishes a partner who registered themselves (`pending` WITH a user_id) from one
+  // an admin created. It was added for the Convert-to-Partner gate, which is gone with the
+  // application path; kept because `select("*")` returns it and the distinction is still real.
   user_id: string | null;
 }
 
@@ -73,8 +72,6 @@ export default function PartnersPage() {
   const [partnerToSuspend, setPartnerToSuspend] = useState<Partner | null>(null);
   const [partnerToActivate, setPartnerToActivate] = useState<Partner | null>(null);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
-  // Option C: the application being converted into an invited partner, or null.
-  const [applicationToConvert, setApplicationToConvert] = useState<PartnerApplication | null>(null);
 
   // Mutation to update partner status
   const updateStatusMutation = useMutation({
@@ -515,39 +512,6 @@ export default function PartnersPage() {
                               <Eye className="mr-2 h-4 w-4" />
                               View Dashboard
                             </DropdownMenuItem>
-                            {/* Option C: an APPLICATION (`pending` with NO user_id,
-                                from /partner → partner-apply) has no credentials, so
-                                its partner can never log in. Converting it sends an
-                                invite and records the review.
-
-                                `pending` alone is not enough. partner-register also
-                                writes `pending`, but WITH a user_id and a password the
-                                partner chose, and partner-admin-invite refuses those
-                                ("registered themselves — resend verification instead").
-                                Offering Convert there showed an action guaranteed to be
-                                refused, after the admin had typed review notes.
-
-                                So the gate is `pending` AND no user_id, matching
-                                decidePartnerInvite's own condition. It also refuses
-                                `active` and `suspended`, which this never offered. */}
-                            {partner.status === "pending" && !partner.user_id && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={(e) => {
-                                  e.stopPropagation();
-                                  setApplicationToConvert({
-                                    id: partner.id,
-                                    contact_name: partner.contact_name,
-                                    email: partner.email,
-                                    preferred_language: partner.preferred_language,
-                                    partner_type: partner.partner_type,
-                                  });
-                                }}>
-                                  <UserCheck className="mr-2 h-4 w-4" />
-                                  Convert to Partner
-                                </DropdownMenuItem>
-                              </>
-                            )}
                             <DropdownMenuSeparator />
                             {partner.status === "active" ? (
                               <DropdownMenuItem 
@@ -709,10 +673,6 @@ export default function PartnersPage() {
       {/* Invite Partner Dialog */}
       <InvitePartnerDialog open={showInviteDialog} onOpenChange={setShowInviteDialog} />
 
-      <ConvertApplicationDialog
-        application={applicationToConvert}
-        onOpenChange={(open) => { if (!open) setApplicationToConvert(null); }}
-      />
     </div>
   );
 }

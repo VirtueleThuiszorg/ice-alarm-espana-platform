@@ -40,6 +40,7 @@ import {
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { functionError } from "@/lib/functionError";
+import { PageHeader } from "@/components/client/PageHeader";
 
 const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
@@ -202,23 +203,18 @@ export default function MedicalInfoPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-            {t("clientNav.medicalInfo", "Medical Information")}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {t("medical.subtitle", "Important health details for emergencies")}
-          </p>
-        </div>
-        {!isEditing && (
-          <Button onClick={startEditing} className="gap-2">
-            {medicalInfo ? <Edit className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-            {medicalInfo ? t("common.edit") : t("common.add")}
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title={t("clientNav.medicalInfo", "Medical Information")}
+        subtitle={t("medical.subtitle", "Important health details for emergencies")}
+        action={
+          !isEditing && (
+            <Button onClick={startEditing} className="gap-2">
+              {medicalInfo ? <Edit className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              {medicalInfo ? t("common.edit") : t("common.add")}
+            </Button>
+          )
+        }
+      />
 
       {/* Important Notice */}
       <Card className="border-destructive/20 bg-destructive/5">

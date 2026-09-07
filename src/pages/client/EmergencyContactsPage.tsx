@@ -53,6 +53,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { PageHeader } from "@/components/client/PageHeader";
 
 const contactSchema = z.object({
   contact_name: z.string().min(1, "Name is required").max(100),
@@ -224,23 +225,18 @@ export default function EmergencyContactsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-            {t("clientNav.emergencyContacts", "Emergency Contacts")}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {t("contacts.subtitle", "People we call if you need help")}
-          </p>
-        </div>
-        {canAddMore && (
-          <Button onClick={openAddDialog} className="gap-2">
-            <Plus className="h-4 w-4" />
-            {t("contacts.addContact", "Add Contact")}
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title={t("clientNav.emergencyContacts", "Emergency Contacts")}
+        subtitle={t("contacts.subtitle", "People we call if you need help")}
+        action={
+          canAddMore && (
+            <Button onClick={openAddDialog} className="gap-2">
+              <Plus className="h-4 w-4" />
+              {t("contacts.addContact", "Add Contact")}
+            </Button>
+          )
+        }
+      />
 
       {/* Info Banner */}
       <Card className="border-primary/20 bg-primary/5">

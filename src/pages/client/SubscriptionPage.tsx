@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { PageHeader } from "@/components/client/PageHeader";
 
 export default function SubscriptionPage() {
   const { t } = useTranslation();
@@ -44,9 +45,7 @@ export default function SubscriptionPage() {
   if (!subscription) {
     return (
       <div className="space-y-6 animate-fade-in">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t("subscription.title")}</h1>
-        </div>
+        <PageHeader title={t("subscription.title")} />
         <Card>
           <CardContent className="py-12 text-center">
             <CreditCard className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -72,10 +71,7 @@ export default function SubscriptionPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t("subscription.title")}</h1>
-        <p className="text-muted-foreground mt-1">{t("subscription.subtitle")}</p>
-      </div>
+      <PageHeader title={t("subscription.title")} subtitle={t("subscription.subtitle")} />
 
       {/* Current Plan */}
       <Card>

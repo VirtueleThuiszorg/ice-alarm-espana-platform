@@ -57,6 +57,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
 import { telHref, waNumber } from "@/lib/phone";
+import { PageHeader } from "@/components/client/PageHeader";
 interface Conversation {
   id: string;
   subject: string | null;
@@ -504,13 +505,7 @@ export default function SupportPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t("support.title")}</h1>
-          <p className="text-muted-foreground mt-1">{t("support.subtitle")}</p>
-        </div>
-      </div>
+      <PageHeader title={t("support.title")} subtitle={t("support.subtitle")} />
 
       {/* Emergency Banner */}
       <Card className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-0 overflow-hidden relative">

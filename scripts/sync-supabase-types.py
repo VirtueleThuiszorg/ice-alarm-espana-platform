@@ -64,7 +64,20 @@ def ts_type(data_type: str, udt: str, elem_type: str, elem_udt: str) -> str:
     return SCALARS.get(data_type, "string")
 
 
-def fetch(db_url: str) -> dict[str, list[tuple]]:
+def fetch(db_url: str, table_type: str = "BASE TABLE") -> dict[str, list[tuple]]:
+    """Columns for every relation of one kind in `public`.
+
+    PARAMETERISED ON KIND BECAUSE VIEWS WERE NEVER SYNCED AT ALL. This filter used to be a
+    hard-coded `table_type='BASE TABLE'`, so the `Views:` block of types.ts was frozen at
+    whatever the last real `supabase gen types` run produced. That is the same class of hole as
+    the enum one fixed in #190: the check that decides whether to look never fires for a whole
+    category of drift.
+
+    It bit immediately. `20260907100100` added `device_tested_at` to
+    `member_monitoring_readiness` — the column the readiness surfaces need in order to say WHICH
+    of the two conditions a member is missing — and the type layer did not know it existed, so
+    selecting it was a compile error and the screens could not be written.
+    """
     sql = """
     SELECT c.table_name, c.column_name, c.data_type, c.udt_name, c.is_nullable,
            (c.column_default IS NOT NULL)::text,
@@ -72,19 +85,26 @@ def fetch(db_url: str) -> dict[str, list[tuple]]:
     FROM information_schema.columns c
     LEFT JOIN information_schema.element_types e
       ON e.object_catalog = c.table_catalog AND e.object_schema = c.table_schema
-     AND e.object_name = c.table_name AND e.object_type = 'TABLE'
+     AND e.object_name = c.table_name AND e.object_type = %OBJECT_TYPE%
      AND e.collection_type_identifier = c.dtd_identifier
     WHERE c.table_schema = 'public'
       AND EXISTS (SELECT 1 FROM information_schema.tables t
                   WHERE t.table_schema='public' AND t.table_name=c.table_name
-                    AND t.table_type='BASE TABLE')
-    ORDER BY c.table_name, c.ordinal_position;
-    """
+                    AND t.table_type=%TABLE_TYPE%)
+    ORDER BY c.table_name, c.column_name;
+    """.replace("%TABLE_TYPE%", "'" + table_type + "'").replace(
+        "%OBJECT_TYPE%", "'VIEW'" if table_type == "VIEW" else "'TABLE'"
+    )
     out = subprocess.run(
         ["psql", db_url, "-t", "-A", "-F", "|", "-c", sql],
         capture_output=True, text=True, check=True,
     ).stdout
     tables: dict[str, list[tuple]] = {}
+    # ALPHABETICAL, matching `supabase gen types` — the ORDER BY above says column_name, not
+    # ordinal_position. Every block the real generator wrote is alphabetical; #188 wrote its
+    # eight in ordinal order, so the file now mixes the two and any future real regeneration
+    # would produce a large reordering diff on top of whatever it actually changed. Cosmetic,
+    # but a noisy diff is how a real change gets skimmed past.
     for line in out.strip().splitlines():
         if not line.strip():
             continue
@@ -113,6 +133,21 @@ def table_block(name: str, cols: list[tuple], relationships: str) -> str:
     parts += [insert(*c) for c in cols]
     parts += ["        }", "        Update: {"]
     parts += [update(*c) for c in cols]
+    parts += ["        }", relationships, "      }"]
+    return "\n".join(parts)
+
+
+def view_block(name: str, cols: list[tuple], relationships: str) -> str:
+    """A whole view entry, in the shape `supabase gen types` emits for one.
+
+    ROW ONLY — no Insert, no Update. Supabase emits those for an updatable view; none of the four
+    views in this schema is one (each has aggregates or a LATERAL join), and inventing an Insert
+    for a view nothing can insert into would be inviting somebody to try.
+    """
+    parts = [f"      {name}: {{", "        Row: {"]
+    parts += [
+        f"          {col}: {ts}{' | null' if nullable else ''}" for col, ts, nullable, _ in cols
+    ]
     parts += ["        }", relationships, "      }"]
     return "\n".join(parts)
 
@@ -200,15 +235,22 @@ def fetch_enums(db_url: str) -> dict[str, list[str]]:
     return enums
 
 
-def parse_existing(src: str) -> dict[str, tuple[int, int, set[str]]]:
-    """table -> (start, end, Row column names), found by matching braces.
+def parse_existing(
+    src: str,
+    open_marker: str = "    Tables: {",
+    close_marker: str = "    Views: {",
+) -> dict[str, tuple[int, int, set[str]]]:
+    """relation -> (start, end, Row column names), found by matching braces.
 
     A regex cannot do this reliably: the entries nest, and the closing brace of
     a table looks exactly like the closing brace of its Row. Counting braces
     from the table's opening line is the only honest way to find where it ends.
+
+    The markers are parameters so the same brace-matching serves the `Views:` region, which
+    was previously never parsed because it was never synced.
     """
-    tables_at = src.index("    Tables: {")
-    views_at = src.index("    Views: {", tables_at)
+    tables_at = src.index(open_marker)
+    views_at = src.index(close_marker, tables_at)
     region = src[tables_at:views_at]
 
     found: dict[str, tuple[int, int, set[str]]] = {}
@@ -267,6 +309,46 @@ def main() -> int:
         src = src[:start] + table_block(name, real[name], keep) + src[end:]
         existing = parse_existing(src)
         patched.append((name, sorted(db_cols - cols), sorted(cols - db_cols)))
+
+    # 2b. VIEWS — the category that was never looked at.
+    #
+    # `fetch()` filtered on BASE TABLE, so the `Views:` block was frozen at the last real
+    # `supabase gen types` run. Nothing complained, because a view that gains a column does not
+    # break anything until somebody selects it — and then it breaks as a COMPILE ERROR that
+    # reads like the column does not exist in the database.
+    #
+    # That is exactly what happened: `20260907100100` added `device_tested_at` to
+    # `member_monitoring_readiness`, and the readiness surfaces could not be written because
+    # selecting it did not typecheck.
+    real_views = fetch(args.db_url, "VIEW")
+    existing_views = parse_existing(src, "    Views: {", "    Functions: {")
+
+    views_added, views_patched = [], []
+
+    for name in sorted(set(real_views) - set(existing_views)):
+        block = view_block(name, real_views[name], relationships_block([]))
+        after = [v for v in sorted(existing_views) if v < name]
+        anchor = existing_views[after[-1]][1] if after else None
+        if anchor is None:
+            m = re.search(r"    Views: \{\n", src)
+            src = src[: m.end()] + block + "\n" + src[m.end():]
+        else:
+            src = src[:anchor] + "\n" + block + src[anchor:]
+        existing_views = parse_existing(src, "    Views: {", "    Functions: {")
+        views_added.append(name)
+
+    for name in sorted(set(real_views) & set(existing_views)):
+        start, end, cols = existing_views[name]
+        db_cols = {c[0] for c in real_views[name]}
+        if cols == db_cols:
+            continue
+        # The Relationships block on a view is hand-curated by the real generator (it names the
+        # FK of an underlying table), so it survives a column patch verbatim — same rule as for
+        # tables. There is no FK metadata to regenerate it from.
+        keep = existing_relationships(src, start, end) or relationships_block([])
+        src = src[:start] + view_block(name, real_views[name], keep) + src[end:]
+        existing_views = parse_existing(src, "    Views: {", "    Functions: {")
+        views_patched.append((name, sorted(db_cols - cols), sorted(cols - db_cols)))
 
     # 3. Enums: ones the file has never heard of, AND ones whose VALUES have drifted.
     #
@@ -392,6 +474,14 @@ def main() -> int:
         if lost:
             bits.append("-" + ", -".join(lost))
         print(f"enums patched:  {name}  ({'; '.join(bits)})")
+    print(f"views added:    {', '.join(views_added) or 'none'}")
+    for name, gained, lost in views_patched:
+        bits = []
+        if gained:
+            bits.append("+" + ", +".join(gained))
+        if lost:
+            bits.append("-" + ", -".join(lost))
+        print(f"views patched:  {name}  ({'; '.join(bits)})")
     print(f"tables added:   {', '.join(added) or 'none'}")
     for name, gained, lost in patched:
         bits = []
@@ -400,7 +490,14 @@ def main() -> int:
         if lost:
             bits.append("-" + ", -".join(lost))
         print(f"tables patched: {name}  ({'; '.join(bits)})")
-    if not added and not patched and not new_enums and not changed_enums:
+    if (
+        not added
+        and not patched
+        and not views_added
+        and not views_patched
+        and not new_enums
+        and not changed_enums
+    ):
         print("types.ts already matches the schema")
         return 0
 

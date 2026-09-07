@@ -7299,6 +7299,7 @@ export type Database = {
     Views: {
       member_monitoring_readiness: {
         Row: {
+          device_tested_at: string | null
           emergency_contact_count: number | null
           member_id: string | null
           member_since: string | null

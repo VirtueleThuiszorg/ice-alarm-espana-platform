@@ -1,6 +1,6 @@
 # PENDING_FOR_LEE.md — handover
 
-> **This file is the handover from the 5 September 2026 autonomous run.** Claude Code cannot
+> **This file is the handover from the 5–7 September 2026 autonomous run.** Claude Code cannot
 > apply migrations, set secrets, approve senders, publish DNS, rotate keys or take a payment.
 > Everything it merged that needs one of those is listed here, in order.
 >
@@ -18,11 +18,17 @@ make the manifest lie, and the drift gate (#164) depends on that manifest being 
 
 | # | Migration | What it does | Reversible |
 |---|---|---|---|
-| _(none yet this run)_ | | | |
+| _(none outstanding)_ | | | |
 
-> **Deliberately empty — see D-3.** No migration is merged into `main` this run. The one that was
-> ready is an open PR in §5. Merging it turns every build red until you push, so it waits for you
-> rather than blocking the rest of the work.
+> **Nothing is outstanding right now, and that is a real state rather than an empty table.**
+>
+> `20260905100000_staff_delete_fk_rules.sql` — the one that was held in §5 on 5 September — is
+> **applied and recorded**: you merged #176, pushed it, and #179 appended it to
+> `APPLIED_TO_PROD.txt`. Production is level with the repo, and `main` is green.
+>
+> **The next three migrations are in PR #180 and are NOT merged** (§5). That is the method
+> change D-3 argued for: one PR carrying every schema change the rest of the brief needs, so
+> the drift gate is paid once instead of once per increment.
 
 ---
 
@@ -76,7 +82,12 @@ the shift is reassigned — arguably right for `staff_shift_covers`), or make th
 first. **A departing staff member with an open shift cover still cannot be deleted** until this
 is settled.
 
-### D-3 — the drift gate stops **everything**, not just the next migration, and that is why the repo has no migration in it right now
+### D-3 — the drift gate stops **everything**, not just the next migration
+
+> **Outcome, 2026-09-07.** You cleared it: #176 merged, pushed and recorded by #179. The
+> working method changed as a result — schema now goes in ONE bundled PR (#180) held until you
+> can push, instead of one PR per increment each re-triggering the alarm. The question below is
+> still open and still yours; the method change routes around it rather than answering it.
 
 I got this wrong and then found out the hard way, so here it is plainly.
 
@@ -108,10 +119,39 @@ merged is application code, tests and docs.
 one-line change in `scripts/migrationDrift.ts` plus its test — but it is your call, not mine, and
 I would want the drift to stay loudly visible in the build output either way.
 
+### D-4 — should a pendant test EXPIRE? (parked by you, 2026-09-07)
+
+`FULFILMENT_MODEL.md` §9 Q4. You parked it, so it is recorded here rather than dropped.
+
+A pendant tested eighteen months ago and never pressed since is evidence of very little. As
+shipped, `tested` is **permanent** until the device is replaced or marked faulty (your Q2
+ruling) — so readiness can be true on the strength of a test nobody has repeated since.
+
+Nothing is built for a re-test cadence and nothing assumes one. The decision is only worth
+making before the first test is a year old, which is 2027 at the earliest. **No action now.**
+
+### D-5 — WP5's schema already exists (finding, 2026-09-07)
+
+The brief asks for "circle-of-care schema". It is already there and complete:
+`20260814140000_care_access_grants.sql` implements `CONSENT_MODEL.md` §4 in full — the three
+categories, consent basis, revocation that cannot be undone, the predicate functions and every
+policy. **No new schema is proposed for it.**
+
+If the brief meant something beyond that, say what, and it goes into PR #180 before you merge
+it — that is the point of holding it open.
+
+---
+
 ## 3. Per-channel flags (D7) — turn on only when proven
 
 Each channel is switched on independently in `system_settings`, **default OFF**. A channel that
 is off is skipped and logged, never silently failed.
+
+**The three rows are seeded `false` by PR #180**, so a channel is off because somebody wrote
+off rather than because a lookup missed. They are data, not schema — but they arrive with that
+migration, so they exist only once you have merged and pushed it. Turning one on stays a table
+edit you make. Note the SECOND gate PR #180 adds: a send now needs the global flag on **and**
+the member's own per-channel opt-in. A flag on its own no longer sends anything.
 
 | Channel | Flag | Turn on when |
 |---|---|---|
@@ -135,7 +175,8 @@ is off is skipped and logged, never silently failed.
 
 | PR | Why it is open |
 |---|---|
-| **#176** — `20260905100000_staff_delete_fk_rules.sql` | **Merge this one FIRST, and only when you are at a keyboard.** Merging it turns `main` red until `supabase db push` lands (D-3). Everything in it is proven — RLS harness 190/190, three mutations red — it is queued on *your* availability, not on its own quality. Suggested order: merge → `supabase db push` → append the filename to `APPLIED_TO_PROD.txt` → merge that → main green |
+| ~~**#176**~~ | ✅ **Done.** Merged, pushed, and recorded in `APPLIED_TO_PROD.txt` by #179. Production is level. |
+| **#180** — `[HOLD FOR LEE] schema bundle for WP2–WP5` | **Merge only when you are at a keyboard and can `supabase db push` in the same sitting.** Three migrations: the fulfilment state machine + D9 trigger, readiness's second condition (D4), and WP3 notification consent/templates/log. Everything in it is proven — RLS harness **190 → 252**, and every new assertion made to fail against nine deliberate mutations. It is queued on *your availability*, not on its own quality. Suggested order: merge → `supabase db push` → append the three filenames to `APPLIED_TO_PROD.txt` → merge that → main green. **Expect the monitoring-ready count to drop to zero** the day it lands — no order has ever been tested, and that is the first honest number the system has produced |
 
 > Per the brief: any PR touching `supabase/functions/stripe-webhook` or
 > `supabase/functions/create-checkout` stays open. A broken webhook means no member ever

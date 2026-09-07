@@ -222,6 +222,16 @@ export default function EmergencyContactsPage() {
   }
 
   const canAddMore = (contacts?.length || 0) < LIMITS.EMERGENCY_CONTACTS;
+  /*
+    R1 — ONE red button per page. A member with no contacts saw TWO, both saying "add a contact":
+    the header action and the empty state's. Two identical red buttons is not emphasis, it is a
+    reader wondering whether they do different things.
+
+    The empty state keeps it, because R8 is explicit that the empty state offers the action and
+    because it sits next to the sentence explaining why. The header's slot stands empty until
+    there is a list for it to add to.
+  */
+  const hasContacts = (contacts?.length ?? 0) > 0;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -229,7 +239,7 @@ export default function EmergencyContactsPage() {
         title={t("clientNav.emergencyContacts", "Emergency Contacts")}
         subtitle={t("contacts.subtitle", "People we call if you need help")}
         action={
-          canAddMore && (
+          canAddMore && hasContacts && (
             <Button onClick={openAddDialog} className="gap-2">
               <Plus className="h-4 w-4" />
               {t("contacts.addContact", "Add Contact")}

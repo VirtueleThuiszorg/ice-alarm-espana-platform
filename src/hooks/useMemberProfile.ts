@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import type { Tables } from "@/integrations/supabase/types";
 
 export interface MemberProfile {
   id: string;
@@ -24,18 +25,18 @@ export interface MemberProfile {
   created_at: string;
 }
 
-export interface MedicalInfo {
-  id: string;
-  member_id: string;
-  medical_conditions: string[] | null;
-  medications: string[] | null;
-  allergies: string[] | null;
-  blood_type: string | null;
-  doctor_name: string | null;
-  doctor_phone: string | null;
-  hospital_preference: string | null;
-  additional_notes: string | null;
-}
+/**
+ * THE GENERATED ROW, not a hand-written subset.
+ *
+ * This was an interface listing EIGHT of the sixteen columns `medical_information` holds — and
+ * it was the third hand-maintained copy of that table's shape, after `types.ts` (which was
+ * missing ten of them until #188) and `MedicalInfoPage`'s markup.
+ *
+ * The query already said `select("*")`, so the data was always arriving; the TYPE was what threw
+ * it away. A member's mobility, hearing, sight, where their medication is kept, their medical
+ * centre and both insurance fields were on the wire and unreachable in one step.
+ */
+export type MedicalInfo = Tables<"medical_information">;
 
 export interface EmergencyContact {
   id: string;

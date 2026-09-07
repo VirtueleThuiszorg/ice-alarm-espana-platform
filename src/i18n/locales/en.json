@@ -605,7 +605,10 @@
     "deleting": "Deleting...",
     "selected": "selected",
     "view": "View",
-    "change": "Change"
+    "change": "Change",
+    "hide": "Hide",
+    "show": "Show",
+    "remove": "Remove"
   },
   "auth": {
     "login": "Login",
@@ -1072,9 +1075,9 @@
     "deleteFailed": "Failed to delete emergency contact"
   },
   "medical": {
-    "subtitle": "Important health details for emergencies",
-    "emergencyTitle": "Emergency Medical Data",
-    "emergencyDesc": "This information is shared with emergency services when you need help. Keep it up to date for your safety.",
+    "subtitle": "This is exactly what an operator sees the moment you press your pendant.",
+    "emergencyTitle": "Who reads this",
+    "emergencyDesc": "Our operators see this the moment your pendant is pressed, and they read it out to the ambulance crew. Keeping it up to date is the single most useful thing you can do for yourself here.",
     "noData": "No Medical Information",
     "addPrompt": "Add your medical details so we can provide better emergency care.",
     "addInfo": "Add Medical Information",
@@ -1092,7 +1095,47 @@
     "addAllergy": "Add allergy...",
     "additionalNotes": "Additional Notes",
     "notesPlaceholder": "Any other important medical information...",
-    "noneRecorded": "None recorded"
+    "noneRecorded": "None recorded",
+    "notAdded": "Not added",
+    "chooseBloodType": "Choose",
+    "section": {
+      "conditions": "Conditions & medication",
+      "allergies": "Allergies",
+      "senses": "Mobility, hearing and sight",
+      "doctor": "Your doctor",
+      "insurance": "Private insurance",
+      "other": "Anything else",
+      "access": "Getting into your home"
+    },
+    "field": {
+      "conditions": "Conditions",
+      "medications": "Medication",
+      "medsLocation": "Where your medication is kept",
+      "medsLocationHint": "So an ambulance crew can find it without searching your home.",
+      "medsNotes": "Anything else about your medication",
+      "allergies": "Allergies",
+      "mobility": "Getting about",
+      "mobilityHint": "For example: walking frame indoors, cannot manage stairs.",
+      "hearing": "Hearing",
+      "hearingHint": "So an operator knows to speak up, or that you may not hear them at first.",
+      "vision": "Sight",
+      "doctorName": "Doctor",
+      "doctorPhone": "Doctor's phone",
+      "doctorLocation": "Medical centre",
+      "hospital": "Preferred hospital",
+      "bloodType": "Blood group",
+      "insurer": "Insurer",
+      "policyNumber": "Policy number",
+      "additionalNotes": "Anything else we should know"
+    },
+    "access": {
+      "keySafeLocation": "Where the key safe is",
+      "keySafeCode": "Key safe code",
+      "gateCode": "Gate or entry code",
+      "notes": "How to get in",
+      "locked": "Call us to change this — we check who you are before we alter how someone gets into your home.",
+      "loadFailed": "We could not read this section. It is not empty — please try again."
+    }
   },
   "subscription": {
     "title": "Subscription & Billing",

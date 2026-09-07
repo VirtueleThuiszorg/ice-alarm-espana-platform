@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow, format } from "date-fns";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { withCannedReply } from "@/lib/cannedReplies";
+import { CannedReplyPicker } from "@/components/messaging/CannedReplyPicker";
 
 interface Conversation {
   id: string;
@@ -22,6 +24,7 @@ interface Conversation {
   member?: {
     first_name: string;
     last_name: string;
+    preferred_language: string | null;
   } | null;
   unread_count?: number;
   last_message_preview?: string;
@@ -120,7 +123,7 @@ export function MessagesPanel() {
         .from("conversations")
         .select(`
           *,
-          member:members!conversations_member_id_fkey(first_name, last_name)
+          member:members!conversations_member_id_fkey(first_name, last_name, preferred_language)
         `)
         .in("status", ["open", "pending"])
         .order("last_message_at", { ascending: false })
@@ -376,6 +379,14 @@ export function MessagesPanel() {
             </ScrollArea>
 
             <div className="p-2 border-t">
+              {selectedConversation.member_id && (
+                <div className="mb-2">
+                  <CannedReplyPicker
+                    preferredLanguage={selectedConversation.member?.preferred_language}
+                    onInsert={(body) => setReplyMessage((current) => withCannedReply(current, body))}
+                  />
+                </div>
+              )}
               <div className="flex gap-2">
                 <Textarea
                   placeholder={t("callCentre.messages.replyPlaceholder", "Reply...")}

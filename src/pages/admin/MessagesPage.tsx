@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification, getMemberUserId } from "@/utils/notifications";
 import { staffSenderType } from "@/lib/messageSenderType";
+import { withCannedReply } from "@/lib/cannedReplies";
+import { CannedReplyPicker } from "@/components/messaging/CannedReplyPicker";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import {
@@ -53,6 +55,7 @@ interface Conversation {
     last_name: string;
     email: string;
     phone: string;
+    preferred_language: string | null;
   } | null;
   staff_participants?: string[];
   participants_info?: {
@@ -212,7 +215,7 @@ export default function MessagesPage() {
         .from("conversations")
         .select(`
           *,
-          member:members!conversations_member_id_fkey(id, first_name, last_name, email, phone)
+          member:members!conversations_member_id_fkey(id, first_name, last_name, email, phone, preferred_language)
         `)
         .order("last_message_at", { ascending: false });
 
@@ -958,6 +961,13 @@ export default function MessagesPage() {
                           <StickyNote className="mr-2 h-4 w-4" />
                           Internal Note
                         </Button>
+                        {selectedConversation.member_id && (
+                          <CannedReplyPicker
+                            preferredLanguage={selectedConversation.member?.preferred_language}
+                            isInternalNote={isInternalNote}
+                            onInsert={(body) => setReplyMessage((current) => withCannedReply(current, body))}
+                          />
+                        )}
                       </div>
                       <div className="flex gap-2">
                         <Button

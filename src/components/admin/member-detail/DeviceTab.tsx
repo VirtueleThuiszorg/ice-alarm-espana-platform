@@ -31,6 +31,13 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { LocationMap } from "@/components/maps/LocationMap";
 import { useDeviceRealtime } from "@/hooks/useDeviceRealtime";
+import {
+  describeStatePosition,
+  linkDeviceToPendantOrder,
+  type TransitionOutcome,
+} from "@/lib/allocatePendant";
+import { FULFILMENT_LABEL } from "@/lib/fulfilmentState";
+import { PendantFulfilmentCard } from "@/components/admin/member-detail/PendantFulfilmentCard";
 
 interface Device {
   id: string;
@@ -105,6 +112,44 @@ export function DeviceTab({ memberId }: DeviceTabProps) {
     setIsDialogOpen(true);
   };
 
+  /**
+   * What happened to the ORDER, said out loud. Three of the four outcomes are things a staff
+   * member has to know about and cannot see from the device card.
+   */
+  const reportAllocationOutcome = (outcome: TransitionOutcome) => {
+    if (outcome.kind === "moved") return; // the ordinary case; the device toast covers it
+    if (outcome.kind === "no_pendant_order") {
+      toast.warning(
+        t(
+          "admin.devices.noPendantOrder",
+          "Assigned — but this member has no order with a pendant line, so monitoring readiness cannot be recorded for them. Raise the order first.",
+        ),
+      );
+      return;
+    }
+    if (outcome.kind === "linked_no_transition") {
+      const label = FULFILMENT_LABEL[outcome.state];
+      toast.info(
+        t(
+          "admin.devices.orderNotMoved",
+          "Assigned and linked to the order. The order still reads “{{state}}” — {{why}}.",
+          {
+            state: t(label.key, label.fallback),
+            why: describeStatePosition(outcome.state, "allocated"),
+          },
+        ),
+      );
+      return;
+    }
+    toast.error(
+      t(
+        "admin.devices.orderLinkFailed",
+        "The pendant is assigned, but it could not be linked to the order: {{message}}. Monitoring readiness will not work until it is.",
+        { message: outcome.message },
+      ),
+    );
+  };
+
   const assignDevice = async () => {
     if (!selectedDeviceId) return;
     
@@ -133,8 +178,27 @@ export function DeviceTab({ memberId }: DeviceTabProps) {
         toast.warning("Device updated but subscription flag failed to sync");
       }
 
+      /*
+        ALLOCATION IS A FULFILMENT TRANSITION, and until now this action made none.
+
+        Assigning a pendant wrote `devices.member_id` and nothing else. `member_monitoring_
+        readiness` reaches a device through orders → order_items → devices, so a pendant
+        allocated here was INVISIBLE to readiness: this member could never become
+        monitoring-ready however many test calls anybody made. Linking the order line is not
+        bookkeeping, it is the difference between a readiness number that can move and one that
+        cannot.
+
+        It runs AFTER the device row is written, on purpose: the assignment is what the staff
+        member asked for, and a failure in the bookkeeping must not undo it. Every outcome is
+        reported — "assigned, but readiness will never work for this member" must not look like
+        plain success.
+      */
+      const outcome = await linkDeviceToPendantOrder(memberId, selectedDeviceId);
+      reportAllocationOutcome(outcome);
+
       toast.success(t("admin.devices.deviceAllocated"));
       setIsDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["member-fulfilment"] });
       refetch();
     } catch (error) {
       console.error("Error assigning device:", error);
@@ -336,6 +400,14 @@ export function DeviceTab({ memberId }: DeviceTabProps) {
 
   return (
     <div className="space-y-6">
+      {/*
+        FIRST, because it is the only thing on this page that changes whether the member is
+        protected. `devices.status` below is a third progression (in_stock → allocated →
+        with_staff → live) that predates the fulfilment state machine and answers a different
+        question; readiness reads neither it nor this card, it reads the ORDER.
+      */}
+      <PendantFulfilmentCard memberId={memberId} />
+
       {/* Status Timeline */}
       <Card>
         <CardHeader>

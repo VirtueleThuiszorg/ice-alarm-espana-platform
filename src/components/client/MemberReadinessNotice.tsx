@@ -4,7 +4,12 @@ import { useTranslation } from "react-i18next";
 import { UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { isActionableGap, readinessGap, type ReadinessGap } from "@/lib/readinessGap";
+import {
+  isActionableGap,
+  READINESS_VIEW_COLUMNS,
+  readinessGapFromView,
+  type ReadinessGap,
+} from "@/lib/readinessGap";
 import { MEMBER_NOTICE_TONE } from "@/lib/memberNoticeTone";
 
 /**
@@ -57,13 +62,14 @@ export function MemberReadinessNotice({
     (async () => {
       const { data, error } = await supabase
         .from("member_monitoring_readiness")
-        .select("monitoring_ready, emergency_contact_count, device_tested_at")
+        .select(READINESS_VIEW_COLUMNS)
         .eq("member_id", memberId)
         .maybeSingle();
       if (cancelled || error || !data) return; // unknown, in both directions
-      // `monitoring_ready` is the authority on WHETHER; the other two say WHICH. A disagreement
-      // between them can never show a member a warning the view says is unwarranted.
-      setGap(data.monitoring_ready === true ? "none" : readinessGap(data));
+      // The columns AND the precedence between them live in `readinessGapFromView` — the
+      // operator's context panel needs the same answer, and two copies of "the view wins over
+      // the two detail columns" is two chances to lose that argument.
+      setGap(readinessGapFromView(data));
     })();
     return () => {
       cancelled = true;

@@ -280,9 +280,34 @@ of the six transitions are **not buttons**:
 * **5a — the orders screen.** `src/lib/fulfilmentState.ts` (the module every surface reads),
   `useFulfilmentState` (the one write path), the fulfilment column, the filter, the forward
   actions and the correction dialog.
-* **5b — the two transitions nobody presses.** `programmed` happens when the
-  `ProvisioningChecklist` is finished, and `tested` has to be reachable from the member record
-  and the SOS screen, not only from a row in a table of orders.
+* **5b — the two transitions nobody presses, plus the one that makes a member ready.**
+  `programmed` happens when the `ProvisioningChecklist` is finished; `tested` is recorded on the
+  member record; and `allocated` — which had **no writer at all** — is written by the allocation
+  path.
+
+### 8-C. The readiness dead-end 5b found
+
+`member_monitoring_readiness` reaches a pendant through `orders → order_items → devices`, and
+`DeviceTab.assignDevice` wrote only `devices.member_id`. **A pendant allocated by hand was
+invisible to readiness**: that member could never be recorded as protected however many test
+calls anybody made, and nothing said so. `linkDeviceToPendantOrder` now writes the order line
+and moves `paid → allocated`, and the card says so out loud when a pendant is on no order.
+
+The webhook half of the same gap is still open: `_shared/post-payment.ts` allocates a device and
+does not move the fulfilment state. It is one line, in the payment path, so it stays open for a
+human — `PENDING_FOR_LEE.md` §5 and S11.
+
+### 8-D. Why `tested` is on the member record and not the SOS screen
+
+The brief says *"from the SOS screen **or** member record"*. The member record, because that is
+where somebody sits when they phone a member to walk them through a test — and because
+`SOSActionPanel` is the SOS path, where CLAUDE.md makes a human gate mandatory before any merge.
+Recorded as `PENDING_FOR_LEE.md` S10 rather than done quietly.
+
+Note that the checklist's own step 12 is *already* a test SOS call — a **bench** test by staff.
+`tested` means the **member** pressed **their** pendant in **their own home** and an operator
+answered. They are kept apart deliberately: collapsing them would let readiness be true for a
+member who has never touched their pendant. `PENDING_FOR_LEE.md` D-7.
 
 ### 8-B. The reconciliation with `orders.status`, decided in 5a
 

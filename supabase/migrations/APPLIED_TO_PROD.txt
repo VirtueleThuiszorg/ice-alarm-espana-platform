@@ -178,3 +178,4 @@
 20260904160000_registration_draft_schema_version.sql
 20260904170000_payer_billing_relation.sql
 20260904180000_member_status_not_self_writable.sql
+20260905100000_staff_delete_fk_rules.sql

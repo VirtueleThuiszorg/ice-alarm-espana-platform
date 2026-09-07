@@ -20,16 +20,44 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 
+/**
+ * EVERY member-editable column on `medical_information`. Sixteen, not eight.
+ *
+ * The eight that were missing — where the medication is kept and any notes about it, mobility,
+ * hearing, sight, the medical centre, the private insurer and the policy number — meant the page
+ * could not save them even once it started rendering them. A field a member can type into and
+ * not save is worse than a field that is absent.
+ *
+ * DELIBERATELY NOT DERIVED. This runs on Deno and cannot import from `src/`, so the list is
+ * written out — and `src/test/medicalInfoFields.test.ts` asserts it matches
+ * `src/lib/medicalFields.ts` exactly, in both directions. Two lists that must agree, with a test
+ * that fails when they do not, beats one list neither side can reach.
+ *
+ * `recorded_via` and `recorded_by_staff` stay OFF this list. They are provenance — how the
+ * information was collected and by whom — and a member's own save must not be able to claim it
+ * came in by phone from a staff member.
+ */
 const MEDICAL_FIELDS = [
-  "blood_type",
-  "doctor_name",
-  "doctor_phone",
-  "hospital_preference",
-  "additional_notes",
   "medical_conditions",
   "medications",
+  "meds_location",
+  "meds_notes",
   "allergies",
+  "mobility",
+  "hearing_notes",
+  "vision_notes",
+  "doctor_name",
+  "doctor_phone",
+  "doctor_location",
+  "hospital_preference",
+  "blood_type",
+  "private_insurer",
+  "private_policy_number",
+  "additional_notes",
 ] as const;
+
+/** The `text[]` columns, validated as arrays rather than as strings. */
+const MEDICAL_LIST_FIELDS = ["medical_conditions", "medications", "allergies"] as const;
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
@@ -175,7 +203,7 @@ Deno.serve(async (req) => {
             const v = body[field];
             if (v === null) {
               values[field] = null;
-            } else if (["medical_conditions", "medications", "allergies"].includes(field)) {
+            } else if ((MEDICAL_LIST_FIELDS as readonly string[]).includes(field)) {
               if (!Array.isArray(v) || v.some((x) => typeof x !== "string" || x.length > 500) || v.length > 100) {
                 return new Response(JSON.stringify({ error: `${field} must be an array of strings` }), { status: 400, headers: jh });
               }

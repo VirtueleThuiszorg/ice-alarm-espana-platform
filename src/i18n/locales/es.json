@@ -605,7 +605,10 @@
     "deleting": "Eliminando...",
     "selected": "seleccionados",
     "view": "Ver",
-    "change": "Cambiar"
+    "change": "Cambiar",
+    "hide": "Ocultar",
+    "show": "Mostrar",
+    "remove": "Quitar"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -1072,9 +1075,9 @@
     "deleteFailed": "Error al eliminar el contacto de emergencia"
   },
   "medical": {
-    "subtitle": "Detalles de salud importantes para emergencias",
-    "emergencyTitle": "Datos Médicos de Emergencia",
-    "emergencyDesc": "Esta información se comparte con los servicios de emergencia cuando necesita ayuda. Manténgala actualizada para su seguridad.",
+    "subtitle": "Esto es exactamente lo que ve un operador en el momento en que pulsa su colgante.",
+    "emergencyTitle": "Quién lee esto",
+    "emergencyDesc": "Nuestros operadores ven esto en el momento en que se pulsa su colgante, y se lo leen a la ambulancia. Mantenerlo al día es lo más útil que puede hacer aquí por usted mismo.",
     "noData": "Sin Información Médica",
     "addPrompt": "Añada sus datos médicos para que podamos brindarle mejor atención de emergencia.",
     "addInfo": "Añadir Información Médica",
@@ -1092,7 +1095,47 @@
     "addAllergy": "Añadir alergia...",
     "additionalNotes": "Notas Adicionales",
     "notesPlaceholder": "Cualquier otra información médica importante...",
-    "noneRecorded": "Ninguna registrada"
+    "noneRecorded": "Ninguna registrada",
+    "notAdded": "Sin añadir",
+    "chooseBloodType": "Elija",
+    "section": {
+      "conditions": "Enfermedades y medicación",
+      "allergies": "Alergias",
+      "senses": "Movilidad, oído y vista",
+      "doctor": "Su médico",
+      "insurance": "Seguro privado",
+      "other": "Algo más",
+      "access": "Cómo entrar en su casa"
+    },
+    "field": {
+      "conditions": "Enfermedades",
+      "medications": "Medicación",
+      "medsLocation": "Dónde guarda su medicación",
+      "medsLocationHint": "Para que una ambulancia pueda encontrarla sin buscar por su casa.",
+      "medsNotes": "Algo más sobre su medicación",
+      "allergies": "Alergias",
+      "mobility": "Cómo se desplaza",
+      "mobilityHint": "Por ejemplo: andador dentro de casa, no puede subir escaleras.",
+      "hearing": "Oído",
+      "hearingHint": "Para que un operador sepa que debe hablar más alto, o que puede que no le oiga al principio.",
+      "vision": "Vista",
+      "doctorName": "Médico",
+      "doctorPhone": "Teléfono del médico",
+      "doctorLocation": "Centro de salud",
+      "hospital": "Hospital preferido",
+      "bloodType": "Grupo sanguíneo",
+      "insurer": "Aseguradora",
+      "policyNumber": "Número de póliza",
+      "additionalNotes": "Algo más que debamos saber"
+    },
+    "access": {
+      "keySafeLocation": "Dónde está la caja de llaves",
+      "keySafeCode": "Código de la caja de llaves",
+      "gateCode": "Código de la cancela o portal",
+      "notes": "Cómo entrar",
+      "locked": "Llámenos para cambiar esto: comprobamos quién es usted antes de modificar cómo se entra en su casa.",
+      "loadFailed": "No pudimos leer esta sección. No está vacía; inténtelo de nuevo, por favor."
+    }
   },
   "subscription": {
     "currentPlan": "Plan actual",

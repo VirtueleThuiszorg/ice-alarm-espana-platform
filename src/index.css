@@ -69,7 +69,11 @@
     --alert-sos: 0 84% 55%;
     --alert-sos-foreground: 0 0% 100%;
     --alert-fall: 25 95% 53%;
-    --alert-fall-foreground: 0 0% 100%;
+    /* Dark on orange, not white. White scored 2.79:1 — below even the 3:1 large-text floor,
+       on a badge that tells somebody a fall was detected. Same treatment --alert-battery
+       already uses for the neighbouring hue, and the ORANGE IS UNCHANGED so the operator's
+       colour cue is exactly as it was. Now 5.00:1. See publicPaletteContrast.test.ts. */
+    --alert-fall-foreground: 25 95% 15%;
     --alert-battery: 45 93% 47%;
     --alert-battery-foreground: 45 93% 15%;
     --alert-checkin: 210 100% 50%;

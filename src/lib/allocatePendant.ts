@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fulfilmentRank, type FulfilmentState } from "@/lib/fulfilmentState";
+import { notifyTransition } from "@/lib/notifyTransition";
 
 /**
  * ALLOCATION IS THE TRANSITION — `paid → allocated` has no other owner.
@@ -96,6 +97,10 @@ export async function linkDeviceToPendantOrder(
 
     if (moveError) return { kind: "failed", message: moveError.message };
 
+    // WP3: the state edge rings the dispatcher. Never awaited for its outcome and never
+    // allowed to fail this function — the allocation is the fact, the message is a courtesy.
+    await notifyTransition(target.order_id, "allocated");
+
     return {
       kind: "moved",
       orderId: target.order_id,
@@ -145,6 +150,8 @@ export async function markOrderProgrammed(deviceId: string): Promise<TransitionO
       .eq("id", row.order_id);
 
     if (moveError) return { kind: "failed", message: moveError.message };
+
+    await notifyTransition(row.order_id, "programmed");
 
     return { kind: "moved", orderId: row.order_id, orderNumber: row.orders.order_number };
   } catch (e) {

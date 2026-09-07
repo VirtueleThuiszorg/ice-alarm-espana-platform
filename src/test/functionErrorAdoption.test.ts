@@ -53,6 +53,13 @@ const NO_USER_FACING_ERROR: Record<string, string> = {
   "src/hooks/usePublishedPosts.ts": "published-post reads; surface as empty lists",
   "src/hooks/useFailedActions.ts": "reads the failed-action queue for display",
   "src/lib/sosDrill.ts": "SOS drill tooling — deliberately untouched (G1 human gate)",
+  "src/lib/notifyTransition.ts":
+    "WP3's fulfilment dispatcher. Shows nothing DELIBERATELY: notify-fulfilment returns 200 " +
+    "with a decision per channel even when every one is skipped, so there is nothing truthful " +
+    "to tell a staff member here — and with all three channels off in production the only " +
+    "honest message would be 'nothing was sent' on every transition. What was and was not " +
+    "sent lives in member_notification_log. It also must not throw: a notification that " +
+    "could not be sent must never undo a fulfilment state that was. FULFILMENT_MODEL.md §6-A.5",
   "src/hooks/useSOSConference.ts": "SOS conference path — deliberately untouched (G1 human gate)",
   "src/lib/alertResolution.ts": "SOS/alert resolution path — deliberately untouched (G1 human gate)",
   "src/components/call-centre/AlertDetailPanel.tsx": "SOS/alert path — deliberately untouched (G1 human gate)",

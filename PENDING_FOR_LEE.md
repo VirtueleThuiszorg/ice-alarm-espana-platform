@@ -177,6 +177,53 @@ Two things worth your eye, neither of which I changed:
    category — but it is the kind of hand-maintained index list that goes wrong the moment a step
    is inserted. Not fixed here because it is not this increment's concern; say the word.
 
+### D-8 — a payer's consent has nowhere to live (decision, 2026-09-07)
+
+WP3's dispatcher notifies the member **and the payer**, per D6, and the payer half is built:
+recipient resolution, their own template rows (`fulfilment.*.payer`, because *"the payer is told
+about the order, the member about their alarm"*), and the address comparison that stops a payer
+who **is** the member being messaged twice.
+
+**Every payer send is refused, and logged as `skipped_no_payer_consent`.**
+
+`member_notification_optin` is keyed on `member_id`. A payer is not a member — `payers` is its
+own table, with its own `user_id` — so there is no row that can say "this payer agreed to
+WhatsApp". Rather than invent a legal basis inside a module, the dispatcher refuses and records
+the refusal, which is the safe direction on a privacy question and leaves the gap visible in
+`member_notification_log`.
+
+**Two ways to close it, and the difference is a real decision, not a shape:**
+
+1. **A `payer_notification_optin` table**, same shape as the member one (`payer_id`, `channel`,
+   `opted_in`, `opted_in_at`, `basis`). Treats a payer's permission as consent they give, and
+   means somebody has to ask them. Honest, and it means no payer hears anything until they say
+   yes.
+2. **Contract basis** — a payer paying for a subscription is party to it, so transactional
+   messages about the order they are paying for need no opt-in. This is the ordinary legal
+   footing for a receipt or a dispatch note, and `consent_basis` would gain a `contract` value.
+   It sends sooner, and it needs you to be comfortable that "your father's pendant has been
+   dispatched" is transactional rather than marketing.
+
+**I have not chosen.** (2) is probably right for dispatch and delivery, and probably wrong for
+anything that reads as an update about the member's wellbeing. That line is yours to draw, and
+it is the sort of thing a regulator asks about.
+
+**Nothing is blocked on it** — member notifications work whenever you turn a channel on.
+
+### D-9 — `payers` has no `preferred_language` (finding, 2026-09-07)
+
+The dispatcher renders in the recipient's locale. `members.preferred_language` exists; `payers`
+has `email`, `phone`, `full_name`, `relationship` and nothing about language.
+
+So a payer is currently rendered in **the member's** language. That is a guess, and it is a
+named one: the payer is usually family, and family usually shares a language. It is wrong for
+exactly the case this product has a lot of — a Dutch or English son in another country paying
+for a Spanish-speaking parent, or the reverse.
+
+One column, `payers.preferred_language`, with the member's as the default. Not added because
+D-8 means no payer is messaged yet, so it would be schema for a code path that cannot run —
+and the next schema bundle is a better place for it than a migration on its own.
+
 ### D-6 — five alert/badge colours are below WCAG AA, and fixing them changes safety colour
 
 Measured on the base `:root` palette (`publicPaletteContrast.test.ts`). All are white-or-near-

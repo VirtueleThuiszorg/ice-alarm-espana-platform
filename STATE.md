@@ -26,6 +26,27 @@
 | B7 | 6 email-template logo URLs | ✅ FIXED | All six `_shared/email-templates/*.tsx` carried the placeholder. Now the real ref. ⚠️ **Still owed:** upload the logo to the `email-assets/logo.png` storage object — until then the images 404 (templates are currently unreferenced by any function, so no live email is affected). |
 | B8 | Untouched by design | — | `index.html`, `.github/workflows/deploy-functions.yml`, and the two cron migrations (`20260716120000`, `20260723120000`) already name the authoritative ref. The cron pair is the **SOS-escalation path** — not edited (G1 / human gate). |
 
+## Notification fan-out (2026-09-07) — WP3 · **dispatcher shipped, every channel OFF**
+
+> Design: `FULFILMENT_MODEL.md` §6-A. Schema: `20260907100200`, applied.
+>
+> **Nothing is sent to anybody today, and that is correct rather than broken.** All three
+> `notify_channel_*` flags are seeded `false`, so every decision the dispatcher makes is
+> `skipped_channel_off` — recorded, not silent. Turning a channel on is Lee's table edit
+> (`PENDING_FOR_LEE.md` §3), and the second gate (the member's own opt-in) applies after it.
+
+| # | Item | Status | Evidence |
+|---|---|---|---|
+| N1 | One dispatcher, called on every state edge | ✅ VERIFIED | `_shared/notify-fulfilment.ts` + the `notify-fulfilment` function. Called from `useFulfilmentState`, `linkDeviceToPendantOrder` and `markOrderProgrammed` via `src/lib/notifyTransition.ts` — asserted, including that no transition means no notification. |
+| N2 | Two gates: global channel flag **and** member opt-in | ✅ VERIFIED | `src/test/notifyFulfilmentDispatcher.test.ts` (29). A flag is on only when its value is exactly `true` — `TRUE`, `1`, `yes`, `""` and absent are all off, asserted for all five. An absent opt-in row is not permission. |
+| N3 | A skip is recorded, never silent (G2) | ✅ VERIFIED | One `member_notification_log` row per decision, with a status naming which gate stopped it. Mutation: logging only successes → 3 red. |
+| N4 | No template means no message | ✅ VERIFIED | No inline fallback text exists in the dispatcher. Missing or inactive → `skipped_no_template`. Locale falls back to **Spanish**, not English. |
+| N5 | The payer is resolved per D6 | ✅ VERIFIED | Second recipient when `payer_id` is set **and their address differs** — compared on addresses, not ids, so a payer who is the member is not messaged twice. Own event key (`fulfilment.*.payer`) so the text can differ. |
+| N6 | A payer is actually notified | 🔴 BLOCKED — decision needed | There is nowhere to record a payer's consent: `member_notification_optin` is keyed on `member_id`. Every payer send is refused and logged `skipped_no_payer_consent`. `PENDING_FOR_LEE.md` D-8 sets out the two ways to close it. |
+| N7 | Templates seeded per transition × recipient × language | ⬜ MISSING | The table exists and is read; no rows are seeded yet, so every channel would read `skipped_no_template` even with a flag on. A seed migration is the next piece and needs Lee to apply it. |
+| N8 | The "new member" staff notification (D5), from the webhook | ⬜ MISSING — held for a human | Touches `stripe-webhook`. Per the brief that PR stays open. |
+| N9 | WhatsApp opt-in link (D8) | ⬜ MISSING | The receiving side and the `wa.me` link, after the templates. Sending waits on S2. |
+
 ## Fulfilment state machine (2026-09-07) — WP2 · **schema APPLIED, screen partly shipped**
 
 > Design: `FULFILMENT_MODEL.md`. Scope: `CC_MASTER_BRIEF.md` WP2. Lee's rulings on §9 are

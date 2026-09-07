@@ -26,6 +26,29 @@
 | B7 | 6 email-template logo URLs | ✅ FIXED | All six `_shared/email-templates/*.tsx` carried the placeholder. Now the real ref. ⚠️ **Still owed:** upload the logo to the `email-assets/logo.png` storage object — until then the images 404 (templates are currently unreferenced by any function, so no live email is affected). |
 | B8 | Untouched by design | — | `index.html`, `.github/workflows/deploy-functions.yml`, and the two cron migrations (`20260716120000`, `20260723120000`) already name the authoritative ref. The cron pair is the **SOS-escalation path** — not edited (G1 / human gate). |
 
+## Staff control of the member record (2026-09-07) — WP7 · **a live defect removed**
+
+> Scope: `CC_MASTER_BRIEF.md` WP7. Schema: `20260907100500`, applied.
+>
+> **The defect this replaces was live.** `SubscriptionTab.updateStatus` wrote
+> `subscriptions.status` straight from the browser for pause, resume and cancel — and for
+> Stripe it called nothing at all; its own comment said *"Stripe cancellation would be handled
+> via Stripe Dashboard or API if needed."* So pressing **Cancel** left the database saying
+> `cancelled` **while Stripe kept charging the member's card**, and pressing **Resume** wrote
+> `status='active'` from the client, which golden rule 4 reserves for the payment webhook.
+> Neither was attributed and neither had a reason. `admin-subscription-action` — which does it
+> properly, Stripe first — existed and was not called.
+
+| # | Item | Status | Evidence |
+|---|---|---|---|
+| W1 | The client cannot write `subscriptions.status` | ✅ VERIFIED | `updateStatus` deleted. `src/test/staffMemberActions.test.tsx` (19) sweeps **all of `src/`** for a `subscriptions` update carrying `status`, not just the one file — the same three buttons could reappear anywhere. |
+| W2 | Every action goes through the gateway, and the SERVER mirrors the status | ✅ VERIFIED | `useMemberAction` → `admin-subscription-action` (Stripe) or `cancel-mollie-subscription` (Mollie). Both mirror the DB themselves, after the gateway accepts. The gateway call is asserted to happen **before** the audit row. |
+| W3 | Mollie is handled honestly | ✅ VERIFIED | Cancellation uses the Mollie function. A Mollie **pause** is refused with a reason: the old code "paused" it by writing the DB and leaving Mollie charging. Refusing is not a lost capability, it is a removed trap. |
+| W4 | Each action attributed, with a mandatory reason | ✅ VERIFIED | `activity_logs` row with `member_action`, `staff_id`, `entity_type='member'` and a trimmed reason — the exact shape `enforce_member_action_attribution()` accepts. The dialog refuses to submit without one, so nobody reaches the trigger's `RAISE EXCEPTION`. |
+| W5 | A change that happened but was not recorded is said out loud | ✅ VERIFIED | The one state this feature exists to prevent. Distinct from a failed gateway call, which reports that **nothing** changed and writes no log. |
+| W6 | Renew, single↔couple, add a pendant | 🟡 RECORDED, not performed | Each is new Stripe money-movement code against a real card that nothing here can test, and a mistake in it charges a real person. They are **offered** — an absent button is indistinguishable from a feature nobody built — with a badge saying *"You do it in Stripe"* and a note that the billing was not touched. **The audit trail works for all six today**, which is the part that was missing. |
+| W7 | `member_action` has no `resume` | 🟡 GAP recorded | The enum is the brief's six. A resume is therefore logged as an ordinary attributed `activity_logs` row rather than a `member_action` one. One `ALTER TYPE … ADD VALUE 'resume'` in the next schema bundle — `PENDING_FOR_LEE.md` D-10. |
+
 ## Member dashboard pass (2026-09-07) — WP4 · **the shell is in, the pages are not converted yet**
 
 > Rules: `MEMBER_UX_RULES.md` R1–R11. This section grows one row per increment; nothing below is
@@ -39,7 +62,8 @@
 | M4 | R3 — the readiness notice moves INTO the header, the banner goes | ✅ VERIFIED (4b) | `MemberReadinessNotice` in the desktop header's LEFT slot — which R3 reserves for it and which stood empty — and as `md:hidden` layout chrome on mobile, where a 64px header has no room for a sentence. `MonitoringReadinessBar` is **deleted**, not merely unmounted: a component left in the tree is one somebody mounts again. The service announcement is gone from Home too (D10: announcements go in the bell). `memberReadinessNotice.test.tsx` (27), six mutations. |
 | M10 | R3's one sentence vs the spec's "lead with what works" | 🟡 TENSION recorded | The old bar led with *"Your alarm works and an operator will always answer it"*, which `ICE_OPERATOR_CARD_SPEC` §5.2 records as a rule. R3 asks for one sentence, so that reassurance now lives on the page the member lands on. The better answer is one sentence that does both — *"Your alarm works — we just need someone to contact"* — which needs three new strings in three languages. `PENDING_FOR_LEE.md` D-11 carries the exact wording. Nothing is frightening in the meantime: the current sentence is a task, not an alarm. |
 | M5 | R6/R8 — read-only by default; empty states offer the action | 🔴 BROKEN | `SubscriptionPage`'s empty state says `subscription.contactSupport`, which R6 forbids in as many words ("Never 'contact support to change'") and R8 contradicts ("'No active subscription' shows the plans"). Needs new copy in en/es/nl. |
-| M6 | Medical information — all 17 fields | ⬜ MISSING (4c) | `MedicalInfoPage` shows 8. The types were missing 10 of the columns until #188, so this was never only a presentation gap. |
+| M6 | Medical information — **all** the fields | ✅ VERIFIED (4c) | All **sixteen** member-editable columns of `medical_information`, in the brief's six sections, plus "Getting into your home" from `member_access` — read-only by RLS, codes masked with Show, locked **with a reason** (R7's pattern, not R6's banned sentence). Driven from `src/lib/medicalFields.ts`, checked against the generated Row type at compile time. `src/test/medicalInfoFields.test.tsx` (20) reads the **migrations** for the column list, so completeness is measured against the schema and not against any of the four hand-maintained copies. Seven mutations, each producing a verdict. |
+| M9 | The four hand-maintained copies of `medical_information`'s shape | ✅ FIXED (4c) | `types.ts` (#188, was missing ten columns), `useMemberProfile.MedicalInfo` (an interface listing eight — the query already said `select("*")`, so the **type** was what threw the data away), the page's markup, and `member-self-service`'s save whitelist. The last two now agree by assertion, in both directions: a field the page renders that the save drops is worse than a field that is absent. |
 | M7 | R7 — member photo upload; DOB/NIE locked with a reason | ⬜ MISSING | |
 | M8 | R10 — the A/A text-size control, persisted | ⬜ MISSING | |
 

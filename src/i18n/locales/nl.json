@@ -605,7 +605,10 @@
     "deleting": "Verwijderen...",
     "selected": "geselecteerd",
     "view": "Bekijken",
-    "change": "Wijzigen"
+    "change": "Wijzigen",
+    "hide": "Verbergen",
+    "show": "Tonen",
+    "remove": "Verwijderen"
   },
   "auth": {
     "login": "Inloggen",
@@ -1072,9 +1075,9 @@
     "deleteFailed": "Noodcontact verwijderen mislukt"
   },
   "medical": {
-    "subtitle": "Important health details for emergencies",
-    "emergencyTitle": "Emergency Medical Data",
-    "emergencyDesc": "This information is shared with emergency services when you need help. Keep it up to date for your safety.",
+    "subtitle": "Dit is precies wat een operator ziet op het moment dat u op uw hanger drukt.",
+    "emergencyTitle": "Wie dit leest",
+    "emergencyDesc": "Onze operators zien dit op het moment dat er op uw hanger wordt gedrukt, en zij lezen het voor aan de ambulance. Dit bijhouden is het nuttigste dat u hier voor uzelf kunt doen.",
     "noData": "No Medical Information",
     "addPrompt": "Add your medical details so we can provide better emergency care.",
     "addInfo": "Add Medical Information",
@@ -1092,7 +1095,47 @@
     "addAllergy": "Add allergy...",
     "additionalNotes": "Additional Notes",
     "notesPlaceholder": "Any other important medical information...",
-    "noneRecorded": "None recorded"
+    "noneRecorded": "None recorded",
+    "notAdded": "Niet toegevoegd",
+    "chooseBloodType": "Kies",
+    "section": {
+      "conditions": "Aandoeningen en medicatie",
+      "allergies": "Allergieën",
+      "senses": "Mobiliteit, gehoor en zicht",
+      "doctor": "Uw arts",
+      "insurance": "Particuliere verzekering",
+      "other": "Nog iets anders",
+      "access": "Hoe men uw huis binnenkomt"
+    },
+    "field": {
+      "conditions": "Aandoeningen",
+      "medications": "Medicatie",
+      "medsLocation": "Waar u uw medicatie bewaart",
+      "medsLocationHint": "Zodat een ambulancebemanning die kan vinden zonder uw huis door te zoeken.",
+      "medsNotes": "Nog iets anders over uw medicatie",
+      "allergies": "Allergieën",
+      "mobility": "Hoe u zich verplaatst",
+      "mobilityHint": "Bijvoorbeeld: rollator binnen, kan geen trap op.",
+      "hearing": "Gehoor",
+      "hearingHint": "Zodat een operator weet dat hij harder moet praten, of dat u hem eerst misschien niet hoort.",
+      "vision": "Zicht",
+      "doctorName": "Arts",
+      "doctorPhone": "Telefoon van de arts",
+      "doctorLocation": "Gezondheidscentrum",
+      "hospital": "Voorkeursziekenhuis",
+      "bloodType": "Bloedgroep",
+      "insurer": "Verzekeraar",
+      "policyNumber": "Polisnummer",
+      "additionalNotes": "Nog iets anders dat we moeten weten"
+    },
+    "access": {
+      "keySafeLocation": "Waar de sleutelkluis zit",
+      "keySafeCode": "Code van de sleutelkluis",
+      "gateCode": "Code van het hek of de portiek",
+      "notes": "Hoe men binnenkomt",
+      "locked": "Bel ons om dit te wijzigen — we controleren wie u bent voordat we aanpassen hoe iemand uw huis binnenkomt.",
+      "loadFailed": "We konden dit onderdeel niet lezen. Het is niet leeg — probeer het opnieuw."
+    }
   },
   "subscription": {
     "title": "Abonnement en facturatie",

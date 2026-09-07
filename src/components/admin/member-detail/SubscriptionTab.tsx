@@ -1,25 +1,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { 
-  Loader2, CreditCard, Calendar, CheckCircle, AlertTriangle,
-  PauseCircle, XCircle
-} from "lucide-react";
+import { Loader2, CreditCard, Calendar, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
+import { MemberActionsCard } from "@/components/admin/member-detail/MemberActionsCard";
 
 interface Subscription {
   id: string;
@@ -68,37 +55,22 @@ export function SubscriptionTab({ memberId }: SubscriptionTabProps) {
     }
   };
 
-  const updateStatus = async (newStatus: string) => {
-    if (!subscription) return;
+  /*
+    `updateStatus` IS GONE, and it was the defect WP7 exists to fix.
 
-    try {
-      // If cancelling, also cancel on the payment gateway
-      if (newStatus === "cancelled") {
-        if (subscription.mollie_subscription_id && subscription.mollie_customer_id) {
-          const { error: mollieErr } = await supabase.functions.invoke("cancel-mollie-subscription", {
-            body: { subscriptionId: subscription.id },
-          });
-          if (mollieErr) {
-            console.error("Mollie cancellation error:", mollieErr);
-            toast.error("Failed to cancel Mollie subscription. DB updated locally.");
-          }
-        }
-        // Stripe cancellation would be handled via Stripe Dashboard or API if needed
-      }
+    It wrote `subscriptions.status` STRAIGHT FROM THE BROWSER — pause, resume and cancel — and
+    for Stripe it called nothing at all. Its own comment said so: "Stripe cancellation would be
+    handled via Stripe Dashboard or API if needed."
 
-      const { error } = await supabase
-        .from("subscriptions")
-        .update({ status: newStatus as "active" | "paused" | "cancelled" | "expired" })
-        .eq("id", subscription.id);
+    So pressing Cancel left the database saying `cancelled` while STRIPE KEPT CHARGING THE
+    MEMBER'S CARD, and pressing Resume wrote `status = 'active'` from the client, which golden
+    rule 4 reserves for the payment webhook. Neither was attributed and neither had a reason.
 
-      if (error) throw error;
-      toast.success(`Subscription ${newStatus}`);
-      fetchSubscription();
-    } catch (error) {
-      console.error("Error updating subscription:", error);
-      toast.error("Failed to update subscription");
-    }
-  };
+    Both now go through `MemberActionsCard` → `useMemberAction`, which drives the gateway first
+    and lets the SERVER mirror the status — and records who did it and why, which
+    `enforce_member_action_attribution()` refuses to let it skip.
+  */
+
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -230,65 +202,27 @@ export function SubscriptionTab({ memberId }: SubscriptionTabProps) {
               Change Plan
             </Button>
             
-            {subscription.status === "active" && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline">
-                    <PauseCircle className="mr-2 h-4 w-4" />
-                    Pause Subscription
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Pause Subscription?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will pause the member's subscription. They will not be billed until resumed.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => updateStatus("paused")}>
-                      Pause
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-
-            {subscription.status === "paused" && (
-              <Button variant="outline" onClick={() => updateStatus("active")}>
-                Resume Subscription
-              </Button>
-            )}
-
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">
-                  <XCircle className="mr-2 h-4 w-4" />
-                  Cancel Subscription
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Cancel Subscription?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently cancel the member's subscription. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
-                  <AlertDialogAction 
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    onClick={() => updateStatus("cancelled")}
-                  >
-                    Cancel Subscription
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            {/*
+              The actions live in `MemberActionsCard`, below. Not beside these buttons: two ways
+              to cancel a subscription, one of which wrote the database and left Stripe
+              charging, is worse than either alone — whichever a staff member reaches for first
+              is the one that decides whether the member keeps paying.
+            */}
           </div>
         </CardContent>
       </Card>
+
+      <MemberActionsCard
+        memberId={memberId}
+        subscriptionId={subscription?.id ?? null}
+        gateway={
+          subscription?.mollie_subscription_id
+            ? "mollie"
+            : subscription?.stripe_subscription_id
+              ? "stripe"
+              : null
+        }
+      />
     </div>
   );
 }

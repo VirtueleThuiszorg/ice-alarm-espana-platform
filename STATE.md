@@ -26,6 +26,29 @@
 | B7 | 6 email-template logo URLs | ✅ FIXED | All six `_shared/email-templates/*.tsx` carried the placeholder. Now the real ref. ⚠️ **Still owed:** upload the logo to the `email-assets/logo.png` storage object — until then the images 404 (templates are currently unreferenced by any function, so no live email is affected). |
 | B8 | Untouched by design | — | `index.html`, `.github/workflows/deploy-functions.yml`, and the two cron migrations (`20260716120000`, `20260723120000`) already name the authoritative ref. The cron pair is the **SOS-escalation path** — not edited (G1 / human gate). |
 
+## Fulfilment state machine (2026-09-07) — WP2 · **schema APPLIED, screen partly shipped**
+
+> Design: `FULFILMENT_MODEL.md`. Scope: `CC_MASTER_BRIEF.md` WP2. Lee's rulings on §9 are
+> implemented and each carries a named assertion in `scripts/rls/isolation.sql`.
+>
+> **This is the section to read before believing any readiness number.** The readiness count for
+> every member is **zero** today and that is correct: readiness now needs a `tested` order, no
+> order has ever been in `tested`, and until increment 5b ships there is no way to put one there
+> from the member record. It must not be "fixed" by backfilling `tested`.
+
+| # | Item | Status | Evidence |
+|---|---|---|---|
+| F1 | `fulfilment_state` enum, six ranked states plus `cancelled` | ✅ APPLIED to prod | `20260907100000`, `20260907110000`. Recorded in `APPLIED_TO_PROD.txt`. |
+| F2 | One step forward, D9 roles for a correction, a **new** reason required, `activity_logs` written | ✅ APPLIED to prod | `enforce_fulfilment_state()`, `20260907110100`. Asserted in `scripts/rls/isolation.sql`; each assertion mutation-tested. |
+| F3 | `tested` refuses to be set without a resolvable staff id | ✅ APPLIED to prod | `20260907110100`. The state's entire content is that a named operator answered. |
+| F4 | Existing rows backfilled (`processing`→`allocated`, `shipped`→`dispatched`, …) | ✅ APPLIED to prod | `20260907110100`, trigger explicitly disabled for the block — a backfill is not a transition. |
+| F5 | Readiness = ≥1 contact **AND** a tested pendant still in good standing (D4, Q2) | ✅ APPLIED to prod | `20260907100100`. `security_invoker` preserved and asserted. |
+| F6 | A member cannot write any fulfilment state (Q1) | ✅ VERIFIED | `scripts/rls/isolation.sql` — no UPDATE path exists, and the assertion re-reads the row to prove it is unchanged. |
+| F7 | The staff **orders screen** moves a fulfilment state | ✅ VERIFIED (increment 5a) | `src/lib/fulfilmentState.ts` + `useFulfilmentState` + the column, filter, forward action and correction dialog on `/admin/orders`. `src/test/fulfilmentStateContract.test.ts` (45) proves the module mirrors the trigger — ranks, the correction predicate, the D9 role set and all five refusal messages are read out of the migrations. `src/test/ordersFulfilmentActions.test.tsx` (25) renders the screen. Both mutation-tested. |
+| F8 | `programmed` set by finishing the `ProvisioningChecklist` | ⬜ MISSING (increment 5b) | Nothing in `src/` writes `programmed`. The checklist has **14** steps, not the brief's six — recorded drift, `PENDING_FOR_LEE.md`. |
+| F9 | `tested` reachable from the member record / SOS screen | ⬜ MISSING (increment 5b) | Reachable today only from a row on `/admin/orders`. **This is why readiness is zero.** |
+| F10 | `awaiting_stock` as a condition rather than a state | ⬜ MISSING (increment 6) | The two ladders still coexist; an order moved by the older "Mark as shipped" action shows an **"out of step"** marker rather than drifting silently. §8-B. |
+
 ## Emergency-contact readiness (2026-09-04) — the second axis · **SHIPPED to main**
 
 > Design: `READINESS_MODEL.md` (#150). Increments: #151 (notify outcome), #152 (operator card),

@@ -1,5 +1,14 @@
 /**
- * The member-facing readiness bar — tone, truthfulness and placement.
+ * The member-facing readiness notice — tone, truthfulness and placement.
+ *
+ * MOVED INTO THE HEADER (R3, D10: "never a standalone banner"). It was a full-width
+ * three-paragraph bar in the content column; that shape has a cost R3 is answering — an amber
+ * block above the page reads as an interruption to be got past, and the member who gets past it
+ * once gets past it every time.
+ *
+ * The CONTRACT is unchanged and these tests are the same tests: settled-zero only, never while
+ * loading, never on a failed read, never dismissible, amber not red. What changed is where it
+ * renders and that it is now one sentence.
  *
  * The contract in ICE_OPERATOR_CARD_SPEC.md §5.1 is UNCHANGED: render only on a settled zero,
  * never while loading, never on a failed read, never dismissible. What changed is register and
@@ -16,6 +25,10 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, cleanup } from "@testing-library/react";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+
+const read = (p: string) => readFileSync(path.resolve(process.cwd(), p), "utf8");
 
 type Result = { data: unknown; error: unknown };
 let readinessResult: Promise<Result>;
@@ -35,14 +48,15 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 
 vi.mock("react-router-dom", () => ({
-  NavLink: ({ to, children }: { to: string; children: React.ReactNode }) => (
-    <a href={to}>{children}</a>
+  // Forwards every prop, not just `to` and `children`. A mock that drops `data-testid` makes
+  // an assertion about the link unreachable and looks like the component's fault.
+  NavLink: ({ to, children, ...rest }: { to: string; children: React.ReactNode }) => (
+    <a href={to} {...rest}>
+      {children}
+    </a>
   ),
 }));
 
-vi.mock("@/hooks/useCompanySettings", () => ({
-  useCompanySettings: () => ({ settings: { emergency_phone: "+34 900 123 456" } }),
-}));
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -51,11 +65,11 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-const BAR = "member-readiness-bar";
+const BAR = "member-readiness-notice";
 
-async function renderBar(memberId: string | null = "m-1") {
-  const { MonitoringReadinessBar } = await import("@/components/client/MonitoringReadinessBar");
-  return render(<MonitoringReadinessBar memberId={memberId} />);
+async function renderBar(memberId: string | null = "m-1", variant: "header" | "bar" = "bar") {
+  const { MemberReadinessNotice } = await import("@/components/client/MemberReadinessNotice");
+  return render(<MemberReadinessNotice memberId={memberId} variant={variant} />);
 }
 
 /**
@@ -122,10 +136,10 @@ describe("readiness bar — register: a task, not an emergency", () => {
   it("does not shout at the member in capitals", async () => {
     await renderBar();
     const bar = await screen.findByTestId(BAR);
-    const heading = bar.querySelector("p")!.textContent ?? "";
+    const text = bar.textContent ?? "";
     // The operator card's version IS uppercase, deliberately. This reader is an elderly person
     // at home who has just bought an alarm; capitals read as reproach, not as a task.
-    expect(heading).not.toBe(heading.toUpperCase());
+    expect(text).not.toBe(text.toUpperCase());
     expect(bar.className).not.toMatch(/uppercase/);
   });
 
@@ -135,19 +149,36 @@ describe("readiness bar — register: a task, not an emergency", () => {
     expect(bar.className).not.toMatch(/destructive/);
   });
 
-  it("leads with what still WORKS before what is missing", async () => {
+  it("names the TASK rather than the deficiency", async () => {
+    // "We still need your emergency contacts" is a thing to do. "Nobody can be called for you"
+    // is a verdict on the reader, and the operator card's version of this fact — which IS a
+    // verdict, addressed to a professional mid-alert — is the one that gets to say it that way.
     readinessResult = Promise.resolve({ data: VIEW.noContacts, error: null });
-    await renderBar();
-    const text = (await screen.findByTestId(BAR)).textContent ?? "";
-    expect(text).toMatch(/alarm works/i);
-    expect(text.indexOf("alarm works")).toBeLessThan(text.indexOf("no one to contact"));
+    const text = ((await renderBar(), await screen.findByTestId(BAR)).textContent ?? "");
+    expect(text).toMatch(/still need your emergency contacts/i);
+    expect(text).not.toMatch(/nobody to call|no one can be called/i);
   });
 
-  it("names the task rather than the deficiency, in the heading", async () => {
+  it("is ONE sentence — R3 — and the reassurance moved with the detail", async () => {
+    /*
+      The old bar led with "Your alarm works and an operator will always answer it", which is
+      the right thing to say first and which ICE_OPERATOR_CARD_SPEC §5.2 records as a rule. R3
+      asks for one sentence in the header, so the long body is gone and that reassurance now
+      lives on the contacts page, where the member lands.
+
+      THE TWO RULES ARE IN TENSION AND THIS IS THE HONEST READING OF IT. The better answer is a
+      single sentence that leads with what works — "Your alarm works — we just need someone to
+      contact" — which needs three new strings in three languages. Deferred to the next locale
+      pass rather than opened as a fourth concurrent PR on locale JSON, and recorded in
+      PENDING_FOR_LEE.md with the exact wording. Nothing is frightening in the meantime: the
+      current sentence is a task, not an alarm.
+    */
+    readinessResult = Promise.resolve({ data: VIEW.noContacts, error: null });
     await renderBar();
-    const heading = (await screen.findByTestId(BAR)).querySelector("p")!.textContent ?? "";
-    expect(heading).toMatch(/still need your emergency contacts/i);
-    expect(heading).not.toMatch(/nobody to call/i);
+    const notice = await screen.findByTestId(BAR);
+    expect(notice.textContent).not.toMatch(/operator will always answer/i);
+    // One sentence, not a paragraph stack.
+    expect(notice.querySelectorAll("p")).toHaveLength(0);
   });
 });
 
@@ -155,7 +186,7 @@ describe("readiness bar — D4: it names WHICH of the two conditions is missing"
   it("names the contacts when that is what is missing, and offers the button", async () => {
     readinessResult = Promise.resolve({ data: VIEW.noContacts, error: null });
     await renderBar();
-    expect(await screen.findByTestId("member-readiness-contacts")).toBeTruthy();
+    expect(await screen.findByTestId(BAR)).toBeTruthy();
     expect(screen.getByRole("link", { name: /add your emergency contacts/i })).toBeTruthy();
   });
 
@@ -163,32 +194,41 @@ describe("readiness bar — D4: it names WHICH of the two conditions is missing"
     readinessResult = Promise.resolve({ data: VIEW.untested, error: null });
     await renderBar();
     const bar = await screen.findByTestId(BAR);
-    expect(screen.getByTestId("member-readiness-pendant")).toBeTruthy();
+    expect(screen.getByTestId(BAR)).toBeTruthy();
     expect(bar.textContent).toMatch(/test your pendant/i);
     // It must not tell a member with two contacts on file that we have nobody to call.
     expect(bar.textContent).not.toMatch(/no one to contact/i);
   });
 
-  it("offers the member NOTHING TO PRESS for an untested pendant — Q1 is operator-only", async () => {
-    // Lee's Q1 ruling, 2026-09-07: operator-confirmed only, no member self-report. A button
-    // here would be either a lie about what it does or a hole in that ruling.
+  it("offers no way to SELF-REPORT a test, but does offer a route to a human", async () => {
+    /*
+      Q1 (Lee, 2026-09-07): operator-confirmed only. A control here that looked like "mark it
+      tested" would be either a lie or a hole in that ruling.
+
+      But the old bar's body said "we will call you", and that body is gone with R3's one
+      sentence — so the link points at Support, where the phone number is. A notice with nothing
+      to do on the one gap a member cannot fix themselves is a dead end.
+    */
     readinessResult = Promise.resolve({ data: VIEW.untested, error: null });
     await renderBar();
-    const bar = await screen.findByTestId(BAR);
-    expect(bar.querySelector("a[href='/dashboard/contacts']")).toBeNull();
-    expect(bar.querySelector("button")).toBeNull();
-    // The phone number IS the action, and it is still a real link.
-    expect(bar.querySelector("a[href^='tel:']")).not.toBeNull();
+    const notice = await screen.findByTestId(BAR);
+    expect(notice.dataset.gap).toBe("pendant");
+    expect(notice.textContent).toMatch(/test your pendant/i);
+    expect(notice.querySelector("a[href='/dashboard/support']")).not.toBeNull();
+    expect(notice.querySelector("a[href='/dashboard/contacts']")).toBeNull();
+    expect(notice.querySelector("button")).toBeNull();
   });
 
-  it("names both when both are missing, and still offers the half they can act on", async () => {
+  it("for a member missing BOTH, names the half they can act on today", async () => {
+    // R3 allows one sentence, so a member missing both cannot be told about both. The contacts
+    // half is the one they can do now; once it is done the sentence becomes the pendant one.
+    // Progressive, rather than a list they cannot finish.
     readinessResult = Promise.resolve({ data: VIEW.both, error: null });
     await renderBar();
-    const bar = await screen.findByTestId(BAR);
-    expect(screen.getByTestId("member-readiness-both")).toBeTruthy();
-    expect(bar.textContent).toMatch(/no one to contact/i);
-    expect(bar.textContent).toMatch(/pendant/i);
-    expect(screen.getByRole("link", { name: /add your emergency contacts/i })).toBeTruthy();
+    const notice = await screen.findByTestId(BAR);
+    expect(notice.dataset.gap).toBe("both");
+    expect(notice.textContent).toMatch(/still need your emergency contacts/i);
+    expect(notice.querySelector("a[href='/dashboard/contacts']")).not.toBeNull();
   });
 
   it("is ABSENT when the view says ready even if the two columns are missing", async () => {
@@ -226,12 +266,20 @@ describe("readiness bar — it offers only routes that exist", () => {
     expect(link!.textContent).toMatch(/add your emergency contacts/i);
   });
 
-  it("offers the phone as a real tel: link", async () => {
-    await renderBar();
-    const bar = await screen.findByTestId(BAR);
-    const tel = bar.querySelector('a[href^="tel:"]');
-    expect(tel).not.toBeNull();
-    expect(tel!.getAttribute("href")).toBe("tel:+34900123456");
+  it("always offers a link, and it is a real route rather than a dead end", async () => {
+    // The phone number was in the body text, which R3's one sentence does not have. Support is
+    // where the number lives, and the contacts page is where a member fixes the other half.
+    for (const [row, href] of [
+      [VIEW.noContacts, "/dashboard/contacts"],
+      [VIEW.untested, "/dashboard/support"],
+      [VIEW.both, "/dashboard/contacts"],
+    ] as const) {
+      readinessResult = Promise.resolve({ data: row, error: null });
+      const view = await renderBar();
+      const link = await screen.findByTestId("member-readiness-action");
+      expect(link.getAttribute("href")).toBe(href);
+      view.unmount();
+    }
   });
 });
 
@@ -263,43 +311,56 @@ describe("readiness bar — the constraints that did not change", () => {
   });
 });
 
-describe("readiness bar — placement", () => {
-  const read = (p: string) =>
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    (require("node:fs") as typeof import("node:fs")).readFileSync(p, "utf8");
+describe("placement — R3 and D10, and the standalone banner is gone", () => {
+  const layout = () => read("src/components/layout/ClientLayout.tsx");
 
-  it("lives in the member LAYOUT, so it persists across every member page", () => {
-    const layout = read("src/components/layout/ClientLayout.tsx");
-    expect(layout).toContain("<MonitoringReadinessBar memberId={memberId} />");
+  it("the desktop copy is in the header's LEFT slot, which R3 reserves for it", () => {
+    // The slot stood empty after the unwired search input was removed. D10: "left of Assistant
+    // / bell / language / name."
+    const src = layout();
+    const header = src.slice(src.indexOf("<header"), src.indexOf("</header>"));
+    expect(header).toContain('<MemberReadinessNotice memberId={memberId} variant="header" />');
+    // Before the Assistant / bell / language / name group, not after it.
+    expect(header.indexOf("MemberReadinessNotice")).toBeLessThan(header.indexOf("MemberChatButton"));
   });
 
-  it("sits below both headers and above <main>, so it cannot overlap the mobile nav", () => {
-    const layout = read("src/components/layout/ClientLayout.tsx");
-    const bar = layout.indexOf("<MonitoringReadinessBar");
-    const header = layout.indexOf('<header className="hidden md:flex sticky');
-    const main = layout.indexOf('<main className="p-4 md:p-6">');
-    expect(header).toBeGreaterThan(-1);
-    expect(bar).toBeGreaterThan(header); // after the desktop header
-    expect(bar).toBeLessThan(main);      // before the page content
+  it("the mobile copy is md:hidden layout chrome, not page content", () => {
+    // A 64px phone header has a logo and a menu button in it; there is no room for a sentence,
+    // and truncating a life-safety sentence to make one is the wrong trade.
+    const src = layout();
+    expect(src).toContain('<MemberReadinessNotice memberId={memberId} variant="bar" className="md:hidden" />');
+    // Still above <main>, so it cannot overlap the content or the mobile nav.
+    expect(src.indexOf('variant="bar"')).toBeLessThan(src.indexOf("<main"));
   });
 
-  it("is NOT fixed or sticky, so it never covers content or needs an offset", () => {
-    const src = read("src/components/client/MonitoringReadinessBar.tsx");
-    expect(src).not.toMatch(/className="[^"]*\b(fixed|sticky)\b/);
+  it("the standalone banner is DELETED, not merely unmounted", () => {
+    // D10: "Never a standalone banner." A component left in the tree is a component somebody
+    // mounts again.
+    expect(existsSync("src/components/client/MonitoringReadinessBar.tsx")).toBe(false);
+    expect(layout()).not.toContain("MonitoringReadinessBar");
   });
 
-  it("no longer lives on the dashboard, and the dashboard no longer reads readiness", () => {
-    // The read MOVED with the bar. If it were left behind, the page would perform a second
-    // read of the same fact — which the spec forbids.
+  it("is neither fixed nor sticky, in either variant", async () => {
+    /*
+      Asserted on the RENDERED className, not on the source: the component's own comment
+      explains why the mobile copy sits beneath the FIXED header, and a grep for "fixed" matches
+      the explanation. That mistake has already cost two tests in this session.
+    */
+    for (const variant of ["header", "bar"] as const) {
+      readinessResult = Promise.resolve({ data: VIEW.noContacts, error: null });
+      const view = await renderBar("m-1", variant);
+      const notice = await screen.findByTestId(BAR);
+      expect(notice.className).not.toMatch(/\bfixed\b|\bsticky\b/);
+      view.unmount();
+    }
+  });
+
+  it("the dashboard no longer carries the readiness read, or the announcement", () => {
+    // D10: "Company announcements go in the bell, never in page content." It was a permanent
+    // card with one hardcoded string — the same sentence every day, for every member, forever.
     const dash = read("src/pages/client/ClientDashboard.tsx");
     expect(dash).not.toContain("member_monitoring_readiness");
-    expect(dash).not.toContain("client-not-monitoring-ready");
-  });
-
-  it("the welcome heading stays in the page content, not the bar", () => {
-    const dash = read("src/pages/client/ClientDashboard.tsx");
-    expect(dash).toMatch(/welcomeBack|Welcome back/i);
-    const bar = read("src/components/client/MonitoringReadinessBar.tsx");
-    expect(bar).not.toMatch(/welcomeBack|Welcome back/i);
+    expect(dash).not.toContain("dashboard.announcementText");
+    expect(dash).not.toContain("serviceAnnouncement");
   });
 });

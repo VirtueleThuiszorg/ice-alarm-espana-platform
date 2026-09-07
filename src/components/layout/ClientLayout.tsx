@@ -53,7 +53,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { MemberChatButton } from "@/components/chat/MemberChatButton";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
-import { MonitoringReadinessBar } from "@/components/client/MonitoringReadinessBar";
+import { MemberReadinessNotice } from "@/components/client/MemberReadinessNotice";
 
 interface MenuItem {
   icon: React.ElementType;
@@ -446,9 +446,14 @@ export function ClientLayout() {
       )}>
         {/* Desktop Header */}
         <header className="hidden md:flex sticky top-0 z-30 h-16 items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
-          {/* Left side — intentionally empty: the previous search input was
-              never wired to anything (no member search exists yet) */}
-          <div className="flex items-center gap-4" />
+          {/*
+            R3's LEFT slot. It stood empty since the unwired search input was removed, and it is
+            the place D10 names for the readiness notice: "left of Assistant / bell / language /
+            name. Never a standalone banner."
+          */}
+          <div className="flex min-w-0 items-center gap-4">
+            <MemberReadinessNotice memberId={memberId} variant="header" />
+          </div>
 
           {/* Right side */}
           <div className="flex items-center gap-2">
@@ -496,15 +501,17 @@ export function ClientLayout() {
         </header>
 
         {/*
-          The readiness bar sits INSIDE the content column, below both headers.
-          - On mobile the column already carries pt-16 to clear the fixed header, so the bar
-            lands below it and cannot overlap or displace the nav.
-          - On desktop it follows the sticky header in normal flow, so it never covers content
-            and never needs a compensating offset.
-          It is in the LAYOUT rather than on Home so it persists across every member page — a
-          member who navigates away from the dashboard does not navigate away from the fact.
+          THE MOBILE PLACEMENT, and the standalone banner is gone (D10).
+
+          A phone header is 64px with a logo and a menu button in it; there is no room for a
+          sentence, and truncating a life-safety sentence to make one is the wrong trade. So on
+          mobile the notice sits directly beneath the fixed header — still layout chrome rather
+          than page content, which is what D10's "standalone banner" is about.
+
+          `md:hidden` because the desktop copy lives in the header's left slot above. Both are
+          the same component and the same one sentence.
         */}
-        <MonitoringReadinessBar memberId={memberId} />
+        <MemberReadinessNotice memberId={memberId} variant="bar" className="md:hidden" />
 
         <main className="p-4 md:p-6">
           <SectionErrorBoundary section="client" homePath="/dashboard">

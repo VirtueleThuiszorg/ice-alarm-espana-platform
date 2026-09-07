@@ -26,6 +26,9 @@ import {
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/client/PageHeader";
+import { useIsabellaThread } from "@/hooks/useIsabellaThread";
+import { IsabellaEpisodeCard } from "@/components/messaging/IsabellaEpisodeCard";
+import { mergeThread } from "@/lib/isabellaThread";
 
 interface Conversation {
   id: string;
@@ -53,6 +56,12 @@ export default function MessagesPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  /*
+    Isabella's side of this conversation. Her turns live in `conversation_messages` and her
+    calls in `conversation_calls`, neither of which any thread has ever read — so a member who
+    spoke to her saw a conversation with nothing in it. See `src/lib/isabellaThread.ts`.
+  */
+  const { data: isabellaEpisodes = [] } = useIsabellaThread(selectedConversation?.id ?? null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -341,33 +350,38 @@ export default function MessagesPage() {
           <CardContent className="p-0">
             <ScrollArea className="h-[400px] p-4">
               <div className="space-y-4">
-                {messages.filter(m => m.message_type !== "system").map((msg) => (
+                {mergeThread(
+                  messages.filter(m => m.message_type !== "system"),
+                  isabellaEpisodes,
+                ).map((item) => item.kind === "isabella" ? (
+                  <IsabellaEpisodeCard key={item.episode.id} episode={item.episode} viewer="member" />
+                ) : (
                   <div
-                    key={msg.id}
+                    key={item.message.id}
                     className={cn(
                       "flex",
-                      msg.sender_type === "member" ? "justify-end" : "justify-start"
+                      item.message.sender_type === "member" ? "justify-end" : "justify-start"
                     )}
                   >
                     <div
                       className={cn(
                         "max-w-[80%] rounded-2xl px-4 py-3",
-                        msg.sender_type === "member"
+                        item.message.sender_type === "member"
                           ? "bg-primary text-primary-foreground rounded-br-md"
                           : "bg-muted rounded-bl-md"
                       )}
                     >
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                      <p className="text-sm whitespace-pre-wrap">{item.message.content}</p>
                       <div className="flex items-center justify-end gap-2 mt-1 text-xs opacity-70">
                         <span>
-                          {msg.sender_type === "staff" && msg.staff_name
-                            ? `${msg.staff_name} • `
-                            : msg.sender_type === "member"
+                          {item.message.sender_type === "staff" && item.message.staff_name
+                            ? `${item.message.staff_name} • `
+                            : item.message.sender_type === "member"
                             ? `${t("messages.you")} • `
                             : ""}
-                          {format(new Date(msg.created_at), "h:mm a")}
+                          {format(new Date(item.message.created_at), "h:mm a")}
                         </span>
-                        {msg.sender_type === "member" && msg.is_read && (
+                        {item.message.sender_type === "member" && item.message.is_read && (
                           <CheckCheck className="h-3 w-3" />
                         )}
                       </div>

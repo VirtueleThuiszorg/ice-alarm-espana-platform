@@ -276,6 +276,24 @@ attention that the admin screen cannot display), it needs no schema, and it can 
 
 ## 9. Open questions for the human
 
+> **ANSWERED by Lee, 2026-09-07.** Kept in full below rather than rewritten, because the
+> reasoning is why the answers are what they are. Each ruling is implemented in PR #180 and
+> carries a named assertion in `scripts/rls/isolation.sql`.
+>
+> | | Ruling | Implemented as | Made to fail by |
+> |---|---|---|---|
+> | **Q1** | **Operator-confirmed only.** No member self-report | a member cannot write `fulfilment_state` at all — RLS gives them no UPDATE path, and the assertion checks the row is unchanged afterwards | — (there is no policy to remove; the CONTROL assertion is the guard) |
+> | **Q2** | **Yes — a replaced or faulty pendant drops readiness until re-tested** | the readiness view counts a `tested` order only while its device is still the member's and not `faulty`/`returned`/`inactive` | removing the device condition → a faulty pendant stays ready (2 red) |
+> | **Q3** | **Refuse the backward move** once the commission is `approved` or `paid` | the trigger raises, the order still reads `delivered`, and the commission is untouched | removing the refusal → a paid commission becomes reversible (2 red) |
+> | **Q4** | **Parked** | nothing built, nothing assumed | recorded as `PENDING_FOR_LEE.md` D-4 |
+>
+> Q2 is the one worth re-reading. It was written here as *"correct and unpopular"*, and it is:
+> the count of ready members now falls whenever a pendant is swapped, and it stays down until
+> somebody visits and tests the new one. That is the honest reading of what a test proves — it
+> proved **that device** worked in **that home** — and the alternative is a readiness number
+> that quietly covers a device nobody has ever pressed.
+
+
 **Q1 — who may record `tested`?** §2 says "a named operator". Should a *member* be able to
 self-report a successful test, or must an operator confirm it from their side? Self-reporting is
 the difference between a readiness number that moves and one that waits on staff time. Recording

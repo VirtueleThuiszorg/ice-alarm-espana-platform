@@ -2509,9 +2509,13 @@ SELECT pg_temp.check(
 INSERT INTO public.notification_templates (event_key, channel, locale, body)
 VALUES ('pendant_tested', 'sms', 'en', 'Your pendant has been tested.');
 
+-- Scoped to THIS fixture's event_key, not to the whole table. The seed bundle
+-- (20260907120000) puts 36 real templates in here, and an assertion that only holds while a
+-- table is empty is an assertion that breaks the first time somebody seeds content.
 SELECT pg_temp.check(
   'CONTROL: a template really exists, so the member''s empty read means something',
-  (SELECT count(*) FROM public.notification_templates) = 1);
+  (SELECT count(*) FROM public.notification_templates
+    WHERE event_key = 'pendant_tested') = 1);
 
 SELECT pg_temp.check(
   'a member STILL cannot read it now that one exists',
@@ -2521,7 +2525,7 @@ SELECT pg_temp.check(
 SELECT pg_temp.check(
   'staff CAN read templates',
   pg_temp.count_as('a5000000-0000-0000-0000-00000000000f',
-    'SELECT id FROM public.notification_templates') = 1);
+    'SELECT id FROM public.notification_templates WHERE event_key = ''pendant_tested''') = 1);
 
 SELECT pg_temp.check(
   'ordinary staff CANNOT edit a template — admin only',
@@ -2531,7 +2535,8 @@ SELECT pg_temp.check(
 
 SELECT pg_temp.check(
   'CONTROL: the template body really is untouched',
-  (SELECT body FROM public.notification_templates) = 'Your pendant has been tested.');
+  (SELECT body FROM public.notification_templates
+    WHERE event_key = 'pendant_tested') = 'Your pendant has been tested.');
 
 -- ── member_notification_log: no authenticated write path at all ───────────
 INSERT INTO public.member_notification_log (member_id, channel, event_key, status)
@@ -2821,7 +2826,7 @@ SELECT pg_temp.check(
 SELECT pg_temp.check(
   'staff DO read them',
   pg_temp.count_as('a6000000-0000-0000-0000-00000000000f',
-    'SELECT id FROM public.canned_replies') = 2);
+    'SELECT id FROM public.canned_replies WHERE shortcut = ''/wait''') = 2);
 
 SELECT pg_temp.check(
   'ordinary staff cannot EDIT them — admin only',
@@ -2890,10 +2895,20 @@ SELECT pg_temp.check(
       AND btrim(reason) <> ''
       AND staff_id IS NOT NULL) = 1);
 
+-- Named, not counted. A bare count says "six of something" and passes just as happily when a
+-- value is renamed or replaced; it also fails for the wrong reason the moment a seventh is
+-- added deliberately, which is what happened when `resume` arrived (the member record could
+-- pause a subscription and offered no way to un-pause it).
 SELECT pg_temp.check(
-  'all five staff actions exist in the enum',
-  (SELECT count(*) FROM unnest(enum_range(NULL::public.member_action))) = 6,
-  'renew, switch_to_single, switch_to_couple, add_pendant, pause, cancel');
+  'every staff action the screen offers exists in the enum',
+  -- ::text, and sorted as text. `ORDER BY v` on an enum sorts by DECLARATION order, so a value
+  -- appended by ALTER TYPE lands at the end and the comparison depends on the order somebody
+  -- happened to add things in. The set is what matters here, not the order.
+  (SELECT array_agg(v::text ORDER BY v::text)
+     FROM unnest(enum_range(NULL::public.member_action)) AS v)
+   = ARRAY['add_pendant', 'cancel', 'pause', 'renew', 'resume', 'switch_to_couple',
+           'switch_to_single'],
+  'renew, switch_to_single, switch_to_couple, add_pendant, pause, resume, cancel');
 
 -- ============================================================
 --  Report

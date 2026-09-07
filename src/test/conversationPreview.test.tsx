@@ -1,0 +1,229 @@
+/**
+ * WP4 M23 + WP6 G7a — what a conversation row says about itself.
+ *
+ * TWO THINGS, ONE FIX.
+ *
+ * 1. **The preview rendered the word "undefined".** Every list built it as
+ *    `lastMsg?.content?.substring(0, n) + (… ? "..." : "") || ""`. With no message row that is
+ *    `undefined + ""`, which is the STRING `"undefined"` — truthy, so the `|| ""` never fired.
+ *    `MessagesPanel`'s variant produced `"undefined..."`. It was invisible while every
+ *    conversation had messages, and WP6 G7 made it visible: Isabella creates a `conversations`
+ *    row per chat session and writes her turns to `conversation_messages`, so there is now an
+ *    empty-`messages` conversation for every member who has used the chat widget.
+ *
+ * 2. **The dashboard card showed a number.** M23 asks for the last thread. "2 unread messages"
+ *    tells a member how much is waiting and nothing about what it is.
+ *
+ * The first assertion below is the one that would have caught the live defect, and it is written
+ * as the string it must never produce.
+ */
+
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { render, screen, cleanup } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
+import type { ReactNode } from "react";
+import { stripComments } from "./helpers/stripComments";
+import { conversationPreview, previewText } from "@/lib/conversationPreview";
+
+const ROOT = process.cwd();
+
+// ── the doubles ─────────────────────────────────────────────────────────────────────────────
+let conversationRow: Record<string, unknown> | null = null;
+let messageRow: Record<string, unknown> | null = null;
+let turnRow: Record<string, unknown> | null = null;
+let tablesQueried: string[] = [];
+
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: {
+    from: (table: string) => {
+      tablesQueried.push(table);
+      const chain: Record<string, unknown> = {};
+      for (const m of ["select", "eq", "order", "limit"]) chain[m] = () => chain;
+      chain.maybeSingle = () =>
+        Promise.resolve({
+          data:
+            table === "conversations" ? conversationRow
+            : table === "messages" ? messageRow
+            : turnRow,
+          error: null,
+        });
+      return chain;
+    },
+  },
+}));
+
+vi.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ memberId: "m1" }) }));
+
+afterEach(() => {
+  cleanup();
+  tablesQueried = [];
+});
+
+// ── 1. the string that must never appear ────────────────────────────────────────────────────
+describe("the preview text", () => {
+  it("IS NOT THE WORD \"undefined\" when there is nothing to preview", () => {
+    expect(previewText(undefined)).toBe("");
+    expect(previewText(null)).toBe("");
+    expect(previewText("")).toBe("");
+    expect(conversationPreview(null, null).text).toBe("");
+    expect(conversationPreview(null, null).text).not.toContain("undefined");
+  });
+
+  it("does not append an ellipsis to something that was not truncated", () => {
+    // `MessagesPanel` appended "..." unconditionally, so every short message ended in one.
+    expect(previewText("Thank you")).toBe("Thank you");
+  });
+
+  it("truncates a long message and says so", () => {
+    const long = "a".repeat(200);
+    const out = previewText(long, 80);
+    expect(out).toHaveLength(81);
+    expect(out.endsWith("…")).toBe(true);
+  });
+
+  it("collapses the newlines a multi-line message would otherwise put in a one-line row", () => {
+    expect(previewText("first line\n\nsecond line")).toBe("first line second line");
+  });
+});
+
+// ── 2. Isabella as a fallback ───────────────────────────────────────────────────────────────
+describe("which of the two sources the row shows", () => {
+  const msg = { content: "We have posted your pendant", created_at: "2026-09-07T10:00:00Z" };
+  const turn = { content: "Is there anything else?", created_at: "2026-09-07T09:00:00Z" };
+
+  it("uses the ordinary message when there is one", () => {
+    const p = conversationPreview(msg, turn);
+    expect(p.source).toBe("message");
+    expect(p.text).toBe("We have posted your pendant");
+  });
+
+  it("falls back to Isabella when the thread has no messages at all", () => {
+    const p = conversationPreview(null, turn);
+    expect(p.source).toBe("isabella");
+    expect(p.text).toBe("Is there anything else?");
+  });
+
+  it("prefers whichever is NEWER when both exist", () => {
+    const newerTurn = { ...turn, created_at: "2026-09-07T11:00:00Z" };
+    expect(conversationPreview(msg, newerTurn).source).toBe("isabella");
+  });
+
+  it("says `none` rather than inventing a source", () => {
+    expect(conversationPreview(null, null).source).toBe("none");
+  });
+});
+
+// ── 3. the dashboard card's hook ────────────────────────────────────────────────────────────
+const wrapper = ({ children }: { children: ReactNode }) => {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+};
+
+async function renderProbe() {
+  const { useMemberLastThread } = await import("@/hooks/useMemberLastThread");
+  function Probe() {
+    const { data, isLoading } = useMemberLastThread();
+    if (isLoading) return <p>loading</p>;
+    if (!data) return <p>no thread</p>;
+    return (
+      <div>
+        <p>{data.subject ?? "(no subject)"}</p>
+        <p>{data.preview.text}</p>
+        <p>{data.preview.source}</p>
+      </div>
+    );
+  }
+  render(<Probe />, { wrapper });
+}
+
+describe("the member's last thread", () => {
+  it("is the newest message in their newest conversation", async () => {
+    conversationRow = { id: "c1", subject: "Pendant question", last_message_at: "2026-09-07T10:00:00Z" };
+    messageRow = { content: "We have posted your pendant", created_at: "2026-09-07T10:00:00Z", sender_type: "staff" };
+    turnRow = null;
+    await renderProbe();
+    expect(await screen.findByText("Pendant question")).toBeInTheDocument();
+    expect(screen.getByText("We have posted your pendant")).toBeInTheDocument();
+  });
+
+  it("shows Isabella's last turn when the thread has no messages", async () => {
+    conversationRow = { id: "c1", subject: null, last_message_at: "2026-09-07T10:00:00Z" };
+    messageRow = null;
+    turnRow = { content: "I have noted that for you", created_at: "2026-09-07T10:00:00Z" };
+    await renderProbe();
+    expect(await screen.findByText("I have noted that for you")).toBeInTheDocument();
+    expect(screen.getByText("isabella")).toBeInTheDocument();
+  });
+
+  it("does NOT read conversation_messages when there is an ordinary message to show", async () => {
+    conversationRow = { id: "c1", subject: "s", last_message_at: "2026-09-07T10:00:00Z" };
+    messageRow = { content: "hello", created_at: "2026-09-07T10:00:00Z", sender_type: "staff" };
+    turnRow = null;
+    await renderProbe();
+    await screen.findByText("hello");
+    expect(tablesQueried).not.toContain("conversation_messages");
+  });
+
+  it("is nothing at all when the member has no conversation", async () => {
+    conversationRow = null;
+    messageRow = null;
+    turnRow = null;
+    await renderProbe();
+    expect(await screen.findByText("no thread")).toBeInTheDocument();
+  });
+
+  it("is nothing when the conversation exists but is genuinely empty", async () => {
+    conversationRow = { id: "c1", subject: "s", last_message_at: null };
+    messageRow = null;
+    turnRow = null;
+    await renderProbe();
+    expect(await screen.findByText("no thread")).toBeInTheDocument();
+  });
+});
+
+// ── 4. no list may build a preview by hand again ────────────────────────────────────────────
+describe("every conversation list, in source", () => {
+  const walk = (dir: string, out: string[] = []): string[] => {
+    for (const name of readdirSync(dir)) {
+      const p = join(dir, name);
+      if (statSync(p).isDirectory()) { walk(p, out); continue; }
+      if (/\.tsx?$/.test(name) && !p.includes(join("src", "test"))) out.push(p);
+    }
+    return out;
+  };
+
+  it("nobody concatenates a preview out of a possibly-undefined substring", () => {
+    // The exact shape of the live defect: `?.substring(...) + (...)`. One `previewText()` now.
+    const offenders = walk(join(ROOT, "src")).filter((p) =>
+      /\?\.substring\([^)]*\)\s*\+/.test(stripComments(readFileSync(p, "utf8"))),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it("the five lists go through the shared preview", () => {
+    const LISTS = [
+      "src/pages/client/MessagesPage.tsx",
+      "src/pages/client/SupportPage.tsx",
+      "src/pages/call-centre/MessagesPage.tsx",
+      "src/pages/admin/MessagesPage.tsx",
+      "src/components/call-centre/MessagesPanel.tsx",
+    ];
+    for (const file of LISTS) {
+      const src = stripComments(readFileSync(join(ROOT, file), "utf8"));
+      expect(src, file).toContain("conversationPreview(");
+      expect(src, file).toContain("fetchLastIsabellaTurn(");
+      // `.single()` reports "no rows" as an error, which is the ORDINARY case for an
+      // Isabella-only conversation — and in two of these lists it threw into a catch that
+      // returned a zeroed unread count with it. `.limit(1).single()` is the shape it took.
+      expect(src, file).not.toMatch(/\.limit\(1\)\s*\.single\(\)/);
+    }
+  });
+
+  it("the dashboard card shows the thread, not only a count", () => {
+    const src = stripComments(readFileSync(join(ROOT, "src/pages/client/ClientDashboard.tsx"), "utf8"));
+    expect(src).toContain("useMemberLastThread(");
+    expect(src).toContain("lastThread.preview.text");
+  });
+});

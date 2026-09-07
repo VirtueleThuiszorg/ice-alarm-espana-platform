@@ -61,7 +61,7 @@ export function MembershipPlans() {
         {plans.map((plan) => (
           <Card key={plan.key} data-testid={`membership-plan-${plan.key}`}>
             <CardContent className="space-y-2 p-6">
-              <p className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="text-[0.8125rem] font-semibold uppercase tracking-wide text-muted-foreground">
                 {t(plan.nameKey, plan.nameFallback)}
               </p>
               <p className="text-2xl font-bold">
@@ -84,7 +84,7 @@ export function MembershipPlans() {
 
       <Card>
         <CardContent className="space-y-2 p-6">
-          <p className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <p className="text-[0.8125rem] font-semibold uppercase tracking-wide text-muted-foreground">
             {t("subscription.oneOffCosts", "Paid once, when you join")}
           </p>
           <dl className="space-y-1 text-base">

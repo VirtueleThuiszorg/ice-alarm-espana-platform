@@ -83,17 +83,21 @@ describe("PageHeader itself", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("My pendant");
   });
 
-  it("uses 28px, not a responsive step-down to 24px", async () => {
+  it("uses 28px, not a responsive step-down to 24px — and in rem, so R10's A/A moves it", async () => {
     /*
       R5 says 28px. Tailwind's text-3xl is 30px and text-2xl is 24px, and the pages used
       `text-2xl md:text-3xl` — so on a PHONE, where most of these members read, the title was
       24px. The step-down is deliberately absent: the rule does not have one, and a smaller
       title on a small screen is the wrong way round for this reader.
+
+      `1.75rem` and not `28px`: the same size at the default root, but an arbitrary px value
+      ignores the root font size, so the A/A control would have enlarged every other word on the
+      page and left the titles alone. R5 and R10 only agree in rem.
     */
     await renderHeader();
     const h1 = screen.getByRole("heading", { level: 1 });
-    expect(h1.className).toContain("text-[28px]");
-    expect(h1.className).not.toMatch(/text-2xl|md:text-3xl/);
+    expect(h1.className).toContain("text-[1.75rem]");
+    expect(h1.className).not.toMatch(/text-2xl|md:text-3xl|text-\[\d+px\]/);
   });
 
   it("renders the subtitle at 16px — R10's floor", async () => {

@@ -605,7 +605,10 @@
     "deleting": "Verwijderen...",
     "selected": "geselecteerd",
     "view": "Bekijken",
-    "change": "Wijzigen"
+    "change": "Wijzigen",
+    "hide": "Verbergen",
+    "show": "Tonen",
+    "remove": "Verwijderen"
   },
   "auth": {
     "login": "Inloggen",
@@ -1072,9 +1075,9 @@
     "deleteFailed": "Noodcontact verwijderen mislukt"
   },
   "medical": {
-    "subtitle": "Important health details for emergencies",
-    "emergencyTitle": "Emergency Medical Data",
-    "emergencyDesc": "This information is shared with emergency services when you need help. Keep it up to date for your safety.",
+    "subtitle": "Dit is precies wat een operator ziet op het moment dat u op uw hanger drukt.",
+    "emergencyTitle": "Wie dit leest",
+    "emergencyDesc": "Onze operators zien dit op het moment dat er op uw hanger wordt gedrukt, en zij lezen het voor aan de ambulance. Dit bijhouden is het nuttigste dat u hier voor uzelf kunt doen.",
     "noData": "No Medical Information",
     "addPrompt": "Add your medical details so we can provide better emergency care.",
     "addInfo": "Add Medical Information",
@@ -1092,7 +1095,47 @@
     "addAllergy": "Add allergy...",
     "additionalNotes": "Additional Notes",
     "notesPlaceholder": "Any other important medical information...",
-    "noneRecorded": "None recorded"
+    "noneRecorded": "None recorded",
+    "notAdded": "Niet toegevoegd",
+    "chooseBloodType": "Kies",
+    "section": {
+      "conditions": "Aandoeningen en medicatie",
+      "allergies": "Allergieën",
+      "senses": "Mobiliteit, gehoor en zicht",
+      "doctor": "Uw arts",
+      "insurance": "Particuliere verzekering",
+      "other": "Nog iets anders",
+      "access": "Hoe men uw huis binnenkomt"
+    },
+    "field": {
+      "conditions": "Aandoeningen",
+      "medications": "Medicatie",
+      "medsLocation": "Waar u uw medicatie bewaart",
+      "medsLocationHint": "Zodat een ambulancebemanning die kan vinden zonder uw huis door te zoeken.",
+      "medsNotes": "Nog iets anders over uw medicatie",
+      "allergies": "Allergieën",
+      "mobility": "Hoe u zich verplaatst",
+      "mobilityHint": "Bijvoorbeeld: rollator binnen, kan geen trap op.",
+      "hearing": "Gehoor",
+      "hearingHint": "Zodat een operator weet dat hij harder moet praten, of dat u hem eerst misschien niet hoort.",
+      "vision": "Zicht",
+      "doctorName": "Arts",
+      "doctorPhone": "Telefoon van de arts",
+      "doctorLocation": "Gezondheidscentrum",
+      "hospital": "Voorkeursziekenhuis",
+      "bloodType": "Bloedgroep",
+      "insurer": "Verzekeraar",
+      "policyNumber": "Polisnummer",
+      "additionalNotes": "Nog iets anders dat we moeten weten"
+    },
+    "access": {
+      "keySafeLocation": "Waar de sleutelkluis zit",
+      "keySafeCode": "Code van de sleutelkluis",
+      "gateCode": "Code van het hek of de portiek",
+      "notes": "Hoe men binnenkomt",
+      "locked": "Bel ons om dit te wijzigen — we controleren wie u bent voordat we aanpassen hoe iemand uw huis binnenkomt.",
+      "loadFailed": "We konden dit onderdeel niet lezen. Het is niet leeg — probeer het opnieuw."
+    }
   },
   "subscription": {
     "title": "Abonnement en facturatie",
@@ -1789,6 +1832,70 @@
       "workBoth": "Eén telefoontje doet beide: leg een contact vast en laat ze daarna op de hanger drukken.",
       "gapUnknown": "Kon niet gelezen worden",
       "workUnknown": "Dit is geen toestand. Behandel het niet als gereed of niet-gereed — probeer opnieuw en escaleer daarna."
+    },
+    "fulfilment": {
+      "paid": "Betaald",
+      "allocated": "Apparaat toegewezen",
+      "programmed": "Geprogrammeerd",
+      "dispatched": "Verzonden",
+      "delivered": "Bezorgd",
+      "tested": "Getest",
+      "cancelled": "Geannuleerd",
+      "filter": "Afhandeling",
+      "filterAll": "Alle afhandelingsstatussen",
+      "column": "Afhandeling",
+      "driftShort": "niet in lijn",
+      "driftTitle": "De afhandeling zegt dit, maar de orderstatus zegt {{status}}. Die twee lopen niet gelijk.",
+      "correctAction": "Afhandelingsstatus corrigeren…",
+      "condition": {
+        "awaitingStock": "Wacht op voorraad",
+        "awaitingStockWork": "Dit lid heeft betaald en er was geen vrije hanger om te reserveren. Koop voorraad in en wijs er daarna een toe vanaf hun dossier.",
+        "awaitingAllocation": "Heeft een hanger nodig",
+        "awaitingAllocationWork": "Wijs een hanger toe vanaf het dossier van dit lid. Dat is wat de order verderhelpt."
+      },
+      "action": {
+        "allocated": "Een apparaat toewijzen",
+        "programmed": "Configuratie afronden",
+        "dispatched": "Opgehaald voor bezorging",
+        "delivered": "Bezorgd bij het lid",
+        "tested": "Testoproep voltooid",
+        "cancelled": "Deze order annuleren"
+      },
+      "meaning": {
+        "paid": "Betaling is verwerkt. Nog geen apparaat toegewezen.",
+        "allocated": "Er is een specifieke hanger voor dit lid gereserveerd en die is uit voorraad gehaald.",
+        "programmed": "De hanger is geconfigureerd: SIM, server, SOS-nummer en beide tests geslaagd.",
+        "dispatched": "Opgehaald voor bezorging en op weg naar het lid.",
+        "delivered": "In handen van het lid. Dit is wat de partnercommissie uitbetaalt.",
+        "tested": "Het lid drukte thuis op de knop en een operator met naam nam op. Dit is de helft van gereedheid voor monitoring.",
+        "cancelled": "Deze order wordt niet afgehandeld. Een eventuele openstaande commissie wordt daarmee geannuleerd."
+      },
+      "correct": {
+        "title": "De afhandelingsstatus corrigeren",
+        "body": "Order {{order}} staat nu op “{{state}}”. Een correctie wordt op uw naam vastgelegd met de reden die u opgeeft.",
+        "target": "Zet het op",
+        "choose": "Kies een status",
+        "reason": "Wat is er gebeurd?",
+        "reasonPlaceholder": "bv. Per ongeluk als bezorgd gemarkeerd — de koerier bracht het onbezorgd terug.",
+        "reasonHelp": "Dit blijft op uw naam in het activiteitenlogboek staan. Het mag niet leeg zijn en mag niet de reden herhalen die al op deze order staat.",
+        "reasonRepeated": "Dat is de reden die al op deze order staat. Zeg wat er deze keer is gebeurd.",
+        "commissionWarning": "Deze order is bezorgd, dus er kan een partnercommissie van € 50 bestaan. Hem uit «bezorgd» halen annuleert een commissie die nog niet is vrijgegeven, en wordt volledig geweigerd zodra er een is uitbetaald.",
+        "save": "De correctie vastleggen"
+      },
+      "card": {
+        "title": "Afhandeling van de hanger",
+        "subtitle": "De helft van de gereedheid voor monitoring van dit lid is of hun hanger bij hen thuis is getest terwijl een operator opnam.",
+        "loading": "De hangerorder van dit lid wordt gelezen…",
+        "loadFailed": "De afhandelingsstatus van dit lid kon niet gelezen worden",
+        "loadFailedBody": "Dit is NIET hetzelfde als “niet getest”. Behandel het als geen van beide toestanden. Probeer opnieuw en escaleer als het blijft.",
+        "notOnOrder": "Deze hanger staat op geen enkele order",
+        "notOnOrderBody": "Gereedheid bereikt een hanger via de order waarop die is verkocht, dus dit lid kan niet als gereed voor monitoring worden vastgelegd zolang de hanger niet aan een hangerregel op een van hun orders is gekoppeld. Ze bellen voor een test verandert dat niet.",
+        "ladder": "Afhandelingsstappen",
+        "tested": "Testoproep aangenomen",
+        "testedOn": "Testoproep aangenomen op {{date}}{{by}}",
+        "testedWarning": "Druk hier alleen op nadat het lid thuis op de hanger heeft gedrukt en u die oproep hebt aangenomen. Het wordt op uw naam vastgelegd, en het is wat dit systeem vertelt dat ze beschermd zijn.",
+        "notYet": "Een testoproep kan pas worden vastgelegd zodra de hanger bij het lid is. Zet de order verder vanuit Orders, of rond de configuratielijst op het apparaat af."
+      }
     }
   },
   "finance": {
@@ -5765,7 +5872,10 @@
       "previousAlerts": "Previous Alerts",
       "notes": "Notes",
       "notesPlaceholder": "Staff notes during call...",
-      "autoSave": "Auto-saves every 30 seconds"
+      "autoSave": "Auto-saves every 30 seconds",
+      "pendantUntestedHeading": "Hanger nooit getest",
+      "pendantUntestedBody": "Er is nooit een testoproep vanuit het huis van dit lid aangenomen. Dit kan de eerste keer zijn dat ze een operator horen.",
+      "pendantUntestedAdvice": "Zeg eerst wie u bent en waarvandaan u belt. Ga er niet van uit dat ze weten dat de hanger kan spreken."
     },
     "controls": {
       "unmute": "Unmute",

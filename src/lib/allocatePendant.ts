@@ -1,5 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
-import { fulfilmentRank, type FulfilmentState } from "@/lib/fulfilmentState";
+import {
+  FULFILMENT_TO_ORDER_STATUS,
+  fulfilmentRank,
+  type FulfilmentState,
+} from "@/lib/fulfilmentState";
 import { notifyTransition } from "@/lib/notifyTransition";
 
 /**
@@ -55,7 +59,9 @@ export async function linkDeviceToPendantOrder(
     // a device on.
     const { data: items, error: itemsError } = await supabase
       .from("order_items")
-      .select("id, order_id, device_id, created_at, orders!inner(id, member_id, fulfilment_state, order_number)")
+      .select(
+        "id, order_id, device_id, created_at, orders!inner(id, member_id, fulfilment_state, status, order_number)",
+      )
       .eq("item_type", "pendant")
       .eq("orders.member_id", memberId)
       .order("created_at", { ascending: false });
@@ -66,7 +72,12 @@ export async function linkDeviceToPendantOrder(
       id: string;
       order_id: string;
       device_id: string | null;
-      orders: { id: string; fulfilment_state: FulfilmentState; order_number: string | null };
+      orders: {
+        id: string;
+        fulfilment_state: FulfilmentState;
+        status: string | null;
+        order_number: string | null;
+      };
     }[];
 
     if (rows.length === 0) return { kind: "no_pendant_order" };
@@ -97,8 +108,36 @@ export async function linkDeviceToPendantOrder(
 
     if (moveError) return { kind: "failed", message: moveError.message };
 
-    // WP3: the state edge rings the dispatcher. Never awaited for its outcome and never
-    // allowed to fail this function — the allocation is the fact, the message is a courtesy.
+/*
+      AND THE CONDITION CLEARS ITSELF — increment 6.
+
+      `awaiting_stock` is a value in `orders.status`: the record of `post-payment.ts` trying to
+      allocate and finding no free pendant. Once one IS allocated that record is stale, and
+      `fulfilmentCondition()` would keep reading "Awaiting stock" off it forever while the order
+      sat at `allocated` — which is exactly the drift the orders row flags.
+
+      So the status is moved to its counterpart in the same breath. Guarded on the stale value
+      rather than written unconditionally: an order whose status a human has already corrected
+      is not overwritten by a side-effect.
+    */
+    if (target.orders.status === "awaiting_stock") {
+      const { error: statusError } = await supabase
+        .from("orders")
+        .update({ status: FULFILMENT_TO_ORDER_STATUS.allocated })
+        .eq("id", target.order_id);
+      // Not fatal: the device IS allocated and the fulfilment state says so. A stale status is
+      // visible as drift on the orders row, which is better than refusing an allocation that
+      // has already happened.
+      if (statusError) {
+        console.error("allocated, but orders.status was left stale:", statusError.message);
+      }
+    }
+
+    // WP3: the state edge rings the dispatcher — LAST, once the row is fully consistent. A
+    // member told "a pendant has been reserved for you" by a message that went out before the
+    // status was reconciled would be told something the orders screen still contradicted.
+    // Never allowed to fail this function: the allocation is the fact, the message is a
+    // courtesy about the fact.
     await notifyTransition(target.order_id, "allocated");
 
     return {

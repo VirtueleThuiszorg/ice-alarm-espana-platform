@@ -1,192 +1,140 @@
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { useEffect, useMemo, useState } from "react";
 import { useMedicalInfo } from "@/hooks/useMemberProfile";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-
-import { 
-  Loader2, 
-  Heart, 
-  Droplet, 
-  Pill, 
-  AlertTriangle,
-  Building2,
-  User,
-  Phone,
-  Activity,
-  FileText,
-  Plus,
-  Edit,
-  X,
-  Save
-} from "lucide-react";
+import { AlertTriangle, Edit, Home, Loader2, Plus, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { functionError } from "@/lib/functionError";
 import { PageHeader } from "@/components/client/PageHeader";
+import {
+  FieldLabel,
+  LockedValue,
+  MedicalFieldRow,
+} from "@/components/client/MedicalFieldRow";
+import {
+  MEDICAL_FIELDS,
+  MEDICAL_SECTIONS,
+  MEMBER_ACCESS_FIELDS,
+} from "@/lib/medicalFields";
 
-const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+/**
+ * ALL SIXTEEN FIELDS, plus the access section — MEMBER_UX_RULES R6, and the brief's WP4.
+ *
+ * WHAT THIS REPLACED. 583 lines of hand-rolled per-field markup that showed EIGHT of the sixteen
+ * columns `medical_information` holds. The other eight — where the medication is kept and any
+ * notes about it, mobility, hearing, sight, the medical centre, the private insurer and the
+ * policy number — were collected somewhere and then invisible to the person they are about.
+ *
+ * It could not have been otherwise: `types.ts` was missing ten of those columns outright until
+ * #188, so half of them would not have compiled. This is the presentation half of a fix whose
+ * other half was a type-generation bug.
+ *
+ * NOW DRIVEN FROM `src/lib/medicalFields.ts`, which is checked against the generated Row type at
+ * COMPILE TIME. A column added by a future migration stops the build until somebody places it.
+ * Eight-of-sixteen is a state a hand-written page can sit in for months without anybody
+ * noticing, and it did — so the page is no longer the sort of thing that can be in that state.
+ *
+ * THE SUBTITLE IS THE REASON THE COMPLETENESS MATTERS. *"This is exactly what an operator sees
+ * the moment you press your pendant."* If that sentence is on the screen it has to be true, and
+ * with eight fields missing it was not.
+ */
 
-const medicalSchema = z.object({
-  blood_type: z.string().optional(),
-  doctor_name: z.string().max(100).optional(),
-  doctor_phone: z.string().max(20).optional(),
-  hospital_preference: z.string().max(200).optional(),
-  additional_notes: z.string().max(1000).optional(),
-});
+type Scalar = string;
+type Values = Record<string, Scalar | string[]>;
 
-type MedicalFormData = z.infer<typeof medicalSchema>;
+function emptyValues(): Values {
+  const v: Values = {};
+  for (const f of MEDICAL_FIELDS) v[f.column] = f.kind === "list" ? [] : "";
+  return v;
+}
 
 export default function MedicalInfoPage() {
   const { t } = useTranslation();
   const { memberId } = useAuth();
   const { data: medicalInfo, isLoading } = useMedicalInfo();
   const queryClient = useQueryClient();
-  
+
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  
-  // Arrays management
-  const [conditions, setConditions] = useState<string[]>([]);
-  const [medications, setMedications] = useState<string[]>([]);
-  const [allergies, setAllergies] = useState<string[]>([]);
-  const [newCondition, setNewCondition] = useState("");
-  const [newMedication, setNewMedication] = useState("");
-  const [newAllergy, setNewAllergy] = useState("");
+  const [values, setValues] = useState<Values>(emptyValues);
 
-  const form = useForm<MedicalFormData>({
-    resolver: zodResolver(medicalSchema),
-    defaultValues: {
-      blood_type: "",
-      doctor_name: "",
-      doctor_phone: "",
-      hospital_preference: "",
-      additional_notes: "",
+  /**
+   * `member_access` — a different table, read-only for the member by RLS.
+   *
+   * Its own query rather than a join: `medical_information` and `member_access` have different
+   * policies, and a member with one row but not the other must see the half they have rather
+   * than nothing.
+   */
+  const access = useQuery({
+    queryKey: ["member-access", memberId],
+    enabled: !!memberId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("member_access")
+        .select("key_safe_location, key_safe_code, gate_code, access_notes")
+        .eq("member_id", memberId as string)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
     },
   });
 
-  // Reset form when data loads or editing starts
+  const fromRecord = useMemo(() => {
+    const v = emptyValues();
+    if (!medicalInfo) return v;
+    for (const f of MEDICAL_FIELDS) {
+      const raw = (medicalInfo as unknown as Record<string, unknown>)[f.column];
+      v[f.column] = f.kind === "list" ? ((raw as string[] | null) ?? []) : ((raw as string | null) ?? "");
+    }
+    return v;
+  }, [medicalInfo]);
+
+  // Outside edit mode the form mirrors the record, so a save elsewhere is reflected here rather
+  // than leaving a stale draft on screen.
   useEffect(() => {
-    if (medicalInfo && isEditing) {
-      form.reset({
-        blood_type: medicalInfo.blood_type || "",
-        doctor_name: medicalInfo.doctor_name || "",
-        doctor_phone: medicalInfo.doctor_phone || "",
-        hospital_preference: medicalInfo.hospital_preference || "",
-        additional_notes: medicalInfo.additional_notes || "",
-      });
-      setConditions(medicalInfo.medical_conditions || []);
-      setMedications(medicalInfo.medications || []);
-      setAllergies(medicalInfo.allergies || []);
-    }
-  }, [medicalInfo, isEditing]);
+    if (!isEditing) setValues(fromRecord);
+  }, [fromRecord, isEditing]);
 
-  const startEditing = () => {
-    if (medicalInfo) {
-      form.reset({
-        blood_type: medicalInfo.blood_type || "",
-        doctor_name: medicalInfo.doctor_name || "",
-        doctor_phone: medicalInfo.doctor_phone || "",
-        hospital_preference: medicalInfo.hospital_preference || "",
-        additional_notes: medicalInfo.additional_notes || "",
-      });
-      setConditions(medicalInfo.medical_conditions || []);
-      setMedications(medicalInfo.medications || []);
-      setAllergies(medicalInfo.allergies || []);
-    } else {
-      form.reset({
-        blood_type: "",
-        doctor_name: "",
-        doctor_phone: "",
-        hospital_preference: "",
-        additional_notes: "",
-      });
-      setConditions([]);
-      setMedications([]);
-      setAllergies([]);
-    }
-    setIsEditing(true);
-  };
-
-  const cancelEditing = () => {
-    setIsEditing(false);
-    setNewCondition("");
-    setNewMedication("");
-    setNewAllergy("");
-  };
-
-  const addItem = (type: "condition" | "medication" | "allergy") => {
-    if (type === "condition" && newCondition.trim()) {
-      setConditions([...conditions, newCondition.trim()]);
-      setNewCondition("");
-    } else if (type === "medication" && newMedication.trim()) {
-      setMedications([...medications, newMedication.trim()]);
-      setNewMedication("");
-    } else if (type === "allergy" && newAllergy.trim()) {
-      setAllergies([...allergies, newAllergy.trim()]);
-      setNewAllergy("");
-    }
-  };
-
-  const removeItem = (type: "condition" | "medication" | "allergy", index: number) => {
-    if (type === "condition") {
-      setConditions(conditions.filter((_, i) => i !== index));
-    } else if (type === "medication") {
-      setMedications(medications.filter((_, i) => i !== index));
-    } else if (type === "allergy") {
-      setAllergies(allergies.filter((_, i) => i !== index));
-    }
-  };
-
-  const onSubmit = async (data: MedicalFormData) => {
+  const onSave = async () => {
     if (!memberId) return;
-
     setIsSaving(true);
     try {
-      const medicalData = {
-        blood_type: data.blood_type || null,
-        doctor_name: data.doctor_name || null,
-        doctor_phone: data.doctor_phone || null,
-        hospital_preference: data.hospital_preference || null,
-        additional_notes: data.additional_notes || null,
-        medical_conditions: conditions.length > 0 ? conditions : null,
-        medications: medications.length > 0 ? medications : null,
-        allergies: allergies.length > 0 ? allergies : null,
-      };
+      /*
+        EVERY field is sent, and an empty one is sent as NULL rather than omitted. Omitting it
+        would make "I cleared this" indistinguishable from "I did not touch it", and the member
+        who deletes a medication they no longer take needs it gone from what the operator reads.
+      */
+      const payload: Record<string, unknown> = {};
+      for (const f of MEDICAL_FIELDS) {
+        const v = values[f.column];
+        if (f.kind === "list") {
+          const list = (v as string[]) ?? [];
+          payload[f.column] = list.length > 0 ? list : null;
+        } else {
+          const s = ((v as string) ?? "").trim();
+          payload[f.column] = s.length > 0 ? s : null;
+        }
+      }
 
-      // Server-side save: medical_information deliberately has NO member
-      // INSERT policy, so a member's first save was always RLS-denied.
-      // member-self-service upserts the caller's OWN row (identity verified
-      // server-side) — zero policy changes.
+      // medical_information deliberately has NO member INSERT policy, so a member's first save
+      // was always RLS-denied. `member-self-service` upserts the caller's OWN row, identity
+      // verified server-side, with a whitelist that `medicalInfoFields.test.ts` proves matches
+      // the field list this page renders.
       const { data: result, error } = await supabase.functions.invoke("member-self-service", {
-        body: { action: "save_medical_info", ...medicalData },
+        body: { action: "save_medical_info", ...payload },
       });
-
       if (error) throw await functionError(error);
       if (result?.error) throw new Error(result.error);
 
       queryClient.invalidateQueries({ queryKey: ["medical-info"] });
       toast.success(t("common.success"));
       setIsEditing(false);
-    } catch (error) {
-      console.error("Error saving medical info:", error);
+    } catch (e) {
+      console.error("Error saving medical info:", e);
       toast.error(t("common.error"));
     } finally {
       setIsSaving(false);
@@ -195,389 +143,131 @@ export default function MedicalInfoPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex min-h-[400px] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="animate-fade-in space-y-6">
       <PageHeader
         title={t("clientNav.medicalInfo", "Medical Information")}
-        subtitle={t("medical.subtitle", "Important health details for emergencies")}
+        subtitle={t(
+          "medical.subtitle",
+          "This is exactly what an operator sees the moment you press your pendant.",
+        )}
         action={
-          !isEditing && (
-            <Button onClick={startEditing} className="gap-2">
-              {medicalInfo ? <Edit className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-              {medicalInfo ? t("common.edit") : t("common.add")}
+          isEditing ? (
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>
+                <X className="mr-2 h-4 w-4" />
+                {t("common.cancel", "Cancel")}
+              </Button>
+              <Button onClick={onSave} disabled={isSaving} data-testid="medical-save">
+                {isSaving ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                {t("common.save", "Save")}
+              </Button>
+            </div>
+          ) : (
+            <Button onClick={() => setIsEditing(true)} data-testid="medical-edit">
+              {medicalInfo ? <Edit className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
+              {medicalInfo ? t("common.edit", "Edit") : t("common.add", "Add")}
             </Button>
           )
         }
       />
 
-      {/* Important Notice */}
-      <Card className="border-destructive/20 bg-destructive/5">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="font-medium">{t("medical.emergencyTitle", "Emergency Medical Data")}</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {t("medical.emergencyDesc", "This information is shared with emergency services when you need help. Keep it up to date for your safety.")}
-              </p>
-            </div>
+      {/*
+        R2: brand red is never a status. This is a notice about who reads the page, not an alert,
+        so it is amber-on-cream — the same treatment R3 gives the readiness notice.
+      */}
+      <Card className="border-amber-500/40 bg-amber-50 dark:bg-amber-950/30">
+        <CardContent className="flex items-start gap-3 p-4">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-700 dark:text-amber-400" />
+          <div>
+            <p className="font-medium">
+              {t("medical.emergencyTitle", "Who reads this")}
+            </p>
+            <p className="mt-1 text-base text-muted-foreground">
+              {t(
+                "medical.emergencyDesc",
+                "Our operators see this the moment your pendant is pressed, and they read it out to the ambulance crew. Keeping it up to date is the single most useful thing you can do for yourself here.",
+              )}
+            </p>
           </div>
         </CardContent>
       </Card>
 
-      {isEditing ? (
-        /* Edit Form */
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          {/* Allergies Section - Important! */}
-          <Card className="border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg flex items-center gap-2 text-red-700 dark:text-red-400">
-                <AlertTriangle className="h-5 w-5" />
-                {t("medical.allergies", "Allergies")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex flex-wrap gap-2">
-                {allergies.map((allergy, i) => (
-                  <Badge key={i} variant="destructive" className="text-sm py-1 px-3 gap-1">
-                    {allergy}
-                    <button type="button" onClick={() => removeItem("allergy", i)} className="ml-1 hover:bg-red-700 rounded">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  placeholder={t("medical.addAllergy")}
-                  value={newAllergy}
-                  onChange={(e) => setNewAllergy(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addItem("allergy"))}
-                  className="bg-white dark:bg-background"
+      {MEDICAL_SECTIONS.map((section) => (
+        <Card key={section.key} data-testid={`medical-section-${section.key}`}>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">{t(section.title.key, section.title.fallback)}</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-5 md:grid-cols-2">
+            {section.fields.map((field) => (
+              <div
+                key={field.column}
+                className={field.kind === "textarea" ? "md:col-span-2" : undefined}
+              >
+                <MedicalFieldRow
+                  field={field}
+                  isEditing={isEditing}
+                  value={values[field.column] ?? (field.kind === "list" ? [] : "")}
+                  onChange={(v) => setValues((prev) => ({ ...prev, [field.column]: v }))}
                 />
-                <Button type="button" variant="outline" size="sm" onClick={() => addItem("allergy")}>
-                  <Plus className="h-4 w-4" />
-                </Button>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Main Grid */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {/* Blood Type */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Droplet className="h-4 w-4 text-red-500" />
-                  {t("medical.bloodType", "Blood Type")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Select
-                  value={form.watch("blood_type") || ""}
-                  onValueChange={(value) => form.setValue("blood_type", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("medical.selectBloodType", "Select blood type")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {BLOOD_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </CardContent>
-            </Card>
-
-            {/* Doctor */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  {t("medical.doctor", "Doctor")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <Label className="text-xs text-muted-foreground">{t("common.name")}</Label>
-                  <Input {...form.register("doctor_name")} placeholder={t("medical.doctorName")} />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">{t("common.phone")}</Label>
-                  <Input {...form.register("doctor_phone")} placeholder={t("common.phonePlaceholder")} />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Hospital */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  {t("medical.hospital", "Preferred Hospital")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Input {...form.register("hospital_preference")} placeholder={t("medical.hospitalName")} />
-              </CardContent>
-            </Card>
-
-            {/* Medical Conditions */}
-            <Card className="md:col-span-2 lg:col-span-1">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  {t("medical.conditions", "Medical Conditions")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  {conditions.map((condition, i) => (
-                    <Badge key={i} variant="secondary" className="py-1 gap-1">
-                      {condition}
-                      <button type="button" onClick={() => removeItem("condition", i)} className="ml-1 hover:bg-muted rounded">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder={t("medical.addCondition")}
-                    value={newCondition}
-                    onChange={(e) => setNewCondition(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addItem("condition"))}
-                  />
-                  <Button type="button" variant="outline" size="sm" onClick={() => addItem("condition")}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Medications */}
-            <Card className="md:col-span-2">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Pill className="h-4 w-4" />
-                  {t("medical.medications", "Current Medications")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  {medications.map((med, i) => (
-                    <Badge key={i} variant="outline" className="py-1 gap-1">
-                      {med}
-                      <button type="button" onClick={() => removeItem("medication", i)} className="ml-1 hover:bg-muted rounded">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder={t("medical.addMedication")}
-                    value={newMedication}
-                    onChange={(e) => setNewMedication(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addItem("medication"))}
-                  />
-                  <Button type="button" variant="outline" size="sm" onClick={() => addItem("medication")}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Additional Notes */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                {t("medical.additionalNotes", "Additional Notes")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                {...form.register("additional_notes")}
-                placeholder={t("medical.notesPlaceholder")}
-                rows={3}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Form Actions */}
-          <div className="flex justify-end gap-3">
-            <Button type="button" variant="outline" onClick={cancelEditing} disabled={isSaving}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" disabled={isSaving} className="gap-2">
-              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {isSaving ? t("profile.saving", "Saving...") : t("profile.saveChanges", "Save Changes")}
-            </Button>
-          </div>
-        </form>
-      ) : !medicalInfo ? (
-        /* Empty State */
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Heart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="font-semibold text-lg mb-2">{t("medical.noData", "No Medical Information")}</h3>
-            <p className="text-muted-foreground mb-4">
-              {t("medical.addPrompt", "Add your medical details so we can provide better emergency care.")}
-            </p>
-            <Button onClick={startEditing} className="gap-2">
-              <Plus className="h-4 w-4" />
-              {t("medical.addInfo", "Add Medical Information")}
-            </Button>
+            ))}
           </CardContent>
         </Card>
-      ) : (
-        /* Display Mode */
-        <>
-          {/* Allergies - Full Width Alert */}
-          {medicalInfo.allergies && medicalInfo.allergies.length > 0 && (
-            <Card className="border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center gap-2 text-red-700 dark:text-red-400">
-                  <AlertTriangle className="h-5 w-5" />
-                  {t("medical.allergies", "Allergies")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {medicalInfo.allergies.map((allergy, i) => (
-                    <Badge key={i} variant="destructive" className="text-sm py-1 px-3">
-                      {allergy}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+      ))}
+
+      {/*
+        GETTING INTO YOUR HOME — a different table, and read-only by RLS rather than by choice.
+        `member_access` gives a member SELECT on their own row and no write: an admin records it.
+        A key-safe code the account holder can change is a key-safe code anyone who gets into the
+        account can change, and the operator would then read a number a stranger typed.
+
+        So it is shown, locked, WITH A REASON — the pattern R7 already sanctions for DOB and NIE.
+        R6's ban on "contact support to change" is about fields the member could perfectly well
+        edit themselves; this is not one of those.
+      */}
+      <Card data-testid="medical-section-access">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Home className="h-5 w-5" aria-hidden="true" />
+            {t("medical.section.access", "Getting into your home")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-5 md:grid-cols-2">
+          {access.isError ? (
+            <p role="alert" className="md:col-span-2 text-base font-medium text-destructive">
+              {t(
+                "medical.access.loadFailed",
+                "We could not read this section. It is not empty — please try again.",
+              )}
+            </p>
+          ) : (
+            MEMBER_ACCESS_FIELDS.map((field) => (
+              <div key={field.column} className="space-y-1.5" data-testid={`access-field-${field.column}`}>
+                <FieldLabel>{t(field.label.key, field.label.fallback)}</FieldLabel>
+                <LockedValue
+                  value={(access.data?.[field.column] as string | null) ?? null}
+                  secret={field.secret}
+                  reason={t(
+                    "medical.access.locked",
+                    "Call us to change this — we check who you are before we alter how someone gets into your home.",
+                  )}
+                />
+              </div>
+            ))
           )}
-
-          {/* Main Grid */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {/* Blood Type */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Droplet className="h-4 w-4 text-red-500" />
-                  {t("medical.bloodType", "Blood Type")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-center py-4">
-                  {medicalInfo.blood_type || "—"}
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Doctor */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  {t("medical.doctor", "Doctor")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <p className="font-medium">{medicalInfo.doctor_name || t("common.notSpecified", "Not specified")}</p>
-                {medicalInfo.doctor_phone && (
-                  <p className="text-sm text-muted-foreground flex items-center gap-2">
-                    <Phone className="h-3 w-3" />
-                    {medicalInfo.doctor_phone}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Hospital */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  {t("medical.hospital", "Preferred Hospital")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="font-medium">
-                  {medicalInfo.hospital_preference || t("common.notSpecified", "Not specified")}
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Medical Conditions */}
-            <Card className="md:col-span-2 lg:col-span-1">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  {t("medical.conditions", "Medical Conditions")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {medicalInfo.medical_conditions && medicalInfo.medical_conditions.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {medicalInfo.medical_conditions.map((condition, i) => (
-                      <Badge key={i} variant="secondary" className="py-1">
-                        {condition}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">{t("medical.noneRecorded", "None recorded")}</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Medications */}
-            <Card className="md:col-span-2">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Pill className="h-4 w-4" />
-                  {t("medical.medications", "Current Medications")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {medicalInfo.medications && medicalInfo.medications.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {medicalInfo.medications.map((med, i) => (
-                      <Badge key={i} variant="outline" className="py-1">
-                        {med}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">{t("medical.noneRecorded", "None recorded")}</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Additional Notes */}
-          {medicalInfo.additional_notes && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  {t("medical.additionalNotes", "Additional Notes")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground whitespace-pre-wrap">
-                  {medicalInfo.additional_notes}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </>
-      )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

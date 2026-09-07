@@ -38,6 +38,7 @@ import {
 let optinRows: Record<string, unknown>[] = [];
 let upserted: Record<string, unknown>[] = [];
 let upsertError: Error | null = null;
+let upsertOptions: unknown[] = [];
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -46,8 +47,11 @@ vi.mock("@/integrations/supabase/client", () => ({
       chain.select = () => chain;
       chain.in = () => Promise.resolve({ data: [], error: null });
       chain.eq = () => Promise.resolve({ data: optinRows, error: null });
-      chain.upsert = (row: Record<string, unknown>) => {
-        if (table === "member_notification_optin") upserted.push(row);
+      chain.upsert = (row: Record<string, unknown>, options?: unknown) => {
+        if (table === "member_notification_optin") {
+          upserted.push(row);
+          upsertOptions.push(options);
+        }
         return Promise.resolve({ error: upsertError });
       };
       return chain;
@@ -81,6 +85,7 @@ beforeEach(() => {
   optinRows = [];
   upserted = [];
   upsertError = null;
+  upsertOptions = [];
   companyPhone = "+34 950 473 199";
 });
 afterEach(cleanup);
@@ -162,6 +167,15 @@ describe("the row consent writes", () => {
     fireEvent.click(screen.getAllByRole("switch")[0]);
     await waitFor(() => expect(upserted).toHaveLength(1));
     expect(upserted[0]).toMatchObject({ member_id: "m1", opted_in: true, basis: "member_self" });
+  });
+
+  it("upserts on (member_id, channel), so pressing twice is one row and not two that disagree", async () => {
+    // Without the conflict target the second press INSERTS, and the table then holds two rows
+    // for the same channel — one saying yes and one saying no, with no rule about which wins.
+    await renderCard();
+    fireEvent.click(screen.getAllByRole("switch")[0]);
+    await waitFor(() => expect(upserted).toHaveLength(1));
+    expect(upsertOptions[0]).toMatchObject({ onConflict: "member_id,channel" });
   });
 
   it("is withdrawn by the SAME control, with no dialog and no reason asked for", async () => {

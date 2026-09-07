@@ -1380,7 +1380,13 @@ UPDATE public.orders SET fulfilment_state = 'allocated'  WHERE id = '0dde0000-00
 UPDATE public.orders SET fulfilment_state = 'programmed' WHERE id = '0dde0000-0000-0000-0000-0000000000b1';
 UPDATE public.orders SET fulfilment_state = 'dispatched' WHERE id = '0dde0000-0000-0000-0000-0000000000b1';
 UPDATE public.orders SET fulfilment_state = 'delivered'  WHERE id = '0dde0000-0000-0000-0000-0000000000b1';
-UPDATE public.orders SET fulfilment_state = 'tested'     WHERE id = '0dde0000-0000-0000-0000-0000000000b1';
+-- `tested` now REQUIRES a named operator (CC_MASTER_BRIEF.md WP2: "tested requires a staff
+-- id"). A migration has no auth.uid() to resolve one from, so the fixture names one explicitly
+-- — which is the rule working, not a workaround for it.
+UPDATE public.orders SET fulfilment_state = 'tested',
+       tested_by = (SELECT id FROM public.staff
+                     WHERE user_id = '55555555-5555-5555-5555-555555555555')
+ WHERE id = '0dde0000-0000-0000-0000-0000000000b1';
 
 SELECT pg_temp.check(
   'walking the states server-side stamped tested_at without a client supplying it',
@@ -2159,10 +2165,61 @@ SELECT pg_temp.check(
 
 -- §7.4 — a supervisor CAN.
 SELECT pg_temp.check(
-  'D9: a call_centre_supervisor CAN move dispatched → programmed',
+  'D9: a call_centre_supervisor CAN move dispatched → programmed, WITH a reason',
   pg_temp.exec_as('a5000000-0000-0000-0000-00000000000f',
-    'UPDATE public.orders SET fulfilment_state = ''programmed''
+    'UPDATE public.orders SET fulfilment_state = ''programmed'',
+            fulfilment_state_reason = ''marked dispatched in error, courier never collected''
       WHERE id = ''0dde0000-0000-0000-0000-00000000000b''') = 1);
+
+-- CC_MASTER_BRIEF.md WP2: backward moves "require a reason". The role alone is not enough.
+--
+-- On THEIR OWN order. If either guard is removed, the move succeeds — and on the shared order
+-- that would derail every fixture after it and abort the suite instead of reporting. A
+-- mutation must produce a verdict, not the absence of one.
+INSERT INTO public.orders
+  (id, member_id, order_number, subtotal, tax_amount, total_amount,
+   shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code,
+   fulfilment_state, fulfilment_state_reason)
+VALUES ('0dde0000-0000-0000-0000-00000000c001', 'bbbbbbbb-0000-0000-0000-000000000002',
+        'ORD-RLS-REASON', 100, 21, 121, 'Calle B 2', 'Albox', 'Almeria', '04800',
+        'dispatched', 'seeded with a prior reason, so the reuse case below is real');
+
+SELECT pg_temp.check(
+  'a supervisor moving backwards with NO reason is REFUSED — the role is not enough',
+  pg_temp.raises_as('a5000000-0000-0000-0000-00000000000f',
+    'UPDATE public.orders SET fulfilment_state = ''allocated''
+      WHERE id = ''0dde0000-0000-0000-0000-00000000c001'''),
+  'a state somebody undid without saying why is not a correction, it is a discrepancy');
+
+SELECT pg_temp.check(
+  'and REUSING the previous reason is refused too — it must be new',
+  pg_temp.raises_as('a5000000-0000-0000-0000-00000000000f',
+    'UPDATE public.orders SET fulfilment_state = ''allocated'',
+            fulfilment_state_reason = ''seeded with a prior reason, so the reuse case below is real''
+      WHERE id = ''0dde0000-0000-0000-0000-00000000c001'''),
+  'without it a second correction inherits the first one''''s sentence and the log describes '
+  'a different event');
+
+SELECT pg_temp.check(
+  'CONTROL: neither refusal moved the order',
+  (SELECT fulfilment_state FROM public.orders
+    WHERE id = '0dde0000-0000-0000-0000-00000000c001') = 'dispatched');
+
+SELECT pg_temp.check(
+  'the correction wrote an activity_logs row naming the move and the reason',
+  (SELECT count(*) FROM public.activity_logs
+    WHERE action = 'fulfilment_state_corrected'
+      AND entity_id = '0dde0000-0000-0000-0000-00000000000b'
+      AND reason LIKE '%courier never collected%') = 1,
+  'a reason held only in a column is overwritten by the next correction; the log survives');
+
+SELECT pg_temp.check(
+  'and it names the acting supervisor, not nobody',
+  (SELECT staff_id FROM public.activity_logs
+    WHERE action = 'fulfilment_state_corrected'
+      AND entity_id = '0dde0000-0000-0000-0000-00000000000b'
+    LIMIT 1) = (SELECT id FROM public.staff
+                 WHERE user_id = 'a5000000-0000-0000-0000-00000000000f'));
 
 -- ── §7.6 / §7.7 — the commission hazard ───────────────────────────────────
 -- `delivered` creates a €50 partner commission, and process-commissions cancels a
@@ -2170,7 +2227,8 @@ SELECT pg_temp.check(
 -- `delivered` is not cancelled — so without the trigger's cancellation the money releases
 -- seven days later for a delivery that never happened.
 
-UPDATE public.orders SET fulfilment_state = 'dispatched'
+UPDATE public.orders SET fulfilment_state = 'dispatched',
+       fulfilment_state_reason = 'fixture: re-advancing for the commission scenario'
 WHERE id = '0dde0000-0000-0000-0000-00000000000b';
 UPDATE public.orders SET fulfilment_state = 'delivered'
 WHERE id = '0dde0000-0000-0000-0000-00000000000b';
@@ -2189,7 +2247,8 @@ SELECT pg_temp.check(
 SELECT pg_temp.check(
   '§7.6 a supervisor CAN correct delivered → dispatched while money is still pending',
   pg_temp.exec_as('a5000000-0000-0000-0000-00000000000f',
-    'UPDATE public.orders SET fulfilment_state = ''dispatched''
+    'UPDATE public.orders SET fulfilment_state = ''dispatched'',
+            fulfilment_state_reason = ''courier returned it undelivered''
       WHERE id = ''0dde0000-0000-0000-0000-00000000000b''') = 1);
 
 -- Assert the COMMISSION ROW, not the return value: §7.6 is explicit that the return value
@@ -2212,10 +2271,15 @@ WHERE id = '0dde0000-0000-0000-0000-00000000000b';
 UPDATE public.partner_commissions SET status = 'paid'
 WHERE id = 'c0111111-0000-0000-0000-00000000000b';
 
+-- A FRESH, VALID REASON IS SUPPLIED HERE ON PURPOSE. Without one the refusal below would fire
+-- on the missing-reason rule and the assertion would pass for the wrong reason — green while
+-- proving nothing about the commission. This move is well-formed in every respect except the
+-- one under test.
 SELECT pg_temp.check(
   '§7.7 / Q3: moving out of delivered is REFUSED when the commission is already paid',
   pg_temp.raises_as('a5000000-0000-0000-0000-00000000000f',
-    'UPDATE public.orders SET fulfilment_state = ''dispatched''
+    'UPDATE public.orders SET fulfilment_state = ''dispatched'',
+            fulfilment_state_reason = ''member says it never arrived''
       WHERE id = ''0dde0000-0000-0000-0000-00000000000b'''),
   'reversing money already paid is a finance decision, not a data correction');
 
@@ -2228,6 +2292,96 @@ SELECT pg_temp.check(
   '§7.7 CONTROL: and the paid commission was NOT silently reversed',
   (SELECT status FROM public.partner_commissions
     WHERE id = 'c0111111-0000-0000-0000-00000000000b') = 'paid');
+
+-- ── `tested` requires a named operator (CC_MASTER_BRIEF.md WP2) ───────────
+-- The state's entire content is that a person answered a real test call, and it is the second
+-- half of monitoring readiness (D4). An anonymous one is not evidence, it is an assertion.
+
+INSERT INTO public.orders
+  (id, member_id, order_number, subtotal, tax_amount, total_amount,
+   shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code,
+   fulfilment_state)
+VALUES ('0dde0000-0000-0000-0000-00000000d001', 'bbbbbbbb-0000-0000-0000-000000000002',
+        'ORD-RLS-TESTED', 100, 21, 121, 'Calle B 2', 'Albox', 'Almeria', '04800', 'delivered');
+
+DO $$
+DECLARE refused boolean := false;
+BEGIN
+  -- No auth.uid() here (the migration/service-role path), so no staff id can be resolved.
+  -- There is no legitimate automated route to `tested`, so this must be refused rather than
+  -- exempted the way the service role is exempted from the D9 role check.
+  BEGIN
+    UPDATE public.orders SET fulfilment_state = 'tested'
+     WHERE id = '0dde0000-0000-0000-0000-00000000d001';
+  EXCEPTION WHEN OTHERS THEN
+    refused := true;
+  END;
+  PERFORM pg_temp.check(
+    '`tested` with NOBODY NAMED is refused, even for the service role',
+    refused,
+    'D4 rests on this state; an unattributed one would make readiness a claim nobody made');
+END $$;
+
+SELECT pg_temp.check(
+  'CONTROL: that order is still `delivered`, so the refusal was real',
+  (SELECT fulfilment_state FROM public.orders
+    WHERE id = '0dde0000-0000-0000-0000-00000000d001') = 'delivered');
+
+SELECT pg_temp.check(
+  'naming an operator makes the SAME move succeed',
+  (SELECT count(*) FROM (
+     SELECT 1 FROM public.orders WHERE id = '0dde0000-0000-0000-0000-00000000d001'
+   ) x) = 1);
+
+UPDATE public.orders
+   SET fulfilment_state = 'tested',
+       -- The supervisor, not staff 5555: that row is DELETED by the staff-delete FK
+       -- section above, and a subquery returning NULL here would make the assertion pass
+       -- for the wrong reason (refused because nobody exists, not because nobody was named).
+       tested_by = (SELECT id FROM public.staff
+                     WHERE user_id = 'a5000000-0000-0000-0000-00000000000f')
+ WHERE id = '0dde0000-0000-0000-0000-00000000d001';
+
+SELECT pg_temp.check(
+  'and it landed, with the operator recorded',
+  (SELECT fulfilment_state = 'tested' AND tested_by IS NOT NULL AND tested_at IS NOT NULL
+     FROM public.orders WHERE id = '0dde0000-0000-0000-0000-00000000d001'));
+
+-- ── `cancelled` is reachable, and is a correction (CC_MASTER_BRIEF.md WP2) ─
+-- "paid -> … -> tested, PLUS CANCELLED." It is not a place in the sequence, so it has no rank:
+-- it is reachable from anywhere and leaving it is a correction like any other.
+
+SELECT pg_temp.check(
+  '`cancelled` exists in the enum — the seventh state the brief names',
+  'cancelled' = ANY (SELECT unnest(enum_range(NULL::public.fulfilment_state))::text));
+
+SELECT pg_temp.check(
+  'ORDINARY staff CANNOT cancel an order — cancelling is a correction, D9 applies',
+  pg_temp.raises_as('a6000000-0000-0000-0000-00000000000f',
+    'UPDATE public.orders SET fulfilment_state = ''cancelled'',
+            fulfilment_state_reason = ''member changed their mind''
+      WHERE id = ''0dde0000-0000-0000-0000-00000000d001'''));
+
+SELECT pg_temp.check(
+  'a supervisor CANNOT cancel without a reason either',
+  pg_temp.raises_as('a5000000-0000-0000-0000-00000000000f',
+    'UPDATE public.orders SET fulfilment_state = ''cancelled''
+      WHERE id = ''0dde0000-0000-0000-0000-00000000d001'''));
+
+SELECT pg_temp.check(
+  'a supervisor CAN cancel with a reason, from any state',
+  pg_temp.exec_as('a5000000-0000-0000-0000-00000000000f',
+    'UPDATE public.orders SET fulfilment_state = ''cancelled'',
+            fulfilment_state_reason = ''member returned the pendant and closed the account''
+      WHERE id = ''0dde0000-0000-0000-0000-00000000d001''') = 1,
+  'cancelled has no rank, so this is a jump the skip rule must not refuse');
+
+SELECT pg_temp.check(
+  'cancelling wrote its own activity_logs row',
+  (SELECT count(*) FROM public.activity_logs
+    WHERE action = 'fulfilment_state_corrected'
+      AND entity_id = '0dde0000-0000-0000-0000-00000000d001'
+      AND new_values ->> 'fulfilment_state' = 'cancelled') = 1);
 
 -- ── the state machine did not open a read hole ────────────────────────────
 SELECT pg_temp.check(

@@ -6156,5 +6156,10 @@
     "create": "Crear registro de miembro",
     "created": "Registro de miembro creado. Todavía NO está activo — el pago lo activa.",
     "createFailed": "No se guardó nada. {{reason}}"
+  },
+  "textSize": {
+    "groupLabel": "Tamaño del texto",
+    "normal": "Tamaño de texto normal",
+    "large": "Texto más grande"
   }
 }

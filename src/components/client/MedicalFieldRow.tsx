@@ -29,7 +29,7 @@ import { BLOOD_TYPES, type MedicalField } from "@/lib/medicalFields";
 export function FieldLabel({ children }: { children: React.ReactNode }) {
   /* 13px uppercase Slate — R6's label, and R10's floor for a label specifically. */
   return (
-    <span className="text-[13px] font-medium uppercase tracking-wide text-muted-foreground">
+    <span className="text-[0.8125rem] font-medium uppercase tracking-wide text-muted-foreground">
       {children}
     </span>
   );

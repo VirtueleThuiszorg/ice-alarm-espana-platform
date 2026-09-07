@@ -6156,5 +6156,10 @@
     "create": "Ledenrecord aanmaken",
     "created": "Ledenrecord aangemaakt. Nog NIET actief — betaling activeert het.",
     "createFailed": "Er is niets opgeslagen. {{reason}}"
+  },
+  "textSize": {
+    "groupLabel": "Tekstgrootte",
+    "normal": "Normale tekstgrootte",
+    "large": "Grotere tekst"
   }
 }

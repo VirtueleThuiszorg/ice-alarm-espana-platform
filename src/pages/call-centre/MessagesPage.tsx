@@ -9,6 +9,8 @@ import { CannedReplyPicker } from "@/components/messaging/CannedReplyPicker";
 import { useIsabellaThread } from "@/hooks/useIsabellaThread";
 import { IsabellaEpisodeCard } from "@/components/messaging/IsabellaEpisodeCard";
 import { mergeThread } from "@/lib/isabellaThread";
+import { MemberContextPanel } from "@/components/messaging/MemberContextPanel";
+import { operatorQueue, waitingOn } from "@/lib/operatorQueue";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import {
@@ -72,6 +74,8 @@ interface Conversation {
   } | null;
   unread_count?: number;
   last_message_preview?: string;
+  /** `sender_type` of the newest message. What `waitingOn()` reads. */
+  last_message_sender?: string | null;
 }
 
 interface Message {
@@ -247,7 +251,10 @@ export default function CallCentreMessagesPage() {
 
           const { data: lastMsg } = await supabase
             .from("messages")
-            .select("content, created_at")
+            // `sender_type` as well as the preview: who spoke last is the whole of
+            // `waitingOn()`, and deriving it beats storing it on a row three send paths write.
+            // `created_at` so `conversationPreview` can compare it against Isabella's last turn.
+            .select("content, created_at, sender_type")
             .eq("conversation_id", conv.id)
             .order("created_at", { ascending: false })
             .limit(1)
@@ -274,6 +281,7 @@ export default function CallCentreMessagesPage() {
               : undefined,
             unread_count: count || 0,
             last_message_preview: preview.text,
+            last_message_sender: lastMsg?.sender_type ?? null,
           };
         })
       );
@@ -291,6 +299,16 @@ export default function CallCentreMessagesPage() {
     let filtered = [...conversations];
 
     switch (filter) {
+      case "queue":
+        /*
+          The one question none of the other tabs answers: which of these is waiting on US.
+          "Open" does not — a thread stays open after we reply — so an operator scanning open
+          threads cannot tell the ones with somebody at the other end waiting from the ones
+          already answered. Oldest first, deliberately the opposite of this list's default:
+          newest-first serves whoever wrote most recently and lets the longest wait sink.
+        */
+        filtered = operatorQueue(filtered);
+        break;
       case "unread":
         filtered = filtered.filter(c => (c.unread_count || 0) > 0);
         break;
@@ -553,6 +571,9 @@ export default function CallCentreMessagesPage() {
   };
 
   const unreadCount = conversations.filter(c => (c.unread_count || 0) > 0).length;
+  // Unread and waiting-on-us are different counts: a message an operator has READ and not
+  // answered is the one most likely to be forgotten.
+  const queueCount = conversations.filter(c => waitingOn(c) === "us").length;
 
   if (isLoading) {
     return (
@@ -705,6 +726,14 @@ export default function CallCentreMessagesPage() {
         <div className="flex items-center gap-4">
           <Tabs value={filter} onValueChange={setFilter} className="flex-1">
             <TabsList>
+              <TabsTrigger value="queue" className="flex items-center gap-1">
+                {t("callCentreMessages.filterQueue", "Needs a reply")}
+                {queueCount > 0 && (
+                  <Badge variant="secondary" className="h-5 min-w-5 px-1 flex items-center justify-center text-xs">
+                    {queueCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="all">{t("callCentreMessages.filterAll", "All")}</TabsTrigger>
               <TabsTrigger value="unread" className="flex items-center gap-1">
                 {t("callCentreMessages.filterUnread", "Unread")}
@@ -833,6 +862,15 @@ export default function CallCentreMessagesPage() {
                     </div>
                   )}
                 </div>
+                {/*
+                  IS THIS MEMBER ACTUALLY MONITORED? An operator answering "my pendant is
+                  beeping" from somebody whose pendant has never been tested is having a
+                  different conversation from one answering the same words from a covered
+                  member — and nothing on this screen used to say which.
+                */}
+                {selectedConversation.member_id && (
+                  <MemberContextPanel memberId={selectedConversation.member_id} className="mt-3" />
+                )}
                 <div className="flex items-center gap-4 mt-3">
                   <Select
                     value={selectedConversation.status}

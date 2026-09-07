@@ -329,7 +329,9 @@ describe("the specs cover the enum", () => {
         if (!values.includes(m[1])) values.push(m[1]);
       }
     }
-    expect(values.length).toBe(6);
+    // Six from `20260907100500`, plus `resume` from the held seed bundle. The count is pinned
+    // so a value added without a spec fails here even before the type ratchet sees it.
+    expect(values.length).toBe(7);
     for (const v of values) {
       expect(() => memberActionSpec(v as never), `no spec for ${v}`).not.toThrow();
     }

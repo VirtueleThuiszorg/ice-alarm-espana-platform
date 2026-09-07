@@ -7558,7 +7558,7 @@ export type Database = {
       consent_basis: "member_self" | "staff_recorded"
       consent_category: "alerts" | "location" | "medical"
       fulfilment_state: "paid" | "allocated" | "programmed" | "dispatched" | "delivered" | "tested" | "cancelled"
-      member_action: "renew" | "switch_to_single" | "switch_to_couple" | "add_pendant" | "pause" | "cancel"
+      member_action: "renew" | "switch_to_single" | "switch_to_couple" | "add_pendant" | "pause" | "resume" | "cancel"
       notification_channel: "sms" | "email" | "whatsapp"
     }
     CompositeTypes: {

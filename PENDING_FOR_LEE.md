@@ -18,9 +18,11 @@ make the manifest lie, and the drift gate (#164) depends on that manifest being 
 
 | # | Migration | What it does | Reversible |
 |---|---|---|---|
-| _(none outstanding)_ | | | |
+| 1 | `20260907120000_wp3_wp6_seed_bundle.sql` — **PR held open, not merged** | Rows only, plus one enum value. WP6 G5's canned replies (six shortcuts × three languages), WP3 N7's notification templates (four transitions × three channels × three languages, member-only), and WP7 W7's `resume` on `member_action`. Nothing sends because of it: all three `notify_channel_*` flags are still off, and the second gate (the member's own opt-in) applies after them | Rows yes, by the DELETEs in the file's header. **The enum value no** — Postgres has no `DROP VALUE`; reversing it means recreating the type. Called out in the migration rather than buried |
 
-> **Nothing is outstanding right now, and that is a real state rather than an empty table.**
+> **One is outstanding, and its PR is deliberately NOT merged.** Merging a migration before you
+> can push it turns the drift gate red for *every* pull request behind it (D-3), so it waits in
+> §5 until you can do both together: `supabase db push`, append the filename here, merge.
 >
 > `20260905100000_staff_delete_fk_rules.sql` — the one that was held in §5 on 5 September — is
 > **applied and recorded**: you merged #176, pushed it, and #179 appended it to
@@ -499,7 +501,7 @@ the member's own per-channel opt-in. A flag on its own no longer sends anything.
 | ~~**#176**~~ | ✅ **Done.** Merged, pushed, and recorded in `APPLIED_TO_PROD.txt` by #179. Production is level. |
 | ~~**#180**~~, ~~**#187**~~ | ✅ **Done.** Merged and pushed; recorded in `APPLIED_TO_PROD.txt` by #185 and #189. Production is level. The monitoring-ready count is **zero** and that is the first honest number this system has produced — see S8/S9 for the two queries that confirm the backfill |
 
-| **the held seed bundle** — not yet raised | **One PR, raised at the end of this run, carrying every row this run needs seeded and nothing else.** Two are known already: WP6 G5's `canned_replies` (the picker is merged and renders its empty state until they exist) and WP3 N7's `notification_templates` (the dispatcher reads `skipped_no_template` for every event until they exist). It is one PR for the reason D-3 gives: a migration merged before you can push it turns the drift gate red on **every** subsequent PR, so the gate is paid once. Apply it, append the filename to `APPLIED_TO_PROD.txt`, merge |
+| **#219 — the held seed bundle** | **One PR, raised at the end of this run, carrying every row this run needs seeded and nothing else.** Two are known already: WP6 G5's `canned_replies` (the picker is merged and renders its empty state until they exist) and WP3 N7's `notification_templates` (the dispatcher reads `skipped_no_template` for every event until they exist). It is one PR for the reason D-3 gives: a migration merged before you can push it turns the drift gate red on **every** subsequent PR, so the gate is paid once. Apply it, append the filename to `APPLIED_TO_PROD.txt`, merge |
 | **the `paid → allocated` line in `_shared/post-payment.ts`** — not yet raised | The webhook allocates a pendant and never moves the fulfilment state, so the first rung of the ladder has no writer on the payment path. It is one `.update({ fulfilment_state: "allocated" })` after the device is allocated — but `_shared/post-payment.ts` is imported by **both** `stripe-webhook` and `mollie-webhook`, so per the brief it stays open for you. **The staff allocation path is already fixed and merged** (`DeviceTab.assignDevice` → `linkDeviceToPendantOrder`), so allocation by hand works today; only webhook allocation is affected. S11 finds the rows |
 
 > Per the brief: any PR touching `supabase/functions/stripe-webhook` or

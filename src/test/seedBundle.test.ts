@@ -161,4 +161,13 @@ describe("the migration", () => {
   it("adds `resume` to member_action, which WP7 W7 recorded as the gap", () => {
     expect(ROWS).toContain("ALTER TYPE public.member_action ADD VALUE IF NOT EXISTS 'resume'");
   });
+
+  it("ships the spec that value needs IN THE SAME change", () => {
+    // A client writing an enum value the database does not have fails at the insert, so the
+    // migration and the button that uses it cannot be merged apart. Pause shipped without
+    // resume once already: the member record could pause a subscription and not un-pause it.
+    const specs = readFileSync(join(process.cwd(), "src/lib/memberActions.ts"), "utf8");
+    expect(specs).toContain('action: "resume"');
+    expect(specs).toContain('serverAction: "resume"');
+  });
 });

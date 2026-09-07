@@ -9,6 +9,20 @@ import {
   ORDER_STATUS_NEXT,
   type OrderStatus,
 } from "@/lib/orderStatus";
+import {
+  FULFILMENT_ACTION_LABEL,
+  FULFILMENT_BADGE,
+  FULFILMENT_LABEL,
+  FULFILMENT_STATES,
+  FULFILMENT_TO_ORDER_STATUS,
+  isStaffMovableTransition,
+  mayCorrectFulfilment,
+  nextFulfilmentState,
+  type FulfilmentState,
+} from "@/lib/fulfilmentState";
+import { useFulfilmentState } from "@/hooks/useFulfilmentState";
+import { useAuth } from "@/contexts/AuthContext";
+import { FulfilmentCorrectionDialog } from "@/components/admin/orders/FulfilmentCorrectionDialog";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { 
@@ -19,7 +33,10 @@ import {
   Package,
   CheckCircle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  AlertTriangle,
+  PhoneCall,
+  Undo2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,12 +77,19 @@ export default function OrdersPage() {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [fulfilmentFilter, setFulfilmentFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const navigate = useNavigate();
   const { updateOrderStatus } = useOrderActions();
+  const { moveFulfilment } = useFulfilmentState();
+  const { staffRole } = useAuth();
+  /* D9 is enforced by `may_reverse_fulfilment()`; this only decides whether to OFFER the
+     correction, so an operator is not handed a dialog the database will refuse. */
+  const canCorrect = mayCorrectFulfilment(staffRole);
+  const [correcting, setCorrecting] = useState<OrderRow | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-orders", searchQuery, statusFilter, page],
+    queryKey: ["admin-orders", searchQuery, statusFilter, fulfilmentFilter, page],
     queryFn: async () => {
       let query = supabase
         .from("orders")
@@ -82,6 +106,10 @@ export default function OrdersPage() {
 
       if (statusFilter !== "all") {
         query = query.eq("status", statusFilter as OrderStatus);
+      }
+
+      if (fulfilmentFilter !== "all") {
+        query = query.eq("fulfilment_state", fulfilmentFilter as FulfilmentState);
       }
 
       const { data: orders, count, error } = await query;
@@ -115,6 +143,43 @@ export default function OrdersPage() {
         {t(key, fallback)}
       </Badge>
     );
+  };
+
+  /**
+   * The fulfilment badge. `fulfilment_state` is NOT NULL with a default, so unlike
+   * `orders.status` there is no "unknown" case to render — but a row read before the types were
+   * regenerated could still arrive without it, and rendering nothing there would be a silently
+   * empty column rather than a visible gap.
+   */
+  const getFulfilmentBadge = (state: FulfilmentState | null) => {
+    const known = FULFILMENT_STATES.find((s) => s === state);
+    if (!known) return <Badge variant="outline">—</Badge>;
+    const { key, fallback } = FULFILMENT_LABEL[known];
+    return (
+      <Badge variant="outline" className={FULFILMENT_BADGE[known]}>
+        {t(key, fallback)}
+      </Badge>
+    );
+  };
+
+  /**
+   * THE TWO LADDERS, MADE VISIBLE.
+   *
+   * There are two columns because §3 keeps `orders.status` for the commission path, and the
+   * price of two columns is that they can disagree: "Mark as shipped" moves `status` and leaves
+   * `fulfilment_state` behind, while "Collected for delivery" moves both. Silent disagreement is
+   * how an order ends up dispatched-but-pending and invisible to whichever filter somebody used.
+   *
+   * So it is shown. `null` in the map means the fulfilment state is finer-grained than
+   * `orders.status` can express (`programmed`, `tested`) — those are not drift and must not be
+   * flagged as it.
+   */
+  const fulfilmentDrift = (order: OrderRow): OrderStatus | null => {
+    const state = FULFILMENT_STATES.find((s) => s === order.fulfilment_state);
+    if (!state) return null;
+    const expected = FULFILMENT_TO_ORDER_STATUS[state];
+    if (!expected || expected === order.status) return null;
+    return expected;
   };
 
   return (
@@ -158,6 +223,28 @@ export default function OrdersPage() {
                 ))}
               </SelectContent>
             </Select>
+            {/*
+              A second filter, not a replacement for the first. `orders.status` and
+              `fulfilment_state` answer different questions — "has the money and the commission
+              moved" and "where is the pendant" — and the reason there are two of them is
+              FULFILMENT_MODEL.md §3. The one an operator reaches for most is this one: "which
+              paid pendants have never been tested" is the readiness question.
+            */}
+            <Select value={fulfilmentFilter} onValueChange={(v) => { setFulfilmentFilter(v); setPage(1); }}>
+              <SelectTrigger className="w-[200px]" aria-label={t("admin.fulfilment.filter", "Fulfilment")}>
+                <SelectValue placeholder={t("admin.fulfilment.filter", "Fulfilment")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  {t("admin.fulfilment.filterAll", "All fulfilment states")}
+                </SelectItem>
+                {FULFILMENT_STATES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {t(FULFILMENT_LABEL[s].key, FULFILMENT_LABEL[s].fallback)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -173,6 +260,7 @@ export default function OrdersPage() {
                 <TableHead>{t("admin.table.date")}</TableHead>
                 <TableHead>{t("admin.table.total")}</TableHead>
                 <TableHead>{t("admin.table.status")}</TableHead>
+                <TableHead>{t("admin.fulfilment.column", "Fulfilment")}</TableHead>
                 <TableHead>{t("admin.table.tracking")}</TableHead>
                 <TableHead className="w-[70px]">{t("admin.table.actions")}</TableHead>
               </TableRow>
@@ -180,7 +268,7 @@ export default function OrdersPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     {t("admin.orders.loading")}
                   </TableCell>
                 </TableRow>
@@ -208,6 +296,34 @@ export default function OrdersPage() {
                       €{Number(order.total_amount).toFixed(2)}
                     </TableCell>
                     <TableCell>{getStatusBadge(order.status)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        {getFulfilmentBadge(order.fulfilment_state)}
+                        {(() => {
+                          const expected = fulfilmentDrift(order);
+                          if (!expected) return null;
+                          return (
+                            <span
+                              data-testid="fulfilment-drift"
+                              title={t(
+                                "admin.fulfilment.driftTitle",
+                                "Fulfilment says this, but the order status says {{status}}. The two are out of step.",
+                                {
+                                  status: t(
+                                    ORDER_STATUS_LABEL[expected].key,
+                                    ORDER_STATUS_LABEL[expected].fallback,
+                                  ),
+                                },
+                              )}
+                              className="flex items-center gap-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400"
+                            >
+                              <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+                              {t("admin.fulfilment.driftShort", "out of step")}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       {order.tracking_number || (
                         <span className="text-muted-foreground">—</span>
@@ -262,6 +378,72 @@ export default function OrdersPage() {
                               </DropdownMenuItem>
                             );
                           })()}
+                          {(() => {
+                            /*
+                              THE FULFILMENT LADDER. Separate from the status action above, and
+                              deliberately so — see fulfilmentDrift() for why there are two.
+
+                              Only the moves a human actually makes appear here. `allocated` is
+                              the act of assigning a device and `programmed` is the act of
+                              finishing the provisioning checklist; a button for either would let
+                              staff assert a thing they had not done, which is the whole point of
+                              STAFF_MOVABLE_STATES excluding them.
+                            */
+                            const state = FULFILMENT_STATES.find(
+                              (v) => v === order.fulfilment_state,
+                            );
+                            if (!state) return null;
+                            const next = nextFulfilmentState(state);
+                            const movable = next && isStaffMovableTransition(state, next);
+                            if (!movable && !canCorrect) return null;
+                            return (
+                              <>
+                                <DropdownMenuSeparator />
+                                {movable && next && (
+                                  <DropdownMenuItem
+                                    data-testid={`fulfilment-advance-${next}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      moveFulfilment.mutate({
+                                        orderId: order.id,
+                                        memberId: order.member_id,
+                                        from: state,
+                                        to: next,
+                                        currentStatus: order.status,
+                                      });
+                                    }}
+                                  >
+                                    {next === "tested" ? (
+                                      <PhoneCall className="mr-2 h-4 w-4" />
+                                    ) : next === "dispatched" ? (
+                                      <Truck className="mr-2 h-4 w-4" />
+                                    ) : (
+                                      <CheckCircle className="mr-2 h-4 w-4" />
+                                    )}
+                                    {t(
+                                      FULFILMENT_ACTION_LABEL[next].key,
+                                      FULFILMENT_ACTION_LABEL[next].fallback,
+                                    )}
+                                  </DropdownMenuItem>
+                                )}
+                                {canCorrect && (
+                                  <DropdownMenuItem
+                                    data-testid="fulfilment-correct"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setCorrecting(order);
+                                    }}
+                                  >
+                                    <Undo2 className="mr-2 h-4 w-4" />
+                                    {t(
+                                      "admin.fulfilment.correctAction",
+                                      "Correct fulfilment state…",
+                                    )}
+                                  </DropdownMenuItem>
+                                )}
+                              </>
+                            );
+                          })()}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -269,7 +451,7 @@ export default function OrdersPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     {t("admin.orders.noResults")}
                   </TableCell>
                 </TableRow>
@@ -278,6 +460,41 @@ export default function OrdersPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/*
+        One dialog for the page, not one per row: mounting a Dialog inside every TableRow means
+        twenty of them on screen, each with its own state, and the reason field of the wrong one
+        is easy to submit. `correcting` holds the row it is about.
+      */}
+      {correcting && (
+        <FulfilmentCorrectionDialog
+          open={!!correcting}
+          onOpenChange={(open) => !open && setCorrecting(null)}
+          currentState={
+            FULFILMENT_STATES.find((s) => s === correcting.fulfilment_state) ?? "paid"
+          }
+          previousReason={correcting.fulfilment_state_reason}
+          orderNumber={correcting.order_number}
+          isSaving={moveFulfilment.isPending}
+          onConfirm={(to, reason) => {
+            const from =
+              FULFILMENT_STATES.find((s) => s === correcting.fulfilment_state) ?? "paid";
+            moveFulfilment.mutate(
+              {
+                orderId: correcting.id,
+                memberId: correcting.member_id,
+                from,
+                to,
+                currentStatus: correcting.status,
+                reason,
+              },
+              // Closed only on success. A refusal keeps the dialog open with the reason still
+              // in it, so the operator can read the toast and adjust rather than retype.
+              { onSuccess: () => setCorrecting(null) },
+            );
+          }}
+        />
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (

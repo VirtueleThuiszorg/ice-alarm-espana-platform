@@ -260,17 +260,48 @@ made to fail has not been tested.
 
 ## 8. Increments — one concern per PR, each cut from `main`
 
-| # | PR | Blocked by |
-|---|---|---|
-| 1 | This document | — |
-| 2 | `useOrderActions` + `OrdersPage` handle all seven `order_status` values (1-B) — **no schema**, mergeable now | — |
-| 3 | The `fulfilment_state` enum, columns and trigger | migration drift (D-3) |
-| 4 | `member_monitoring_readiness` gains the second condition | 3 |
-| 5 | The staff screen for `programmed` / `tested` | 3 |
-| 6 | `awaiting_stock` as a condition rather than a state | 3 |
+| # | PR | Blocked by | State |
+|---|---|---|---|
+| 1 | This document | — | **merged** |
+| 2 | `useOrderActions` + `OrdersPage` handle all seven `order_status` values (1-B) — **no schema**, mergeable now | — | **merged** |
+| 3 | The `fulfilment_state` enum, columns and trigger | migration drift (D-3) | **merged and applied** (#180, corrected by #187) |
+| 4 | `member_monitoring_readiness` gains the second condition | 3 | **merged and applied** (#180) |
+| 5 | The staff screen that moves a fulfilment state | 3 | **5a merged** — the orders screen. 5b: the checklist and the member record |
+| 6 | `awaiting_stock` as a condition rather than a state | 3 | open |
 
 Increment 2 is deliberately first among the code: it is the live defect (an order needing human
 attention that the admin screen cannot display), it needs no schema, and it can merge today.
+
+### 8-A. Increment 5 split in two, and why
+
+The brief asks for the staff screen in one line; it is two different pieces of work, because two
+of the six transitions are **not buttons**:
+
+* **5a — the orders screen.** `src/lib/fulfilmentState.ts` (the module every surface reads),
+  `useFulfilmentState` (the one write path), the fulfilment column, the filter, the forward
+  actions and the correction dialog.
+* **5b — the two transitions nobody presses.** `programmed` happens when the
+  `ProvisioningChecklist` is finished, and `tested` has to be reachable from the member record
+  and the SOS screen, not only from a row in a table of orders.
+
+### 8-B. The reconciliation with `orders.status`, decided in 5a
+
+§3 keeps `orders.status` as its own column and says the two are *"reconciled explicitly and
+testably, not by hoping one enum can carry two jobs."* Two columns on one screen is two ladders a
+staff member has to remember to climb, and the one they forget is the one that pays a partner or
+leaves an order invisible to a filter. So:
+
+1. **One action moves both.** `useFulfilmentState` writes `fulfilment_state`, then moves
+   `orders.status` to its counterpart **through the existing `useOrderActions` path** — the
+   commission logic is called, never duplicated. `FULFILMENT_TO_ORDER_STATUS` is the map, and
+   `programmed` and `tested` map to `null` because `orders.status` cannot express them.
+2. **Fulfilment goes first.** If the trigger refuses, `orders.status` is untouched. Reversed, a
+   refused move to `delivered` would already have created a €50 commission for a delivery the
+   database declined to record.
+3. **The remaining drift is shown, not prevented.** The older "Mark as shipped" action still
+   moves `orders.status` alone, so the orders row carries an **"out of step"** marker whenever
+   the two disagree. Increment 6 is where the status ladder is retired; until then the hazard is
+   visible rather than silently possible.
 
 ---
 

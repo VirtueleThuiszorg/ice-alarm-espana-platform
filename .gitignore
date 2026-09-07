@@ -45,3 +45,11 @@ scripts/staff-logins.config.json
 e2e/.report/
 test-results/
 playwright-report/
+
+# Compiler and shell debris. `a.out` reached main in #199 as a zero-byte file: a stray
+# redirection created it and `git add -A` committed it. Ignored so the same slip cannot
+# repeat — the fix for "I should have looked at git status" is not vigilance.
+a.out
+*.out
+core
+nohup.out

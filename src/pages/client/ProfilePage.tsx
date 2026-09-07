@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import i18n from "@/i18n";
+import { PageHeader } from "@/components/client/PageHeader";
 
 export default function ProfilePage() {
   const { t } = useTranslation();
@@ -122,26 +123,25 @@ export default function ProfilePage() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 animate-fade-in">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t("profile.title") || t("navigation.myAccount")}</h1>
-            <p className="text-muted-foreground mt-1">{t("profile.subtitle")}</p>
-          </div>
-          <Button type="submit" disabled={isSaving} className="flex-shrink-0">
-            {isSaving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {t("profile.saving")}
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                {t("profile.saveChanges")}
-              </>
-            )}
-          </Button>
-        </div>
+        <PageHeader
+          title={t("profile.title") || t("navigation.myAccount")}
+          subtitle={t("profile.subtitle")}
+          action={
+            <Button type="submit" disabled={isSaving} className="flex-shrink-0">
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t("profile.saving")}
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  {t("profile.saveChanges")}
+                </>
+              )}
+            </Button>
+          }
+        />
 
         {/* Main Grid Layout */}
         <div className="grid gap-6 lg:grid-cols-3">

@@ -26,6 +26,22 @@
 | B7 | 6 email-template logo URLs | ✅ FIXED | All six `_shared/email-templates/*.tsx` carried the placeholder. Now the real ref. ⚠️ **Still owed:** upload the logo to the `email-assets/logo.png` storage object — until then the images 404 (templates are currently unreferenced by any function, so no live email is affected). |
 | B8 | Untouched by design | — | `index.html`, `.github/workflows/deploy-functions.yml`, and the two cron migrations (`20260716120000`, `20260723120000`) already name the authoritative ref. The cron pair is the **SOS-escalation path** — not edited (G1 / human gate). |
 
+## Member dashboard pass (2026-09-07) — WP4 · **the shell is in, the pages are not converted yet**
+
+> Rules: `MEMBER_UX_RULES.md` R1–R11. This section grows one row per increment; nothing below is
+> claimed on the strength of "it looks implemented".
+
+| # | Item | Status | Evidence |
+|---|---|---|---|
+| M1 | R5 — one page shell, every page composed from it | ✅ VERIFIED (4a) | `src/components/client/PageHeader.tsx`; all **nine** client pages converted, including the dashboard. `src/test/memberPageShell.test.tsx` (11) asserts the ABSENCE: no page may hand-roll the old header block or render its own `<h1>` again, and a page added without the shell fails. Six mutations, each producing a verdict. |
+| M2 | R5/R10 — 28px title, 16px subtitle | ✅ VERIFIED (4a) | The pages used `text-2xl md:text-3xl`, so on a **phone** — where most of these members read — the title was 24px, not the 28px R5 names. The responsive step-down is gone: the rule does not have one, and a smaller title on a small screen is the wrong way round for this reader. |
+| M3 | R1 — one red button per page | 🟡 UNVERIFIED | `PageHeader` has a single `action` slot, which is the structural half. Nothing yet counts the red buttons already on a page. |
+| M4 | R3 — the readiness notice moves INTO the header, the banner goes | ⬜ MISSING (4b) | It is still a bar below the header (`MonitoringReadinessBar`, mounted in `ClientLayout`). D10 says never a standalone banner. |
+| M5 | R6/R8 — read-only by default; empty states offer the action | 🔴 BROKEN | `SubscriptionPage`'s empty state says `subscription.contactSupport`, which R6 forbids in as many words ("Never 'contact support to change'") and R8 contradicts ("'No active subscription' shows the plans"). Needs new copy in en/es/nl. |
+| M6 | Medical information — all 17 fields | ⬜ MISSING (4c) | `MedicalInfoPage` shows 8. The types were missing 10 of the columns until #188, so this was never only a presentation gap. |
+| M7 | R7 — member photo upload; DOB/NIE locked with a reason | ⬜ MISSING | |
+| M8 | R10 — the A/A text-size control, persisted | ⬜ MISSING | |
+
 ## Notification fan-out (2026-09-07) — WP3 · **dispatcher shipped, every channel OFF**
 
 > Design: `FULFILMENT_MODEL.md` §6-A. Schema: `20260907100200`, applied.

@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/client/PageHeader";
 
 interface Conversation {
   id: string;
@@ -414,13 +415,11 @@ export default function MessagesPage() {
   // Conversation list view
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t("messages.title")}</h1>
-          <p className="text-muted-foreground mt-1">{t("messages.subtitle")}</p>
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <PageHeader
+        title={t("messages.title")}
+        subtitle={t("messages.subtitle")}
+        action={
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
@@ -459,9 +458,10 @@ export default function MessagesPage() {
                 {t("messages.sendMessage")}
               </Button>
             </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       {/* Unread indicator */}
       {unreadCount > 0 && (

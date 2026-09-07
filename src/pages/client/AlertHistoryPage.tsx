@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/client/PageHeader";
 
 const ALERT_CONFIG = {
   sos_button: { 
@@ -98,13 +99,10 @@ export default function AlertHistoryPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t("alerts.alertHistory")}</h1>
-          <p className="text-muted-foreground mt-1">{t("alertHistory.subtitle")}</p>
-        </div>
-      </div>
+      <PageHeader
+        title={t("alerts.alertHistory")}
+        subtitle={t("alertHistory.subtitle")}
+      />
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-3">

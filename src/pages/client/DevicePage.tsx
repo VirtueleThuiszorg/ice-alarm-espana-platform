@@ -26,6 +26,7 @@ import { usePricing } from "@/hooks/usePricing";
 import { formatPrice, getPendantFinalPrice, getShippingCost } from "@/config/pricing";
 
 import { telHref, waNumber } from "@/lib/phone";
+import { PageHeader } from "@/components/client/PageHeader";
 export default function DevicePage() {
   const { t } = useTranslation();
   const { memberId } = useAuth();
@@ -71,10 +72,10 @@ export default function DevicePage() {
   if (!hasPendant) {
     return (
       <div className="space-y-6 animate-fade-in">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t('navigation.myDevice')}</h1>
-          <p className="text-muted-foreground mt-1">{t('membership.phoneOnlyService')}</p>
-        </div>
+        <PageHeader
+          title={t("navigation.myDevice")}
+          subtitle={t("membership.phoneOnlyService")}
+        />
 
         {/* Phone-Only Service Info */}
         <Card className="border-primary">
@@ -261,10 +262,10 @@ export default function DevicePage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t('navigation.myPendant')}</h1>
-        <p className="text-muted-foreground mt-1">{t('device.yourIceAlarmPendant', 'Your ICE Alarm España GPS Personal Pendant')}</p>
-      </div>
+      <PageHeader
+        title={t("navigation.myPendant")}
+        subtitle={t("device.yourIceAlarmPendant", "Your ICE Alarm España GPS Personal Pendant")}
+      />
 
       {/* Device Status */}
       <Card>

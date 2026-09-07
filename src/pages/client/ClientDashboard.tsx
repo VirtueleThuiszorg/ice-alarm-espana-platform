@@ -16,6 +16,7 @@ import { es, enGB } from "date-fns/locale";
 import i18n from "@/i18n";
 
 import { telHref, waNumber } from "@/lib/phone";
+import { PageHeader } from "@/components/client/PageHeader";
 // Mock data for template preview mode
 const MOCK_MEMBER = {
   first_name: "Demo",
@@ -230,19 +231,28 @@ export default function ClientDashboard() {
         </div>
       )}
 
-      {/* Welcome Section with Help Icons */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          {memberLoading && !isTemplatePreview ? (
+      {/*
+        R3: the greeting and the date stay in PAGE CONTENT, not in the app header — that is
+        where the readiness notice goes. But it is still this page's title, so it goes through
+        the same shell as every other page rather than being the one hand-rolled header left.
+
+        The skeleton keeps its place as the TITLE, so the page does not reflow when the name
+        arrives: a heading that appears late pushes everything below it down, and on this page
+        that is the protection checklist a member is reading.
+      */}
+      <PageHeader
+        title={
+          memberLoading && !isTemplatePreview ? (
             <Skeleton className="h-8 w-64" />
           ) : (
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+            <>
               {t("dashboard.welcomeBack")}, {memberName}
-            </h1>
-          )}
-          <p className="text-muted-foreground text-sm">{currentDate}</p>
-        </div>
-        <div className="flex items-center gap-2">
+            </>
+          )
+        }
+        subtitle={currentDate}
+        action={
+          <div className="flex items-center gap-2">
           {phoneHref && (
             <Button
               size="icon"
@@ -268,8 +278,9 @@ export default function ClientDashboard() {
               </a>
             </Button>
           )}
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {/* Device Status */}
       {deviceLoading && !isTemplatePreview ? (

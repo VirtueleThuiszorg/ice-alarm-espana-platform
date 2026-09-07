@@ -1062,7 +1062,38 @@
     "updated": "Contact updated successfully",
     "deleted": "Contact deleted",
     "deleteTitle": "Delete Contact",
-    "deleteConfirm": "Are you sure you want to remove this emergency contact? This action cannot be undone."
+    "deleteConfirm": "Are you sure you want to remove this emergency contact? This action cannot be undone.",
+    "typeLabel": "Wat is deze persoon voor u?",
+    "canAttendLabel": "Zou deze persoon naar uw huis kunnen komen?",
+    "canAttendBadge": "Kan langskomen",
+    "cannotAttendBadge": "Te ver om langs te komen",
+    "country": "In welk land woont deze persoon?",
+    "countryPlaceholder": "Spanje",
+    "availability": "Wanneer is deze persoon het best bereikbaar?",
+    "availabilityPlaceholder": "Alleen 's avonds · werkt op dinsdag · eerst een bericht, deze persoon is doof",
+    "type": {
+      "emergency": "Familie of vriend",
+      "emergencyDesc": "Iemand die we bellen als u hulp nodig heeft. De meeste mensen beginnen hier.",
+      "keyHolder": "Heeft een sleutel",
+      "keyHolderDesc": "Deze persoon kan iemand in uw huis binnenlaten.",
+      "carer": "Zorgverlener",
+      "carerDesc": "Iemand die u dagelijks helpt, betaald of onbetaald.",
+      "careAgency": "Zorgorganisatie",
+      "careAgencyDesc": "Een bedrijf dat zorgverleners naar u toe stuurt.",
+      "nurse": "Verpleegkundige",
+      "nurseDesc": "Een wijkverpleegkundige of een verpleegkundige die bij u komt.",
+      "socialWorker": "Maatschappelijk werker",
+      "socialWorkerDesc": "Uw contactpersoon bij de gemeente of de gezondheidsdienst.",
+      "neighbour": "Buur",
+      "neighbourDesc": "Iemand in de buurt die snel langs kan komen.",
+      "legalRepresentative": "Wettelijk vertegenwoordiger",
+      "legalRepresentativeDesc": "Iemand die formeel voor u optreedt — bijvoorbeeld met een volmacht."
+    },
+    "canAttend": {
+      "yes": "Ja, deze persoon kan langskomen",
+      "no": "Nee, deze persoon woont te ver weg",
+      "unknown": "Ik weet het niet zeker"
+    }
   },
   "emergencyContacts": {
     "loadFailed": "Noodcontacten laden mislukt",

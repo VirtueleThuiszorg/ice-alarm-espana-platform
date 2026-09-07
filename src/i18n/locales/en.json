@@ -1062,7 +1062,38 @@
     "updated": "Contact updated successfully",
     "deleted": "Contact deleted",
     "deleteTitle": "Delete Contact",
-    "deleteConfirm": "Are you sure you want to remove this emergency contact? This action cannot be undone."
+    "deleteConfirm": "Are you sure you want to remove this emergency contact? This action cannot be undone.",
+    "typeLabel": "What are they to you?",
+    "canAttendLabel": "Could they come to your home?",
+    "canAttendBadge": "Can come round",
+    "cannotAttendBadge": "Too far to come round",
+    "country": "Which country are they in?",
+    "countryPlaceholder": "Spain",
+    "availability": "When is the best time to reach them?",
+    "availabilityPlaceholder": "Nights only · works Tuesdays · text first, they are deaf",
+    "type": {
+      "emergency": "Family or friend",
+      "emergencyDesc": "Somebody we phone if you need help. Most people start here.",
+      "keyHolder": "Has a key",
+      "keyHolderDesc": "They can let somebody into your home.",
+      "carer": "Carer",
+      "carerDesc": "Somebody who helps you day to day, paid or unpaid.",
+      "careAgency": "Care agency",
+      "careAgencyDesc": "A company that sends carers to you.",
+      "nurse": "Nurse",
+      "nurseDesc": "A district nurse or a nurse who visits you.",
+      "socialWorker": "Social worker",
+      "socialWorkerDesc": "Your case worker at the ayuntamiento or the health service.",
+      "neighbour": "Neighbour",
+      "neighbourDesc": "Somebody nearby who could come round quickly.",
+      "legalRepresentative": "Legal representative",
+      "legalRepresentativeDesc": "Somebody who acts for you formally — a power of attorney, for example."
+    },
+    "canAttend": {
+      "yes": "Yes, they can come round",
+      "no": "No, they are too far away",
+      "unknown": "I am not sure"
+    }
   },
   "emergencyContacts": {
     "loadFailed": "Failed to load emergency contacts",

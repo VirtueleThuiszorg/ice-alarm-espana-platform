@@ -140,6 +140,33 @@ policy. **No new schema is proposed for it.**
 If the brief meant something beyond that, say what, and it goes into PR #180 before you merge
 it — that is the point of holding it open.
 
+### D-6 — five alert/badge colours are below WCAG AA, and fixing them changes safety colour
+
+Measured on the base `:root` palette (`publicPaletteContrast.test.ts`). All are white-or-near-
+white text on a saturated fill, rendered by `<Badge>` — small text, so **AA 4.5:1 applies**, not
+the 3:1 large-text bar:
+
+| pair | ratio |
+|---|---|
+| `--alert-resolved-foreground` on `--alert-resolved` | 3.33 |
+| `--destructive-foreground` on `--destructive` | 3.78 |
+| `--alert-checkin-foreground` on `--alert-checkin` | 3.80 |
+| `--alert-sos-foreground` on `--alert-sos` | 4.20 |
+| `--muted-foreground` on `--muted` | 4.45 |
+
+**One was worse and is fixed:** `--alert-fall` was **2.79** — below even the 3:1 floor, on the
+badge that says a fall was detected. Fixed by darkening the TEXT to `25 95% 15%` (5.00:1); the
+orange fill is untouched, so the operator's colour cue is unchanged. It copies the treatment
+`--alert-battery` already uses on the neighbouring hue.
+
+**The other five are your call**, because both fixes touch safety UI: darken the fill (changes a
+colour operators recognise) or make badge text larger/bolder (changes layout). They are
+*ratcheted* meanwhile — pinned at today's values, and the suite fails if a sixth sub-AA pair
+appears or a pinned one slides. That records the debt without blessing it.
+
+**PR is held for the human gate** — CLAUDE.md gates the SOS/alert path, and a fall-badge colour
+is alert-path presentation.
+
 ---
 
 ## 3. Per-channel flags (D7) — turn on only when proven

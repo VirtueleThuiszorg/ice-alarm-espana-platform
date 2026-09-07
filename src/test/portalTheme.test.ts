@@ -21,6 +21,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { contrast, tokensFor } from "./helpers/contrast";
 
 interface Portal {
   /** CSS class that scopes the token block. */
@@ -38,51 +39,9 @@ const PORTALS: Portal[] = [
   { theme: "theme-admin", layout: "components/layout/AdminLayout.tsx", hue: [28, 40] },
 ];
 
-const css = readFileSync(join(process.cwd(), "src/index.css"), "utf8");
-
-/**
- * The declarations of the block governing `theme`. Portals that share a wash use
- * one grouped selector (`.theme-staff, .theme-admin { … }`) rather than keeping
- * identical copies that would drift, so match the class anywhere in the selector
- * list — not just at its start.
- */
-function block(theme: string): string {
-  const m = css.match(new RegExp(`(^|[,\\s])\\.${theme}\\s*(,[^{]*)?\\{`, "m"));
-  expect(m, `.${theme} token block missing from src/index.css`).not.toBeNull();
-  const open = css.indexOf("{", m!.index!);
-  return css.slice(open + 1, css.indexOf("}", open));
-}
-
-function tokens(theme: string): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const m of block(theme).matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)) out[m[1]] = m[2].trim();
-  return out;
-}
-
-/** "185 45% 96.5%" -> [r,g,b] */
-function hslToRgb(value: string): [number, number, number] {
-  const m = value.match(/^([\d.]+)\s+([\d.]+)%\s+([\d.]+)%$/);
-  expect(m, `token value is not a bare HSL triplet: "${value}"`).not.toBeNull();
-  const [h, s, l] = [Number(m![1]) / 360, Number(m![2]) / 100, Number(m![3]) / 100];
-  const f = (n: number) => {
-    const k = (n + h * 12) % 12;
-    const a = s * Math.min(l, 1 - l);
-    return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
-  };
-  return [Math.round(255 * f(0)), Math.round(255 * f(8)), Math.round(255 * f(4))];
-}
-
-function contrast(a: string, b: string): number {
-  const lum = (v: string) => {
-    const [r, g, bl] = hslToRgb(v).map((c) => {
-      const x = c / 255;
-      return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
-    });
-    return 0.2126 * r + 0.7152 * g + 0.0722 * bl;
-  };
-  const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
-  return (hi + 0.05) / (lo + 0.05);
-}
+// Contrast maths and token parsing are shared with publicPaletteContrast.test.ts — one
+// implementation, so the two surfaces cannot drift onto different bars.
+const tokens = (theme: string) => tokensFor(`.${theme}`);
 
 const CARD = "0 0% 100%";
 

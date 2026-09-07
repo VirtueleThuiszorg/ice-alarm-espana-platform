@@ -277,9 +277,12 @@ describe("the card renders the condition it is given", () => {
 
   it("and the one-off costs are on it — a monthly price alone understates joining by ~€200", () => {
     render(<MembershipConditionCard condition="never_joined" />);
-    const plans = screen.getByTestId("membership-plans").textContent ?? "";
-    expect(plans).toMatch(/151[.,]25/); // the pendant, 125.00 net + 21%
-    expect(plans).toMatch(/14[.,]99/); // delivery
+    // `toBeVisible`, not `textContent`. A mutation that put `hidden` on the row survived a
+    // textContent assertion: the string was still in the DOM and no longer on the screen, and
+    // "the member was told what it costs" is a claim about the screen.
+    expect(screen.getByText(/151[.,]25/)).toBeVisible(); // the pendant, 125.00 net + 21%
+    expect(screen.getByText(/14[.,]99/)).toBeVisible(); // delivery
+    expect(screen.getByText(/59[.,]99/)).toBeVisible(); // setting them up
   });
 });
 

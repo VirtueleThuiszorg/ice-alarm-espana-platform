@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, User, Mail, Phone, MapPin, Plane, Save } from "lucide-react";
+import { NotificationPreferences } from "@/components/client/NotificationPreferences";
 import { GdprSettingsSection } from "@/components/gdpr/GdprSettingsSection";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -549,6 +550,18 @@ export default function ProfilePage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/*
+              WP3 N9 — the writer `member_notification_optin` never had. The dispatcher has
+              refused every send since it shipped because "absent row means no permission" and
+              no screen created one.
+
+              `profile`, not the form draft: consent applies to the number we actually hold, and
+              a member who has typed a new phone but not saved it has not given us one yet.
+            */}
+            <NotificationPreferences
+              contact={{ phone: profile?.phone, email: profile?.email }}
+            />
 
             {/* GDPR / Data Privacy */}
             <GdprSettingsSection />

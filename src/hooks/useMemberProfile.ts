@@ -39,18 +39,16 @@ export interface MemberProfile {
  */
 export type MedicalInfo = Tables<"medical_information">;
 
-export interface EmergencyContact {
-  id: string;
-  member_id: string;
-  contact_name: string;
-  relationship: string;
-  phone: string;
-  email: string | null;
-  is_primary: boolean;
-  priority_order: number;
-  speaks_spanish: boolean;
-  notes: string | null;
-}
+/**
+ * THE GENERATED ROW, not a hand-written subset — the same fix `MedicalInfo` needed.
+ *
+ * This was an interface listing ten of the thirteen columns `emergency_contacts` holds, and the
+ * three it dropped are WP5's: `contact_type` (widened from two values to eight by
+ * `20260907100300_circle_of_care.sql`), `can_attend_in_person` and `availability_notes` — plus
+ * `country`. The query already said `select("*")`, so the data was arriving and the TYPE was
+ * throwing it away, exactly as it did for the eight missing medical fields.
+ */
+export type EmergencyContact = Tables<"emergency_contacts">;
 
 export interface DeviceInfo {
   id: string;

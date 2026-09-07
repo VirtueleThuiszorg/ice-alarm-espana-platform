@@ -1062,7 +1062,38 @@
     "updated": "Contacto actualizado correctamente",
     "deleted": "Contacto eliminado",
     "deleteTitle": "Eliminar Contacto",
-    "deleteConfirm": "¿Está seguro de que desea eliminar este contacto de emergencia? Esta acción no se puede deshacer."
+    "deleteConfirm": "¿Está seguro de que desea eliminar este contacto de emergencia? Esta acción no se puede deshacer.",
+    "typeLabel": "¿Qué es esta persona para usted?",
+    "canAttendLabel": "¿Podría venir a su casa?",
+    "canAttendBadge": "Puede venir",
+    "cannotAttendBadge": "Está demasiado lejos para venir",
+    "country": "¿En qué país está?",
+    "countryPlaceholder": "España",
+    "availability": "¿Cuál es el mejor momento para localizarla?",
+    "availabilityPlaceholder": "Solo por la noche · trabaja los martes · escríbale primero, es sorda",
+    "type": {
+      "emergency": "Familiar o amigo",
+      "emergencyDesc": "Alguien a quien llamamos si necesita ayuda. La mayoría empieza por aquí.",
+      "keyHolder": "Tiene llave",
+      "keyHolderDesc": "Puede dejar entrar a alguien en su casa.",
+      "carer": "Cuidador",
+      "carerDesc": "Alguien que le ayuda en el día a día, de forma remunerada o no.",
+      "careAgency": "Empresa de cuidados",
+      "careAgencyDesc": "Una empresa que le envía cuidadores.",
+      "nurse": "Enfermero",
+      "nurseDesc": "Un enfermero de zona o que le visita.",
+      "socialWorker": "Trabajador social",
+      "socialWorkerDesc": "Su trabajador social del ayuntamiento o del servicio de salud.",
+      "neighbour": "Vecino",
+      "neighbourDesc": "Alguien cercano que podría venir rápido.",
+      "legalRepresentative": "Representante legal",
+      "legalRepresentativeDesc": "Alguien que actúa por usted formalmente, por ejemplo con un poder notarial."
+    },
+    "canAttend": {
+      "yes": "Sí, puede venir",
+      "no": "No, está demasiado lejos",
+      "unknown": "No estoy seguro"
+    }
   },
   "emergencyContacts": {
     "loadFailed": "Error al cargar los contactos de emergencia",

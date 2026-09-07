@@ -48,4 +48,21 @@ if (typeof window !== "undefined") {
   if (!Element.prototype.scrollIntoView) {
     Element.prototype.scrollIntoView = () => {};
   }
+  /*
+    Radix's Select measures its trigger to size the popover, and jsdom has no ResizeObserver, so
+    OPENING a select throws before any assertion is reached. Same reasoning as the pointer shims
+    above: without it the only testable thing is the component's internals, and what matters is
+    what the choice WRITES.
+
+    A no-op is the right shim rather than a polyfill: nothing in jsdom has a layout to observe,
+    and a callback that never fires is exactly as accurate as one measuring zeroes.
+  */
+  if (typeof window.ResizeObserver === "undefined") {
+    class ResizeObserverShim {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+    window.ResizeObserver = ResizeObserverShim as unknown as typeof window.ResizeObserver;
+  }
 }

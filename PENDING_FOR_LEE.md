@@ -289,6 +289,62 @@ Note also: **the phone number is no longer in the notice.** One sentence has no 
 the pendant variant links to Support, where the number lives. That removed the last test fixture
 allowed to contain `+34 900 123 456`, which is a small good thing.
 
+### D-12 — a signed-in member cannot buy anything, and `/join` is not the workaround (2026-09-07)
+
+R8 says *"'No active subscription' shows the plans"*, and WP4 says the Membership page carries
+*"actions 'Add a pendant' and 'Change to couple' through Stripe checkout only."* Both need a
+checkout an EXISTING member can start. **There isn't one, and the obvious substitute is a trap.**
+
+`/join` has no idea anybody is signed in. It ends at `submit-registration` →
+`submit_registration_atomic`, which **INSERTs a `members` row unconditionally** — no lookup, no
+`user_id` link. A signed-in member sent through it comes out with a *second* member record: a
+second medical record, a second set of emergency contacts, a second Stripe customer. On this
+product that is not a billing annoyance — it is two records for one person, and an operator with
+an SOS on screen who can open the wrong one.
+
+So the page **shows** the plans with live prices and the one-off costs, and every action opens a
+prefilled support request instead. That is a real route: staff take the payment and the webhook
+activates, which is golden rule 4 either way. It is also the same line WP7 stopped at (D-10) —
+renew, plan switch and add-a-pendant all need new Stripe money-movement code against a real
+customer's card, and nothing in this repo can test it.
+
+**The decision.** Either
+
+  (a) leave it — every change of plan is a conversation. Honest, slower, and for a customer base
+      this age arguably the right shape anyway; or
+  (b) build `create-member-checkout`: a server function that takes an EXISTING `member_id`, builds
+      the line items, and returns a Stripe session, with the webhook activating as it does today.
+      That is a payment-path PR, so it would stay open for you regardless.
+
+Worth knowing before you choose: the query for members who would use it today is
+
+```sql
+select m.id, m.first_name, m.last_name, s.status
+from members m left join subscriptions s on s.member_id = m.id
+where s.id is null or s.status <> 'active';
+```
+
+### D-13 — may a member see WHO pays for them? (2026-09-07)
+
+The Membership page now says *"Somebody else pays for your membership"* when `payer_id` is set. It
+does **not** say who, and that is RLS rather than restraint: `payers` grants SELECT to staff and to
+the payer themselves. A member can read `payer_id` — it is a column of their own subscription — but
+not the row it points at.
+
+Showing the name needs a new policy on `payers`, and that table's design note is *"being a payer
+grants NO access to any care data"*, argued in both directions. Adding a policy to it in passing,
+on a WP4 copy PR, is exactly the kind of thing PAYER_MODEL.md was written to stop. **RLS policies
+are a mandatory human gate (CLAUDE.md), so this was never mine to decide.**
+
+The argument for: an 80-year-old who cannot see who pays for their alarm cannot check it is still
+the daughter they think it is. The argument against: the payer's name, email and phone are the
+payer's data, and a member's account being taken over would expose a third party who never agreed
+to that.
+
+If you want it, the narrow version is a policy exposing `full_name` and `relationship` only — not
+email, not phone — to `get_member_id(auth.uid())` on the subscription that points at the row. Say
+the word and it goes in its own migration for you to review.
+
 ### D-6 — five alert/badge colours are below WCAG AA, and fixing them changes safety colour
 
 Measured on the base `:root` palette (`publicPaletteContrast.test.ts`). All are white-or-near-

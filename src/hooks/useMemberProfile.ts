@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
+import type { SubscriptionStatus } from "@/lib/membershipCondition";
 
 export interface MemberProfile {
   id: string;
@@ -75,11 +76,22 @@ export interface SubscriptionInfo {
   plan_type: string | null;
   billing_frequency: string | null;
   amount: number | null;
-  status: string;
+  /**
+   * The enum, not `string`.
+   *
+   * It was `string`, which let the Membership page treat "no ACTIVE subscription" and "no
+   * subscription" as the same thing without the compiler having an opinion. `membershipCondition()`
+   * maps every one of the seven values, and it can only do that if this says which seven.
+   * Nullable because the column is.
+   */
+  status: SubscriptionStatus | null;
   start_date: string | null;
   renewal_date: string | null;
   has_pendant: boolean | null;
   payment_method: string | null;
+  /** NULL = the member pays for themselves. See PAYER_MODEL.md. */
+  payer_id: string | null;
+  created_at: string | null;
 }
 
 export interface AlertHistory {
@@ -176,26 +188,63 @@ export function useMemberDevice() {
   });
 }
 
-export function useMemberSubscription() {
+export interface MemberSubscriptions {
+  /** The active subscription, or `null`. This is the one that means "somebody is watching". */
+  active: SubscriptionInfo | null;
+  /**
+   * The most recent subscription of ANY status, or `null` when the member has never had one.
+   *
+   * The distinction `active === null` could not make. See `membershipCondition()`.
+   */
+  latest: SubscriptionInfo | null;
+}
+
+/**
+ * Every subscription this member has ever had, reduced to the two the UI asks about.
+ *
+ * ONE query, not two. `useMemberSubscription()` is derived from this rather than issuing its own
+ * `.eq("status","active")` read, so there is no second copy of "what counts as active" to drift
+ * — the §16 bar's "no duplicate parallel implementations", applied to a two-line filter.
+ *
+ * RLS: "Members can view own subscription" is `member_id = get_member_id(auth.uid())` with no
+ * status condition, so dropping the `active` filter widens nothing. A member could always read
+ * their cancelled subscriptions; the client was choosing not to.
+ */
+export function useMemberSubscriptions() {
   const { memberId } = useAuth();
 
   return useQuery({
-    queryKey: ["member-subscription", memberId],
-    queryFn: async () => {
+    queryKey: ["member-subscriptions", memberId],
+    queryFn: async (): Promise<MemberSubscriptions> => {
       if (!memberId) throw new Error("No member ID");
-      
+
       const { data, error } = await supabase
         .from("subscriptions")
         .select("*")
         .eq("member_id", memberId)
-        .eq("status", "active")
-        .single();
+        .order("created_at", { ascending: false });
 
-      if (error && error.code !== "PGRST116") throw error;
-      return data as SubscriptionInfo | null;
+      if (error) throw error;
+
+      const rows = (data ?? []) as SubscriptionInfo[];
+      return {
+        active: rows.find((r) => r.status === "active") ?? null,
+        latest: rows[0] ?? null,
+      };
     },
     enabled: !!memberId,
   });
+}
+
+/**
+ * The active subscription only — unchanged in meaning for every existing caller.
+ *
+ * `DevicePage` asks `subscription?.has_pendant`, and a cancelled member must not answer yes to
+ * that, which is why this stayed a separate accessor rather than becoming "the latest one".
+ */
+export function useMemberSubscription() {
+  const query = useMemberSubscriptions();
+  return { ...query, data: query.data === undefined ? undefined : query.data.active };
 }
 
 export function useMemberAlerts() {

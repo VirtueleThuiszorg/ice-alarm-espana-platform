@@ -72,8 +72,17 @@ describe("the canned replies", () => {
   });
 
   it("never promise a member can test their own pendant — Q1 is operator-confirmed", () => {
-    const test = ROWS.split("('/pendant-test'").slice(1).join("\n").slice(0, 2000);
-    expect(test).toMatch(/We will call|Le llamaremos|Wij bellen/);
+    // Checked PER LANGUAGE. An alternation over all three joined together passes while two of
+    // them are right and the third tells the member to press the button and be done.
+    const chunks = ROWS.split("('/pendant-test'").slice(1).map((c) => c.slice(0, 700));
+    expect(chunks).toHaveLength(3);
+    const promises = [/We will call/, /Le llamaremos/, /Wij bellen/];
+    chunks.forEach((chunk, i) => expect(chunk, `pendant-test #${i}`).toMatch(promises[i]));
+
+    // And the negative: nothing here may describe the test as something the member finishes.
+    for (const chunk of chunks) {
+      expect(chunk).not.toMatch(/complete the test|completar la prueba|de test.{0,20}(afronden|voltooien)/i);
+    }
   });
 });
 

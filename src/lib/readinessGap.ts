@@ -102,3 +102,29 @@ export const READINESS_GAP_STAFF: Record<
     },
   },
 };
+
+/**
+ * THE VIEW'S ANSWER, FOR ONE MEMBER — the read that had two copies of its rule.
+ *
+ * `MemberReadinessNotice` worked this out inline and the operator's context panel needed the
+ * same answer. The columns and the precedence between them are the part worth having once:
+ *
+ *   `monitoring_ready` is the authority on WHETHER. `emergency_contact_count` and
+ *   `device_tested_at` say WHICH. When they disagree the view wins, so no surface can ever show
+ *   a warning the view says is unwarranted.
+ *
+ * A missing row stays `unknown`. READINESS_MODEL.md §1-A: the failure this model exists to
+ * prevent is a false all-clear, and its mirror — a false alarm on every load while the read is
+ * in flight — is what teaches people to ignore the notice.
+ */
+export const READINESS_VIEW_COLUMNS =
+  "monitoring_ready, emergency_contact_count, device_tested_at";
+
+export interface ReadinessViewRow extends ReadinessRow {
+  monitoring_ready: boolean | null;
+}
+
+export function readinessGapFromView(row: ReadinessViewRow | null | undefined): ReadinessGap {
+  if (!row) return "unknown";
+  return row.monitoring_ready === true ? "none" : readinessGap(row);
+}

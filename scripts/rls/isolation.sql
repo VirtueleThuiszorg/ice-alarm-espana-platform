@@ -1029,7 +1029,82 @@ SELECT pg_temp.check(
             WHERE n.nspname = 'public' AND c.relname = 'member_monitoring_readiness'),
            'view missing'));
 
--- Both seeded members have one contact each, so start from the TRUE case.
+-- ── D4: readiness is now TWO conditions (FULFILMENT_MODEL.md §5) ──────────
+--
+-- This is the assertion the whole increment exists for, and it is RED before the change and
+-- GREEN after. Both seeded members have a contact; neither has a tested pendant. Under the
+-- old one-condition view member A read READY. Under D4 they must not.
+SELECT pg_temp.check(
+  'D4: a member with a contact but NO tested pendant is NOT monitoring-ready',
+  (SELECT monitoring_ready FROM public.member_monitoring_readiness
+    WHERE member_id = 'aaaaaaaa-0000-0000-0000-000000000001') IS FALSE,
+  'the contact alone used to be enough — this is the lie D4 removes');
+
+SELECT pg_temp.check(
+  'and the reason is legible: the contact condition is met, the tested one is not',
+  (SELECT emergency_contact_count = 1 AND device_tested_at IS NULL
+     FROM public.member_monitoring_readiness
+    WHERE member_id = 'aaaaaaaa-0000-0000-0000-000000000001'),
+  'the queue must be able to say WHICH condition is missing');
+
+-- Now give member A a pendant that was actually tested, so the TRUE case below is a real
+-- two-condition pass rather than the old one-condition one. fulfilment_state is set on INSERT:
+-- the trigger governs TRANSITIONS, and seeding a finished order is not a transition.
+-- Member A already has a seeded device; reuse it rather than inventing a second, so the
+-- Q2 assertions below act on the real member↔device relationship the view reads.
+UPDATE public.devices SET status = 'active'
+WHERE id = '11111111-dddd-0000-0000-000000000001';
+
+INSERT INTO public.orders
+  (id, member_id, order_number, subtotal, tax_amount, total_amount,
+   shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code,
+   fulfilment_state, tested_at)
+VALUES ('0dde0000-0000-0000-0000-00000000000a', 'aaaaaaaa-0000-0000-0000-000000000001',
+        'ORD-RLS-A', 100, 21, 121, 'Calle A 1', 'Albox', 'Almeria', '04800',
+        'tested', now());
+
+INSERT INTO public.order_items
+  (order_id, item_type, description, quantity, unit_price, tax_rate, tax_amount, total_price, device_id)
+VALUES ('0dde0000-0000-0000-0000-00000000000a', 'pendant', 'Vivago SOS pendant',
+        1, 100, 0.21, 21, 121, '11111111-dddd-0000-0000-000000000001');
+
+SELECT pg_temp.check(
+  'readiness is TRUE only once BOTH conditions hold — a contact AND a tested pendant',
+  (SELECT monitoring_ready FROM public.member_monitoring_readiness
+    WHERE member_id = 'aaaaaaaa-0000-0000-0000-000000000001') IS TRUE);
+
+SELECT pg_temp.check(
+  'device_tested_at is exposed, so the queue can show when the test happened',
+  (SELECT device_tested_at IS NOT NULL FROM public.member_monitoring_readiness
+    WHERE member_id = 'aaaaaaaa-0000-0000-0000-000000000001'));
+
+-- Q2 (Lee, 2026-09-07): a replaced or faulty pendant drops readiness until re-tested. The
+-- test proved THAT device worked in THAT home; a replacement has proved nothing yet.
+UPDATE public.devices SET status = 'faulty'
+WHERE id = '11111111-dddd-0000-0000-000000000001';
+
+SELECT pg_temp.check(
+  'Q2: marking the tested pendant FAULTY drops readiness back to not-ready',
+  (SELECT monitoring_ready FROM public.member_monitoring_readiness
+    WHERE member_id = 'aaaaaaaa-0000-0000-0000-000000000001') IS FALSE,
+  'correct and unpopular — the evidence belonged to the device, not the member');
+
+SELECT pg_temp.check(
+  'Q2: and it is the TESTED condition that dropped, not the contact one',
+  (SELECT emergency_contact_count = 1 AND device_tested_at IS NULL
+     FROM public.member_monitoring_readiness
+    WHERE member_id = 'aaaaaaaa-0000-0000-0000-000000000001'));
+
+UPDATE public.devices SET status = 'active'
+WHERE id = '11111111-dddd-0000-0000-000000000001';
+
+SELECT pg_temp.check(
+  'readiness returns once the pendant is in good standing again (derived, not latched)',
+  (SELECT monitoring_ready FROM public.member_monitoring_readiness
+    WHERE member_id = 'aaaaaaaa-0000-0000-0000-000000000001') IS TRUE);
+
+-- Original one-condition assertion, kept and re-anchored: the contact count must still be the
+-- real count and not a boolean in disguise.
 SELECT pg_temp.check(
   'readiness is TRUE for a member with one emergency contact',
   (SELECT monitoring_ready FROM public.member_monitoring_readiness
@@ -1124,10 +1199,20 @@ INSERT INTO public.emergency_contacts
   (member_id, contact_name, relationship, phone, priority_order)
 VALUES ('bbbbbbbb-0000-0000-0000-000000000002', 'Contact B', 'son', '+34622222222', 1);
 
+-- Under D4 this assertion had to change, and the change is the point rather than an
+-- accommodation. The property it was written to prove — the view is DERIVED, so it moves in
+-- both directions with no trigger and nothing to invalidate — is unchanged and is asserted on
+-- the contact count. What is no longer true is that a contact ALONE makes a member ready.
 SELECT pg_temp.check(
-  'readiness flips back to TRUE on insert — derived in both directions',
+  'the contact count flips back to 1 on insert — derived in both directions',
+  (SELECT emergency_contact_count FROM public.member_monitoring_readiness
+    WHERE member_id = 'bbbbbbbb-0000-0000-0000-000000000002') = 1);
+
+SELECT pg_temp.check(
+  'D4: member B is STILL not ready — a contact is no longer sufficient on its own',
   (SELECT monitoring_ready FROM public.member_monitoring_readiness
-    WHERE member_id = 'bbbbbbbb-0000-0000-0000-000000000002') IS TRUE);
+    WHERE member_id = 'bbbbbbbb-0000-0000-0000-000000000002') IS FALSE,
+  'member B has never had a pendant tested in their home');
 
 SELECT pg_temp.check(
   'CONTROL: service_role sees BOTH members'' readiness (else this whole block is vacuous)',
@@ -1247,8 +1332,63 @@ INSERT INTO public.emergency_contacts
   (member_id, contact_name, relationship, phone, priority_order)
 VALUES ('bbbbbbbb-0000-0000-0000-000000000002', 'Contact B', 'son', '+34622222222', 1);
 
+-- D4 CHANGES WHAT THIS QUEUE MEANS, and the assertion says so rather than being softened.
+-- It used to be the zero-contact set; it is now the not-ready set, which also holds every
+-- member still waiting for an in-home test. Recording a contact therefore no longer empties
+-- it — the member stays, for a different and still-true reason.
 SELECT pg_temp.check(
-  'recording ONE contact empties the queue on the very next read — no cache to invalidate',
+  'recording ONE contact is read immediately — no cache to invalidate',
+  (SELECT emergency_contact_count FROM public.member_monitoring_readiness
+    WHERE member_id = 'bbbbbbbb-0000-0000-0000-000000000002') = 1);
+
+SELECT pg_temp.check(
+  'D4: but the member STAYS in the queue, now waiting on the in-home test',
+  pg_temp.count_as('55555555-5555-5555-5555-555555555555',
+    'SELECT member_id FROM public.member_monitoring_readiness
+      WHERE monitoring_ready = false AND paid_since IS NOT NULL
+        AND member_id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 1,
+  'the queue is the not-ready set, and this member is genuinely not ready');
+
+SELECT pg_temp.check(
+  'and the queue can say WHICH condition is outstanding, so the row is actionable',
+  pg_temp.count_as('55555555-5555-5555-5555-555555555555',
+    'SELECT member_id FROM public.member_monitoring_readiness
+      WHERE member_id = ''bbbbbbbb-0000-0000-0000-000000000002''
+        AND emergency_contact_count > 0 AND device_tested_at IS NULL') = 1,
+  '"not ready" without a reason is not actionable — D10''s notice has to name the thing');
+
+-- The row does disappear once the outstanding condition is actually met. This is the original
+-- "work the row, the row disappears" property, re-anchored to the condition that is now
+-- outstanding rather than to the one that already was. Walked one state at a time through the
+-- real trigger rather than inserted at `tested`, so the queue is emptied the way staff empty
+-- it and not by a shortcut the product does not have.
+UPDATE public.devices SET status = 'active'
+WHERE id = '22222222-dddd-0000-0000-000000000002';
+
+INSERT INTO public.orders
+  (id, member_id, order_number, subtotal, tax_amount, total_amount,
+   shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code)
+VALUES ('0dde0000-0000-0000-0000-0000000000b1', 'bbbbbbbb-0000-0000-0000-000000000002',
+        'ORD-RLS-B-QUEUE', 100, 21, 121, 'Calle B 2', 'Albox', 'Almeria', '04800');
+
+INSERT INTO public.order_items
+  (order_id, item_type, description, quantity, unit_price, tax_rate, tax_amount, total_price, device_id)
+VALUES ('0dde0000-0000-0000-0000-0000000000b1', 'pendant', 'Vivago SOS pendant',
+        1, 100, 0.21, 21, 121, '22222222-dddd-0000-0000-000000000002');
+
+UPDATE public.orders SET fulfilment_state = 'allocated'  WHERE id = '0dde0000-0000-0000-0000-0000000000b1';
+UPDATE public.orders SET fulfilment_state = 'programmed' WHERE id = '0dde0000-0000-0000-0000-0000000000b1';
+UPDATE public.orders SET fulfilment_state = 'dispatched' WHERE id = '0dde0000-0000-0000-0000-0000000000b1';
+UPDATE public.orders SET fulfilment_state = 'delivered'  WHERE id = '0dde0000-0000-0000-0000-0000000000b1';
+UPDATE public.orders SET fulfilment_state = 'tested'     WHERE id = '0dde0000-0000-0000-0000-0000000000b1';
+
+SELECT pg_temp.check(
+  'walking the states server-side stamped tested_at without a client supplying it',
+  (SELECT tested_at IS NOT NULL FROM public.orders
+    WHERE id = '0dde0000-0000-0000-0000-0000000000b1'));
+
+SELECT pg_temp.check(
+  'completing the in-home test empties the queue on the very next read',
   pg_temp.count_as('55555555-5555-5555-5555-555555555555',
     'SELECT member_id FROM public.member_monitoring_readiness
       WHERE monitoring_ready = false AND paid_since IS NOT NULL') = 0,
@@ -1901,6 +2041,705 @@ SELECT pg_temp.check(
              ''operator_assisted'', NULL)'),
   'the CHECK became a trigger so a departing staff member does not break history — but the
    write-time guarantee it existed for is unchanged');
+
+-- ============================================================
+--  Fulfilment state machine (orders.fulfilment_state) — D9
+-- ============================================================
+--
+-- FULFILMENT_MODEL.md §7. RLS decides WHETHER you may write the row; it has never decided
+-- WHICH VALUE you may write. These assert the trigger does, because a rule enforced only in
+-- `useOrderActions` is a suggestion — anyone with a session can PATCH the row directly.
+--
+-- Seeded LAST on purpose: this section adds staff rows, and earlier assertions pick staff with
+-- `LIMIT 1`. Adding them earlier would change what those assertions are about.
+
+INSERT INTO auth.users (id, email) VALUES
+  ('a5000000-0000-0000-0000-00000000000f', 'supervisor@example.com'),
+  ('a6000000-0000-0000-0000-00000000000f', 'ordinary-staff@example.com');
+
+INSERT INTO public.staff (user_id, email, first_name, last_name, role) VALUES
+  ('a5000000-0000-0000-0000-00000000000f', 'supervisor@example.com',
+   'Sam', 'Supervisor', 'call_centre_supervisor'),
+  ('a6000000-0000-0000-0000-00000000000f', 'ordinary-staff@example.com',
+   'Otto', 'Ordinary', 'call_centre');
+
+-- A fresh order for member B, at `paid`, to walk forwards through.
+INSERT INTO public.orders
+  (id, member_id, order_number, subtotal, tax_amount, total_amount,
+   shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code)
+VALUES ('0dde0000-0000-0000-0000-00000000000b', 'bbbbbbbb-0000-0000-0000-000000000002',
+        'ORD-RLS-B', 100, 21, 121, 'Calle B 2', 'Albox', 'Almeria', '04800');
+
+SELECT pg_temp.check(
+  'a new order starts at `paid` — the only state the payment webhook may create',
+  (SELECT fulfilment_state FROM public.orders
+    WHERE id = '0dde0000-0000-0000-0000-00000000000b') = 'paid');
+
+-- §7.1 — a member cannot write the state at all.
+SELECT pg_temp.check(
+  'a MEMBER cannot move their own order''s fulfilment_state (no write path at all)',
+  pg_temp.exec_as('22222222-2222-2222-2222-222222222222',
+    'UPDATE public.orders SET fulfilment_state = ''allocated''
+      WHERE id = ''0dde0000-0000-0000-0000-00000000000b''') = 0,
+  'Q1: a member cannot self-report — least of all by writing the state directly');
+
+SELECT pg_temp.check(
+  'CONTROL: the member''s write really was refused, the row is still `paid`',
+  (SELECT fulfilment_state FROM public.orders
+    WHERE id = '0dde0000-0000-0000-0000-00000000000b') = 'paid',
+  'if this fails the assertion above passed for the wrong reason');
+
+-- §7.5 — nobody can skip a step, not even a supervisor.
+--
+-- On its OWN order, deliberately. If the skip guard is ever removed, this assertion must go
+-- red on its own and report; it must not also derail the forward walk below into a backward
+-- move and abort the whole suite before the report prints. A mutation should produce a
+-- verdict, not an absence of one — the same distinction run.sh draws between exit 1 and 3.
+INSERT INTO public.orders
+  (id, member_id, order_number, subtotal, tax_amount, total_amount,
+   shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code)
+VALUES ('0dde0000-0000-0000-0000-0000000000bc', 'bbbbbbbb-0000-0000-0000-000000000002',
+        'ORD-RLS-B-SKIP', 100, 21, 121, 'Calle B 2', 'Albox', 'Almeria', '04800');
+
+SELECT pg_temp.check(
+  'NOBODY may skip a step: paid → dispatched in one write is refused',
+  pg_temp.raises_as('a5000000-0000-0000-0000-00000000000f',
+    'UPDATE public.orders SET fulfilment_state = ''dispatched''
+      WHERE id = ''0dde0000-0000-0000-0000-0000000000bc'''),
+  'each state is a claim somebody could check; skipping asserts three with evidence for none');
+
+SELECT pg_temp.check(
+  'CONTROL: the skipped order is still `paid` — the refusal was real',
+  (SELECT fulfilment_state FROM public.orders
+    WHERE id = '0dde0000-0000-0000-0000-0000000000bc') = 'paid');
+
+-- §7.2 — ordinary staff CAN move forwards.
+SELECT pg_temp.check(
+  'ordinary staff CAN move paid → allocated (forward moves are ordinary work)',
+  pg_temp.exec_as('a6000000-0000-0000-0000-00000000000f',
+    'UPDATE public.orders SET fulfilment_state = ''allocated''
+      WHERE id = ''0dde0000-0000-0000-0000-00000000000b''') = 1);
+
+SELECT pg_temp.check(
+  'and the server stamped allocated_at — not the client, which could lie about it',
+  (SELECT allocated_at IS NOT NULL FROM public.orders
+    WHERE id = '0dde0000-0000-0000-0000-00000000000b'));
+
+SELECT pg_temp.check(
+  'ordinary staff CAN move allocated → programmed',
+  pg_temp.exec_as('a6000000-0000-0000-0000-00000000000f',
+    'UPDATE public.orders SET fulfilment_state = ''programmed''
+      WHERE id = ''0dde0000-0000-0000-0000-00000000000b''') = 1);
+
+SELECT pg_temp.check(
+  'programmed_by names the staff member who did it, resolved server-side from the JWT',
+  (SELECT o.programmed_by = (SELECT id FROM public.staff
+                              WHERE user_id = 'a6000000-0000-0000-0000-00000000000f')
+     FROM public.orders o WHERE o.id = '0dde0000-0000-0000-0000-00000000000b'),
+  'the evidence a state leaves is who and when — a client-supplied actor is not evidence');
+
+SELECT pg_temp.check(
+  'ordinary staff CAN move programmed → dispatched',
+  pg_temp.exec_as('a6000000-0000-0000-0000-00000000000f',
+    'UPDATE public.orders SET fulfilment_state = ''dispatched''
+      WHERE id = ''0dde0000-0000-0000-0000-00000000000b''') = 1);
+
+-- §7.3 — ordinary staff CANNOT move backwards. The heart of D9.
+SELECT pg_temp.check(
+  'D9: ordinary staff CANNOT move dispatched → programmed — refused in the DATABASE',
+  pg_temp.raises_as('a6000000-0000-0000-0000-00000000000f',
+    'UPDATE public.orders SET fulfilment_state = ''programmed''
+      WHERE id = ''0dde0000-0000-0000-0000-00000000000b'''),
+  'not in the UI — a rule you can go around with one PATCH is not a rule');
+
+SELECT pg_temp.check(
+  'CONTROL: it really is still dispatched afterwards',
+  (SELECT fulfilment_state FROM public.orders
+    WHERE id = '0dde0000-0000-0000-0000-00000000000b') = 'dispatched');
+
+-- §7.4 — a supervisor CAN.
+SELECT pg_temp.check(
+  'D9: a call_centre_supervisor CAN move dispatched → programmed',
+  pg_temp.exec_as('a5000000-0000-0000-0000-00000000000f',
+    'UPDATE public.orders SET fulfilment_state = ''programmed''
+      WHERE id = ''0dde0000-0000-0000-0000-00000000000b''') = 1);
+
+-- ── §7.6 / §7.7 — the commission hazard ───────────────────────────────────
+-- `delivered` creates a €50 partner commission, and process-commissions cancels a
+-- pending_release commission ONLY if the order reads `cancelled`. An order corrected out of
+-- `delivered` is not cancelled — so without the trigger's cancellation the money releases
+-- seven days later for a delivery that never happened.
+
+UPDATE public.orders SET fulfilment_state = 'dispatched'
+WHERE id = '0dde0000-0000-0000-0000-00000000000b';
+UPDATE public.orders SET fulfilment_state = 'delivered'
+WHERE id = '0dde0000-0000-0000-0000-00000000000b';
+
+INSERT INTO public.partner_commissions (id, partner_id, member_id, order_id, status)
+VALUES ('c0111111-0000-0000-0000-00000000000b', 'cccccccc-0000-0000-0000-000000000003',
+        'bbbbbbbb-0000-0000-0000-000000000002', '0dde0000-0000-0000-0000-00000000000b',
+        'pending_release');
+
+SELECT pg_temp.check(
+  'CONTROL: a pending_release commission exists before the correction',
+  (SELECT status FROM public.partner_commissions
+    WHERE id = 'c0111111-0000-0000-0000-00000000000b') = 'pending_release',
+  'if this fails the cancellation below proves nothing');
+
+SELECT pg_temp.check(
+  '§7.6 a supervisor CAN correct delivered → dispatched while money is still pending',
+  pg_temp.exec_as('a5000000-0000-0000-0000-00000000000f',
+    'UPDATE public.orders SET fulfilment_state = ''dispatched''
+      WHERE id = ''0dde0000-0000-0000-0000-00000000000b''') = 1);
+
+-- Assert the COMMISSION ROW, not the return value: §7.6 is explicit that the return value
+-- could be right while the money kept moving.
+SELECT pg_temp.check(
+  '§7.6 moving OUT of delivered CANCELLED the pending commission, same transaction',
+  (SELECT status FROM public.partner_commissions
+    WHERE id = 'c0111111-0000-0000-0000-00000000000b') = 'cancelled',
+  'a partial correction that leaves the €50 moving is worse than refusing the correction');
+
+SELECT pg_temp.check(
+  'and the cancellation says why, so the money has an audit trail',
+  (SELECT cancel_reason LIKE '%out of delivered%' FROM public.partner_commissions
+    WHERE id = 'c0111111-0000-0000-0000-00000000000b'));
+
+-- Q3 (Lee, 2026-09-07): once the money has moved, REFUSE the correction.
+UPDATE public.orders SET fulfilment_state = 'delivered'
+WHERE id = '0dde0000-0000-0000-0000-00000000000b';
+
+UPDATE public.partner_commissions SET status = 'paid'
+WHERE id = 'c0111111-0000-0000-0000-00000000000b';
+
+SELECT pg_temp.check(
+  '§7.7 / Q3: moving out of delivered is REFUSED when the commission is already paid',
+  pg_temp.raises_as('a5000000-0000-0000-0000-00000000000f',
+    'UPDATE public.orders SET fulfilment_state = ''dispatched''
+      WHERE id = ''0dde0000-0000-0000-0000-00000000000b'''),
+  'reversing money already paid is a finance decision, not a data correction');
+
+SELECT pg_temp.check(
+  '§7.7 CONTROL: the order still reads delivered after the refusal',
+  (SELECT fulfilment_state FROM public.orders
+    WHERE id = '0dde0000-0000-0000-0000-00000000000b') = 'delivered');
+
+SELECT pg_temp.check(
+  '§7.7 CONTROL: and the paid commission was NOT silently reversed',
+  (SELECT status FROM public.partner_commissions
+    WHERE id = 'c0111111-0000-0000-0000-00000000000b') = 'paid');
+
+-- ── the state machine did not open a read hole ────────────────────────────
+SELECT pg_temp.check(
+  'member A still CANNOT read member B''s order, fulfilment_state and all',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.orders
+      WHERE id = ''0dde0000-0000-0000-0000-00000000000b''') = 0);
+
+SELECT pg_temp.check(
+  'a member with no order reads no fulfilment state anywhere',
+  pg_temp.count_as('66666666-6666-6666-6666-666666666666',
+    'SELECT id FROM public.orders') = 0);
+
+-- §7.9 — the mechanism, so §7.8's negative cannot pass for the wrong reason.
+SELECT pg_temp.check(
+  '§7.9 the readiness view STILL has security_invoker = on after being replaced',
+  EXISTS (
+    SELECT 1 FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relname = 'member_monitoring_readiness'
+      AND c.reloptions @> ARRAY['security_invoker=on']
+  ),
+  'the view now reads orders too — a definer view here would leak every member''s readiness');
+
+-- §7.8 — the specific hole the new orders join could have opened.
+SELECT pg_temp.check(
+  '§7.8 member B CANNOT read member A''s readiness THROUGH the new orders join',
+  pg_temp.count_as('22222222-2222-2222-2222-222222222222',
+    'SELECT member_id FROM public.member_monitoring_readiness
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 0);
+
+SELECT pg_temp.check(
+  '§7.8 member A still reads their OWN readiness, tested pendant and all',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT member_id FROM public.member_monitoring_readiness
+      WHERE monitoring_ready') = 1,
+  'the join must not have cost a member sight of their own row');
+
+-- ============================================================
+--  WP3 — notification opt-in, templates and delivery record
+-- ============================================================
+--
+-- Golden rule 2: three new tables, so three sets of isolation assertions. Negative-first —
+-- the load-bearing claims are that a member cannot see or set anybody else's permission to be
+-- contacted, cannot read operational templates at all, and cannot fabricate a delivery record.
+
+-- ── member_notification_optin ─────────────────────────────────────────────
+SELECT pg_temp.check(
+  'a member CAN record their own opt-in',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO public.member_notification_optin
+       (member_id, channel, opted_in, opted_in_at)
+     VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''sms'', true, now())') = 1);
+
+SELECT pg_temp.check(
+  'a member CANNOT record an opt-in for ANOTHER member — consent is not transferable',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO public.member_notification_optin
+       (member_id, channel, opted_in, opted_in_at)
+     VALUES (''bbbbbbbb-0000-0000-0000-000000000002'', ''sms'', true, now())'),
+  'opting somebody else in to WhatsApp is the whole thing this table exists to prevent');
+
+SELECT pg_temp.check(
+  'CONTROL: no opt-in row was created for member B',
+  (SELECT count(*) FROM public.member_notification_optin
+    WHERE member_id = 'bbbbbbbb-0000-0000-0000-000000000002') = 0);
+
+SELECT pg_temp.check(
+  'a member CANNOT read another member''s opt-ins',
+  pg_temp.count_as('22222222-2222-2222-2222-222222222222',
+    'SELECT id FROM public.member_notification_optin
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 0);
+
+SELECT pg_temp.check(
+  'a member reads their OWN opt-in',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.member_notification_optin') = 1);
+
+SELECT pg_temp.check(
+  'a member CANNOT flip another member''s opt-in by UPDATE',
+  pg_temp.exec_as('22222222-2222-2222-2222-222222222222',
+    'UPDATE public.member_notification_optin SET opted_in = true
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 0);
+
+SELECT pg_temp.check(
+  'a carer holding a live consent grant reads NO opt-ins — never a granted category',
+  pg_temp.count_as('88888888-8888-8888-8888-888888888888',
+    'SELECT id FROM public.member_notification_optin') = 0);
+
+SELECT pg_temp.check(
+  'staff DO read opt-ins (the operator has to know whether they may send)',
+  pg_temp.count_as('a5000000-0000-0000-0000-00000000000f',
+    'SELECT id FROM public.member_notification_optin') = 1);
+
+-- The CHECK, because a consent record with no date cannot be defended later.
+-- On its OWN channel, so that removing the CHECK makes THIS assertion go red and report,
+-- rather than letting the insert succeed and collide with the next one on the unique key —
+-- which would abort the suite and produce no verdict at all.
+SELECT pg_temp.check(
+  'an opted-IN row with no timestamp is REFUSED by the database',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO public.member_notification_optin (member_id, channel, opted_in)
+     VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''whatsapp'', true)'),
+  '"we had permission" has to carry a when, or it is an assertion rather than a record');
+
+SELECT pg_temp.check(
+  'CONTROL: no whatsapp opt-in row survived that refusal',
+  (SELECT count(*) FROM public.member_notification_optin
+    WHERE member_id = 'aaaaaaaa-0000-0000-0000-000000000001'
+      AND channel = 'whatsapp') = 0);
+
+SELECT pg_temp.check(
+  'an opted-OUT row needs no timestamp — nothing is being claimed',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO public.member_notification_optin (member_id, channel, opted_in)
+     VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''email'', false)') = 1);
+
+-- ── notification_templates: operational content, not member data ──────────
+SELECT pg_temp.check(
+  'a member CANNOT read notification templates at all',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.notification_templates') = 0);
+
+INSERT INTO public.notification_templates (event_key, channel, locale, body)
+VALUES ('pendant_tested', 'sms', 'en', 'Your pendant has been tested.');
+
+SELECT pg_temp.check(
+  'CONTROL: a template really exists, so the member''s empty read means something',
+  (SELECT count(*) FROM public.notification_templates) = 1);
+
+SELECT pg_temp.check(
+  'a member STILL cannot read it now that one exists',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.notification_templates') = 0);
+
+SELECT pg_temp.check(
+  'staff CAN read templates',
+  pg_temp.count_as('a5000000-0000-0000-0000-00000000000f',
+    'SELECT id FROM public.notification_templates') = 1);
+
+SELECT pg_temp.check(
+  'ordinary staff CANNOT edit a template — admin only',
+  pg_temp.exec_as('a6000000-0000-0000-0000-00000000000f',
+    'UPDATE public.notification_templates SET body = ''tampered''') = 0,
+  'the words sent to a member in an emergency are not an ordinary edit');
+
+SELECT pg_temp.check(
+  'CONTROL: the template body really is untouched',
+  (SELECT body FROM public.notification_templates) = 'Your pendant has been tested.');
+
+-- ── member_notification_log: no authenticated write path at all ───────────
+INSERT INTO public.member_notification_log (member_id, channel, event_key, status)
+VALUES ('aaaaaaaa-0000-0000-0000-000000000001', 'sms', 'pendant_tested', 'sent');
+
+SELECT pg_temp.check(
+  'a member reads their OWN notification history',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.member_notification_log') = 1);
+
+SELECT pg_temp.check(
+  'a member CANNOT read another member''s notification history',
+  pg_temp.count_as('22222222-2222-2222-2222-222222222222',
+    'SELECT id FROM public.member_notification_log') = 0);
+
+SELECT pg_temp.check(
+  'a member CANNOT fabricate a delivery record — no INSERT policy exists',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO public.member_notification_log (member_id, channel, event_key, status)
+     VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''sms'', ''fake'', ''sent'')'),
+  'the record of what was sent is evidence; a client that can write it can rewrite history');
+
+SELECT pg_temp.check(
+  'a member CANNOT alter their own delivery record either',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.member_notification_log SET status = ''failed''') = 0);
+
+SELECT pg_temp.check(
+  'and STAFF cannot write it either — the service role is the only writer',
+  pg_temp.raises_as('a5000000-0000-0000-0000-00000000000f',
+    'INSERT INTO public.member_notification_log (member_id, channel, event_key, status)
+     VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''sms'', ''fake'', ''sent'')'));
+
+-- ── the three flags exist and are OFF ─────────────────────────────────────
+SELECT pg_temp.check(
+  'all three notify_channel_* flags exist as rows, so OFF is written rather than missing',
+  (SELECT count(*) FROM public.system_settings WHERE key LIKE 'notify_channel_%') = 3);
+
+SELECT pg_temp.check(
+  'and every one of them is OFF — no channel turns itself on by shipping',
+  (SELECT bool_and(value = 'false') FROM public.system_settings
+    WHERE key LIKE 'notify_channel_%'),
+  'turning one on is Lee''s decision (PENDING_FOR_LEE.md §3), not a migration''s');
+
+SELECT pg_temp.check(
+  'a member cannot read the channel flags (system_settings is super-admin only)',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT key FROM public.system_settings WHERE key LIKE ''notify_channel_%''') = 0);
+
+-- ============================================================
+--  WP5 — circle of care
+-- ============================================================
+--
+-- CIRCLE_OF_CARE.md. The distinction being defended: this is WHO THE PEOPLE ARE.
+-- care_access_grants is WHAT THEY MAY SEE, and WP5 does not widen it by a single row.
+
+INSERT INTO auth.users (id, email) VALUES
+  ('a7000000-0000-0000-0000-00000000000f', 'admin@example.com');
+INSERT INTO public.staff (user_id, email, first_name, last_name, role) VALUES
+  ('a7000000-0000-0000-0000-00000000000f', 'admin@example.com', 'Ada', 'Admin', 'admin');
+
+-- ── the contact list can describe the people it holds ─────────────────────
+DO $$
+DECLARE v_type text; n int := 0;
+BEGIN
+  FOREACH v_type IN ARRAY ARRAY['emergency','key_holder','carer','care_agency',
+                                'nurse','social_worker','neighbour','legal_representative']
+  LOOP
+    INSERT INTO public.emergency_contacts
+      (member_id, contact_name, relationship, phone, priority_order, contact_type)
+    VALUES ('aaaaaaaa-0000-0000-0000-000000000001', 'C ' || v_type, 'rel', '+34600', 9, v_type);
+    n := n + 1;
+  END LOOP;
+  PERFORM pg_temp.check('all EIGHT contact_type values are accepted', n = 8);
+END $$;
+
+SELECT pg_temp.check(
+  'a ninth contact_type is REFUSED — the CHECK was widened, not removed',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO public.emergency_contacts
+       (member_id, contact_name, relationship, phone, priority_order, contact_type)
+     VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''X'', ''rel'', ''+34600'', 9, ''friend'')'),
+  'a widened CHECK that accepts anything is not a widened CHECK');
+
+SELECT pg_temp.check(
+  'can_attend_in_person defaults to NULL — unknown is not the same as false',
+  (SELECT bool_and(can_attend_in_person IS NULL) FROM public.emergency_contacts),
+  'defaulting to false would assert that nobody can attend, which nobody established');
+
+-- ── away status is the member''s to set ───────────────────────────────────
+SELECT pg_temp.check(
+  'a member CAN set their own away status — the point of recording it at all',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members
+        SET away_from = CURRENT_DATE, away_until = CURRENT_DATE + 30,
+            pendant_with_member = true
+      WHERE id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 1,
+  'going to the UK for a month should not require ringing the office');
+
+SELECT pg_temp.check(
+  'CONTROL: the away status really landed',
+  (SELECT away_until IS NOT NULL AND pendant_with_member
+     FROM public.members WHERE id = 'aaaaaaaa-0000-0000-0000-000000000001'));
+
+SELECT pg_temp.check(
+  'a member CANNOT set ANOTHER member''s away status',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET away_from = CURRENT_DATE
+      WHERE id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 0);
+
+SELECT pg_temp.check(
+  'widening `members` did NOT widen the status guard — self-activation is still refused',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET status = ''active''
+      WHERE id = ''aaaaaaaa-0000-0000-0000-000000000001'''),
+  'adding member-writable columns to this table must not loosen golden rule 4');
+
+-- ── member_care: special category, admin-restricted ───────────────────────
+INSERT INTO public.member_care (member_id, agency, advance_directive_location, tsi_number)
+VALUES ('aaaaaaaa-0000-0000-0000-000000000001', 'Albox Care SL',
+        'top drawer, kitchen dresser', 'AN1234567890');
+
+SELECT pg_temp.check(
+  'a member reads their OWN care row',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT member_id FROM public.member_care') = 1);
+
+SELECT pg_temp.check(
+  'a member CANNOT read another member''s care row',
+  pg_temp.count_as('22222222-2222-2222-2222-222222222222',
+    'SELECT member_id FROM public.member_care') = 0);
+
+SELECT pg_temp.check(
+  'a member CANNOT write their own care row — it is maintained by the office',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.member_care SET agency = ''self-edited''
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 0);
+
+SELECT pg_temp.check(
+  'CONTROL: the agency is unchanged, so the refusal above was real',
+  (SELECT agency FROM public.member_care
+    WHERE member_id = 'aaaaaaaa-0000-0000-0000-000000000001') = 'Albox Care SL');
+
+SELECT pg_temp.check(
+  'ORDINARY STAFF read NO care rows — admin only, on the member_access model',
+  pg_temp.count_as('a6000000-0000-0000-0000-00000000000f',
+    'SELECT member_id FROM public.member_care') = 0,
+  'an advance-directive location must not be a side effect of a broad is_staff policy');
+
+SELECT pg_temp.check(
+  'a call_centre_supervisor reads NO care rows either — supervisor is not admin',
+  pg_temp.count_as('a5000000-0000-0000-0000-00000000000f',
+    'SELECT member_id FROM public.member_care') = 0);
+
+SELECT pg_temp.check(
+  'an ADMIN does read them (else the table would be write-only and useless)',
+  pg_temp.count_as('a7000000-0000-0000-0000-00000000000f',
+    'SELECT member_id FROM public.member_care') = 1);
+
+-- The argument in CIRCLE_OF_CARE.md §2.3, asserted: a consent grant is not a route in here.
+-- Carer C already holds a LIVE medical grant over member A — §8.8 above created it, and the
+-- one-live-per-category unique index means a second would be refused. Reusing it rather than
+-- seeding another keeps the fixture honest: this is the same grant §8.8 proved works.
+SELECT pg_temp.check(
+  'CONTROL: the medical grant is LIVE and does grant medical_information',
+  pg_temp.count_as('77777777-7777-7777-7777-777777777777',
+    'SELECT member_id FROM public.medical_information
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 1,
+  'if this is 0 the next assertion passes because the fixture is broken, not because RLS held');
+
+SELECT pg_temp.check(
+  'a carer with a LIVE MEDICAL grant still reads NO member_care',
+  pg_temp.count_as('77777777-7777-7777-7777-777777777777',
+    'SELECT member_id FROM public.member_care') = 0,
+  '`medical` means the clinical record, not the operational care picture — widening it there '
+  'would be a consent decision, not a schema one');
+
+-- ── the gate code is a credential and lives with the other credential ─────
+-- Member A already has a member_access row (seeded for the key-safe assertions above), so
+-- this adds the gate code to the row that exists rather than a second one the PK would refuse.
+UPDATE public.member_access SET gate_code = 'GATE-4412'
+WHERE member_id = 'aaaaaaaa-0000-0000-0000-000000000001';
+
+SELECT pg_temp.check(
+  'gate_code is on member_access, NOT on members',
+  EXISTS (SELECT 1 FROM information_schema.columns
+           WHERE table_schema='public' AND table_name='member_access' AND column_name='gate_code')
+  AND NOT EXISTS (SELECT 1 FROM information_schema.columns
+           WHERE table_schema='public' AND table_name='members' AND column_name='gate_code'),
+  'on members it would be readable by every is_staff policy on that table');
+
+SELECT pg_temp.check(
+  'ordinary staff read NO gate_code — admin only, same as the key safe code',
+  pg_temp.count_as('a6000000-0000-0000-0000-00000000000f',
+    'SELECT gate_code FROM public.member_access WHERE gate_code IS NOT NULL') = 0);
+
+SELECT pg_temp.check(
+  'a carer with a live medical grant reads NO gate_code',
+  pg_temp.count_as('77777777-7777-7777-7777-777777777777',
+    'SELECT gate_code FROM public.member_access WHERE gate_code IS NOT NULL') = 0);
+
+SELECT pg_temp.check(
+  'an admin DOES read it — else the column would be write-only and useless',
+  pg_temp.count_as('a7000000-0000-0000-0000-00000000000f',
+    'SELECT gate_code FROM public.member_access WHERE gate_code IS NOT NULL') = 1,
+  'filtered on NOT NULL: both seeded member_access rows are visible to an admin, only one '
+  'carries a gate code, and counting rows rather than codes would pass for the wrong reason');
+
+-- ============================================================
+--  WP6 — messaging
+-- ============================================================
+
+INSERT INTO public.conversations (id, member_id, subject)
+VALUES ('c0117777-0000-0000-0000-00000000000a', 'aaaaaaaa-0000-0000-0000-000000000001', 'Test');
+
+INSERT INTO public.messages (id, conversation_id, sender_type, content, channel)
+VALUES ('5e550000-0000-0000-0000-00000000000a', 'c0117777-0000-0000-0000-00000000000a',
+        'member', 'Hello, my pendant is beeping.', 'chat'),
+       ('5e550000-0000-0000-0000-00000000000b', 'c0117777-0000-0000-0000-00000000000a',
+        'staff_internal', 'Family disputes the invoice — do not discuss with member.', 'chat');
+
+-- THE assertion WP6's sender_type widening exists to earn. The pre-existing member policy is
+-- scoped by conversation and says nothing about sender_type, so without the RESTRICTIVE policy
+-- an internal note in the member's OWN conversation would be visible to them.
+SELECT pg_temp.check(
+  'a member NEVER reads a staff_internal message, even in their own conversation',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.messages WHERE sender_type = ''staff_internal''') = 0,
+  'this is the whole reason the value could be added at all');
+
+SELECT pg_temp.check(
+  'CONTROL: the member DOES read the ordinary message in that conversation',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.messages') = 1,
+  'if this is 0 the assertion above passed because the member sees nothing at all');
+
+SELECT pg_temp.check(
+  'staff DO read the internal note — it is for them',
+  pg_temp.count_as('a6000000-0000-0000-0000-00000000000f',
+    'SELECT id FROM public.messages WHERE sender_type = ''staff_internal''') = 1);
+
+SELECT pg_temp.check(
+  'the channel vocabulary refuses a value outside chat|voice|whatsapp|sms|email',
+  pg_temp.raises_as('a6000000-0000-0000-0000-00000000000f',
+    'INSERT INTO public.messages (conversation_id, sender_type, content, channel)
+     VALUES (''c0117777-0000-0000-0000-00000000000a'', ''staff'', ''x'', ''carrier-pigeon'')'));
+
+-- The two things the brief asked for that already existed. Asserted rather than re-added, so
+-- the claim "already there" is checkable and stays true.
+SELECT pg_temp.check(
+  'messages.read_at ALREADY existed (20260121153611) — not added twice',
+  EXISTS (SELECT 1 FROM information_schema.columns
+           WHERE table_schema='public' AND table_name='messages' AND column_name='read_at'));
+
+SELECT pg_temp.check(
+  'conversation_messages ALREADY joins conversations by FK — not added twice',
+  EXISTS (
+    SELECT 1 FROM information_schema.table_constraints tc
+    JOIN information_schema.key_column_usage kcu ON kcu.constraint_name = tc.constraint_name
+    JOIN information_schema.constraint_column_usage ccu ON ccu.constraint_name = tc.constraint_name
+    WHERE tc.constraint_type = 'FOREIGN KEY'
+      AND tc.table_name = 'conversation_messages'
+      AND kcu.column_name = 'conversation_id'
+      AND ccu.table_name = 'conversations'));
+
+-- ── canned replies ────────────────────────────────────────────────────────
+INSERT INTO public.canned_replies (shortcut, locale, title, body)
+VALUES ('/wait', 'en', 'Please hold', 'One moment while I check that for you.'),
+       ('/wait', 'es', 'Un momento', 'Un momento, por favor, lo compruebo ahora.');
+
+SELECT pg_temp.check(
+  'the same shortcut exists once PER LANGUAGE, and both rows are there',
+  (SELECT count(*) FROM public.canned_replies WHERE shortcut = '/wait') = 2);
+
+SELECT pg_temp.check(
+  'the same shortcut TWICE in one language is refused',
+  pg_temp.raises_as('a7000000-0000-0000-0000-00000000000f',
+    'INSERT INTO public.canned_replies (shortcut, locale, title, body)
+     VALUES (''/wait'', ''en'', ''dupe'', ''dupe'')'),
+  'an operator typing /wait must get exactly one answer');
+
+SELECT pg_temp.check(
+  'a member reads NO canned replies — the operator''s script is not the product',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.canned_replies') = 0);
+
+SELECT pg_temp.check(
+  'staff DO read them',
+  pg_temp.count_as('a6000000-0000-0000-0000-00000000000f',
+    'SELECT id FROM public.canned_replies') = 2);
+
+SELECT pg_temp.check(
+  'ordinary staff cannot EDIT them — admin only',
+  pg_temp.exec_as('a6000000-0000-0000-0000-00000000000f',
+    'UPDATE public.canned_replies SET body = ''tampered''') = 0);
+
+-- ============================================================
+--  WP7 — staff actions on the member record, attributed
+-- ============================================================
+--
+-- These five actions change what a vulnerable person pays and what protection they have.
+-- "Who cancelled this member, and why?" must be answerable from the log alone.
+
+SELECT pg_temp.check(
+  'an ordinary log row is unaffected — no reason, no staff_id, still fine',
+  pg_temp.raises_as('a7000000-0000-0000-0000-00000000000f',
+    'INSERT INTO public.activity_logs (action, entity_type, entity_id)
+     VALUES (''viewed'', ''member'', ''aaaaaaaa-0000-0000-0000-000000000001'')') = false,
+  'the guard must cost an ordinary CRUD log exactly nothing');
+
+SELECT pg_temp.check(
+  'a member_action with NO REASON is refused',
+  pg_temp.raises_as('a7000000-0000-0000-0000-00000000000f',
+    'INSERT INTO public.activity_logs
+       (action, entity_type, entity_id, member_action, staff_id)
+     VALUES (''cancel'', ''member'', ''aaaaaaaa-0000-0000-0000-000000000001'', ''cancel'',
+             (SELECT id FROM public.staff WHERE email = ''admin@example.com''))'));
+
+SELECT pg_temp.check(
+  'a BLANK reason is refused too — whitespace is not a reason',
+  pg_temp.raises_as('a7000000-0000-0000-0000-00000000000f',
+    'INSERT INTO public.activity_logs
+       (action, entity_type, entity_id, member_action, staff_id, reason)
+     VALUES (''cancel'', ''member'', ''aaaaaaaa-0000-0000-0000-000000000001'', ''cancel'',
+             (SELECT id FROM public.staff WHERE email = ''admin@example.com''), ''   '')'));
+
+SELECT pg_temp.check(
+  'a member_action with NO STAFF_ID is refused — unattributed is not an audit record',
+  pg_temp.raises_as('a7000000-0000-0000-0000-00000000000f',
+    'INSERT INTO public.activity_logs
+       (action, entity_type, entity_id, member_action, reason)
+     VALUES (''cancel'', ''member'', ''aaaaaaaa-0000-0000-0000-000000000001'', ''cancel'',
+             ''member moved into residential care'')'));
+
+SELECT pg_temp.check(
+  'a member_action pointing at the wrong entity_type is refused',
+  pg_temp.raises_as('a7000000-0000-0000-0000-00000000000f',
+    'INSERT INTO public.activity_logs
+       (action, entity_type, entity_id, member_action, staff_id, reason)
+     VALUES (''cancel'', ''order'', ''aaaaaaaa-0000-0000-0000-000000000001'', ''cancel'',
+             (SELECT id FROM public.staff WHERE email = ''admin@example.com''), ''reason'')'));
+
+SELECT pg_temp.check(
+  'a COMPLETE member_action row is accepted — the guard blocks the bad shape, not the action',
+  pg_temp.raises_as('a7000000-0000-0000-0000-00000000000f',
+    'INSERT INTO public.activity_logs
+       (action, entity_type, entity_id, member_action, staff_id, reason)
+     VALUES (''cancel'', ''member'', ''aaaaaaaa-0000-0000-0000-000000000001'', ''cancel'',
+             (SELECT id FROM public.staff WHERE email = ''admin@example.com''),
+             ''member moved into residential care'')') = false);
+
+SELECT pg_temp.check(
+  'CONTROL: that row is in the log, with its reason and its actor',
+  (SELECT count(*) FROM public.activity_logs
+    WHERE member_action = 'cancel'
+      AND btrim(reason) <> ''
+      AND staff_id IS NOT NULL) = 1);
+
+SELECT pg_temp.check(
+  'all five staff actions exist in the enum',
+  (SELECT count(*) FROM unnest(enum_range(NULL::public.member_action))) = 6,
+  'renew, switch_to_single, switch_to_couple, add_pendant, pause, cancel');
 
 -- ============================================================
 --  Report

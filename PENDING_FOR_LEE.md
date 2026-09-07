@@ -345,6 +345,65 @@ If you want it, the narrow version is a policy exposing `full_name` and `relatio
 email, not phone — to `get_member_id(auth.uid())` on the subscription that points at the row. Say
 the word and it goes in its own migration for you to review.
 
+### D-14 — the padlock on date of birth and NIE is a LABEL, not a rule (2026-09-07)
+
+R7 says those two stay locked. The profile page locks them — padlock, read-only, and now the
+reason R7 asks for. **The database does not.**
+
+`"Members can update own profile"` (20260121143325) is
+
+```sql
+CREATE POLICY "Members can update own profile" ON public.members
+  FOR UPDATE TO authenticated USING (user_id = auth.uid());
+```
+
+— no column restriction, because Postgres RLS is row-level and cannot have one. The guard trigger
+we added on 4 September (`20260904180000_member_status_not_self_writable.sql`) closes exactly one
+column, `status`, and its own comment says the rest are fine: *"An ordinary profile update (phone,
+address, NIE) must stay exactly as cheap as it was."* That was true of the brief we had then. R7
+changes it.
+
+So a signed-in member — or anybody who gets into their account — can still run
+
+```
+PATCH /rest/v1/members?id=eq.<their own>
+{"nie_dni": "X9999999Z", "date_of_birth": "1990-01-01"}
+```
+
+and the operator card then shows an identity document number a stranger typed. This application
+never sends those columns (asserted in `lockedIdentityFields.test.tsx`), which is why it is a
+label rather than an open door — but a rule you can go around with curl is not a rule, which is
+the argument `20260907100000`'s header makes about fulfilment state.
+
+**The fix is one more branch in the trigger that already exists**, not a new one:
+
+```sql
+CREATE OR REPLACE FUNCTION public.guard_member_status_self_write()
+-- … existing status branch unchanged …
+  IF (NEW.date_of_birth IS DISTINCT FROM OLD.date_of_birth
+      OR NEW.nie_dni IS DISTINCT FROM OLD.nie_dni)
+     AND auth.uid() IS NOT NULL
+     AND NOT public.is_staff(auth.uid()) THEN
+    RAISE EXCEPTION
+      'date_of_birth and nie_dni are not self-writable: R7 requires identity to be verified by a human'
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+```
+
+**Why it is not in this PR.** It is a migration, and merging one reddens the drift gate on every
+subsequent build until you have pushed it (D-3). The method you and I settled on is to bundle
+schema changes and pay that once — and the next bundle has a second thing in it that has to go
+with it anyway: **the `member-photos` storage bucket** R7's other half needs. There is no bucket
+for member photos today (the eleven that exist are all staff/marketing), so the upload cannot be
+built until one exists, and a storage bucket's policies are RLS policies, which CLAUDE.md makes a
+mandatory human gate before merge.
+
+**What I would like from you:** say the word and I will open one held PR carrying both — the
+trigger branch above and the bucket with its four `storage.objects` policies scoped to
+`auth.uid()::text` as the first path segment — for you to review, apply, and merge. The photo
+upload UI goes in it, because shipping an upload button against a bucket that does not exist
+would be worse than not having one.
+
 ### D-6 — five alert/badge colours are below WCAG AA, and fixing them changes safety colour
 
 Measured on the base `:root` palette (`publicPaletteContrast.test.ts`). All are white-or-near-

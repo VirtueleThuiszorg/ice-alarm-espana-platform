@@ -16,37 +16,43 @@ export type Database = {
     Tables: {
       activity_logs: {
         Row: {
-          action: string
-          created_at: string | null
-          entity_id: string
-          entity_type: string
           id: string
-          ip_address: string | null
-          new_values: Json | null
-          old_values: Json | null
           staff_id: string | null
+          action: string
+          entity_type: string
+          entity_id: string
+          old_values: Json | null
+          new_values: Json | null
+          ip_address: string | null
+          created_at: string | null
+          member_action: Database["public"]["Enums"]["member_action"] | null
+          reason: string | null
         }
         Insert: {
-          action: string
-          created_at?: string | null
-          entity_id: string
-          entity_type: string
           id?: string
-          ip_address?: string | null
-          new_values?: Json | null
-          old_values?: Json | null
           staff_id?: string | null
+          action: string
+          entity_type: string
+          entity_id: string
+          old_values?: Json | null
+          new_values?: Json | null
+          ip_address?: string | null
+          created_at?: string | null
+          member_action?: Database["public"]["Enums"]["member_action"] | null
+          reason?: string | null
         }
         Update: {
-          action?: string
-          created_at?: string | null
-          entity_id?: string
-          entity_type?: string
           id?: string
-          ip_address?: string | null
-          new_values?: Json | null
-          old_values?: Json | null
           staff_id?: string | null
+          action?: string
+          entity_type?: string
+          entity_id?: string
+          old_values?: Json | null
+          new_values?: Json | null
+          ip_address?: string | null
+          created_at?: string | null
+          member_action?: Database["public"]["Enums"]["member_action"] | null
+          reason?: string | null
         }
         Relationships: [
           {
@@ -719,6 +725,53 @@ export type Database = {
           },
         ]
       }
+      canned_replies: {
+        Row: {
+          id: string
+          shortcut: string
+          locale: string
+          title: string
+          body: string
+          category: string | null
+          is_active: boolean
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          shortcut: string
+          locale: string
+          title: string
+          body: string
+          category?: string | null
+          is_active?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          shortcut?: string
+          locale?: string
+          title?: string
+          body?: string
+          category?: string | null
+          is_active?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "canned_replies_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       care_access_grants: {
         Row: {
           id: string
@@ -1056,79 +1109,85 @@ export type Database = {
       }
       crm_contacts: {
         Row: {
+          id: string
+          created_at: string
+          source: string
+          first_name: string | null
+          last_name: string | null
+          full_name: string | null
+          email_primary: string | null
+          phone_primary: string | null
+          status: string | null
+          stage: string | null
+          referral_source: string | null
+          assigned_to_staff_id: string | null
+          tags: string[] | null
+          groups: string[] | null
+          notes: string | null
           address_line_1: string | null
           address_line_2: string | null
-          assigned_to_staff_id: string | null
           city: string | null
-          country: string | null
-          created_at: string
-          email_primary: string | null
-          first_name: string | null
-          full_name: string | null
-          groups: string[] | null
-          id: string
-          last_name: string | null
-          last_synced_at: string | null
-          linked_member_id: string | null
-          notes: string | null
-          phone_primary: string | null
-          postal_code: string | null
           province: string | null
-          referral_source: string | null
-          source: string
-          stage: string | null
-          status: string | null
-          tags: string[] | null
+          postal_code: string | null
+          country: string | null
+          linked_member_id: string | null
+          last_synced_at: string | null
+          source_id: string | null
+          deceased: boolean
         }
         Insert: {
+          id?: string
+          created_at?: string
+          source?: string
+          first_name?: string | null
+          last_name?: string | null
+          full_name?: string | null
+          email_primary?: string | null
+          phone_primary?: string | null
+          status?: string | null
+          stage?: string | null
+          referral_source?: string | null
+          assigned_to_staff_id?: string | null
+          tags?: string[] | null
+          groups?: string[] | null
+          notes?: string | null
           address_line_1?: string | null
           address_line_2?: string | null
-          assigned_to_staff_id?: string | null
           city?: string | null
-          country?: string | null
-          created_at?: string
-          email_primary?: string | null
-          first_name?: string | null
-          full_name?: string | null
-          groups?: string[] | null
-          id?: string
-          last_name?: string | null
-          last_synced_at?: string | null
-          linked_member_id?: string | null
-          notes?: string | null
-          phone_primary?: string | null
-          postal_code?: string | null
           province?: string | null
-          referral_source?: string | null
-          source?: string
-          stage?: string | null
-          status?: string | null
-          tags?: string[] | null
+          postal_code?: string | null
+          country?: string | null
+          linked_member_id?: string | null
+          last_synced_at?: string | null
+          source_id?: string | null
+          deceased?: boolean
         }
         Update: {
+          id?: string
+          created_at?: string
+          source?: string
+          first_name?: string | null
+          last_name?: string | null
+          full_name?: string | null
+          email_primary?: string | null
+          phone_primary?: string | null
+          status?: string | null
+          stage?: string | null
+          referral_source?: string | null
+          assigned_to_staff_id?: string | null
+          tags?: string[] | null
+          groups?: string[] | null
+          notes?: string | null
           address_line_1?: string | null
           address_line_2?: string | null
-          assigned_to_staff_id?: string | null
           city?: string | null
-          country?: string | null
-          created_at?: string
-          email_primary?: string | null
-          first_name?: string | null
-          full_name?: string | null
-          groups?: string[] | null
-          id?: string
-          last_name?: string | null
-          last_synced_at?: string | null
-          linked_member_id?: string | null
-          notes?: string | null
-          phone_primary?: string | null
-          postal_code?: string | null
           province?: string | null
-          referral_source?: string | null
-          source?: string
-          stage?: string | null
-          status?: string | null
-          tags?: string[] | null
+          postal_code?: string | null
+          country?: string | null
+          linked_member_id?: string | null
+          last_synced_at?: string | null
+          source_id?: string | null
+          deceased?: boolean
         }
         Relationships: [
           {
@@ -1432,6 +1491,9 @@ export type Database = {
           management_mode: string | null
           provisioning_checklist: Json | null
           sms_command_log: Json | null
+          docking_station_mac: string | null
+          manufacturer: string | null
+          unit_type: string | null
         }
         Insert: {
           id?: string
@@ -1470,6 +1532,9 @@ export type Database = {
           management_mode?: string | null
           provisioning_checklist?: Json | null
           sms_command_log?: Json | null
+          docking_station_mac?: string | null
+          manufacturer?: string | null
+          unit_type?: string | null
         }
         Update: {
           id?: string
@@ -1508,6 +1573,9 @@ export type Database = {
           management_mode?: string | null
           provisioning_checklist?: Json | null
           sms_command_log?: Json | null
+          docking_station_mac?: string | null
+          manufacturer?: string | null
+          unit_type?: string | null
         }
         Relationships: [
           {
@@ -1825,43 +1893,61 @@ export type Database = {
       }
       emergency_contacts: {
         Row: {
-          contact_name: string
-          created_at: string | null
-          email: string | null
           id: string
-          is_primary: boolean | null
           member_id: string
-          notes: string | null
-          phone: string
-          priority_order: number
+          contact_name: string
           relationship: string
+          phone: string
+          email: string | null
+          is_primary: boolean | null
+          priority_order: number
+          notes: string | null
           speaks_spanish: boolean | null
+          created_at: string | null
+          contact_type: string
+          recorded_via: string | null
+          recorded_by_staff: string | null
+          can_attend_in_person: boolean | null
+          country: string | null
+          availability_notes: string | null
         }
         Insert: {
-          contact_name: string
-          created_at?: string | null
-          email?: string | null
           id?: string
-          is_primary?: boolean | null
           member_id: string
-          notes?: string | null
-          phone: string
-          priority_order: number
+          contact_name: string
           relationship: string
+          phone: string
+          email?: string | null
+          is_primary?: boolean | null
+          priority_order: number
+          notes?: string | null
           speaks_spanish?: boolean | null
+          created_at?: string | null
+          contact_type?: string
+          recorded_via?: string | null
+          recorded_by_staff?: string | null
+          can_attend_in_person?: boolean | null
+          country?: string | null
+          availability_notes?: string | null
         }
         Update: {
-          contact_name?: string
-          created_at?: string | null
-          email?: string | null
           id?: string
-          is_primary?: boolean | null
           member_id?: string
-          notes?: string | null
-          phone?: string
-          priority_order?: number
+          contact_name?: string
           relationship?: string
+          phone?: string
+          email?: string | null
+          is_primary?: boolean | null
+          priority_order?: number
+          notes?: string | null
           speaks_spanish?: boolean | null
+          created_at?: string | null
+          contact_type?: string
+          recorded_via?: string | null
+          recorded_by_staff?: string | null
+          can_attend_in_person?: boolean | null
+          country?: string | null
+          availability_notes?: string | null
         }
         Relationships: [
           {
@@ -2597,49 +2683,211 @@ export type Database = {
       }
       medical_information: {
         Row: {
-          additional_notes: string | null
+          id: string
+          member_id: string
+          medical_conditions: string[] | null
+          medications: string[] | null
           allergies: string[] | null
           blood_type: string | null
           doctor_name: string | null
           doctor_phone: string | null
           hospital_preference: string | null
-          id: string
-          medical_conditions: string[] | null
-          medications: string[] | null
-          member_id: string
+          additional_notes: string | null
           updated_at: string | null
+          mobility: string | null
+          hearing_notes: string | null
+          vision_notes: string | null
+          meds_location: string | null
+          meds_notes: string | null
+          doctor_location: string | null
+          private_insurer: string | null
+          private_policy_number: string | null
+          recorded_via: string | null
+          recorded_by_staff: string | null
         }
         Insert: {
-          additional_notes?: string | null
+          id?: string
+          member_id: string
+          medical_conditions?: string[] | null
+          medications?: string[] | null
           allergies?: string[] | null
           blood_type?: string | null
           doctor_name?: string | null
           doctor_phone?: string | null
           hospital_preference?: string | null
-          id?: string
-          medical_conditions?: string[] | null
-          medications?: string[] | null
-          member_id: string
+          additional_notes?: string | null
           updated_at?: string | null
+          mobility?: string | null
+          hearing_notes?: string | null
+          vision_notes?: string | null
+          meds_location?: string | null
+          meds_notes?: string | null
+          doctor_location?: string | null
+          private_insurer?: string | null
+          private_policy_number?: string | null
+          recorded_via?: string | null
+          recorded_by_staff?: string | null
         }
         Update: {
-          additional_notes?: string | null
+          id?: string
+          member_id?: string
+          medical_conditions?: string[] | null
+          medications?: string[] | null
           allergies?: string[] | null
           blood_type?: string | null
           doctor_name?: string | null
           doctor_phone?: string | null
           hospital_preference?: string | null
-          id?: string
-          medical_conditions?: string[] | null
-          medications?: string[] | null
-          member_id?: string
+          additional_notes?: string | null
           updated_at?: string | null
+          mobility?: string | null
+          hearing_notes?: string | null
+          vision_notes?: string | null
+          meds_location?: string | null
+          meds_notes?: string | null
+          doctor_location?: string | null
+          private_insurer?: string | null
+          private_policy_number?: string | null
+          recorded_via?: string | null
+          recorded_by_staff?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "medical_information_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_access: {
+        Row: {
+          member_id: string
+          key_safe_location: string | null
+          key_safe_code: string | null
+          access_notes: string | null
+          updated_at: string
+          gate_code: string | null
+        }
+        Insert: {
+          member_id: string
+          key_safe_location?: string | null
+          key_safe_code?: string | null
+          access_notes?: string | null
+          updated_at?: string
+          gate_code?: string | null
+        }
+        Update: {
+          member_id?: string
+          key_safe_location?: string | null
+          key_safe_code?: string | null
+          access_notes?: string | null
+          updated_at?: string
+          gate_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_access_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_addresses: {
+        Row: {
+          id: string
+          member_id: string
+          address_type: string
+          address_line_1: string | null
+          address_line_2: string | null
+          city: string | null
+          province: string | null
+          county: string | null
+          postal_code: string | null
+          country: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          member_id: string
+          address_type: string
+          address_line_1?: string | null
+          address_line_2?: string | null
+          city?: string | null
+          province?: string | null
+          county?: string | null
+          postal_code?: string | null
+          country?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          member_id?: string
+          address_type?: string
+          address_line_1?: string | null
+          address_line_2?: string | null
+          city?: string | null
+          province?: string | null
+          county?: string | null
+          postal_code?: string | null
+          country?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_addresses_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_care: {
+        Row: {
+          member_id: string
+          agency: string | null
+          visit_schedule: string | null
+          day_centre: string | null
+          medical_equipment: string | null
+          advance_directive_location: string | null
+          tsi_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          member_id: string
+          agency?: string | null
+          visit_schedule?: string | null
+          day_centre?: string | null
+          medical_equipment?: string | null
+          advance_directive_location?: string | null
+          tsi_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          member_id?: string
+          agency?: string | null
+          visit_schedule?: string | null
+          day_centre?: string | null
+          medical_equipment?: string | null
+          advance_directive_location?: string | null
+          tsi_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_care_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
             referencedRelation: "members"
             referencedColumns: ["id"]
           },
@@ -2678,6 +2926,38 @@ export type Database = {
             foreignKeyName: "member_contact_methods_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_end_of_life: {
+        Row: {
+          member_id: string
+          funeral_plan: string | null
+          policy_number: string | null
+          wishes: string | null
+          updated_at: string
+        }
+        Insert: {
+          member_id: string
+          funeral_plan?: string | null
+          policy_number?: string | null
+          wishes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          member_id?: string
+          funeral_plan?: string | null
+          policy_number?: string | null
+          wishes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_end_of_life_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
             referencedRelation: "members"
             referencedColumns: ["id"]
           },
@@ -2799,36 +3079,127 @@ export type Database = {
           },
         ]
       }
-      member_update_tokens: {
+      member_notification_log: {
         Row: {
-          created_at: string | null
-          created_by: string | null
-          expires_at: string
           id: string
-          member_id: string
-          requested_fields: string[]
-          token: string
-          used_at: string | null
+          member_id: string | null
+          channel: Database["public"]["Enums"]["notification_channel"]
+          event_key: string
+          status: string
+          provider_message_id: string | null
+          error: string | null
+          created_at: string
         }
         Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          expires_at: string
           id?: string
-          member_id: string
-          requested_fields?: string[]
-          token: string
-          used_at?: string | null
+          member_id?: string | null
+          channel: Database["public"]["Enums"]["notification_channel"]
+          event_key: string
+          status: string
+          provider_message_id?: string | null
+          error?: string | null
+          created_at?: string
         }
         Update: {
-          created_at?: string | null
-          created_by?: string | null
-          expires_at?: string
+          id?: string
+          member_id?: string | null
+          channel?: Database["public"]["Enums"]["notification_channel"]
+          event_key?: string
+          status?: string
+          provider_message_id?: string | null
+          error?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_notification_log_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_notification_optin: {
+        Row: {
+          id: string
+          member_id: string
+          channel: Database["public"]["Enums"]["notification_channel"]
+          opted_in: boolean
+          opted_in_at: string | null
+          recorded_by_user_id: string | null
+          basis: Database["public"]["Enums"]["consent_basis"]
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          member_id: string
+          channel: Database["public"]["Enums"]["notification_channel"]
+          opted_in?: boolean
+          opted_in_at?: string | null
+          recorded_by_user_id?: string | null
+          basis?: Database["public"]["Enums"]["consent_basis"]
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
           id?: string
           member_id?: string
+          channel?: Database["public"]["Enums"]["notification_channel"]
+          opted_in?: boolean
+          opted_in_at?: string | null
+          recorded_by_user_id?: string | null
+          basis?: Database["public"]["Enums"]["consent_basis"]
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_notification_optin_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_update_tokens: {
+        Row: {
+          id: string
+          member_id: string
+          token: string
+          requested_fields: string[]
+          expires_at: string
+          used_at: string | null
+          created_by: string | null
+          created_at: string | null
+          submitted_via: string | null
+          submitted_by_staff: string | null
+        }
+        Insert: {
+          id?: string
+          member_id: string
+          token: string
           requested_fields?: string[]
-          token?: string
+          expires_at: string
           used_at?: string | null
+          created_by?: string | null
+          created_at?: string | null
+          submitted_via?: string | null
+          submitted_by_staff?: string | null
+        }
+        Update: {
+          id?: string
+          member_id?: string
+          token?: string
+          requested_fields?: string[]
+          expires_at?: string
+          used_at?: string | null
+          created_by?: string | null
+          created_at?: string | null
+          submitted_via?: string | null
+          submitted_by_staff?: string | null
         }
         Relationships: [
           {
@@ -2856,97 +3227,166 @@ export type Database = {
       }
       members: {
         Row: {
+          id: string
+          user_id: string | null
+          first_name: string
+          last_name: string
+          email: string
+          phone: string
+          date_of_birth: string
+          nie_dni: string | null
           address_line_1: string
           address_line_2: string | null
           city: string
-          country: string | null
-          courtesy_call_frequency: string | null
-          courtesy_calls_enabled: boolean | null
-          created_at: string | null
-          date_of_birth: string
-          email: string
-          first_name: string
-          id: string
-          last_name: string
-          next_courtesy_call_date: string | null
-          nie_dni: string | null
-          phone: string
-          photo_url: string | null
-          postal_code: string
-          preferred_contact_method: string | null
-          preferred_contact_time: string | null
-          preferred_language:
-            | Database["public"]["Enums"]["preferred_language"]
-            | null
           province: string
-          ref_partner_id: string | null
-          ref_post_id: string | null
+          postal_code: string
+          country: string | null
+          preferred_language: Database["public"]["Enums"]["preferred_language"] | null
+          photo_url: string | null
           special_instructions: string | null
           status: Database["public"]["Enums"]["member_status"] | null
+          created_at: string | null
           updated_at: string | null
-          user_id: string | null
+          preferred_contact_method: string | null
+          preferred_contact_time: string | null
+          courtesy_calls_enabled: boolean | null
+          next_courtesy_call_date: string | null
+          courtesy_call_frequency: string | null
+          ref_partner_id: string | null
+          ref_post_id: string | null
+          crm_source: string | null
+          crm_source_id: string | null
+          crm_created_at: string | null
+          title: string | null
+          nickname: string | null
+          gender: string | null
+          nationality: string | null
+          marital_status: string | null
+          passport_number: string | null
+          an_ss_number: string | null
+          county: string | null
+          gps_lat: number | null
+          gps_lng: number | null
+          map_link: string | null
+          language_notes: string | null
+          consent_state: string | null
+          deceased_at: string | null
+          linked_member_id: string | null
+          away_from: string | null
+          away_until: string | null
+          pendant_with_member: boolean | null
+          urbanizacion: string | null
+          bloque: string | null
+          portal: string | null
+          escalera: string | null
         }
         Insert: {
+          id?: string
+          user_id?: string | null
+          first_name: string
+          last_name: string
+          email: string
+          phone: string
+          date_of_birth: string
+          nie_dni?: string | null
           address_line_1: string
           address_line_2?: string | null
           city: string
-          country?: string | null
-          courtesy_call_frequency?: string | null
-          courtesy_calls_enabled?: boolean | null
-          created_at?: string | null
-          date_of_birth: string
-          email: string
-          first_name: string
-          id?: string
-          last_name: string
-          next_courtesy_call_date?: string | null
-          nie_dni?: string | null
-          phone: string
-          photo_url?: string | null
-          postal_code: string
-          preferred_contact_method?: string | null
-          preferred_contact_time?: string | null
-          preferred_language?:
-            | Database["public"]["Enums"]["preferred_language"]
-            | null
           province: string
-          ref_partner_id?: string | null
-          ref_post_id?: string | null
+          postal_code: string
+          country?: string | null
+          preferred_language?: Database["public"]["Enums"]["preferred_language"] | null
+          photo_url?: string | null
           special_instructions?: string | null
           status?: Database["public"]["Enums"]["member_status"] | null
+          created_at?: string | null
           updated_at?: string | null
-          user_id?: string | null
+          preferred_contact_method?: string | null
+          preferred_contact_time?: string | null
+          courtesy_calls_enabled?: boolean | null
+          next_courtesy_call_date?: string | null
+          courtesy_call_frequency?: string | null
+          ref_partner_id?: string | null
+          ref_post_id?: string | null
+          crm_source?: string | null
+          crm_source_id?: string | null
+          crm_created_at?: string | null
+          title?: string | null
+          nickname?: string | null
+          gender?: string | null
+          nationality?: string | null
+          marital_status?: string | null
+          passport_number?: string | null
+          an_ss_number?: string | null
+          county?: string | null
+          gps_lat?: number | null
+          gps_lng?: number | null
+          map_link?: string | null
+          language_notes?: string | null
+          consent_state?: string | null
+          deceased_at?: string | null
+          linked_member_id?: string | null
+          away_from?: string | null
+          away_until?: string | null
+          pendant_with_member?: boolean | null
+          urbanizacion?: string | null
+          bloque?: string | null
+          portal?: string | null
+          escalera?: string | null
         }
         Update: {
+          id?: string
+          user_id?: string | null
+          first_name?: string
+          last_name?: string
+          email?: string
+          phone?: string
+          date_of_birth?: string
+          nie_dni?: string | null
           address_line_1?: string
           address_line_2?: string | null
           city?: string
-          country?: string | null
-          courtesy_call_frequency?: string | null
-          courtesy_calls_enabled?: boolean | null
-          created_at?: string | null
-          date_of_birth?: string
-          email?: string
-          first_name?: string
-          id?: string
-          last_name?: string
-          next_courtesy_call_date?: string | null
-          nie_dni?: string | null
-          phone?: string
-          photo_url?: string | null
-          postal_code?: string
-          preferred_contact_method?: string | null
-          preferred_contact_time?: string | null
-          preferred_language?:
-            | Database["public"]["Enums"]["preferred_language"]
-            | null
           province?: string
-          ref_partner_id?: string | null
-          ref_post_id?: string | null
+          postal_code?: string
+          country?: string | null
+          preferred_language?: Database["public"]["Enums"]["preferred_language"] | null
+          photo_url?: string | null
           special_instructions?: string | null
           status?: Database["public"]["Enums"]["member_status"] | null
+          created_at?: string | null
           updated_at?: string | null
-          user_id?: string | null
+          preferred_contact_method?: string | null
+          preferred_contact_time?: string | null
+          courtesy_calls_enabled?: boolean | null
+          next_courtesy_call_date?: string | null
+          courtesy_call_frequency?: string | null
+          ref_partner_id?: string | null
+          ref_post_id?: string | null
+          crm_source?: string | null
+          crm_source_id?: string | null
+          crm_created_at?: string | null
+          title?: string | null
+          nickname?: string | null
+          gender?: string | null
+          nationality?: string | null
+          marital_status?: string | null
+          passport_number?: string | null
+          an_ss_number?: string | null
+          county?: string | null
+          gps_lat?: number | null
+          gps_lng?: number | null
+          map_link?: string | null
+          language_notes?: string | null
+          consent_state?: string | null
+          deceased_at?: string | null
+          linked_member_id?: string | null
+          away_from?: string | null
+          away_until?: string | null
+          pendant_with_member?: boolean | null
+          urbanizacion?: string | null
+          bloque?: string | null
+          portal?: string | null
+          escalera?: string | null
         }
         Relationships: [
           {
@@ -2967,40 +3407,43 @@ export type Database = {
       }
       messages: {
         Row: {
-          content: string
-          conversation_id: string
-          created_at: string | null
           id: string
-          is_read: boolean | null
-          message_type: string | null
-          metadata: Json | null
-          read_at: string | null
-          sender_id: string | null
+          conversation_id: string
           sender_type: string
+          sender_id: string | null
+          content: string
+          message_type: string | null
+          is_read: boolean | null
+          read_at: string | null
+          metadata: Json | null
+          created_at: string | null
+          channel: string | null
         }
         Insert: {
-          content: string
-          conversation_id: string
-          created_at?: string | null
           id?: string
-          is_read?: boolean | null
-          message_type?: string | null
-          metadata?: Json | null
-          read_at?: string | null
-          sender_id?: string | null
+          conversation_id: string
           sender_type: string
+          sender_id?: string | null
+          content: string
+          message_type?: string | null
+          is_read?: boolean | null
+          read_at?: string | null
+          metadata?: Json | null
+          created_at?: string | null
+          channel?: string | null
         }
         Update: {
-          content?: string
-          conversation_id?: string
-          created_at?: string | null
           id?: string
-          is_read?: boolean | null
-          message_type?: string | null
-          metadata?: Json | null
-          read_at?: string | null
-          sender_id?: string | null
+          conversation_id?: string
           sender_type?: string
+          sender_id?: string | null
+          content?: string
+          message_type?: string | null
+          is_read?: boolean | null
+          read_at?: string | null
+          metadata?: Json | null
+          created_at?: string | null
+          channel?: string | null
         }
         Relationships: [
           {
@@ -3084,6 +3527,42 @@ export type Database = {
           whatsapp_paid_sales?: boolean | null
           whatsapp_partner_signup?: boolean | null
           whatsapp_shift_alerts?: boolean | null
+        }
+        Relationships: []
+      }
+      notification_templates: {
+        Row: {
+          id: string
+          event_key: string
+          channel: Database["public"]["Enums"]["notification_channel"]
+          locale: string
+          subject: string | null
+          body: string
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          event_key: string
+          channel: Database["public"]["Enums"]["notification_channel"]
+          locale: string
+          subject?: string | null
+          body: string
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          event_key?: string
+          channel?: Database["public"]["Enums"]["notification_channel"]
+          locale?: string
+          subject?: string | null
+          body?: string
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -3201,73 +3680,91 @@ export type Database = {
       }
       orders: {
         Row: {
-          created_at: string | null
-          delivered_at: string | null
           id: string
           member_id: string
-          notes: string | null
           order_number: string
-          ref_partner_id: string | null
-          ref_post_id: string | null
-          shipped_at: string | null
-          shipping_address_line_1: string
-          shipping_address_line_2: string | null
-          shipping_amount: number | null
-          shipping_city: string
-          shipping_country: string | null
-          shipping_postal_code: string
-          shipping_province: string
           status: Database["public"]["Enums"]["order_status"] | null
           subtotal: number
           tax_amount: number
+          shipping_amount: number | null
           total_amount: number
+          shipping_address_line_1: string
+          shipping_address_line_2: string | null
+          shipping_city: string
+          shipping_province: string
+          shipping_postal_code: string
+          shipping_country: string | null
           tracking_number: string | null
+          shipped_at: string | null
+          delivered_at: string | null
+          notes: string | null
+          created_at: string | null
+          ref_partner_id: string | null
+          ref_post_id: string | null
+          fulfilment_state: Database["public"]["Enums"]["fulfilment_state"]
+          allocated_at: string | null
+          programmed_at: string | null
+          programmed_by: string | null
+          tested_at: string | null
+          tested_by: string | null
         }
         Insert: {
-          created_at?: string | null
-          delivered_at?: string | null
           id?: string
           member_id: string
-          notes?: string | null
           order_number: string
-          ref_partner_id?: string | null
-          ref_post_id?: string | null
-          shipped_at?: string | null
-          shipping_address_line_1: string
-          shipping_address_line_2?: string | null
-          shipping_amount?: number | null
-          shipping_city: string
-          shipping_country?: string | null
-          shipping_postal_code: string
-          shipping_province: string
           status?: Database["public"]["Enums"]["order_status"] | null
           subtotal: number
           tax_amount: number
+          shipping_amount?: number | null
           total_amount: number
+          shipping_address_line_1: string
+          shipping_address_line_2?: string | null
+          shipping_city: string
+          shipping_province: string
+          shipping_postal_code: string
+          shipping_country?: string | null
           tracking_number?: string | null
-        }
-        Update: {
-          created_at?: string | null
+          shipped_at?: string | null
           delivered_at?: string | null
-          id?: string
-          member_id?: string
           notes?: string | null
-          order_number?: string
+          created_at?: string | null
           ref_partner_id?: string | null
           ref_post_id?: string | null
-          shipped_at?: string | null
-          shipping_address_line_1?: string
-          shipping_address_line_2?: string | null
-          shipping_amount?: number | null
-          shipping_city?: string
-          shipping_country?: string | null
-          shipping_postal_code?: string
-          shipping_province?: string
+          fulfilment_state?: Database["public"]["Enums"]["fulfilment_state"]
+          allocated_at?: string | null
+          programmed_at?: string | null
+          programmed_by?: string | null
+          tested_at?: string | null
+          tested_by?: string | null
+        }
+        Update: {
+          id?: string
+          member_id?: string
+          order_number?: string
           status?: Database["public"]["Enums"]["order_status"] | null
           subtotal?: number
           tax_amount?: number
+          shipping_amount?: number | null
           total_amount?: number
+          shipping_address_line_1?: string
+          shipping_address_line_2?: string | null
+          shipping_city?: string
+          shipping_province?: string
+          shipping_postal_code?: string
+          shipping_country?: string | null
           tracking_number?: string | null
+          shipped_at?: string | null
+          delivered_at?: string | null
+          notes?: string | null
+          created_at?: string | null
+          ref_partner_id?: string | null
+          ref_post_id?: string | null
+          fulfilment_state?: Database["public"]["Enums"]["fulfilment_state"]
+          allocated_at?: string | null
+          programmed_at?: string | null
+          programmed_by?: string | null
+          tested_at?: string | null
+          tested_by?: string | null
         }
         Relationships: [
           {
@@ -5935,7 +6432,6 @@ export type Database = {
         Row: {
           id: string
           member_id: string
-          payer_id: string | null
           plan_type: Database["public"]["Enums"]["plan_type"]
           billing_frequency: Database["public"]["Enums"]["billing_frequency"]
           amount: number
@@ -5950,11 +6446,16 @@ export type Database = {
           created_at: string | null
           mollie_customer_id: string | null
           mollie_subscription_id: string | null
+          legacy_membership_label: string | null
+          payment_arrangement: string | null
+          monthly_payment_date: string | null
+          arrears_note: string | null
+          is_free_of_charge: boolean
+          payer_id: string | null
         }
         Insert: {
           id?: string
           member_id: string
-          payer_id?: string | null
           plan_type: Database["public"]["Enums"]["plan_type"]
           billing_frequency: Database["public"]["Enums"]["billing_frequency"]
           amount: number
@@ -5969,11 +6470,16 @@ export type Database = {
           created_at?: string | null
           mollie_customer_id?: string | null
           mollie_subscription_id?: string | null
+          legacy_membership_label?: string | null
+          payment_arrangement?: string | null
+          monthly_payment_date?: string | null
+          arrears_note?: string | null
+          is_free_of_charge?: boolean
+          payer_id?: string | null
         }
         Update: {
           id?: string
           member_id?: string
-          payer_id?: string | null
           plan_type?: Database["public"]["Enums"]["plan_type"]
           billing_frequency?: Database["public"]["Enums"]["billing_frequency"]
           amount?: number
@@ -5988,6 +6494,12 @@ export type Database = {
           created_at?: string | null
           mollie_customer_id?: string | null
           mollie_subscription_id?: string | null
+          legacy_membership_label?: string | null
+          payment_arrangement?: string | null
+          monthly_payment_date?: string | null
+          arrears_note?: string | null
+          is_free_of_charge?: boolean
+          payer_id?: string | null
         }
         Relationships: [
           {
@@ -7041,6 +7553,9 @@ export type Database = {
       ticket_status: "open" | "in_progress" | "pending" | "resolved" | "closed"
       consent_basis: "member_self" | "staff_recorded"
       consent_category: "alerts" | "location" | "medical"
+      fulfilment_state: "paid" | "allocated" | "programmed" | "dispatched" | "delivered" | "tested"
+      member_action: "renew" | "switch_to_single" | "switch_to_couple" | "add_pendant" | "pause" | "cancel"
+      notification_channel: "sms" | "email" | "whatsapp"
     }
     CompositeTypes: {
       [_ in never]: never

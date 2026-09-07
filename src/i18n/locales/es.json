@@ -730,7 +730,8 @@
     "productCatalog": "Catálogo de Productos",
     "howItWorks": "Cómo Funciona",
     "menu": "Menú",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "unreadCount": "{{count}} mensajes sin leer"
   },
   "blog": {
     "title": "Blog",

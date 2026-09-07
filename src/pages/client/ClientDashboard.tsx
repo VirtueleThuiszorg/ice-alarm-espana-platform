@@ -19,6 +19,7 @@ import { telHref, waNumber } from "@/lib/phone";
 import { PageHeader } from "@/components/client/PageHeader";
 import { ProtectionChecklist } from "@/components/client/ProtectionChecklist";
 import { useMemberSubscriptions, useMemberAlerts } from "@/hooks/useMemberProfile";
+import { useMemberUnread } from "@/hooks/useMemberUnread";
 // Mock data for template preview mode
 const MOCK_MEMBER = {
   first_name: "Demo",
@@ -162,28 +163,9 @@ export default function ClientDashboard() {
     enabled: !!effectiveMemberId && !isTemplatePreview,
   });
 
-  // Fetch unread message count
-  const { data: unreadMsgCount } = useQuery({
-    queryKey: ["member-unread-messages", effectiveMemberId],
-    queryFn: async () => {
-      if (!effectiveMemberId) return 0;
-      // Get conversations for this member
-      const { data: convs } = await supabase
-        .from("conversations")
-        .select("id")
-        .eq("member_id", effectiveMemberId);
-      if (!convs?.length) return 0;
-      const convIds = convs.map(c => c.id);
-      const { count } = await supabase
-        .from("messages")
-        .select("*", { count: "exact", head: true })
-        .in("conversation_id", convIds)
-        .eq("sender_type", "staff")
-        .eq("is_read", false);
-      return count || 0;
-    },
-    enabled: !!effectiveMemberId && !isTemplatePreview,
-  });
+  // One definition of "unread", shared with the nav badge. It was inline here, so nothing else
+  // could reach it — which is why the nav had no badge to put a count on.
+  const { data: unreadMsgCount } = useMemberUnread(isTemplatePreview ? null : effectiveMemberId);
 
   // The last few alerts, for "Recent activity". Same override as the subscription read, for the
   // same admin-preview reason.
@@ -410,7 +392,12 @@ export default function ClientDashboard() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold">{t("navigation.messages")}</CardTitle>
               {displayUnreadMsgs > 0 && (
-                <Badge className="text-xs">{displayUnreadMsgs} {t("dashboard.unread", "unread")}</Badge>
+                /* Ink, matching the nav badge — R1 rations red to the page's one action, and a
+                   count is not one. Two different colours for the same number, on two surfaces a
+                   member sees together, is two conventions to learn. */
+                <Badge className="bg-foreground text-background text-xs">
+                  {displayUnreadMsgs} {t("dashboard.unread", "unread")}
+                </Badge>
               )}
             </div>
           </CardHeader>

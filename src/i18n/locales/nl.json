@@ -730,7 +730,8 @@
     "productCatalog": "Productcatalogus",
     "howItWorks": "Hoe het werkt",
     "menu": "Menu",
-    "close": "Sluiten"
+    "close": "Sluiten",
+    "unreadCount": "{{count}} ongelezen berichten"
   },
   "blog": {
     "title": "Blog",

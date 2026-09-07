@@ -1789,6 +1789,70 @@
       "workBoth": "Una sola llamada resuelve ambas: registre un contacto y luego pídales que pulsen el colgante.",
       "gapUnknown": "No se pudo leer",
       "workUnknown": "Esto no es un estado. No lo trate como listo ni como no listo: reinténtelo y luego escale."
+    },
+    "fulfilment": {
+      "paid": "Pagado",
+      "allocated": "Dispositivo asignado",
+      "programmed": "Programado",
+      "dispatched": "Enviado",
+      "delivered": "Entregado",
+      "tested": "Probado",
+      "cancelled": "Cancelado",
+      "filter": "Preparación",
+      "filterAll": "Todos los estados de preparación",
+      "column": "Preparación",
+      "driftShort": "descoordinado",
+      "driftTitle": "La preparación dice esto, pero el estado del pedido dice {{status}}. Los dos no coinciden.",
+      "correctAction": "Corregir el estado de preparación…",
+      "condition": {
+        "awaitingStock": "Pendiente de stock",
+        "awaitingStockWork": "Este miembro ha pagado y no había ningún colgante libre que reservar. Compre stock y asigne uno desde su ficha.",
+        "awaitingAllocation": "Necesita un colgante",
+        "awaitingAllocationWork": "Asigne un colgante desde la ficha de este miembro. Eso es lo que hace avanzar el pedido."
+      },
+      "action": {
+        "allocated": "Asignar un dispositivo",
+        "programmed": "Terminar la configuración",
+        "dispatched": "Recogido para la entrega",
+        "delivered": "Entregado al miembro",
+        "tested": "Llamada de prueba realizada",
+        "cancelled": "Cancelar este pedido"
+      },
+      "meaning": {
+        "paid": "El pago se ha completado. Aún no se ha asignado ningún dispositivo.",
+        "allocated": "Hay un colgante concreto reservado para este miembro y ya ha salido del stock.",
+        "programmed": "El colgante está configurado: SIM, servidor, número SOS y las dos pruebas superadas.",
+        "dispatched": "Recogido para la entrega y de camino al miembro.",
+        "delivered": "En manos del miembro. Esto es lo que paga la comisión del colaborador.",
+        "tested": "El miembro pulsó el botón en su casa y un operador con nombre le atendió. Esto es la mitad de la preparación para la monitorización.",
+        "cancelled": "Este pedido no se va a preparar. Cualquier comisión pendiente se cancela con él."
+      },
+      "correct": {
+        "title": "Corregir el estado de preparación",
+        "body": "El pedido {{order}} está ahora en «{{state}}». La corrección se registra a su nombre con el motivo que indique.",
+        "target": "Cambiarlo a",
+        "choose": "Elija un estado",
+        "reason": "¿Qué ha pasado?",
+        "reasonPlaceholder": "p. ej. Marcado como entregado por error: el mensajero lo devolvió sin entregar.",
+        "reasonHelp": "Queda en el registro de actividad a su nombre. No puede estar vacío ni repetir el motivo que ya consta en este pedido.",
+        "reasonRepeated": "Ese es el motivo que ya consta en este pedido. Indique qué ha pasado esta vez.",
+        "commissionWarning": "Este pedido está entregado, así que puede existir una comisión de colaborador de 50 €. Sacarlo de «entregado» cancela una comisión que no se haya liberado, y se rechaza del todo si ya se ha pagado.",
+        "save": "Registrar la corrección"
+      },
+      "card": {
+        "title": "Preparación del colgante",
+        "subtitle": "La mitad de la preparación para la monitorización de este miembro es si su colgante se ha probado en su propia casa con un operador atendiendo.",
+        "loading": "Leyendo el pedido del colgante de este miembro…",
+        "loadFailed": "No se pudo leer el estado de preparación de este miembro",
+        "loadFailedBody": "Esto NO es lo mismo que «sin probar». No lo trate como ninguno de los dos estados. Reinténtelo y escale si persiste.",
+        "notOnOrder": "Este colgante no está en ningún pedido",
+        "notOnOrderBody": "La preparación llega al colgante a través del pedido en el que se vendió, así que este miembro no puede registrarse como listo para la monitorización hasta que el colgante esté vinculado a una línea de colgante en uno de sus pedidos. Llamarle para probarlo no lo cambiará.",
+        "ladder": "Pasos de preparación",
+        "tested": "Llamada de prueba atendida",
+        "testedOn": "Llamada de prueba atendida el {{date}}{{by}}",
+        "testedWarning": "Pulse esto solo después de que el miembro haya pulsado su colgante en casa y usted haya atendido la llamada. Queda registrado a su nombre, y es lo que le dice a este sistema que está protegido.",
+        "notYet": "Una llamada de prueba solo se puede registrar cuando el colgante ya está con el miembro. Avance el pedido desde Pedidos, o termine la lista de configuración en el dispositivo."
+      }
     }
   },
   "finance": {
@@ -5765,7 +5829,10 @@
       "previousAlerts": "Alertas Anteriores",
       "notes": "Notas",
       "notesPlaceholder": "Notas del personal durante la llamada...",
-      "autoSave": "Se guarda automáticamente cada 30 segundos"
+      "autoSave": "Se guarda automáticamente cada 30 segundos",
+      "pendantUntestedHeading": "Colgante nunca probado",
+      "pendantUntestedBody": "Nunca se ha atendido una llamada de prueba desde el domicilio de este miembro. Puede que sea la primera vez que oye a un operador.",
+      "pendantUntestedAdvice": "Diga quién es y desde dónde llama antes que nada. No dé por hecho que sabe que el colgante puede hablar."
     },
     "controls": {
       "unmute": "Activar Micrófono",

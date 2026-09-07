@@ -26,6 +26,8 @@ import {
   MAY_CORRECT_FULFILMENT,
   STAFF_MOVABLE_STATES,
   describeFulfilmentError,
+  FULFILMENT_CONDITION_LABEL,
+  fulfilmentCondition,
   fulfilmentRank,
   isFulfilmentCorrection,
   mayCorrectFulfilment,
@@ -339,6 +341,50 @@ describe("every refusal the trigger can raise reaches a human in words", () => {
       title: "The change was refused",
       body: raw,
     });
+  });
+});
+
+describe("`awaiting_stock` is a CONDITION, not a state — increment 6", () => {
+  it("is not in the fulfilment enum at all", () => {
+    // FULFILMENT_MODEL.md §2: it is `paid` with a failed allocation. Modelling it as a
+    // sequence state is what let it become invisible in §1-B.
+    expect(FULFILMENT_STATES as readonly string[]).not.toContain("awaiting_stock");
+  });
+
+  it.each([
+    [{ fulfilment_state: "paid", status: "awaiting_stock" }, "awaiting_stock"],
+    [{ fulfilment_state: "paid", status: "pending" }, "awaiting_allocation"],
+    [{ fulfilment_state: "paid", status: "confirmed" }, "awaiting_allocation"],
+    [{ fulfilment_state: "paid", status: null }, "awaiting_allocation"],
+    [{ fulfilment_state: "allocated", status: "awaiting_stock" }, "none"],
+    [{ fulfilment_state: "dispatched", status: "awaiting_stock" }, "none"],
+    [{ fulfilment_state: "tested", status: "processing" }, "none"],
+    [{ fulfilment_state: "cancelled", status: "awaiting_stock" }, "none"],
+    [{ fulfilment_state: null, status: "awaiting_stock" }, "none"],
+  ] as const)("%o → %s", (order, expected) => {
+    expect(fulfilmentCondition(order)).toBe(expected);
+  });
+
+  it("distinguishes 'no stock exists' from 'nobody has allocated yet'", () => {
+    // Different work: one is buying pendants, the other is walking to the shelf. A screen that
+    // shows one number for both tells nobody what to do.
+    expect(fulfilmentCondition({ fulfilment_state: "paid", status: "awaiting_stock" })).toBe(
+      "awaiting_stock",
+    );
+    expect(fulfilmentCondition({ fulfilment_state: "paid", status: "confirmed" })).toBe(
+      "awaiting_allocation",
+    );
+    expect(FULFILMENT_CONDITION_LABEL.awaiting_stock.work.fallback).toMatch(/buy stock/i);
+    expect(FULFILMENT_CONDITION_LABEL.awaiting_allocation.work.fallback).toMatch(/allocate/i);
+  });
+
+  it("stops being a condition once a device is allocated, whatever the stale status says", () => {
+    // An order at `allocated` whose status still reads `awaiting_stock` is DRIFT, which the
+    // orders row flags separately and louder. Calling it a condition too would put a permanent
+    // "Awaiting stock" chip on an order that has a pendant reserved.
+    expect(fulfilmentCondition({ fulfilment_state: "allocated", status: "awaiting_stock" })).toBe(
+      "none",
+    );
   });
 });
 

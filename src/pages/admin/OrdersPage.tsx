@@ -11,10 +11,12 @@ import {
 } from "@/lib/orderStatus";
 import {
   FULFILMENT_ACTION_LABEL,
+  FULFILMENT_CONDITION_LABEL,
   FULFILMENT_BADGE,
   FULFILMENT_LABEL,
   FULFILMENT_STATES,
   FULFILMENT_TO_ORDER_STATUS,
+  fulfilmentCondition,
   isStaffMovableTransition,
   mayCorrectFulfilment,
   nextFulfilmentState,
@@ -108,7 +110,20 @@ export default function OrdersPage() {
         query = query.eq("status", statusFilter as OrderStatus);
       }
 
-      if (fulfilmentFilter !== "all") {
+      if (fulfilmentFilter.startsWith("condition:")) {
+        /*
+          A condition is `paid` PLUS something about `orders.status`, so it filters on both
+          columns rather than on one. Filtered in the QUERY and not in the page, because a
+          condition that only narrows the current twenty rows is a filter that lies about how
+          many orders are in that state.
+        */
+        query = query.eq("fulfilment_state", "paid");
+        if (fulfilmentFilter === "condition:awaiting_stock") {
+          query = query.eq("status", "awaiting_stock");
+        } else {
+          query = query.neq("status", "awaiting_stock");
+        }
+      } else if (fulfilmentFilter !== "all") {
         query = query.eq("fulfilment_state", fulfilmentFilter as FulfilmentState);
       }
 
@@ -243,6 +258,25 @@ export default function OrdersPage() {
                     {t(FULFILMENT_LABEL[s].key, FULFILMENT_LABEL[s].fallback)}
                   </SelectItem>
                 ))}
+                {/*
+                  The two CONDITIONS, not states — FULFILMENT_MODEL.md §2. `awaiting_stock` used
+                  to be a value in the `orders.status` ladder, which is what let it become
+                  invisible: the one order that needed a human was the one no filter reached
+                  (§1-B). It is a filter here, on the screen it was invisible from, rather than
+                  a rung nobody could see.
+                */}
+                <SelectItem value="condition:awaiting_stock">
+                  {t(
+                    FULFILMENT_CONDITION_LABEL.awaiting_stock.key,
+                    FULFILMENT_CONDITION_LABEL.awaiting_stock.fallback,
+                  )}
+                </SelectItem>
+                <SelectItem value="condition:awaiting_allocation">
+                  {t(
+                    FULFILMENT_CONDITION_LABEL.awaiting_allocation.key,
+                    FULFILMENT_CONDITION_LABEL.awaiting_allocation.fallback,
+                  )}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -299,6 +333,30 @@ export default function OrdersPage() {
                     <TableCell>
                       <div className="flex items-center gap-1.5">
                         {getFulfilmentBadge(order.fulfilment_state)}
+                        {(() => {
+                          /*
+                            The CONDITION, shown next to the state rather than instead of it.
+                            The order still reads `paid` — which is the point of §2 — and the
+                            reason it is stuck is beside it instead of hidden in a second
+                            column somebody has to know to read.
+                          */
+                          const condition = fulfilmentCondition(order);
+                          if (condition === "none") return null;
+                          const label = FULFILMENT_CONDITION_LABEL[condition];
+                          return (
+                            <span
+                              data-testid={`fulfilment-condition-${condition}`}
+                              title={t(label.work.key, label.work.fallback)}
+                              className={
+                                condition === "awaiting_stock"
+                                  ? "rounded border border-orange-500/40 bg-orange-500/15 px-1.5 py-0.5 text-xs font-semibold text-orange-700"
+                                  : "rounded border border-border px-1.5 py-0.5 text-xs text-muted-foreground"
+                              }
+                            >
+                              {t(label.key, label.fallback)}
+                            </span>
+                          );
+                        })()}
                         {(() => {
                           const expected = fulfilmentDrift(order);
                           if (!expected) return null;
@@ -357,6 +415,19 @@ export default function OrdersPage() {
                               and the D9 role rules belong in a database trigger; see
                               FULFILMENT_MODEL.md §1-E.
                             */
+                            /*
+                              THE STATUS LADDER, NOW SECOND TO THE FULFILMENT ONE.
+
+                              It is suppressed for a `paid` order awaiting allocation, because
+                              the move it offered there — `awaiting_stock → processing` — did
+                              NOT allocate a device. orderStatus.ts said so in its own comment:
+                              "It does not allocate a device; allocation is post-payment.ts's
+                              job." So the button told a staff member the order had moved on
+                              while the member still had no pendant reserved. The real action
+                              is offered instead, below.
+                            */
+                            const condition = fulfilmentCondition(order);
+                            if (condition !== "none") return null;
                             const known = ORDER_STATUSES.find((v) => v === order.status);
                             const next = known ? ORDER_STATUS_NEXT[known] : null;
                             if (!next) return null;
@@ -395,7 +466,11 @@ export default function OrdersPage() {
                             if (!state) return null;
                             const next = nextFulfilmentState(state);
                             const movable = next && isStaffMovableTransition(state, next);
-                            if (!movable && !canCorrect) return null;
+                            // The allocation route counts as something to offer. Without it in
+                            // this guard an ordinary operator saw NO action at all on exactly
+                            // the order that needs one — the §1-B failure, one layer up.
+                            const stuck = fulfilmentCondition(order) !== "none";
+                            if (!movable && !stuck && !canCorrect) return null;
                             return (
                               <>
                                 <DropdownMenuSeparator />
@@ -426,6 +501,32 @@ export default function OrdersPage() {
                                     )}
                                   </DropdownMenuItem>
                                 )}
+                                {(() => {
+                                  /*
+                                    The action that actually unsticks it: allocation happens on
+                                    the MEMBER's record, because that is where a device is
+                                    chosen by serial and linked to the order line
+                                    (`linkDeviceToPendantOrder`). A "mark as allocated" here
+                                    would claim a pendant is reserved when none is.
+                                  */
+                                  const condition = fulfilmentCondition(order);
+                                  if (condition === "none") return null;
+                                  return (
+                                    <DropdownMenuItem
+                                      data-testid={`fulfilment-allocate-${condition}`}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/admin/members/${order.member_id}`);
+                                      }}
+                                    >
+                                      <Package className="mr-2 h-4 w-4" />
+                                      {t(
+                                        FULFILMENT_ACTION_LABEL.allocated.key,
+                                        FULFILMENT_ACTION_LABEL.allocated.fallback,
+                                      )}
+                                    </DropdownMenuItem>
+                                  );
+                                })()}
                                 {canCorrect && (
                                   <DropdownMenuItem
                                     data-testid="fulfilment-correct"

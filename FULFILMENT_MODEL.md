@@ -231,6 +231,165 @@ practice.
 
 ---
 
+## 6-A. Notifications — the dispatcher (WP3)
+
+*Design and rationale. Implemented by `supabase/functions/_shared/notify-fulfilment.ts` and the
+`notify-fulfilment` edge function.*
+
+`notifyFulfilment(order_id, transition)` is called once per state edge and is the only thing in
+this codebase that decides whether a member hears about a state change. Six edges × three
+channels × two audiences is thirty-six chances to get consent wrong if each caller works it out
+for itself.
+
+### 6-A.1 Two gates, both required
+
+1. the **channel** is on globally — `system_settings.notify_channel_{sms,email,whatsapp}`, all
+   three seeded `false`, turned on by Lee as a table edit (`PENDING_FOR_LEE.md` §3)
+2. the **recipient** has permission — a `member_notification_optin` row with `opted_in = true`
+
+Either alone is wrong. A global flag with no per-member consent sends to people who never
+agreed; per-member consent with no global flag sends over a transport nobody has proved
+delivers.
+
+**On today's production data this dispatcher sends nothing**, because all three flags are off.
+That is the correct behaviour, not a broken one, and it is asserted as such.
+
+### 6-A.2 A skip is recorded, never silent
+
+GOALS.md G2. Every decision writes one `member_notification_log` row, and the status says which
+gate stopped it: `sent` · `failed` · `skipped_channel_off` · `skipped_no_optin` ·
+`skipped_no_address` · `skipped_no_template` · `skipped_no_payer_consent`.
+
+A silent skip and a successful send are indistinguishable afterwards, and on a life-safety
+product the record of what was sent to whom is evidence rather than convenience.
+
+**A flag is on only when its value is exactly the string `true`.** Missing is not permission,
+and neither is `TRUE`, `1` or `yes` — `system_settings.value` is text, so anything else is a
+typo rather than a switch. Asserted for all five.
+
+### 6-A.3 No template means no message
+
+There is no inline fallback text anywhere in the dispatcher. A hardcoded English default is the
+thing that reaches a Spanish member the day somebody forgets a seed row — and it would look like
+the feature working. A missing or inactive template is `skipped_no_template`.
+
+The locale falls back to **Spanish**, not English, for a member with no preference on file.
+Spain is the market, and guessing English is the guess that reaches an 80-year-old in Almería in
+a language they may not read.
+
+### 6-A.4 The payer (D6), and the consent that has nowhere to live
+
+Recipient resolution is built: the payer is a second recipient when `subscriptions.payer_id` is
+set and their address differs from the member's — checked on the **addresses**, not the ids,
+because a payer record for the member themselves is common and messaging them twice about one
+event is how a member learns to ignore the messages.
+
+The audience is in the **event key** (`fulfilment.dispatched.payer`) rather than a column,
+because the brief requires different text for the same event — *"the payer is told about the
+order, the member about their alarm"* — and one row with two bodies is a row somebody will
+eventually send the wrong half of.
+
+**But every payer send is refused today.** `member_notification_optin` is keyed on `member_id`
+and a payer is not a member, so there is nowhere to record a payer's consent.
+`payerConsent()` returns false for every payer and every payer send is logged as
+`skipped_no_payer_consent` — visible in the log rather than absent from it. Inventing a legal
+basis inside a module is not a decision a module gets to make; it is
+`PENDING_FOR_LEE.md` D-8.
+
+### 6-A.5 Which edges call it, and the one that does not
+
+`useFulfilmentState` (the staff actions), `linkDeviceToPendantOrder` (allocation) and
+`markOrderProgrammed` (the checklist). All three go through `src/lib/notifyTransition.ts`, which
+**never throws and never toasts**: the state is the fact, the message is a courtesy about the
+fact, and a notification that could not be sent must not undo a fulfilment state that was.
+
+`paid` is the exception, twice over:
+
+* nothing transitions **into** `paid` except the payment webhook, and per the brief no PR
+  touching `stripe-webhook` merges — that hook is a separate PR held for a human
+* a supervisor **correcting** an order back to `paid` is the one way it happens from here, and
+  it is deliberately not notified. There is no `fulfilment.paid.*` template: a member told "your
+  pendant is no longer allocated" by an automated SMS, with no explanation and nobody to ask, is
+  worse served than by the phone call that correction should prompt anyway
+
+### 6-A.6 Why called and not triggered
+
+A database trigger cannot make an HTTP request without `pg_net`, which this project cannot
+install on the isolation harness — `scripts/rls/run.sh` skips the two pg_net/pg_cron migrations
+for exactly that reason. So the edges call the function.
+
+The function itself **requires a JWT**, expressed by its absence from `supabase/config.toml`
+(which lists only the functions with `verify_jwt = false`). It writes `member_notification_log`
+under the service role, and that table has no `authenticated` write path at all by design: a
+client that could write it could fabricate a delivery record.
+
+---
+
+## 6-B. `awaiting_stock` as a condition — increment 6
+
+§2 already said what this is: *"`awaiting_stock` is not a state in this machine. It is `paid`
+with a failed allocation — a CONDITION, not a place in the sequence. Modelling it as a sequence
+state is what let it become invisible in 1-B. It should be a flag or a queue, and the order
+should still read `paid`."*
+
+### 6-B.1 Derived, not stored
+
+Two facts already recorded, and both matter:
+
+| | |
+|---|---|
+| `fulfilment_state = 'paid'` | no device is allocated |
+| `orders.status = 'awaiting_stock'` | `post-payment.ts` **tried** to allocate and found no free EV-07B — that status value is the record of the attempt |
+
+So `fulfilmentCondition()` returns `awaiting_stock` for the pair, and `awaiting_allocation` for a
+`paid` order with any other status. Those are **different pieces of work** — buying pendants
+versus walking to the shelf — and a screen that shows one number for both tells nobody what to
+do.
+
+**No new column.** There is nothing to record that is not already recorded, and a boolean
+`is_awaiting_stock` would be a third thing to keep in step with the other two. A derived
+condition cannot drift from the facts it is derived from.
+
+**It stops being a condition the moment a device is allocated**, whatever the status still says.
+An order at `allocated` reading `awaiting_stock` is *drift*, which the orders row flags
+separately and more loudly; calling it a condition too would put a permanent "Awaiting stock"
+chip on an order that has a pendant reserved.
+
+### 6-B.2 The status nudge that allocated nothing is gone
+
+`ORDER_STATUS_NEXT` offered `awaiting_stock → processing` from the orders menu, and
+`orderStatus.ts` said in its own comment that this *"does not allocate a device; allocation is
+`post-payment.ts`'s job."* So the button told a staff member the order had moved on while the
+member still had no pendant reserved.
+
+It is suppressed for any order with a condition, and replaced by the action that actually
+unsticks it: **allocate a pendant on the member's record**, where a device is chosen by serial
+and linked to the order line. Offered to an **ordinary operator**, not only a supervisor —
+without the condition in that guard a `call_centre` operator saw no action at all on exactly the
+order that needs one, which is the §1-B failure one layer up.
+
+### 6-B.3 The condition clears itself
+
+`linkDeviceToPendantOrder` now moves `orders.status` off `awaiting_stock` in the same breath as
+the fulfilment state, guarded on the stale value so a status a human already corrected is not
+overwritten by a side-effect. Without that, `fulfilmentCondition()` would read "Awaiting stock"
+forever off a record of an attempt that has since succeeded.
+
+The status write happens **before** the WP3 notification: a member told "a pendant has been
+reserved for you" by a message that went out first would be told something the orders screen
+still contradicted.
+
+A failure there is **not** fatal — the device is allocated and the fulfilment state says so, and
+a stale status is visible as drift, which beats refusing an allocation that has already happened.
+
+### 6-B.4 It is filterable, on the screen it was invisible from
+
+Both conditions are filter options on `/admin/orders`, and they filter in the **query** on both
+columns — a condition that only narrows the current twenty rows is a filter that lies about how
+many orders are in that state.
+
+---
+
 ## 7. Negative assertions — what must be PROVEN not to happen
 
 Positive tests confirm the design was implemented. These confirm it cannot be gone around, and
@@ -268,7 +427,7 @@ made to fail has not been tested.
 | 4 | `member_monitoring_readiness` gains the second condition | 3 | **merged and applied** (#180) |
 | 5 | The staff screen that moves a fulfilment state | 3 | **5a merged** — the orders screen. 5b: the checklist and the member record |
 | 5c | The readiness surfaces name WHICH condition is missing | 4 | **merged** for the queue and the member notice; the operator card is held for a human |
-| 6 | `awaiting_stock` as a condition rather than a state | 3 | open |
+| 6 | `awaiting_stock` as a condition rather than a state | 3 | **merged** |
 
 Increment 2 is deliberately first among the code: it is the live defect (an order needing human
 attention that the admin screen cannot display), it needs no schema, and it can merge today.
@@ -281,9 +440,34 @@ of the six transitions are **not buttons**:
 * **5a — the orders screen.** `src/lib/fulfilmentState.ts` (the module every surface reads),
   `useFulfilmentState` (the one write path), the fulfilment column, the filter, the forward
   actions and the correction dialog.
-* **5b — the two transitions nobody presses.** `programmed` happens when the
-  `ProvisioningChecklist` is finished, and `tested` has to be reachable from the member record
-  and the SOS screen, not only from a row in a table of orders.
+* **5b — the two transitions nobody presses, plus the one that makes a member ready.**
+  `programmed` happens when the `ProvisioningChecklist` is finished; `tested` is recorded on the
+  member record; and `allocated` — which had **no writer at all** — is written by the allocation
+  path.
+
+### 8-C. The readiness dead-end 5b found
+
+`member_monitoring_readiness` reaches a pendant through `orders → order_items → devices`, and
+`DeviceTab.assignDevice` wrote only `devices.member_id`. **A pendant allocated by hand was
+invisible to readiness**: that member could never be recorded as protected however many test
+calls anybody made, and nothing said so. `linkDeviceToPendantOrder` now writes the order line
+and moves `paid → allocated`, and the card says so out loud when a pendant is on no order.
+
+The webhook half of the same gap is still open: `_shared/post-payment.ts` allocates a device and
+does not move the fulfilment state. It is one line, in the payment path, so it stays open for a
+human — `PENDING_FOR_LEE.md` §5 and S11.
+
+### 8-D. Why `tested` is on the member record and not the SOS screen
+
+The brief says *"from the SOS screen **or** member record"*. The member record, because that is
+where somebody sits when they phone a member to walk them through a test — and because
+`SOSActionPanel` is the SOS path, where CLAUDE.md makes a human gate mandatory before any merge.
+Recorded as `PENDING_FOR_LEE.md` S10 rather than done quietly.
+
+Note that the checklist's own step 12 is *already* a test SOS call — a **bench** test by staff.
+`tested` means the **member** pressed **their** pendant in **their own home** and an operator
+answered. They are kept apart deliberately: collapsing them would let readiness be true for a
+member who has never touched their pendant. `PENDING_FOR_LEE.md` D-7.
 
 ### 8-B. The reconciliation with `orders.status`, decided in 5a
 

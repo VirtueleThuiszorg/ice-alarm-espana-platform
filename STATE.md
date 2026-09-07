@@ -26,6 +26,27 @@
 | B7 | 6 email-template logo URLs | ✅ FIXED | All six `_shared/email-templates/*.tsx` carried the placeholder. Now the real ref. ⚠️ **Still owed:** upload the logo to the `email-assets/logo.png` storage object — until then the images 404 (templates are currently unreferenced by any function, so no live email is affected). |
 | B8 | Untouched by design | — | `index.html`, `.github/workflows/deploy-functions.yml`, and the two cron migrations (`20260716120000`, `20260723120000`) already name the authoritative ref. The cron pair is the **SOS-escalation path** — not edited (G1 / human gate). |
 
+## Notification fan-out (2026-09-07) — WP3 · **dispatcher shipped, every channel OFF**
+
+> Design: `FULFILMENT_MODEL.md` §6-A. Schema: `20260907100200`, applied.
+>
+> **Nothing is sent to anybody today, and that is correct rather than broken.** All three
+> `notify_channel_*` flags are seeded `false`, so every decision the dispatcher makes is
+> `skipped_channel_off` — recorded, not silent. Turning a channel on is Lee's table edit
+> (`PENDING_FOR_LEE.md` §3), and the second gate (the member's own opt-in) applies after it.
+
+| # | Item | Status | Evidence |
+|---|---|---|---|
+| N1 | One dispatcher, called on every state edge | ✅ VERIFIED | `_shared/notify-fulfilment.ts` + the `notify-fulfilment` function. Called from `useFulfilmentState`, `linkDeviceToPendantOrder` and `markOrderProgrammed` via `src/lib/notifyTransition.ts` — asserted, including that no transition means no notification. |
+| N2 | Two gates: global channel flag **and** member opt-in | ✅ VERIFIED | `src/test/notifyFulfilmentDispatcher.test.ts` (29). A flag is on only when its value is exactly `true` — `TRUE`, `1`, `yes`, `""` and absent are all off, asserted for all five. An absent opt-in row is not permission. |
+| N3 | A skip is recorded, never silent (G2) | ✅ VERIFIED | One `member_notification_log` row per decision, with a status naming which gate stopped it. Mutation: logging only successes → 3 red. |
+| N4 | No template means no message | ✅ VERIFIED | No inline fallback text exists in the dispatcher. Missing or inactive → `skipped_no_template`. Locale falls back to **Spanish**, not English. |
+| N5 | The payer is resolved per D6 | ✅ VERIFIED | Second recipient when `payer_id` is set **and their address differs** — compared on addresses, not ids, so a payer who is the member is not messaged twice. Own event key (`fulfilment.*.payer`) so the text can differ. |
+| N6 | A payer is actually notified | 🔴 BLOCKED — decision needed | There is nowhere to record a payer's consent: `member_notification_optin` is keyed on `member_id`. Every payer send is refused and logged `skipped_no_payer_consent`. `PENDING_FOR_LEE.md` D-8 sets out the two ways to close it. |
+| N7 | Templates seeded per transition × recipient × language | ⬜ MISSING | The table exists and is read; no rows are seeded yet, so every channel would read `skipped_no_template` even with a flag on. A seed migration is the next piece and needs Lee to apply it. |
+| N8 | The "new member" staff notification (D5), from the webhook | ⬜ MISSING — held for a human | Touches `stripe-webhook`. Per the brief that PR stays open. |
+| N9 | WhatsApp opt-in link (D8) | ⬜ MISSING | The receiving side and the `wa.me` link, after the templates. Sending waits on S2. |
+
 ## Fulfilment state machine (2026-09-07) — WP2 · **schema APPLIED, screen partly shipped**
 
 > Design: `FULFILMENT_MODEL.md`. Scope: `CC_MASTER_BRIEF.md` WP2. Lee's rulings on §9 are
@@ -45,12 +66,15 @@
 | F5 | Readiness = ≥1 contact **AND** a tested pendant still in good standing (D4, Q2) | ✅ APPLIED to prod | `20260907100100`. `security_invoker` preserved and asserted. |
 | F6 | A member cannot write any fulfilment state (Q1) | ✅ VERIFIED | `scripts/rls/isolation.sql` — no UPDATE path exists, and the assertion re-reads the row to prove it is unchanged. |
 | F7 | The staff **orders screen** moves a fulfilment state | ✅ VERIFIED (increment 5a) | `src/lib/fulfilmentState.ts` + `useFulfilmentState` + the column, filter, forward action and correction dialog on `/admin/orders`. `src/test/fulfilmentStateContract.test.ts` (45) proves the module mirrors the trigger — ranks, the correction predicate, the D9 role set and all five refusal messages are read out of the migrations. `src/test/ordersFulfilmentActions.test.tsx` (25) renders the screen. Both mutation-tested. |
-| F8 | `programmed` set by finishing the `ProvisioningChecklist` | ⬜ MISSING (increment 5b) | Nothing in `src/` writes `programmed`. The checklist has **14** steps, not the brief's six — recorded drift, `PENDING_FOR_LEE.md`. |
-| F9 | `tested` reachable from the member record / SOS screen | ⬜ MISSING (increment 5b) | Reachable today only from a row on `/admin/orders`. **This is why readiness is zero.** |
+| F8 | `programmed` set by finishing the `ProvisioningChecklist` | ✅ VERIFIED (increment 5b) | `markOrderProgrammed` fires from `useDeviceProvisioning` when **all** steps are complete — no button anywhere sets `programmed`, asserted. Attempted only from `allocated`: `paid → programmed` is a skip the trigger refuses, and walking two rungs would assert an allocation nothing checked. The checklist has **14** steps, not the brief's six, and the count is hard-coded nowhere — `PENDING_FOR_LEE.md` D-7. |
+| F9 | `tested` reachable from the member record | ✅ VERIFIED (increment 5b) | `PendantFulfilmentCard` on the member's Device tab. Offered **only** from `delivered`, and it writes the state alone — `tested_by` is resolved by the trigger from `auth.uid()`. The SOS-screen copy of the action is **deliberately not built**: that is the SOS path and CLAUDE.md gates it on a human — `PENDING_FOR_LEE.md` S10. |
+| F11 | Allocation writes `order_items.device_id` **and** moves `paid → allocated` | ✅ VERIFIED (increment 5b) | `linkDeviceToPendantOrder`, called by `DeviceTab.assignDevice` after the device row is written. **This closed a readiness dead-end**: readiness reaches a pendant through `orders → order_items → devices`, and `assignDevice` wrote only `devices.member_id` — so a pendant allocated by hand was invisible to readiness and that member could never be recorded as protected. `FULFILMENT_MODEL.md` §8-C. |
+| F12 | The **webhook** allocation path moves `paid → allocated` | 🔴 BROKEN — fix held for a human | `_shared/post-payment.ts` allocates a device (`devices.status`, `order_items.device_id`) and does **not** move the fulfilment state, so every webhook-allocated order sits at `paid`. One line, in the payment path, so per the brief the PR stays open. `PENDING_FOR_LEE.md` §5 and S11. |
 | F13 | The readiness **queue** has two row kinds and names the work | ✅ VERIFIED (increment 5c) | `readinessGap()` — one derivation read by every surface — plus a "What is missing" column, per-kind counts, and the queue's title/subtitle/empty-state corrected (they claimed the queue was only about contacts, which was true of one condition out of two). `src/test/readinessGap.test.ts` (15), `readinessQueue.test.tsx` (24). |
 | F14 | The **member header notice** names which condition is missing | ✅ VERIFIED (increment 5c) | `MonitoringReadinessBar`, three variants. The pendant-only variant offers the member **nothing to press** — Q1 is operator-confirmed only, so a button would be a lie or a hole in that ruling; the phone number is the action. All five new strings in en/es/nl. `memberReadinessBar.test.tsx` (27). |
 | F15 | The **operator card zero-state** names which condition is missing | ⬜ MISSING — held for a human | `SOSActionPanel` is the SOS path and CLAUDE.md gates it. Built as its own PR left OPEN, not merged. `PENDING_FOR_LEE.md` S10. |
-| F10 | `awaiting_stock` as a condition rather than a state | ⬜ MISSING (increment 6) | The two ladders still coexist; an order moved by the older "Mark as shipped" action shows an **"out of step"** marker rather than drifting silently. §8-B. |
+| F10 | `awaiting_stock` as a condition rather than a state | ✅ VERIFIED (increment 6) | `fulfilmentCondition()` derives it from `fulfilment_state='paid'` + `orders.status`, with **no new column**. Chip beside the state (the order still reads Paid), a filter on both columns in the query, and the status nudge that allocated nothing is gone — replaced by "Allocate a device" on the member record, offered to an ordinary operator. Allocation clears the stale status so the condition clears itself. `FULFILMENT_MODEL.md` §6-B. |
+| F16 | Every `admin.fulfilment` string exists in en/es/nl | ✅ VERIFIED (increment 6) | #192, #193 and #195 shipped 52 keys as inline fallbacks to keep locale JSON out of three concurrent PRs (CLAUDE.md's serial-merge rule). This PR adds all of them, plus the three `sos.action.pendantUntested*` keys #196 needs, so that held PR need not touch locale JSON at all. Every key the code names now resolves in all three locales — checked exhaustively, not sampled. |
 
 ## Emergency-contact readiness (2026-09-04) — the second axis · **SHIPPED to main**
 

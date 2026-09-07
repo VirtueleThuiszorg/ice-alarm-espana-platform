@@ -26,9 +26,16 @@ make the manifest lie, and the drift gate (#164) depends on that manifest being 
 > **applied and recorded**: you merged #176, pushed it, and #179 appended it to
 > `APPLIED_TO_PROD.txt`. Production is level with the repo, and `main` is green.
 >
-> **The next three migrations are in PR #180 and are NOT merged** (§5). That is the method
-> change D-3 argued for: one PR carrying every schema change the rest of the brief needs, so
-> the drift gate is paid once instead of once per increment.
+> **The WP2–WP7 schema bundle is also applied.** #180 and its corrections #187 are merged,
+> pushed, and recorded in `APPLIED_TO_PROD.txt` by #185 and #189 — six migrations covering the
+> fulfilment state machine and its D9 trigger, readiness's second condition, WP3's notification
+> consent/templates/log, WP5's circle of care, WP6's messaging columns and WP7's attribution
+> guard. That was the method change D-3 argued for: **one** PR carrying every schema change the
+> rest of the brief needs, so the drift gate is paid once instead of once per increment. It
+> worked — nothing has been blocked on it since.
+>
+> Two verification queries are still owed on it, S8 and S9, because the backfill runs at apply
+> time and the RLS harness has no rows to assert against at that moment.
 
 ---
 
@@ -44,6 +51,8 @@ make the manifest lie, and the drift gate (#164) depends on that manifest being 
 | ~~S6~~ | ~~**Set `system_settings.settings_emergency_phone` = `950 473 199`**~~ — **now a migration** (`20260907110200`), not a manual edit. The brief asked for one in WP1(b) and it was never written; it sat here as a table edit instead. `ON CONFLICT DO NOTHING`, so if you already set it by hand your value wins. Original note kept below for context: | Supabase → Table editor → `system_settings` (it is **data, not schema** — no migration needed, no drift-gate wait) | Until this row exists the 24-hour number is **absent everywhere** — public site, pendant page, member device/support/dashboard, join confirmation, invoices. That is deliberate and correct (the old hardcoded `+34 900 123 456` was not a number this company owns and was a live `tel:` link), but it means members currently see no number at all. **This is the highest-value five-second job on this list.** | ⬜ |
 | S8 | **After pushing the WP2 corrections, verify the backfill** — run `select status, fulfilment_state, count(*) from orders group by 1,2 order by 1;` | Supabase → SQL editor | #180 defaulted EVERY existing order to `fulfilment_state='paid'`, including ones already shipped or delivered. The corrections migration maps them (processing→allocated, shipped→dispatched, delivered→delivered, cancelled→cancelled). **This is the one part of the bundle the RLS harness cannot prove**: the backfill runs at apply time, before the suite has any rows to seed, so there is nothing for it to assert against. Expect `status` and `fulfilment_state` to agree on every row except `pending`. | ⬜ |
 | S9 | **Then check for pending orders with no subscription** — `select id, order_number from orders where status='pending' and not exists (select 1 from subscriptions s where s.member_id = orders.member_id);` | Supabase → SQL editor | The brief maps `pending → paid` only where a subscription exists. A pending order without one was never paid, and there is no state below `paid` to hold it — so those rows keep the default and are **wrong in the safe direction** until a human decides. If the query returns nothing, there is nothing to do | ⬜ |
+| S10 | **Decide whether "Test call completed" also belongs on the SOS screen** | one line in `SOSActionPanel` | The brief says *"from the SOS screen **or** member record"*. It is built on the **member record** (`PendantFulfilmentCard`), because that is where somebody sits when they phone a member to walk them through a test — and because `SOSActionPanel` is the SOS path, where CLAUDE.md makes a human gate mandatory before merge. Say the word and it goes on the SOS screen in its own PR for you to review | ⬜ |
+| S11 | **Then check for orders stuck at `paid` with a device already allocated** — `select o.order_number, o.fulfilment_state from orders o join order_items oi on oi.order_id = o.id where oi.device_id is not null and o.fulfilment_state = 'paid';` | Supabase → SQL editor | `_shared/post-payment.ts` allocates a pendant on payment — it writes `devices.status='allocated'` and `order_items.device_id` — and **does not move `orders.fulfilment_state`**. So every order allocated by the webhook since #180 sits at `paid` with its device already assigned. The fix is one line in the webhook path, which is why it is **PR #TBD, left open** (§5) rather than merged. These rows can be moved by hand, or left for the fix; either way they are wrong in the safe direction | ⬜ |
 | ~~S7~~ | ✅ **DONE 2026-09-07.** ~~Run `select count(*) from partner_applications where status='pending';`~~ — **that query was wrong and unrunnable: there is no `partner_applications` table and no migration ever created one.** An application is a row in `partners` with `status='pending'` and `user_id` null, which `ConvertApplicationDialog`'s own header said. Correct query, which Lee ran: `select count(*) from partners where status='pending' and user_id is null;` → **2**, both his own test rows, since deleted → **0**. So `partner-apply`, the convert dialog, the Convert menu item and its tests are all removed. `decidePartnerInvite`'s `convert` branch and `partner-admin-invite` are kept. `PARTNER_JOURNEY.md` §4 | ✅ |
 
 ---
@@ -142,6 +151,79 @@ policy. **No new schema is proposed for it.**
 If the brief meant something beyond that, say what, and it goes into PR #180 before you merge
 it — that is the point of holding it open.
 
+### D-7 — the provisioning checklist has **14** steps, not the brief's six (finding, 2026-09-07)
+
+The brief: *"programmed: the ProvisioningChecklist's **six** steps are all complete."* It has
+fourteen (`useDeviceProvisioning.PROVISIONING_STEPS`), grouped as Hardware 5, Network 6,
+Testing 3. They are real EV-07B steps, not padding — SIM, charge, pair the base, power on, APN,
+server IP, the A1 SOS number, reporting mode, volume, a test SOS call, a GPS check, and a final
+confirm.
+
+**Built to the reality, not to the number.** `allocated → programmed` fires when **all** the
+steps present are complete, so the count is not hard-coded anywhere and trimming or adding steps
+changes nothing in the transition.
+
+Two things worth your eye, neither of which I changed:
+
+1. **Step 12 is already a test SOS call** — *"Press the SOS button to trigger a test call.
+   Verify the configured SOS number receives the call and two-way audio works."* That is a
+   bench test by staff, whereas `tested` means the **member** pressed **their** pendant in
+   **their own home**. They are deliberately different states and I have kept them apart. If
+   you want the bench test to count, say so — but it would mean readiness could be true for a
+   member who has never touched their pendant.
+2. **`PROVISIONING_CATEGORIES` disagrees with the step list.** It maps `contacts` to step index
+   8 and `network` to indices 5–10, so index 8 (`set_sos`) is in both and the `contacts`
+   category duplicates rather than partitions. Cosmetic today — the checklist renders by
+   category — but it is the kind of hand-maintained index list that goes wrong the moment a step
+   is inserted. Not fixed here because it is not this increment's concern; say the word.
+
+### D-8 — a payer's consent has nowhere to live (decision, 2026-09-07)
+
+WP3's dispatcher notifies the member **and the payer**, per D6, and the payer half is built:
+recipient resolution, their own template rows (`fulfilment.*.payer`, because *"the payer is told
+about the order, the member about their alarm"*), and the address comparison that stops a payer
+who **is** the member being messaged twice.
+
+**Every payer send is refused, and logged as `skipped_no_payer_consent`.**
+
+`member_notification_optin` is keyed on `member_id`. A payer is not a member — `payers` is its
+own table, with its own `user_id` — so there is no row that can say "this payer agreed to
+WhatsApp". Rather than invent a legal basis inside a module, the dispatcher refuses and records
+the refusal, which is the safe direction on a privacy question and leaves the gap visible in
+`member_notification_log`.
+
+**Two ways to close it, and the difference is a real decision, not a shape:**
+
+1. **A `payer_notification_optin` table**, same shape as the member one (`payer_id`, `channel`,
+   `opted_in`, `opted_in_at`, `basis`). Treats a payer's permission as consent they give, and
+   means somebody has to ask them. Honest, and it means no payer hears anything until they say
+   yes.
+2. **Contract basis** — a payer paying for a subscription is party to it, so transactional
+   messages about the order they are paying for need no opt-in. This is the ordinary legal
+   footing for a receipt or a dispatch note, and `consent_basis` would gain a `contract` value.
+   It sends sooner, and it needs you to be comfortable that "your father's pendant has been
+   dispatched" is transactional rather than marketing.
+
+**I have not chosen.** (2) is probably right for dispatch and delivery, and probably wrong for
+anything that reads as an update about the member's wellbeing. That line is yours to draw, and
+it is the sort of thing a regulator asks about.
+
+**Nothing is blocked on it** — member notifications work whenever you turn a channel on.
+
+### D-9 — `payers` has no `preferred_language` (finding, 2026-09-07)
+
+The dispatcher renders in the recipient's locale. `members.preferred_language` exists; `payers`
+has `email`, `phone`, `full_name`, `relationship` and nothing about language.
+
+So a payer is currently rendered in **the member's** language. That is a guess, and it is a
+named one: the payer is usually family, and family usually shares a language. It is wrong for
+exactly the case this product has a lot of — a Dutch or English son in another country paying
+for a Spanish-speaking parent, or the reverse.
+
+One column, `payers.preferred_language`, with the member's as the default. Not added because
+D-8 means no payer is messaged yet, so it would be schema for a code path that cannot run —
+and the next schema bundle is a better place for it than a migration on its own.
+
 ### D-6 — five alert/badge colours are below WCAG AA, and fixing them changes safety colour
 
 Measured on the base `:root` palette (`publicPaletteContrast.test.ts`). All are white-or-near-
@@ -205,7 +287,9 @@ the member's own per-channel opt-in. A flag on its own no longer sends anything.
 | PR | Why it is open |
 |---|---|
 | ~~**#176**~~ | ✅ **Done.** Merged, pushed, and recorded in `APPLIED_TO_PROD.txt` by #179. Production is level. |
-| **#180** — `[HOLD FOR LEE] schema bundle for WP2–WP5` | **Merge only when you are at a keyboard and can `supabase db push` in the same sitting.** Three migrations: the fulfilment state machine + D9 trigger, readiness's second condition (D4), and WP3 notification consent/templates/log. Everything in it is proven — RLS harness **190 → 252**, and every new assertion made to fail against nine deliberate mutations. It is queued on *your availability*, not on its own quality. Suggested order: merge → `supabase db push` → append the three filenames to `APPLIED_TO_PROD.txt` → merge that → main green. **Expect the monitoring-ready count to drop to zero** the day it lands — no order has ever been tested, and that is the first honest number the system has produced |
+| ~~**#180**~~, ~~**#187**~~ | ✅ **Done.** Merged and pushed; recorded in `APPLIED_TO_PROD.txt` by #185 and #189. Production is level. The monitoring-ready count is **zero** and that is the first honest number this system has produced — see S8/S9 for the two queries that confirm the backfill |
+
+| **the `paid → allocated` line in `_shared/post-payment.ts`** — not yet raised | The webhook allocates a pendant and never moves the fulfilment state, so the first rung of the ladder has no writer on the payment path. It is one `.update({ fulfilment_state: "allocated" })` after the device is allocated — but `_shared/post-payment.ts` is imported by **both** `stripe-webhook` and `mollie-webhook`, so per the brief it stays open for you. **The staff allocation path is already fixed and merged** (`DeviceTab.assignDevice` → `linkDeviceToPendantOrder`), so allocation by hand works today; only webhook allocation is affected. S11 finds the rows |
 
 > Per the brief: any PR touching `supabase/functions/stripe-webhook` or
 > `supabase/functions/create-checkout` stays open. A broken webhook means no member ever

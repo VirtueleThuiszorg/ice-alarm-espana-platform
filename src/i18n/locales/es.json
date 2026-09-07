@@ -1408,10 +1408,6 @@
     "announcement": "Anuncio de servicio",
     "deviceWorking": "Su colgante está funcionando correctamente",
     "contactIceAlarm": "Contactar ICE Alarm España",
-    "noDeviceAssigned": "Sin dispositivo asignado",
-    "contactSupportDevice": "Por favor contacte con soporte para configurar su dispositivo.",
-    "noActiveSubscription": "Sin suscripción activa",
-    "noEmergencyContacts": "Sin contactos de emergencia añadidos",
     "alertsLast30Days": "Alertas (30 días)",
     "batteryLevel": "Batería",
     "deviceStatus": "Dispositivo",
@@ -1449,7 +1445,10 @@
       "conversions": "Conversiones",
       "videosRendered": "Renderizados",
       "videosExported": "Exportados"
-    }
+    },
+    "recentActivity": "Actividad reciente",
+    "noAlerts": "Sin avisos. No ha pasado nada, que es de lo que se trata.",
+    "viewAllAlerts": "Ver su historial de avisos"
   },
   "phoneOnly": {
     "yourCurrentService": "Su servicio actual",
@@ -6192,5 +6191,34 @@
     "groupLabel": "Tamaño del texto",
     "normal": "Tamaño de texto normal",
     "large": "Texto más grande"
+  },
+  "protection": {
+    "title": "Su protección",
+    "pendantLabel": "Colgante",
+    "membership": {
+      "ok": "Su suscripción está activa.",
+      "okAction": "Ver su suscripción",
+      "inactive": "Su suscripción no está activa, así que nadie vigila su alarma.",
+      "inactiveAction": "Ver qué hacer",
+      "unknown": "No hemos podido comprobar su suscripción en este momento."
+    },
+    "pendant": {
+      "ok": "Su colgante está probado y se comunica con nosotros.",
+      "okAction": "Ver su colgante",
+      "offline": "Su colgante ha dejado de comunicarse con nosotros.",
+      "offlineAction": "Avísenos",
+      "awaitingTest": "Todavía tenemos que probar su colgante con usted por teléfono.",
+      "awaitingTestAction": "Concertar la prueba",
+      "notSent": "Su colgante todavía no le ha llegado.",
+      "notSentAction": "Ver dónde está",
+      "notIncluded": "Su suscripción no incluye colgante.",
+      "unknown": "No hemos podido comprobar su colgante en este momento."
+    },
+    "contacts": {
+      "ok": "Tenemos personas a las que podemos llamar.",
+      "okAction": "Ver sus contactos",
+      "none": "Todavía no tenemos a nadie a quien avisar en su nombre.",
+      "unknown": "No hemos podido comprobar sus contactos de emergencia en este momento."
+    }
   }
 }

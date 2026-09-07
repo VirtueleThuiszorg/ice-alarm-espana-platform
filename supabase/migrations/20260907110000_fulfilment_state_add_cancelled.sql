@@ -1,0 +1,27 @@
+-- WP2 correction 1 of 4 — the enum was missing `cancelled`.
+--
+-- CC_MASTER_BRIEF.md WP2: "New order states: paid -> allocated -> programmed -> dispatched ->
+-- delivered -> tested, PLUS CANCELLED." The bundle in #180 shipped the six and not the
+-- seventh, because it was built from FULFILMENT_MODEL.md — which lists the six-state sequence
+-- and never mentions cancelled — rather than from the brief, which was not in the repo at the
+-- time. It is now (CC_MASTER_BRIEF.md), which is how this was found.
+--
+-- IN ITS OWN MIGRATION ON PURPOSE. `ALTER TYPE … ADD VALUE` commits the label, but the new
+-- value cannot be USED in the same transaction that adds it. The backfill and the trigger in
+-- 20260907110100 both reference 'cancelled', so they must run in a later file. Splitting is
+-- not tidiness here; combining them fails at apply time.
+--
+-- ROLLBACK: PostgreSQL cannot drop an enum value. To reverse, recreate the type without
+-- 'cancelled' and re-point the column — only worth doing if no row uses it:
+--   ALTER TABLE public.orders ALTER COLUMN fulfilment_state DROP DEFAULT;
+--   CREATE TYPE public.fulfilment_state_old AS ENUM
+--     ('paid','allocated','programmed','dispatched','delivered','tested');
+--   ALTER TABLE public.orders ALTER COLUMN fulfilment_state
+--     TYPE public.fulfilment_state_old USING fulfilment_state::text::public.fulfilment_state_old;
+--   DROP TYPE public.fulfilment_state;
+--   ALTER TYPE public.fulfilment_state_old RENAME TO fulfilment_state;
+--   ALTER TABLE public.orders ALTER COLUMN fulfilment_state SET DEFAULT 'paid';
+-- The USING cast fails if any row is 'cancelled', which is the correct failure: it refuses to
+-- silently reinterpret a cancelled order as something else.
+
+ALTER TYPE public.fulfilment_state ADD VALUE IF NOT EXISTS 'cancelled';

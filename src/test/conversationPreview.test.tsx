@@ -33,6 +33,7 @@ const ROOT = process.cwd();
 let conversationRow: Record<string, unknown> | null = null;
 let messageRow: Record<string, unknown> | null = null;
 let turnRow: Record<string, unknown> | null = null;
+let turnFails = false;
 let tablesQueried: string[] = [];
 
 vi.mock("@/integrations/supabase/client", () => ({
@@ -41,14 +42,18 @@ vi.mock("@/integrations/supabase/client", () => ({
       tablesQueried.push(table);
       const chain: Record<string, unknown> = {};
       for (const m of ["select", "eq", "order", "limit"]) chain[m] = () => chain;
-      chain.maybeSingle = () =>
-        Promise.resolve({
+      chain.maybeSingle = () => {
+        if (table === "conversation_messages" && turnFails) {
+          return Promise.resolve({ data: null, error: new Error("boom") });
+        }
+        return Promise.resolve({
           data:
             table === "conversations" ? conversationRow
             : table === "messages" ? messageRow
             : turnRow,
           error: null,
         });
+      };
       return chain;
     },
   },
@@ -59,6 +64,7 @@ vi.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ memberId: "m1" }) }
 afterEach(() => {
   cleanup();
   tablesQueried = [];
+  turnFails = false;
 });
 
 // ── 1. the string that must never appear ────────────────────────────────────────────────────
@@ -180,6 +186,16 @@ describe("the member's last thread", () => {
     turnRow = null;
     await renderProbe();
     expect(await screen.findByText("no thread")).toBeInTheDocument();
+  });
+});
+
+describe("the Isabella fallback read", () => {
+  it("is null when it fails, so ONE unreadable row cannot empty the whole list", async () => {
+    // Every caller is inside a per-row map. A throw here would take the list with it, and the
+    // caller already handles "no preview" — which is the same outcome.
+    const { fetchLastIsabellaTurn } = await import("@/lib/lastIsabellaTurn");
+    turnFails = true;
+    await expect(fetchLastIsabellaTurn("c1")).resolves.toBeNull();
   });
 });
 

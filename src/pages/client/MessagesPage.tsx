@@ -420,12 +420,20 @@ export default function MessagesPage() {
         subtitle={t("messages.subtitle")}
         action={
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              {t("messages.newMessage")}
-            </Button>
-          </DialogTrigger>
+          {/*
+            R1 — ONE red button per page. A member with no conversations saw two, both starting the
+            same dialog: this one and the empty state's "send your first message". The empty state
+            keeps it (R8 puts the action there, beside the sentence explaining it); this slot
+            appears once there is a list for it to add to.
+          */}
+          {conversations.length > 0 && (
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                {t("messages.newMessage")}
+              </Button>
+            </DialogTrigger>
+          )}
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{t("messages.sendMessage")}</DialogTitle>

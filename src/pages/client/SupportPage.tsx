@@ -625,12 +625,19 @@ export default function SupportPage() {
               <p className="text-sm text-muted-foreground">{t("support.chatWithTeam")}</p>
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  {t("support.newMessage")}
-                </Button>
-              </DialogTrigger>
+              {/*
+                R1 — ONE red button per page. With no conversations, this and the empty state's
+                "send your first message" both rendered, both opening the same dialog. The empty
+                state keeps it (R8), beside the sentence that explains it.
+              */}
+              {conversations.length > 0 && (
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    {t("support.newMessage")}
+                  </Button>
+                </DialogTrigger>
+              )}
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>{t("support.sendMessage")}</DialogTitle>

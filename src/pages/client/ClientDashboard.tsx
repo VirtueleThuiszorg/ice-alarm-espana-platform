@@ -20,6 +20,9 @@ import { PageHeader } from "@/components/client/PageHeader";
 import { ProtectionChecklist } from "@/components/client/ProtectionChecklist";
 import { useMemberSubscriptions, useMemberAlerts } from "@/hooks/useMemberProfile";
 import { useMemberUnread } from "@/hooks/useMemberUnread";
+import { useMemberLastThread } from "@/hooks/useMemberLastThread";
+import { formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
 // Mock data for template preview mode
 const MOCK_MEMBER = {
   first_name: "Demo",
@@ -166,6 +169,8 @@ export default function ClientDashboard() {
   // One definition of "unread", shared with the nav badge. It was inline here, so nothing else
   // could reach it — which is why the nav had no badge to put a count on.
   const { data: unreadMsgCount } = useMemberUnread(isTemplatePreview ? null : effectiveMemberId);
+  // M23: the card said "2 unread messages" — how much is waiting, and nothing about what it is.
+  const { data: lastThread } = useMemberLastThread(isTemplatePreview ? null : effectiveMemberId);
 
   // The last few alerts, for "Recent activity". Same override as the subscription read, for the
   // same admin-preview reason.
@@ -402,14 +407,31 @@ export default function ClientDashboard() {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {displayUnreadMsgs > 0 ? (
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            {lastThread ? (
+              /*
+                M23 — the LAST THREAD, not a number. What it is about is what decides whether a
+                member opens it, and the count alone never said. The unread badge above still
+                carries "how much"; this line carries "what".
+              */
+              <div
+                className={cn(
+                  "flex items-start gap-3 p-3 rounded-lg border",
+                  displayUnreadMsgs > 0 ? "bg-primary/5 border-primary/10" : "bg-muted/50 border-transparent",
+                )}
+              >
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                   <Inbox className="h-5 w-5 text-primary" />
                 </div>
-                <div>
-                  <p className="font-medium text-sm">{t("dashboard.unreadMessages", { count: displayUnreadMsgs, defaultValue: "{{count}} unread messages" })}</p>
-                  <p className="text-xs text-muted-foreground">{t("dashboard.tapToRead", "Tap to read and reply")}</p>
+                <div className="min-w-0">
+                  <p className="font-medium text-sm truncate">
+                    {lastThread.subject || t("dashboard.yourConversation", "Your conversation")}
+                  </p>
+                  <p className="text-sm text-muted-foreground line-clamp-2">{lastThread.preview.text}</p>
+                  {lastThread.preview.at && (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {formatDistanceToNow(new Date(lastThread.preview.at), { addSuffix: true })}
+                    </p>
+                  )}
                 </div>
               </div>
             ) : (

@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { conversationPreview } from "@/lib/conversationPreview";
+import { fetchLastIsabellaTurn } from "@/lib/lastIsabellaTurn";
 import { toast } from "sonner";
 import { Loader2, MessageSquare, Send, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -143,16 +145,28 @@ export function MessagesPanel() {
 
           const { data: lastMsg } = await supabase
             .from("messages")
-            .select("content")
+            .select("content, created_at")
             .eq("conversation_id", conv.id)
             .order("created_at", { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
+
+          /*
+            The preview said the literal word "undefined" for a conversation with no
+            `messages` row — `undefined + ""` is the STRING "undefined", which is truthy, so
+            the `|| ""` never fired. Invisible until WP6 G7, because an Isabella-only
+            conversation has no messages and there is one per member who used the chat.
+            The Isabella read happens only when there is nothing ordinary to show.
+          */
+          const preview = conversationPreview(
+            lastMsg,
+            lastMsg ? null : await fetchLastIsabellaTurn(conv.id),
+          );
 
           return {
             ...conv,
             unread_count: count || 0,
-            last_message_preview: lastMsg?.content?.substring(0, 40) + "..." || "",
+            last_message_preview: preview.text,
           };
         })
       );

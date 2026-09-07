@@ -1,9 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { conversationPreview } from "@/lib/conversationPreview";
+import { fetchLastIsabellaTurn } from "@/lib/lastIsabellaTurn";
 import { createNotification, getMemberUserId } from "@/utils/notifications";
 import { staffSenderType } from "@/lib/messageSenderType";
 import { withCannedReply } from "@/lib/cannedReplies";
 import { CannedReplyPicker } from "@/components/messaging/CannedReplyPicker";
+import { useIsabellaThread } from "@/hooks/useIsabellaThread";
+import { IsabellaEpisodeCard } from "@/components/messaging/IsabellaEpisodeCard";
+import { mergeThread } from "@/lib/isabellaThread";
+import { MemberContextPanel } from "@/components/messaging/MemberContextPanel";
+import { operatorQueue, waitingOn } from "@/lib/operatorQueue";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import {
@@ -67,6 +74,8 @@ interface Conversation {
   } | null;
   unread_count?: number;
   last_message_preview?: string;
+  /** `sender_type` of the newest message. What `waitingOn()` reads. */
+  last_message_sender?: string | null;
 }
 
 interface Message {
@@ -105,6 +114,12 @@ export default function CallCentreMessagesPage() {
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  /*
+    Isabella's side of this conversation — her turns are in `conversation_messages` and her
+    calls in `conversation_calls`, and no thread has ever read either. A member who spoke to
+    her shows up here as a conversation with nothing in it. See `src/lib/isabellaThread.ts`.
+  */
+  const { data: isabellaEpisodes = [] } = useIsabellaThread(selectedConversation?.id ?? null);
   const [currentStaffId, setCurrentStaffId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
@@ -236,11 +251,26 @@ export default function CallCentreMessagesPage() {
 
           const { data: lastMsg } = await supabase
             .from("messages")
-            .select("content")
+            // `sender_type` as well as the preview: who spoke last is the whole of
+            // `waitingOn()`, and deriving it beats storing it on a row three send paths write.
+            // `created_at` so `conversationPreview` can compare it against Isabella's last turn.
+            .select("content, created_at, sender_type")
             .eq("conversation_id", conv.id)
             .order("created_at", { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
+
+          /*
+            The preview said the literal word "undefined" for a conversation with no
+            `messages` row — `undefined + ""` is the STRING "undefined", which is truthy, so
+            the `|| ""` never fired. Invisible until WP6 G7, because an Isabella-only
+            conversation has no messages and there is one per member who used the chat.
+            The Isabella read happens only when there is nothing ordinary to show.
+          */
+          const preview = conversationPreview(
+            lastMsg,
+            lastMsg ? null : await fetchLastIsabellaTurn(conv.id),
+          );
 
           return {
             ...conv,
@@ -250,7 +280,8 @@ export default function CallCentreMessagesPage() {
               ? (conv.staff_participants || []).map((id: string) => participantsMap.get(id)).filter(Boolean)
               : undefined,
             unread_count: count || 0,
-            last_message_preview: lastMsg?.content?.substring(0, 60) + (lastMsg?.content && lastMsg.content.length > 60 ? "..." : "") || "",
+            last_message_preview: preview.text,
+            last_message_sender: lastMsg?.sender_type ?? null,
           };
         })
       );
@@ -268,6 +299,16 @@ export default function CallCentreMessagesPage() {
     let filtered = [...conversations];
 
     switch (filter) {
+      case "queue":
+        /*
+          The one question none of the other tabs answers: which of these is waiting on US.
+          "Open" does not — a thread stays open after we reply — so an operator scanning open
+          threads cannot tell the ones with somebody at the other end waiting from the ones
+          already answered. Oldest first, deliberately the opposite of this list's default:
+          newest-first serves whoever wrote most recently and lets the longest wait sink.
+        */
+        filtered = operatorQueue(filtered);
+        break;
       case "unread":
         filtered = filtered.filter(c => (c.unread_count || 0) > 0);
         break;
@@ -530,6 +571,9 @@ export default function CallCentreMessagesPage() {
   };
 
   const unreadCount = conversations.filter(c => (c.unread_count || 0) > 0).length;
+  // Unread and waiting-on-us are different counts: a message an operator has READ and not
+  // answered is the one most likely to be forgotten.
+  const queueCount = conversations.filter(c => waitingOn(c) === "us").length;
 
   if (isLoading) {
     return (
@@ -682,6 +726,14 @@ export default function CallCentreMessagesPage() {
         <div className="flex items-center gap-4">
           <Tabs value={filter} onValueChange={setFilter} className="flex-1">
             <TabsList>
+              <TabsTrigger value="queue" className="flex items-center gap-1">
+                {t("callCentreMessages.filterQueue", "Needs a reply")}
+                {queueCount > 0 && (
+                  <Badge variant="secondary" className="h-5 min-w-5 px-1 flex items-center justify-center text-xs">
+                    {queueCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="all">{t("callCentreMessages.filterAll", "All")}</TabsTrigger>
               <TabsTrigger value="unread" className="flex items-center gap-1">
                 {t("callCentreMessages.filterUnread", "Unread")}
@@ -810,6 +862,15 @@ export default function CallCentreMessagesPage() {
                     </div>
                   )}
                 </div>
+                {/*
+                  IS THIS MEMBER ACTUALLY MONITORED? An operator answering "my pendant is
+                  beeping" from somebody whose pendant has never been tested is having a
+                  different conversation from one answering the same words from a covered
+                  member — and nothing on this screen used to say which.
+                */}
+                {selectedConversation.member_id && (
+                  <MemberContextPanel memberId={selectedConversation.member_id} className="mt-3" />
+                )}
                 <div className="flex items-center gap-4 mt-3">
                   <Select
                     value={selectedConversation.status}
@@ -861,41 +922,46 @@ export default function CallCentreMessagesPage() {
               {/* Messages */}
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-4">
-                  {messages.filter(m => m.message_type !== "system" || m.content.startsWith("[Internal Note]")).map((msg) => (
+                  {mergeThread(
+                    messages.filter(m => m.message_type !== "system" || m.content.startsWith("[Internal Note]")),
+                    isabellaEpisodes,
+                  ).map((item) => item.kind === "isabella" ? (
+                    <IsabellaEpisodeCard key={item.episode.id} episode={item.episode} viewer="staff" />
+                  ) : (
                     <div
-                      key={msg.id}
+                      key={item.message.id}
                       className={cn(
                         "flex",
-                        msg.sender_type === "member" ? "justify-start" : "justify-end"
+                        item.message.sender_type === "member" ? "justify-start" : "justify-end"
                       )}
                     >
                       <div
                         className={cn(
                           "max-w-[70%] rounded-lg p-3",
-                          msg.sender_type === "member"
+                          item.message.sender_type === "member"
                             ? "bg-muted"
-                            : msg.message_type === "system"
+                            : item.message.message_type === "system"
                             ? "bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700"
                             : "bg-primary text-primary-foreground"
                         )}
                       >
-                        {msg.message_type === "system" && (
+                        {item.message.message_type === "system" && (
                           <div className="flex items-center gap-1 mb-1">
                             <StickyNote className="h-3 w-3" />
                             <span className="text-xs font-medium">{t("callCentreMessages.internalNote", "Internal Note")}</span>
                           </div>
                         )}
                         <p className="text-sm whitespace-pre-wrap">
-                          {msg.content.replace("[Internal Note] ", "")}
+                          {item.message.content.replace("[Internal Note] ", "")}
                         </p>
                         <div className="flex items-center justify-end gap-2 mt-1">
-                          {msg.sender_type === "staff" && msg.staff && (
+                          {item.message.sender_type === "staff" && item.message.staff && (
                             <span className="text-xs opacity-70">
-                              {msg.staff.first_name}
+                              {item.message.staff.first_name}
                             </span>
                           )}
                           <span className="text-xs opacity-70">
-                            {format(new Date(msg.created_at), "HH:mm")}
+                            {format(new Date(item.message.created_at), "HH:mm")}
                           </span>
                         </div>
                       </div>

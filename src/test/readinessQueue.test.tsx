@@ -31,7 +31,12 @@ const readinessFilters: Record<string, unknown> = {};
 function builder(result: Result, isReadiness: boolean) {
   const chain: Record<string, unknown> = {};
   const p = Promise.resolve(result);
-  chain.select = () => chain;
+  chain.select = (cols?: string) => {
+    // Recorded, because "does this screen read the SECOND condition" is otherwise unprovable:
+    // a row that happens to carry the column proves nothing about the query that fetched it.
+    if (isReadiness && typeof cols === "string") readinessFilters["select"] = cols;
+    return chain;
+  };
   chain.eq = (col: string, val: unknown) => {
     if (isReadiness) readinessFilters[`eq:${col}`] = val;
     return chain;
@@ -103,6 +108,108 @@ beforeEach(() => {
   membersResult = { data: [], error: null };
 });
 afterEach(() => cleanup());
+
+describe("readiness queue — D4: two row kinds, both worked by phone", () => {
+  const ROW = (id: string, over: Record<string, unknown> = {}) => ({
+    member_id: id,
+    monitoring_ready: false,
+    emergency_contact_count: 0,
+    device_tested_at: null,
+    paid_since: iso(3),
+    ...over,
+  });
+
+  it("reads the second condition from the view, rather than re-deriving it", async () => {
+    await renderQueue();
+    await waitFor(() => expect(readinessFilters["select"]).toBeDefined());
+    expect(readinessFilters["select"]).toContain("device_tested_at");
+    expect(readinessFilters["select"]).toContain("emergency_contact_count");
+  });
+
+  it("labels a member with nobody to call", async () => {
+    readinessResult = {
+      data: [ROW("m-b", { device_tested_at: iso(1) })],
+      error: null,
+    };
+    membersResult = { data: [MEMBER("m-b")], error: null };
+    await renderQueue();
+    expect(await screen.findByTestId("readiness-gap-contacts")).toBeTruthy();
+    expect(screen.getByTestId("readiness-queue-row").dataset.gap).toBe("contacts");
+  });
+
+  it("labels a member whose pendant has never been tested", async () => {
+    readinessResult = {
+      data: [ROW("m-b", { emergency_contact_count: 2 })],
+      error: null,
+    };
+    membersResult = { data: [MEMBER("m-b")], error: null };
+    await renderQueue();
+    expect(await screen.findByTestId("readiness-gap-pendant")).toBeTruthy();
+    // The work, not just the state: naming only "not ready" makes an operator open the record
+    // to find out what for.
+    expect(screen.getByText(/press the pendant/i)).toBeTruthy();
+  });
+
+  it("labels a member missing both, and says one call does both", async () => {
+    readinessResult = { data: [ROW("m-b")], error: null };
+    membersResult = { data: [MEMBER("m-b")], error: null };
+    await renderQueue();
+    expect(await screen.findByTestId("readiness-gap-both")).toBeTruthy();
+    expect(screen.getByText(/one call does both/i)).toBeTruthy();
+  });
+
+  it("counts the kinds separately, because they are different amounts of work", async () => {
+    readinessResult = {
+      data: [
+        ROW("m-1", { device_tested_at: iso(1) }),
+        ROW("m-2", { emergency_contact_count: 2 }),
+        ROW("m-3", { emergency_contact_count: 2 }),
+        ROW("m-4"),
+      ],
+      error: null,
+    };
+    membersResult = {
+      data: ["m-1", "m-2", "m-3", "m-4"].map((id) => MEMBER(id)),
+      error: null,
+    };
+    await renderQueue();
+    await waitFor(() => expect(screen.queryAllByTestId("readiness-queue-row").length).toBe(4));
+    expect(screen.getByTestId("readiness-count-contacts").textContent).toContain("1");
+    expect(screen.getByTestId("readiness-count-pendant").textContent).toContain("2");
+    expect(screen.getByTestId("readiness-count-both").textContent).toContain("1");
+  });
+
+  it("does not show a count for a kind nobody is in", async () => {
+    readinessResult = { data: [ROW("m-b", { device_tested_at: iso(1) })], error: null };
+    membersResult = { data: [MEMBER("m-b")], error: null };
+    await renderQueue();
+    await screen.findByTestId("readiness-count-contacts");
+    expect(screen.queryByTestId("readiness-count-pendant")).toBeNull();
+    expect(screen.queryByTestId("readiness-count-both")).toBeNull();
+  });
+
+  it("marks a row it could not read as such, rather than guessing a kind", async () => {
+    // A row with no counts is "we do not know". Calling it "no contacts" would be inventing a
+    // fact from a missing projection, and this queue is worked by phone off exactly that fact.
+    readinessResult = {
+      data: [{ member_id: "m-b", monitoring_ready: false, paid_since: iso(3) }],
+      error: null,
+    };
+    membersResult = { data: [MEMBER("m-b")], error: null };
+    await renderQueue();
+    expect(await screen.findByTestId("readiness-gap-unknown")).toBeTruthy();
+    expect(screen.getByText(/not a state/i)).toBeTruthy();
+  });
+
+  it("no longer claims the queue is only about contacts", async () => {
+    // The title said "Paid — no emergency contacts" and the empty state said every paid member
+    // had one. Both were true of one condition out of two, which makes them false now.
+    await renderQueue();
+    await screen.findByTestId("readiness-queue-empty");
+    expect(screen.getByText(/not monitoring-ready/i)).toBeTruthy();
+    expect(screen.getByTestId("readiness-queue-empty").textContent).toMatch(/has been tested/i);
+  });
+});
 
 describe("readiness queue — who is on it", () => {
   it("lists a paid member with zero contacts, with the wait in days", async () => {

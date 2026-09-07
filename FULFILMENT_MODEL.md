@@ -361,6 +361,7 @@ made to fail has not been tested.
 | 3 | The `fulfilment_state` enum, columns and trigger | migration drift (D-3) | **merged and applied** (#180, corrected by #187) |
 | 4 | `member_monitoring_readiness` gains the second condition | 3 | **merged and applied** (#180) |
 | 5 | The staff screen that moves a fulfilment state | 3 | **5a merged** — the orders screen. 5b: the checklist and the member record |
+| 5c | The readiness surfaces name WHICH condition is missing | 4 | **merged** for the queue and the member notice; the operator card is held for a human |
 | 6 | `awaiting_stock` as a condition rather than a state | 3 | open |
 
 Increment 2 is deliberately first among the code: it is the live defect (an order needing human

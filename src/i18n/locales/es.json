@@ -1761,15 +1761,15 @@
       "backToPartners": "Volver a Socios"
     },
     "readinessQueue": {
-      "title": "Pagado — sin contactos de emergencia",
-      "subtitle": "Estos miembros han pagado y su colgante ha sido enviado, pero no se puede llamar a nadie por ellos. Llámeles, empezando por los más antiguos, y registre sus contactos de emergencia.",
+      "title": "Pagado — sin monitorización lista",
+      "subtitle": "Estos miembros han pagado, pero les falta una de las dos cosas que les hacen estar listos: alguien a quien llamar, o un colgante que alguien haya comprobado que llega a un operador. Ambas se resuelven llamándoles, empezando por los más antiguos.",
       "noAutoChase": "Esta lista no envía nada automáticamente. La entrega de correo aún no está verificada, y un aviso que falla en silencio es indistinguible de un miembro que lo ignoró. Llámeles.",
       "loadFailed": "No se pudo cargar esta lista",
       "loadFailedBody": "Esto NO es lo mismo que una lista vacía: puede haber miembros esperando sin ser vistos. Reinténtelo y escale si persiste.",
       "waiting": "Miembros esperando",
       "longestWait": "máx. {{days}}d",
       "loading": "Cargando lista…",
-      "empty": "Todos los miembros que han pagado tienen al menos un contacto de emergencia.",
+      "empty": "Todos los miembros que han pagado tienen a alguien a quien llamar y un colgante probado.",
       "member": "Miembro",
       "phone": "Teléfono",
       "city": "Ciudad",
@@ -1779,7 +1779,16 @@
       "action": "Acción",
       "noPhone": "SIN TELÉFONO EN FICHA",
       "days": "{{days}}d",
-      "openMember": "Abrir y registrar"
+      "openMember": "Abrir y registrar",
+      "missing": "Qué falta",
+      "gapContacts": "Sin contactos",
+      "workContacts": "Llámeles y registre al menos un contacto de emergencia.",
+      "gapPendant": "Colgante sin probar",
+      "workPendant": "Llámeles, pídales que pulsen el colgante y registre la llamada de prueba.",
+      "gapBoth": "Sin contactos · colgante sin probar",
+      "workBoth": "Una sola llamada resuelve ambas: registre un contacto y luego pídales que pulsen el colgante.",
+      "gapUnknown": "No se pudo leer",
+      "workUnknown": "Esto no es un estado. No lo trate como listo ni como no listo: reinténtelo y luego escale."
     }
   },
   "finance": {
@@ -5997,7 +6006,12 @@
       "title": "Todavía necesitamos sus contactos de emergencia",
       "body": "Su alarma funciona y un operador siempre la atenderá. Pero aún no tenemos a nadie a quien avisar de su parte.",
       "orCall": "¿Prefiere hacerlo por teléfono? Llámenos al",
-      "action": "Añadir sus contactos de emergencia"
+      "action": "Añadir sus contactos de emergencia",
+      "titlePendant": "Todavía tenemos que probar su colgante con usted",
+      "bodyPendant": "Nadie ha pulsado aún su colgante para comprobar que nos llega desde su casa. Le llamaremos para hacerlo juntos — es cuestión de un minuto.",
+      "titleBoth": "Quedan dos cosas para que su alarma esté lista del todo",
+      "bodyBoth": "No tenemos a nadie a quien avisar de su parte, y nadie ha pulsado aún su colgante para comprobar que nos llega desde su casa. Añada sus contactos aquí abajo y le llamaremos para probar el colgante.",
+      "callAboutPendant": "¿Prefiere no esperar nuestra llamada? Puede localizarnos en"
     }
   },
   "addMember": {

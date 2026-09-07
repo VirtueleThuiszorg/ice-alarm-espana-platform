@@ -1761,15 +1761,15 @@
       "backToPartners": "Back to Partners"
     },
     "readinessQueue": {
-      "title": "Betaald — geen noodcontacten",
-      "subtitle": "Deze leden hebben betaald en hun hanger is verzonden, maar er kan niemand voor hen gebeld worden. Bel ze, oudste eerst, en leg hun noodcontacten vast.",
+      "title": "Betaald — nog niet gereed voor monitoring",
+      "subtitle": "Deze leden hebben betaald, maar één van de twee dingen die hen gereed maken ontbreekt: iemand om te bellen, of een hanger waarvan iemand heeft aangetoond dat die een operator bereikt. Beide lost u op door ze te bellen, oudste eerst.",
       "noAutoChase": "Deze lijst stuurt niets automatisch. E-mailbezorging is nog niet verifieerd, en een herinnering die stil mislukt is niet te onderscheiden van een lid dat hem negeerde. Bel ze.",
       "loadFailed": "Deze lijst kon niet geladen worden",
       "loadFailedBody": "Dit is NIET hetzelfde als een lege lijst — er kunnen leden ongezien wachten. Probeer opnieuw en escaleer als het blijft.",
       "waiting": "Wachtende leden",
       "longestWait": "langst {{days}}d",
       "loading": "Lijst laden…",
-      "empty": "Elk betalend lid heeft minstens één noodcontact.",
+      "empty": "Elk betalend lid heeft iemand om te bellen en een geteste hanger.",
       "member": "Lid",
       "phone": "Telefoon",
       "city": "Plaats",
@@ -1779,7 +1779,16 @@
       "action": "Actie",
       "noPhone": "GEEN TELEFOON BEKEND",
       "days": "{{days}}d",
-      "openMember": "Openen & vastleggen"
+      "openMember": "Openen & vastleggen",
+      "missing": "Wat ontbreekt",
+      "gapContacts": "Geen contacten",
+      "workContacts": "Bel ze en leg minstens één noodcontact vast.",
+      "gapPendant": "Hanger niet getest",
+      "workPendant": "Bel ze, laat ze op de hanger drukken en leg de testoproep vast.",
+      "gapBoth": "Geen contacten · hanger niet getest",
+      "workBoth": "Eén telefoontje doet beide: leg een contact vast en laat ze daarna op de hanger drukken.",
+      "gapUnknown": "Kon niet gelezen worden",
+      "workUnknown": "Dit is geen toestand. Behandel het niet als gereed of niet-gereed — probeer opnieuw en escaleer daarna."
     }
   },
   "finance": {
@@ -5997,7 +6006,12 @@
       "title": "We hebben nog uw noodcontacten nodig",
       "body": "Uw alarm werkt en een operator neemt het altijd aan. Maar we hebben nog niemand die we namens u kunnen bellen.",
       "orCall": "Liever telefonisch? Bel ons op",
-      "action": "Uw noodcontacten toevoegen"
+      "action": "Uw noodcontacten toevoegen",
+      "titlePendant": "We moeten uw hanger nog samen met u testen",
+      "bodyPendant": "Er heeft nog niemand op uw hanger gedrukt om te controleren of die ons vanuit uw huis bereikt. We bellen u om het samen te doen — het kost een minuut.",
+      "titleBoth": "Er zijn nog twee dingen te doen voordat uw alarm helemaal klaar is",
+      "bodyBoth": "We hebben nog niemand die we namens u kunnen bellen, en er heeft nog niemand op uw hanger gedrukt om te controleren of die ons vanuit uw huis bereikt. Voeg hieronder uw contacten toe, dan bellen we u over de hanger.",
+      "callAboutPendant": "Liever niet wachten op ons telefoontje? U kunt ons bereiken op"
     }
   },
   "addMember": {

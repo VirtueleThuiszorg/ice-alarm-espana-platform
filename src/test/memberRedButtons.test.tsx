@@ -35,6 +35,7 @@ import { render, screen, waitFor, cleanup } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
+import { stripComments } from "./helpers/stripComments";
 
 const ROOT = process.cwd();
 
@@ -88,26 +89,6 @@ const RED_BUTTONS: Record<string, string[]> = {
  * same prose-vs-code slip this codebase has now made four times, this time inside the measuring
  * instrument, where it is worse: it means the inventory can be moved by writing about buttons.
  */
-function stripComments(src: string): string {
-  // BLOCK COMMENTS ONLY, and no attempt to match a surrounding JSX brace pair.
-  //
-  // The first version of this also tried to match a whole JSX comment including its braces, and
-  // it SWALLOWED 3KB OF REAL MARKUP in `MedicalInfoPage` — dropping its count from 2 to 0. A
-  // JSX expression that merely CONTAINS a note, `{ note someExpression }`, does not end with a
-  // comment terminator immediately followed by a closing brace, so the lazy match ran on to the
-  // next place that did, taking two real buttons with it.
-  //
-  // Removing the comment BODY leaves an empty brace pair, which the scan below does not care
-  // about, and there is nothing left to over-match.
-  //
-  // (Line comments here rather than a block, deliberately: a block comment describing a comment
-  // stripper cannot quote a comment terminator without closing itself. That mistake cost a
-  // parse error one commit ago.)
-  return src
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/^[ \t]*\/\/.*$/gm, "");
-}
-
 /** Red = `bg-primary`, which is what `<Button>` renders with no variant on this surface. */
 function redButtonsIn(rawSrc: string): string[] {
   const src = stripComments(rawSrc);

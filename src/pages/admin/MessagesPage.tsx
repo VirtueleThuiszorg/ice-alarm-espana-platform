@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification, getMemberUserId } from "@/utils/notifications";
+import { staffSenderType } from "@/lib/messageSenderType";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import {
@@ -452,7 +453,12 @@ export default function MessagesPage() {
         .from("messages")
         .insert({
           conversation_id: selectedConversation.id,
-          sender_type: isInternalNote ? "system" : "staff",
+          /*
+            `staff_internal`, NOT `system`. The RESTRICTIVE policy added by
+            20260907100400 protects exactly one value, and this wrote the other one — so every
+            internal note was rendering in the MEMBER's own thread. See `messageSenderType.ts`.
+          */
+          sender_type: staffSenderType(isInternalNote),
           sender_id: currentStaffId,
           content: isInternalNote ? `[Internal Note] ${replyMessage}` : replyMessage,
           message_type: isInternalNote ? "system" : "text",

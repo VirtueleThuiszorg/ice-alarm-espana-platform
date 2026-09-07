@@ -70,7 +70,7 @@ export function useOrderActions() {
 /**
  * Commission per pendant sold: €50 FLAT (Lee, 2026-07-24) — no volume
  * tiers, no discounts for more. The emailed partner terms state exactly
- * this, so any change here must change partner-apply's confirmation email
+ * this. (The partner-apply confirmation email that also stated them is retired.)
  * (and vice versa); partnerFlatTerms.test.ts pins them together.
  */
 const COMMISSION_PER_PENDANT_EUR = 50;

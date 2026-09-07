@@ -1,7 +1,7 @@
 /**
  * member-self-service — server-side writes for the three member-portal
  * features that RLS (correctly) denies client-side. Same pattern as
- * complete-member-registration / partner-apply (#38/#51): strictly scoped
+ * complete-member-registration / partner-apply, since retired (#38/#51): strictly scoped
  * service-role routing, ZERO policy changes.
  *
  * Broken features this fixes (2026-07-24 night audit):

@@ -151,18 +151,21 @@ describe("the application path is absent from the public site", () => {
     }
   });
 
-  it("but the ADMIN conversion path survives — production may hold pending rows", () => {
-    // The brief is explicit: `ConvertApplicationDialog` and `partner_applications`
-    // stay until Lee confirms `select count(*) from partner_applications where
-    // status='pending'` is 0 (PENDING_FOR_LEE.md S7). Deleting them would strand
-    // every application already taken.
+  it("and the machinery behind it is gone too, now that no applications remain", () => {
+    // Held back until Lee could check. He ran the correct query — `partners` where
+    // status='pending' and user_id is null; there has never been a `partner_applications`
+    // table — got 2, both his own test rows, deleted them, and confirmed 0.
     const root = process.cwd();
-    expect(existsSync(path.resolve(root, "src/components/admin/ConvertApplicationDialog.tsx"))).toBe(
-      true
-    );
+    expect(existsSync(path.resolve(root, "supabase/functions/partner-apply"))).toBe(false);
     expect(
-      existsSync(path.resolve(root, "supabase/functions/partner-apply/index.ts")),
-      "the function stays deployed; only the public caller is gone"
-    ).toBe(true);
+      existsSync(path.resolve(root, "src/components/admin/ConvertApplicationDialog.tsx"))
+    ).toBe(false);
+  });
+
+  it("but partner-admin-invite and the invite path are untouched", () => {
+    const root = process.cwd();
+    expect(existsSync(path.resolve(root, "supabase/functions/partner-admin-invite/index.ts"))).toBe(true);
+    expect(existsSync(path.resolve(root, "src/components/admin/InvitePartnerDialog.tsx"))).toBe(true);
+    expect(app, "/partner/invite must still be routed").toContain('path="/partner/invite"');
   });
 });

@@ -154,41 +154,60 @@ delivery failure looks exactly like a partner who never bothered.
 
 ---
 
-## 4. What was kept on purpose
+## 4. The application path is fully retired (2026-09-07)
 
-Retiring the public path is not the same as deleting the data behind it.
-**Production may hold pending applications**, and every one of them is a real person
-who filled in a form. So:
+`/partner` stopped being a page on 2026-09-05 (§0). The machinery behind it came out two days
+later, once it was safe to remove.
 
-| Kept | Why |
-|---|---|
-| `partner_applications` / `partners` rows with `status='pending'` | The applications themselves. Untouched. |
-| `ConvertApplicationDialog` (admin) | The only way to turn one into an account. |
-| `partner-admin-invite` + `decidePartnerInvite` | `decidePartnerInvite("pending") === convert` is what the dialog depends on. |
-| `partner-apply` (edge function) | Still deployed, **called by nothing**. No public surface invokes it; asserted in `partnerSingleEntry.test.ts` and `clientWriteSweep.test.ts`. |
+### 4.1 A correction: there was never a `partner_applications` table
 
-`partnerInviteConversion.test.ts` now guards this in the other direction: it asserts
-the dialog, the function and the `convert` outcome all still exist, so the
-conversion path is not deleted as "dead code" alongside the page that fed it.
-
-**Lee's call, recorded in `PENDING_FOR_LEE.md` S7:** run
+An earlier version of this section, and `PENDING_FOR_LEE.md` S7, told Lee to run
 
 ```sql
-select count(*) from partner_applications where status = 'pending';
+select count(*) from partner_applications where status = 'pending';   -- WRONG
 ```
 
-If it is **0**, the convert dialog, `partner-apply` and the table can all go. Until
-then they stay.
+**No such table has ever existed.** No migration creates one; `grep` over
+`supabase/migrations` returns nothing. An application was always a row in **`partners`** with
+`status='pending'` and **`user_id` null** — which `ConvertApplicationDialog`'s own header
+comment said in as many words, and which `decidePartnerInvite` keyed on. The query was
+therefore unrunnable, and it sat in the handover for two days as the gate on this decision.
 
-`partner-register` is deliberately **unchanged**: an existing email is still a 409.
-That keeps legacy `partner-apply` rows (`pending`, no `user_id`) and
-`partner-register` rows (`pending`, with `user_id`) cleanly distinct — the
-distinction `decidePartnerInvite` depends on.
+The correct query, which Lee ran:
 
-`PartnerJoin`'s partner **type** selector (care home / agency / …) is unrelated to
-any of this and stays.
+```sql
+select count(*) from partners where status = 'pending' and user_id is null;
+```
 
----
+It returned **2**. Both were his own test rows; he deleted them, and it now returns **0**.
+
+### 4.2 What was removed
+
+| Removed | Was |
+|---|---|
+| `supabase/functions/partner-apply/` | the edge function the retired form called |
+| its `supabase/config.toml` entry | `verify_jwt = false`, anon-callable |
+| `src/components/admin/ConvertApplicationDialog.tsx` | the admin action that turned an application into an invite |
+| the **Convert to Partner** menu item on `/admin/partners` | gated on `pending` AND no `user_id` — applications only |
+| `src/test/partnerConvertAction.test.tsx` | that dialog's tests |
+
+No capability was lost. **`InvitePartnerDialog` is untouched** and remains the admin's route to
+invite a new partner; `/partner/join`, `/partner/invite`, `partner-register`,
+`partner-verify`, `partner-admin-invite` and `partner-complete-invite` are all untouched.
+
+### 4.3 What was deliberately kept
+
+**`decidePartnerInvite`, including its `convert` branch.** `partner-admin-invite` is kept and
+this is its decision function. `convert` fires on `status='pending'`, and nothing can create
+such a row any more — `partner-register` always sets a `user_id`, `partner-admin-invite` writes
+`invited`. So the branch is now **defensive rather than routine**, and it stays on purpose: if
+such a row reappears — a manual insert, a restore from backup — the admin path handles it
+instead of falling through to a refusal.
+
+Six comments across `useOrderActions`, `partner-register`, `member-self-service`,
+`partner-admin-invite` and `partnerInviteDecision` still mention `partner-apply` as history.
+They are marked retired rather than deleted: the pending/`user_id` distinction they explain is
+still live and still load-bearing for `decidePartnerInvite`.
 
 ## 5. History — the production trace of 2026-08-11
 

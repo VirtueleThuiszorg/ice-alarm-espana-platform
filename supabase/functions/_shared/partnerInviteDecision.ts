@@ -5,7 +5,7 @@
  * reading the edge function — the gate it encodes is the one that decides whether a
  * partner can ever get an account, so it is worth asserting directly.
  *
- * Context (PARTNER_JOURNEY.md): `/partner` → `partner-apply` writes an APPLICATION —
+ * Context (PARTNER_JOURNEY.md), HISTORICAL — that path is retired: `/partner` → `partner-apply` writes an APPLICATION —
  * `status='pending'`, no `user_id`, no credentials. Option C converts that
  * application into an account by admin invite. Before this, `partner-admin-invite`
  * rejected every existing row whose status was not already `invited`, so an
@@ -32,7 +32,7 @@ export function decidePartnerInvite(
    * Whether the existing row already has an `auth.users` link.
    *
    * REQUIRED to tell the two `pending` rows apart, which look identical otherwise:
-   *   - partner-apply  (/partner)      -> pending, NO user_id  = a true application
+   *   - partner-apply  (retired)        -> pending, NO user_id  = a true application
    *   - partner-register (/partner/join) -> pending, user_id SET = someone who
    *     registered themselves, chose a password, and is awaiting email verification
    *

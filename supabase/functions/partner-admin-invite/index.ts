@@ -133,7 +133,8 @@ serve(async (req: Request) => {
       };
 
       if (decision.action === "convert") {
-        // Converting an APPLICATION (`pending`, from /partner → partner-apply) into
+        // Converting an APPLICATION (`pending`, no user_id — from the retired
+        // /partner → partner-apply path) into
         // an invited partner. This is Option C. Stamp who reviewed it and when —
         // the columns have existed since 20260301140000 and nothing wrote them, so
         // there was no record of who let a partner in.

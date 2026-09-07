@@ -78,19 +78,13 @@ describe("partner application goes through the server", () => {
     expect(read("src/App.tsx")).not.toMatch(/PartnerOnboarding/);
   });
 
-  it("partner-apply is service-role scoped, whitelisted, deduped, rate-limited, and NEVER creates an auth account", () => {
-    const fn = read("supabase/functions/partner-apply/index.ts");
-    expect(fn).toMatch(/SUPABASE_SERVICE_ROLE_KEY/);
-    expect(fn).toMatch(/APPLICATION_FIELDS/);
-    expect(fn).toMatch(/checkRateLimit/);
-    expect(fn).toMatch(/duplicate: true/);
-    expect(fn).toMatch(/status: "pending"/);
-    expect(fn).not.toMatch(/auth\.admin|createUser|signUp/);
-  });
-
-  it("partner-apply is registered anon-callable in config.toml", () => {
-    const config = read("supabase/config.toml");
-    expect(config).toMatch(/\[functions\.partner-apply\]\s*\n\s*verify_jwt = false/);
+  it("the partner-apply FUNCTION is gone, not merely uncalled", () => {
+    // It was retired once its last caller went (#173) and kept only while production might
+    // still hold applications. Lee ran `select count(*) from partners where status='pending'
+    // and user_id is null` — 0 — and deleted the two test rows that were there, so the
+    // function, its config entry and its admin dialog all came out.
+    expect(existsSync(join(ROOT, "supabase/functions/partner-apply"))).toBe(false);
+    expect(read("supabase/config.toml")).not.toMatch(/partner-apply/);
   });
 
   it("no migration loosens the partners INSERT policy for anon/authenticated", () => {

@@ -53,6 +53,7 @@ make the manifest lie, and the drift gate (#164) depends on that manifest being 
 | S9 | **Then check for pending orders with no subscription** — `select id, order_number from orders where status='pending' and not exists (select 1 from subscriptions s where s.member_id = orders.member_id);` | Supabase → SQL editor | The brief maps `pending → paid` only where a subscription exists. A pending order without one was never paid, and there is no state below `paid` to hold it — so those rows keep the default and are **wrong in the safe direction** until a human decides. If the query returns nothing, there is nothing to do | ⬜ |
 | S10 | **Decide whether "Test call completed" also belongs on the SOS screen** | one line in `SOSActionPanel` | The brief says *"from the SOS screen **or** member record"*. It is built on the **member record** (`PendantFulfilmentCard`), because that is where somebody sits when they phone a member to walk them through a test — and because `SOSActionPanel` is the SOS path, where CLAUDE.md makes a human gate mandatory before merge. Say the word and it goes on the SOS screen in its own PR for you to review | ⬜ |
 | S11 | **Then check for orders stuck at `paid` with a device already allocated** — `select o.order_number, o.fulfilment_state from orders o join order_items oi on oi.order_id = o.id where oi.device_id is not null and o.fulfilment_state = 'paid';` | Supabase → SQL editor | `_shared/post-payment.ts` allocates a pendant on payment — it writes `devices.status='allocated'` and `order_items.device_id` — and **does not move `orders.fulfilment_state`**. So every order allocated by the webhook since #180 sits at `paid` with its device already assigned. The fix is one line in the webhook path, which is why it is **PR #TBD, left open** (§5) rather than merged. These rows can be moved by hand, or left for the fix; either way they are wrong in the safe direction | ⬜ |
+| S12 | **Check for subscriptions cancelled or paused in the DB that Stripe may still be charging** — the query is in D-10 | Supabase → SQL editor, then the Stripe dashboard | `SubscriptionTab`'s Cancel button wrote `subscriptions.status` from the browser and called **nothing** in Stripe. Any subscription showing `cancelled` or `paused` with a `stripe_subscription_id` may still be live in Stripe and still taking money from a member who believes they cancelled. The code path is fixed and removed (WP7); the rows it may already have produced are yours to check | ⬜ |
 | ~~S7~~ | ✅ **DONE 2026-09-07.** ~~Run `select count(*) from partner_applications where status='pending';`~~ — **that query was wrong and unrunnable: there is no `partner_applications` table and no migration ever created one.** An application is a row in `partners` with `status='pending'` and `user_id` null, which `ConvertApplicationDialog`'s own header said. Correct query, which Lee ran: `select count(*) from partners where status='pending' and user_id is null;` → **2**, both his own test rows, since deleted → **0**. So `partner-apply`, the convert dialog, the Convert menu item and its tests are all removed. `decidePartnerInvite`'s `convert` branch and `partner-admin-invite` are kept. `PARTNER_JOURNEY.md` §4 | ✅ |
 
 ---
@@ -223,6 +224,41 @@ for a Spanish-speaking parent, or the reverse.
 One column, `payers.preferred_language`, with the member's as the default. Not added because
 D-8 means no payer is messaged yet, so it would be schema for a code path that cannot run —
 and the next schema bundle is a better place for it than a migration on its own.
+
+### D-10 — `member_action` has no `resume`, and three of the six are recorded rather than performed (2026-09-07)
+
+**The enum is your six**: renew, switch_to_single, switch_to_couple, add_pendant, pause, cancel.
+Resuming a paused subscription is a seventh thing staff do and it is not in the list, so a resume
+is logged as an ordinary attributed `activity_logs` row instead of a `member_action` one — it
+carries the actor and a reason, but it does not appear in the `member_action` index or in a query
+filtered by that column. One `ALTER TYPE public.member_action ADD VALUE 'resume';` fixes it; it
+is not in a migration yet because the next schema bundle is a better home than a migration on its
+own.
+
+**And three of the six are RECORDED, not performed.** Pause and cancel go through Stripe (or
+Mollie, for cancel) and the server mirrors the status. Renew, the plan switch and adding a pendant
+do not: each needs new Stripe money-movement code against a real customer's card, nothing in this
+repo can test it, and a mistake in it charges a real person. So they are offered with a badge that
+says *"You do it in Stripe"* and a note that the billing was not touched.
+
+That is a deliberate stop, not an omission. **The audit trail — the part that did not exist at
+all — works for all six today**, so a renewal you take over the phone can be recorded with an
+owner and a reason. Say the word and the three become automated in their own PR, which I would
+expect you to want to review rather than merge on green.
+
+**One thing to know regardless of what you decide.** The buttons that were there before were
+worse than absent: `SubscriptionTab.updateStatus` wrote `subscriptions.status` from the browser
+and called nothing in Stripe, so **Cancel left Stripe charging the member's card**. That is fixed
+and gone; the query to find anybody it happened to is
+
+```sql
+select m.first_name, m.last_name, s.id, s.status, s.stripe_subscription_id
+from subscriptions s join members m on m.id = s.member_id
+where s.status in ('cancelled','paused') and s.stripe_subscription_id is not null;
+```
+
+Any row it returns needs checking in the Stripe dashboard: the subscription may still be active
+there.
 
 ### D-6 — five alert/badge colours are below WCAG AA, and fixing them changes safety colour
 

@@ -1832,6 +1832,70 @@
       "workBoth": "One call does both: record a contact, then have them press the pendant.",
       "gapUnknown": "Could not be read",
       "workUnknown": "This is not a state. Do not treat it as ready or unready — retry, then escalate."
+    },
+    "fulfilment": {
+      "paid": "Paid",
+      "allocated": "Device allocated",
+      "programmed": "Programmed",
+      "dispatched": "Dispatched",
+      "delivered": "Delivered",
+      "tested": "Tested",
+      "cancelled": "Cancelled",
+      "filter": "Fulfilment",
+      "filterAll": "All fulfilment states",
+      "column": "Fulfilment",
+      "driftShort": "out of step",
+      "driftTitle": "Fulfilment says this, but the order status says {{status}}. The two are out of step.",
+      "correctAction": "Correct fulfilment state…",
+      "condition": {
+        "awaitingStock": "Awaiting stock",
+        "awaitingStockWork": "This member has paid and there was no free pendant to reserve. Buy stock, then allocate one from their record.",
+        "awaitingAllocation": "Needs a pendant",
+        "awaitingAllocationWork": "Allocate a pendant from this member's record. That is what moves the order on."
+      },
+      "action": {
+        "allocated": "Allocate a device",
+        "programmed": "Finish provisioning",
+        "dispatched": "Collected for delivery",
+        "delivered": "Delivered to member",
+        "tested": "Test call completed",
+        "cancelled": "Cancel this order"
+      },
+      "meaning": {
+        "paid": "Payment cleared. No device assigned yet.",
+        "allocated": "A specific pendant is reserved for this member and has left stock.",
+        "programmed": "The pendant is configured: SIM, server, SOS number, and both tests passed.",
+        "dispatched": "Collected for delivery and on its way to the member.",
+        "delivered": "In the member's hands. This is what pays the partner commission.",
+        "tested": "The member pressed the button at home and a named operator answered. This is half of monitoring readiness.",
+        "cancelled": "This order is not being fulfilled. Any pending commission is cancelled with it."
+      },
+      "correct": {
+        "title": "Correct the fulfilment state",
+        "body": "Order {{order}} currently reads “{{state}}”. A correction is recorded against your name with the reason you give.",
+        "target": "Move it to",
+        "choose": "Choose a state",
+        "reason": "What happened?",
+        "reasonPlaceholder": "e.g. Marked delivered by mistake — the courier returned it undelivered.",
+        "reasonHelp": "This is kept in the activity log against your name. It cannot be blank, and it cannot repeat the reason already on this order.",
+        "reasonRepeated": "That is the reason already on this order. Say what happened this time.",
+        "commissionWarning": "This order is delivered, so a €50 partner commission may exist. Moving it out of delivered cancels a commission that has not been released, and is refused outright once one has been paid.",
+        "save": "Record the correction"
+      },
+      "card": {
+        "title": "Pendant fulfilment",
+        "subtitle": "Half of this member's monitoring readiness is whether their pendant has been tested in their own home with an operator answering.",
+        "loading": "Reading this member's pendant order…",
+        "loadFailed": "This member's fulfilment state could not be read",
+        "loadFailedBody": "This is NOT the same as “not tested”. Do not treat it as either state. Retry, and escalate if it persists.",
+        "notOnOrder": "This pendant is not on any order",
+        "notOnOrderBody": "Readiness reaches a pendant through the order it was sold on, so this member cannot be recorded as monitoring-ready until the pendant is linked to a pendant line on one of their orders. Test-calling them will not change it.",
+        "ladder": "Fulfilment steps",
+        "tested": "Test call answered",
+        "testedOn": "Test call answered on {{date}}{{by}}",
+        "testedWarning": "Press this only after the member has pressed their pendant at home and you answered it. It is recorded against your name, and it is what tells this system they are protected.",
+        "notYet": "A test call can only be recorded once the pendant is with the member. Move the order along from Orders, or finish the provisioning checklist on the device."
+      }
     }
   },
   "finance": {
@@ -5808,7 +5872,10 @@
       "previousAlerts": "Previous Alerts",
       "notes": "Notes",
       "notesPlaceholder": "Staff notes during call...",
-      "autoSave": "Auto-saves every 30 seconds"
+      "autoSave": "Auto-saves every 30 seconds",
+      "pendantUntestedHeading": "Pendant never tested",
+      "pendantUntestedBody": "No test call has ever been answered from this member's home. This may be the first time they have heard an operator.",
+      "pendantUntestedAdvice": "Say who you are and where you are calling from before anything else. Do not assume they know the pendant can speak."
     },
     "controls": {
       "unmute": "Unmute",

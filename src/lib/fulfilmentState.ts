@@ -273,6 +273,72 @@ export const FULFILMENT_BADGE: Record<FulfilmentState, string> = {
 };
 
 /**
+ * `awaiting_stock` IS NOT A STATE — increment 6.
+ *
+ * FULFILMENT_MODEL.md §2, in as many words: *"`awaiting_stock` is not a state in this machine.
+ * It is `paid` with a failed allocation — a CONDITION, not a place in the sequence. Modelling it
+ * as a sequence state is what let it become invisible in 1-B. It should be a flag or a queue,
+ * and the order should still read `paid`."*
+ *
+ * So it is derived, here, from two facts that are already recorded:
+ *
+ *   `fulfilment_state = 'paid'`        the order has not been allocated
+ *   `orders.status = 'awaiting_stock'` `post-payment.ts` TRIED to allocate and found no free
+ *                                      EV-07B — that status value is the record of the attempt
+ *
+ * Both matter. An order that is merely `paid` may simply not have reached the allocation desk;
+ * one that is `paid` AND `awaiting_stock` is a paid member whose pendant could not be reserved,
+ * and somebody has to buy stock. Those are different pieces of work and a screen that shows one
+ * number for both tells nobody what to do.
+ *
+ * WHY NOT A NEW COLUMN. There is nothing to record that is not already recorded, and a boolean
+ * `is_awaiting_stock` would be a third thing to keep in step with the other two. A derived
+ * condition cannot drift from the facts it is derived from.
+ */
+export type FulfilmentCondition =
+  /** Paid, no device, and the allocator found no stock. Somebody has to buy pendants. */
+  | "awaiting_stock"
+  /** Paid, no device, and nobody has tried yet. Somebody has to allocate one. */
+  | "awaiting_allocation"
+  /** Nothing outstanding that this pair of columns can express. */
+  | "none";
+
+export function fulfilmentCondition(order: {
+  fulfilment_state: FulfilmentState | null;
+  status: OrderStatus | null;
+}): FulfilmentCondition {
+  // Only a `paid` order can be awaiting anything. Past that rung a device is assigned, and an
+  // order at `dispatched` whose status still reads `awaiting_stock` is DRIFT rather than a
+  // condition — flagged as drift, which is a different and louder thing.
+  if (order.fulfilment_state !== "paid") return "none";
+  if (order.status === "awaiting_stock") return "awaiting_stock";
+  return "awaiting_allocation";
+}
+
+export const FULFILMENT_CONDITION_LABEL: Record<
+  Exclude<FulfilmentCondition, "none">,
+  { key: string; fallback: string; work: { key: string; fallback: string } }
+> = {
+  awaiting_stock: {
+    key: "admin.fulfilment.condition.awaitingStock",
+    fallback: "Awaiting stock",
+    work: {
+      key: "admin.fulfilment.condition.awaitingStockWork",
+      fallback:
+        "This member has paid and there was no free pendant to reserve. Buy stock, then allocate one from their record.",
+    },
+  },
+  awaiting_allocation: {
+    key: "admin.fulfilment.condition.awaitingAllocation",
+    fallback: "Needs a pendant",
+    work: {
+      key: "admin.fulfilment.condition.awaitingAllocationWork",
+      fallback: "Allocate a pendant from this member's record. That is what moves the order on.",
+    },
+  },
+};
+
+/**
  * The trigger's refusals, translated once.
  *
  * PostgREST hands a React component the raw `RAISE EXCEPTION` message. Those messages are written

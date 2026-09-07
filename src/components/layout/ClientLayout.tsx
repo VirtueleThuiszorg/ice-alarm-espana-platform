@@ -55,11 +55,18 @@ import { MemberChatButton } from "@/components/chat/MemberChatButton";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { MemberReadinessNotice } from "@/components/client/MemberReadinessNotice";
 import { TextSizeControl } from "@/components/client/TextSizeControl";
+import { useMemberUnread } from "@/hooks/useMemberUnread";
 
 interface MenuItem {
   icon: React.ElementType;
   label: string;
   path: string;
+  /**
+   * A count to show beside the item. `undefined` means "this item has no badge"; a badge is
+   * rendered only for a count GREATER THAN ZERO — a "0" beside Messages is not information, it
+   * is a decoration a member has to read and dismiss every time.
+   */
+  badge?: number;
 }
 
 interface MenuGroup {
@@ -78,6 +85,7 @@ export function ClientLayout() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { signOut, user, memberId: authMemberId } = useAuth();
+  const { data: unreadCount } = useMemberUnread();
 
   // Admin-view mode: staff admins open member routes with ?memberId=...
   // (see ClientDashboard); members keep using their own memberId.
@@ -110,7 +118,14 @@ export function ClientLayout() {
       items: [
         { icon: Smartphone, label: t("navigation.myDevice"), path: "/dashboard/device" },
         { icon: Bell, label: t("navigation.alertHistory"), path: "/dashboard/alerts" },
-        { icon: MessageSquare, label: t("navigation.messages"), path: "/dashboard/messages" }
+        {
+          icon: MessageSquare,
+          label: t("navigation.messages"),
+          path: "/dashboard/messages",
+          // WP6: "unread count on the nav". Same hook as the dashboard card, so the two cannot
+          // disagree about what "unread" means.
+          badge: unreadCount,
+        }
       ]
     },
     {
@@ -209,13 +224,14 @@ export function ClientLayout() {
   const renderMenuItem = (item: MenuItem, isMobile: boolean, isNested: boolean = false) => {
     const active = isActive(item.path);
     const Icon = item.icon;
+    const hasBadge = typeof item.badge === "number" && item.badge > 0;
     
     const linkContent = (
       <NavLink
         to={item.path}
         onClick={() => isMobile && setMobileMenuOpen(false)}
         className={cn(
-          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+          "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
           "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
           active 
             ? "bg-sidebar-primary text-sidebar-primary-foreground" 
@@ -226,6 +242,47 @@ export function ClientLayout() {
       >
         <Icon className="h-4 w-4 shrink-0" />
         {(isMobile || !collapsed) && <span className="truncate">{item.label}</span>}
+        {/*
+          THE BADGE — WP6's "unread count on the nav".
+
+          Rendered only for a count greater than zero: a "0" beside Messages is not information,
+          it is a decoration a member reads and dismisses every time until they stop reading the
+          number at all.
+
+          The visible digit is `aria-hidden` and the count is announced as a SENTENCE instead —
+          "3 unread messages" — because a bare "3" next to "Messages" tells a screen-reader user
+          nothing about what three there are of.
+        */}
+        {hasBadge && (
+          <>
+            {isMobile || !collapsed ? (
+              /* Ink, not brand red. R1 rations red to the page's one ACTION, and a nav badge is
+                 not an action — it is a count. The dashboard card uses the same tone, so the
+                 member sees one convention rather than two. */
+              <span
+                aria-hidden="true"
+                data-testid={`nav-badge-${item.path}`}
+                className="ml-auto shrink-0 rounded-full bg-foreground px-2 py-0.5 text-xs font-semibold text-background"
+              >
+                {item.badge}
+              </span>
+            ) : (
+              /* COLLAPSED, the label and the number are both hidden — so a dot on the icon keeps
+                 the signal. The tooltip below carries the actual count, but a tooltip only exists
+                 for somebody who hovers, and the point of a badge is to be seen without asking. */
+              <span
+                aria-hidden="true"
+                data-testid={`nav-dot-${item.path}`}
+                className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-foreground"
+              />
+            )}
+            {/* The count as a SENTENCE. A bare "3" beside "Messages" tells a screen-reader user
+                nothing about what there are three of. */}
+            <span className="sr-only">
+              {t("navigation.unreadCount", "{{count}} unread messages", { count: item.badge })}
+            </span>
+          </>
+        )}
       </NavLink>
     );
 
@@ -237,7 +294,11 @@ export function ClientLayout() {
               {linkContent}
             </TooltipTrigger>
             <TooltipContent side="right" className="font-medium">
-              {item.label}
+              {/* Collapsed, the label is hidden and so is the badge — so the tooltip carries the
+                  count, or a member who collapses the rail loses the signal entirely. */}
+              {hasBadge
+                ? `${item.label} — ${t("navigation.unreadCount", "{{count}} unread messages", { count: item.badge })}`
+                : item.label}
             </TooltipContent>
           </Tooltip>
         </li>

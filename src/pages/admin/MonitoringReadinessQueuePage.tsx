@@ -15,15 +15,34 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  READINESS_GAP_STAFF,
+  readinessGap,
+  type ReadinessGap,
+} from "@/lib/readinessGap";
 
 /**
  * Paid but not monitoring-ready — the preventive control.
  *
- * A member is `active` when the payment webhook clears (golden rule 4). A member is
- * MONITORING-READY only when at least one emergency_contacts row exists for them. The pendant
- * ships on payment and there is no shipping hold, so the window between the two is real and can
- * be days long — and the join wizard is about to stop collecting contacts before payment, which
- * will make this the normal path rather than the exception.
+ * A member is `active` when the payment webhook clears (golden rule 4). Monitoring readiness is
+ * a different axis, and since D4 it is TWO conditions rather than one:
+ *
+ *   1. at least one `emergency_contacts` row — somebody to call
+ *   2. an order in `fulfilment_state = 'tested'` — somebody has proved the pendant reaches an
+ *      operator, from the home it will be used in
+ *
+ * So this queue has TWO ROW KINDS, and it must name which one applies: "no contacts" and
+ * "pendant not tested" are different calls, and telling an operator only that a member is "not
+ * ready" makes them open the record to find out what for.
+ *
+ * BOTH ARE WORKED BY PHONE, which is why they share one worklist rather than getting a screen
+ * each. The second is in fact the same call as the first for a member missing both — record a
+ * contact, then have them press the pendant — and splitting them would mean phoning that member
+ * twice.
+ *
+ * THE COUNT JUMPED WHEN D4 SHIPPED and it was not a regression. No order had ever been in
+ * `tested`, so every paid member appeared here overnight. That is the first honest reading this
+ * queue has produced, and it comes down as the calls get made — not by relaxing the condition.
  *
  * The other two readiness surfaces are REACTIVE: the operator card and the escalation alert both
  * fire once an SOS is already happening. This screen exists so that call never happens
@@ -52,6 +71,8 @@ interface QueueRow {
   preferredLanguage: string | null;
   paidSince: string | null;
   daysWaiting: number | null;
+  /** WHICH condition is missing. Never "none" here — the query filters on not-ready. */
+  gap: ReadinessGap;
 }
 
 function daysBetween(iso: string | null): number | null {
@@ -73,7 +94,11 @@ export default function MonitoringReadinessQueuePage() {
       // gets nothing here rather than a filtered-but-present list.
       const { data: readiness, error: readinessError } = await supabase
         .from("member_monitoring_readiness")
-        .select("member_id, monitoring_ready, emergency_contact_count, paid_since")
+        // `device_tested_at` is the second condition, added by 20260907100100. Selected so this
+        // screen can name the gap instead of re-deriving it from orders — READINESS_MODEL.md §2.
+        .select(
+          "member_id, monitoring_ready, emergency_contact_count, device_tested_at, paid_since",
+        )
         .eq("monitoring_ready", false)
         .not("paid_since", "is", null)
         .order("paid_since", { ascending: true });
@@ -110,6 +135,7 @@ export default function MonitoringReadinessQueuePage() {
             preferredLanguage: m.preferred_language,
             paidSince: r.paid_since,
             daysWaiting: daysBetween(r.paid_since),
+            gap: readinessGap(r),
           };
         });
     },
@@ -120,18 +146,31 @@ export default function MonitoringReadinessQueuePage() {
     [data],
   );
 
+  const countByGap = useMemo(() => {
+    const counts: Record<Exclude<ReadinessGap, "none">, number> = {
+      contacts: 0,
+      pendant: 0,
+      both: 0,
+      unknown: 0,
+    };
+    for (const r of data ?? []) {
+      if (r.gap !== "none") counts[r.gap] += 1;
+    }
+    return counts;
+  }, [data]);
+
   return (
     <div className="space-y-4 p-4 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold">
             <UserRoundX className="h-6 w-6 text-destructive" aria-hidden="true" />
-            {t("admin.readinessQueue.title", "Paid — no emergency contacts")}
+            {t("admin.readinessQueue.title", "Paid — not monitoring-ready")}
           </h1>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
             {t(
               "admin.readinessQueue.subtitle",
-              "These members have paid and their pendant has shipped, but nobody can be called for them. Phone them, oldest first, and record their emergency contacts.",
+              "These members have paid, but one of the two things that make them ready is missing: somebody to call, or a pendant somebody has proved reaches an operator. Both are fixed by phoning them, oldest first.",
             )}
           </p>
         </div>
@@ -190,10 +229,30 @@ export default function MonitoringReadinessQueuePage() {
             <CardTitle className="text-base">
               {t("admin.readinessQueue.waiting", "Members waiting")}
             </CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge variant={data && data.length > 0 ? "destructive" : "secondary"}>
                 {isLoading ? "—" : (data?.length ?? 0)}
               </Badge>
+              {/*
+                Split by kind, because the two are different amounts of work and a single total
+                hides which. A queue of forty untested pendants is an afternoon of calls; forty
+                members with nobody to call is a different conversation with the join wizard.
+              */}
+              {!isLoading &&
+                (["contacts", "pendant", "both", "unknown"] as const).map((kind) => {
+                  const n = countByGap[kind];
+                  if (!n) return null;
+                  const label = READINESS_GAP_STAFF[kind];
+                  return (
+                    <Badge
+                      key={kind}
+                      variant="outline"
+                      data-testid={`readiness-count-${kind}`}
+                    >
+                      {t(label.key, label.fallback)}: {n}
+                    </Badge>
+                  );
+                })}
               {longestWait >= URGENT_DAYS && (
                 <Badge variant="destructive" data-testid="readiness-queue-longest">
                   {t("admin.readinessQueue.longestWait", "longest {{days}}d", {
@@ -216,7 +275,7 @@ export default function MonitoringReadinessQueuePage() {
                 <ShieldCheck className="h-4 w-4 text-alert-resolved" aria-hidden="true" />
                 {t(
                   "admin.readinessQueue.empty",
-                  "Every paid member has at least one emergency contact.",
+                  "Every paid member has somebody to call and a pendant that has been tested.",
                 )}
               </p>
             ) : (
@@ -225,6 +284,7 @@ export default function MonitoringReadinessQueuePage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>{t("admin.readinessQueue.member", "Member")}</TableHead>
+                      <TableHead>{t("admin.readinessQueue.missing", "What is missing")}</TableHead>
                       <TableHead>{t("admin.readinessQueue.phone", "Phone")}</TableHead>
                       <TableHead>{t("admin.readinessQueue.city", "City")}</TableHead>
                       <TableHead>{t("admin.readinessQueue.language", "Lang")}</TableHead>
@@ -242,8 +302,45 @@ export default function MonitoringReadinessQueuePage() {
                         `${row.firstName ?? ""} ${row.lastName ?? ""}`.trim() ||
                         t("common.unknown", "Unknown");
                       return (
-                        <TableRow key={row.memberId} data-testid="readiness-queue-row">
+                        <TableRow
+                          key={row.memberId}
+                          data-testid="readiness-queue-row"
+                          data-gap={row.gap}
+                        >
                           <TableCell className="font-medium">{name}</TableCell>
+                          <TableCell>
+                            {/*
+                              The row kind, and the call it implies. Naming only the state
+                              ("not ready") makes an operator open the record to find out what
+                              for; naming the work means they can dial straight away.
+                            */}
+                            {row.gap !== "none" && (
+                              <div className="space-y-0.5">
+                                <span
+                                  data-testid={`readiness-gap-${row.gap}`}
+                                  className={
+                                    row.gap === "unknown"
+                                      ? "flex items-center gap-1 text-xs font-bold text-destructive"
+                                      : "text-sm font-medium"
+                                  }
+                                >
+                                  {row.gap === "unknown" && (
+                                    <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+                                  )}
+                                  {t(
+                                    READINESS_GAP_STAFF[row.gap].key,
+                                    READINESS_GAP_STAFF[row.gap].fallback,
+                                  )}
+                                </span>
+                                <p className="max-w-xs text-xs text-muted-foreground">
+                                  {t(
+                                    READINESS_GAP_STAFF[row.gap].work.key,
+                                    READINESS_GAP_STAFF[row.gap].work.fallback,
+                                  )}
+                                </p>
+                              </div>
+                            )}
+                          </TableCell>
                           <TableCell>
                             {/*
                               The phone number is the point of the screen, so it is a real link

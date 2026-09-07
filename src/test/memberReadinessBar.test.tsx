@@ -58,9 +58,25 @@ async function renderBar(memberId: string | null = "m-1") {
   return render(<MonitoringReadinessBar memberId={memberId} />);
 }
 
+/**
+ * The view's row, in the three shapes that matter since D4. Readiness is TWO conditions now, so
+ * `{monitoring_ready: false}` on its own is no longer a fixture — it does not say WHICH, and
+ * the bar's whole job here is to say which.
+ */
+const VIEW = {
+  /** Nobody to call. A pendant that has been tested. */
+  noContacts: { monitoring_ready: false, emergency_contact_count: 0, device_tested_at: "2026-09-01T09:00:00Z" },
+  /** Somebody to call, but nobody has ever pressed the pendant. */
+  untested: { monitoring_ready: false, emergency_contact_count: 2, device_tested_at: null },
+  /** Neither. */
+  both: { monitoring_ready: false, emergency_contact_count: 0, device_tested_at: null },
+  /** Ready. */
+  ready: { monitoring_ready: true, emergency_contact_count: 1, device_tested_at: "2026-09-01T09:00:00Z" },
+};
+
 beforeEach(() => {
   queried.length = 0;
-  readinessResult = Promise.resolve({ data: { monitoring_ready: false }, error: null });
+  readinessResult = Promise.resolve({ data: VIEW.noContacts, error: null });
 });
 afterEach(() => cleanup());
 
@@ -72,12 +88,12 @@ describe("readiness bar — the absences that stop it crying wolf", () => {
     await renderBar();
     expect(screen.queryByTestId(BAR)).toBeNull(); // <-- load-bearing
 
-    release({ data: { monitoring_ready: false }, error: null });
+    release({ data: VIEW.noContacts, error: null });
     await waitFor(() => expect(screen.queryByTestId(BAR)).not.toBeNull());
   });
 
   it("is ABSENT for a member who already has a contact", async () => {
-    readinessResult = Promise.resolve({ data: { monitoring_ready: true }, error: null });
+    readinessResult = Promise.resolve({ data: VIEW.ready, error: null });
     await renderBar();
     await waitFor(() => expect(queried).toContain("member_monitoring_readiness"));
     expect(screen.queryByTestId(BAR)).toBeNull();
@@ -120,6 +136,7 @@ describe("readiness bar — register: a task, not an emergency", () => {
   });
 
   it("leads with what still WORKS before what is missing", async () => {
+    readinessResult = Promise.resolve({ data: VIEW.noContacts, error: null });
     await renderBar();
     const text = (await screen.findByTestId(BAR)).textContent ?? "";
     expect(text).toMatch(/alarm works/i);
@@ -131,6 +148,65 @@ describe("readiness bar — register: a task, not an emergency", () => {
     const heading = (await screen.findByTestId(BAR)).querySelector("p")!.textContent ?? "";
     expect(heading).toMatch(/still need your emergency contacts/i);
     expect(heading).not.toMatch(/nobody to call/i);
+  });
+});
+
+describe("readiness bar — D4: it names WHICH of the two conditions is missing", () => {
+  it("names the contacts when that is what is missing, and offers the button", async () => {
+    readinessResult = Promise.resolve({ data: VIEW.noContacts, error: null });
+    await renderBar();
+    expect(await screen.findByTestId("member-readiness-contacts")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /add your emergency contacts/i })).toBeTruthy();
+  });
+
+  it("names the pendant test when THAT is what is missing", async () => {
+    readinessResult = Promise.resolve({ data: VIEW.untested, error: null });
+    await renderBar();
+    const bar = await screen.findByTestId(BAR);
+    expect(screen.getByTestId("member-readiness-pendant")).toBeTruthy();
+    expect(bar.textContent).toMatch(/test your pendant/i);
+    // It must not tell a member with two contacts on file that we have nobody to call.
+    expect(bar.textContent).not.toMatch(/no one to contact/i);
+  });
+
+  it("offers the member NOTHING TO PRESS for an untested pendant — Q1 is operator-only", async () => {
+    // Lee's Q1 ruling, 2026-09-07: operator-confirmed only, no member self-report. A button
+    // here would be either a lie about what it does or a hole in that ruling.
+    readinessResult = Promise.resolve({ data: VIEW.untested, error: null });
+    await renderBar();
+    const bar = await screen.findByTestId(BAR);
+    expect(bar.querySelector("a[href='/dashboard/contacts']")).toBeNull();
+    expect(bar.querySelector("button")).toBeNull();
+    // The phone number IS the action, and it is still a real link.
+    expect(bar.querySelector("a[href^='tel:']")).not.toBeNull();
+  });
+
+  it("names both when both are missing, and still offers the half they can act on", async () => {
+    readinessResult = Promise.resolve({ data: VIEW.both, error: null });
+    await renderBar();
+    const bar = await screen.findByTestId(BAR);
+    expect(screen.getByTestId("member-readiness-both")).toBeTruthy();
+    expect(bar.textContent).toMatch(/no one to contact/i);
+    expect(bar.textContent).toMatch(/pendant/i);
+    expect(screen.getByRole("link", { name: /add your emergency contacts/i })).toBeTruthy();
+  });
+
+  it("is ABSENT when the view says ready even if the two columns are missing", async () => {
+    // `monitoring_ready` is the authority on WHETHER. If the view says ready and the columns
+    // were not projected, the member must not be shown a warning the view says is unwarranted.
+    readinessResult = Promise.resolve({ data: { monitoring_ready: true }, error: null });
+    await renderBar();
+    await waitFor(() => expect(queried).toContain("member_monitoring_readiness"));
+    expect(screen.queryByTestId(BAR)).toBeNull();
+  });
+
+  it("is ABSENT when the row cannot be read into a condition at all", async () => {
+    // A row with no counts is "we do not know", which is neither ready nor unready. Rendering
+    // the bar there is the false alarm that teaches members to ignore it.
+    readinessResult = Promise.resolve({ data: { monitoring_ready: false }, error: null });
+    await renderBar();
+    await waitFor(() => expect(queried).toContain("member_monitoring_readiness"));
+    expect(screen.queryByTestId(BAR)).toBeNull();
   });
 });
 

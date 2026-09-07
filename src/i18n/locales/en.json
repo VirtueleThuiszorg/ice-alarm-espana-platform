@@ -1761,15 +1761,15 @@
       "backToPartners": "Back to Partners"
     },
     "readinessQueue": {
-      "title": "Paid — no emergency contacts",
-      "subtitle": "These members have paid and their pendant has shipped, but nobody can be called for them. Phone them, oldest first, and record their emergency contacts.",
+      "title": "Paid — not monitoring-ready",
+      "subtitle": "These members have paid, but one of the two things that make them ready is missing: somebody to call, or a pendant somebody has proved reaches an operator. Both are fixed by phoning them, oldest first.",
       "noAutoChase": "This queue does not send anything automatically. Email delivery is not yet verified, and a chase that fails silently is indistinguishable from a member who ignored it. Call them.",
       "loadFailed": "This queue could not be loaded",
       "loadFailedBody": "This is NOT the same as an empty queue — members may be waiting and unseen. Retry, and escalate if it persists.",
       "waiting": "Members waiting",
       "longestWait": "longest {{days}}d",
       "loading": "Loading queue…",
-      "empty": "Every paid member has at least one emergency contact.",
+      "empty": "Every paid member has somebody to call and a pendant that has been tested.",
       "member": "Member",
       "phone": "Phone",
       "city": "City",
@@ -1779,7 +1779,16 @@
       "action": "Action",
       "noPhone": "NO PHONE ON FILE",
       "days": "{{days}}d",
-      "openMember": "Open & record"
+      "openMember": "Open & record",
+      "missing": "What is missing",
+      "gapContacts": "No contacts",
+      "workContacts": "Phone them and record at least one emergency contact.",
+      "gapPendant": "Pendant not tested",
+      "workPendant": "Phone them, have them press the pendant, and record the test call.",
+      "gapBoth": "No contacts · pendant not tested",
+      "workBoth": "One call does both: record a contact, then have them press the pendant.",
+      "gapUnknown": "Could not be read",
+      "workUnknown": "This is not a state. Do not treat it as ready or unready — retry, then escalate."
     }
   },
   "finance": {
@@ -5997,7 +6006,12 @@
       "title": "We still need your emergency contacts",
       "body": "Your alarm works and an operator will always answer it. But we have no one to contact on your behalf yet.",
       "orCall": "Prefer to do it by phone? Call us on",
-      "action": "Add your emergency contacts"
+      "action": "Add your emergency contacts",
+      "titlePendant": "We still need to test your pendant with you",
+      "bodyPendant": "Nobody has pressed your pendant yet to check it reaches us from your home. We will call you to do it together — it takes a minute.",
+      "titleBoth": "Two things left before your alarm is fully set up",
+      "bodyBoth": "We have no one to contact on your behalf, and nobody has pressed your pendant yet to check it reaches us from your home. Add your contacts below, and we will call you about the pendant.",
+      "callAboutPendant": "Would rather not wait for our call? Reach us on"
     }
   },
   "addMember": {

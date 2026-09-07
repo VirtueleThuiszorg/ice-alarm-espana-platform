@@ -49,8 +49,12 @@ describe("the placeholder emergency number is gone from src/", () => {
       // never dialled, never saved.
       "src/components/admin/video-hub/VideoCreateTab.tsx",
       "src/components/admin/video-hub/VideoSettingsTab.tsx",
-      // Test fixtures and a sanitiser case — never rendered to a member.
-      "src/test/memberReadinessBar.test.tsx",
+      // A sanitiser case — never rendered to a member.
+      //
+      // `memberReadinessBar.test.tsx` was here too, for a `useCompanySettings` fixture. The
+      // notice moved into the header (R3/D10), where one sentence has no room for a phone
+      // number — Support is where it lives now — so the fixture went and the exception with it.
+      // One fewer file allowed to contain a number this system must never dial.
       "src/test/sanitize.test.ts",
       // These two NAME the placeholder in a comment in order to forbid it.
       "src/hooks/useCompanySettings.ts",

@@ -1,6 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { conversationPreview } from "@/lib/conversationPreview";
+import { fetchLastIsabellaTurn } from "@/lib/lastIsabellaTurn";
 import { createNotification, getMemberUserId } from "@/utils/notifications";
+import { staffSenderType } from "@/lib/messageSenderType";
+import { withCannedReply } from "@/lib/cannedReplies";
+import { CannedReplyPicker } from "@/components/messaging/CannedReplyPicker";
+import { useIsabellaThread } from "@/hooks/useIsabellaThread";
+import { IsabellaEpisodeCard } from "@/components/messaging/IsabellaEpisodeCard";
+import { mergeThread } from "@/lib/isabellaThread";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import {
@@ -52,6 +60,7 @@ interface Conversation {
     last_name: string;
     email: string;
     phone: string;
+    preferred_language: string | null;
   } | null;
   staff_participants?: string[];
   participants_info?: {
@@ -103,6 +112,12 @@ export default function MessagesPage() {
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  /*
+    Isabella's side of this conversation — her turns are in `conversation_messages` and her
+    calls in `conversation_calls`, and no thread has ever read either. A member who spoke to
+    her shows up here as a conversation with nothing in it. See `src/lib/isabellaThread.ts`.
+  */
+  const { data: isabellaEpisodes = [] } = useIsabellaThread(selectedConversation?.id ?? null);
   const [currentStaffId, setCurrentStaffId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
@@ -211,7 +226,7 @@ export default function MessagesPage() {
         .from("conversations")
         .select(`
           *,
-          member:members!conversations_member_id_fkey(id, first_name, last_name, email, phone)
+          member:members!conversations_member_id_fkey(id, first_name, last_name, email, phone, preferred_language)
         `)
         .order("last_message_at", { ascending: false });
 
@@ -247,11 +262,23 @@ export default function MessagesPage() {
 
           const { data: lastMsg } = await supabase
             .from("messages")
-            .select("content")
+            .select("content, created_at")
             .eq("conversation_id", conv.id)
             .order("created_at", { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
+
+          /*
+            The preview said the literal word "undefined" for a conversation with no
+            `messages` row — `undefined + ""` is the STRING "undefined", which is truthy, so
+            the `|| ""` never fired. Invisible until WP6 G7, because an Isabella-only
+            conversation has no messages and there is one per member who used the chat.
+            The Isabella read happens only when there is nothing ordinary to show.
+          */
+          const preview = conversationPreview(
+            lastMsg,
+            lastMsg ? null : await fetchLastIsabellaTurn(conv.id),
+          );
 
           return {
             ...conv,
@@ -261,7 +288,7 @@ export default function MessagesPage() {
               ? (conv.staff_participants || []).map((id: string) => participantsMap.get(id)).filter(Boolean)
               : undefined,
             unread_count: count || 0,
-            last_message_preview: lastMsg?.content?.substring(0, 60) + (lastMsg?.content && lastMsg.content.length > 60 ? "..." : "") || "",
+            last_message_preview: preview.text,
           };
         })
       );
@@ -452,7 +479,12 @@ export default function MessagesPage() {
         .from("messages")
         .insert({
           conversation_id: selectedConversation.id,
-          sender_type: isInternalNote ? "system" : "staff",
+          /*
+            `staff_internal`, NOT `system`. The RESTRICTIVE policy added by
+            20260907100400 protects exactly one value, and this wrote the other one — so every
+            internal note was rendering in the MEMBER's own thread. See `messageSenderType.ts`.
+          */
+          sender_type: staffSenderType(isInternalNote),
           sender_id: currentStaffId,
           content: isInternalNote ? `[Internal Note] ${replyMessage}` : replyMessage,
           message_type: isInternalNote ? "system" : "text",
@@ -878,40 +910,42 @@ export default function MessagesPage() {
                   {/* Messages */}
                   <ScrollArea className="flex-1 p-4">
                     <div className="space-y-4">
-                      {messages.map((msg) => (
-                        <div key={msg.id}>
-                          {msg.message_type === "system" || msg.sender_type === "system" ? (
+                      {mergeThread(messages, isabellaEpisodes).map((item) => item.kind === "isabella" ? (
+                        <IsabellaEpisodeCard key={item.episode.id} episode={item.episode} viewer="staff" />
+                      ) : (
+                        <div key={item.message.id}>
+                          {item.message.message_type === "system" || item.message.sender_type === "system" ? (
                             <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center">
                               <Separator className="flex-1" />
                               <span className="bg-muted px-2 py-1 rounded">
-                                {msg.content}
+                                {item.message.content}
                               </span>
-                              <span>{format(new Date(msg.created_at), "h:mm a")}</span>
+                              <span>{format(new Date(item.message.created_at), "h:mm a")}</span>
                               <Separator className="flex-1" />
                             </div>
                           ) : (
                             <div
                               className={cn(
                                 "flex",
-                                msg.sender_type === "staff" ? "justify-end" : "justify-start"
+                                item.message.sender_type === "staff" ? "justify-end" : "justify-start"
                               )}
                             >
                               <div
                                 className={cn(
                                   "max-w-[70%] rounded-lg p-3",
-                                  msg.sender_type === "staff"
+                                  item.message.sender_type === "staff"
                                     ? "bg-primary text-primary-foreground"
                                     : "bg-muted"
                                 )}
                               >
-                                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                                <p className="text-sm whitespace-pre-wrap">{item.message.content}</p>
                                 <p className="text-xs opacity-70 mt-1 text-right">
-                                  {msg.sender_type === "staff" && msg.staff
-                                    ? `${msg.staff.first_name} • `
-                                    : msg.sender_type === "member"
+                                  {item.message.sender_type === "staff" && item.message.staff
+                                    ? `${item.message.staff.first_name} • `
+                                    : item.message.sender_type === "member"
                                     ? `${selectedConversation.member?.first_name} • `
                                     : ""}
-                                  {format(new Date(msg.created_at), "h:mm a")}
+                                  {format(new Date(item.message.created_at), "h:mm a")}
                                 </p>
                               </div>
                             </div>
@@ -952,6 +986,13 @@ export default function MessagesPage() {
                           <StickyNote className="mr-2 h-4 w-4" />
                           Internal Note
                         </Button>
+                        {selectedConversation.member_id && (
+                          <CannedReplyPicker
+                            preferredLanguage={selectedConversation.member?.preferred_language}
+                            isInternalNote={isInternalNote}
+                            onInsert={(body) => setReplyMessage((current) => withCannedReply(current, body))}
+                          />
+                        )}
                       </div>
                       <div className="flex gap-2">
                         <Button

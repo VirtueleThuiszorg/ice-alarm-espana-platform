@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useMemberSubscription, useMemberPayments } from "@/hooks/useMemberProfile";
+import { useMemberSubscriptions, useMemberPayments } from "@/hooks/useMemberProfile";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,14 +24,19 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { PageHeader } from "@/components/client/PageHeader";
+import { MembershipConditionCard } from "@/components/client/MembershipConditionCard";
+import { membershipCondition } from "@/lib/membershipCondition";
+import { supportActionPath } from "@/lib/supportActions";
 
 export default function SubscriptionPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { data: subscription, isLoading: subLoading } = useMemberSubscription();
+  const { data: subscriptions, isLoading: subLoading } = useMemberSubscriptions();
   const { data: payments, isLoading: paymentsLoading } = useMemberPayments();
 
   const isLoading = subLoading || paymentsLoading;
+  const subscription = subscriptions?.active ?? null;
 
   if (isLoading) {
     return (
@@ -42,20 +47,30 @@ export default function SubscriptionPage() {
   }
 
   if (!subscription) {
+    /*
+      SEVEN SITUATIONS, NOT ONE.
+
+      This branch used to say `subscription.contactSupport` — *"contact support to change"* —
+      to everybody who reached it, which is the exact sentence R6 forbids and which R8
+      contradicts ("'No active subscription' shows the plans"). And it reached seven different
+      people: somebody who never joined, somebody whose payment failed, somebody paused,
+      suspended, cancelled, expired, or still waiting for a first payment to clear.
+
+      Only ONE of them should be shown the plans. Sending a member in arrears to sign up again
+      is how one person ends up with two member records and two Stripe customers — and on this
+      product, two records for one person is an operator opening the wrong one during an SOS.
+      `membershipCondition.ts` carries the full argument.
+
+      `subscriptions` is `undefined` when the query FAILED as well as while it was loading, and
+      the loading case has already returned above. So an undefined here is a failed read, and it
+      maps to `unknown` rather than to "you have never joined".
+    */
     return (
       <div className="space-y-6 animate-fade-in">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t("subscription.title")}</h1>
-        </div>
-        <Card>
-          <CardContent className="py-12 text-center">
-            <CreditCard className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="font-semibold text-lg mb-2">{t("subscription.noActiveSubscription")}</h3>
-            <p className="text-muted-foreground">
-              {t("subscription.contactSupport")}
-            </p>
-          </CardContent>
-        </Card>
+        <PageHeader title={t("subscription.title")} subtitle={t("subscription.subtitle")} />
+        <MembershipConditionCard
+          condition={membershipCondition(subscriptions === undefined ? undefined : subscriptions.latest)}
+        />
       </div>
     );
   }
@@ -72,10 +87,7 @@ export default function SubscriptionPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t("subscription.title")}</h1>
-        <p className="text-muted-foreground mt-1">{t("subscription.subtitle")}</p>
-      </div>
+      <PageHeader title={t("subscription.title")} subtitle={t("subscription.subtitle")} />
 
       {/* Current Plan */}
       <Card>
@@ -127,8 +139,11 @@ export default function SubscriptionPage() {
               <p className="text-sm text-muted-foreground">{t("subscription.amount")}</p>
               <p className="text-xl font-semibold">
                 €{(subscription.amount || 0).toFixed(2)}
+                {/* `subscription.mo` is "/mo" and `subscription.yr` is "/yr" — the slash is IN
+                    the string, as `ClientDashboard` (its other caller) relies on. A literal "/"
+                    in front of it rendered "€24.99//mo" on this page. */}
                 <span className="text-sm font-normal text-muted-foreground">
-                  /{subscription.billing_frequency === "monthly" ? t("subscription.mo") : t("subscription.yr")}
+                  {subscription.billing_frequency === "monthly" ? t("subscription.mo") : t("subscription.yr")}
                 </span>
               </p>
             </div>
@@ -154,6 +169,33 @@ export default function SubscriptionPage() {
               </div>
             </div>
           </div>
+
+          {/*
+            WHO PAYS — the payer model, on the page of the person being paid for.
+
+            `payer_id` NULL means the member pays for themselves, which is true of most rows. When
+            it is set, somebody else does — usually an adult child — and the member should not be
+            left to work that out from a payment method they do not recognise.
+
+            THE PAYER'S NAME IS NOT HERE, and that is RLS rather than a design choice: `payers`
+            grants SELECT to staff and to the payer themselves, and to nobody else. The member can
+            read `payer_id` (it is a column of their own subscription) but not the row it points
+            at. Joining it would need a new policy, and a policy on a table whose whole design
+            note is "being a payer grants no access to any care data" is not a thing to add on the
+            way past. PENDING_FOR_LEE.md D-13 puts it to Lee as a decision.
+          */}
+          <div
+            className="p-4 rounded-lg bg-muted/50"
+            data-testid="subscription-who-pays"
+            data-payer={subscription.payer_id ? "other" : "self"}
+          >
+            <p className="text-sm text-muted-foreground">{t("subscription.whoPays", "Who pays")}</p>
+            <p className="font-medium">
+              {subscription.payer_id
+                ? t("subscription.paidBySomeoneElse", "Somebody else pays for your membership.")
+                : t("subscription.paidByYou", "You pay for this yourself.")}
+            </p>
+          </div>
         </CardContent>
       </Card>
 
@@ -168,14 +210,15 @@ export default function SubscriptionPage() {
         <CardContent className="space-y-4">
           {subscription.billing_frequency === "monthly" && (
             <div className="p-4 rounded-lg border border-primary/30 bg-primary/5">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-4">
                 <div>
                   <h4 className="font-semibold">{t("subscription.switchToAnnual")}</h4>
                   <p className="text-sm text-muted-foreground">
                     {t("subscription.savePerYear", { amount: subscription.plan_type === "single" ? "54.99" : "76.99" })}
                   </p>
                 </div>
-                <Button onClick={() => navigate("/dashboard/support?action=upgrade_plan")}>
+                {/* R1: the page's ONE red button. Everything below is outline. */}
+                <Button className="shrink-0" onClick={() => navigate(supportActionPath("upgrade_plan"))}>
                   {t("subscription.upgrade")}
                   <ArrowUpRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -183,8 +226,45 @@ export default function SubscriptionPage() {
             </div>
           )}
 
+          {/*
+            THE TWO ACTIONS THE BRIEF NAMES — offered, and honest about what happens next.
+
+            WP4: *"actions 'Add a pendant' and 'Change to couple' through Stripe checkout only."*
+            There is no member-initiated Stripe checkout for an existing account: `/join` ends at
+            `submit_registration_atomic`, which INSERTS a new member row, so reusing it would give
+            one person two records. Building the real thing is new money-movement code against a
+            real card — the same line WP7 stopped at for renew / plan switch / add pendant.
+
+            So each one opens a prefilled conversation with a human who can take the payment, and
+            the card says so rather than implying an instant change. An absent button is
+            indistinguishable from a feature nobody built; a button that says what it does is not.
+          */}
+          <div className="flex flex-wrap gap-2">
+            {!subscription.has_pendant && (
+              <Button
+                variant="outline"
+                data-testid="subscription-add-pendant"
+                onClick={() => navigate(supportActionPath("add_pendant"))}
+              >
+                {t("subscription.addPendant", "Add a pendant")}
+              </Button>
+            )}
+            {subscription.plan_type === "single" && (
+              <Button
+                variant="outline"
+                data-testid="subscription-change-to-couple"
+                onClick={() => navigate(supportActionPath("change_to_couple"))}
+              >
+                {t("subscription.changeToCouple", "Change to a couple plan")}
+              </Button>
+            )}
+          </div>
+
           <p className="text-sm text-muted-foreground">
-            {t("subscription.changePlanNote")}
+            {t(
+              "subscription.changePlanNote",
+              "Any of these starts a message to us. We will confirm the price with you and take the payment — nothing changes on your card until you say so.",
+            )}
           </p>
         </CardContent>
       </Card>
@@ -219,10 +299,24 @@ export default function SubscriptionPage() {
                 <p className="text-sm text-muted-foreground">{t("common.active")}</p>
               </div>
             </div>
-            <Button variant="outline" onClick={() => navigate("/dashboard/support?action=update_payment")}>
+            <Button variant="outline" onClick={() => navigate(supportActionPath("update_payment"))}>
               {t("common.update")}
             </Button>
           </div>
+
+          {/*
+            A member whose subscription somebody else pays for should not be told to update "their"
+            card. The card on file is not theirs, and asking them for it is how a family ends up
+            paying twice.
+          */}
+          {subscription.payer_id && (
+            <p className="text-sm text-muted-foreground" data-testid="subscription-payer-pays-note">
+              {t(
+                "subscription.payerArrangesPayment",
+                "The person who pays for your membership arranges this. Message us if you are not sure who that is.",
+              )}
+            </p>
+          )}
         </CardContent>
       </Card>
 

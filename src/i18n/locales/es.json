@@ -605,7 +605,10 @@
     "deleting": "Eliminando...",
     "selected": "seleccionados",
     "view": "Ver",
-    "change": "Cambiar"
+    "change": "Cambiar",
+    "hide": "Ocultar",
+    "show": "Mostrar",
+    "remove": "Quitar"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -727,7 +730,8 @@
     "productCatalog": "Catálogo de Productos",
     "howItWorks": "Cómo Funciona",
     "menu": "Menú",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "unreadCount": "{{count}} mensajes sin leer"
   },
   "blog": {
     "title": "Blog",
@@ -904,10 +908,6 @@
     "battery": "Batería",
     "lastCheckIn": "Última conexión",
     "signalStrength": "Intensidad de señal",
-    "gpsLocation": "Ubicación GPS",
-    "fallDetection": "Detección de caídas",
-    "sosButton": "Botón SOS",
-    "geoFencing": "Geo-cercado",
     "deviceStatus": "Estado del dispositivo",
     "deviceInfo": "Información del dispositivo",
     "simNumber": "Número SIM",
@@ -938,19 +938,23 @@
     "yourCurrentService": "Su Servicio Actual",
     "usingPhoneOnlyMembership": "Está usando nuestra membresía solo teléfono",
     "contactUsAnytime": "Contáctenos en cualquier momento usando el número de abajo. ¡Guárdelo en su teléfono para emergencias!",
-    "whatYoureMissing": "Lo Que Se Está Perdiendo",
-    "weCannotTrackLocation": "No podemos rastrear su ubicación automáticamente",
-    "fallsNotDetected": "Las caídas no se detectan automáticamente",
-    "mustCallManually": "Debe llamarnos manualmente",
-    "noBoundaryAlerts": "No hay alertas de límites disponibles",
     "addPendantForFullProtection": "Añada un Colgante para Protección Completa",
     "getCompletePeaceOfMind": "Obtenga tranquilidad total con nuestro colgante GPS",
-    "purchasePendant": "Comprar Colgante",
     "quickProvision": "Aprovisionamiento Rápido",
     "quickProvisionDesc": "Enviar todos los comandos SMS de configuración en secuencia",
     "provisioning": "Aprovisionando...",
     "startProvisioning": "Iniciar Aprovisionamiento",
-    "quickProvisionComplete": "Aprovisionamiento rápido completado"
+    "quickProvisionComplete": "Aprovisionamiento rápido completado",
+    "onItsWay": {
+      "subtitle": "Su colgante está en camino",
+      "unknownState": "Estamos preparando su colgante. Le llamaremos cuando esté en camino.",
+      "nextStep": "Cuando llegue le llamaremos y lo probaremos juntos: responde un operador de verdad, así sabrá que funciona.",
+      "action": "Pregúntenos dónde está"
+    },
+    "gpsLocation": "Ubicación GPS",
+    "fallDetection": "Detección de caídas",
+    "sosButton": "Botón SOS",
+    "geoFencing": "Geo-cercado"
   },
   "alerts": {
     "sosAlert": "Alerta SOS",
@@ -1059,7 +1063,38 @@
     "updated": "Contacto actualizado correctamente",
     "deleted": "Contacto eliminado",
     "deleteTitle": "Eliminar Contacto",
-    "deleteConfirm": "¿Está seguro de que desea eliminar este contacto de emergencia? Esta acción no se puede deshacer."
+    "deleteConfirm": "¿Está seguro de que desea eliminar este contacto de emergencia? Esta acción no se puede deshacer.",
+    "typeLabel": "¿Qué es esta persona para usted?",
+    "canAttendLabel": "¿Podría venir a su casa?",
+    "canAttendBadge": "Puede venir",
+    "cannotAttendBadge": "Está demasiado lejos para venir",
+    "country": "¿En qué país está?",
+    "countryPlaceholder": "España",
+    "availability": "¿Cuál es el mejor momento para localizarla?",
+    "availabilityPlaceholder": "Solo por la noche · trabaja los martes · escríbale primero, es sorda",
+    "type": {
+      "emergency": "Familiar o amigo",
+      "emergencyDesc": "Alguien a quien llamamos si necesita ayuda. La mayoría empieza por aquí.",
+      "keyHolder": "Tiene llave",
+      "keyHolderDesc": "Puede dejar entrar a alguien en su casa.",
+      "carer": "Cuidador",
+      "carerDesc": "Alguien que le ayuda en el día a día, de forma remunerada o no.",
+      "careAgency": "Empresa de cuidados",
+      "careAgencyDesc": "Una empresa que le envía cuidadores.",
+      "nurse": "Enfermero",
+      "nurseDesc": "Un enfermero de zona o que le visita.",
+      "socialWorker": "Trabajador social",
+      "socialWorkerDesc": "Su trabajador social del ayuntamiento o del servicio de salud.",
+      "neighbour": "Vecino",
+      "neighbourDesc": "Alguien cercano que podría venir rápido.",
+      "legalRepresentative": "Representante legal",
+      "legalRepresentativeDesc": "Alguien que actúa por usted formalmente, por ejemplo con un poder notarial."
+    },
+    "canAttend": {
+      "yes": "Sí, puede venir",
+      "no": "No, está demasiado lejos",
+      "unknown": "No estoy seguro"
+    }
   },
   "emergencyContacts": {
     "loadFailed": "Error al cargar los contactos de emergencia",
@@ -1072,9 +1107,9 @@
     "deleteFailed": "Error al eliminar el contacto de emergencia"
   },
   "medical": {
-    "subtitle": "Detalles de salud importantes para emergencias",
-    "emergencyTitle": "Datos Médicos de Emergencia",
-    "emergencyDesc": "Esta información se comparte con los servicios de emergencia cuando necesita ayuda. Manténgala actualizada para su seguridad.",
+    "subtitle": "Esto es exactamente lo que ve un operador en el momento en que pulsa su colgante.",
+    "emergencyTitle": "Quién lee esto",
+    "emergencyDesc": "Nuestros operadores ven esto en el momento en que se pulsa su colgante, y se lo leen a la ambulancia. Mantenerlo al día es lo más útil que puede hacer aquí por usted mismo.",
     "noData": "Sin Información Médica",
     "addPrompt": "Añada sus datos médicos para que podamos brindarle mejor atención de emergencia.",
     "addInfo": "Añadir Información Médica",
@@ -1092,7 +1127,47 @@
     "addAllergy": "Añadir alergia...",
     "additionalNotes": "Notas Adicionales",
     "notesPlaceholder": "Cualquier otra información médica importante...",
-    "noneRecorded": "Ninguna registrada"
+    "noneRecorded": "Ninguna registrada",
+    "notAdded": "Sin añadir",
+    "chooseBloodType": "Elija",
+    "section": {
+      "conditions": "Enfermedades y medicación",
+      "allergies": "Alergias",
+      "senses": "Movilidad, oído y vista",
+      "doctor": "Su médico",
+      "insurance": "Seguro privado",
+      "other": "Algo más",
+      "access": "Cómo entrar en su casa"
+    },
+    "field": {
+      "conditions": "Enfermedades",
+      "medications": "Medicación",
+      "medsLocation": "Dónde guarda su medicación",
+      "medsLocationHint": "Para que una ambulancia pueda encontrarla sin buscar por su casa.",
+      "medsNotes": "Algo más sobre su medicación",
+      "allergies": "Alergias",
+      "mobility": "Cómo se desplaza",
+      "mobilityHint": "Por ejemplo: andador dentro de casa, no puede subir escaleras.",
+      "hearing": "Oído",
+      "hearingHint": "Para que un operador sepa que debe hablar más alto, o que puede que no le oiga al principio.",
+      "vision": "Vista",
+      "doctorName": "Médico",
+      "doctorPhone": "Teléfono del médico",
+      "doctorLocation": "Centro de salud",
+      "hospital": "Hospital preferido",
+      "bloodType": "Grupo sanguíneo",
+      "insurer": "Aseguradora",
+      "policyNumber": "Número de póliza",
+      "additionalNotes": "Algo más que debamos saber"
+    },
+    "access": {
+      "keySafeLocation": "Dónde está la caja de llaves",
+      "keySafeCode": "Código de la caja de llaves",
+      "gateCode": "Código de la cancela o portal",
+      "notes": "Cómo entrar",
+      "locked": "Llámenos para cambiar esto: comprobamos quién es usted antes de modificar cómo se entra en su casa.",
+      "loadFailed": "No pudimos leer esta sección. No está vacía; inténtelo de nuevo, por favor."
+    }
   },
   "subscription": {
     "currentPlan": "Plan actual",
@@ -1119,18 +1194,44 @@
     "mo": "/mes",
     "yr": "/año",
     "quarterly": "/trimestre",
-    "changePlanNote": "Para cambiar entre planes Individual y Pareja, contacte con nuestro equipo de soporte.",
-    "contactToUpgrade": "Contacte con soporte para mejorar su plan.",
-    "contactToUpdatePayment": "Contacte con soporte para actualizar su método de pago.",
-    "invoiceComingSoon": "Las descargas de facturas estarán disponibles próximamente.",
+    "changePlanNote": "Cualquiera de estas opciones inicia un mensaje con nosotros. Confirmaremos el precio con usted y cobraremos el pago; no se cambia nada en su tarjeta hasta que usted lo diga.",
     "creditCard": "Tarjeta de Crédito",
     "bankTransfer": "Transferencia Bancaria",
     "title": "Suscripción y facturación",
     "subtitle": "Gestione su plan y sus pagos",
-    "noActiveSubscription": "Sin suscripción activa",
-    "contactSupport": "Póngase en contacto con soporte para obtener información sobre su suscripción.",
     "upgrade": "Mejorar",
-    "upgradeDesc": "Ahorra cambiando a la facturación anual"
+    "upgradeDesc": "Ahorra cambiando a la facturación anual",
+    "notMonitored": "En este momento nadie vigila su alarma. Si pulsa el colgante, no responderá ningún operador.",
+    "talkToUs": "Envíenos un mensaje",
+    "whoPays": "Quién paga",
+    "paidByYou": "Usted paga esta suscripción.",
+    "paidBySomeoneElse": "Otra persona paga su suscripción.",
+    "payerArrangesPayment": "Lo gestiona la persona que paga su suscripción. Escríbanos si no sabe quién es.",
+    "addPendant": "Añadir un colgante",
+    "changeToCouple": "Cambiar al plan para dos",
+    "orAnnual": "o {{price}} al año — ahorra {{saving}}",
+    "oneOffCosts": "Se paga una sola vez, al darse de alta",
+    "thePendant": "El colgante",
+    "shipping": "Envío",
+    "registrationFee": "Alta del servicio",
+    "condition": {
+      "activeTitle": "Su suscripción está activa",
+      "activeBody": "Un operador responde a su alarma, de día y de noche.",
+      "neverJoinedTitle": "Todavía no tiene una suscripción",
+      "neverJoinedBody": "Hoy nadie vigila ninguna alarma por usted. Esto es lo que cuesta una suscripción: díganos cuál quiere y la damos de alta con usted y cobramos el pago.",
+      "awaitingPaymentTitle": "Todavía estamos esperando su pago",
+      "awaitingPaymentBody": "Su suscripción está creada, pero el pago no nos ha llegado, así que la vigilancia aún no ha empezado. Si cree que ya ha pagado, díganoslo y lo buscamos.",
+      "pausedTitle": "Su suscripción está en pausa",
+      "pausedBody": "Mientras está en pausa, nadie vigila su alarma y no se le cobra nada. Pídanoslo y la reactivamos.",
+      "inArrearsTitle": "Un pago no se ha podido cobrar",
+      "inArrearsBody": "La vigilancia está detenida hasta que se resuelva el pago. Envíenos un mensaje y arreglamos la tarjeta con usted; por favor, no vuelva a darse de alta, ya tiene una suscripción.",
+      "suspendedTitle": "Su suscripción está suspendida",
+      "suspendedBody": "En este momento nadie vigila su alarma. Envíenos un mensaje y le explicamos por qué y qué hace falta para reactivarla.",
+      "endedTitle": "Su suscripción ha terminado",
+      "endedBody": "Nadie vigila su alarma. Todavía tenemos sus datos, así que volver a empezar es una conversación breve y no un alta desde cero.",
+      "unknownTitle": "No hemos podido cargar su suscripción",
+      "unknownBody": "Es un problema nuestro, no algo que haya hecho usted. Inténtelo de nuevo en un momento y, si sigue pasando, díganoslo: preferimos saberlo."
+    }
   },
   "support": {
     "title": "Ayuda y Soporte",
@@ -1240,7 +1341,11 @@
     "faqShort": "Preguntas",
     "generalEnquirySubject": "Solicitud de asistencia",
     "upgradePlanSubject": "Solicitud de mejora de plan",
-    "updatePaymentSubject": "Actualización del método de pago"
+    "updatePaymentSubject": "Actualización del método de pago",
+    "startMembershipSubject": "Dar de alta mi suscripción",
+    "restartMembershipSubject": "Reactivar mi suscripción",
+    "addPendantSubject": "Añadir un colgante",
+    "changeToCoupleSubject": "Cambiar al plan para dos"
   },
   "faq": {
     "testPendant": {
@@ -1303,10 +1408,8 @@
     "saveChanges": "Guardar cambios",
     "saving": "Guardando...",
     "contactSupportToChange": "Contacte soporte para cambiar",
-    "emailChangeNote": "Contacte soporte para cambiar su correo electrónico",
+    "emailChangeNote": "Con esta dirección inicia sesión, así que la cambiamos con usted por teléfono.",
     "addressEmergencyNote": "Esta dirección se utiliza para respuesta de emergencia",
-    "dobReadOnly": "No se puede cambiar",
-    "nieReadOnly": "No se puede cambiar",
     "updateSuccess": "Perfil actualizado correctamente",
     "updateFailed": "Error al actualizar el perfil",
     "title": "Mi Cuenta",
@@ -1317,7 +1420,19 @@
     "streetAddress": "Dirección",
     "nieDni": "NIE/DNI",
     "contactInfo": "Información de contacto",
-    "selectLanguage": "Seleccionar idioma"
+    "selectLanguage": "Seleccionar idioma",
+    "identityLockedReason": "Llámenos para cambiarlo: necesitamos verificar su identidad.",
+    "countryLockedReason": "Solo atendemos direcciones en España.",
+    "urbanizacion": "Urbanización",
+    "bloque": "Bloque",
+    "portal": "Portal",
+    "escalera": "Escalera",
+    "awayTitle": "¿Se va de viaje?",
+    "awayHelp": "Díganos las fechas y sabremos que su alarma está en silencio porque está fuera, no porque algo vaya mal.",
+    "awayFrom": "Fuera desde",
+    "awayUntil": "Fecha de regreso",
+    "pendantWithMe": "Me llevo el colgante",
+    "pendantWithMeHelp": "Si lo deja en casa, no esperaremos que se mueva."
   },
   "dashboard": {
     "welcomeBack": "Bienvenido/a",
@@ -1335,10 +1450,6 @@
     "announcement": "Anuncio de servicio",
     "deviceWorking": "Su colgante está funcionando correctamente",
     "contactIceAlarm": "Contactar ICE Alarm España",
-    "noDeviceAssigned": "Sin dispositivo asignado",
-    "contactSupportDevice": "Por favor contacte con soporte para configurar su dispositivo.",
-    "noActiveSubscription": "Sin suscripción activa",
-    "noEmergencyContacts": "Sin contactos de emergencia añadidos",
     "alertsLast30Days": "Alertas (30 días)",
     "batteryLevel": "Batería",
     "deviceStatus": "Dispositivo",
@@ -1376,7 +1487,10 @@
       "conversions": "Conversiones",
       "videosRendered": "Renderizados",
       "videosExported": "Exportados"
-    }
+    },
+    "recentActivity": "Actividad reciente",
+    "noAlerts": "Sin avisos. No ha pasado nada, que es de lo que se trata.",
+    "viewAllAlerts": "Ver su historial de avisos"
   },
   "phoneOnly": {
     "yourCurrentService": "Su servicio actual",
@@ -3026,7 +3140,8 @@
     "send": "Enviar",
     "welcomeMessage": "¡Hola! 👋 Soy su asistente virtual de ICE Alarm España. ¿En qué puedo ayudarle hoy? Puedo responder preguntas sobre nuestros servicios, precios, o ayudarle a comenzar.",
     "errorMessage": "Lo siento, hubo un problema al conectar. Por favor, intenta de nuevo más tarde.",
-    "fallbackMessage": "Lo siento, no pude procesar su mensaje. Por favor, inténtelo de nuevo."
+    "fallbackMessage": "Lo siento, no pude procesar su mensaje. Por favor, inténtelo de nuevo.",
+    "assistant": "Asistente"
   },
   "partnerAgreement": {
     "title": "Acuerdo de Colaboración",
@@ -6113,5 +6228,39 @@
     "create": "Crear registro de miembro",
     "created": "Registro de miembro creado. Todavía NO está activo — el pago lo activa.",
     "createFailed": "No se guardó nada. {{reason}}"
+  },
+  "textSize": {
+    "groupLabel": "Tamaño del texto",
+    "normal": "Tamaño de texto normal",
+    "large": "Texto más grande"
+  },
+  "protection": {
+    "title": "Su protección",
+    "pendantLabel": "Colgante",
+    "membership": {
+      "ok": "Su suscripción está activa.",
+      "okAction": "Ver su suscripción",
+      "inactive": "Su suscripción no está activa, así que nadie vigila su alarma.",
+      "inactiveAction": "Ver qué hacer",
+      "unknown": "No hemos podido comprobar su suscripción en este momento."
+    },
+    "pendant": {
+      "ok": "Su colgante está probado y se comunica con nosotros.",
+      "okAction": "Ver su colgante",
+      "offline": "Su colgante ha dejado de comunicarse con nosotros.",
+      "offlineAction": "Avísenos",
+      "awaitingTest": "Todavía tenemos que probar su colgante con usted por teléfono.",
+      "awaitingTestAction": "Concertar la prueba",
+      "notSent": "Su colgante todavía no le ha llegado.",
+      "notSentAction": "Ver dónde está",
+      "notIncluded": "Su suscripción no incluye colgante.",
+      "unknown": "No hemos podido comprobar su colgante en este momento."
+    },
+    "contacts": {
+      "ok": "Tenemos personas a las que podemos llamar.",
+      "okAction": "Ver sus contactos",
+      "none": "Todavía no tenemos a nadie a quien avisar en su nombre.",
+      "unknown": "No hemos podido comprobar sus contactos de emergencia en este momento."
+    }
   }
 }

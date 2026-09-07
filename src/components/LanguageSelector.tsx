@@ -9,11 +9,17 @@ import {
 import { Globe, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { MEMBER_LANGUAGES, memberLanguage } from "@/lib/memberLanguages";
 
-const languages = [
-  { code: "en", label: "English", flag: "🇬🇧" },
-  { code: "es", label: "Español", flag: "🇪🇸" },
-];
+/*
+  ONE list, shared with the profile form and derived from the database enum.
+
+  Both places used to hard-code their own two-value array while `members.preferred_language` is
+  `en | es | nl` and `nl.json` is a complete, CI-enforced translation — so Dutch was unreachable
+  from the running application. See `src/lib/memberLanguages.ts`, and D-15 for the question of
+  whether R3's "EN/ES" was meant to hide it.
+*/
+const languages = MEMBER_LANGUAGES;
 
 interface LanguageSelectorProps {
   variant?: "default" | "icon-only";
@@ -33,7 +39,7 @@ export function LanguageSelector({ variant = "default" }: LanguageSelectorProps)
       if (memberId) {
         await supabase
           .from("members")
-          .update({ preferred_language: langCode as "en" | "es" })
+          .update({ preferred_language: memberLanguage(langCode) })
           .eq("id", memberId);
       }
       // Note: Staff table also has preferred_language if needed

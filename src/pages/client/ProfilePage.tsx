@@ -11,14 +11,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, User, Mail, Phone, MapPin, Lock, Save } from "lucide-react";
+import { Loader2, User, Mail, Phone, MapPin, Plane, Save } from "lucide-react";
 import { GdprSettingsSection } from "@/components/gdpr/GdprSettingsSection";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import i18n from "@/i18n";
+import { PageHeader } from "@/components/client/PageHeader";
+import { LockedIdentityField } from "@/components/client/LockedIdentityField";
+import {
+  MEMBER_LANGUAGES,
+  MEMBER_LANGUAGE_CODES,
+  memberLanguage,
+} from "@/lib/memberLanguages";
 
 export default function ProfilePage() {
   const { t } = useTranslation();
@@ -36,7 +44,26 @@ export default function ProfilePage() {
     city: z.string().min(1, t("validation.required")),
     province: z.string().min(1, t("validation.required")),
     postal_code: z.string().min(1, t("validation.required")),
-    preferred_language: z.enum(["en", "es"]),
+    /*
+      ALL THREE, from the database enum. It was `z.enum(["en", "es"])` for a column whose values
+      are `en | es | nl`, so a member whose row says `nl` — set by staff, or by the CRM import —
+      could not be loaded into this form at all. See `memberLanguages.ts`.
+    */
+    preferred_language: z.enum(MEMBER_LANGUAGE_CODES),
+    /*
+      THE STRUCTURED SPANISH ADDRESS — WP5, and the migration says why in one sentence:
+      "An ambulance crew with the street but not the portal is standing outside a gated
+      development at night. This is where the minutes go."
+    */
+    urbanizacion: z.string().max(120).optional(),
+    bloque: z.string().max(40).optional(),
+    portal: z.string().max(40).optional(),
+    escalera: z.string().max(40).optional(),
+    // Away status. Member-writable by design: "someone going to the UK for a month should be
+    // able to say so without ringing the office."
+    away_from: z.string().optional(),
+    away_until: z.string().optional(),
+    pendant_with_member: z.boolean(),
   });
 
   type ProfileFormData = z.infer<typeof profileSchema>;
@@ -54,7 +81,18 @@ export default function ProfilePage() {
       city: profile.city,
       province: profile.province,
       postal_code: profile.postal_code,
-      preferred_language: profile.preferred_language,
+      // `memberLanguage()` because the column is nullable: a NULL must resolve to a real code
+      // rather than leaving the select with no value and silently writing one on the next Save.
+      preferred_language: memberLanguage(profile.preferred_language),
+      urbanizacion: profile.urbanizacion ?? "",
+      bloque: profile.bloque ?? "",
+      portal: profile.portal ?? "",
+      escalera: profile.escalera ?? "",
+      away_from: profile.away_from ?? "",
+      away_until: profile.away_until ?? "",
+      // NULL means "we have never asked", and the honest default is that a pendant IS with its
+      // member — that is the normal case, and the question only matters while they are away.
+      pendant_with_member: profile.pendant_with_member ?? true,
     } : undefined,
   });
 
@@ -75,6 +113,19 @@ export default function ProfilePage() {
           province: data.province,
           postal_code: data.postal_code,
           preferred_language: data.preferred_language,
+          urbanizacion: data.urbanizacion?.trim() || null,
+          bloque: data.bloque?.trim() || null,
+          portal: data.portal?.trim() || null,
+          escalera: data.escalera?.trim() || null,
+          /*
+            EMPTY DATES ARE NULL, NOT "".
+
+            `away_from`/`away_until` are `date` columns; posting an empty string is a Postgres
+            error, so a member who typed a date and then cleared it could not save at all.
+          */
+          away_from: data.away_from || null,
+          away_until: data.away_until || null,
+          pendant_with_member: data.pendant_with_member,
         })
         .eq("id", memberId);
 
@@ -122,26 +173,25 @@ export default function ProfilePage() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 animate-fade-in">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t("profile.title") || t("navigation.myAccount")}</h1>
-            <p className="text-muted-foreground mt-1">{t("profile.subtitle")}</p>
-          </div>
-          <Button type="submit" disabled={isSaving} className="flex-shrink-0">
-            {isSaving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {t("profile.saving")}
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                {t("profile.saveChanges")}
-              </>
-            )}
-          </Button>
-        </div>
+        <PageHeader
+          title={t("profile.title") || t("navigation.myAccount")}
+          subtitle={t("profile.subtitle")}
+          action={
+            <Button type="submit" disabled={isSaving} className="flex-shrink-0">
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t("profile.saving")}
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  {t("profile.saveChanges")}
+                </>
+              )}
+            </Button>
+          }
+        />
 
         {/* Main Grid Layout */}
         <div className="grid gap-6 lg:grid-cols-3">
@@ -183,8 +233,13 @@ export default function ProfilePage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="en">English</SelectItem>
-                          <SelectItem value="es">Español</SelectItem>
+                          {/* From the one list, so a language the database allows cannot be
+                              missing here — which is how Dutch became unreachable. */}
+                          {MEMBER_LANGUAGES.map((lang) => (
+                            <SelectItem key={lang.code} value={lang.code}>
+                              {lang.flag} {lang.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <p className="text-xs text-muted-foreground">
@@ -236,29 +291,27 @@ export default function ProfilePage() {
                       </FormItem>
                     )}
                   />
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Lock className="h-3 w-3 text-muted-foreground" />
-                      {t("profile.dateOfBirth")}
-                    </Label>
-                    <div className="p-3 bg-muted/50 rounded-lg font-medium text-muted-foreground">
-                      {profile?.date_of_birth 
+                  {/*
+                    R7 — DOB and NIE stay locked, WITH A REASON, and the reason is the brief's
+                    own sentence. Both said "Cannot be changed", which tells a member what they
+                    cannot do and nothing about what they can. See LockedIdentityField.
+                  */}
+                  <LockedIdentityField
+                    label={t("profile.dateOfBirth")}
+                    value={
+                      profile?.date_of_birth
                         ? format(new Date(profile.date_of_birth), "dd MMMM yyyy")
-                        : "—"
-                      }
-                    </div>
-                    <p className="text-xs text-muted-foreground">{t("profile.dobReadOnly")}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Lock className="h-3 w-3 text-muted-foreground" />
-                      {t("profile.nieDni")}
-                    </Label>
-                    <div className="p-3 bg-muted/50 rounded-lg font-medium text-muted-foreground">
-                      {profile?.nie_dni || "—"}
-                    </div>
-                    <p className="text-xs text-muted-foreground">{t("profile.nieReadOnly")}</p>
-                  </div>
+                        : null
+                    }
+                    reason={t("profile.identityLockedReason")}
+                    testId="profile-locked-dob"
+                  />
+                  <LockedIdentityField
+                    label={t("profile.nieDni")}
+                    value={profile?.nie_dni || null}
+                    reason={t("profile.identityLockedReason")}
+                    testId="profile-locked-nie"
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -273,17 +326,13 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Lock className="h-3 w-3 text-muted-foreground" />
-                      {t("profile.emailAddress")}
-                    </Label>
-                    <div className="p-3 bg-muted/50 rounded-lg font-medium text-muted-foreground flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      {profile?.email || "—"}
-                    </div>
-                    <p className="text-xs text-muted-foreground">{t("profile.emailChangeNote")}</p>
-                  </div>
+                  <LockedIdentityField
+                    label={t("profile.emailAddress")}
+                    value={profile?.email || null}
+                    icon={<Mail className="h-4 w-4" aria-hidden="true" />}
+                    reason={t("profile.emailChangeNote")}
+                    testId="profile-locked-email"
+                  />
                   <FormField
                     control={form.control}
                     name="phone"
@@ -379,17 +428,125 @@ export default function ProfilePage() {
                       </FormItem>
                     )}
                   />
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Lock className="h-3 w-3 text-muted-foreground" />
-                      {t("profile.country")}
-                    </Label>
-                    <div className="p-3 bg-muted/50 rounded-lg font-medium text-muted-foreground">
-                      {profile?.country || t("common.spain")}
-                    </div>
-                  </div>
+                  <LockedIdentityField
+                    label={t("profile.country")}
+                    value={profile?.country || t("common.spain")}
+                    reason={t("profile.countryLockedReason")}
+                    testId="profile-locked-country"
+                  />
                 </div>
+                {/*
+                  THE PART OF A SPANISH ADDRESS AN AMBULANCE ACTUALLY NEEDS — WP5.
+
+                  The migration says it in one sentence: "An ambulance crew with the street but
+                  not the portal is standing outside a gated development at night. This is where
+                  the minutes go." All four are optional, because plenty of members live on an
+                  ordinary street and asking them to fill in a bloque they do not have is how a
+                  form teaches people to put "n/a" in things.
+                */}
+                <div className="mt-4 grid gap-4 md:grid-cols-2" data-testid="structured-address">
+                  {(
+                    [
+                      ["urbanizacion", t("profile.urbanizacion", "Urbanización"), "Los Naranjos"],
+                      ["bloque", t("profile.bloque", "Bloque"), "3"],
+                      ["portal", t("profile.portal", "Portal"), "B"],
+                      ["escalera", t("profile.escalera", "Escalera"), "2"],
+                    ] as const
+                  ).map(([name, label, placeholder]) => (
+                    <FormField
+                      key={name}
+                      control={form.control}
+                      name={name}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {label} ({t("common.optional")})
+                          </FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder={placeholder} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
+
                 <p className="text-xs text-muted-foreground mt-4">{t("profile.addressEmergencyNote")}</p>
+              </CardContent>
+            </Card>
+
+            {/*
+              AWAY — and the pendant is a separate question from the person.
+
+              The migration: "A device gone quiet and a device in a drawer in Birmingham are
+              different problems." An operator seeing a pendant that has not checked in for four
+              days needs to know which of those it is before deciding whether to send anybody.
+
+              Member-writable by design: "someone going to the UK for a month should be able to
+              say so without ringing the office."
+            */}
+            <Card data-testid="away-card">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Plane className="h-5 w-5" />
+                  {t("profile.awayTitle", "Going away?")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-base text-muted-foreground">
+                  {t(
+                    "profile.awayHelp",
+                    "Tell us the dates and we will know your alarm is quiet because you are away, not because something is wrong.",
+                  )}
+                </p>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="away_from"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("profile.awayFrom", "Away from")}</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} data-testid="away-from" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="away_until"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("profile.awayUntil", "Back on")}</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} data-testid="away-until" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <Label htmlFor="pendant_with_member">
+                      {t("profile.pendantWithMe", "I am taking my pendant with me")}
+                    </Label>
+                    <p className="text-[0.8125rem] text-muted-foreground">
+                      {t(
+                        "profile.pendantWithMeHelp",
+                        "If you leave it at home we will not expect it to move.",
+                      )}
+                    </p>
+                  </div>
+                  <Switch
+                    id="pendant_with_member"
+                    data-testid="pendant-with-member"
+                    checked={form.watch("pendant_with_member")}
+                    onCheckedChange={(v) => form.setValue("pendant_with_member", v)}
+                  />
+                </div>
               </CardContent>
             </Card>
 

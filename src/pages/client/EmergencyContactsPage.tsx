@@ -3,6 +3,15 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useEmergencyContacts } from "@/hooks/useMemberProfile";
+import {
+  CAN_ATTEND_OPTIONS,
+  CONTACT_TYPES,
+  DEFAULT_CONTACT_TYPE,
+  canAttendChoice,
+  canAttendValue,
+  contactTypeLabel,
+  type ContactType,
+} from "@/lib/contactTypes";
 import { supabase } from "@/integrations/supabase/client";
 import { LIMITS } from "@/config/constants";
 import { useQueryClient } from "@tanstack/react-query";
@@ -53,6 +62,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { PageHeader } from "@/components/client/PageHeader";
+
+/** The eight the CHECK constraint allows, as a tuple zod can take. */
+const CONTACT_TYPE_VALUES = CONTACT_TYPES.map((c) => c.type) as unknown as [
+  ContactType,
+  ...ContactType[],
+];
 
 const contactSchema = z.object({
   contact_name: z.string().min(1, "Name is required").max(100),
@@ -61,6 +77,15 @@ const contactSchema = z.object({
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   notes: z.string().max(500).optional(),
   speaks_spanish: z.boolean(),
+  /*
+    WP5's four. `contact_type` was widened from two values to eight and the member had no way to
+    set any of them; `can_attend_in_person` is the single most operationally useful fact about a
+    contact and was not collected at all.
+  */
+  contact_type: z.enum(CONTACT_TYPE_VALUES),
+  can_attend: z.enum(["yes", "no", "unknown"]),
+  country: z.string().max(60).optional(),
+  availability_notes: z.string().max(500).optional(),
 });
 
 type ContactFormData = z.infer<typeof contactSchema>;
@@ -81,6 +106,28 @@ const RELATIONSHIP_KEYS = [
   { value: "Other", key: "other" },
 ];
 
+/**
+ * ONE blank contact, used by both the initial `defaultValues` and by `openAddDialog`'s reset.
+ *
+ * There were two copies of this object. A mutation that changed only the first one SURVIVED the
+ * whole suite — which is the drift hazard stated as a fact: the two could disagree about
+ * `can_attend` and only one of them would be the value a member actually sees. "I am not sure" is
+ * a real answer a member gives, not the absence of one, and it is not the same as "no" (see
+ * `contactTypes.ts`).
+ */
+const BLANK_CONTACT: ContactFormData = {
+  contact_name: "",
+  relationship: "",
+  phone: "",
+  email: "",
+  notes: "",
+  speaks_spanish: false,
+  contact_type: DEFAULT_CONTACT_TYPE,
+  can_attend: "unknown",
+  country: "",
+  availability_notes: "",
+};
+
 export default function EmergencyContactsPage() {
   const { t } = useTranslation();
   const { memberId } = useAuth();
@@ -94,25 +141,11 @@ export default function EmergencyContactsPage() {
 
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
-    defaultValues: {
-      contact_name: "",
-      relationship: "",
-      phone: "",
-      email: "",
-      notes: "",
-      speaks_spanish: false,
-    },
+    defaultValues: BLANK_CONTACT,
   });
 
   const openAddDialog = () => {
-    form.reset({
-      contact_name: "",
-      relationship: "",
-      phone: "",
-      email: "",
-      notes: "",
-      speaks_spanish: false,
-    });
+    form.reset(BLANK_CONTACT);
     setEditingContact(null);
     setDialogOpen(true);
   };
@@ -125,6 +158,18 @@ export default function EmergencyContactsPage() {
       email: contact.email || "",
       notes: contact.notes || "",
       speaks_spanish: contact.speaks_spanish || false,
+      /*
+        THE EDIT FORM MUST SHOW WHAT IS STORED, including "not sure".
+
+        `canAttendChoice(null)` is "unknown", so re-opening a contact nobody has answered for
+        does not silently pre-select "no" and then save that as a fact on the next Save. A
+        prefill that invents an answer is worse than an empty form.
+      */
+      contact_type: (contactTypeLabel(contact.contact_type)?.type ??
+        DEFAULT_CONTACT_TYPE) as ContactType,
+      can_attend: canAttendChoice(contact.can_attend_in_person),
+      country: contact.country || "",
+      availability_notes: contact.availability_notes || "",
     });
     setEditingContact(contact.id);
     setDialogOpen(true);
@@ -134,6 +179,21 @@ export default function EmergencyContactsPage() {
     setDeletingContact(contactId);
     setDeleteDialogOpen(true);
   };
+
+  /*
+    WP5's four columns, built once for both the insert and the update.
+
+    Two copies of this list is how the medical page ended up rendering fields its save dropped —
+    a member types into something and believes an operator can see it. `can_attend_in_person`
+    goes through `canAttendValue`, so "I am not sure" is written as NULL rather than false:
+    false asserts that a contact CANNOT get there, which is a sentence an operator would act on.
+  */
+  const wp5Fields = (data: ContactFormData) => ({
+    contact_type: data.contact_type,
+    can_attend_in_person: canAttendValue(data.can_attend),
+    country: data.country?.trim() || null,
+    availability_notes: data.availability_notes?.trim() || null,
+  });
 
   const onSubmit = async (data: ContactFormData) => {
     if (!memberId) return;
@@ -151,6 +211,7 @@ export default function EmergencyContactsPage() {
             email: data.email || null,
             notes: data.notes || null,
             speaks_spanish: data.speaks_spanish,
+            ...wp5Fields(data),
           })
           .eq("id", editingContact);
 
@@ -173,6 +234,7 @@ export default function EmergencyContactsPage() {
             speaks_spanish: data.speaks_spanish,
             priority_order: nextOrder,
             is_primary: isPrimary,
+            ...wp5Fields(data),
           });
 
         if (error) throw error;
@@ -221,26 +283,31 @@ export default function EmergencyContactsPage() {
   }
 
   const canAddMore = (contacts?.length || 0) < LIMITS.EMERGENCY_CONTACTS;
+  /*
+    R1 — ONE red button per page. A member with no contacts saw TWO, both saying "add a contact":
+    the header action and the empty state's. Two identical red buttons is not emphasis, it is a
+    reader wondering whether they do different things.
+
+    The empty state keeps it, because R8 is explicit that the empty state offers the action and
+    because it sits next to the sentence explaining why. The header's slot stands empty until
+    there is a list for it to add to.
+  */
+  const hasContacts = (contacts?.length ?? 0) > 0;
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-            {t("clientNav.emergencyContacts", "Emergency Contacts")}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {t("contacts.subtitle", "People we call if you need help")}
-          </p>
-        </div>
-        {canAddMore && (
-          <Button onClick={openAddDialog} className="gap-2">
-            <Plus className="h-4 w-4" />
-            {t("contacts.addContact", "Add Contact")}
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title={t("clientNav.emergencyContacts", "Emergency Contacts")}
+        subtitle={t("contacts.subtitle", "People we call if you need help")}
+        action={
+          canAddMore && hasContacts && (
+            <Button onClick={openAddDialog} className="gap-2">
+              <Plus className="h-4 w-4" />
+              {t("contacts.addContact", "Add Contact")}
+            </Button>
+          )
+        }
+      />
 
       {/* Info Banner */}
       <Card className="border-primary/20 bg-primary/5">
@@ -273,6 +340,23 @@ export default function EmergencyContactsPage() {
                     <div>
                       <CardTitle className="text-base">{contact.contact_name}</CardTitle>
                       <p className="text-sm text-muted-foreground">{contact.relationship}</p>
+                      {/*
+                        WHAT THIS PERSON IS, from the widened column. Rendered only when the
+                        stored value is one this build knows: an unrecognised `contact_type`
+                        shows NOTHING rather than a raw enum string, and never falls back to
+                        "family or friend", which would silently relabel a nurse.
+                      */}
+                      {contactTypeLabel(contact.contact_type) && (
+                        <p
+                          className="text-[0.8125rem] font-medium text-muted-foreground"
+                          data-testid={`contact-type-${contact.id}`}
+                        >
+                          {t(
+                            contactTypeLabel(contact.contact_type)!.label.key,
+                            contactTypeLabel(contact.contact_type)!.label.fallback,
+                          )}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <Badge variant={contact.is_primary ? "default" : "outline"}>
@@ -291,10 +375,38 @@ export default function EmergencyContactsPage() {
                     <span className="truncate">{contact.email}</span>
                   </div>
                 )}
-                {contact.speaks_spanish && (
-                  <Badge variant="secondary" className="text-xs">
-                    {t("contacts.speaksSpanish", "Speaks Spanish")}
-                  </Badge>
+                <div className="flex flex-wrap gap-2">
+                  {contact.speaks_spanish && (
+                    <Badge variant="secondary" className="text-xs">
+                      {t("contacts.speaksSpanish", "Speaks Spanish")}
+                    </Badge>
+                  )}
+                  {/*
+                    ONLY WHEN WE ACTUALLY KNOW. `can_attend_in_person` is NULL for every contact
+                    recorded before WP5, and a "cannot attend" badge on all of them would be a
+                    claim nobody made. No badge means no answer, which is the truth.
+                  */}
+                  {contact.can_attend_in_person === true && (
+                    <Badge
+                      variant="secondary"
+                      className="text-xs"
+                      data-testid={`contact-can-attend-${contact.id}`}
+                    >
+                      {t("contacts.canAttendBadge", "Can come round")}
+                    </Badge>
+                  )}
+                  {contact.can_attend_in_person === false && (
+                    <Badge
+                      variant="outline"
+                      className="text-xs"
+                      data-testid={`contact-cannot-attend-${contact.id}`}
+                    >
+                      {t("contacts.cannotAttendBadge", "Too far to come round")}
+                    </Badge>
+                  )}
+                </div>
+                {contact.availability_notes && (
+                  <p className="text-sm text-muted-foreground">{contact.availability_notes}</p>
                 )}
                 {contact.notes && (
                   <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
@@ -390,7 +502,10 @@ export default function EmergencyContactsPage() {
                 value={form.watch("relationship")}
                 onValueChange={(value) => form.setValue("relationship", value)}
               >
-                <SelectTrigger>
+                {/* `id` so the <Label htmlFor="relationship"> above actually points at this
+                    control. It pointed at nothing, so a screen reader announced the trigger
+                    with no name and clicking the label did nothing. */}
+                <SelectTrigger id="relationship">
                   <SelectValue placeholder={t("contacts.selectRelationship")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -429,6 +544,94 @@ export default function EmergencyContactsPage() {
               {form.formState.errors.email && (
                 <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
               )}
+            </div>
+
+            {/* ── WP5: who this person is, and whether they can actually get here ── */}
+            <div className="space-y-2">
+              <Label htmlFor="contact_type">
+                {t("contacts.typeLabel", "What are they to you?")}
+              </Label>
+              <Select
+                value={form.watch("contact_type")}
+                onValueChange={(v) => form.setValue("contact_type", v as ContactType)}
+              >
+                <SelectTrigger id="contact_type" data-testid="contact-type-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CONTACT_TYPES.map((spec) => (
+                    <SelectItem key={spec.type} value={spec.type}>
+                      {t(spec.label.key, spec.label.fallback)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {/* The description of whatever is selected. Eight bare nouns ask somebody to guess
+                  whether their daughter is a "carer", and the guess reaches an operator. */}
+              <p className="text-[0.8125rem] text-muted-foreground" data-testid="contact-type-help">
+                {(() => {
+                  const spec = contactTypeLabel(form.watch("contact_type"));
+                  return spec ? t(spec.description.key, spec.description.fallback) : null;
+                })()}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>{t("contacts.canAttendLabel", "Could they come to your home?")}</Label>
+              {/*
+                THREE OPTIONS, NOT A CHECKBOX, and no default.
+
+                `can_attend_in_person` is nullable and the migration says why: "NULL means
+                unknown, which is honest — it is not the same as false." An unchecked box would
+                tell an operator at three in the morning that a daughter CANNOT get there when
+                the truth is that nobody ever asked her — worse than a blank, because it looks
+                like an answer.
+              */}
+              <div className="flex flex-col gap-2" role="radiogroup" aria-label={t("contacts.canAttendLabel", "Could they come to your home?")}>
+                {CAN_ATTEND_OPTIONS.map((option) => (
+                  <label
+                    key={option.choice}
+                    className="flex cursor-pointer items-center gap-2 text-base"
+                  >
+                    <input
+                      type="radio"
+                      name="can_attend"
+                      value={option.choice}
+                      data-testid={`can-attend-${option.choice}`}
+                      checked={form.watch("can_attend") === option.choice}
+                      onChange={() => form.setValue("can_attend", option.choice)}
+                      className="h-4 w-4"
+                    />
+                    {t(option.label.key, option.label.fallback)}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="country">
+                {t("contacts.country", "Which country are they in?")} ({t("common.optional")})
+              </Label>
+              <Input
+                id="country"
+                {...form.register("country")}
+                placeholder={t("contacts.countryPlaceholder", "Spain")}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="availability_notes">
+                {t("contacts.availability", "When is the best time to reach them?")} (
+                {t("common.optional")})
+              </Label>
+              <Textarea
+                id="availability_notes"
+                {...form.register("availability_notes")}
+                placeholder={t(
+                  "contacts.availabilityPlaceholder",
+                  "Nights only · works Tuesdays · text first, they are deaf",
+                )}
+              />
             </div>
 
             <div className="flex items-center justify-between">

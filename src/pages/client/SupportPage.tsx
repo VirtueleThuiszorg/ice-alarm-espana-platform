@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { supabase } from "@/integrations/supabase/client";
+import { conversationPreview } from "@/lib/conversationPreview";
+import { fetchLastIsabellaTurn } from "@/lib/lastIsabellaTurn";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,6 +59,9 @@ import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
 import { telHref, waNumber } from "@/lib/phone";
+import { PageHeader } from "@/components/client/PageHeader";
+import { supportActionSpec } from "@/lib/supportActions";
+
 interface Conversation {
   id: string;
   subject: string | null;
@@ -156,13 +161,17 @@ export default function SupportPage() {
   useEffect(() => {
     const action = searchParams.get("action");
     if (action) {
-      const subjectMap: Record<string, string> = {
-        report_issue: t("support.reportIssueSubject", "Device Issue Report"),
-        request_replacement: t("support.requestReplacementSubject", "Device Replacement Request"),
-        upgrade_plan: t("support.upgradePlanSubject", "Plan Upgrade Request"),
-        update_payment: t("support.updatePaymentSubject", "Payment Method Update"),
-      };
-      setNewSubject(subjectMap[action] || t("support.generalEnquirySubject", "Support Request"));
+      // The subjects used to be a `Record<string, string>` right here, while four other pages
+      // built the URL by hand — so a renamed or mistyped key opened a generic "Support Request"
+      // and nothing failed. The list is `src/lib/supportActions.ts` now, and a test asserts no
+      // page can emit a key it does not carry. An UNRECOGNISED value still opens a request
+      // rather than doing nothing: a member following an old link deserves a conversation.
+      const spec = supportActionSpec(action);
+      setNewSubject(
+        spec
+          ? t(spec.subjectKey, spec.subjectFallback)
+          : t("support.generalEnquirySubject", "Support Request"),
+      );
       setIsDialogOpen(true);
       // Clear the action param so it doesn't re-open on navigation
       searchParams.delete("action");
@@ -247,11 +256,23 @@ export default function SupportPage() {
           try {
             const { data: lastMsg } = await supabase
               .from("messages")
-              .select("content, is_read, sender_type")
+              .select("content, created_at, is_read, sender_type")
               .eq("conversation_id", conv.id)
               .order("created_at", { ascending: false })
               .limit(1)
-              .single();
+              .maybeSingle();
+
+            /*
+              The preview said the literal word "undefined" for a conversation with no
+              `messages` row — `undefined + ""` is the STRING "undefined", which is truthy, so
+              the `|| ""` never fired. Invisible until WP6 G7, because an Isabella-only
+              conversation has no messages and there is one per member who used the chat.
+              The Isabella read happens only when there is nothing ordinary to show.
+            */
+            const preview = conversationPreview(
+              lastMsg,
+              lastMsg ? null : await fetchLastIsabellaTurn(conv.id),
+            );
 
             const { count } = await supabase
               .from("messages")
@@ -262,7 +283,7 @@ export default function SupportPage() {
 
             return {
               ...conv,
-              last_message_preview: lastMsg?.content?.substring(0, 80) + (lastMsg?.content && lastMsg.content.length > 80 ? "..." : "") || "",
+              last_message_preview: preview.text,
               has_unread: (count || 0) > 0,
             };
           } catch {
@@ -504,13 +525,7 @@ export default function SupportPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t("support.title")}</h1>
-          <p className="text-muted-foreground mt-1">{t("support.subtitle")}</p>
-        </div>
-      </div>
+      <PageHeader title={t("support.title")} subtitle={t("support.subtitle")} />
 
       {/* Emergency Banner */}
       <Card className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-0 overflow-hidden relative">
@@ -624,12 +639,19 @@ export default function SupportPage() {
               <p className="text-sm text-muted-foreground">{t("support.chatWithTeam")}</p>
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  {t("support.newMessage")}
-                </Button>
-              </DialogTrigger>
+              {/*
+                R1 — ONE red button per page. With no conversations, this and the empty state's
+                "send your first message" both rendered, both opening the same dialog. The empty
+                state keeps it (R8), beside the sentence that explains it.
+              */}
+              {conversations.length > 0 && (
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    {t("support.newMessage")}
+                  </Button>
+                </DialogTrigger>
+              )}
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>{t("support.sendMessage")}</DialogTitle>

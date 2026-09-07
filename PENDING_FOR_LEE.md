@@ -53,7 +53,10 @@ make the manifest lie, and the drift gate (#164) depends on that manifest being 
 | S9 | **Then check for pending orders with no subscription** — `select id, order_number from orders where status='pending' and not exists (select 1 from subscriptions s where s.member_id = orders.member_id);` | Supabase → SQL editor | The brief maps `pending → paid` only where a subscription exists. A pending order without one was never paid, and there is no state below `paid` to hold it — so those rows keep the default and are **wrong in the safe direction** until a human decides. If the query returns nothing, there is nothing to do | ⬜ |
 | S10 | **Decide whether "Test call completed" also belongs on the SOS screen** | one line in `SOSActionPanel` | The brief says *"from the SOS screen **or** member record"*. It is built on the **member record** (`PendantFulfilmentCard`), because that is where somebody sits when they phone a member to walk them through a test — and because `SOSActionPanel` is the SOS path, where CLAUDE.md makes a human gate mandatory before merge. Say the word and it goes on the SOS screen in its own PR for you to review | ⬜ |
 | S11 | **Then check for orders stuck at `paid` with a device already allocated** — `select o.order_number, o.fulfilment_state from orders o join order_items oi on oi.order_id = o.id where oi.device_id is not null and o.fulfilment_state = 'paid';` | Supabase → SQL editor | `_shared/post-payment.ts` allocates a pendant on payment — it writes `devices.status='allocated'` and `order_items.device_id` — and **does not move `orders.fulfilment_state`**. So every order allocated by the webhook since #180 sits at `paid` with its device already assigned. The fix is one line in the webhook path, which is why it is **PR #TBD, left open** (§5) rather than merged. These rows can be moved by hand, or left for the fix; either way they are wrong in the safe direction | ⬜ |
+| S12 | **Check for subscriptions cancelled or paused in the DB that Stripe may still be charging** — the query is in D-10 | Supabase → SQL editor, then the Stripe dashboard | `SubscriptionTab`'s Cancel button wrote `subscriptions.status` from the browser and called **nothing** in Stripe. Any subscription showing `cancelled` or `paused` with a `stripe_subscription_id` may still be live in Stripe and still taking money from a member who believes they cancelled. The code path is fixed and removed (WP7); the rows it may already have produced are yours to check | ⬜ |
 | ~~S7~~ | ✅ **DONE 2026-09-07.** ~~Run `select count(*) from partner_applications where status='pending';`~~ — **that query was wrong and unrunnable: there is no `partner_applications` table and no migration ever created one.** An application is a row in `partners` with `status='pending'` and `user_id` null, which `ConvertApplicationDialog`'s own header said. Correct query, which Lee ran: `select count(*) from partners where status='pending' and user_id is null;` → **2**, both his own test rows, since deleted → **0**. So `partner-apply`, the convert dialog, the Convert menu item and its tests are all removed. `decidePartnerInvite`'s `convert` branch and `partner-admin-invite` are kept. `PARTNER_JOURNEY.md` §4 | ✅ |
+
+| S13 | 🔴 **Internal staff notes already written are still visible to the member** — one UPDATE, and read the rows first | Supabase → SQL editor | The internal-note feature predates `20260907100400` and wrote `sender_type = 'system'`. The RESTRICTIVE policy protects `staff_internal` and **only** that, the member's thread selects everything in their own conversation, and it renders every row — so every internal note ever written appeared in the member's own message thread, with `[Internal Note]` still on the front of it. The code is fixed (both staff surfaces write `staff_internal` now); **the existing rows are not.** Read them before you change them, because some may be things you would rather the member had not seen:<br><br>`select m.id, m.created_at, c.member_id, m.content from messages m join conversations c on c.id = m.conversation_id where m.sender_type = 'system' and m.content like '[Internal Note]%' order by m.created_at;`<br><br>then<br><br>`update messages set sender_type = 'staff_internal' where sender_type = 'system' and content like '[Internal Note]%';` | ⬜ |
 
 ---
 
@@ -224,6 +227,213 @@ One column, `payers.preferred_language`, with the member's as the default. Not a
 D-8 means no payer is messaged yet, so it would be schema for a code path that cannot run —
 and the next schema bundle is a better place for it than a migration on its own.
 
+### D-10 — `member_action` has no `resume`, and three of the six are recorded rather than performed (2026-09-07)
+
+**The enum is your six**: renew, switch_to_single, switch_to_couple, add_pendant, pause, cancel.
+Resuming a paused subscription is a seventh thing staff do and it is not in the list, so a resume
+is logged as an ordinary attributed `activity_logs` row instead of a `member_action` one — it
+carries the actor and a reason, but it does not appear in the `member_action` index or in a query
+filtered by that column. One `ALTER TYPE public.member_action ADD VALUE 'resume';` fixes it; it
+is not in a migration yet because the next schema bundle is a better home than a migration on its
+own.
+
+**And three of the six are RECORDED, not performed.** Pause and cancel go through Stripe (or
+Mollie, for cancel) and the server mirrors the status. Renew, the plan switch and adding a pendant
+do not: each needs new Stripe money-movement code against a real customer's card, nothing in this
+repo can test it, and a mistake in it charges a real person. So they are offered with a badge that
+says *"You do it in Stripe"* and a note that the billing was not touched.
+
+That is a deliberate stop, not an omission. **The audit trail — the part that did not exist at
+all — works for all six today**, so a renewal you take over the phone can be recorded with an
+owner and a reason. Say the word and the three become automated in their own PR, which I would
+expect you to want to review rather than merge on green.
+
+**One thing to know regardless of what you decide.** The buttons that were there before were
+worse than absent: `SubscriptionTab.updateStatus` wrote `subscriptions.status` from the browser
+and called nothing in Stripe, so **Cancel left Stripe charging the member's card**. That is fixed
+and gone; the query to find anybody it happened to is
+
+```sql
+select m.first_name, m.last_name, s.id, s.status, s.stripe_subscription_id
+from subscriptions s join members m on m.id = s.member_id
+where s.status in ('cancelled','paused') and s.stripe_subscription_id is not null;
+```
+
+Any row it returns needs checking in the Stripe dashboard: the subscription may still be active
+there.
+
+### D-11 — R3's one sentence loses the reassurance, and the fix is three strings (2026-09-07)
+
+R3 puts the readiness notice in the header as **one sentence**. The bar it replaces led with
+*"Your alarm works and an operator will always answer it. But we have no one to contact on your
+behalf yet."* — and leading with what still WORKS is a rule in its own right
+(`ICE_OPERATOR_CARD_SPEC.md` §5.2): an 80-year-old who reads "we still need your emergency
+contacts" and concludes their alarm is not working is worse served than before.
+
+**The two rules are in tension and I implemented R3**, because it is newer and more specific, and
+moved the reassurance to the contacts page where the member lands. Nothing is frightening in the
+meantime — the sentence on screen is a task, not an alarm.
+
+**But one sentence can do both**, and this is the wording I would use:
+
+| gap | proposed |
+|---|---|
+| contacts | *Your alarm works — we just need someone to contact.* |
+| pendant | *Your alarm works — we just need to test it with you.* |
+| both | *Your alarm works — we just need someone to contact.* (one task at a time) |
+
+Three keys, three languages. **Not done in this PR** because two other PRs were open on
+`src/i18n/locales/*.json` at the time and CLAUDE.md's serial-merge rule exists because two
+outages came from exactly that. Say the word — or say you prefer the current wording — and it
+goes in the next locale pass either way.
+
+Note also: **the phone number is no longer in the notice.** One sentence has no room for it, so
+the pendant variant links to Support, where the number lives. That removed the last test fixture
+allowed to contain `+34 900 123 456`, which is a small good thing.
+
+### D-12 — a signed-in member cannot buy anything, and `/join` is not the workaround (2026-09-07)
+
+R8 says *"'No active subscription' shows the plans"*, and WP4 says the Membership page carries
+*"actions 'Add a pendant' and 'Change to couple' through Stripe checkout only."* Both need a
+checkout an EXISTING member can start. **There isn't one, and the obvious substitute is a trap.**
+
+`/join` has no idea anybody is signed in. It ends at `submit-registration` →
+`submit_registration_atomic`, which **INSERTs a `members` row unconditionally** — no lookup, no
+`user_id` link. A signed-in member sent through it comes out with a *second* member record: a
+second medical record, a second set of emergency contacts, a second Stripe customer. On this
+product that is not a billing annoyance — it is two records for one person, and an operator with
+an SOS on screen who can open the wrong one.
+
+So the page **shows** the plans with live prices and the one-off costs, and every action opens a
+prefilled support request instead. That is a real route: staff take the payment and the webhook
+activates, which is golden rule 4 either way. It is also the same line WP7 stopped at (D-10) —
+renew, plan switch and add-a-pendant all need new Stripe money-movement code against a real
+customer's card, and nothing in this repo can test it.
+
+**The decision.** Either
+
+  (a) leave it — every change of plan is a conversation. Honest, slower, and for a customer base
+      this age arguably the right shape anyway; or
+  (b) build `create-member-checkout`: a server function that takes an EXISTING `member_id`, builds
+      the line items, and returns a Stripe session, with the webhook activating as it does today.
+      That is a payment-path PR, so it would stay open for you regardless.
+
+Worth knowing before you choose: the query for members who would use it today is
+
+```sql
+select m.id, m.first_name, m.last_name, s.status
+from members m left join subscriptions s on s.member_id = m.id
+where s.id is null or s.status <> 'active';
+```
+
+### D-13 — may a member see WHO pays for them? (2026-09-07)
+
+The Membership page now says *"Somebody else pays for your membership"* when `payer_id` is set. It
+does **not** say who, and that is RLS rather than restraint: `payers` grants SELECT to staff and to
+the payer themselves. A member can read `payer_id` — it is a column of their own subscription — but
+not the row it points at.
+
+Showing the name needs a new policy on `payers`, and that table's design note is *"being a payer
+grants NO access to any care data"*, argued in both directions. Adding a policy to it in passing,
+on a WP4 copy PR, is exactly the kind of thing PAYER_MODEL.md was written to stop. **RLS policies
+are a mandatory human gate (CLAUDE.md), so this was never mine to decide.**
+
+The argument for: an 80-year-old who cannot see who pays for their alarm cannot check it is still
+the daughter they think it is. The argument against: the payer's name, email and phone are the
+payer's data, and a member's account being taken over would expose a third party who never agreed
+to that.
+
+If you want it, the narrow version is a policy exposing `full_name` and `relationship` only — not
+email, not phone — to `get_member_id(auth.uid())` on the subscription that points at the row. Say
+the word and it goes in its own migration for you to review.
+
+### D-14 — the padlock on date of birth and NIE is a LABEL, not a rule (2026-09-07)
+
+R7 says those two stay locked. The profile page locks them — padlock, read-only, and now the
+reason R7 asks for. **The database does not.**
+
+`"Members can update own profile"` (20260121143325) is
+
+```sql
+CREATE POLICY "Members can update own profile" ON public.members
+  FOR UPDATE TO authenticated USING (user_id = auth.uid());
+```
+
+— no column restriction, because Postgres RLS is row-level and cannot have one. The guard trigger
+we added on 4 September (`20260904180000_member_status_not_self_writable.sql`) closes exactly one
+column, `status`, and its own comment says the rest are fine: *"An ordinary profile update (phone,
+address, NIE) must stay exactly as cheap as it was."* That was true of the brief we had then. R7
+changes it.
+
+So a signed-in member — or anybody who gets into their account — can still run
+
+```
+PATCH /rest/v1/members?id=eq.<their own>
+{"nie_dni": "X9999999Z", "date_of_birth": "1990-01-01"}
+```
+
+and the operator card then shows an identity document number a stranger typed. This application
+never sends those columns (asserted in `lockedIdentityFields.test.tsx`), which is why it is a
+label rather than an open door — but a rule you can go around with curl is not a rule, which is
+the argument `20260907100000`'s header makes about fulfilment state.
+
+**The fix is one more branch in the trigger that already exists**, not a new one:
+
+```sql
+CREATE OR REPLACE FUNCTION public.guard_member_status_self_write()
+-- … existing status branch unchanged …
+  IF (NEW.date_of_birth IS DISTINCT FROM OLD.date_of_birth
+      OR NEW.nie_dni IS DISTINCT FROM OLD.nie_dni)
+     AND auth.uid() IS NOT NULL
+     AND NOT public.is_staff(auth.uid()) THEN
+    RAISE EXCEPTION
+      'date_of_birth and nie_dni are not self-writable: R7 requires identity to be verified by a human'
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+```
+
+**Why it is not in this PR.** It is a migration, and merging one reddens the drift gate on every
+subsequent build until you have pushed it (D-3). The method you and I settled on is to bundle
+schema changes and pay that once — and the next bundle has a second thing in it that has to go
+with it anyway: **the `member-photos` storage bucket** R7's other half needs. There is no bucket
+for member photos today (the eleven that exist are all staff/marketing), so the upload cannot be
+built until one exists, and a storage bucket's policies are RLS policies, which CLAUDE.md makes a
+mandatory human gate before merge.
+
+**What I would like from you:** say the word and I will open one held PR carrying both — the
+trigger branch above and the bucket with its four `storage.objects` policies scoped to
+`auth.uid()::text` as the first path segment — for you to review, apply, and merge. The photo
+upload UI goes in it, because shipping an upload button against a bucket that does not exist
+would be worse than not having one.
+
+### D-15 — Dutch is translated, tested, storable — and was unreachable (2026-09-07)
+
+`nl.json` is a **complete** translation. `localeParse.test.ts` enforces it key-for-key against
+English, checks array lengths, and fails if a member-facing value is left in English. Every
+increment this run has added Dutch alongside Spanish because that test requires it.
+`members.preferred_language` is the enum `en | es | nl`.
+
+**And no member or staff member could select it.** Two places offer a language and both hard-coded
+their own two-value array — the header `LanguageSelector` and the profile form. So the Dutch
+translation is maintained effort that reached nobody.
+
+It was also a live defect rather than only a missing option. `MemberProfile` declared
+`preferred_language: "en" | "es"` for a nullable three-value column and the profile form's schema
+was `z.enum(["en", "es"])`, so **a member whose row says `nl` — set by staff, or by the CRM
+import — could not be loaded into their own profile form at all.** The compiler said so the moment
+the type was corrected to the generated row.
+
+**What I have done, and the assumption in it.** One list, `src/lib/memberLanguages.ts`, derived
+from the enum and shared by both selectors, so Dutch is now selectable and a stored `nl`
+round-trips. MEMBER_UX_RULES **R3 says the header carries "EN/ES"**, and I have read that as
+shorthand for "the language selector" rather than an instruction to hide a language the product
+already ships, translates, tests and stores — the operating company is Dutch.
+
+**If EN/ES was meant literally, say so and it is one line**: delete the `nl` entry from
+`MEMBER_LANGUAGES` and both selectors follow. But then the second question is worth answering
+deliberately rather than by omission: a 6,000-line translation and a CI gate defending it are a
+real running cost, and either it is a market or it is not.
+
 ### D-6 — five alert/badge colours are below WCAG AA, and fixing them changes safety colour
 
 Measured on the base `:root` palette (`publicPaletteContrast.test.ts`). All are white-or-near-
@@ -289,6 +499,7 @@ the member's own per-channel opt-in. A flag on its own no longer sends anything.
 | ~~**#176**~~ | ✅ **Done.** Merged, pushed, and recorded in `APPLIED_TO_PROD.txt` by #179. Production is level. |
 | ~~**#180**~~, ~~**#187**~~ | ✅ **Done.** Merged and pushed; recorded in `APPLIED_TO_PROD.txt` by #185 and #189. Production is level. The monitoring-ready count is **zero** and that is the first honest number this system has produced — see S8/S9 for the two queries that confirm the backfill |
 
+| **the held seed bundle** — not yet raised | **One PR, raised at the end of this run, carrying every row this run needs seeded and nothing else.** Two are known already: WP6 G5's `canned_replies` (the picker is merged and renders its empty state until they exist) and WP3 N7's `notification_templates` (the dispatcher reads `skipped_no_template` for every event until they exist). It is one PR for the reason D-3 gives: a migration merged before you can push it turns the drift gate red on **every** subsequent PR, so the gate is paid once. Apply it, append the filename to `APPLIED_TO_PROD.txt`, merge |
 | **the `paid → allocated` line in `_shared/post-payment.ts`** — not yet raised | The webhook allocates a pendant and never moves the fulfilment state, so the first rung of the ladder has no writer on the payment path. It is one `.update({ fulfilment_state: "allocated" })` after the device is allocated — but `_shared/post-payment.ts` is imported by **both** `stripe-webhook` and `mollie-webhook`, so per the brief it stays open for you. **The staff allocation path is already fixed and merged** (`DeviceTab.assignDevice` → `linkDeviceToPendantOrder`), so allocation by hand works today; only webhook allocation is affected. S11 finds the rows |
 
 > Per the brief: any PR touching `supabase/functions/stripe-webhook` or

@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { conversationPreview } from "@/lib/conversationPreview";
+import { fetchLastIsabellaTurn } from "@/lib/lastIsabellaTurn";
 import { toast } from "sonner";
 import { Loader2, MessageSquare, Send, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +13,8 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow, format } from "date-fns";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { withCannedReply } from "@/lib/cannedReplies";
+import { CannedReplyPicker } from "@/components/messaging/CannedReplyPicker";
 
 interface Conversation {
   id: string;
@@ -22,6 +26,7 @@ interface Conversation {
   member?: {
     first_name: string;
     last_name: string;
+    preferred_language: string | null;
   } | null;
   unread_count?: number;
   last_message_preview?: string;
@@ -120,7 +125,7 @@ export function MessagesPanel() {
         .from("conversations")
         .select(`
           *,
-          member:members!conversations_member_id_fkey(first_name, last_name)
+          member:members!conversations_member_id_fkey(first_name, last_name, preferred_language)
         `)
         .in("status", ["open", "pending"])
         .order("last_message_at", { ascending: false })
@@ -140,16 +145,28 @@ export function MessagesPanel() {
 
           const { data: lastMsg } = await supabase
             .from("messages")
-            .select("content")
+            .select("content, created_at")
             .eq("conversation_id", conv.id)
             .order("created_at", { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
+
+          /*
+            The preview said the literal word "undefined" for a conversation with no
+            `messages` row — `undefined + ""` is the STRING "undefined", which is truthy, so
+            the `|| ""` never fired. Invisible until WP6 G7, because an Isabella-only
+            conversation has no messages and there is one per member who used the chat.
+            The Isabella read happens only when there is nothing ordinary to show.
+          */
+          const preview = conversationPreview(
+            lastMsg,
+            lastMsg ? null : await fetchLastIsabellaTurn(conv.id),
+          );
 
           return {
             ...conv,
             unread_count: count || 0,
-            last_message_preview: lastMsg?.content?.substring(0, 40) + "..." || "",
+            last_message_preview: preview.text,
           };
         })
       );
@@ -376,6 +393,14 @@ export function MessagesPanel() {
             </ScrollArea>
 
             <div className="p-2 border-t">
+              {selectedConversation.member_id && (
+                <div className="mb-2">
+                  <CannedReplyPicker
+                    preferredLanguage={selectedConversation.member?.preferred_language}
+                    onInsert={(body) => setReplyMessage((current) => withCannedReply(current, body))}
+                  />
+                </div>
+              )}
               <div className="flex gap-2">
                 <Textarea
                   placeholder={t("callCentre.messages.replyPlaceholder", "Reply...")}

@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useMemberDevice, useMemberSubscription } from "@/hooks/useMemberProfile";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,12 @@ import { usePricing } from "@/hooks/usePricing";
 import { formatPrice, getPendantFinalPrice, getShippingCost } from "@/config/pricing";
 
 import { telHref, waNumber } from "@/lib/phone";
+import { PageHeader } from "@/components/client/PageHeader";
+import { Link } from "react-router-dom";
+import { Package } from "lucide-react";
+import { FULFILMENT_MEANING } from "@/lib/fulfilmentState";
+import { usePendantOrderForMember } from "@/hooks/usePendantOrder";
+import { supportActionPath } from "@/lib/supportActions";
 export default function DevicePage() {
   const { t } = useTranslation();
   const { memberId } = useAuth();
@@ -34,6 +41,9 @@ export default function DevicePage() {
   const { data: device, isLoading: deviceLoading } = useMemberDevice();
   const { data: subscription, isLoading: subLoading } = useMemberSubscription();
   const { settings: companySettings } = useCompanySettings();
+  // The member's pendant order, whether or not a device has been put on it yet — so the window
+  // between paying and the device arriving can say what is actually happening.
+  const { memberPendantOrder: pendantOrder } = usePendantOrderForMember(memberId);
   
   // Realtime subscription for device updates
   useDeviceRealtime(memberId ?? undefined);
@@ -67,14 +77,74 @@ export default function DevicePage() {
     );
   }
 
+  /*
+    THE MEMBER WHO HAS PAID FOR A PENDANT AND IS WAITING FOR IT was shown the SALES PAGE.
+
+    `hasPendant` is `subscription?.has_pendant && device` — so between the payment and the device
+    being assigned, a member whose subscription says they bought a pendant fell into the
+    phone-only branch and was shown "What You're Missing" and a "Purchase Pendant" button. They
+    had already purchased it. That is the state WP2 exists to describe, so it gets its own branch
+    and the real fulfilment state.
+  */
+  const awaitingPendant = subscription?.has_pendant === true && !device;
+
+  if (awaitingPendant) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <PageHeader
+          title={t("navigation.myPendant")}
+          subtitle={t("device.onItsWay.subtitle", "Your pendant is on its way")}
+        />
+        <Card data-testid="pendant-awaiting">
+          <CardContent className="space-y-4 p-6">
+            <div className="flex items-start gap-3">
+              <Package className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+              <div className="min-w-0 space-y-1">
+                <p className="text-base font-semibold" data-testid="pendant-awaiting-state">
+                  {pendantOrder
+                    ? t(
+                        FULFILMENT_MEANING[pendantOrder.fulfilmentState].key,
+                        FULFILMENT_MEANING[pendantOrder.fulfilmentState].fallback,
+                      )
+                    : t(
+                        "device.onItsWay.unknownState",
+                        "We are getting your pendant ready. We will call you when it is on its way.",
+                      )}
+                </p>
+                {/*
+                  WHAT HAPPENS NEXT, always — and it is the test call, not the delivery.
+                  Q1 (Lee, 2026-09-07) is operator-confirmed only, so a member cannot mark their
+                  own pendant tested. Saying that here stops them waiting for a button that will
+                  never appear.
+                */}
+                <p className="text-base text-muted-foreground">
+                  {t(
+                    "device.onItsWay.nextStep",
+                    "When it arrives we will phone you and test it together — a real operator answers, so you know it works.",
+                  )}
+                </p>
+              </div>
+            </div>
+            {/* R1: the page's one red button. */}
+            <Button asChild>
+              <Link to={supportActionPath("report_issue")}>
+                {t("device.onItsWay.action", "Ask us where it is")}
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Phone-Only Member View
   if (!hasPendant) {
     return (
       <div className="space-y-6 animate-fade-in">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t('navigation.myDevice')}</h1>
-          <p className="text-muted-foreground mt-1">{t('membership.phoneOnlyService')}</p>
-        </div>
+        <PageHeader
+          title={t("navigation.myDevice")}
+          subtitle={t("membership.phoneOnlyService")}
+        />
 
         {/* Phone-Only Service Info */}
         <Card className="border-primary">
@@ -131,56 +201,21 @@ export default function DevicePage() {
           </CardContent>
         </Card>
 
-        {/* What You're Missing */}
-        <Card className="border-alert-battery/50 bg-alert-battery/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-alert-battery">
-              <AlertTriangle className="h-5 w-5" />
-              {t('device.whatYoureMissing', "What You're Missing")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3">
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-background">
-                <XCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium">{t('device.gpsLocation')}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {t('device.weCannotTrackLocation', 'We cannot track your location automatically')}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-background">
-                <XCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium">{t('device.fallDetection')}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {t('device.fallsNotDetected', 'Falls are not automatically detected')}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-background">
-                <XCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium">{t('device.sosButton')}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {t('device.mustCallManually', 'You must call us manually')}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-background">
-                <XCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium">{t('device.geoFencing')}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {t('device.noBoundaryAlerts', 'No boundary alerts available')}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/*
+          "WHAT YOU'RE MISSING" IS GONE — WP4 says so, and here is why it needed saying.
 
+          It was four rows in `text-destructive`, each with a red ✗, telling a phone-only member
+          that we cannot track their location, that falls are not detected, that they must call us
+          manually, and that there are no boundary alerts. Every line true; the whole card wrong.
+          It opened the page of somebody who CHOSE this plan with four ways they are unprotected,
+          in the colour this product reserves for an emergency (R2), on the screen they are most
+          likely to open when they are worried.
+
+          What replaces it is the same information stated as what they HAVE — a monitored line and
+          a number that reaches a real operator — and one action to add a pendant if they want
+          one. The pendant's features are still listed below, in the offer, where a feature list
+          belongs.
+        */}
         {/* Upgrade Section */}
         <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/30">
           <CardHeader>
@@ -224,18 +259,38 @@ export default function DevicePage() {
               </div>
             </div>
 
-            {whatsappNumber && (
-              <Button size="lg" className="w-full touch-target" asChild>
-                <a
-                  href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(t('device.pendantWhatsAppMessage', 'Hello, I would like to upgrade my membership to include a GPS pendant. Can you help me?'))}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <MessageCircle className="mr-2 h-5 w-5" />
-                  {t('device.purchasePendant', 'Purchase Pendant')}
-                </a>
+            {/*
+              THE ONLY WAY TO ADD A PENDANT USED TO BE GATED ON WHATSAPP.
+
+              This was a single `whatsappNumber && <Button …wa.me…>`. With
+              `settings_emergency_phone` unset — which is the state WP1b's "show nothing, never a
+              fake number" rule leaves us in until Lee seeds it — a phone-only member had NO route
+              at all to the one thing this page is offering them.
+
+              So the in-app route is unconditional and is the page's one red button (R1), and
+              WhatsApp is a second, outline option when a number is configured. A member who
+              prefers WhatsApp still gets it; a member with no number configured still gets a way
+              through.
+            */}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button size="lg" className="touch-target sm:flex-1" asChild>
+                <Link to={supportActionPath("add_pendant")} data-testid="device-add-pendant">
+                  {t("subscription.addPendant", "Add a pendant")}
+                </Link>
               </Button>
-            )}
+              {whatsappNumber && (
+                <Button size="lg" variant="outline" className="touch-target sm:flex-1" asChild>
+                  <a
+                    href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(t('device.pendantWhatsAppMessage', 'Hello, I would like to upgrade my membership to include a GPS pendant. Can you help me?'))}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <MessageCircle className="mr-2 h-5 w-5" />
+                    {t('support.whatsApp')}
+                  </a>
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -261,10 +316,10 @@ export default function DevicePage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t('navigation.myPendant')}</h1>
-        <p className="text-muted-foreground mt-1">{t('device.yourIceAlarmPendant', 'Your ICE Alarm España GPS Personal Pendant')}</p>
-      </div>
+      <PageHeader
+        title={t("navigation.myPendant")}
+        subtitle={t("device.yourIceAlarmPendant", "Your ICE Alarm España GPS Personal Pendant")}
+      />
 
       {/* Device Status */}
       <Card>
@@ -460,11 +515,11 @@ export default function DevicePage() {
 
       {/* Actions */}
       <div className="grid gap-3 md:grid-cols-2">
-        <Button variant="outline" className="touch-target" onClick={() => navigate("/dashboard/support?action=report_issue")}>
+        <Button variant="outline" className="touch-target" onClick={() => navigate(supportActionPath("report_issue"))}>
           <Wrench className="mr-2 h-4 w-4" />
           {t('device.reportIssue')}
         </Button>
-        <Button variant="outline" className="touch-target" onClick={() => navigate("/dashboard/support?action=request_replacement")}>
+        <Button variant="outline" className="touch-target" onClick={() => navigate(supportActionPath("request_replacement"))}>
           <RefreshCw className="mr-2 h-4 w-4" />
           {t('device.requestReplacement')}
         </Button>

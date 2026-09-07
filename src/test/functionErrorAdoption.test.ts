@@ -64,7 +64,11 @@ const NO_USER_FACING_ERROR: Record<string, string> = {
   "src/lib/alertResolution.ts": "SOS/alert resolution path — deliberately untouched (G1 human gate)",
   "src/components/call-centre/AlertDetailPanel.tsx": "SOS/alert path — deliberately untouched (G1 human gate)",
   "src/components/join/steps/JoinPaymentStep.tsx": "Stripe checkout path — deliberately untouched (human gate)",
-  "src/components/admin/member-detail/SubscriptionTab.tsx": "Stripe subscription path — deliberately untouched (human gate)",
+  // SubscriptionTab was exempted as "Stripe subscription path — deliberately untouched (human
+  // gate)". It no longer invokes anything: its client-side `updateStatus` — which wrote
+  // subscriptions.status from the browser and called nothing in Stripe — is gone, and the
+  // actions moved to `useMemberAction`, which surfaces the server's reason through
+  // functionError. The stale-entry half of this suite is what noticed.
   "src/pages/admin/SubscriptionsPage.tsx": "Stripe subscription path — deliberately untouched (human gate)",
   "src/pages/LandingPage.tsx": "track-invite-view is explicitly fire-and-forget (.catch(console.warn)); no UI path",
   "src/hooks/useRegistrationDraft.ts": "draft autosave; returns {success:false} and logs — deliberately does not nag the user mid-form",

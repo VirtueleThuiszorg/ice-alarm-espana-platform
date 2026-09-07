@@ -605,7 +605,10 @@
     "deleting": "Verwijderen...",
     "selected": "geselecteerd",
     "view": "Bekijken",
-    "change": "Wijzigen"
+    "change": "Wijzigen",
+    "hide": "Verbergen",
+    "show": "Tonen",
+    "remove": "Verwijderen"
   },
   "auth": {
     "login": "Inloggen",
@@ -727,7 +730,8 @@
     "productCatalog": "Productcatalogus",
     "howItWorks": "Hoe het werkt",
     "menu": "Menu",
-    "close": "Sluiten"
+    "close": "Sluiten",
+    "unreadCount": "{{count}} ongelezen berichten"
   },
   "blog": {
     "title": "Blog",
@@ -904,10 +908,6 @@
     "battery": "Battery",
     "lastCheckIn": "Last Check-in",
     "signalStrength": "Signal Strength",
-    "gpsLocation": "GPS Location",
-    "fallDetection": "Fall Detection",
-    "sosButton": "SOS Button",
-    "geoFencing": "Geo-Fencing",
     "deviceStatus": "Device Status",
     "deviceInfo": "Device Information",
     "simNumber": "SIM Phone Number",
@@ -938,19 +938,23 @@
     "yourCurrentService": "Your Current Service",
     "usingPhoneOnlyMembership": "You are using our Phone-Only membership",
     "contactUsAnytime": "Contact us anytime using the number below. Save this in your phone for emergencies!",
-    "whatYoureMissing": "What You're Missing",
-    "weCannotTrackLocation": "We cannot track your location automatically",
-    "fallsNotDetected": "Falls are not automatically detected",
-    "mustCallManually": "You must call us manually",
-    "noBoundaryAlerts": "No boundary alerts available",
     "addPendantForFullProtection": "Add a Pendant for Full Protection",
     "getCompletePeaceOfMind": "Get complete peace of mind with our GPS pendant",
-    "purchasePendant": "Purchase Pendant",
     "quickProvision": "Quick Provision",
     "quickProvisionDesc": "Send all configuration SMS commands in sequence",
     "provisioning": "Provisioning...",
     "startProvisioning": "Start Provisioning",
-    "quickProvisionComplete": "Quick provisioning complete"
+    "quickProvisionComplete": "Quick provisioning complete",
+    "onItsWay": {
+      "subtitle": "Uw hanger is op weg",
+      "unknownState": "We maken uw hanger klaar. We bellen u zodra hij op weg is.",
+      "nextStep": "Als hij aankomt bellen we u en testen we hem samen — een echte operator antwoordt, zodat u weet dat hij werkt.",
+      "action": "Vraag ons waar hij is"
+    },
+    "gpsLocation": "GPS Location",
+    "fallDetection": "Fall Detection",
+    "sosButton": "SOS Button",
+    "geoFencing": "Geo-Fencing"
   },
   "alerts": {
     "sosAlert": "SOS Alert",
@@ -1059,7 +1063,38 @@
     "updated": "Contact updated successfully",
     "deleted": "Contact deleted",
     "deleteTitle": "Delete Contact",
-    "deleteConfirm": "Are you sure you want to remove this emergency contact? This action cannot be undone."
+    "deleteConfirm": "Are you sure you want to remove this emergency contact? This action cannot be undone.",
+    "typeLabel": "Wat is deze persoon voor u?",
+    "canAttendLabel": "Zou deze persoon naar uw huis kunnen komen?",
+    "canAttendBadge": "Kan langskomen",
+    "cannotAttendBadge": "Te ver om langs te komen",
+    "country": "In welk land woont deze persoon?",
+    "countryPlaceholder": "Spanje",
+    "availability": "Wanneer is deze persoon het best bereikbaar?",
+    "availabilityPlaceholder": "Alleen 's avonds · werkt op dinsdag · eerst een bericht, deze persoon is doof",
+    "type": {
+      "emergency": "Familie of vriend",
+      "emergencyDesc": "Iemand die we bellen als u hulp nodig heeft. De meeste mensen beginnen hier.",
+      "keyHolder": "Heeft een sleutel",
+      "keyHolderDesc": "Deze persoon kan iemand in uw huis binnenlaten.",
+      "carer": "Zorgverlener",
+      "carerDesc": "Iemand die u dagelijks helpt, betaald of onbetaald.",
+      "careAgency": "Zorgorganisatie",
+      "careAgencyDesc": "Een bedrijf dat zorgverleners naar u toe stuurt.",
+      "nurse": "Verpleegkundige",
+      "nurseDesc": "Een wijkverpleegkundige of een verpleegkundige die bij u komt.",
+      "socialWorker": "Maatschappelijk werker",
+      "socialWorkerDesc": "Uw contactpersoon bij de gemeente of de gezondheidsdienst.",
+      "neighbour": "Buur",
+      "neighbourDesc": "Iemand in de buurt die snel langs kan komen.",
+      "legalRepresentative": "Wettelijk vertegenwoordiger",
+      "legalRepresentativeDesc": "Iemand die formeel voor u optreedt — bijvoorbeeld met een volmacht."
+    },
+    "canAttend": {
+      "yes": "Ja, deze persoon kan langskomen",
+      "no": "Nee, deze persoon woont te ver weg",
+      "unknown": "Ik weet het niet zeker"
+    }
   },
   "emergencyContacts": {
     "loadFailed": "Noodcontacten laden mislukt",
@@ -1072,9 +1107,9 @@
     "deleteFailed": "Noodcontact verwijderen mislukt"
   },
   "medical": {
-    "subtitle": "Important health details for emergencies",
-    "emergencyTitle": "Emergency Medical Data",
-    "emergencyDesc": "This information is shared with emergency services when you need help. Keep it up to date for your safety.",
+    "subtitle": "Dit is precies wat een operator ziet op het moment dat u op uw hanger drukt.",
+    "emergencyTitle": "Wie dit leest",
+    "emergencyDesc": "Onze operators zien dit op het moment dat er op uw hanger wordt gedrukt, en zij lezen het voor aan de ambulance. Dit bijhouden is het nuttigste dat u hier voor uzelf kunt doen.",
     "noData": "No Medical Information",
     "addPrompt": "Add your medical details so we can provide better emergency care.",
     "addInfo": "Add Medical Information",
@@ -1092,7 +1127,47 @@
     "addAllergy": "Add allergy...",
     "additionalNotes": "Additional Notes",
     "notesPlaceholder": "Any other important medical information...",
-    "noneRecorded": "None recorded"
+    "noneRecorded": "None recorded",
+    "notAdded": "Niet toegevoegd",
+    "chooseBloodType": "Kies",
+    "section": {
+      "conditions": "Aandoeningen en medicatie",
+      "allergies": "Allergieën",
+      "senses": "Mobiliteit, gehoor en zicht",
+      "doctor": "Uw arts",
+      "insurance": "Particuliere verzekering",
+      "other": "Nog iets anders",
+      "access": "Hoe men uw huis binnenkomt"
+    },
+    "field": {
+      "conditions": "Aandoeningen",
+      "medications": "Medicatie",
+      "medsLocation": "Waar u uw medicatie bewaart",
+      "medsLocationHint": "Zodat een ambulancebemanning die kan vinden zonder uw huis door te zoeken.",
+      "medsNotes": "Nog iets anders over uw medicatie",
+      "allergies": "Allergieën",
+      "mobility": "Hoe u zich verplaatst",
+      "mobilityHint": "Bijvoorbeeld: rollator binnen, kan geen trap op.",
+      "hearing": "Gehoor",
+      "hearingHint": "Zodat een operator weet dat hij harder moet praten, of dat u hem eerst misschien niet hoort.",
+      "vision": "Zicht",
+      "doctorName": "Arts",
+      "doctorPhone": "Telefoon van de arts",
+      "doctorLocation": "Gezondheidscentrum",
+      "hospital": "Voorkeursziekenhuis",
+      "bloodType": "Bloedgroep",
+      "insurer": "Verzekeraar",
+      "policyNumber": "Polisnummer",
+      "additionalNotes": "Nog iets anders dat we moeten weten"
+    },
+    "access": {
+      "keySafeLocation": "Waar de sleutelkluis zit",
+      "keySafeCode": "Code van de sleutelkluis",
+      "gateCode": "Code van het hek of de portiek",
+      "notes": "Hoe men binnenkomt",
+      "locked": "Bel ons om dit te wijzigen — we controleren wie u bent voordat we aanpassen hoe iemand uw huis binnenkomt.",
+      "loadFailed": "We konden dit onderdeel niet lezen. Het is niet leeg — probeer het opnieuw."
+    }
   },
   "subscription": {
     "title": "Abonnement en facturatie",
@@ -1113,8 +1188,6 @@
     "updatePaymentMethod": "Betaalmethode bijwerken",
     "paymentHistory": "Betalingsgeschiedenis",
     "noPaymentHistory": "Geen betalingsgeschiedenis beschikbaar",
-    "noActiveSubscription": "Geen actief abonnement",
-    "contactSupport": "Neem contact op met onze klantenservice voor informatie over uw abonnement.",
     "date": "Datum",
     "type": "Type",
     "status": "Status",
@@ -1125,12 +1198,40 @@
     "mo": "/mnd",
     "yr": "/jr",
     "quarterly": "/kwartaal",
-    "changePlanNote": "Neem contact op met onze klantenservice om te wisselen tussen het Single- en Couple-abonnement.",
-    "contactToUpgrade": "Neem contact op met de klantenservice om uw abonnement te upgraden.",
-    "contactToUpdatePayment": "Neem contact op met de klantenservice om uw betaalmethode bij te werken.",
-    "invoiceComingSoon": "Facturen downloaden is binnenkort beschikbaar.",
+    "changePlanNote": "Elk van deze opties start een bericht aan ons. We bevestigen de prijs met u en verwerken de betaling — er verandert niets op uw kaart totdat u dat zegt.",
     "creditCard": "Creditcard",
-    "bankTransfer": "Bankoverschrijving"
+    "bankTransfer": "Bankoverschrijving",
+    "notMonitored": "Op dit moment houdt niemand uw alarm in de gaten. Als u op uw hanger drukt, antwoordt er geen operator.",
+    "talkToUs": "Stuur ons een bericht",
+    "whoPays": "Wie betaalt",
+    "paidByYou": "U betaalt dit zelf.",
+    "paidBySomeoneElse": "Iemand anders betaalt uw lidmaatschap.",
+    "payerArrangesPayment": "Dit regelt de persoon die uw lidmaatschap betaalt. Stuur ons een bericht als u niet weet wie dat is.",
+    "addPendant": "Een hanger toevoegen",
+    "changeToCouple": "Overstappen naar het duo-abonnement",
+    "orAnnual": "of {{price}} per jaar — bespaart {{saving}}",
+    "oneOffCosts": "Eenmalig te betalen bij aanmelding",
+    "thePendant": "De hanger",
+    "shipping": "Bezorging",
+    "registrationFee": "Installatiekosten",
+    "condition": {
+      "activeTitle": "Uw lidmaatschap is actief",
+      "activeBody": "Een operator beantwoordt uw alarm, dag en nacht.",
+      "neverJoinedTitle": "U heeft nog geen lidmaatschap",
+      "neverJoinedBody": "Vandaag houdt niemand een alarm voor u in de gaten. Dit kost een lidmaatschap — laat ons weten welk abonnement u wilt, dan regelen we het samen met u en verwerken we de betaling.",
+      "awaitingPaymentTitle": "We wachten nog op uw betaling",
+      "awaitingPaymentBody": "Uw lidmaatschap is aangemaakt, maar de betaling heeft ons niet bereikt, dus de bewaking is nog niet gestart. Denkt u dat u al betaald heeft? Laat het ons weten, dan zoeken we het uit.",
+      "pausedTitle": "Uw lidmaatschap is gepauzeerd",
+      "pausedBody": "Zolang het gepauzeerd is, houdt niemand uw alarm in de gaten en betaalt u niets. Vraag het ons, dan starten we het weer.",
+      "inArrearsTitle": "Een betaling is niet gelukt",
+      "inArrearsBody": "De bewaking is gestopt totdat de betaling geregeld is. Stuur ons een bericht, dan brengen we de kaart samen met u in orde — meld u alstublieft niet opnieuw aan, u heeft al een lidmaatschap.",
+      "suspendedTitle": "Uw lidmaatschap is opgeschort",
+      "suspendedBody": "Op dit moment houdt niemand uw alarm in de gaten. Stuur ons een bericht, dan vertellen we u waarom en wat er nodig is om het weer te starten.",
+      "endedTitle": "Uw lidmaatschap is beëindigd",
+      "endedBody": "Niemand houdt uw alarm in de gaten. We hebben uw gegevens nog, dus opnieuw beginnen is een kort gesprek in plaats van een volledige aanmelding.",
+      "unknownTitle": "We konden uw lidmaatschap niet laden",
+      "unknownBody": "Dit ligt aan ons, niet aan iets wat u heeft gedaan. Probeer het zo meteen opnieuw — en als het blijft gebeuren, laat het ons weten, want dat horen we liever."
+    }
   },
   "support": {
     "title": "Hulp & ondersteuning",
@@ -1240,7 +1341,11 @@
     "faqShort": "FAQ",
     "generalEnquirySubject": "Ondersteuningsverzoek",
     "upgradePlanSubject": "Verzoek planupgrade",
-    "updatePaymentSubject": "Betaalmethode bijwerken"
+    "updatePaymentSubject": "Betaalmethode bijwerken",
+    "startMembershipSubject": "Mijn lidmaatschap starten",
+    "restartMembershipSubject": "Mijn lidmaatschap opnieuw starten",
+    "addPendantSubject": "Een hanger toevoegen",
+    "changeToCoupleSubject": "Overstappen naar het duo-abonnement"
   },
   "faq": {
     "testPendant": {
@@ -1303,10 +1408,8 @@
     "saveChanges": "Save Changes",
     "saving": "Saving...",
     "contactSupportToChange": "Contact support to change",
-    "emailChangeNote": "Contact support to change your email address",
+    "emailChangeNote": "Hiermee logt u in, dus we wijzigen dit samen met u per telefoon.",
     "addressEmergencyNote": "This address is used for emergency response",
-    "dobReadOnly": "Cannot be changed",
-    "nieReadOnly": "Cannot be changed",
     "updateSuccess": "Profile updated successfully",
     "updateFailed": "Failed to update profile",
     "title": "My Account",
@@ -1317,7 +1420,19 @@
     "streetAddress": "Street Address",
     "nieDni": "NIE/DNI",
     "contactInfo": "Contact Information",
-    "selectLanguage": "Select language"
+    "selectLanguage": "Select language",
+    "identityLockedReason": "Bel ons om dit te wijzigen — we moeten controleren wie u bent.",
+    "countryLockedReason": "Wij bewaken alleen adressen in Spanje.",
+    "urbanizacion": "Urbanización",
+    "bloque": "Bloque",
+    "portal": "Portal",
+    "escalera": "Escalera",
+    "awayTitle": "Gaat u weg?",
+    "awayHelp": "Geef ons de data door, dan weten we dat uw alarm stil is omdat u weg bent en niet omdat er iets mis is.",
+    "awayFrom": "Weg vanaf",
+    "awayUntil": "Terug op",
+    "pendantWithMe": "Ik neem mijn hanger mee",
+    "pendantWithMeHelp": "Als u hem thuis laat, verwachten we niet dat hij beweegt."
   },
   "dashboard": {
     "welcomeBack": "Welcome back",
@@ -1335,10 +1450,6 @@
     "announcement": "Service Announcement",
     "deviceWorking": "Your pendant is working properly",
     "contactIceAlarm": "Contact ICE Alarm España",
-    "noDeviceAssigned": "No device assigned",
-    "contactSupportDevice": "Please contact support to get your device set up.",
-    "noActiveSubscription": "No active subscription",
-    "noEmergencyContacts": "No emergency contacts added",
     "alertsLast30Days": "Alerts (30 days)",
     "batteryLevel": "Battery",
     "deviceStatus": "Device",
@@ -1376,7 +1487,10 @@
       "conversions": "Conversions",
       "videosRendered": "Rendered",
       "videosExported": "Exported"
-    }
+    },
+    "recentActivity": "Recente activiteit",
+    "noAlerts": "Geen meldingen. Er is niets gebeurd, en dat is de bedoeling.",
+    "viewAllAlerts": "Uw meldingsgeschiedenis bekijken"
   },
   "phoneOnly": {
     "yourCurrentService": "Your Current Service",
@@ -3026,7 +3140,8 @@
     "send": "Verzenden",
     "welcomeMessage": "Hallo! 👋 Ik ben uw virtuele ICE Alarm España-assistent. Hoe kan ik u vandaag helpen? Ik kan vragen beantwoorden over onze diensten en prijzen of u op weg helpen.",
     "errorMessage": "Sorry, er was een verbindingsprobleem. Probeer het later opnieuw.",
-    "fallbackMessage": "Sorry, ik kon uw bericht niet verwerken. Probeer het opnieuw."
+    "fallbackMessage": "Sorry, ik kon uw bericht niet verwerken. Probeer het opnieuw.",
+    "assistant": "Assistent"
   },
   "partnerAgreement": {
     "title": "Partner Agreement",
@@ -6113,5 +6228,39 @@
     "create": "Ledenrecord aanmaken",
     "created": "Ledenrecord aangemaakt. Nog NIET actief — betaling activeert het.",
     "createFailed": "Er is niets opgeslagen. {{reason}}"
+  },
+  "textSize": {
+    "groupLabel": "Tekstgrootte",
+    "normal": "Normale tekstgrootte",
+    "large": "Grotere tekst"
+  },
+  "protection": {
+    "title": "Uw bescherming",
+    "pendantLabel": "Hanger",
+    "membership": {
+      "ok": "Uw lidmaatschap is actief.",
+      "okAction": "Uw lidmaatschap bekijken",
+      "inactive": "Uw lidmaatschap is niet actief, dus niemand houdt uw alarm in de gaten.",
+      "inactiveAction": "Bekijk wat u kunt doen",
+      "unknown": "We konden uw lidmaatschap nu niet controleren."
+    },
+    "pendant": {
+      "ok": "Uw hanger is getest en meldt zich bij ons.",
+      "okAction": "Uw hanger bekijken",
+      "offline": "Uw hanger meldt zich niet meer bij ons.",
+      "offlineAction": "Laat het ons weten",
+      "awaitingTest": "We moeten uw hanger nog samen met u telefonisch testen.",
+      "awaitingTestAction": "De test inplannen",
+      "notSent": "Uw hanger is nog niet bij u aangekomen.",
+      "notSentAction": "Bekijk waar hij is",
+      "notIncluded": "Uw lidmaatschap bevat geen hanger.",
+      "unknown": "We konden uw hanger nu niet controleren."
+    },
+    "contacts": {
+      "ok": "We hebben mensen die we kunnen bellen.",
+      "okAction": "Uw contactpersonen bekijken",
+      "none": "We hebben nog niemand die we voor u kunnen waarschuwen.",
+      "unknown": "We konden uw contactpersonen voor noodgevallen nu niet controleren."
+    }
   }
 }

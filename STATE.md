@@ -49,7 +49,7 @@
 | W6 | Renew, single↔couple, add a pendant | 🟡 RECORDED, not performed | Each is new Stripe money-movement code against a real card that nothing here can test, and a mistake in it charges a real person. They are **offered** — an absent button is indistinguishable from a feature nobody built — with a badge saying *"You do it in Stripe"* and a note that the billing was not touched. **The audit trail works for all six today**, which is the part that was missing. |
 | W7 | `member_action` has no `resume` | 🟡 GAP recorded | The enum is the brief's six. A resume is therefore logged as an ordinary attributed `activity_logs` row rather than a `member_action` one. One `ALTER TYPE … ADD VALUE 'resume'` in the next schema bundle — `PENDING_FOR_LEE.md` D-10. |
 
-## Member dashboard pass (2026-09-07) — WP4 · **the shell is in, the pages are not converted yet**
+## Member dashboard pass (2026-09-07) — WP4 · **shell, rules and pages done; two items held for Lee**
 
 > Rules: `MEMBER_UX_RULES.md` R1–R11. This section grows one row per increment; nothing below is
 > claimed on the strength of "it looks implemented".
@@ -87,6 +87,23 @@
 | M30 | A mocked dependency is an untested one | ✅ FIXED (4j) | Two mutations **survived** the pendant-page batch because that file mocks `usePendantOrder` wholesale: dropping the `item_type = 'pendant'` filter (which would let a registration-fee line be picked as "the pendant order") and folding `memberPendantOrder` into `order` (which would stop `PendantFulfilmentCard` saying *"this pendant is on no order"* — the readiness dead-end it exists to surface). `pendantOrderHook.test.tsx` (6) asserts the hook's own query filters and both contracts; all four re-run mutations are caught. |
 | M8 | R10 — the A/A text-size control, persisted | ✅ VERIFIED (4e) | `src/lib/textSize.ts` + `TextSizeControl`, in the desktop header (R3's slot, between the bell and EN/ES) **and the phone header** — not inside the menu sheet, because a member who cannot read the screen cannot reliably find a control hidden behind a hamburger. Two levels and **neither shrinks the text**: a way to go below R10's 16px floor would be pressed once by accident and then be unreadable, including the control that undoes it. Applied from `main.tsx` before `createRoot().render()`, so the page does not render small and jump. Every `localStorage` access wrapped — Safari private mode throws on `setItem`, and a failed write costs the preference, not the visit. `textSizeControl.test.tsx` (29), fifteen mutations. |
 | M14 | Scalable fonts — the px sizes that silently opted out | ✅ FIXED (4e) | An arbitrary `text-[28px]` ignores the root font size, so the A/A control would have enlarged every other word on a member page and left the titles exactly where they were. R5's 28px is `text-[1.75rem]` — the same size at the default level. A guard test forbids a px font size in `src/pages/client` or `src/components/client`, and **it fired on its first merge**: #203's plans card landed two `text-[13px]` after this branch was cut. |
+
+## Messaging as a real service (2026-09-07) — WP6 · **schema applied; started**
+
+> The schema landed in the #180 bundle (`20260907100400_messaging_schema.sql`) and is applied:
+> `staff_internal` as a sender_type behind a **RESTRICTIVE** policy, a `channel` vocabulary, and
+> `canned_replies`. The RLS harness already proves the load-bearing one.
+
+| # | Item | Status | Evidence |
+|---|---|---|---|
+| G1 | A member never reads a staff internal note | ✅ VERIFIED (schema, #180) | `scripts/rls/isolation.sql` seeds a `staff_internal` message in a member's OWN conversation and asserts the member reads **0** and staff read **1**. RESTRICTIVE, so it is AND-ed with every other policy present or later added — the existing member policy is scoped by conversation and says nothing about sender_type, so adding the enum value without this would have been the bug. |
+| G2 | `read_at` — mark-as-read | ✅ VERIFIED (already correct) | Checked rather than assumed, and it was right: members have **no UPDATE policy on `messages`** by design, so the direct client update it replaced was silently RLS-denied (PostgREST reports zero rows, not an error) and badges never cleared. `markMemberConversationRead` routes through `member-self-service`'s `mark_read`, which verifies the conversation belongs to the caller and touches only `sender_type='staff'` rows. Both client pages call it. |
+| G3 | Unread count on the nav | ✅ VERIFIED (6a) | The count existed **inline in `ClientDashboard`**, which is why nothing else could reach it. `useMemberUnread` is the one definition; the Messages nav item carries the badge. It counts `sender_type = 'staff'` and **not** "everything that is not mine" — `staff_internal` is a legal value now, and a badge raised by a note the member cannot read is a number they can never clear. Zero renders nothing; the collapsed rail keeps a dot, because a tooltip only exists for somebody who hovers; the count is announced as a sentence, because a bare "3" beside "Messages" says nothing about what there are three of. Ink, not red (R1/R2), and the dashboard card now matches. `navUnreadBadge.test.tsx` (11). |
+| G4 | `staff_internal` notes in the staff UI | ⬜ MISSING | The column, the constraint and the proof exist; no screen writes or shows one. |
+| G5 | `canned_replies` per language | ⬜ MISSING | Table and RLS exist; no seed rows and no UI. |
+| G6 | Inbound WhatsApp/SMS into the member's conversation | ⬜ MISSING | `messages.channel` exists for it. Needs an inbound webhook. |
+| G7 | Isabella's calls as a card in the thread | ⬜ MISSING | |
+| G8 | Operator queue | ⬜ MISSING | |
 
 ## Circle of care (2026-09-07) — WP5 · **schema was already applied; the member's half is in**
 

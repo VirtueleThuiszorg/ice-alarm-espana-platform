@@ -1421,7 +1421,17 @@
     "contactInfo": "Contact Information",
     "selectLanguage": "Select language",
     "identityLockedReason": "Call us to change this — we need to verify who you are.",
-    "countryLockedReason": "We monitor addresses in Spain only."
+    "countryLockedReason": "We monitor addresses in Spain only.",
+    "urbanizacion": "Urbanización",
+    "bloque": "Bloque",
+    "portal": "Portal",
+    "escalera": "Escalera",
+    "awayTitle": "Going away?",
+    "awayHelp": "Tell us the dates and we will know your alarm is quiet because you are away, not because something is wrong.",
+    "awayFrom": "Away from",
+    "awayUntil": "Back on",
+    "pendantWithMe": "I am taking my pendant with me",
+    "pendantWithMeHelp": "If you leave it at home we will not expect it to move."
   },
   "dashboard": {
     "welcomeBack": "Welcome back",

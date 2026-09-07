@@ -4,27 +4,20 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
 import type { SubscriptionStatus } from "@/lib/membershipCondition";
 
-export interface MemberProfile {
-  id: string;
-  user_id: string | null;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string;
-  date_of_birth: string;
-  address_line_1: string;
-  address_line_2: string | null;
-  city: string;
-  province: string;
-  postal_code: string;
-  country: string | null;
-  nie_dni: string | null;
-  preferred_language: "en" | "es";
-  special_instructions: string | null;
-  photo_url: string | null;
-  status: string;
-  created_at: string;
-}
+/**
+ * THE GENERATED ROW — the third hand-written subset of a table's shape in this file, after
+ * `MedicalInfo` and `EmergencyContact`, and fixed the same way.
+ *
+ * It listed nineteen of `members`' forty-odd columns. The query says `select("*")`, so the data
+ * always arrived and the TYPE discarded it — including every column WP5 added: `away_from`,
+ * `away_until`, `pendant_with_member`, and the structured Spanish address
+ * (`urbanizacion` / `bloque` / `portal` / `escalera`).
+ *
+ * It also declared `preferred_language: "en" | "es"` for a column whose enum is
+ * `en | es | nl`. That is not a cosmetic narrowing: it is what let the profile form be built
+ * around two values and quietly break for a member whose row says `nl`. See D-15.
+ */
+export type MemberProfile = Tables<"members">;
 
 /**
  * THE GENERATED ROW, not a hand-written subset.

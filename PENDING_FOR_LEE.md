@@ -224,6 +224,35 @@ One column, `payers.preferred_language`, with the member's as the default. Not a
 D-8 means no payer is messaged yet, so it would be schema for a code path that cannot run —
 and the next schema bundle is a better place for it than a migration on its own.
 
+### D-11 — R3's one sentence loses the reassurance, and the fix is three strings (2026-09-07)
+
+R3 puts the readiness notice in the header as **one sentence**. The bar it replaces led with
+*"Your alarm works and an operator will always answer it. But we have no one to contact on your
+behalf yet."* — and leading with what still WORKS is a rule in its own right
+(`ICE_OPERATOR_CARD_SPEC.md` §5.2): an 80-year-old who reads "we still need your emergency
+contacts" and concludes their alarm is not working is worse served than before.
+
+**The two rules are in tension and I implemented R3**, because it is newer and more specific, and
+moved the reassurance to the contacts page where the member lands. Nothing is frightening in the
+meantime — the sentence on screen is a task, not an alarm.
+
+**But one sentence can do both**, and this is the wording I would use:
+
+| gap | proposed |
+|---|---|
+| contacts | *Your alarm works — we just need someone to contact.* |
+| pendant | *Your alarm works — we just need to test it with you.* |
+| both | *Your alarm works — we just need someone to contact.* (one task at a time) |
+
+Three keys, three languages. **Not done in this PR** because two other PRs were open on
+`src/i18n/locales/*.json` at the time and CLAUDE.md's serial-merge rule exists because two
+outages came from exactly that. Say the word — or say you prefer the current wording — and it
+goes in the next locale pass either way.
+
+Note also: **the phone number is no longer in the notice.** One sentence has no room for it, so
+the pendant variant links to Support, where the number lives. That removed the last test fixture
+allowed to contain `+34 900 123 456`, which is a small good thing.
+
 ### D-6 — five alert/badge colours are below WCAG AA, and fixing them changes safety colour
 
 Measured on the base `:root` palette (`publicPaletteContrast.test.ts`). All are white-or-near-

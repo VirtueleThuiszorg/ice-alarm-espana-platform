@@ -503,22 +503,16 @@ export default function ClientDashboard() {
       </div>
       )}
 
-      {/* Announcements */}
-      <Card className="border-alert-checkin/30 bg-alert-checkin/5">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <div className="h-8 w-8 rounded-full bg-alert-checkin/20 flex items-center justify-center shrink-0">
-              <span className="text-base">📢</span>
-            </div>
-            <div>
-              <h3 className="font-semibold text-sm">{t("dashboard.serviceAnnouncement")}</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                {t("dashboard.announcementText")}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/*
+        THE SERVICE ANNOUNCEMENT IS GONE. D10: "Company announcements go in the bell, never in
+        page content."
+
+        It was a permanent card at the bottom of Home carrying one hardcoded string — the same
+        sentence every day, for every member, forever. A notice that never changes is furniture,
+        and furniture at the bottom of the page a member checks their alarm on is furniture in
+        the way. The bell is where something that actually changes belongs, and it already
+        exists (`NotificationBell`).
+      */}
     </div>
   );
 }

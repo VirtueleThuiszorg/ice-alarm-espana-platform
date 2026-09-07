@@ -5765,10 +5765,7 @@
       "previousAlerts": "Alertas Anteriores",
       "notes": "Notas",
       "notesPlaceholder": "Notas del personal durante la llamada...",
-      "autoSave": "Se guarda automáticamente cada 30 segundos",
-      "pendantUntestedHeading": "Colgante nunca probado",
-      "pendantUntestedBody": "Nunca se ha atendido una llamada de prueba desde el domicilio de este miembro. Puede que sea la primera vez que oye a un operador.",
-      "pendantUntestedAdvice": "Diga quién es y desde dónde llama antes que nada. No dé por hecho que sabe que el colgante puede hablar."
+      "autoSave": "Se guarda automáticamente cada 30 segundos"
     },
     "controls": {
       "unmute": "Activar Micrófono",

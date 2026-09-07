@@ -1,4 +1,4 @@
-import { Phone, MessageCircle, ArrowRight, Calendar, CreditCard, AlertTriangle, CheckCircle2, Eye, ArrowLeft, MessageSquare, Inbox} from "lucide-react";
+import { Phone, MessageCircle, ArrowRight, Eye, ArrowLeft, MessageSquare, Inbox} from "lucide-react";
 import { DeviceStatusCard } from "@/components/dashboard/DeviceStatusCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,8 @@ import i18n from "@/i18n";
 
 import { telHref, waNumber } from "@/lib/phone";
 import { PageHeader } from "@/components/client/PageHeader";
+import { ProtectionChecklist } from "@/components/client/ProtectionChecklist";
+import { useMemberSubscriptions, useMemberAlerts } from "@/hooks/useMemberProfile";
 // Mock data for template preview mode
 const MOCK_MEMBER = {
   first_name: "Demo",
@@ -96,16 +98,35 @@ export default function ClientDashboard() {
     enabled: !!effectiveMemberId && !isTemplatePreview,
   });
 
-  // Fetch subscription data
-  const { data: subscription, isLoading: subLoading } = useQuery({
-    queryKey: ["member-subscription", effectiveMemberId],
+  /*
+    ONE definition of "the active subscription", shared with the Membership page.
+
+    This was a local `.eq("status","active")` query — a second copy of that filter, and one that
+    could only ever see the active row. The protection checklist needs the LATEST subscription of
+    any status too, because "paused" and "never joined" are different things to say to a member
+    (see `membershipCondition.ts`). `useMemberSubscriptions` answers both from one read.
+  */
+  const { data: subscriptions } = useMemberSubscriptions(
+    isTemplatePreview ? null : effectiveMemberId,
+  );
+  const subscription = subscriptions?.active ?? null;
+
+  /*
+    Readiness, the derived view — the same row the header notice and the staff queue read.
+
+    It is here for two reasons. The checklist's contacts and pendant rungs need it, and the
+    contacts COUNT on this page was wrong: the `emergency_contacts` query below is `.limit(3)`,
+    so a member with five contacts was shown "3 contacts". `emergency_contact_count` is the
+    count, not the length of a page of rows.
+  */
+  const { data: readiness, isLoading: readinessLoading } = useQuery({
+    queryKey: ["member-readiness", effectiveMemberId],
     queryFn: async () => {
       if (!effectiveMemberId) return null;
       const { data, error } = await supabase
-        .from("subscriptions")
-        .select("*")
+        .from("member_monitoring_readiness")
+        .select("monitoring_ready, emergency_contact_count, device_tested_at")
         .eq("member_id", effectiveMemberId)
-        .eq("status", "active")
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -113,22 +134,14 @@ export default function ClientDashboard() {
     enabled: !!effectiveMemberId && !isTemplatePreview,
   });
 
-  // Fetch emergency contacts
-  const { data: contacts, isLoading: contactsLoading } = useQuery({
-    queryKey: ["member-emergency-contacts", effectiveMemberId],
-    queryFn: async () => {
-      if (!effectiveMemberId) return [];
-      const { data, error } = await supabase
-        .from("emergency_contacts")
-        .select("*")
-        .eq("member_id", effectiveMemberId)
-        .order("priority_order", { ascending: true })
-        .limit(3);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!effectiveMemberId && !isTemplatePreview,
-  });
+  /*
+    THE `emergency_contacts` READ IS GONE FROM THIS PAGE.
+
+    It was `.limit(3)`, used for two things: two contact-name cards (now the contacts rung, which
+    says whether we have anybody rather than listing them) and a "N contacts" number that could
+    never exceed three. The readiness view already carries the count, so this page now makes one
+    fewer round trip and reports the right number.
+  */
 
   // Fetch recent alerts count
   const { data: alertsCount } = useQuery({
@@ -172,31 +185,35 @@ export default function ClientDashboard() {
     enabled: !!effectiveMemberId && !isTemplatePreview,
   });
 
+  // The last few alerts, for "Recent activity". Same override as the subscription read, for the
+  // same admin-preview reason.
+  const { data: recentAlerts } = useMemberAlerts(isTemplatePreview ? null : effectiveMemberId);
+
   // Use mock data in template preview mode
   const displayMember = isTemplatePreview ? MOCK_MEMBER : member;
   const displayDevice = isTemplatePreview ? MOCK_DEVICE : device;
-  const displaySubscription = isTemplatePreview ? MOCK_SUBSCRIPTION : subscription;
-  const displayContacts = isTemplatePreview ? MOCK_CONTACTS : contacts;
   const displayAlertsCount = isTemplatePreview ? 2 : alertsCount;
   const displayUnreadMsgs = isTemplatePreview ? 3 : (unreadMsgCount || 0);
+  const displayRecentAlerts = isTemplatePreview ? [] : (recentAlerts ?? []);
+  /*
+    THE COUNT, not the length of a page of rows.
+
+    `contacts` above is `.limit(3)`, so `displayContacts.length` maxes out at three and a member
+    with five was shown "3 contacts" — an undercount on the one number that says how many people
+    we can reach. `emergency_contact_count` comes from the readiness view and is the count.
+    `null` when the row could not be read, and rendered as an em dash rather than a zero: on this
+    page a zero means "nobody is coming".
+  */
+  const contactCount = isTemplatePreview
+    ? MOCK_CONTACTS.length
+    : (readiness?.emergency_contact_count ?? null);
 
   const dateLocale = i18n.language === 'es' ? es : enGB;
   const currentDate = format(new Date(), 'EEEE, d MMMM yyyy', { locale: dateLocale });
 
   const memberName = displayMember?.first_name || t("common.member");
 
-  const formatPlanType = (type: string) => {
-    return type === "single" ? t("membership.single") : type === "couple" ? t("membership.couple") : type;
-  };
 
-  const formatBillingFrequency = (freq: string) => {
-    switch (freq) {
-      case "monthly": return t("subscription.mo");
-      case "quarterly": return t("subscription.quarterly");
-      case "annual": return t("subscription.yr");
-      default: return "";
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -297,126 +314,96 @@ export default function ClientDashboard() {
           location={displayDevice.last_location_address || undefined}
         />
       ) : (
-        <Card className="border-alert-battery/30 bg-alert-battery/5">
-          <CardContent className="p-4 flex items-center gap-3">
-            <AlertTriangle className="h-5 w-5 text-alert-battery" />
-            <div>
-              <p className="font-medium">{t("dashboard.noDeviceAssigned")}</p>
-              <p className="text-sm text-muted-foreground">
-                {t("dashboard.contactSupportDevice")}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        /*
+          NOTHING, deliberately, and the checklist below says it instead.
+
+          This branch was a card reading "No device assigned / Please contact support to get your
+          device set up." — R6's banned sentence, and a card that tells a member what is missing
+          without telling them whether it is on its way, whether they chose a phone-only plan, or
+          what happens next. The pendant rung answers all three. Two notices about the same
+          absence, one of them a dead end, is worse than one that works.
+        */
+        null
       )}
 
 
-      {/* Quick Actions Grid */}
-      <div className="grid gap-4 md:grid-cols-3">
-        {/* Subscription Status */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold">{t("navigation.subscription")}</CardTitle>
-              {subLoading && !isTemplatePreview ? (
-                <Skeleton className="h-5 w-16" />
-              ) : displaySubscription ? (
-                <Badge variant="outline" className="bg-alert-resolved/10 text-alert-resolved border-alert-resolved/30 text-xs">
-                  <CheckCircle2 className="mr-1 h-3 w-3" />
-                  {t("common.active")}
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="text-xs">
-                  {t("common.inactive")}
-                </Badge>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {subLoading && !isTemplatePreview ? (
-              <>
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-              </>
-            ) : displaySubscription ? (
-              <>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{t("common.plan")}</span>
-                  <span className="font-medium">{formatPlanType(displaySubscription.plan_type)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{t("dashboard.nextPayment")}</span>
-                  <span className="font-medium flex items-center gap-1">
-                    <Calendar className="h-3.5 w-3.5" />
-                    {format(new Date(displaySubscription.renewal_date), "dd MMM yyyy")}
+      {/*
+        "YOUR PROTECTION" — WP4's checklist, replacing the Subscription and Emergency-contacts
+        cards that were here.
+
+        Those two were small dashboards of their own: a plan name, a renewal date, an amount, two
+        contact names with ordinal badges. All true, and none of it the question a member opens
+        this page to ask, which is "if I press it, will somebody come?" That has three parts, and
+        the member has to be able to see which one is missing.
+
+        Reasoning for the five states — and for why a pendant on its way is NOT "action needed",
+        and a phone-only plan is not a fault — is in `src/lib/protectionChecklist.ts`.
+      */}
+      <ProtectionChecklist
+        input={
+          isTemplatePreview
+            ? {
+                latestSubscription: MOCK_SUBSCRIPTION,
+                hasPendant: true,
+                device: MOCK_DEVICE,
+                readiness: { emergency_contact_count: MOCK_CONTACTS.length, device_tested_at: null },
+              }
+            : {
+                latestSubscription: subscriptions?.latest,
+                hasPendant: subscription?.has_pendant,
+                device,
+                readiness,
+              }
+        }
+      />
+
+      {/*
+        RECENT ACTIVITY — and its empty state is the reassuring one.
+
+        WP4: *"Recent activity (empty = 'No alerts')."* For most members most of the time this
+        list is empty, and that is the good outcome — so the empty state says so plainly rather
+        than apologising for having nothing to show.
+      */}
+      <Card data-testid="recent-activity">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold">
+            {t("dashboard.recentActivity", "Recent activity")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {recentAlerts === undefined && !isTemplatePreview ? (
+            <Skeleton className="h-12 w-full" />
+          ) : displayRecentAlerts.length === 0 ? (
+            <p className="text-base text-muted-foreground" data-testid="recent-activity-empty">
+              {t("dashboard.noAlerts", "No alerts. Nothing has happened, which is the idea.")}
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {displayRecentAlerts.slice(0, 3).map((alert) => (
+                <li
+                  key={alert.id}
+                  className="flex items-center justify-between gap-3 rounded-lg bg-muted/50 p-3"
+                >
+                  <span className="min-w-0 truncate text-base">
+                    {t(`alerts.type.${alert.alert_type}`, alert.alert_type)}
                   </span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{t("common.amount")}</span>
-                  <span className="font-medium">€{displaySubscription.amount}{formatBillingFrequency(displaySubscription.billing_frequency)}</span>
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">{t("dashboard.noActiveSubscription")}</p>
-            )}
-            <Button variant="outline" size="sm" className="w-full mt-2" asChild>
-              <Link to="/dashboard/subscription">
-                <CreditCard className="mr-2 h-4 w-4" />
-                {t("dashboard.manageSubscription")}
-                <ArrowRight className="ml-auto h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+                  <span className="shrink-0 text-[0.8125rem] text-muted-foreground">
+                    {format(new Date(alert.received_at), "dd MMM yyyy")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Button variant="outline" size="sm" className="mt-3 w-full" asChild>
+            <Link to="/dashboard/alerts">
+              {t("dashboard.viewAllAlerts", "See your alert history")}
+              <ArrowRight className="ml-auto h-4 w-4" />
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
 
-        {/* Emergency Contacts Summary */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold">{t("navigation.emergencyContacts")}</CardTitle>
-              {(isTemplatePreview || (!contactsLoading && displayContacts && displayContacts.length > 0)) && (
-                <Badge variant="secondary" className="text-xs">{displayContacts?.length || 0} {t("common.contacts")}</Badge>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {contactsLoading && !isTemplatePreview ? (
-              <>
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-              </>
-            ) : displayContacts && displayContacts.length > 0 ? (
-              <div className="space-y-2">
-                {displayContacts.slice(0, 2).map((contact, index) => (
-                  <div key={contact.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                    <div>
-                      <span className="font-medium text-sm block">{contact.contact_name}</span>
-                      <span className="text-xs text-muted-foreground">{contact.relationship}</span>
-                    </div>
-                    {index === 0 ? (
-                      <Badge variant="secondary" className="text-xs">{t("common.primary")}</Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-xs">{index + 1}{t("common.ordinalSuffix")}</Badge>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <AlertTriangle className="h-8 w-8 text-alert-battery mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">{t("dashboard.noEmergencyContacts")}</p>
-              </div>
-            )}
-            <Button variant="outline" size="sm" className="w-full" asChild>
-              <Link to="/dashboard/contacts">
-                {t("dashboard.updateContacts")}
-                <ArrowRight className="ml-auto h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-
+      <div className="grid gap-4">
         {/* Messages Card */}
         <Card>
           <CardHeader className="pb-3">
@@ -455,9 +442,19 @@ export default function ClientDashboard() {
         </Card>
       </div>
 
-      {/* Quick Stats — gated on loading: rendering "0 alerts / Offline"
-          mid-fetch is false reassurance on a safety dashboard */}
-      {(deviceLoading || contactsLoading) && !isTemplatePreview ? (
+      {/*
+        QUICK STATS — NOT SHOWN AT ALL TO A MEMBER WITH NO DEVICE.
+
+        WP4 says so in as many words: *"No stat tiles for a member with no device."* Two of the
+        four are about the pendant, and with no pendant they read "0%" battery and "Offline" —
+        which is not a zero, it is a fact about a device that does not exist. On a page whose
+        subject is whether an alarm works, that is false precision at best and quietly alarming
+        at worst.
+
+        Still gated on loading as well: rendering "0 alerts / Offline" mid-fetch is false
+        reassurance on a safety dashboard.
+      */}
+      {!isTemplatePreview && !deviceLoading && !displayDevice ? null : (deviceLoading || readinessLoading) && !isTemplatePreview ? (
         <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i}>
@@ -478,7 +475,11 @@ export default function ClientDashboard() {
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-alert-resolved">{displayContacts?.length || 0}</p>
+            {/* The count from the readiness view, not the length of a `.limit(3)` page. An em
+                dash rather than 0 when it cannot be read: a zero here means nobody is coming. */}
+            <p className="text-2xl font-bold text-alert-resolved" data-testid="stat-contact-count">
+              {contactCount ?? "—"}
+            </p>
             <p className="text-xs text-muted-foreground">{t("common.contacts")}</p>
           </CardContent>
         </Card>

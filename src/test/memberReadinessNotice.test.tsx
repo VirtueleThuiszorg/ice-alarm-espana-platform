@@ -355,12 +355,34 @@ describe("placement — R3 and D10, and the standalone banner is gone", () => {
     }
   });
 
-  it("the dashboard no longer carries the readiness read, or the announcement", () => {
-    // D10: "Company announcements go in the bell, never in page content." It was a permanent
-    // card with one hardcoded string — the same sentence every day, for every member, forever.
+  it("the dashboard carries no readiness NOTICE, and no announcement", () => {
+    /*
+      D10: "Company announcements go in the bell, never in page content." The announcement was a
+      permanent card with one hardcoded string — the same sentence every day, for every member,
+      forever.
+
+      THIS ASSERTION WAS ORIGINALLY `not.toContain("member_monitoring_readiness")` and that was
+      too wide, which showed up the moment WP4's "Your protection" checklist landed. What D10
+      forbids in page content is the NOTICE — the amber prompt that now lives in the header on
+      every page. The brief asks, in the same breath, for Home to carry a checklist of
+      Membership / Pendant / Emergency contacts "each with state and one action", and that
+      checklist cannot exist without reading the readiness view.
+
+      So the guard is on the notice, not on the read: no bar, no second copy of the header
+      notice, no announcement. Narrowed deliberately, with the reason, rather than deleted.
+    */
     const dash = read("src/pages/client/ClientDashboard.tsx");
-    expect(dash).not.toContain("member_monitoring_readiness");
+    expect(dash).not.toContain("MonitoringReadinessBar");
+    expect(dash).not.toContain("MemberReadinessNotice");
     expect(dash).not.toContain("dashboard.announcementText");
     expect(dash).not.toContain("serviceAnnouncement");
+  });
+
+  it("and if it reads the readiness view at all, it is the checklist doing it", () => {
+    // The narrowing above must not become a licence to render readiness prose on Home again.
+    const dash = read("src/pages/client/ClientDashboard.tsx");
+    if (dash.includes("member_monitoring_readiness")) {
+      expect(dash).toContain("<ProtectionChecklist");
+    }
   });
 });

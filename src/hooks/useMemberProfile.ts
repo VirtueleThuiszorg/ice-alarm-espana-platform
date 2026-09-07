@@ -210,8 +210,18 @@ export interface MemberSubscriptions {
  * status condition, so dropping the `active` filter widens nothing. A member could always read
  * their cancelled subscriptions; the client was choosing not to.
  */
-export function useMemberSubscriptions() {
-  const { memberId } = useAuth();
+export function useMemberSubscriptions(memberIdOverride?: string | null) {
+  const { memberId: authMemberId } = useAuth();
+  /*
+    THE OVERRIDE EXISTS FOR ONE CALLER, and it is there so there is not a second copy of this.
+
+    `ClientDashboard` supports an admin previewing a member's Home (`?memberId=`), so it cannot
+    read the signed-in member's id. It had its own `.eq("status","active")` query for exactly
+    that reason — a second definition of "the active subscription", which is the kind of
+    duplicate the §16 bar names. Passing the id in costs one parameter; keeping two queries in
+    step costs attention forever.
+  */
+  const memberId = memberIdOverride === undefined ? authMemberId : memberIdOverride;
 
   return useQuery({
     queryKey: ["member-subscriptions", memberId],
@@ -247,8 +257,10 @@ export function useMemberSubscription() {
   return { ...query, data: query.data === undefined ? undefined : query.data.active };
 }
 
-export function useMemberAlerts() {
-  const { memberId } = useAuth();
+export function useMemberAlerts(memberIdOverride?: string | null) {
+  const { memberId: authMemberId } = useAuth();
+  // Same override, same reason as `useMemberSubscriptions` — see the comment there.
+  const memberId = memberIdOverride === undefined ? authMemberId : memberIdOverride;
 
   return useQuery({
     queryKey: ["member-alerts", memberId],

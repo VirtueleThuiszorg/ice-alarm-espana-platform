@@ -1408,10 +1408,6 @@
     "announcement": "Service Announcement",
     "deviceWorking": "Your pendant is working properly",
     "contactIceAlarm": "Contact ICE Alarm España",
-    "noDeviceAssigned": "No device assigned",
-    "contactSupportDevice": "Please contact support to get your device set up.",
-    "noActiveSubscription": "No active subscription",
-    "noEmergencyContacts": "No emergency contacts added",
     "alertsLast30Days": "Alerts (30 days)",
     "batteryLevel": "Battery",
     "deviceStatus": "Device",
@@ -1449,7 +1445,10 @@
       "conversions": "Conversions",
       "videosRendered": "Rendered",
       "videosExported": "Exported"
-    }
+    },
+    "recentActivity": "Recent activity",
+    "noAlerts": "No alerts. Nothing has happened, which is the idea.",
+    "viewAllAlerts": "See your alert history"
   },
   "phoneOnly": {
     "yourCurrentService": "Your Current Service",
@@ -6192,5 +6191,34 @@
     "groupLabel": "Text size",
     "normal": "Normal text size",
     "large": "Larger text"
+  },
+  "protection": {
+    "title": "Your protection",
+    "pendantLabel": "Pendant",
+    "membership": {
+      "ok": "Your membership is active.",
+      "okAction": "See your membership",
+      "inactive": "Your membership is not active, so nobody is monitoring your alarm.",
+      "inactiveAction": "See what to do",
+      "unknown": "We could not check your membership just now."
+    },
+    "pendant": {
+      "ok": "Your pendant is tested and checking in.",
+      "okAction": "See your pendant",
+      "offline": "Your pendant has stopped checking in with us.",
+      "offlineAction": "Tell us about it",
+      "awaitingTest": "We still need to test your pendant with you on the phone.",
+      "awaitingTestAction": "Arrange the test",
+      "notSent": "Your pendant has not reached you yet.",
+      "notSentAction": "See where it is",
+      "notIncluded": "Your membership does not include a pendant.",
+      "unknown": "We could not check your pendant just now."
+    },
+    "contacts": {
+      "ok": "We have people we can call.",
+      "okAction": "See your contacts",
+      "none": "We have nobody to contact on your behalf yet.",
+      "unknown": "We could not check your emergency contacts just now."
+    }
   }
 }

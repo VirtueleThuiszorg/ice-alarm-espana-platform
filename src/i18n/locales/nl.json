@@ -1376,10 +1376,8 @@
     "saveChanges": "Save Changes",
     "saving": "Saving...",
     "contactSupportToChange": "Contact support to change",
-    "emailChangeNote": "Contact support to change your email address",
+    "emailChangeNote": "Hiermee logt u in, dus we wijzigen dit samen met u per telefoon.",
     "addressEmergencyNote": "This address is used for emergency response",
-    "dobReadOnly": "Cannot be changed",
-    "nieReadOnly": "Cannot be changed",
     "updateSuccess": "Profile updated successfully",
     "updateFailed": "Failed to update profile",
     "title": "My Account",
@@ -1390,7 +1388,9 @@
     "streetAddress": "Street Address",
     "nieDni": "NIE/DNI",
     "contactInfo": "Contact Information",
-    "selectLanguage": "Select language"
+    "selectLanguage": "Select language",
+    "identityLockedReason": "Bel ons om dit te wijzigen — we moeten controleren wie u bent.",
+    "countryLockedReason": "Wij bewaken alleen adressen in Spanje."
   },
   "dashboard": {
     "welcomeBack": "Welcome back",

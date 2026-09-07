@@ -10,9 +10,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, User, Mail, Phone, MapPin, Lock, Save } from "lucide-react";
+import { Loader2, User, Mail, Phone, MapPin, Save } from "lucide-react";
 import { GdprSettingsSection } from "@/components/gdpr/GdprSettingsSection";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -20,6 +19,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import i18n from "@/i18n";
 import { PageHeader } from "@/components/client/PageHeader";
+import { LockedIdentityField } from "@/components/client/LockedIdentityField";
 
 export default function ProfilePage() {
   const { t } = useTranslation();
@@ -236,29 +236,27 @@ export default function ProfilePage() {
                       </FormItem>
                     )}
                   />
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Lock className="h-3 w-3 text-muted-foreground" />
-                      {t("profile.dateOfBirth")}
-                    </Label>
-                    <div className="p-3 bg-muted/50 rounded-lg font-medium text-muted-foreground">
-                      {profile?.date_of_birth 
+                  {/*
+                    R7 — DOB and NIE stay locked, WITH A REASON, and the reason is the brief's
+                    own sentence. Both said "Cannot be changed", which tells a member what they
+                    cannot do and nothing about what they can. See LockedIdentityField.
+                  */}
+                  <LockedIdentityField
+                    label={t("profile.dateOfBirth")}
+                    value={
+                      profile?.date_of_birth
                         ? format(new Date(profile.date_of_birth), "dd MMMM yyyy")
-                        : "—"
-                      }
-                    </div>
-                    <p className="text-xs text-muted-foreground">{t("profile.dobReadOnly")}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Lock className="h-3 w-3 text-muted-foreground" />
-                      {t("profile.nieDni")}
-                    </Label>
-                    <div className="p-3 bg-muted/50 rounded-lg font-medium text-muted-foreground">
-                      {profile?.nie_dni || "—"}
-                    </div>
-                    <p className="text-xs text-muted-foreground">{t("profile.nieReadOnly")}</p>
-                  </div>
+                        : null
+                    }
+                    reason={t("profile.identityLockedReason")}
+                    testId="profile-locked-dob"
+                  />
+                  <LockedIdentityField
+                    label={t("profile.nieDni")}
+                    value={profile?.nie_dni || null}
+                    reason={t("profile.identityLockedReason")}
+                    testId="profile-locked-nie"
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -273,17 +271,13 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Lock className="h-3 w-3 text-muted-foreground" />
-                      {t("profile.emailAddress")}
-                    </Label>
-                    <div className="p-3 bg-muted/50 rounded-lg font-medium text-muted-foreground flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      {profile?.email || "—"}
-                    </div>
-                    <p className="text-xs text-muted-foreground">{t("profile.emailChangeNote")}</p>
-                  </div>
+                  <LockedIdentityField
+                    label={t("profile.emailAddress")}
+                    value={profile?.email || null}
+                    icon={<Mail className="h-4 w-4" aria-hidden="true" />}
+                    reason={t("profile.emailChangeNote")}
+                    testId="profile-locked-email"
+                  />
                   <FormField
                     control={form.control}
                     name="phone"
@@ -379,15 +373,12 @@ export default function ProfilePage() {
                       </FormItem>
                     )}
                   />
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Lock className="h-3 w-3 text-muted-foreground" />
-                      {t("profile.country")}
-                    </Label>
-                    <div className="p-3 bg-muted/50 rounded-lg font-medium text-muted-foreground">
-                      {profile?.country || t("common.spain")}
-                    </div>
-                  </div>
+                  <LockedIdentityField
+                    label={t("profile.country")}
+                    value={profile?.country || t("common.spain")}
+                    reason={t("profile.countryLockedReason")}
+                    testId="profile-locked-country"
+                  />
                 </div>
                 <p className="text-xs text-muted-foreground mt-4">{t("profile.addressEmergencyNote")}</p>
               </CardContent>

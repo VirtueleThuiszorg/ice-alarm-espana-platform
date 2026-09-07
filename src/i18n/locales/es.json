@@ -1376,10 +1376,8 @@
     "saveChanges": "Guardar cambios",
     "saving": "Guardando...",
     "contactSupportToChange": "Contacte soporte para cambiar",
-    "emailChangeNote": "Contacte soporte para cambiar su correo electrónico",
+    "emailChangeNote": "Con esta dirección inicia sesión, así que la cambiamos con usted por teléfono.",
     "addressEmergencyNote": "Esta dirección se utiliza para respuesta de emergencia",
-    "dobReadOnly": "No se puede cambiar",
-    "nieReadOnly": "No se puede cambiar",
     "updateSuccess": "Perfil actualizado correctamente",
     "updateFailed": "Error al actualizar el perfil",
     "title": "Mi Cuenta",
@@ -1390,7 +1388,9 @@
     "streetAddress": "Dirección",
     "nieDni": "NIE/DNI",
     "contactInfo": "Información de contacto",
-    "selectLanguage": "Seleccionar idioma"
+    "selectLanguage": "Seleccionar idioma",
+    "identityLockedReason": "Llámenos para cambiarlo: necesitamos verificar su identidad.",
+    "countryLockedReason": "Solo atendemos direcciones en España."
   },
   "dashboard": {
     "welcomeBack": "Bienvenido/a",

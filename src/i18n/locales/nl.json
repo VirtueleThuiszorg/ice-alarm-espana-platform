@@ -1408,10 +1408,6 @@
     "announcement": "Service Announcement",
     "deviceWorking": "Your pendant is working properly",
     "contactIceAlarm": "Contact ICE Alarm España",
-    "noDeviceAssigned": "No device assigned",
-    "contactSupportDevice": "Please contact support to get your device set up.",
-    "noActiveSubscription": "No active subscription",
-    "noEmergencyContacts": "No emergency contacts added",
     "alertsLast30Days": "Alerts (30 days)",
     "batteryLevel": "Battery",
     "deviceStatus": "Device",
@@ -1449,7 +1445,10 @@
       "conversions": "Conversions",
       "videosRendered": "Rendered",
       "videosExported": "Exported"
-    }
+    },
+    "recentActivity": "Recente activiteit",
+    "noAlerts": "Geen meldingen. Er is niets gebeurd, en dat is de bedoeling.",
+    "viewAllAlerts": "Uw meldingsgeschiedenis bekijken"
   },
   "phoneOnly": {
     "yourCurrentService": "Your Current Service",
@@ -6192,5 +6191,34 @@
     "groupLabel": "Tekstgrootte",
     "normal": "Normale tekstgrootte",
     "large": "Grotere tekst"
+  },
+  "protection": {
+    "title": "Uw bescherming",
+    "pendantLabel": "Hanger",
+    "membership": {
+      "ok": "Uw lidmaatschap is actief.",
+      "okAction": "Uw lidmaatschap bekijken",
+      "inactive": "Uw lidmaatschap is niet actief, dus niemand houdt uw alarm in de gaten.",
+      "inactiveAction": "Bekijk wat u kunt doen",
+      "unknown": "We konden uw lidmaatschap nu niet controleren."
+    },
+    "pendant": {
+      "ok": "Uw hanger is getest en meldt zich bij ons.",
+      "okAction": "Uw hanger bekijken",
+      "offline": "Uw hanger meldt zich niet meer bij ons.",
+      "offlineAction": "Laat het ons weten",
+      "awaitingTest": "We moeten uw hanger nog samen met u telefonisch testen.",
+      "awaitingTestAction": "De test inplannen",
+      "notSent": "Uw hanger is nog niet bij u aangekomen.",
+      "notSentAction": "Bekijk waar hij is",
+      "notIncluded": "Uw lidmaatschap bevat geen hanger.",
+      "unknown": "We konden uw hanger nu niet controleren."
+    },
+    "contacts": {
+      "ok": "We hebben mensen die we kunnen bellen.",
+      "okAction": "Uw contactpersonen bekijken",
+      "none": "We hebben nog niemand die we voor u kunnen waarschuwen.",
+      "unknown": "We konden uw contactpersonen voor noodgevallen nu niet controleren."
+    }
   }
 }

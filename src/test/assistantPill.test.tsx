@@ -22,7 +22,7 @@
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, waitFor } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -88,14 +88,34 @@ describe("the pill", () => {
     expect(classNames).not.toContain("animate-ping");
   });
 
-  it("shows the agent avatar when there is one, with no duplicate announcement", () => {
+  it("shows the agent avatar when there is one, with no duplicate announcement", async () => {
+    /*
+      THE PRELOAD HAS TO BE MADE TO HAPPEN.
+
+      The component only renders the <img> once its own `new Image()` has fired `onload`, which
+      jsdom never does. The first version of this test wrote `if (img) expect(...)`, so it asserted
+      NOTHING — a mutation setting `alt="AI Help"` sailed through it. A conditional assertion is
+      not a weaker assertion, it is the absence of one.
+    */
+    const realImage = window.Image;
+    class LoadingImage {
+      onload: (() => void) | null = null;
+      set src(_v: string) {
+        setTimeout(() => this.onload?.(), 0);
+      }
+    }
+    (window as unknown as { Image: unknown }).Image = LoadingImage;
+
     avatarUrl = "https://example.test/isabella.png";
     const { container } = render(<MemberChatButton memberId="m1" />);
-    // The image only renders once preloaded, so what matters here is that when it does, it
-    // carries an empty alt — the word "Assistant" is already beside it.
-    const img = container.querySelector("img");
-    if (img) expect(img.getAttribute("alt")).toBe("");
+
+    await waitFor(() => expect(container.querySelector("img")).not.toBeNull());
+    // Empty alt: the word "Assistant" is right beside it, and an alt of its own makes a screen
+    // reader announce the same thing twice.
+    expect(container.querySelector("img")!.getAttribute("alt")).toBe("");
     expect(screen.getByRole("button", { name: /Assistant/ })).toBeVisible();
+
+    (window as unknown as { Image: unknown }).Image = realImage;
   });
 
   it("falls back to an icon that is hidden from assistive tech", () => {

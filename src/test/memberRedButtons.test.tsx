@@ -46,7 +46,8 @@ const ROOT = process.cwd();
  */
 const RED_BUTTONS: Record<string, string[]> = {
   "src/pages/client/DevicePage.tsx": [
-    "the page's one action — open WhatsApp to the ICE number",
+    "the awaiting-pendant branch's one action — ask us where it is",
+    "the phone-only branch's one action — add a pendant. Unconditional now: it used to be gated on a configured WhatsApp number, so with none configured there was NO route to the one thing that page offers",
   ],
   "src/pages/client/EmergencyContactsPage.tsx": [
     "the header action, rendered ONLY when there is already a list (see the rendered tests below)",
@@ -79,8 +80,37 @@ const RED_BUTTONS: Record<string, string[]> = {
   ],
 };
 
+/**
+ * Comments removed, because the parser must read CODE.
+ *
+ * Found by mutation: a comment in `DevicePage` that EXPLAINS a button — "this was a single
+ * `whatsappNumber && <Button …wa.me…>`" — was counted as a third red button on the page. The
+ * same prose-vs-code slip this codebase has now made four times, this time inside the measuring
+ * instrument, where it is worse: it means the inventory can be moved by writing about buttons.
+ */
+function stripComments(src: string): string {
+  // BLOCK COMMENTS ONLY, and no attempt to match a surrounding JSX brace pair.
+  //
+  // The first version of this also tried to match a whole JSX comment including its braces, and
+  // it SWALLOWED 3KB OF REAL MARKUP in `MedicalInfoPage` — dropping its count from 2 to 0. A
+  // JSX expression that merely CONTAINS a note, `{ note someExpression }`, does not end with a
+  // comment terminator immediately followed by a closing brace, so the lazy match ran on to the
+  // next place that did, taking two real buttons with it.
+  //
+  // Removing the comment BODY leaves an empty brace pair, which the scan below does not care
+  // about, and there is nothing left to over-match.
+  //
+  // (Line comments here rather than a block, deliberately: a block comment describing a comment
+  // stripper cannot quote a comment terminator without closing itself. That mistake cost a
+  // parse error one commit ago.)
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^[ \t]*\/\/.*$/gm, "");
+}
+
 /** Red = `bg-primary`, which is what `<Button>` renders with no variant on this surface. */
-function redButtonsIn(src: string): string[] {
+function redButtonsIn(rawSrc: string): string[] {
+  const src = stripComments(rawSrc);
   const found: string[] = [];
   for (const m of src.matchAll(/<Button\b/g)) {
     // Walk to the end of the opening tag, ignoring `>` inside a JSX expression.

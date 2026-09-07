@@ -69,6 +69,35 @@ async function fetchOrder(orderId: string): Promise<PendantOrder | null> {
   };
 }
 
+
+/**
+ * THE MEMBER'S PENDANT ORDER, whether or not a device has been put on it yet.
+ *
+ * `usePendantOrderForMember`'s `order` is reached through `devices → order_items`, because that
+ * is the path `member_monitoring_readiness` takes and the one whose gap the hook exists to
+ * expose. But a member reading their OWN pendant page in the window between paying and the
+ * device arriving has no device, so that path finds nothing — and the page could only say "you
+ * have no pendant", which for somebody who has paid for one is the wrong sentence entirely.
+ *
+ * `item_type = 'pendant'` is the identifier, exactly as `linkDeviceToPendantOrder` uses: a
+ * registration fee or a subscription line is not a thing you can put a device on.
+ *
+ * RLS: `orders!inner` embeds under the member's own policies — "Members can view own orders" and
+ * "Members can view own order items" — so this returns their order and nobody else's.
+ */
+async function fetchMemberPendantOrder(memberId: string): Promise<PendantOrder | null> {
+  const { data, error } = await supabase
+    .from("order_items")
+    .select("order_id, created_at, orders!inner(member_id)")
+    .eq("item_type", "pendant")
+    .eq("orders.member_id", memberId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+
+  const orderId = (data ?? [])[0]?.order_id;
+  return orderId ? await fetchOrder(orderId) : null;
+}
+
 /**
  * The most recent order whose items name this device.
  *
@@ -141,10 +170,31 @@ export function usePendantOrderForMember(memberId: string | null | undefined) {
     },
   });
 
+  /*
+    A SECOND, SEPARATE ANSWER — and the two are not the same question.
+
+    `order` above is "the order this member's DEVICE sits on", which is what readiness needs and
+    whose absence is the gap this hook exists to expose. `memberPendantOrder` is "this member's
+    pendant order, device or not", which is what the member's own pendant page needs in the
+    window between paying and the device arriving.
+
+    Kept as its own field rather than folded into `order`, because `linkedToOrder: false` with a
+    non-null `order` would quietly change what `PendantFulfilmentCard` reads — and that card's
+    whole job is to say "this pendant is on no order", which is the readiness dead-end.
+  */
+  const memberOrderQuery = useQuery({
+    queryKey: ["member-fulfilment", "member-pendant-order", memberId],
+    enabled: !!memberId,
+    queryFn: () => fetchMemberPendantOrder(memberId as string),
+  });
+
   return {
     order: query.data?.order ?? null,
     linkedToOrder: query.data?.linkedToOrder ?? false,
     hasDevice: query.data?.hasDevice ?? false,
+    /** The member's pendant order regardless of device linkage. See the comment above. */
+    memberPendantOrder: memberOrderQuery.data ?? null,
+    memberPendantOrderLoading: memberOrderQuery.isLoading,
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,

@@ -8,6 +8,7 @@ import {
   type FulfilmentState,
 } from "@/lib/fulfilmentState";
 import { useOrderActions } from "@/hooks/useOrderActions";
+import { notifyTransition } from "@/lib/notifyTransition";
 import type { OrderStatus } from "@/lib/orderStatus";
 
 /**
@@ -88,6 +89,27 @@ export function useFulfilmentState() {
       if (mappedStatus && mappedStatus !== currentStatus) {
         await updateOrderStatus.mutateAsync({ orderId, status: mappedStatus, memberId });
       }
+
+      /*
+        WP3 — ONE DISPATCHER, CALLED ON EVERY STATE EDGE.
+
+        Last, and its failure is swallowed on purpose: a notification that could not be sent
+        must never undo a fulfilment state that was. The state is the fact; the message is a
+        courtesy about the fact. `notify-fulfilment` itself returns 200 with a decision per
+        channel even when every one is skipped, so a non-error response here says nothing about
+        whether anything was actually sent — that is in `member_notification_log`, which is the
+        only honest place for it.
+
+        The `paid` edge is NOT here. It belongs to the payment webhook, and per the brief no PR
+        touching stripe-webhook merges — that hook is a separate PR left open for Lee.
+      */
+      // `paid` is skipped, and it is the only state that is. Nothing transitions INTO `paid`
+      // except the payment webhook — a supervisor CORRECTING an order back to `paid` is the one
+      // way it happens from here, and there is deliberately no `fulfilment.paid.*` template: a
+      // member told "your pendant is no longer allocated" by an automated SMS, with no
+      // explanation and nobody to ask, is worse served than by the phone call that correction
+      // should prompt anyway.
+      if (to !== "paid") await notifyTransition(orderId, to);
 
       return { orderId, to, correction };
     },

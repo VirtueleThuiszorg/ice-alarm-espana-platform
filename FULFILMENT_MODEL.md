@@ -231,6 +231,100 @@ practice.
 
 ---
 
+## 6-A. Notifications — the dispatcher (WP3)
+
+*Design and rationale. Implemented by `supabase/functions/_shared/notify-fulfilment.ts` and the
+`notify-fulfilment` edge function.*
+
+`notifyFulfilment(order_id, transition)` is called once per state edge and is the only thing in
+this codebase that decides whether a member hears about a state change. Six edges × three
+channels × two audiences is thirty-six chances to get consent wrong if each caller works it out
+for itself.
+
+### 6-A.1 Two gates, both required
+
+1. the **channel** is on globally — `system_settings.notify_channel_{sms,email,whatsapp}`, all
+   three seeded `false`, turned on by Lee as a table edit (`PENDING_FOR_LEE.md` §3)
+2. the **recipient** has permission — a `member_notification_optin` row with `opted_in = true`
+
+Either alone is wrong. A global flag with no per-member consent sends to people who never
+agreed; per-member consent with no global flag sends over a transport nobody has proved
+delivers.
+
+**On today's production data this dispatcher sends nothing**, because all three flags are off.
+That is the correct behaviour, not a broken one, and it is asserted as such.
+
+### 6-A.2 A skip is recorded, never silent
+
+GOALS.md G2. Every decision writes one `member_notification_log` row, and the status says which
+gate stopped it: `sent` · `failed` · `skipped_channel_off` · `skipped_no_optin` ·
+`skipped_no_address` · `skipped_no_template` · `skipped_no_payer_consent`.
+
+A silent skip and a successful send are indistinguishable afterwards, and on a life-safety
+product the record of what was sent to whom is evidence rather than convenience.
+
+**A flag is on only when its value is exactly the string `true`.** Missing is not permission,
+and neither is `TRUE`, `1` or `yes` — `system_settings.value` is text, so anything else is a
+typo rather than a switch. Asserted for all five.
+
+### 6-A.3 No template means no message
+
+There is no inline fallback text anywhere in the dispatcher. A hardcoded English default is the
+thing that reaches a Spanish member the day somebody forgets a seed row — and it would look like
+the feature working. A missing or inactive template is `skipped_no_template`.
+
+The locale falls back to **Spanish**, not English, for a member with no preference on file.
+Spain is the market, and guessing English is the guess that reaches an 80-year-old in Almería in
+a language they may not read.
+
+### 6-A.4 The payer (D6), and the consent that has nowhere to live
+
+Recipient resolution is built: the payer is a second recipient when `subscriptions.payer_id` is
+set and their address differs from the member's — checked on the **addresses**, not the ids,
+because a payer record for the member themselves is common and messaging them twice about one
+event is how a member learns to ignore the messages.
+
+The audience is in the **event key** (`fulfilment.dispatched.payer`) rather than a column,
+because the brief requires different text for the same event — *"the payer is told about the
+order, the member about their alarm"* — and one row with two bodies is a row somebody will
+eventually send the wrong half of.
+
+**But every payer send is refused today.** `member_notification_optin` is keyed on `member_id`
+and a payer is not a member, so there is nowhere to record a payer's consent.
+`payerConsent()` returns false for every payer and every payer send is logged as
+`skipped_no_payer_consent` — visible in the log rather than absent from it. Inventing a legal
+basis inside a module is not a decision a module gets to make; it is
+`PENDING_FOR_LEE.md` D-8.
+
+### 6-A.5 Which edges call it, and the one that does not
+
+`useFulfilmentState` (the staff actions), `linkDeviceToPendantOrder` (allocation) and
+`markOrderProgrammed` (the checklist). All three go through `src/lib/notifyTransition.ts`, which
+**never throws and never toasts**: the state is the fact, the message is a courtesy about the
+fact, and a notification that could not be sent must not undo a fulfilment state that was.
+
+`paid` is the exception, twice over:
+
+* nothing transitions **into** `paid` except the payment webhook, and per the brief no PR
+  touching `stripe-webhook` merges — that hook is a separate PR held for a human
+* a supervisor **correcting** an order back to `paid` is the one way it happens from here, and
+  it is deliberately not notified. There is no `fulfilment.paid.*` template: a member told "your
+  pendant is no longer allocated" by an automated SMS, with no explanation and nobody to ask, is
+  worse served than by the phone call that correction should prompt anyway
+
+### 6-A.6 Why called and not triggered
+
+A database trigger cannot make an HTTP request without `pg_net`, which this project cannot
+install on the isolation harness — `scripts/rls/run.sh` skips the two pg_net/pg_cron migrations
+for exactly that reason. So the edges call the function.
+
+The function itself **requires a JWT**, expressed by its absence from `supabase/config.toml`
+(which lists only the functions with `verify_jwt = false`). It writes `member_notification_log`
+under the service role, and that table has no `authenticated` write path at all by design: a
+client that could write it could fabricate a delivery record.
+
+---
+
 ## 7. Negative assertions — what must be PROVEN not to happen
 
 Positive tests confirm the design was implemented. These confirm it cannot be gone around, and

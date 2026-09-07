@@ -65,10 +65,21 @@ function resultFor(table: string): { data: unknown; error: unknown } {
   return { data: null, error: null };
 }
 
+/** Every `notify-fulfilment` call, so WP3's "called on every state edge" is provable. */
+let invoked: { fn: string; body: Record<string, unknown> }[] = [];
+let invokeThrows = false;
+
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: (table: string) => chain(resultFor(table), table),
     auth: { getUser: () => Promise.resolve({ data: { user: { id: "u1" } } }) },
+    functions: {
+      invoke: (fn: string, opts: { body: Record<string, unknown> }) => {
+        invoked.push({ fn, body: opts.body });
+        if (invokeThrows) return Promise.reject(new Error("edge function unreachable"));
+        return Promise.resolve({ data: null, error: null });
+      },
+    },
   },
 }));
 
@@ -134,6 +145,8 @@ async function renderCard(memberId = "m1") {
 }
 
 beforeEach(() => {
+  invoked = [];
+  invokeThrows = false;
   writes = [];
   failWrite = {};
   readError = {};
@@ -343,6 +356,68 @@ describe("the three answers that are not a state", () => {
     deviceRows = [];
     await renderCard();
     await waitFor(() => expect(screen.queryByTestId("pendant-fulfilment-card")).toBeNull());
+  });
+});
+
+describe("WP3: every state edge rings the dispatcher", () => {
+  it("allocation notifies `allocated`, with the order it moved", async () => {
+    orderItemRows = [ITEM({ device_id: null })];
+    const { linkDeviceToPendantOrder } = await import("@/lib/allocatePendant");
+    await linkDeviceToPendantOrder("m1", "d9");
+    expect(invoked).toEqual([
+      { fn: "notify-fulfilment", body: { order_id: "o1", transition: "allocated" } },
+    ]);
+  });
+
+  it("finishing the checklist notifies `programmed`", async () => {
+    orderItemRows = [
+      ITEM({ orders: { id: "o1", fulfilment_state: "allocated", order_number: "ICE-0001" } }),
+    ];
+    const { markOrderProgrammed } = await import("@/lib/allocatePendant");
+    await markOrderProgrammed("d1");
+    expect(invoked).toEqual([
+      { fn: "notify-fulfilment", body: { order_id: "o1", transition: "programmed" } },
+    ]);
+  });
+
+  it("does NOT notify when no transition was made", async () => {
+    // A notification about a state change that did not happen is worse than none: it tells the
+    // member something that is not true.
+    orderItemRows = [
+      ITEM({ orders: { id: "o1", fulfilment_state: "paid", order_number: "ICE-0001" } }),
+    ];
+    const { markOrderProgrammed } = await import("@/lib/allocatePendant");
+    await markOrderProgrammed("d1");
+    expect(invoked).toEqual([]);
+  });
+
+  it("an unreachable dispatcher does NOT fail the transition", async () => {
+    // The state is the fact; the message is a courtesy about the fact. A notification that
+    // could not be sent must never undo a fulfilment state that was.
+    invokeThrows = true;
+    orderItemRows = [ITEM({ device_id: null })];
+    const { linkDeviceToPendantOrder } = await import("@/lib/allocatePendant");
+    const outcome = await linkDeviceToPendantOrder("m1", "d9");
+    expect(outcome).toEqual({ kind: "moved", orderId: "o1", orderNumber: "ICE-0001" });
+    expect(writes.map((w) => w.table)).toEqual(["order_items", "orders"]);
+  });
+
+  it("the staff actions notify too, and skip only `paid`", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("src/hooks/useFulfilmentState.ts", "utf8");
+    expect(src).toContain('if (to !== "paid") await notifyTransition(orderId, to)');
+    // There is deliberately no `fulfilment.paid.*` template: a member told "your pendant is no
+    // longer allocated" by an automated SMS, with nobody to ask, is worse served than by the
+    // phone call that correction should prompt.
+    const helper = readFileSync("src/lib/notifyTransition.ts", "utf8");
+    // Asserted on CODE, not on prose: the helper's own comment explains why it never toasts,
+    // so a grep for "toast" matches the explanation. It must not IMPORT or CALL one — all
+    // three channels are off in production, so the only truthful message would be "nothing was
+    // sent" on every transition, and a notice that is always shown is one nobody reads.
+    expect(helper).not.toMatch(/import .*\btoast\b/);
+    expect(helper).not.toMatch(/toast[.(]/);
+    // And it swallows rather than rethrows.
+    expect(helper).toMatch(/catch \{/);
   });
 });
 

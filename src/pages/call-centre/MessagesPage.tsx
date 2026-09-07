@@ -4,6 +4,9 @@ import { createNotification, getMemberUserId } from "@/utils/notifications";
 import { staffSenderType } from "@/lib/messageSenderType";
 import { withCannedReply } from "@/lib/cannedReplies";
 import { CannedReplyPicker } from "@/components/messaging/CannedReplyPicker";
+import { useIsabellaThread } from "@/hooks/useIsabellaThread";
+import { IsabellaEpisodeCard } from "@/components/messaging/IsabellaEpisodeCard";
+import { mergeThread } from "@/lib/isabellaThread";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import {
@@ -105,6 +108,12 @@ export default function CallCentreMessagesPage() {
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  /*
+    Isabella's side of this conversation — her turns are in `conversation_messages` and her
+    calls in `conversation_calls`, and no thread has ever read either. A member who spoke to
+    her shows up here as a conversation with nothing in it. See `src/lib/isabellaThread.ts`.
+  */
+  const { data: isabellaEpisodes = [] } = useIsabellaThread(selectedConversation?.id ?? null);
   const [currentStaffId, setCurrentStaffId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
@@ -861,41 +870,46 @@ export default function CallCentreMessagesPage() {
               {/* Messages */}
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-4">
-                  {messages.filter(m => m.message_type !== "system" || m.content.startsWith("[Internal Note]")).map((msg) => (
+                  {mergeThread(
+                    messages.filter(m => m.message_type !== "system" || m.content.startsWith("[Internal Note]")),
+                    isabellaEpisodes,
+                  ).map((item) => item.kind === "isabella" ? (
+                    <IsabellaEpisodeCard key={item.episode.id} episode={item.episode} viewer="staff" />
+                  ) : (
                     <div
-                      key={msg.id}
+                      key={item.message.id}
                       className={cn(
                         "flex",
-                        msg.sender_type === "member" ? "justify-start" : "justify-end"
+                        item.message.sender_type === "member" ? "justify-start" : "justify-end"
                       )}
                     >
                       <div
                         className={cn(
                           "max-w-[70%] rounded-lg p-3",
-                          msg.sender_type === "member"
+                          item.message.sender_type === "member"
                             ? "bg-muted"
-                            : msg.message_type === "system"
+                            : item.message.message_type === "system"
                             ? "bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700"
                             : "bg-primary text-primary-foreground"
                         )}
                       >
-                        {msg.message_type === "system" && (
+                        {item.message.message_type === "system" && (
                           <div className="flex items-center gap-1 mb-1">
                             <StickyNote className="h-3 w-3" />
                             <span className="text-xs font-medium">{t("callCentreMessages.internalNote", "Internal Note")}</span>
                           </div>
                         )}
                         <p className="text-sm whitespace-pre-wrap">
-                          {msg.content.replace("[Internal Note] ", "")}
+                          {item.message.content.replace("[Internal Note] ", "")}
                         </p>
                         <div className="flex items-center justify-end gap-2 mt-1">
-                          {msg.sender_type === "staff" && msg.staff && (
+                          {item.message.sender_type === "staff" && item.message.staff && (
                             <span className="text-xs opacity-70">
-                              {msg.staff.first_name}
+                              {item.message.staff.first_name}
                             </span>
                           )}
                           <span className="text-xs opacity-70">
-                            {format(new Date(msg.created_at), "HH:mm")}
+                            {format(new Date(item.message.created_at), "HH:mm")}
                           </span>
                         </div>
                       </div>

@@ -1422,7 +1422,17 @@
     "contactInfo": "Información de contacto",
     "selectLanguage": "Seleccionar idioma",
     "identityLockedReason": "Llámenos para cambiarlo: necesitamos verificar su identidad.",
-    "countryLockedReason": "Solo atendemos direcciones en España."
+    "countryLockedReason": "Solo atendemos direcciones en España.",
+    "urbanizacion": "Urbanización",
+    "bloque": "Bloque",
+    "portal": "Portal",
+    "escalera": "Escalera",
+    "awayTitle": "¿Se va de viaje?",
+    "awayHelp": "Díganos las fechas y sabremos que su alarma está en silencio porque está fuera, no porque algo vaya mal.",
+    "awayFrom": "Fuera desde",
+    "awayUntil": "Fecha de regreso",
+    "pendantWithMe": "Me llevo el colgante",
+    "pendantWithMeHelp": "Si lo deja en casa, no esperaremos que se mueva."
   },
   "dashboard": {
     "welcomeBack": "Bienvenido/a",

@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { loadTwilioNumbers, warnIfSmsNumberCannotSendSms } from "../_shared/twilio-numbers.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { twilioParams, verifyTwilioSignature } from "../_shared/twilio-signature.ts";
+import { inboundReply, recordInboundMessage, type InboundDb } from "../_shared/inbound-message.ts";
 
 
 
@@ -43,77 +45,73 @@ serve(async (req) => {
     const action = url.searchParams.get("action");
 
     if (action === "incoming") {
-      // Handle incoming SMS
-      const formData = await req.formData();
-      const from = formData.get("From") as string;
-      const body = formData.get("Body") as string;
-      const messageSid = formData.get("MessageSid") as string;
-
-      console.log("Incoming SMS from:", from, "Body:", body);
-
-      // Sanitize phone to only digits and +
-      const phoneClean = from.replace(/[^0-9+]/g, "");
-      const phoneWithoutPlus = phoneClean.replace("+", "");
-
-      // Validate phone format (E.164)
-      if (!/^\+?[1-9]\d{1,14}$/.test(phoneClean)) {
-        console.warn(`Invalid phone format from Twilio: ${from}`);
-        return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`, {
-          headers: { ...corsHeaders, "Content-Type": "application/xml" },
-        });
+      /*
+        SIGNATURE FIRST, AND IT REFUSES. This handler now WRITES INTO A MEMBER'S CONVERSATION,
+        so an unsigned POST with `From=<a member's phone>` would put words in that member's
+        mouth in their own thread. `_shared/twilio-signature.ts` says why "log and proceed" is
+        not an option here.
+      */
+      const form = await req.formData();
+      const params = twilioParams(form);
+      const verdict = await verifyTwilioSignature({
+        authToken: twilioConfig.settings_twilio_auth_token,
+        url: req.url,
+        params,
+        signature: req.headers.get("x-twilio-signature"),
+      });
+      if (!verdict.valid) {
+        console.warn(`twilio-sms: refusing unsigned inbound (${verdict.reason})`);
+        return new Response("Forbidden", { status: 403, headers: corsHeaders });
       }
 
-      // Find member by phone using separate queries to avoid SQL injection
-      let member = null;
-      const { data: memberByExact } = await supabase
-        .from("members")
-        .select("id, first_name, last_name")
-        .eq("phone", phoneClean)
-        .maybeSingle();
-      
-      if (memberByExact) {
-        member = memberByExact;
-      } else {
-        const { data: memberByNormalized } = await supabase
+      const from = params.From ?? "";
+      const body = params.Body ?? "";
+      const messageSid = params.MessageSid ?? "";
+
+      const outcome = await recordInboundMessage(supabase as unknown as InboundDb, {
+        from,
+        body,
+        providerSid: messageSid,
+        channel: "sms",
+      });
+
+      // UNCHANGED, and deliberately still here: during an open alert the same text also belongs
+      // on the alert record. Removing it to avoid "writing twice" would delete evidence from the
+      // SOS path, where the two records answer different questions.
+      if (outcome.status === "stored" || outcome.status === "duplicate") {
+        const phoneClean = from.replace(/[^0-9+]/g, "");
+        const { data: member } = await supabase
           .from("members")
-          .select("id, first_name, last_name")
-          .eq("phone", phoneWithoutPlus)
-          .maybeSingle();
-        member = memberByNormalized;
-      }
-
-      // Log the incoming message
-      if (member) {
-        // Check for active alert
-        const { data: activeAlert } = await supabase
-          .from("alerts")
           .select("id")
-          .eq("member_id", member.id)
-          .in("status", ["incoming", "in_progress"])
-          .order("received_at", { ascending: false })
-          .limit(1)
-          .single();
+          .eq("phone", phoneClean)
+          .maybeSingle();
+        if (member) {
+          const { data: activeAlert } = await supabase
+            .from("alerts")
+            .select("id")
+            .eq("member_id", member.id)
+            .in("status", ["incoming", "in_progress"])
+            .order("received_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-        if (activeAlert) {
-          await supabase.from("alert_communications").insert({
-            alert_id: activeAlert.id,
-            communication_type: "sms",
-            direction: "inbound",
-            recipient_type: "member",
-            recipient_phone: from,
-            message_content: body,
-            twilio_sid: messageSid
-          });
+          if (activeAlert) {
+            await supabase.from("alert_communications").insert({
+              alert_id: activeAlert.id,
+              communication_type: "sms",
+              direction: "inbound",
+              recipient_type: "member",
+              recipient_phone: from,
+              message_content: body,
+              twilio_sid: messageSid
+            });
+          }
         }
       }
 
-      // TwiML response
-      const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>Gracias por contactar ICE Alarm España. Un operador revisará su mensaje. / Thank you for contacting ICE Alarm España. An operator will review your message.</Message>
-</Response>`;
-
-      return new Response(twiml, {
+      const reply = inboundReply(outcome);
+      return new Response(reply.xml, {
+        status: reply.httpStatus,
         headers: { ...corsHeaders, "Content-Type": "application/xml" },
       });
     }

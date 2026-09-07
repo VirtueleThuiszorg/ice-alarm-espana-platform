@@ -3099,7 +3099,8 @@
     "send": "Verzenden",
     "welcomeMessage": "Hallo! 👋 Ik ben uw virtuele ICE Alarm España-assistent. Hoe kan ik u vandaag helpen? Ik kan vragen beantwoorden over onze diensten en prijzen of u op weg helpen.",
     "errorMessage": "Sorry, er was een verbindingsprobleem. Probeer het later opnieuw.",
-    "fallbackMessage": "Sorry, ik kon uw bericht niet verwerken. Probeer het opnieuw."
+    "fallbackMessage": "Sorry, ik kon uw bericht niet verwerken. Probeer het opnieuw.",
+    "assistant": "Assistent"
   },
   "partnerAgreement": {
     "title": "Partner Agreement",

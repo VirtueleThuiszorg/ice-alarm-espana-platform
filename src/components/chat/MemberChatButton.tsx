@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Bot } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { AIChatWidget } from "./AIChatWidget";
@@ -9,6 +10,26 @@ import { useMemberProfile } from "@/hooks/useMemberProfile";
 const AGENT_KEY = "member_specialist";
 const AVATAR_AGENT_KEY = "customer_service_expert"; // Use same avatar as frontend
 
+/**
+ * THE ASSISTANT PILL — MEMBER_UX_RULES R3.
+ *
+ * *"RIGHT = Assistant outline pill, bell, A/A text size, EN/ES, initials avatar + name + role."*
+ *
+ * It was a bare round avatar with no visible label. For this reader that is a guess: an unlabelled
+ * circular image in a header is a photograph of somebody, or an account menu, or a decoration —
+ * a member has to press it to find out. The `aria-label` meant a screen reader was better served
+ * than the person looking at the screen. An outline pill saying "Assistant" needs no guessing, and
+ * outline rather than red because R1 rations red to the page's own action.
+ *
+ * THE PULSING GREEN DOT IS GONE, and this is the part worth reading. It was a hard-coded
+ * `bg-green-500` with `animate-ping`, driven by nothing. The member surface already uses a small
+ * round green dot for ONE thing: `is_online`, the pendant's connectivity — `ClientDashboard` and
+ * `DevicePage` both render it from real data. So the same mark on a header button teaches a member
+ * that a green dot means their alarm is connected, and then shows them one that does not.
+ *
+ * There is nothing wrong with saying the assistant is always available; `chat.available` says it
+ * in words inside the widget, where it is a sentence rather than a signal.
+ */
 interface MemberChatButtonProps {
   className?: string;
   memberId?: string | null;
@@ -38,32 +59,27 @@ export function MemberChatButton({ className, memberId }: MemberChatButtonProps)
 
   return (
     <>
-      <button
+      <Button
+        variant="outline"
         onClick={() => setIsOpen(true)}
-        className={cn(
-          "relative h-10 w-10 rounded-full overflow-hidden shadow-lg hover:scale-105 transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
-          className
-        )}
-        aria-label={t("chat.openChat", "Chat with AI Assistant")}
+        className={cn("gap-2", className)}
+        data-testid="assistant-pill"
       >
         {avatarUrl && imagePreloaded ? (
-          <img 
-            src={avatarUrl} 
-            alt="AI Help" 
-            className="h-full w-full object-cover"
+          /* alt="" deliberately: the word "Assistant" is right next to it, and an alt of its own
+             makes a screen reader announce the same thing twice. */
+          <img
+            src={avatarUrl}
+            alt=""
+            className="h-6 w-6 rounded-full object-cover"
             loading="eager"
             fetchPriority="high"
           />
         ) : (
-          <div className="h-full w-full bg-primary/10 flex items-center justify-center">
-            <Bot className="h-5 w-5 text-primary" />
-          </div>
+          <Bot className="h-4 w-4" aria-hidden="true" />
         )}
-        {/* Pulsing online indicator */}
-        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-background">
-          <span className="absolute inset-0 rounded-full bg-green-500 animate-ping opacity-75" />
-        </span>
-      </button>
+        <span>{t("chat.assistant", "Assistant")}</span>
+      </Button>
 
       {isOpen && (
         <AIChatWidget 

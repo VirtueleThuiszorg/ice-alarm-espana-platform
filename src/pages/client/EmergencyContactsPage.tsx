@@ -10,7 +10,6 @@ import {
   canAttendChoice,
   canAttendValue,
   contactTypeLabel,
-  type CanAttendChoice,
   type ContactType,
 } from "@/lib/contactTypes";
 import { supabase } from "@/integrations/supabase/client";
@@ -107,6 +106,28 @@ const RELATIONSHIP_KEYS = [
   { value: "Other", key: "other" },
 ];
 
+/**
+ * ONE blank contact, used by both the initial `defaultValues` and by `openAddDialog`'s reset.
+ *
+ * There were two copies of this object. A mutation that changed only the first one SURVIVED the
+ * whole suite — which is the drift hazard stated as a fact: the two could disagree about
+ * `can_attend` and only one of them would be the value a member actually sees. "I am not sure" is
+ * a real answer a member gives, not the absence of one, and it is not the same as "no" (see
+ * `contactTypes.ts`).
+ */
+const BLANK_CONTACT: ContactFormData = {
+  contact_name: "",
+  relationship: "",
+  phone: "",
+  email: "",
+  notes: "",
+  speaks_spanish: false,
+  contact_type: DEFAULT_CONTACT_TYPE,
+  can_attend: "unknown",
+  country: "",
+  availability_notes: "",
+};
+
 export default function EmergencyContactsPage() {
   const { t } = useTranslation();
   const { memberId } = useAuth();
@@ -120,37 +141,11 @@ export default function EmergencyContactsPage() {
 
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
-    defaultValues: {
-      contact_name: "",
-      relationship: "",
-      phone: "",
-      email: "",
-      notes: "",
-      speaks_spanish: false,
-      contact_type: DEFAULT_CONTACT_TYPE,
-      // No default for "can they get here" — see `contactTypes.ts`. "I am not sure" is a real
-      // answer a member gives, not the absence of one, and it is not the same as "no".
-      can_attend: "unknown" as CanAttendChoice,
-      country: "",
-      availability_notes: "",
-    },
+    defaultValues: BLANK_CONTACT,
   });
 
   const openAddDialog = () => {
-    form.reset({
-      contact_name: "",
-      relationship: "",
-      phone: "",
-      email: "",
-      notes: "",
-      speaks_spanish: false,
-      contact_type: DEFAULT_CONTACT_TYPE,
-      // No default for "can they get here" — see `contactTypes.ts`. "I am not sure" is a real
-      // answer a member gives, not the absence of one, and it is not the same as "no".
-      can_attend: "unknown" as CanAttendChoice,
-      country: "",
-      availability_notes: "",
-    });
+    form.reset(BLANK_CONTACT);
     setEditingContact(null);
     setDialogOpen(true);
   };

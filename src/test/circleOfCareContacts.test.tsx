@@ -225,6 +225,21 @@ describe("the form", () => {
     expect(screen.getByTestId("contact-type-help").textContent).toContain("Most people start here");
   });
 
+  it("keeps ONE blank-contact object, so the two reset paths cannot disagree", async () => {
+    /*
+      There were two copies of the form's blank values — `defaultValues` and `openAddDialog`'s
+      reset. A mutation that changed only the first one SURVIVED the whole suite, which is the
+      drift hazard stated as a fact: the two could disagree about `can_attend` and only one of
+      them would be what a member actually sees.
+    */
+    const src = read("src/pages/client/EmergencyContactsPage.tsx");
+    expect(src).toMatch(/const BLANK_CONTACT: ContactFormData = \{/);
+    expect(src).toMatch(/defaultValues: BLANK_CONTACT,/);
+    expect(src).toMatch(/form\.reset\(BLANK_CONTACT\);/);
+    // Exactly one place names the starting choice.
+    expect(src.match(/can_attend: "unknown"/g)?.length).toBe(1);
+  });
+
   it("offers three radio options for reachability, and none is preselected as a fact", async () => {
     await renderPage();
     fireEvent.click(screen.getByText("Add Your First Contact"));

@@ -108,7 +108,20 @@ async function renderProfile() {
       <Page />
     </QueryClientProvider>,
   );
-  await waitFor(() => expect(screen.getByTestId("page-header")).toBeTruthy());
+  /*
+    WAIT FOR THE FORM TO HOLD THE PROFILE, not for the page shell to paint.
+
+    `page-header` appears the moment `profileLoading` goes false — but the fields are filled by
+    react-hook-form's `values` option, which applies in an effect on a LATER render. Between the
+    two, every input still reads "". Assertions here that check a stored value immediately after
+    this helper were therefore racing, and won only because the gap was short.
+
+    It stopped being short: `NotificationPreferences` (WP3 N9) added two more queries to this
+    page, and on a loaded CI runner "shows what is already stored" read `""` and failed. The
+    fix is the wait condition, not the page — `first_name` is "Ana" in every fixture here, so
+    its presence is the signal that `values` has actually been applied.
+  */
+  await screen.findByDisplayValue("Ana");
   return view;
 }
 

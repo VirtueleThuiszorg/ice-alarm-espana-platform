@@ -3758,6 +3758,73 @@ BEGIN
     'a collision that rolled back the transaction took all of these with it');
 END $$;
 
+-- ── the COUPLE path, which the single-membership call above never enters ──
+--
+-- Worth its own call: the partner member insert, the partner subscription insert and their two
+-- enum casts are a separate branch. Mutation testing showed the partner branch's
+-- billing_frequency cast being caught only by a text-diff test, never by execution — which is
+-- exactly the coverage a couple registration is missing. Half the product is couples.
+DO $$
+DECLARE v_payload jsonb; v_r jsonb; v_member_ids uuid[];
+BEGIN
+  v_payload := jsonb_build_object(
+    'membershipType', 'couple',
+    'primaryMember', jsonb_build_object(
+      'firstName', 'Pilar', 'lastName', 'Pareja',
+      'email', 'pilar@example.com', 'phone', '+34600000011',
+      'dateOfBirth', '1947-05-05', 'preferredLanguage', 'es'),
+    'partnerMember', jsonb_build_object(
+      'firstName', 'Pablo', 'lastName', 'Pareja',
+      'email', 'pablo@example.com', 'phone', '+34600000012',
+      'dateOfBirth', '1946-06-06', 'preferredLanguage', 'nl'),
+    'address', jsonb_build_object(
+      'addressLine1', 'Calle P 11', 'city', 'Albox', 'province', 'Almeria',
+      'postalCode', '04800', 'country', 'Spain'),
+    'billingFrequency', 'annual',
+    'includePendant', true,
+    'pendantCount', 2,
+    'activeGateway', 'mollie',
+    'subscriptionNet', 349.90, 'subscriptionTax', 34.99, 'subscriptionFinal', 384.89,
+    'pendantNet', 250, 'pendantTax', 52.50, 'pendantFinal', 302.50,
+    'registrationFee', 59.99, 'registrationFeeDiscount', 0, 'registrationFeeEnabled', true,
+    'shipping', 14.99, 'total', 762.37,
+    'subscriptionTaxRate', 0.10, 'pendantTaxRate', 0.21,
+    'testMode', false);
+
+  v_r := public.submit_registration_atomic(v_payload);
+
+  PERFORM pg_temp.check(
+    'a COUPLE registration completes, and creates BOTH members',
+    v_r->>'memberId' IS NOT NULL AND v_r->>'partnerMemberId' IS NOT NULL,
+    'the partner branch has its own inserts and its own enum casts');
+
+  PERFORM pg_temp.check(
+    'both members get a subscription',
+    v_r->>'subscriptionId' IS NOT NULL AND v_r->>'partnerSubscriptionId' IS NOT NULL);
+
+  PERFORM pg_temp.check(
+    'the ANNUAL billing frequency landed as the enum, not as text',
+    (SELECT count(*) FROM public.subscriptions
+      WHERE id IN ((v_r->>'subscriptionId')::uuid, (v_r->>'partnerSubscriptionId')::uuid)
+        AND billing_frequency = 'annual' AND plan_type = 'couple') = 2);
+
+  PERFORM pg_temp.check(
+    'the MOLLIE gateway landed as payment_method on both subscriptions and the payment',
+    (SELECT count(*) FROM public.subscriptions
+      WHERE id IN ((v_r->>'subscriptionId')::uuid, (v_r->>'partnerSubscriptionId')::uuid)
+        AND payment_method = 'mollie') = 2
+    AND (SELECT payment_method FROM public.payments
+          WHERE id = (v_r->>'paymentId')::uuid) = 'mollie',
+    'mollie is the LIVE gateway (20260902160000) and is in the payment_method enum '
+    '(20260228180000) — but only a cast gets it there');
+
+  PERFORM pg_temp.check(
+    'the partner''s own language landed — nl, not the primary''s es',
+    (SELECT preferred_language FROM public.members
+      WHERE id = (v_r->>'partnerMemberId')::uuid) = 'nl',
+    'a Dutch member read to in Spanish is the kind of thing a cast defect hides');
+END $$;
+
 SELECT pg_temp.check(
   'the sequence is not reachable from a client role',
   NOT has_sequence_privilege('anon', 'public.order_number_seq', 'USAGE')

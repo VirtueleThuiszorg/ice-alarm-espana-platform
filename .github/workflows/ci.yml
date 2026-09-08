@@ -44,10 +44,27 @@ jobs:
 
       # Production is not auto-migrated (deploy-functions.yml), so the repo can run ahead of the
       # database — it did, by 6 weeks and 24 migrations, and only a failing query revealed it.
-      # This fails a PR that adds a migration while an EARLIER one is still unapplied. One
-      # pending migration is normal; two means the first was never pushed.
+      #
+      # Two halves, and the flag is which one applies:
+      #   --main  any pending migration FAILS. Main is the branch production should match, and
+      #           the red X is the standing alarm until somebody pushes it.
+      #   --pr    STACKING fails: adding a migration while an earlier one is still pending.
+      #           A PR that adds NONE passes with a ::warning:: naming what is pending.
+      #
+      # The second half used to fail every PR while anything was pending. On 2026-09-08 one
+      # unapplied migration turned every open PR red — a docs change, a validation fix, a test —
+      # none of which could clear it, because clearing it needs `supabase db push` and a manifest
+      # line that no PR can carry. This step also runs BEFORE typecheck and build, so those
+      # reported `skipped` and nothing had a typecheck signal for as long as the drift stood.
+      #
+      # `github.event_name` is the only place that knows which context this is, so it is passed
+      # rather than guessed. continue-on-error is deliberately NOT set: the warning path exits 0
+      # by itself, and a step that cannot fail is not a gate.
       - name: Migration drift gate
-        run: node scripts/check-migration-drift.mjs origin/${{ github.base_ref || 'main' }}
+        run: >
+          node scripts/check-migration-drift.mjs
+          origin/${{ github.base_ref || 'main' }}
+          ${{ github.event_name == 'pull_request' && '--pr' || '--main' }}
 
       # A message sent from the public Contact page landed in `leads` and told
       # nobody, and nothing in CI had an opinion about that. WIRING_REGISTER.md

@@ -1890,7 +1890,7 @@ OUT OF SCOPE HERE BY INSTRUCTION — the join→pay path is covered by the separ
 - **proof** none — capped at 6
 - **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
 - **call sites** src/components/join/steps/JoinPaymentStep.tsx:74
-- **tests naming it** src/test/webhookActivationContract.test.ts (candidates, not proofs)
+- **tests naming it** src/test/stripePriceSync.test.ts, src/test/webhookActivationContract.test.ts (candidates, not proofs)
 
 OUT OF SCOPE HERE BY INSTRUCTION — the join→pay path is covered by the separate goal already running, and duplicating it would put two changes on the same files. Recorded so the register is complete, deliberately not re-proven or altered. notify-admin fires `sale.paid` from the webhook side, which is why `told` is bell.
 
@@ -2069,7 +2069,7 @@ A member confirms or corrects their details and no one is told the answer came b
 - **proof** none — capped at 6
 - **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
 - **call sites** src/components/join/steps/JoinPaymentStep.tsx:47, src/components/join/steps/JoinPaymentStep.tsx:91
-- **tests naming it** src/test/emailTransport.test.ts, src/test/testModeServerSide.test.ts (candidates, not proofs)
+- **tests naming it** src/test/emailTransport.test.ts, src/test/registrationContract.test.ts, src/test/testModeServerSide.test.ts (candidates, not proofs)
 
 OUT OF SCOPE HERE BY INSTRUCTION — the join→pay path is covered by the separate goal already running, and duplicating it would put two changes on the same files. Recorded so the register is complete, deliberately not re-proven or altered. notify-admin fires `sale.paid` from the webhook side, which is why `told` is bell.
 
@@ -3169,7 +3169,7 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **failure shown to user** toast
 - **proof** none — capped at 6
 - **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
-- **call sites** src/components/admin/PricingPlansEditor.tsx:56
+- **call sites** src/components/admin/PricingPlansEditor.tsx:67
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
 
@@ -3182,7 +3182,7 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **failure shown to user** toast
 - **proof** none — capped at 6
 - **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
-- **call sites** src/components/admin/PricingPlansEditor.tsx:62
+- **call sites** src/components/admin/PricingPlansEditor.tsx:73
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
 

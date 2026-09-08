@@ -166,14 +166,19 @@ interface RegistrationRequest {
   primaryMember: MemberDetails;
   partnerMember?: MemberDetails;
   address: AddressDetails;
-  medicalInfo: MedicalDetails;
+  // Absent from a /join registration: contacts and medical data are collected after payment
+  // (ONBOARDING_SPLIT.md). Kept on the type because an admin-side caller may still send them,
+  // and the atomic RPC already guards every use with `IS NOT NULL`.
+  medicalInfo?: MedicalDetails;
   partnerMedicalInfo?: MedicalDetails;
-  emergencyContacts: EmergencyContact[];
+  emergencyContacts?: EmergencyContact[];
   includePendant: boolean;
   pendantCount: number;
   billingFrequency: "monthly" | "annual";
-  partnerRef?: string; // Partner referral code for attribution
-  refPostId?: string; // Post ID from partner share link for attribution
+  // Nullable, not merely absent: the browser sends null when the visitor arrived with no
+  // referral code, and every read below coalesces with `|| null`.
+  partnerRef?: string | null; // Partner referral code for attribution
+  refPostId?: string | null; // Post ID from partner share link for attribution
   utmParams?: {
     utm_source?: string;
     utm_medium?: string;

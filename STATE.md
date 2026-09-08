@@ -43,6 +43,10 @@ from the wire; and three suites were being credited to neighbouring wires they
 do not touch. Four further "proofs" named at first did not exist as files at
 all. The generator now refuses to score on a test file that is absent.
 
+**Two of the six items below were written up as FIXED while the fix was still on a branch, and
+that branch was then closed unmerged.** This file is supposed to tell the truth (GOALS G5), so
+they are back to red with the reason. Nothing here is marked fixed again until it is in main.
+
 **Read the 145 correctly.** Almost every wire on this platform *arrives*. What they lack is a
 proof that would go red if they stopped arriving, and that alone caps a row at 6 — no rounding
 up. A screen of buttons that all work today scores 5 because nothing would tell anyone the day
@@ -71,11 +75,11 @@ Fixed / in flight:
 
 | # | Item | Status | Evidence |
 |---|---|---|---|
-| W1 | New enquiry tells nobody | 🟡 **held for Lee** (schema) | `chore/wiring-held-bundle` — `AFTER INSERT` trigger on `leads` raises a targeted bell notification per active staff member. Proven by `scripts/rls/wiring.sql` §2, mutation-tested three ways (no trigger → "a lead arrived and NOBODY was notified"; broadcast instead of targeted → caught; inactive staff notified → caught). |
-| W2 | Five dead realtime subscriptions | 🟡 **held for Lee** (schema) | Same bundle. Proven by `scripts/rls/wiring.sql` §1, which derives the subscribed-table list from `src/` and checks it against `pg_publication_tables`; mutation-tested by removing the migration (all five named) and by adding a fresh bad subscription (`products` → caught). |
-| W3 | Contact form promised 24 hours | ✅ FIXED | `fix/contact-form-truthful` — the copy no longer commits to a deadline nobody agreed, and the bell routes a `lead` notification to the enquiry. |
-| W4 | Nothing surfaced unworked enquiries | ✅ FIXED | Same branch — a **New enquiries** card on the call-centre dashboard, reading `leads` where `status='new'`. |
-| W5 | The register itself | ✅ SHIPPED | `WIRING_REGISTER.md` + `scripts/wiring/*`, gated in CI (`Wiring register`). Gate proven both ways: a tampered score fails; a new wire with no row fails naming the file and line. |
+| W1 | New enquiry tells nobody | 🟡 **held for Lee** (schema) | **#236** (was #229, closed unmerged, base branch gone) — `AFTER INSERT` trigger on `leads` raises a targeted bell notification per active staff member. Proven by `scripts/rls/wiring.sql` §2, mutation-tested three ways (no trigger → "a lead arrived and NOBODY was notified"; broadcast instead of targeted → caught; inactive staff notified → caught). |
+| W2 | Five dead realtime subscriptions | 🟡 **held for Lee** (schema) | Same bundle, **#236**. Proven by `scripts/rls/wiring.sql` §1, which derives the subscribed-table list from `src/` and checks it against `pg_publication_tables`; mutation-tested by removing the migration (all five named) and by adding a fresh bad subscription (`products` → caught). |
+| W3 | Contact form promises 24 hours | 🔴 **STILL LIVE** | Written up as FIXED when the fix was on a branch; #228 was then closed without merging, so `main`'s `en.json` still says *"respond within 24 hours"* — verified, not assumed. Reopened as **#235**: the copy stops committing to a deadline nobody agreed, and a `lead` notification routes to the enquiry from both surfaces that show one. Not fixed until that merges. |
+| W4 | Nothing surfaces unworked enquiries | 🔴 **STILL TRUE** | Same story as W3 — claimed fixed while on a branch, closed unmerged. A **New enquiries** card on the call-centre dashboard reading `leads` where `status='new'` is in **#235**. |
+| W5 | The register itself | ✅ SHIPPED | `WIRING_REGISTER.md` + `scripts/wiring/*`, gated in CI (`Wiring register`). Gate proven both ways: a tampered score fails; a new wire with no row fails naming the file. It also went red on main for a moved line number and two new test filenames — no wiring change at all — so the checked content is now file-level and the volatile "tests naming it" list is gone (**#233**). |
 | W6 | Billing reminders, communication log | 🔴 **reported, not fixed** | Both are dead code whose revival is a business decision (chasing members for payment; which events deserve a log row), and `AlertDetailPanel` is on the alert path. Lee's call. |
 
 ## Backend identity — SETTLED 2026-08-11

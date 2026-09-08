@@ -30,7 +30,13 @@ for (const w of inv.wires) {
   const key = `${w.kind}:${w.target}`;
   if (!byWire.has(key)) byWire.set(key, { key, kind: w.kind, target: w.target, sites: [], routes: new Set(), tests: new Set(), verbs: new Set() });
   const r = byWire.get(key);
-  r.sites.push(`${w.file}:${w.line}`);
+  // FILE, not file:line. Line numbers made the register churn on any edit above
+  // a call site: main went red on `Wiring register` the day two unrelated PRs
+  // merged, because one save handler had moved eleven lines. A gate that reddens
+  // for a reason nobody can act on is a gate that gets switched off within a
+  // week — the exact failure this repo has catalogued seven times. The register
+  // now changes when the WIRING changes, and not otherwise.
+  if (!r.sites.includes(w.file)) r.sites.push(w.file);
   for (const x of w.routes) r.routes.add(x);
   for (const t of w.tests) r.tests.add(t);
   r.verbs.add(w.verb);
@@ -217,7 +223,11 @@ for (const r of [...rows].sort((a, b) => a.score - b.score || a.key.localeCompar
   md += `- **proof** ${r.proof ? `\`${r.proof}\`` : "none — capped at 6"}\n`;
   md += `- **routes** ${r.routes.length ? short(r.routes, 6) : "—"}\n`;
   md += `- **call sites** ${short(r.sites, 4)}\n`;
-  if (r.tests.length) md += `- **tests naming it** ${short(r.tests, 4)} (candidates, not proofs)\n`;
+  // The "tests naming it" list is deliberately NOT written to the register. It
+  // was only ever a candidate list — a test that mentions a table is not a proof
+  // and this file says so — and it changed every time anyone added a test file,
+  // reddening the gate for something that is not a wiring change. `proof` is the
+  // column that carries a claim, and that one is hand-authored.
   md += `\n${r.note}\n\n`;
 }
 

@@ -49,6 +49,16 @@ jobs:
       - name: Migration drift gate
         run: node scripts/check-migration-drift.mjs origin/${{ github.base_ref || 'main' }}
 
+      # A message sent from the public Contact page landed in `leads` and told
+      # nobody, and nothing in CI had an opinion about that. WIRING_REGISTER.md
+      # records, for every control on every page, where it goes and who finds
+      # out; this regenerates it from the code and fails if the committed file
+      # differs. So a new control cannot be added without saying what it
+      # promises, where it lands, who is told and what proves it — and a wire
+      # that is deleted cannot leave a stale row behind claiming it still works.
+      - name: Wiring register
+        run: node scripts/wiring/build.mjs --check
+
       # Both referenced projects explicitly. `npx tsc --noEmit` reads the root
       # tsconfig.json, which is a project-references stub: it has "files": []
       # and no "include", so outside of --build mode it typechecks NOTHING and

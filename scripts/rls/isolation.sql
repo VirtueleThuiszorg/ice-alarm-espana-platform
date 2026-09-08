@@ -3375,14 +3375,21 @@ SELECT pg_temp.check(
              ARRAY[''emergency_contacts''], now() + interval ''30 days'', ''magic'')'),
   'the vocabulary is two words; a third is a decision, not a typo');
 
+-- EXPLICITLY NULL, not merely omitted. Omitting the column passes just as happily against a
+-- `NOT NULL DEFAULT 'staff'` version of it — that mutation survived until this said NULL out
+-- loud — and a default would be stamping provenance on rows nobody verified.
 SELECT pg_temp.check(
-  'a token with issued_via NULL is still legal — existing rows are untouched',
+  'a token with issued_via explicitly NULL is still legal — existing rows are untouched',
   pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
     'INSERT INTO public.member_update_tokens
-       (member_id, token, requested_fields, expires_at)
+       (member_id, token, requested_fields, expires_at, issued_via)
      VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''tok-legacy'',
-             ARRAY[''emergency_contacts''], now() + interval ''30 days'')') = false,
+             ARRAY[''emergency_contacts''], now() + interval ''30 days'', NULL)') = false,
   'nothing is backfilled: writing provenance in retrospectively would be asserting it');
+
+SELECT pg_temp.check(
+  'CONTROL: it really landed with NULL rather than a default',
+  (SELECT issued_via IS NULL FROM public.member_update_tokens WHERE token = 'tok-legacy'));
 
 -- THE TRAP 20260905100000 HAD TO UNDO. A CHECK coupling issued_via to created_by presence makes
 -- the row un-orphanable: deleting a staff member then fails instead of the record surviving them.
@@ -3401,11 +3408,20 @@ BEGIN
   VALUES ('aaaaaaaa-0000-0000-0000-000000000001', 'tok-leaver',
           ARRAY['emergency_contacts'], now() + interval '30 days', 'staff', v_staff);
 
-  DELETE FROM public.staff WHERE id = v_staff;
+  -- Guarded: a CHECK that made this row un-orphanable would RAISE here and abort the whole
+  -- suite, reporting nothing. An assertion that cannot fail out loud is not an assertion.
+  BEGIN
+    DELETE FROM public.staff WHERE id = v_staff;
+  EXCEPTION WHEN OTHERS THEN
+    PERFORM pg_temp.check(
+      'a staff member with an issued token CAN still be deleted', false,
+      'the delete RAISED: ' || SQLERRM);
+  END;
 
   PERFORM pg_temp.check(
     'a staff member with an issued token CAN still be deleted',
-    EXISTS (SELECT 1 FROM public.member_update_tokens WHERE token = 'tok-leaver'),
+    NOT EXISTS (SELECT 1 FROM public.staff WHERE id = v_staff)
+    AND EXISTS (SELECT 1 FROM public.member_update_tokens WHERE token = 'tok-leaver'),
     'a CHECK requiring created_by for issued_via=staff would make this fail — which is exactly '
     'what 20260905100000 had to undo for submitted_via');
 

@@ -3680,6 +3680,91 @@ SELECT pg_temp.check(
   'a backfill that left the trigger disabled would silently un-govern every later write');
 
 -- ============================================================
+--  Join path — two registrations in the same second (item 7, F17)
+-- ============================================================
+--
+-- The order number was 'ICE-' || TO_HEX(EPOCH::BIGINT): one second of resolution against
+-- `order_number text UNIQUE NOT NULL`. Two people finishing the wizard in the same second
+-- produced the same number, and since the whole registration is one transaction the second one
+-- was rolled back entirely — no member, no order, an error at the moment they were about to pay.
+--
+-- Proven by CALLING THE REAL FUNCTION twice in the same statement, so both calls share `now()`.
+-- That is the collision, reproduced: under the old expression this is the failure, and under the
+-- new one it is two numbers.
+
+DO $$
+DECLARE
+  v_payload jsonb;
+  v_a jsonb;
+  v_b jsonb;
+BEGIN
+  v_payload := jsonb_build_object(
+    'membershipType', 'single',
+    'primaryMember', jsonb_build_object(
+      'firstName', 'Nuria', 'lastName', 'Nueva',
+      'email', 'nuria@example.com', 'phone', '+34600000009',
+      'dateOfBirth', '1949-04-04', 'preferredLanguage', 'es'),
+    'address', jsonb_build_object(
+      'addressLine1', 'Calle N 9', 'city', 'Albox', 'province', 'Almeria',
+      'postalCode', '04800', 'country', 'Spain'),
+    'billingFrequency', 'monthly',
+    'includePendant', false,
+    'pendantCount', 0,
+    'activeGateway', 'stripe',
+    'subscriptionNet', 24.99, 'subscriptionTax', 2.50, 'subscriptionFinal', 27.49,
+    'pendantNet', 0, 'pendantTax', 0, 'pendantFinal', 0,
+    'registrationFee', 59.99, 'registrationFeeDiscount', 0, 'registrationFeeEnabled', true,
+    'shipping', 0, 'total', 87.48,
+    'subscriptionTaxRate', 0.10, 'pendantTaxRate', 0.21,
+    'testMode', false);
+
+  -- Same statement, so `now()` is identical for both — which is precisely the collision.
+  -- DIFFERENT EMAILS, because `members.email` is UNIQUE: reusing one makes this fail on that
+  -- constraint instead, which would prove nothing about the order number. (It did, first run.)
+  SELECT public.submit_registration_atomic(v_payload),
+         public.submit_registration_atomic(
+           jsonb_set(v_payload, '{primaryMember,email}', '"nuria2@example.com"'::jsonb))
+    INTO v_a, v_b;
+
+  PERFORM pg_temp.check(
+    'two registrations in the SAME SECOND both succeed',
+    v_a ? 'orderNumber' AND v_b ? 'orderNumber',
+    'the epoch-hash number collided against the UNIQUE constraint and rolled the second one back');
+
+  PERFORM pg_temp.check(
+    'and they get DIFFERENT order numbers',
+    v_a->>'orderNumber' <> v_b->>'orderNumber',
+    format('got %s and %s', v_a->>'orderNumber', v_b->>'orderNumber'));
+
+  PERFORM pg_temp.check(
+    'the number carries the date and a padded serial',
+    v_a->>'orderNumber' ~ ('^ICE-' || to_char(now(), 'YYYYMMDD') || '-[0-9]{5}$'),
+    format('got %s — read out on the phone, ICE-20260908-00042 can be said and ICE-68BE4A31 '
+           'cannot', v_a->>'orderNumber'));
+
+  PERFORM pg_temp.check(
+    'both orders exist, and start at awaiting_payment rather than claiming a payment',
+    (SELECT count(*) FROM public.orders
+      WHERE order_number IN (v_a->>'orderNumber', v_b->>'orderNumber')
+        AND fulfilment_state = 'awaiting_payment') = 2,
+    'the registration path creates an order before any money has arrived — item 7');
+
+  PERFORM pg_temp.check(
+    'and each has its own member, subscription and payment row',
+    (SELECT count(DISTINCT member_id) FROM public.orders
+      WHERE order_number IN (v_a->>'orderNumber', v_b->>'orderNumber')) = 2
+    AND v_a->>'memberId' <> v_b->>'memberId'
+    AND v_a->>'paymentId' <> v_b->>'paymentId',
+    'a collision that rolled back the transaction took all of these with it');
+END $$;
+
+SELECT pg_temp.check(
+  'the sequence is not reachable from a client role',
+  NOT has_sequence_privilege('anon', 'public.order_number_seq', 'USAGE')
+  AND NOT has_sequence_privilege('authenticated', 'public.order_number_seq', 'USAGE'),
+  'a browser that could call nextval() would burn numbers and leave gaps in the ledger');
+
+-- ============================================================
 --  Report
 -- ============================================================
 

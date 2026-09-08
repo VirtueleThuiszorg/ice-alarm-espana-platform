@@ -1,0 +1,34 @@
+-- Join-path schema, part 4 of the held bundle: the state below `paid` (item 7).
+--
+-- REVIEW_JOIN_PATH.md F14. `orders.fulfilment_state` is `NOT NULL DEFAULT 'paid'`
+-- (20260907100000:44), so an order created by `submit_registration_atomic` reads `paid` BEFORE
+-- anybody has paid anything. It therefore enters the fulfilment queue at registration: staff see
+-- work to do for a customer who abandoned the checkout, and `awaiting_allocation` counts them.
+--
+-- The default was honest when it was written — every order that existed then had been paid, and
+-- the alternative would have been backfilling a state nobody could evidence. 20260907110100 said
+-- so in as many words, and named the gap this closes: *"A pending order with no subscription was
+-- never paid, and THERE IS NO STATE BELOW `paid` to put it in — so it is left on the default
+-- rather than quietly mapped, which would assert a payment that did not happen."*
+--
+-- This is that state.
+--
+-- IN ITS OWN MIGRATION, for the reason 20260907110000 gives: `ALTER TYPE … ADD VALUE` commits
+-- the label, but the new value cannot be USED in the same transaction that adds it. The rank
+-- function, the default and the backfill all name 'awaiting_payment', so they run in the next
+-- file. Splitting is not tidiness; combining fails at apply time.
+--
+-- ROLLBACK: PostgreSQL cannot drop an enum value. To reverse, recreate the type without it and
+-- re-point the column — only worth doing if no row uses it:
+--   ALTER TABLE public.orders ALTER COLUMN fulfilment_state DROP DEFAULT;
+--   CREATE TYPE public.fulfilment_state_old AS ENUM
+--     ('paid','allocated','programmed','dispatched','delivered','tested','cancelled');
+--   ALTER TABLE public.orders ALTER COLUMN fulfilment_state
+--     TYPE public.fulfilment_state_old USING fulfilment_state::text::public.fulfilment_state_old;
+--   DROP TYPE public.fulfilment_state;
+--   ALTER TYPE public.fulfilment_state_old RENAME TO fulfilment_state;
+--   ALTER TABLE public.orders ALTER COLUMN fulfilment_state SET DEFAULT 'paid';
+-- The USING cast fails if any row is 'awaiting_payment', which is the correct failure: it
+-- refuses to silently reinterpret an unpaid order as a paid one.
+
+ALTER TYPE public.fulfilment_state ADD VALUE IF NOT EXISTS 'awaiting_payment';

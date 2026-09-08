@@ -92,8 +92,9 @@ describe("fulfilment_state: the code knows every value the database can hold", (
 
   it("finds the enum in the migrations at all", () => {
     // Guards against a regex that silently matches nothing and makes every assertion vacuous.
-    expect(fromDb.length).toBe(7);
+    expect(fromDb.length).toBe(8);
     expect(fromDb).toContain("cancelled");
+    expect(fromDb).toContain("awaiting_payment");
   });
 
   it("the generated types.ts lists every value the migrations create", () => {
@@ -123,11 +124,13 @@ describe("fulfilment_state: the code knows every value the database can hold", (
   });
 
   it("every value a human moves an order INTO has action wording of its own", () => {
-    // `paid` is where an order starts, so it is the one value with no action. Everything else
-    // is somewhere a person puts an order, and "Mark as tested" is not what they did.
+    // `awaiting_payment` is where an order starts, so it is the one value with no action.
+    // Everything else is somewhere a person puts an order, and "Mark as tested" is not what they
+    // did. `paid` DOES have wording now — reached only through the correction dialog, for a
+    // payment that arrived outside Stripe.
     for (const s of fromDb as FulfilmentState[]) {
-      if (s === "paid") continue;
-      const label = FULFILMENT_ACTION_LABEL[s as Exclude<FulfilmentState, "paid">];
+      if (s === "awaiting_payment") continue;
+      const label = FULFILMENT_ACTION_LABEL[s as Exclude<FulfilmentState, "awaiting_payment">];
       expect(label?.fallback, `no action wording for ${s}`).toBeTruthy();
       expect(label.fallback, `action wording for ${s} is just the state name`).not.toBe(
         FULFILMENT_LABEL[s].fallback,
@@ -152,7 +155,7 @@ describe("the rank mirror matches fulfilment_state_rank()", () => {
     const pairs = [...sql.matchAll(/WHEN\s+'([a-z_]+)'\s+THEN\s+(\d+)/gi)].map(
       (m) => [m[1], Number(m[2])] as const,
     );
-    expect(pairs.length, "no WHEN clauses parsed — the assertion would be vacuous").toBe(6);
+    expect(pairs.length, "no WHEN clauses parsed — the assertion would be vacuous").toBe(7);
     for (const [state, rank] of pairs) {
       expect(fulfilmentRank(state as FulfilmentState), `rank of ${state}`).toBe(rank);
     }
@@ -174,19 +177,26 @@ describe("the rank mirror matches fulfilment_state_rank()", () => {
   });
 });
 
-describe("the correction predicate matches the trigger's is_correction", () => {
+describe("the correction predicate matches the trigger's needs_authority", () => {
   const sql = latestFunctionBody("enforce_fulfilment_state");
 
-  it("reads the trigger's current body, not the superseded one", () => {
-    // 20260907100000 defined it without `is_correction` at all; 20260907110100 rewrote it.
-    expect(sql).toContain("is_correction");
+  it("reads the trigger's current body, not a superseded one", () => {
+    // Three versions now: 20260907100000 defined it with no named predicate at all,
+    // 20260907110100 introduced `is_correction`, and 20260908120400 renamed it
+    // `needs_authority` when entering `paid` joined the list. Asserting against an older body
+    // would be asserting against a version that no longer exists.
+    expect(sql).toContain("needs_authority");
+    expect(sql).not.toContain("is_correction");
     expect(sql).toContain("fulfilment_state_reason");
   });
 
-  it("the trigger's three clauses are the three this module implements", () => {
-    const expr = sql.match(/is_correction\s*:=\s*([\s\S]*?);/)?.[1] ?? "";
+  it("the trigger's four clauses are the four this module implements", () => {
+    const expr = sql.match(/needs_authority\s*:=\s*([\s\S]*?);/)?.[1] ?? "";
     expect(expr).toContain("NEW.fulfilment_state = 'cancelled'");
     expect(expr).toContain("OLD.fulfilment_state = 'cancelled'");
+    // The newest clause: entering `paid` is a claim that money arrived, so it needs a D9 role
+    // and a reason like any correction. Before `awaiting_payment` existed it was not a move.
+    expect(expr).toContain("NEW.fulfilment_state = 'paid'");
     expect(expr).toContain("new_rank < old_rank");
   });
 
@@ -202,6 +212,14 @@ describe("the correction predicate matches the trigger's is_correction", () => {
     ["cancelled", "paid", true],
     ["cancelled", "allocated", true],
     ["delivered", "delivered", false],
+    // Forward, one step — and STILL needs a role and a reason, because it is a claim that money
+    // arrived. This is the row that would have been `false` under the old three-clause rule.
+    ["awaiting_payment", "paid", true],
+    // Backwards out of it is an ordinary correction.
+    ["paid", "awaiting_payment", true],
+    ["allocated", "awaiting_payment", true],
+    ["awaiting_payment", "cancelled", true],
+    ["awaiting_payment", "awaiting_payment", false],
   ] as const)("%s → %s is a correction: %s", (from, to, expected) => {
     expect(isFulfilmentCorrection(from, to)).toBe(expected);
   });
@@ -228,12 +246,20 @@ describe("forward moves are one step, and only one", () => {
     expect(nextFulfilmentState("cancelled")).toBeNull();
   });
 
-  it("never returns `paid`, because nobody moves an order INTO paid", () => {
+  it("never returns `awaiting_payment`, because nobody moves an order INTO it", () => {
     // The narrowed return type says so; this proves the implementation agrees, and it is what
-    // lets FULFILMENT_ACTION_LABEL have no `paid` entry to fill in with a lie.
+    // lets FULFILMENT_ACTION_LABEL have no `awaiting_payment` entry to fill in with a lie.
     for (const s of FULFILMENT_STATES) {
-      expect(nextFulfilmentState(s)).not.toBe("paid");
+      expect(nextFulfilmentState(s)).not.toBe("awaiting_payment");
     }
+  });
+
+  it("DOES return `paid` — from `awaiting_payment`, which is a real forward move", () => {
+    // It is one step forward and it is owned by the payment webhook, not by a person: the
+    // trigger demands a role and a reason for it, and STAFF_MOVABLE_STATES leaves it out.
+    expect(nextFulfilmentState("awaiting_payment")).toBe("paid");
+    expect(FULFILMENT_TRANSITION_OWNER.paid).toBe("payment");
+    expect(STAFF_MOVABLE_STATES).not.toContain("paid");
   });
 
   it("the trigger refuses a skip, which is why nothing here offers one", () => {

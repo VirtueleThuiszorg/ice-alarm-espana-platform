@@ -1365,11 +1365,16 @@ SELECT pg_temp.check(
 UPDATE public.devices SET status = 'active'
 WHERE id = '22222222-dddd-0000-0000-000000000002';
 
+-- `fulfilment_state` is named rather than left to the DEFAULT, which is now `awaiting_payment`
+-- (20260908120400). The walk below starts from `paid`, and an INSERT is not governed by the
+-- BEFORE UPDATE trigger, so naming it here is a fixture stating its own premise — not a way
+-- around a rule.
 INSERT INTO public.orders
   (id, member_id, order_number, subtotal, tax_amount, total_amount,
-   shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code)
+   shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code,
+   fulfilment_state)
 VALUES ('0dde0000-0000-0000-0000-0000000000b1', 'bbbbbbbb-0000-0000-0000-000000000002',
-        'ORD-RLS-B-QUEUE', 100, 21, 121, 'Calle B 2', 'Albox', 'Almeria', '04800');
+        'ORD-RLS-B-QUEUE', 100, 21, 121, 'Calle B 2', 'Albox', 'Almeria', '04800', 'paid');
 
 INSERT INTO public.order_items
   (order_id, item_type, description, quantity, unit_price, tax_rate, tax_amount, total_price, device_id)
@@ -2069,15 +2074,21 @@ INSERT INTO public.staff (user_id, email, first_name, last_name, role) VALUES
   ('a6000000-0000-0000-0000-00000000000f', 'ordinary-staff@example.com',
    'Otto', 'Ordinary', 'call_centre');
 
--- A fresh order for member B, at `paid`, to walk forwards through.
+-- A fresh order for member B, pinned at `paid`, to walk forwards through.
 INSERT INTO public.orders
   (id, member_id, order_number, subtotal, tax_amount, total_amount,
-   shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code)
+   shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code,
+   fulfilment_state)
 VALUES ('0dde0000-0000-0000-0000-00000000000b', 'bbbbbbbb-0000-0000-0000-000000000002',
-        'ORD-RLS-B', 100, 21, 121, 'Calle B 2', 'Albox', 'Almeria', '04800');
+        'ORD-RLS-B', 100, 21, 121, 'Calle B 2', 'Albox', 'Almeria', '04800', 'paid');
 
+-- THIS ASSERTION USED TO READ "a new order starts at `paid` — the only state the payment webhook
+-- may create", against the DEFAULT. That sentence was the F14 defect written down as if it were
+-- the design: an order existed before any payment, and starting it at `paid` is what put
+-- abandoned checkouts in front of the fulfilment desk. The default is now `awaiting_payment`
+-- (asserted in the item 7 section below); this fixture NAMES `paid` because the walk needs it.
 SELECT pg_temp.check(
-  'a new order starts at `paid` — the only state the payment webhook may create',
+  'the forward-walk fixture is pinned at `paid`, by naming it rather than by default',
   (SELECT fulfilment_state FROM public.orders
     WHERE id = '0dde0000-0000-0000-0000-00000000000b') = 'paid');
 
@@ -2103,9 +2114,10 @@ SELECT pg_temp.check(
 -- verdict, not an absence of one — the same distinction run.sh draws between exit 1 and 3.
 INSERT INTO public.orders
   (id, member_id, order_number, subtotal, tax_amount, total_amount,
-   shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code)
+   shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code,
+   fulfilment_state)
 VALUES ('0dde0000-0000-0000-0000-0000000000bc', 'bbbbbbbb-0000-0000-0000-000000000002',
-        'ORD-RLS-B-SKIP', 100, 21, 121, 'Calle B 2', 'Albox', 'Almeria', '04800');
+        'ORD-RLS-B-SKIP', 100, 21, 121, 'Calle B 2', 'Albox', 'Almeria', '04800', 'paid');
 
 SELECT pg_temp.check(
   'NOBODY may skip a step: paid → dispatched in one write is refused',
@@ -2909,6 +2921,915 @@ SELECT pg_temp.check(
    = ARRAY['add_pendant', 'cancel', 'pause', 'renew', 'resume', 'switch_to_couple',
            'switch_to_single'],
   'renew, switch_to_single, switch_to_couple, add_pendant, pause, resume, cancel');
+
+-- ============================================================
+--  Join path — who may read system_settings
+-- ============================================================
+--
+-- REVIEW_JOIN_PATH.md F2 and F12, proven from both ends: the anonymous joiner must be able to
+-- read the three keys /join needs and NOTHING else, and a staff account must not be able to read
+-- a credential. Both are assertions about a whitelist, so both are written as "exactly this set",
+-- never as "at least one row came back" — a policy that returns everything passes that.
+
+-- Credentials, and one legitimate staff-readable setting to prove the pattern is not a blanket
+-- ban. Seeded here rather than relied on from a migration: an assertion that depends on a
+-- seeded row somewhere else is an assertion that silently stops testing when the seed moves.
+INSERT INTO public.system_settings (key, value) VALUES
+  -- The four company keys are seeded here too, so "exactly seven" is a statement about the
+  -- POLICY and not about which rows an unrelated migration happened to insert. Without this the
+  -- assertion silently weakens to "the whitelisted keys that exist".
+  ('settings_company_name',          'ICE Alarm España'),
+  ('settings_emergency_phone',       '+34000000001'),
+  ('settings_support_email',         'support@example.com'),
+  ('settings_address',               'Albox, Almería'),
+  ('settings_stripe_secret_key',     'sk_test_do_not_use'),
+  ('settings_stripe_webhook_secret', 'whsec_do_not_use'),
+  ('settings_mollie_api_key',        'test_do_not_use'),
+  ('settings_twilio_auth_token',     'token_do_not_use'),
+  ('settings_ev07b_checkin_key',     'checkin_do_not_use'),
+  ('settings_twilio_sms_number',     '+34000000000'),
+  ('settings_active_payment_gateway','mollie'),
+  ('registration_fee_enabled',       'true'),
+  ('registration_fee_discount',      '0'),
+  -- Seeded because the assertion below says this key is NOT public. With no row at all,
+  -- anon reads nothing whatever the policy says, and adding the key to the whitelist would
+  -- have passed the suite. (It did: the mutation survived until this row existed.)
+  ('registration_test_mode_enabled', 'false')
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+
+-- This section seeds its OWN call-centre operator rather than reusing the suite's, because the
+-- FK-audit section above DELETES that staff row (line ~1951, deliberately — it proves an audit
+-- row survives its actor leaving). Reusing it made three assertions here pass vacuously: a
+-- deleted staff row is not staff, so of course it could not read the Stripe key. The CONTROL
+-- assertion below is what caught that, and it is why it is there.
+INSERT INTO auth.users (id, email) VALUES
+  ('a8000000-0000-0000-0000-000000000001', 'superadmin@example.com'),
+  ('a8000000-0000-0000-0000-000000000002', 'operator-settings@example.com');
+INSERT INTO public.staff (user_id, email, first_name, last_name, role) VALUES
+  ('a8000000-0000-0000-0000-000000000001', 'superadmin@example.com', 'Sam', 'Super', 'super_admin'),
+  ('a8000000-0000-0000-0000-000000000002', 'operator-settings@example.com', 'Olga', 'Operator', 'call_centre');
+
+-- ── F2: what the anonymous browser can read, exactly ──────────────────────
+DO $$
+DECLARE v_keys text[];
+BEGIN
+  PERFORM set_config('request.jwt.claims', '', true);
+  SET LOCAL ROLE anon;
+  EXECUTE 'SELECT array_agg(key ORDER BY key) FROM public.system_settings' INTO v_keys;
+  RESET ROLE;
+
+  PERFORM pg_temp.check(
+    'anonymous reads EXACTLY the seven whitelisted settings keys',
+    v_keys = ARRAY['registration_fee_discount', 'registration_fee_enabled',
+                   'settings_active_payment_gateway', 'settings_address',
+                   'settings_company_name', 'settings_emergency_phone',
+                   'settings_support_email'],
+    'four company keys plus the three /join needs — named, not counted, so a widened '
+    'policy fails here instead of passing with more rows');
+END $$;
+
+-- The three that were the blocker, called out individually: a whitelist that happens to have
+-- the right length is not the same as one that has the right members.
+DO $$
+DECLARE v_gateway text; v_enabled text; v_discount text;
+BEGIN
+  PERFORM set_config('request.jwt.claims', '', true);
+  SET LOCAL ROLE anon;
+  EXECUTE 'SELECT value FROM public.system_settings WHERE key = ''settings_active_payment_gateway'''
+    INTO v_gateway;
+  EXECUTE 'SELECT value FROM public.system_settings WHERE key = ''registration_fee_enabled'''
+    INTO v_enabled;
+  EXECUTE 'SELECT value FROM public.system_settings WHERE key = ''registration_fee_discount'''
+    INTO v_discount;
+  RESET ROLE;
+
+  PERFORM pg_temp.check(
+    'anonymous can read the active payment gateway (F2 — without this nobody can pay)',
+    v_gateway = 'mollie',
+    'usePricingSettings resolves activeGateway = null when this row is invisible, and '
+    'JoinPaymentStep then refuses with "gateway not configured"');
+  PERFORM pg_temp.check(
+    'anonymous can read registration_fee_enabled', v_enabled = 'true');
+  PERFORM pg_temp.check(
+    'anonymous can read registration_fee_discount', v_discount = '0');
+END $$;
+
+-- ── F2, the other half: nothing credential-shaped is public ───────────────
+DO $$
+DECLARE n bigint;
+BEGIN
+  PERFORM set_config('request.jwt.claims', '', true);
+  SET LOCAL ROLE anon;
+  EXECUTE 'SELECT count(*) FROM public.system_settings
+            WHERE key ~* ''(secret|token|password|api_key|_key)''' INTO n;
+  RESET ROLE;
+  PERFORM pg_temp.check(
+    'anonymous reads NO credential-shaped setting', n = 0,
+    'the whitelist is a whitelist, but this fails loudly if a future key is added to it');
+END $$;
+
+DO $$
+DECLARE n bigint;
+BEGIN
+  PERFORM set_config('request.jwt.claims', '', true);
+  SET LOCAL ROLE anon;
+  EXECUTE 'SELECT count(*) FROM public.system_settings
+            WHERE key = ''registration_test_mode_enabled''' INTO n;
+  RESET ROLE;
+  PERFORM pg_temp.check(
+    'registration_test_mode_enabled is NOT public — deliberately',
+    n = 0,
+    'the wizard asks for it, the server ignores the client value and re-reads the setting, '
+    'so keeping it staff-only costs an anonymous visitor only the test button');
+END $$;
+
+-- ── F12: staff cannot read the money keys; super_admin can ────────────────
+SELECT pg_temp.check(
+  'call-centre staff CANNOT read the Stripe secret key (F12)',
+  pg_temp.count_as('a8000000-0000-0000-0000-000000000002',
+    'SELECT value FROM public.system_settings WHERE key = ''settings_stripe_secret_key''') = 0,
+  'every active staff login could hold the key that moves money');
+
+SELECT pg_temp.check(
+  'an ADMIN who is not super_admin cannot read it either',
+  pg_temp.count_as('a7000000-0000-0000-0000-00000000000f',
+    'SELECT value FROM public.system_settings WHERE key = ''settings_stripe_secret_key''') = 0,
+  'the Settings page is admin-reachable; only super_admin may see the credentials on it');
+
+SELECT pg_temp.check(
+  'nor the webhook signing secret, the Mollie key, the Twilio token, or the device check-in key',
+  pg_temp.count_as('a8000000-0000-0000-0000-000000000002',
+    'SELECT value FROM public.system_settings
+      WHERE key IN (''settings_stripe_webhook_secret'', ''settings_mollie_api_key'',
+                    ''settings_twilio_auth_token'', ''settings_ev07b_checkin_key'')') = 0,
+  'settings_ev07b_checkin_key matches none of the four names in the brief — it is why the '
+  'pattern carries _key as a fifth alternative');
+
+SELECT pg_temp.check(
+  'CONTROL: staff CAN still read an ordinary setting',
+  pg_temp.count_as('a8000000-0000-0000-0000-000000000002',
+    'SELECT value FROM public.system_settings WHERE key = ''settings_twilio_sms_number''') = 1,
+  'a policy that hid everything would pass every assertion above and break the platform');
+
+SELECT pg_temp.check(
+  'super_admin CAN read the Stripe secret key — the admin Settings page needs it',
+  pg_temp.count_as('a8000000-0000-0000-0000-000000000001',
+    'SELECT value FROM public.system_settings WHERE key = ''settings_stripe_secret_key''') = 1);
+
+SELECT pg_temp.check(
+  'a member reads only the public whitelist, not staff settings',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT key FROM public.system_settings WHERE key = ''settings_twilio_sms_number''') = 0);
+
+-- ── the write path is unchanged, which is what makes the read fix safe ────
+SELECT pg_temp.check(
+  'call-centre staff cannot UPDATE a setting',
+  pg_temp.exec_as('a8000000-0000-0000-0000-000000000002',
+    'UPDATE public.system_settings SET value = ''hijacked''
+      WHERE key = ''settings_active_payment_gateway''') = 0,
+  'if staff could write what they can no longer read, the Settings page would blank a secret');
+
+SELECT pg_temp.check(
+  'an admin who is not super_admin cannot UPDATE a setting either',
+  pg_temp.exec_as('a7000000-0000-0000-0000-00000000000f',
+    'UPDATE public.system_settings SET value = ''hijacked''
+      WHERE key = ''settings_active_payment_gateway''') = 0);
+
+SELECT pg_temp.check(
+  'anonymous cannot UPDATE the payment gateway',
+  (SELECT NOT EXISTS (
+     SELECT 1 FROM pg_policies
+      WHERE schemaname = 'public' AND tablename = 'system_settings'
+        AND cmd IN ('UPDATE', 'ALL', 'INSERT')
+        AND ('anon' = ANY (roles) OR roles = '{public}'))),
+  'a client-writable gateway setting would let a visitor redirect the payment');
+
+SELECT pg_temp.check(
+  'CONTROL: super_admin CAN update a setting',
+  pg_temp.exec_as('a8000000-0000-0000-0000-000000000001',
+    'UPDATE public.system_settings SET value = ''mollie''
+      WHERE key = ''settings_active_payment_gateway''') = 1);
+
+-- ── P5: one registration-fee key, not two families of it ──────────────────
+--
+-- These two keys have never been seeded by a migration — only ever written at runtime by the
+-- admin Settings page — so in a fresh database the migration's cleanup has nothing to remove and
+-- an assertion that "the old keys are gone" passes without testing anything. That is not a
+-- hypothetical: the mutation that deleted the cleanup entirely SURVIVED against the first
+-- version of these checks.
+--
+-- So the stale rows are seeded here and the migration is then RE-EXECUTED (`\ir`, so the SQL
+-- under test is the migration file itself rather than a copy of it that can drift). Both halves
+-- of the intended behaviour become testable this way, including the one that cannot be seen in a
+-- fresh database at all: that a canonical value already in place is not overwritten by a stale
+-- one. Re-running is safe — every statement in that file is idempotent.
+
+-- (a) canonical present: the stale rows go, and the canonical values do NOT change.
+INSERT INTO public.system_settings (key, value) VALUES
+  ('settings_registration_fee_enabled',  'false'),
+  ('settings_registration_fee_discount', '50')
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+
+\ir ../../supabase/migrations/20260908120000_settings_read_policies.sql
+
+SELECT pg_temp.check(
+  'the settings_-prefixed registration fee keys are removed (P5)',
+  (SELECT count(*) FROM public.system_settings
+    WHERE key IN ('settings_registration_fee_enabled',
+                  'settings_registration_fee_discount')) = 0,
+  'the admin page wrote those two while the wizard and the server read the canonical pair, so '
+  'turning the fee off in admin still charged the customer 59.99');
+
+SELECT pg_temp.check(
+  'a canonical value already in place is NOT overwritten by the stale one',
+  (SELECT value FROM public.system_settings WHERE key = 'registration_fee_discount') = '0'
+  AND (SELECT value FROM public.system_settings WHERE key = 'registration_fee_enabled') = 'true',
+  'the stale rows said 50% off and disabled; applying the migration after the admin page was '
+  'fixed must not resurrect them');
+
+-- (b) canonical absent: the stale value is carried across rather than lost.
+DELETE FROM public.system_settings WHERE key = 'registration_fee_discount';
+INSERT INTO public.system_settings (key, value)
+VALUES ('settings_registration_fee_discount', '25')
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+
+\ir ../../supabase/migrations/20260908120000_settings_read_policies.sql
+
+SELECT pg_temp.check(
+  'a value with no canonical row is CARRIED ACROSS, not dropped',
+  (SELECT value FROM public.system_settings WHERE key = 'registration_fee_discount') = '25',
+  'a discount Lee had set in admin must survive the consolidation');
+
+SELECT pg_temp.check(
+  'and the stale row is gone afterwards',
+  NOT EXISTS (SELECT 1 FROM public.system_settings
+               WHERE key = 'settings_registration_fee_discount'));
+
+-- Put the fixture back, so a later reader of this file is not surprised by a 25% discount.
+UPDATE public.system_settings SET value = '0' WHERE key = 'registration_fee_discount';
+
+-- ============================================================
+--  Join path — the synced Stripe prices (P2)
+-- ============================================================
+--
+-- This table is the server's answer to "what may we charge", so the assertions are about who can
+-- change that answer and about the constraints that stop a nonsense Price existing at all. A
+-- price row nobody can forge is the whole point: F7/F9 were the browser naming the amount.
+
+INSERT INTO public.stripe_prices
+  (price_key, stripe_product_id, stripe_price_id, amount_cents, recurring_interval,
+   source_description, synced_by)
+VALUES
+  ('plan_single_monthly', 'prod_test_single', 'price_test_single_monthly', 2749, 'month',
+   '24.99 net x 1.10 IVA', (SELECT id FROM public.staff WHERE email = 'superadmin@example.com')),
+  ('plan_single_annual',  'prod_test_single', 'price_test_single_annual', 27489, 'year',
+   '24.99 net x 10 months x 1.10 IVA', NULL),
+  ('pendant',             'prod_test_pendant','price_test_pendant',       15125, NULL,
+   '125.00 net x 1.21 IVA', NULL);
+
+-- ── nobody but super_admin can write a price ──────────────────────────────
+SELECT pg_temp.check(
+  'anonymous cannot read the synced Stripe prices',
+  (SELECT NOT EXISTS (
+     SELECT 1 FROM pg_policies
+      WHERE schemaname = 'public' AND tablename = 'stripe_prices'
+        AND ('anon' = ANY (roles) OR roles = '{public}'))),
+  'nothing anonymous renders from this table; pricing_plans is the public one');
+
+DO $$
+DECLARE n bigint;
+BEGIN
+  PERFORM set_config('request.jwt.claims', '', true);
+  SET LOCAL ROLE anon;
+  EXECUTE 'SELECT count(*) FROM public.stripe_prices' INTO n;
+  RESET ROLE;
+  PERFORM pg_temp.check('anonymous reads no stripe_prices rows', n = 0);
+END $$;
+
+SELECT pg_temp.check(
+  'a MEMBER cannot read the synced Stripe prices',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT stripe_price_id FROM public.stripe_prices') = 0);
+
+-- raises_as, not exec_as: a WITH CHECK violation RAISES rather than reporting zero rows, and
+-- exec_as would let that exception abort the whole suite. (It did.)
+SELECT pg_temp.check(
+  'a member cannot INSERT a price of their own',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO public.stripe_prices
+       (price_key, stripe_product_id, stripe_price_id, amount_cents)
+     VALUES (''pendant'', ''prod_x'', ''price_member_forged'', 1)'),
+  'a 0.01 pendant is what a client-writable price table buys you');
+
+SELECT pg_temp.check(
+  'CONTROL: the forged row really is absent',
+  NOT EXISTS (SELECT 1 FROM public.stripe_prices WHERE stripe_price_id = 'price_member_forged'));
+
+SELECT pg_temp.check(
+  'call-centre staff can READ the synced prices (the editor shows sync state)',
+  pg_temp.count_as('a8000000-0000-0000-0000-000000000002',
+    'SELECT stripe_price_id FROM public.stripe_prices') = 3);
+
+SELECT pg_temp.check(
+  'call-centre staff cannot UPDATE an amount',
+  pg_temp.exec_as('a8000000-0000-0000-0000-000000000002',
+    'UPDATE public.stripe_prices SET amount_cents = 1
+      WHERE price_key = ''pendant''') = 0,
+  'read to see what is synced, never write to change what is charged');
+
+SELECT pg_temp.check(
+  'an ADMIN who is not super_admin cannot UPDATE an amount either',
+  pg_temp.exec_as('a7000000-0000-0000-0000-00000000000f',
+    'UPDATE public.stripe_prices SET amount_cents = 1
+      WHERE price_key = ''pendant''') = 0);
+
+SELECT pg_temp.check(
+  'CONTROL: super_admin CAN write a price row',
+  pg_temp.exec_as('a8000000-0000-0000-0000-000000000001',
+    'UPDATE public.stripe_prices SET source_description = ''re-synced''
+      WHERE price_key = ''pendant''') = 1,
+  'a table only the service role could write would make the admin button impossible');
+
+SELECT pg_temp.check(
+  'CONTROL: the pendant amount is still the synced one',
+  (SELECT amount_cents FROM public.stripe_prices
+    WHERE price_key = 'pendant' AND is_current) = 15125,
+  '125.00 net + 21% IVA — the figure the public page shows');
+
+-- ── the constraints that stop a nonsense Price ────────────────────────────
+SELECT pg_temp.check(
+  'TWO current prices for the same key is REFUSED',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.stripe_prices
+       (price_key, stripe_product_id, stripe_price_id, amount_cents, recurring_interval)
+     VALUES (''plan_single_monthly'', ''prod_x'', ''price_second_current'', 9999, ''month'')'),
+  'two live prices for one plan means the charge depends on which row was read first');
+
+SELECT pg_temp.check(
+  'a SUPERSEDED price for the same key is accepted — history is kept, not deleted',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.stripe_prices
+       (price_key, stripe_product_id, stripe_price_id, amount_cents, recurring_interval,
+        is_current)
+     VALUES (''plan_single_monthly'', ''prod_x'', ''price_old_single'', 2500, ''month'', false)')
+   = false,
+  'Stripe Prices are immutable, so an active subscription is still billed on the old one');
+
+SELECT pg_temp.check(
+  'a plan price with NO recurring interval is REFUSED',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.stripe_prices
+       (price_key, stripe_product_id, stripe_price_id, amount_cents)
+     VALUES (''plan_couple_monthly'', ''prod_x'', ''price_no_interval'', 3849)'),
+  'a membership charged once instead of monthly is a subscription that never renews');
+
+SELECT pg_temp.check(
+  'a one-off price WITH a recurring interval is REFUSED',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.stripe_prices
+       (price_key, stripe_product_id, stripe_price_id, amount_cents, recurring_interval)
+     VALUES (''shipping'', ''prod_x'', ''price_recurring_shipping'', 1499, ''month'')'),
+  'charging shipping every month is the same defect pointing the other way');
+
+-- `recurring_interval` is supplied deliberately. Without it this row also violates the
+-- interval/key constraint, so the assertion passed with the price_key CHECK removed entirely —
+-- it was being refused by the wrong rule. Named alternatives are worth nothing if the test can
+-- be satisfied by a neighbour.
+SELECT pg_temp.check(
+  'a price_key we do not sell is REFUSED',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.stripe_prices
+       (price_key, stripe_product_id, stripe_price_id, amount_cents, recurring_interval)
+     VALUES (''plan_family_monthly'', ''prod_x'', ''price_family'', 4999, ''month'')'),
+  'we sell single and couple; a third plan is a decision, not an insert');
+
+SELECT pg_temp.check(
+  'a NEGATIVE amount is REFUSED',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.stripe_prices
+       (price_key, stripe_product_id, stripe_price_id, amount_cents)
+     VALUES (''shipping'', ''prod_x'', ''price_negative'', -100)'));
+
+SELECT pg_temp.check(
+  'a non-euro currency is REFUSED',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.stripe_prices
+       (price_key, stripe_product_id, stripe_price_id, amount_cents, currency)
+     VALUES (''shipping'', ''prod_x'', ''price_gbp'', 1499, ''gbp'')'),
+  'we sell in euros; a currency column that accepts anything charges 14.99 GBP one day');
+
+SELECT pg_temp.check(
+  'the same stripe_price_id cannot be recorded twice',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.stripe_prices
+       (price_key, stripe_product_id, stripe_price_id, amount_cents, is_current)
+     VALUES (''pendant'', ''prod_x'', ''price_test_pendant'', 15125, false)'),
+  'one Price, one row — otherwise reconciling an invoice finds two answers');
+
+SELECT pg_temp.check(
+  'deleting the staff member who synced a price keeps the price',
+  (SELECT count(*) FROM pg_constraint c
+     JOIN pg_class t ON t.oid = c.conrelid
+    WHERE t.relname = 'stripe_prices' AND c.contype = 'f' AND c.confdeltype = 'n') = 1,
+  'ON DELETE SET NULL — the record of what we charged must survive the person leaving');
+
+-- ============================================================
+--  Join path — who issued a second-stage token (item 6)
+-- ============================================================
+--
+-- REVIEW_JOIN_PATH.md F6. The payment path will mint these tokens itself, so `created_by` has no
+-- staff member to name — and NULL already means "the operator who issued it has left"
+-- (20260905100000 made that FK ON DELETE SET NULL on purpose). `issued_via` is what tells those
+-- two apart. The assertions are about the vocabulary and about the one coherence rule that is
+-- safe to enforce.
+
+SELECT pg_temp.check(
+  'an automated token can be issued with NO staff member named',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.member_update_tokens
+       (member_id, token, requested_fields, expires_at, issued_via)
+     VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''tok-auto-1'',
+             ARRAY[''emergency_contacts'', ''medical_information''],
+             now() + interval ''30 days'', ''post_payment'')') = false,
+  'the whole point: post-payment.ts has no operator to attribute');
+
+SELECT pg_temp.check(
+  'CONTROL: that token is there, marked automated, with nobody named',
+  (SELECT issued_via = 'post_payment' AND created_by IS NULL
+     FROM public.member_update_tokens WHERE token = 'tok-auto-1'));
+
+SELECT pg_temp.check(
+  'an automated token that ALSO names a staff member is REFUSED',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.member_update_tokens
+       (member_id, token, requested_fields, expires_at, issued_via, created_by)
+     VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''tok-auto-2'',
+             ARRAY[''emergency_contacts''], now() + interval ''30 days'',
+             ''post_payment'',
+             (SELECT id FROM public.staff WHERE email = ''superadmin@example.com''))'),
+  'either the payment path issued it or a person did, not both');
+
+SELECT pg_temp.check(
+  'a staff-issued token naming the operator is accepted',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.member_update_tokens
+       (member_id, token, requested_fields, expires_at, issued_via, created_by)
+     VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''tok-staff-1'',
+             ARRAY[''emergency_contacts''], now() + interval ''30 days'', ''staff'',
+             (SELECT id FROM public.staff WHERE email = ''superadmin@example.com''))') = false);
+
+SELECT pg_temp.check(
+  'an issued_via value nobody defined is REFUSED',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.member_update_tokens
+       (member_id, token, requested_fields, expires_at, issued_via)
+     VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''tok-bogus'',
+             ARRAY[''emergency_contacts''], now() + interval ''30 days'', ''magic'')'),
+  'the vocabulary is two words; a third is a decision, not a typo');
+
+-- EXPLICITLY NULL, not merely omitted. Omitting the column passes just as happily against a
+-- `NOT NULL DEFAULT 'staff'` version of it — that mutation survived until this said NULL out
+-- loud — and a default would be stamping provenance on rows nobody verified.
+SELECT pg_temp.check(
+  'a token with issued_via explicitly NULL is still legal — existing rows are untouched',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.member_update_tokens
+       (member_id, token, requested_fields, expires_at, issued_via)
+     VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''tok-legacy'',
+             ARRAY[''emergency_contacts''], now() + interval ''30 days'', NULL)') = false,
+  'nothing is backfilled: writing provenance in retrospectively would be asserting it');
+
+SELECT pg_temp.check(
+  'CONTROL: it really landed with NULL rather than a default',
+  (SELECT issued_via IS NULL FROM public.member_update_tokens WHERE token = 'tok-legacy'));
+
+-- THE TRAP 20260905100000 HAD TO UNDO. A CHECK coupling issued_via to created_by presence makes
+-- the row un-orphanable: deleting a staff member then fails instead of the record surviving them.
+-- This proves the delete still works with a staff-issued token pointing at them.
+DO $$
+DECLARE v_staff uuid;
+BEGIN
+  INSERT INTO auth.users (id, email)
+  VALUES ('a9000000-0000-0000-0000-000000000001', 'leaver@example.com');
+  INSERT INTO public.staff (user_id, email, first_name, last_name, role)
+  VALUES ('a9000000-0000-0000-0000-000000000001', 'leaver@example.com', 'Lee', 'Leaver', 'call_centre')
+  RETURNING id INTO v_staff;
+
+  INSERT INTO public.member_update_tokens
+    (member_id, token, requested_fields, expires_at, issued_via, created_by)
+  VALUES ('aaaaaaaa-0000-0000-0000-000000000001', 'tok-leaver',
+          ARRAY['emergency_contacts'], now() + interval '30 days', 'staff', v_staff);
+
+  -- Guarded: a CHECK that made this row un-orphanable would RAISE here and abort the whole
+  -- suite, reporting nothing. An assertion that cannot fail out loud is not an assertion.
+  BEGIN
+    DELETE FROM public.staff WHERE id = v_staff;
+  EXCEPTION WHEN OTHERS THEN
+    PERFORM pg_temp.check(
+      'a staff member with an issued token CAN still be deleted', false,
+      'the delete RAISED: ' || SQLERRM);
+  END;
+
+  PERFORM pg_temp.check(
+    'a staff member with an issued token CAN still be deleted',
+    NOT EXISTS (SELECT 1 FROM public.staff WHERE id = v_staff)
+    AND EXISTS (SELECT 1 FROM public.member_update_tokens WHERE token = 'tok-leaver'),
+    'a CHECK requiring created_by for issued_via=staff would make this fail — which is exactly '
+    'what 20260905100000 had to undo for submitted_via');
+
+  PERFORM pg_temp.check(
+    'and the token now reads staff-issued with nobody named — ambiguous WITHOUT issued_via',
+    (SELECT created_by IS NULL AND issued_via = 'staff'
+       FROM public.member_update_tokens WHERE token = 'tok-leaver'),
+    'this row and tok-auto-1 both have created_by NULL; issued_via is the only thing that '
+    'distinguishes "their operator left" from "the payment path issued it"');
+END $$;
+
+SELECT pg_temp.check(
+  'a member cannot mint themselves a second-stage token',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO public.member_update_tokens
+       (member_id, token, requested_fields, expires_at, issued_via)
+     VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''tok-self-minted'',
+             ARRAY[''emergency_contacts''], now() + interval ''30 days'', ''post_payment'')'),
+  'the token is the authorisation; minting your own would be authorising yourself');
+
+-- Behaviourally, not structurally. The policy here is `FOR ALL USING (is_staff(auth.uid()))`
+-- with no TO clause, so it is recorded against `{public}` and a pg_policies check reads as a
+-- finding when the predicate is what actually refuses anonymous writes. Asserting the shape
+-- rather than the effect said this table was wide open. It is not; is_staff(NULL) is false.
+DO $$
+DECLARE failed boolean := false; n bigint;
+BEGIN
+  PERFORM set_config('request.jwt.claims', '', true);
+  SET LOCAL ROLE anon;
+  BEGIN
+    EXECUTE 'INSERT INTO public.member_update_tokens
+               (member_id, token, requested_fields, expires_at, issued_via)
+             VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''tok-anon-minted'',
+                     ARRAY[''emergency_contacts''], now() + interval ''30 days'',
+                     ''post_payment'')';
+  EXCEPTION WHEN OTHERS THEN
+    failed := true;
+  END;
+  EXECUTE 'SELECT count(*) FROM public.member_update_tokens' INTO n;
+  RESET ROLE;
+
+  PERFORM pg_temp.check(
+    'anonymous cannot mint a second-stage token', failed,
+    'the token IS the authorisation for the second stage; minting one is authorising yourself');
+  PERFORM pg_temp.check(
+    'anonymous cannot read the tokens either', n = 0,
+    'a readable token table is a list of live authorisations');
+END $$;
+
+SELECT pg_temp.check(
+  'CONTROL: no anonymously minted token exists',
+  NOT EXISTS (SELECT 1 FROM public.member_update_tokens WHERE token = 'tok-anon-minted'));
+
+-- ============================================================
+--  Join path — an order is not `paid` before payment (item 7, F14)
+-- ============================================================
+--
+-- The default was `paid`, so an order created by the wizard claimed a payment nobody had made and
+-- entered the fulfilment queue at registration. The new state below it is only half the fix; the
+-- other half is that ENTERING `paid` is now governed, because otherwise a dropdown grants a free
+-- membership.
+
+SELECT pg_temp.check(
+  'a new order starts at awaiting_payment, not paid',
+  (SELECT column_default LIKE '%awaiting_payment%'
+     FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'orders'
+      AND column_name = 'fulfilment_state'),
+  'DEFAULT paid is what put abandoned checkouts in front of the fulfilment desk');
+
+SELECT pg_temp.check(
+  'awaiting_payment ranks below paid, and the ranks are one apart',
+  public.fulfilment_state_rank('awaiting_payment') = public.fulfilment_state_rank('paid') - 1,
+  'one step, so the payment path can move it forward without a skip');
+
+-- A fixture order of our own, so nothing here depends on another section's rows.
+DO $$
+DECLARE v_order uuid;
+BEGIN
+  INSERT INTO public.orders
+    (member_id, order_number, status, subtotal, tax_amount, total_amount, shipping_amount,
+     shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code)
+  VALUES ('aaaaaaaa-0000-0000-0000-000000000001', 'ICE-AWAIT-1', 'pending',
+          100, 10, 110, 0, 'Calle A 1', 'Albox', 'Almeria', '04800')
+  RETURNING id INTO v_order;
+
+  PERFORM pg_temp.check(
+    'CONTROL: it really landed on awaiting_payment',
+    (SELECT fulfilment_state = 'awaiting_payment' FROM public.orders WHERE id = v_order));
+
+  PERFORM set_config('rls.await_order', v_order::text, false);
+END $$;
+
+-- ── entering `paid` is a claim about money, so it needs authority AND a reason ──
+SELECT pg_temp.check(
+  'call-centre staff CANNOT mark an unpaid order paid',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000002',
+    format('UPDATE public.orders SET fulfilment_state = ''paid'',
+                   fulfilment_state_reason = ''customer says they paid''
+             WHERE id = %L', current_setting('rls.await_order'))),
+  'a free membership granted by a dropdown is the failure this closes');
+
+SELECT pg_temp.check(
+  'a supervisor cannot mark it paid WITHOUT a reason either',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    format('UPDATE public.orders SET fulfilment_state = ''paid''
+             WHERE id = %L', current_setting('rls.await_order'))),
+  'the reason is the audit line: which payment, arriving how');
+
+SELECT pg_temp.check(
+  'a supervisor CAN record a payment that arrived another way, with a reason',
+  pg_temp.exec_as('a8000000-0000-0000-0000-000000000001',
+    format('UPDATE public.orders SET fulfilment_state = ''paid'',
+                   fulfilment_state_reason = ''SEPA transfer received 2026-09-08, ref 4471''
+             WHERE id = %L', current_setting('rls.await_order'))) = 1,
+  'a bank transfer outside Stripe is real; refusing it entirely would send staff to the SQL console');
+
+SELECT pg_temp.check(
+  'and that is written to activity_logs as a payment, not as a correction',
+  (SELECT action = 'fulfilment_payment_recorded'
+     FROM public.activity_logs
+    WHERE entity_type = 'order'
+      AND entity_id = current_setting('rls.await_order')::uuid
+    ORDER BY created_at DESC LIMIT 1),
+  'a reason held only in the column is overwritten by the next move; the log survives');
+
+SELECT pg_temp.check(
+  'the log names the reason given',
+  (SELECT reason LIKE '%SEPA transfer%'
+     FROM public.activity_logs
+    WHERE entity_type = 'order'
+      AND entity_id = current_setting('rls.await_order')::uuid
+    ORDER BY created_at DESC LIMIT 1));
+
+-- ── the forward sequence still works from `paid` onward ────────────────────
+SELECT pg_temp.check(
+  'CONTROL: paid → allocated is still an ordinary forward move, no reason needed',
+  pg_temp.exec_as('a8000000-0000-0000-0000-000000000002',
+    format('UPDATE public.orders SET fulfilment_state = ''allocated''
+             WHERE id = %L', current_setting('rls.await_order'))) = 1,
+  'if the new clause caught every forward move, fulfilment would need a supervisor per step');
+
+-- The order this needs is created first. An UPDATE that matches NO ROWS raises nothing, so an
+-- assertion written before its own fixture reads as "the guard is missing" — which is what the
+-- first version of this said, loudly and wrongly.
+DO $$
+BEGIN
+  INSERT INTO public.orders
+    (member_id, order_number, status, subtotal, tax_amount, total_amount, shipping_amount,
+     shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code)
+  VALUES ('aaaaaaaa-0000-0000-0000-000000000001', 'ICE-AWAIT-2', 'pending',
+          100, 10, 110, 0, 'Calle A 1', 'Albox', 'Almeria', '04800');
+END $$;
+
+SELECT pg_temp.check(
+  'awaiting_payment → allocated is refused as a skip (with the order in place)',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'UPDATE public.orders SET fulfilment_state = ''allocated'',
+            fulfilment_state_reason = ''trying to skip''
+      WHERE order_number = ''ICE-AWAIT-2'''),
+  'even a supervisor with a reason cannot allocate a device against no payment');
+
+SELECT pg_temp.check(
+  'a supervisor CAN move a paid order back to awaiting_payment — a payment that did not clear',
+  pg_temp.exec_as('a8000000-0000-0000-0000-000000000001',
+    'UPDATE public.orders SET fulfilment_state = ''awaiting_payment'',
+            fulfilment_state_reason = ''chargeback: the SEPA transfer was reversed''
+      WHERE order_number = ''ICE-AWAIT-1''') = 1,
+  'backwards, so it is an ordinary correction — but it must be POSSIBLE');
+
+-- ── the BACKFILL, which a fresh database cannot otherwise exercise ─────────
+--
+-- Every order in this suite is inserted AFTER the migrations have run, so the backfill has
+-- nothing to act on and an assertion about it passes whatever it does. Two mutations proved it:
+-- one that moved every `paid` order regardless of payment, and one that dragged `allocated`
+-- orders backwards as well, both SURVIVED.
+--
+-- So the pre-state is seeded here and the migration is RE-EXECUTED (`\ir`, so the SQL under test
+-- is the migration file rather than a copy that can drift). Every statement in that file is
+-- idempotent: CREATE OR REPLACE, SET DEFAULT, DISABLE/ENABLE TRIGGER, and an UPDATE whose WHERE
+-- clause stops matching once it has run.
+--
+-- Three orders, one per outcome the backfill has to get right.
+INSERT INTO public.orders
+  (id, member_id, order_number, status, subtotal, tax_amount, total_amount, shipping_amount,
+   shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code,
+   fulfilment_state)
+VALUES
+  ('0dde0000-0000-0000-0000-00000000f001', 'aaaaaaaa-0000-0000-0000-000000000001',
+   'ICE-BACKFILL-UNPAID', 'pending', 100, 10, 110, 0,
+   'Calle A 1', 'Albox', 'Almeria', '04800', 'paid'),
+  ('0dde0000-0000-0000-0000-00000000f002', 'aaaaaaaa-0000-0000-0000-000000000001',
+   'ICE-BACKFILL-PAID', 'pending', 100, 10, 110, 0,
+   'Calle A 1', 'Albox', 'Almeria', '04800', 'paid'),
+  ('0dde0000-0000-0000-0000-00000000f003', 'aaaaaaaa-0000-0000-0000-000000000001',
+   'ICE-BACKFILL-ALLOCATED', 'processing', 100, 10, 110, 0,
+   'Calle A 1', 'Albox', 'Almeria', '04800', 'allocated');
+
+-- Only the second one has money against it.
+INSERT INTO public.payments
+  (member_id, order_id, amount, payment_type, payment_method, status, paid_at)
+VALUES ('aaaaaaaa-0000-0000-0000-000000000001', '0dde0000-0000-0000-0000-00000000f002',
+        110, 'order', 'stripe', 'completed', now());
+
+-- And a completed payment against the ALLOCATED one would make the third case pass for the
+-- wrong reason, so it deliberately has none: it must stay put because of its STATE, not its
+-- payments.
+
+\ir ../../supabase/migrations/20260908120400_awaiting_payment_wiring.sql
+
+SELECT pg_temp.check(
+  'the backfill moves a `paid` order with NO completed payment to awaiting_payment',
+  (SELECT fulfilment_state FROM public.orders
+    WHERE id = '0dde0000-0000-0000-0000-00000000f001') = 'awaiting_payment',
+  'this is the row F14 is about: an order claiming a payment nobody made');
+
+SELECT pg_temp.check(
+  'it leaves a `paid` order that DID pay alone',
+  (SELECT fulfilment_state FROM public.orders
+    WHERE id = '0dde0000-0000-0000-0000-00000000f002') = 'paid',
+  'un-paying a real customer would take their pendant out of the fulfilment queue');
+
+SELECT pg_temp.check(
+  'it does NOT drag an `allocated` order backwards, whatever its payment rows say',
+  (SELECT fulfilment_state FROM public.orders
+    WHERE id = '0dde0000-0000-0000-0000-00000000f003') = 'allocated',
+  'a device is already reserved against it; that discrepancy is for a person, not a migration');
+
+SELECT pg_temp.check(
+  'the backfill wrote no activity_logs rows — it is not a transition',
+  NOT EXISTS (
+    SELECT 1 FROM public.activity_logs
+     WHERE entity_type = 'order'
+       AND entity_id IN ('0dde0000-0000-0000-0000-00000000f001',
+                         '0dde0000-0000-0000-0000-00000000f002',
+                         '0dde0000-0000-0000-0000-00000000f003')),
+  'a log row would claim a staff member acted today on an order from March');
+
+SELECT pg_temp.check(
+  'CONTROL: the trigger is ENABLED again after the backfill',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000002',
+    'UPDATE public.orders SET fulfilment_state = ''dispatched''
+      WHERE id = ''0dde0000-0000-0000-0000-00000000f003'''),
+  'a backfill that left the trigger disabled would silently un-govern every later write');
+
+-- ============================================================
+--  Join path — two registrations in the same second (item 7, F17)
+-- ============================================================
+--
+-- The order number was 'ICE-' || TO_HEX(EPOCH::BIGINT): one second of resolution against
+-- `order_number text UNIQUE NOT NULL`. Two people finishing the wizard in the same second
+-- produced the same number, and since the whole registration is one transaction the second one
+-- was rolled back entirely — no member, no order, an error at the moment they were about to pay.
+--
+-- Proven by CALLING THE REAL FUNCTION twice in the same statement, so both calls share `now()`.
+-- That is the collision, reproduced: under the old expression this is the failure, and under the
+-- new one it is two numbers.
+
+DO $$
+DECLARE
+  v_payload jsonb;
+  v_a jsonb;
+  v_b jsonb;
+BEGIN
+  v_payload := jsonb_build_object(
+    'membershipType', 'single',
+    'primaryMember', jsonb_build_object(
+      'firstName', 'Nuria', 'lastName', 'Nueva',
+      'email', 'nuria@example.com', 'phone', '+34600000009',
+      'dateOfBirth', '1949-04-04', 'preferredLanguage', 'es'),
+    'address', jsonb_build_object(
+      'addressLine1', 'Calle N 9', 'city', 'Albox', 'province', 'Almeria',
+      'postalCode', '04800', 'country', 'Spain'),
+    'billingFrequency', 'monthly',
+    'includePendant', false,
+    'pendantCount', 0,
+    'activeGateway', 'stripe',
+    'subscriptionNet', 24.99, 'subscriptionTax', 2.50, 'subscriptionFinal', 27.49,
+    'pendantNet', 0, 'pendantTax', 0, 'pendantFinal', 0,
+    'registrationFee', 59.99, 'registrationFeeDiscount', 0, 'registrationFeeEnabled', true,
+    'shipping', 0, 'total', 87.48,
+    'subscriptionTaxRate', 0.10, 'pendantTaxRate', 0.21,
+    'testMode', false);
+
+  -- Same statement, so `now()` is identical for both — which is precisely the collision.
+  -- DIFFERENT EMAILS, because `members.email` is UNIQUE: reusing one makes this fail on that
+  -- constraint instead, which would prove nothing about the order number. (It did, first run.)
+  SELECT public.submit_registration_atomic(v_payload),
+         public.submit_registration_atomic(
+           jsonb_set(v_payload, '{primaryMember,email}', '"nuria2@example.com"'::jsonb))
+    INTO v_a, v_b;
+
+  PERFORM pg_temp.check(
+    'two registrations in the SAME SECOND both succeed',
+    v_a ? 'orderNumber' AND v_b ? 'orderNumber',
+    'the epoch-hash number collided against the UNIQUE constraint and rolled the second one back');
+
+  PERFORM pg_temp.check(
+    'and they get DIFFERENT order numbers',
+    v_a->>'orderNumber' <> v_b->>'orderNumber',
+    format('got %s and %s', v_a->>'orderNumber', v_b->>'orderNumber'));
+
+  PERFORM pg_temp.check(
+    'the number carries the date and a padded serial',
+    v_a->>'orderNumber' ~ ('^ICE-' || to_char(now(), 'YYYYMMDD') || '-[0-9]{5}$'),
+    format('got %s — read out on the phone, ICE-20260908-00042 can be said and ICE-68BE4A31 '
+           'cannot', v_a->>'orderNumber'));
+
+  PERFORM pg_temp.check(
+    'both orders exist, and start at awaiting_payment rather than claiming a payment',
+    (SELECT count(*) FROM public.orders
+      WHERE order_number IN (v_a->>'orderNumber', v_b->>'orderNumber')
+        AND fulfilment_state = 'awaiting_payment') = 2,
+    'the registration path creates an order before any money has arrived — item 7');
+
+  PERFORM pg_temp.check(
+    'and each has its own member, subscription and payment row',
+    (SELECT count(DISTINCT member_id) FROM public.orders
+      WHERE order_number IN (v_a->>'orderNumber', v_b->>'orderNumber')) = 2
+    AND v_a->>'memberId' <> v_b->>'memberId'
+    AND v_a->>'paymentId' <> v_b->>'paymentId',
+    'a collision that rolled back the transaction took all of these with it');
+END $$;
+
+-- ── the COUPLE path, which the single-membership call above never enters ──
+--
+-- Worth its own call: the partner member insert, the partner subscription insert and their two
+-- enum casts are a separate branch. Mutation testing showed the partner branch's
+-- billing_frequency cast being caught only by a text-diff test, never by execution — which is
+-- exactly the coverage a couple registration is missing. Half the product is couples.
+DO $$
+DECLARE v_payload jsonb; v_r jsonb; v_member_ids uuid[];
+BEGIN
+  v_payload := jsonb_build_object(
+    'membershipType', 'couple',
+    'primaryMember', jsonb_build_object(
+      'firstName', 'Pilar', 'lastName', 'Pareja',
+      'email', 'pilar@example.com', 'phone', '+34600000011',
+      'dateOfBirth', '1947-05-05', 'preferredLanguage', 'es'),
+    'partnerMember', jsonb_build_object(
+      'firstName', 'Pablo', 'lastName', 'Pareja',
+      'email', 'pablo@example.com', 'phone', '+34600000012',
+      'dateOfBirth', '1946-06-06', 'preferredLanguage', 'nl'),
+    'address', jsonb_build_object(
+      'addressLine1', 'Calle P 11', 'city', 'Albox', 'province', 'Almeria',
+      'postalCode', '04800', 'country', 'Spain'),
+    'billingFrequency', 'annual',
+    'includePendant', true,
+    'pendantCount', 2,
+    'activeGateway', 'mollie',
+    'subscriptionNet', 349.90, 'subscriptionTax', 34.99, 'subscriptionFinal', 384.89,
+    'pendantNet', 250, 'pendantTax', 52.50, 'pendantFinal', 302.50,
+    'registrationFee', 59.99, 'registrationFeeDiscount', 0, 'registrationFeeEnabled', true,
+    'shipping', 14.99, 'total', 762.37,
+    'subscriptionTaxRate', 0.10, 'pendantTaxRate', 0.21,
+    'testMode', false);
+
+  v_r := public.submit_registration_atomic(v_payload);
+
+  PERFORM pg_temp.check(
+    'a COUPLE registration completes, and creates BOTH members',
+    v_r->>'memberId' IS NOT NULL AND v_r->>'partnerMemberId' IS NOT NULL,
+    'the partner branch has its own inserts and its own enum casts');
+
+  PERFORM pg_temp.check(
+    'both members get a subscription',
+    v_r->>'subscriptionId' IS NOT NULL AND v_r->>'partnerSubscriptionId' IS NOT NULL);
+
+  PERFORM pg_temp.check(
+    'the ANNUAL billing frequency landed as the enum, not as text',
+    (SELECT count(*) FROM public.subscriptions
+      WHERE id IN ((v_r->>'subscriptionId')::uuid, (v_r->>'partnerSubscriptionId')::uuid)
+        AND billing_frequency = 'annual' AND plan_type = 'couple') = 2);
+
+  PERFORM pg_temp.check(
+    'the MOLLIE gateway landed as payment_method on both subscriptions and the payment',
+    (SELECT count(*) FROM public.subscriptions
+      WHERE id IN ((v_r->>'subscriptionId')::uuid, (v_r->>'partnerSubscriptionId')::uuid)
+        AND payment_method = 'mollie') = 2
+    AND (SELECT payment_method FROM public.payments
+          WHERE id = (v_r->>'paymentId')::uuid) = 'mollie',
+    'mollie is the LIVE gateway (20260902160000) and is in the payment_method enum '
+    '(20260228180000) — but only a cast gets it there');
+
+  PERFORM pg_temp.check(
+    'the partner''s own language landed — nl, not the primary''s es',
+    (SELECT preferred_language FROM public.members
+      WHERE id = (v_r->>'partnerMemberId')::uuid) = 'nl',
+    'a Dutch member read to in Spanish is the kind of thing a cast defect hides');
+END $$;
+
+SELECT pg_temp.check(
+  'the sequence is not reachable from a client role',
+  NOT has_sequence_privilege('anon', 'public.order_number_seq', 'USAGE')
+  AND NOT has_sequence_privilege('authenticated', 'public.order_number_seq', 'USAGE'),
+  'a browser that could call nextval() would burn numbers and leave gaps in the ledger');
 
 -- ============================================================
 --  Report

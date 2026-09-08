@@ -26,6 +26,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 MIGRATIONS="$REPO_ROOT/supabase/migrations"
 BOOTSTRAP="$REPO_ROOT/scripts/rls/bootstrap.sql"
 ISOLATION="$REPO_ROOT/scripts/rls/isolation.sql"
+WIRING="$REPO_ROOT/scripts/rls/wiring.sql"
 DB_NAME="rls_isolation_$$"
 
 # pg_cron and pg_net cannot be installed on a stock PostgreSQL. The migrations
@@ -206,3 +207,43 @@ log "Running isolation checks"
 if ! psql_db -f "$ISOLATION"; then
   breach_suspected
 fi
+
+# ── the realtime contract ──────────────────────────────────────────────────
+#
+# Reuses this database rather than booting a second one: the question ("is every
+# table src/ subscribes to actually published?") needs the real
+# pg_publication_tables, which is already here. The subscribed-table list is
+# generated from the source so a subscription added later is covered without
+# anyone editing SQL. See scripts/rls/realtime.sql for what it catches.
+#
+# Deliberately AFTER the isolation suite and reported separately: a dead
+# subscription is a broken promise about a screen, not a tenancy breach, and
+# conflating the two is how #136's red got read as noise.
+log "Checking the realtime contract"
+CHANNELS="$(mktemp /tmp/wiring-channels.XXXXXX.sql)"
+chmod a+r "$CHANNELS"
+if ! node "$REPO_ROOT/scripts/wiring/inventory.mjs" --channels > "$CHANNELS"; then
+  echo "ERROR: could not derive the subscribed-table list from src/." >&2
+  rm -f "$CHANNELS"
+  exit 2
+fi
+# The generated prelude and the assertions run as ONE psql session, because the
+# prelude creates a TEMP table: two -f files are one session, but the temp table
+# must be created before the checks read it, so order matters here.
+if ! psql_db -f "$CHANNELS" -f "$WIRING"; then
+  rm -f "$CHANNELS"
+  echo "::error title=Realtime contract broken::A postgres_changes subscription listens to a table that is not in the supabase_realtime publication. That callback never fires, and nothing reports it. Table names are in the log above."
+  emit_summary "## 🔴 Realtime contract broken
+
+A \`postgres_changes\` subscription listens to a table that is **not** in the
+\`supabase_realtime\` publication.
+
+Subscribing to an unpublished table **succeeds**: no error, no rejected promise,
+no log line. The callback is simply never called, so the screen silently stops
+being live. The table names are named in the job log.
+
+Either publish the table (with \`REPLICA IDENTITY FULL\`) or remove the
+subscription and stop promising a live screen."
+  exit 1
+fi
+rm -f "$CHANNELS"

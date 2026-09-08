@@ -65,14 +65,26 @@ export const registrationSchema = z.object({
   primaryMember: memberDetailsSchema,
   partnerMember: memberDetailsSchema.optional(),
   address: addressSchema,
-  medicalInfo: medicalSchema,
+  // OPTIONAL, and that is the contract — not a relaxation of it. The join wizard is forbidden to
+  // send these: `buildRegistrationBody` omits them and `assertNoHealthDataInPayload` throws if a
+  // caller supplies them, because emergency contacts and medical data are collected after payment
+  // through member_update_tokens (ONBOARDING_SPLIT.md). While they were required here, every
+  // stranger who pressed "Pay securely" got a 400 from a schema their own client could not satisfy
+  // (REVIEW_JOIN_PATH.md F1). The shape of each element is unchanged — a caller that DOES send
+  // contacts is still held to a real name, relationship and phone.
+  medicalInfo: medicalSchema.optional(),
   partnerMedicalInfo: medicalSchema.optional(),
-  emergencyContacts: z.array(emergencyContactSchema).min(1).max(10),
+  emergencyContacts: z.array(emergencyContactSchema).max(10).optional(),
   includePendant: z.boolean(),
   pendantCount: z.number().int().min(0).max(10),
   billingFrequency: z.enum(["monthly", "annual"]),
-  partnerRef: z.string().max(100).optional(),
-  refPostId: z.string().max(100).optional(),
+  // `.nullish()`, not `.optional()`. `getStoredReferralData()` returns `referralCode: null` and
+  // `refPostId: null` for a visitor who arrived without a referral code — the common case — and
+  // the builder passes them through as nulls, which JSON preserves. An optional string accepts
+  // undefined and REJECTS null, so this was a second, independent cause of the same 400: fixing
+  // only the health fields above would have left the wizard just as dead.
+  partnerRef: z.string().max(100).nullish(),
+  refPostId: z.string().max(100).nullish(),
   utmParams: z
     .object({
       utm_source: z.string().max(200).optional(),

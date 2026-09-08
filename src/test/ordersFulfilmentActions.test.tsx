@@ -528,9 +528,13 @@ describe("the correction dialog cannot send what the trigger would refuse", () =
     );
   });
 
-  it("offers no forward move as a target: from `paid` the only correction is cancelling", async () => {
+  it("offers no ordinary forward move as a target: from `paid`, back or cancelled only", async () => {
     // A dialog that offered forward moves would be a second, reason-demanding way to do
     // ordinary work — and `tested` from `delivered` is exactly that.
+    //
+    // `Awaiting payment` IS offered from `paid`, and belongs here: it is backwards, and it is
+    // how a supervisor undoes an order marked paid against a payment that turned out not to
+    // have cleared. `Allocated` and everything past it stay out.
     await openCorrection(ORDER({ fulfilment_state: "paid", status: "pending" }));
     const trigger = screen.getByLabelText("Move it to");
     fireEvent.pointerDown(
@@ -538,7 +542,21 @@ describe("the correction dialog cannot send what the trigger would refuse", () =
       new window.PointerEvent("pointerdown", { bubbles: true, button: 0 }),
     );
     const options = await screen.findAllByRole("option");
-    expect(options.map((o) => o.textContent)).toEqual(["Cancelled"]);
+    expect(options.map((o) => o.textContent)).toEqual(["Awaiting payment", "Cancelled"]);
+  });
+
+  it("from `awaiting_payment`, recording a payment is offered — and demands a reason", async () => {
+    // The one route into `paid` outside the payment webhook: money that arrived another way,
+    // with a supervisor saying so. The trigger refuses it without a NEW reason, so the dialog
+    // is the right and only affordance.
+    await openCorrection(ORDER({ fulfilment_state: "awaiting_payment", status: "pending" }));
+    const trigger = screen.getByLabelText("Move it to");
+    fireEvent.pointerDown(
+      trigger,
+      new window.PointerEvent("pointerdown", { bubbles: true, button: 0 }),
+    );
+    const options = await screen.findAllByRole("option");
+    expect(options.map((o) => o.textContent)).toEqual(["Paid", "Cancelled"]);
   });
 
   it("does not offer `tested` when correcting a delivered order", async () => {

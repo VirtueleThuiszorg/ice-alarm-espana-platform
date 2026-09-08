@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Save } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CloudUpload, Loader2, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,8 @@ import { usePricing } from "@/hooks/usePricing";
 import { formatPrice } from "@/config/pricing";
 import { calculateOrder, getSubscriptionMonthlyFinal, getSubscriptionFinalPrice, getPendantFinalPrice } from "../../../supabase/functions/_shared/pricing-calc";
 import { configToForm, formToConfig, formToDbRows, type PricingForm } from "@/lib/pricingEditor";
+import { useCurrentStaff } from "@/hooks/useCurrentStaff";
+import { useStripePriceSyncState, useSyncPricesToStripe } from "@/hooks/useStripePrices";
 
 /**
  * Canonical pricing editor — writes to pricing_plans + pricing_settings (the single source
@@ -33,6 +35,15 @@ export function PricingPlansEditor() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<PricingForm | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Editing these tables changes what the public pages SHOW. It does not change what Stripe
+  // CHARGES until the prices are synced, because a Stripe Price is an object with its own
+  // amount. That gap is the whole reason this panel exists rather than the save button quietly
+  // implying both happened.
+  const { data: staff } = useCurrentStaff();
+  const sync = useStripePriceSyncState(isLoading ? null : config);
+  const syncMutation = useSyncPricesToStripe();
+  const isSuperAdmin = staff?.role === "super_admin";
 
   useEffect(() => {
     if (!form && !isLoading) setForm(configToForm(config));
@@ -115,6 +126,90 @@ export function PricingPlansEditor() {
             <span>Couple: <b>{formatPrice(getSubscriptionMonthlyFinal(preview, "couple"))}</b>/mo · {formatPrice(getSubscriptionFinalPrice(preview, "couple", "annual"))}/yr</span>
             <span>Pendant: <b>{formatPrice(getPendantFinalPrice(preview, 1))}</b></span>
             <span>Single + pendant + reg, total: <b>{formatPrice(calculateOrder(preview, { membershipType: "single", billingFrequency: "monthly", includePendant: true }).grandTotal)}</b></span>
+          </div>
+        </div>
+
+        {/* What Stripe actually charges, and whether it still matches the above */}
+        <div className="rounded-lg border p-4 text-sm space-y-3">
+          <div className="flex items-start gap-2">
+            {sync.isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin mt-0.5 text-muted-foreground" />
+            ) : sync.inSync ? (
+              <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-600" />
+            ) : (
+              <AlertTriangle className="h-4 w-4 mt-0.5 text-amber-600" />
+            )}
+            <div className="space-y-1">
+              <h4 className="font-medium">Stripe prices</h4>
+              {sync.isLoading ? (
+                <p className="text-muted-foreground">Checking what Stripe holds…</p>
+              ) : sync.error ? (
+                <p className="text-destructive">Could not read the synced prices: {sync.error.message}</p>
+              ) : sync.neverSynced ? (
+                <p className="text-amber-700">
+                  Never synced. Checkout has no Stripe price to charge against, so a customer
+                  cannot pay until these are pushed to Stripe.
+                </p>
+              ) : sync.inSync ? (
+                <p className="text-muted-foreground">
+                  All {sync.rows.length} prices in Stripe match the values above.
+                </p>
+              ) : (
+                <div className="space-y-1">
+                  <p className="text-amber-700">
+                    {sync.changes.filter((c) => c.action !== "unchanged").length} price(s) in Stripe
+                    no longer match the values above. Customers are charged what STRIPE holds, not
+                    what this page shows, until you sync.
+                  </p>
+                  <ul className="list-disc pl-5 text-xs text-muted-foreground">
+                    {sync.changes
+                      .filter((c) => c.action !== "unchanged")
+                      .map((c) => (
+                        <li key={c.desired.priceKey}>
+                          <span className="font-mono">{c.desired.priceKey}</span> — {c.reason}
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {syncMutation.data && (
+            <p className="text-xs text-muted-foreground">
+              Last sync: {syncMutation.data.created?.length ?? 0} created,{" "}
+              {syncMutation.data.repriced?.length ?? 0} repriced,{" "}
+              {syncMutation.data.unchanged?.length ?? 0} already in sync.
+            </p>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                syncMutation.mutate(undefined, {
+                  onSuccess: (r) =>
+                    toast.success(
+                      `Stripe prices synced — ${r.created?.length ?? 0} created, ` +
+                        `${r.repriced?.length ?? 0} repriced`,
+                    ),
+                  onError: (e) => toast.error(e.message),
+                });
+              }}
+              disabled={!isSuperAdmin || syncMutation.isPending || sync.isLoading}
+            >
+              {syncMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <CloudUpload className="h-4 w-4 mr-2" />
+              )}
+              Sync prices to Stripe
+            </Button>
+            {!isSuperAdmin && (
+              <span className="text-xs text-muted-foreground">
+                Super admin only — this creates the objects Stripe charges from.
+              </span>
+            )}
           </div>
         </div>
 

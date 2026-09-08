@@ -227,28 +227,39 @@ describe("planSync decides what changes, without changing anything", () => {
   });
 });
 
-/** A Stripe stand-in that records what it was asked to create. */
-function fakeStripe() {
+/**
+ * ONE ordered log across BOTH stand-ins.
+ *
+ * They used to keep separate logs, which made the ordering assertion below worthless: it
+ * compared two STORE calls and never saw where the Stripe create fell between them. A mutation
+ * that moved `supersede` in front of `createPrice` — the exact defect the assertion names —
+ * survived. Interleaving matters, so the log has to be shared.
+ */
+function fakeStripe(calls: string[]) {
   const products: string[] = [];
   const prices: Array<{ productId: string; unitAmountCents: number; recurringInterval: string | null }> = [];
   let n = 0;
   const api: StripePriceApi = {
     createProduct: async (name) => {
       products.push(name);
+      calls.push(`stripe.createProduct:${name}`);
       return { id: `prod_${products.length}` };
     },
     createPrice: async (input) => {
       prices.push(input);
       n += 1;
+      calls.push(`stripe.createPrice:${input.unitAmountCents}`);
       return { id: `price_new_${n}` };
     },
   };
   return { api, products, prices };
 }
 
-/** A store stand-in that records the ORDER of its calls, which is the property under test. */
-function fakeStore(current: ExistingPrice[] = [], productIds: Record<string, string> = {}) {
-  const calls: string[] = [];
+function fakeStore(
+  calls: string[],
+  current: ExistingPrice[] = [],
+  productIds: Record<string, string> = {},
+) {
   const inserted: Array<Record<string, unknown>> = [];
   const store: PriceStore = {
     listCurrent: async () => {
@@ -267,13 +278,14 @@ function fakeStore(current: ExistingPrice[] = [], productIds: Record<string, str
       inserted.push(row);
     },
   };
-  return { store, calls, inserted };
+  return { store, inserted };
 }
 
 describe("syncPrices", () => {
   it("creates all seven Prices and five Products on a first run", async () => {
-    const stripe = fakeStripe();
-    const store = fakeStore();
+    const calls: string[] = [];
+    const stripe = fakeStripe(calls);
+    const store = fakeStore(calls);
     const result = await syncPrices({
       config: SEEDED,
       stripe: stripe.api,
@@ -291,8 +303,9 @@ describe("syncPrices", () => {
   });
 
   it("stamps every inserted row with the amount, interval, source line and actor", async () => {
-    const stripe = fakeStripe();
-    const store = fakeStore();
+    const calls: string[] = [];
+    const stripe = fakeStripe(calls);
+    const store = fakeStore(calls);
     await syncPrices({ config: SEEDED, stripe: stripe.api, store: store.store, syncedBy: "staff-7" });
 
     const pendant = store.inserted.find((r) => r.price_key === "pendant")!;
@@ -313,8 +326,9 @@ describe("syncPrices", () => {
         stripe_price_id: `price_${d.priceKey}`,
       }),
     );
-    const stripe = fakeStripe();
-    const store = fakeStore(rows);
+    const calls: string[] = [];
+    const stripe = fakeStripe(calls);
+    const store = fakeStore(calls, rows);
     const result = await syncPrices({
       config: SEEDED,
       stripe: stripe.api,
@@ -325,8 +339,8 @@ describe("syncPrices", () => {
     expect(result.unchanged).toHaveLength(7);
     expect(stripe.prices).toHaveLength(0);
     expect(stripe.products).toHaveLength(0);
-    expect(store.calls.filter((c) => c.startsWith("insert"))).toHaveLength(0);
-    expect(store.calls.filter((c) => c.startsWith("supersede"))).toHaveLength(0);
+    expect(calls.filter((c) => c.startsWith("insert"))).toHaveLength(0);
+    expect(calls.filter((c) => c.startsWith("supersede"))).toHaveLength(0);
     // The report still names all seven, so pressing the button twice tells you it is in sync
     // rather than telling you nothing.
     expect(result.report).toHaveLength(7);
@@ -338,16 +352,19 @@ describe("syncPrices", () => {
     // and a checkout in that window has nothing to charge against. Creating first can only leave
     // an orphaned Price in Stripe, which is harmless and cleared by re-running.
     const rows = [existing({ price_key: "pendant", amount_cents: 14000, recurring_interval: null })];
-    const stripe = fakeStripe();
-    const store = fakeStore(rows);
+    const calls: string[] = [];
+    const stripe = fakeStripe(calls);
+    const store = fakeStore(calls, rows);
     await syncPrices({ config: SEEDED, stripe: stripe.api, store: store.store, syncedBy: null });
 
-    const supersede = store.calls.indexOf("supersede:pendant");
-    const insert = store.calls.indexOf("insert:pendant");
+    const created = calls.indexOf("stripe.createPrice:15125");
+    const supersede = calls.indexOf("supersede:pendant");
+    const insert = calls.indexOf("insert:pendant");
+    expect(created).toBeGreaterThan(-1);
     expect(supersede).toBeGreaterThan(-1);
+    // The whole assertion: create, THEN supersede, THEN record.
+    expect(supersede).toBeGreaterThan(created);
     expect(insert).toBeGreaterThan(supersede);
-    // And the Price existed in Stripe before either happened.
-    expect(stripe.prices.some((p) => p.unitAmountCents === 15125)).toBe(true);
   });
 
   it("reuses the Product id from the row it is superseding", async () => {
@@ -359,8 +376,9 @@ describe("syncPrices", () => {
         stripe_product_id: "prod_existing_pendant",
       }),
     ];
-    const stripe = fakeStripe();
-    const store = fakeStore(rows);
+    const calls: string[] = [];
+    const stripe = fakeStripe(calls);
+    const store = fakeStore(calls, rows);
     await syncPrices({ config: SEEDED, stripe: stripe.api, store: store.store, syncedBy: null });
 
     const pendantPrice = stripe.prices.find((p) => p.unitAmountCents === 15125)!;
@@ -370,8 +388,9 @@ describe("syncPrices", () => {
   });
 
   it("reuses a Product recorded against a SUPERSEDED row when the key is being re-created", async () => {
-    const stripe = fakeStripe();
-    const store = fakeStore([], { pendant: "prod_from_history" });
+    const calls: string[] = [];
+    const stripe = fakeStripe(calls);
+    const store = fakeStore(calls, [], { pendant: "prod_from_history" });
     await syncPrices({ config: SEEDED, stripe: stripe.api, store: store.store, syncedBy: null });
 
     const pendantPrice = stripe.prices.find((p) => p.unitAmountCents === 15125)!;
@@ -387,8 +406,9 @@ describe("syncPrices", () => {
         recurring_interval: d.recurringInterval,
       }),
     );
-    const stripe = fakeStripe();
-    const store = fakeStore(rows);
+    const calls: string[] = [];
+    const stripe = fakeStripe(calls);
+    const store = fakeStore(calls, rows);
     const result = await syncPrices({
       config: SEEDED,
       stripe: stripe.api,
@@ -404,8 +424,9 @@ describe("syncPrices", () => {
   });
 
   it("passes the recurring interval through to Stripe, per key", async () => {
-    const stripe = fakeStripe();
-    const store = fakeStore();
+    const calls: string[] = [];
+    const stripe = fakeStripe(calls);
+    const store = fakeStore(calls);
     await syncPrices({ config: SEEDED, stripe: stripe.api, store: store.store, syncedBy: null });
 
     const intervals = stripe.prices.map((p) => p.recurringInterval);
@@ -415,8 +436,9 @@ describe("syncPrices", () => {
   });
 
   it("refuses to sync a config that would price NaN, before touching Stripe", async () => {
-    const stripe = fakeStripe();
-    const store = fakeStore();
+    const calls: string[] = [];
+    const stripe = fakeStripe(calls);
+    const store = fakeStore(calls);
     await expect(
       syncPrices({
         config: { ...SEEDED, pendantNet: Number.NaN },

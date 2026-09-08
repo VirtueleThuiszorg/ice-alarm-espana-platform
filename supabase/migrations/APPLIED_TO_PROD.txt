@@ -188,3 +188,4 @@
 20260907110000_fulfilment_state_add_cancelled.sql
 20260907110100_fulfilment_state_corrections.sql
 20260907110200_seed_emergency_phone.sql
+20260907120000_wp3_wp6_seed_bundle.sql

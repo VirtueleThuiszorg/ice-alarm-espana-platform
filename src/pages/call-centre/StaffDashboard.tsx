@@ -31,6 +31,7 @@ import { PendantLiveStatusModal } from "@/components/call-centre/PendantLiveStat
 import { EV07BLiveStatusCard } from "@/components/call-centre/EV07BLiveStatusCard";
 import { DeviceIssuesQueue } from "@/components/call-centre/DeviceIssuesQueue";
 import { DeviceOfflineAlertsCard } from "@/components/call-centre/DeviceOfflineAlertsCard";
+import { NewEnquiriesCard } from "@/components/call-centre/NewEnquiriesCard";
 import { MyShiftsWidget } from "@/components/call-centre/MyShiftsWidget";
 import { MyHolidaysWidget } from "@/components/call-centre/MyHolidaysWidget";
 import { PendingCoversWidget } from "@/components/call-centre/PendingCoversWidget";
@@ -599,6 +600,12 @@ export default function StaffDashboard() {
         </Card>
 
       </div>
+
+      {/* New enquiries from the public Contact page. Sits with tasks and
+          messages because it is the same kind of thing — work waiting for a
+          person — and until now it was the only one with no home on any
+          dashboard. See WIRING_REGISTER.md, `table:leads`. */}
+      <NewEnquiriesCard />
 
       {/* Members Row 2: Tasks + Messages */}
       <div className="grid md:grid-cols-2 gap-4">

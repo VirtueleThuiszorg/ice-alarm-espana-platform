@@ -1,6 +1,8 @@
 /**
- * Partner commission terms: €50 per pendant sold, FLAT (Lee, 2026-07-24).
- * No volume tiers, no discounts for more. Three surfaces must agree:
+ * Partner commission terms: €50 FLAT, ONCE PER MEMBER (Lee, 2026-07-24;
+ * re-confirmed and tightened 2026-09-08 — "one member, one payment").
+ * No volume tiers, no discounts for more, and the same €50 for every partner
+ * type. Three surfaces must agree:
  *
  *  1. The PUBLIC partner page (/partner/join; /partner redirects to it) shows
  *     NO commission figures at all —
@@ -43,7 +45,20 @@ describe("1 — the public partner page carries no commission figures", () => {
 // test reading a deleted file would be worse than no test.
 describe("3 — payout math and portal copy match the emailed terms", () => {
   it("useOrderActions pays a flat €50 constant — tier calculation deleted", () => {
-    expect(orderActions).toMatch(/COMMISSION_PER_PENDANT_EUR = 50/);
+    // Renamed from COMMISSION_PER_PENDANT_EUR on 2026-09-08. The agreement pays
+    // "€50 gross for each successful referral"; the pendant is the trigger, not
+    // the unit. The old name invited a couple's two pendants to be read as
+    // €100, which would breach the agreement.
+    expect(orderActions).toMatch(/COMMISSION_PER_MEMBER_EUR = 50/);
+    // Code only — the docblock quotes the old name deliberately, to explain why
+    // multiplying by pendant quantity would breach the agreement.
+    const code = orderActions
+      .split("\n")
+      .filter((line) => !/^\s*(\/\/|\*|\/\*)/.test(line))
+      .join("\n");
+    expect(code, "the per-pendant name must not come back").not.toMatch(
+      /COMMISSION_PER_PENDANT_EUR/,
+    );
     expect(orderActions).not.toMatch(/calculateCommissionAmount/);
     expect(orderActions).not.toMatch(/TIER_10|TIER_20|\b55\b|\b60\b/);
   });

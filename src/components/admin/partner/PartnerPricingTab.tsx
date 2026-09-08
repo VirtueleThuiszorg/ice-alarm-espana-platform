@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { DollarSign, Plus, Trash2, Calendar } from "lucide-react";
+import { DollarSign, Plus, Trash2, Calendar, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { usePartnerPricing, useCreatePartnerPricingTier, useDeletePartnerPricingTier } from "@/hooks/usePartnerPricing";
@@ -99,6 +100,28 @@ export function PartnerPricingTab({ partnerId, partnerType }: PartnerPricingTabP
 
   return (
     <div className="space-y-4">
+      {/* Anything entered below is stored and displayed and NOTHING READS IT.
+          `partner_pricing_tiers` has no reader in the payment path: not
+          `submit-registration`, not `_shared/pricing-calc.ts`, not
+          `create-checkout`, and not `useOrderActions` where the commission is
+          written. `useActivePartnerPricing` — the one hook that would pick "the
+          tier in force today" — has no call sites at all.
+
+          Rather than delete the tab (Lee wants per-partner rates in a future
+          version, 2026-09-08), the screen now says so plainly. A form that
+          accepts money figures and silently discards them is the failure this
+          notice exists to prevent. */}
+      <Alert>
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>These rates are not applied yet</AlertTitle>
+        <AlertDescription>
+          Tiers saved here are recorded for planning, but the checkout does not read them
+          and the commission does not use them. Every member is charged the standard price
+          list, and every partner earns the flat €50 per referred member. Per-partner rates
+          are planned for a future version.
+        </AlertDescription>
+      </Alert>
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -108,7 +131,7 @@ export function PartnerPricingTab({ partnerId, partnerType }: PartnerPricingTabP
                 Custom Pricing Tiers
               </CardTitle>
               <CardDescription>
-                Configure special pricing for this partner's referrals
+                Planned rates for this partner's referrals — not yet applied at checkout
               </CardDescription>
             </div>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>

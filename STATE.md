@@ -25,13 +25,19 @@ what would go red if it broke.
 the register cannot fall behind the code — `node scripts/wiring/build.mjs --check` regenerates
 and diffs, and CI runs it.
 
-| band | meaning | wires |
-|---|---|---:|
-| 10 | arrives · right person told on a live channel · failure shown · proof that goes red | 1 |
-| 7–9 | arrives and proven; notification missing or on a channel not live today | 8 |
-| 4–6 | arrives; nobody told; nothing proves it | 155 |
-| 1–3 | fails, fails silently, or lands where nobody looks | 0 |
-| 0 | dead control | 7 |
+| band | meaning | before | after |
+|---|---|---:|---:|
+| 10 | arrives · right person told on a live channel · failure shown · proof that goes red | 1 | 2 |
+| 7–9 | arrives and proven; notification missing or on a channel not live today | 8 | 13 |
+| 4–6 | arrives; nobody told; nothing proves it | 155 | 154 |
+| 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0 |
+| 0 | dead control | 7 | 2 |
+
+*after* = with this bundle applied. The five dead realtime subscriptions become
+live and gain the only proof any of them has ever had; the lead reaches the bell
+and becomes the second row in the register to reach 10. The two remaining 0s are
+billing reminders and the communication log, both dead code whose revival is
+Lee's decision (W6).
 
 **Only nine wires have a proof at all**, and each cites one of four suites that
 were READ and confirmed to exercise the wire: `staffMemberActions`,

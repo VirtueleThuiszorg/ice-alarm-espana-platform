@@ -6,6 +6,13 @@ name: RLS Isolation
 # It needs no Supabase project and no ephemeral cluster: RLS is a pure PostgreSQL
 # feature, so a stock `postgres:16` service is enough to evaluate the real
 # policies from the real migration set. See scripts/rls/run.sh.
+#
+# The same job also runs the WIRING CONTRACT (scripts/rls/wiring.sql), because it
+# needs the same thing and nothing else does: a real pg_publication_tables, to
+# prove that every table src/ subscribes to can actually deliver an event. Five
+# subscriptions were listening to unpublished tables — which succeeds silently
+# and never fires — and no unit test could have seen it, because there the
+# client is a mock and the mock calls the callback.
 
 on:
   push:
@@ -49,6 +56,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends postgresql-client
+
+      # run.sh derives the list of tables src/ subscribes to (for the realtime
+      # contract in scripts/rls/wiring.sql) with `node scripts/wiring/inventory.mjs
+      # --channels`. The runner ships a Node, but pinning it means this job does
+      # not quietly start depending on whatever version the image happens to have.
+      # No `npm ci`: inventory.mjs imports only node: builtins.
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
       - name: Run RLS isolation suite
         env:

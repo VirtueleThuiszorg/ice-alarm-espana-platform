@@ -2911,6 +2911,204 @@ SELECT pg_temp.check(
   'renew, switch_to_single, switch_to_couple, add_pendant, pause, resume, cancel');
 
 -- ============================================================
+--  Join path — who may read system_settings
+-- ============================================================
+--
+-- REVIEW_JOIN_PATH.md F2 and F12, proven from both ends: the anonymous joiner must be able to
+-- read the three keys /join needs and NOTHING else, and a staff account must not be able to read
+-- a credential. Both are assertions about a whitelist, so both are written as "exactly this set",
+-- never as "at least one row came back" — a policy that returns everything passes that.
+
+-- Credentials, and one legitimate staff-readable setting to prove the pattern is not a blanket
+-- ban. Seeded here rather than relied on from a migration: an assertion that depends on a
+-- seeded row somewhere else is an assertion that silently stops testing when the seed moves.
+INSERT INTO public.system_settings (key, value) VALUES
+  -- The four company keys are seeded here too, so "exactly seven" is a statement about the
+  -- POLICY and not about which rows an unrelated migration happened to insert. Without this the
+  -- assertion silently weakens to "the whitelisted keys that exist".
+  ('settings_company_name',          'ICE Alarm España'),
+  ('settings_emergency_phone',       '+34000000001'),
+  ('settings_support_email',         'support@example.com'),
+  ('settings_address',               'Albox, Almería'),
+  ('settings_stripe_secret_key',     'sk_test_do_not_use'),
+  ('settings_stripe_webhook_secret', 'whsec_do_not_use'),
+  ('settings_mollie_api_key',        'test_do_not_use'),
+  ('settings_twilio_auth_token',     'token_do_not_use'),
+  ('settings_ev07b_checkin_key',     'checkin_do_not_use'),
+  ('settings_twilio_sms_number',     '+34000000000'),
+  ('settings_active_payment_gateway','mollie'),
+  ('registration_fee_enabled',       'true'),
+  ('registration_fee_discount',      '0')
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+
+-- This section seeds its OWN call-centre operator rather than reusing the suite's, because the
+-- FK-audit section above DELETES that staff row (line ~1951, deliberately — it proves an audit
+-- row survives its actor leaving). Reusing it made three assertions here pass vacuously: a
+-- deleted staff row is not staff, so of course it could not read the Stripe key. The CONTROL
+-- assertion below is what caught that, and it is why it is there.
+INSERT INTO auth.users (id, email) VALUES
+  ('a8000000-0000-0000-0000-000000000001', 'superadmin@example.com'),
+  ('a8000000-0000-0000-0000-000000000002', 'operator-settings@example.com');
+INSERT INTO public.staff (user_id, email, first_name, last_name, role) VALUES
+  ('a8000000-0000-0000-0000-000000000001', 'superadmin@example.com', 'Sam', 'Super', 'super_admin'),
+  ('a8000000-0000-0000-0000-000000000002', 'operator-settings@example.com', 'Olga', 'Operator', 'call_centre');
+
+-- ── F2: what the anonymous browser can read, exactly ──────────────────────
+DO $$
+DECLARE v_keys text[];
+BEGIN
+  PERFORM set_config('request.jwt.claims', '', true);
+  SET LOCAL ROLE anon;
+  EXECUTE 'SELECT array_agg(key ORDER BY key) FROM public.system_settings' INTO v_keys;
+  RESET ROLE;
+
+  PERFORM pg_temp.check(
+    'anonymous reads EXACTLY the seven whitelisted settings keys',
+    v_keys = ARRAY['registration_fee_discount', 'registration_fee_enabled',
+                   'settings_active_payment_gateway', 'settings_address',
+                   'settings_company_name', 'settings_emergency_phone',
+                   'settings_support_email'],
+    'four company keys plus the three /join needs — named, not counted, so a widened '
+    'policy fails here instead of passing with more rows');
+END $$;
+
+-- The three that were the blocker, called out individually: a whitelist that happens to have
+-- the right length is not the same as one that has the right members.
+DO $$
+DECLARE v_gateway text; v_enabled text; v_discount text;
+BEGIN
+  PERFORM set_config('request.jwt.claims', '', true);
+  SET LOCAL ROLE anon;
+  EXECUTE 'SELECT value FROM public.system_settings WHERE key = ''settings_active_payment_gateway'''
+    INTO v_gateway;
+  EXECUTE 'SELECT value FROM public.system_settings WHERE key = ''registration_fee_enabled'''
+    INTO v_enabled;
+  EXECUTE 'SELECT value FROM public.system_settings WHERE key = ''registration_fee_discount'''
+    INTO v_discount;
+  RESET ROLE;
+
+  PERFORM pg_temp.check(
+    'anonymous can read the active payment gateway (F2 — without this nobody can pay)',
+    v_gateway = 'mollie',
+    'usePricingSettings resolves activeGateway = null when this row is invisible, and '
+    'JoinPaymentStep then refuses with "gateway not configured"');
+  PERFORM pg_temp.check(
+    'anonymous can read registration_fee_enabled', v_enabled = 'true');
+  PERFORM pg_temp.check(
+    'anonymous can read registration_fee_discount', v_discount = '0');
+END $$;
+
+-- ── F2, the other half: nothing credential-shaped is public ───────────────
+DO $$
+DECLARE n bigint;
+BEGIN
+  PERFORM set_config('request.jwt.claims', '', true);
+  SET LOCAL ROLE anon;
+  EXECUTE 'SELECT count(*) FROM public.system_settings
+            WHERE key ~* ''(secret|token|password|api_key|_key)''' INTO n;
+  RESET ROLE;
+  PERFORM pg_temp.check(
+    'anonymous reads NO credential-shaped setting', n = 0,
+    'the whitelist is a whitelist, but this fails loudly if a future key is added to it');
+END $$;
+
+DO $$
+DECLARE n bigint;
+BEGIN
+  PERFORM set_config('request.jwt.claims', '', true);
+  SET LOCAL ROLE anon;
+  EXECUTE 'SELECT count(*) FROM public.system_settings
+            WHERE key = ''registration_test_mode_enabled''' INTO n;
+  RESET ROLE;
+  PERFORM pg_temp.check(
+    'registration_test_mode_enabled is NOT public — deliberately',
+    n = 0,
+    'the wizard asks for it, the server ignores the client value and re-reads the setting, '
+    'so keeping it staff-only costs an anonymous visitor only the test button');
+END $$;
+
+-- ── F12: staff cannot read the money keys; super_admin can ────────────────
+SELECT pg_temp.check(
+  'call-centre staff CANNOT read the Stripe secret key (F12)',
+  pg_temp.count_as('a8000000-0000-0000-0000-000000000002',
+    'SELECT value FROM public.system_settings WHERE key = ''settings_stripe_secret_key''') = 0,
+  'every active staff login could hold the key that moves money');
+
+SELECT pg_temp.check(
+  'an ADMIN who is not super_admin cannot read it either',
+  pg_temp.count_as('a7000000-0000-0000-0000-00000000000f',
+    'SELECT value FROM public.system_settings WHERE key = ''settings_stripe_secret_key''') = 0,
+  'the Settings page is admin-reachable; only super_admin may see the credentials on it');
+
+SELECT pg_temp.check(
+  'nor the webhook signing secret, the Mollie key, the Twilio token, or the device check-in key',
+  pg_temp.count_as('a8000000-0000-0000-0000-000000000002',
+    'SELECT value FROM public.system_settings
+      WHERE key IN (''settings_stripe_webhook_secret'', ''settings_mollie_api_key'',
+                    ''settings_twilio_auth_token'', ''settings_ev07b_checkin_key'')') = 0,
+  'settings_ev07b_checkin_key matches none of the four names in the brief — it is why the '
+  'pattern carries _key as a fifth alternative');
+
+SELECT pg_temp.check(
+  'CONTROL: staff CAN still read an ordinary setting',
+  pg_temp.count_as('a8000000-0000-0000-0000-000000000002',
+    'SELECT value FROM public.system_settings WHERE key = ''settings_twilio_sms_number''') = 1,
+  'a policy that hid everything would pass every assertion above and break the platform');
+
+SELECT pg_temp.check(
+  'super_admin CAN read the Stripe secret key — the admin Settings page needs it',
+  pg_temp.count_as('a8000000-0000-0000-0000-000000000001',
+    'SELECT value FROM public.system_settings WHERE key = ''settings_stripe_secret_key''') = 1);
+
+SELECT pg_temp.check(
+  'a member reads only the public whitelist, not staff settings',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT key FROM public.system_settings WHERE key = ''settings_twilio_sms_number''') = 0);
+
+-- ── the write path is unchanged, which is what makes the read fix safe ────
+SELECT pg_temp.check(
+  'call-centre staff cannot UPDATE a setting',
+  pg_temp.exec_as('a8000000-0000-0000-0000-000000000002',
+    'UPDATE public.system_settings SET value = ''hijacked''
+      WHERE key = ''settings_active_payment_gateway''') = 0,
+  'if staff could write what they can no longer read, the Settings page would blank a secret');
+
+SELECT pg_temp.check(
+  'an admin who is not super_admin cannot UPDATE a setting either',
+  pg_temp.exec_as('a7000000-0000-0000-0000-00000000000f',
+    'UPDATE public.system_settings SET value = ''hijacked''
+      WHERE key = ''settings_active_payment_gateway''') = 0);
+
+SELECT pg_temp.check(
+  'anonymous cannot UPDATE the payment gateway',
+  (SELECT NOT EXISTS (
+     SELECT 1 FROM pg_policies
+      WHERE schemaname = 'public' AND tablename = 'system_settings'
+        AND cmd IN ('UPDATE', 'ALL', 'INSERT')
+        AND ('anon' = ANY (roles) OR roles = '{public}'))),
+  'a client-writable gateway setting would let a visitor redirect the payment');
+
+SELECT pg_temp.check(
+  'CONTROL: super_admin CAN update a setting',
+  pg_temp.exec_as('a8000000-0000-0000-0000-000000000001',
+    'UPDATE public.system_settings SET value = ''mollie''
+      WHERE key = ''settings_active_payment_gateway''') = 1);
+
+-- ── P5: one registration-fee key, not two families of it ──────────────────
+SELECT pg_temp.check(
+  'the settings_-prefixed registration fee keys are gone (P5)',
+  (SELECT count(*) FROM public.system_settings
+    WHERE key IN ('settings_registration_fee_enabled',
+                  'settings_registration_fee_discount')) = 0,
+  'the admin page wrote those two while the wizard and the server read the canonical pair, so '
+  'turning the fee off in admin still charged the customer 59.99');
+
+SELECT pg_temp.check(
+  'the canonical registration fee keys exist',
+  (SELECT count(*) FROM public.system_settings
+    WHERE key IN ('registration_fee_enabled', 'registration_fee_discount')) = 2);
+
+-- ============================================================
 --  Report
 -- ============================================================
 

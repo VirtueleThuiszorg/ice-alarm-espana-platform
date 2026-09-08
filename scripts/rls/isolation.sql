@@ -3157,6 +3157,166 @@ SELECT pg_temp.check(
 UPDATE public.system_settings SET value = '0' WHERE key = 'registration_fee_discount';
 
 -- ============================================================
+--  Join path — the synced Stripe prices (P2)
+-- ============================================================
+--
+-- This table is the server's answer to "what may we charge", so the assertions are about who can
+-- change that answer and about the constraints that stop a nonsense Price existing at all. A
+-- price row nobody can forge is the whole point: F7/F9 were the browser naming the amount.
+
+INSERT INTO public.stripe_prices
+  (price_key, stripe_product_id, stripe_price_id, amount_cents, recurring_interval,
+   source_description, synced_by)
+VALUES
+  ('plan_single_monthly', 'prod_test_single', 'price_test_single_monthly', 2749, 'month',
+   '24.99 net x 1.10 IVA', (SELECT id FROM public.staff WHERE email = 'superadmin@example.com')),
+  ('plan_single_annual',  'prod_test_single', 'price_test_single_annual', 27489, 'year',
+   '24.99 net x 10 months x 1.10 IVA', NULL),
+  ('pendant',             'prod_test_pendant','price_test_pendant',       15125, NULL,
+   '125.00 net x 1.21 IVA', NULL);
+
+-- ── nobody but super_admin can write a price ──────────────────────────────
+SELECT pg_temp.check(
+  'anonymous cannot read the synced Stripe prices',
+  (SELECT NOT EXISTS (
+     SELECT 1 FROM pg_policies
+      WHERE schemaname = 'public' AND tablename = 'stripe_prices'
+        AND ('anon' = ANY (roles) OR roles = '{public}'))),
+  'nothing anonymous renders from this table; pricing_plans is the public one');
+
+DO $$
+DECLARE n bigint;
+BEGIN
+  PERFORM set_config('request.jwt.claims', '', true);
+  SET LOCAL ROLE anon;
+  EXECUTE 'SELECT count(*) FROM public.stripe_prices' INTO n;
+  RESET ROLE;
+  PERFORM pg_temp.check('anonymous reads no stripe_prices rows', n = 0);
+END $$;
+
+SELECT pg_temp.check(
+  'a MEMBER cannot read the synced Stripe prices',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT stripe_price_id FROM public.stripe_prices') = 0);
+
+-- raises_as, not exec_as: a WITH CHECK violation RAISES rather than reporting zero rows, and
+-- exec_as would let that exception abort the whole suite. (It did.)
+SELECT pg_temp.check(
+  'a member cannot INSERT a price of their own',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO public.stripe_prices
+       (price_key, stripe_product_id, stripe_price_id, amount_cents)
+     VALUES (''pendant'', ''prod_x'', ''price_member_forged'', 1)'),
+  'a 0.01 pendant is what a client-writable price table buys you');
+
+SELECT pg_temp.check(
+  'CONTROL: the forged row really is absent',
+  NOT EXISTS (SELECT 1 FROM public.stripe_prices WHERE stripe_price_id = 'price_member_forged'));
+
+SELECT pg_temp.check(
+  'call-centre staff can READ the synced prices (the editor shows sync state)',
+  pg_temp.count_as('a8000000-0000-0000-0000-000000000002',
+    'SELECT stripe_price_id FROM public.stripe_prices') = 3);
+
+SELECT pg_temp.check(
+  'call-centre staff cannot UPDATE an amount',
+  pg_temp.exec_as('a8000000-0000-0000-0000-000000000002',
+    'UPDATE public.stripe_prices SET amount_cents = 1
+      WHERE price_key = ''pendant''') = 0,
+  'read to see what is synced, never write to change what is charged');
+
+SELECT pg_temp.check(
+  'an ADMIN who is not super_admin cannot UPDATE an amount either',
+  pg_temp.exec_as('a7000000-0000-0000-0000-00000000000f',
+    'UPDATE public.stripe_prices SET amount_cents = 1
+      WHERE price_key = ''pendant''') = 0);
+
+SELECT pg_temp.check(
+  'CONTROL: super_admin CAN write a price row',
+  pg_temp.exec_as('a8000000-0000-0000-0000-000000000001',
+    'UPDATE public.stripe_prices SET source_description = ''re-synced''
+      WHERE price_key = ''pendant''') = 1,
+  'a table only the service role could write would make the admin button impossible');
+
+SELECT pg_temp.check(
+  'CONTROL: the pendant amount is still the synced one',
+  (SELECT amount_cents FROM public.stripe_prices
+    WHERE price_key = 'pendant' AND is_current) = 15125,
+  '125.00 net + 21% IVA — the figure the public page shows');
+
+-- ── the constraints that stop a nonsense Price ────────────────────────────
+SELECT pg_temp.check(
+  'TWO current prices for the same key is REFUSED',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.stripe_prices
+       (price_key, stripe_product_id, stripe_price_id, amount_cents, recurring_interval)
+     VALUES (''plan_single_monthly'', ''prod_x'', ''price_second_current'', 9999, ''month'')'),
+  'two live prices for one plan means the charge depends on which row was read first');
+
+SELECT pg_temp.check(
+  'a SUPERSEDED price for the same key is accepted — history is kept, not deleted',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.stripe_prices
+       (price_key, stripe_product_id, stripe_price_id, amount_cents, recurring_interval,
+        is_current)
+     VALUES (''plan_single_monthly'', ''prod_x'', ''price_old_single'', 2500, ''month'', false)')
+   = false,
+  'Stripe Prices are immutable, so an active subscription is still billed on the old one');
+
+SELECT pg_temp.check(
+  'a plan price with NO recurring interval is REFUSED',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.stripe_prices
+       (price_key, stripe_product_id, stripe_price_id, amount_cents)
+     VALUES (''plan_couple_monthly'', ''prod_x'', ''price_no_interval'', 3849)'),
+  'a membership charged once instead of monthly is a subscription that never renews');
+
+SELECT pg_temp.check(
+  'a one-off price WITH a recurring interval is REFUSED',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.stripe_prices
+       (price_key, stripe_product_id, stripe_price_id, amount_cents, recurring_interval)
+     VALUES (''shipping'', ''prod_x'', ''price_recurring_shipping'', 1499, ''month'')'),
+  'charging shipping every month is the same defect pointing the other way');
+
+SELECT pg_temp.check(
+  'a price_key we do not sell is REFUSED',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.stripe_prices
+       (price_key, stripe_product_id, stripe_price_id, amount_cents)
+     VALUES (''plan_family_monthly'', ''prod_x'', ''price_family'', 4999)'));
+
+SELECT pg_temp.check(
+  'a NEGATIVE amount is REFUSED',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.stripe_prices
+       (price_key, stripe_product_id, stripe_price_id, amount_cents)
+     VALUES (''shipping'', ''prod_x'', ''price_negative'', -100)'));
+
+SELECT pg_temp.check(
+  'a non-euro currency is REFUSED',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.stripe_prices
+       (price_key, stripe_product_id, stripe_price_id, amount_cents, currency)
+     VALUES (''shipping'', ''prod_x'', ''price_gbp'', 1499, ''gbp'')'),
+  'we sell in euros; a currency column that accepts anything charges 14.99 GBP one day');
+
+SELECT pg_temp.check(
+  'the same stripe_price_id cannot be recorded twice',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.stripe_prices
+       (price_key, stripe_product_id, stripe_price_id, amount_cents, is_current)
+     VALUES (''pendant'', ''prod_x'', ''price_test_pendant'', 15125, false)'),
+  'one Price, one row — otherwise reconciling an invoice finds two answers');
+
+SELECT pg_temp.check(
+  'deleting the staff member who synced a price keeps the price',
+  (SELECT count(*) FROM pg_constraint c
+     JOIN pg_class t ON t.oid = c.conrelid
+    WHERE t.relname = 'stripe_prices' AND c.contype = 'f' AND c.confdeltype = 'n') = 1,
+  'ON DELETE SET NULL — the record of what we charged must survive the person leaving');
+
+-- ============================================================
 --  Report
 -- ============================================================
 

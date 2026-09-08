@@ -69,6 +69,10 @@
 -- ── F2: the three keys the anonymous join flow needs ───────────────────────
 DROP POLICY IF EXISTS "Public can read whitelisted settings only" ON public.system_settings;
 DROP POLICY IF EXISTS "Public can read company settings" ON public.system_settings;
+-- ...and this file's own policy, so re-applying the migration is a no-op rather than an error.
+-- Not decoration: scripts/rls/isolation.sql re-executes this file to prove the P5 key
+-- consolidation below against stale rows, which a fresh database cannot contain.
+DROP POLICY IF EXISTS "Anyone can read the public settings whitelist" ON public.system_settings;
 
 -- Scoped `TO anon, authenticated` rather than left role-less. The policy it replaces applied to
 -- every role including service_role, which was harmless but said nothing true about intent.
@@ -93,6 +97,7 @@ USING (
 -- ── F12: staff read everything except credentials ──────────────────────────
 DROP POLICY IF EXISTS "Staff can view all settings" ON public.system_settings;
 DROP POLICY IF EXISTS "Staff can view settings" ON public.system_settings;
+DROP POLICY IF EXISTS "Staff can view non-credential settings" ON public.system_settings;
 
 CREATE POLICY "Staff can view non-credential settings"
 ON public.system_settings

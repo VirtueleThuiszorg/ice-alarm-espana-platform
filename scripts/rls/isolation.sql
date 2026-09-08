@@ -2938,7 +2938,11 @@ INSERT INTO public.system_settings (key, value) VALUES
   ('settings_twilio_sms_number',     '+34000000000'),
   ('settings_active_payment_gateway','mollie'),
   ('registration_fee_enabled',       'true'),
-  ('registration_fee_discount',      '0')
+  ('registration_fee_discount',      '0'),
+  -- Seeded because the assertion below says this key is NOT public. With no row at all,
+  -- anon reads nothing whatever the policy says, and adding the key to the whitelist would
+  -- have passed the suite. (It did: the mutation survived until this row existed.)
+  ('registration_test_mode_enabled', 'false')
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 
 -- This section seeds its OWN call-centre operator rather than reusing the suite's, because the
@@ -3095,8 +3099,29 @@ SELECT pg_temp.check(
       WHERE key = ''settings_active_payment_gateway''') = 1);
 
 -- ── P5: one registration-fee key, not two families of it ──────────────────
+--
+-- These two keys have never been seeded by a migration — only ever written at runtime by the
+-- admin Settings page — so in a fresh database the migration's cleanup has nothing to remove and
+-- an assertion that "the old keys are gone" passes without testing anything. That is not a
+-- hypothetical: the mutation that deleted the cleanup entirely SURVIVED against the first
+-- version of these checks.
+--
+-- So the stale rows are seeded here and the migration is then RE-EXECUTED (`\ir`, so the SQL
+-- under test is the migration file itself rather than a copy of it that can drift). Both halves
+-- of the intended behaviour become testable this way, including the one that cannot be seen in a
+-- fresh database at all: that a canonical value already in place is not overwritten by a stale
+-- one. Re-running is safe — every statement in that file is idempotent.
+
+-- (a) canonical present: the stale rows go, and the canonical values do NOT change.
+INSERT INTO public.system_settings (key, value) VALUES
+  ('settings_registration_fee_enabled',  'false'),
+  ('settings_registration_fee_discount', '50')
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+
+\ir ../../supabase/migrations/20260908120000_settings_read_policies.sql
+
 SELECT pg_temp.check(
-  'the settings_-prefixed registration fee keys are gone (P5)',
+  'the settings_-prefixed registration fee keys are removed (P5)',
   (SELECT count(*) FROM public.system_settings
     WHERE key IN ('settings_registration_fee_enabled',
                   'settings_registration_fee_discount')) = 0,
@@ -3104,9 +3129,32 @@ SELECT pg_temp.check(
   'turning the fee off in admin still charged the customer 59.99');
 
 SELECT pg_temp.check(
-  'the canonical registration fee keys exist',
-  (SELECT count(*) FROM public.system_settings
-    WHERE key IN ('registration_fee_enabled', 'registration_fee_discount')) = 2);
+  'a canonical value already in place is NOT overwritten by the stale one',
+  (SELECT value FROM public.system_settings WHERE key = 'registration_fee_discount') = '0'
+  AND (SELECT value FROM public.system_settings WHERE key = 'registration_fee_enabled') = 'true',
+  'the stale rows said 50% off and disabled; applying the migration after the admin page was '
+  'fixed must not resurrect them');
+
+-- (b) canonical absent: the stale value is carried across rather than lost.
+DELETE FROM public.system_settings WHERE key = 'registration_fee_discount';
+INSERT INTO public.system_settings (key, value)
+VALUES ('settings_registration_fee_discount', '25')
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+
+\ir ../../supabase/migrations/20260908120000_settings_read_policies.sql
+
+SELECT pg_temp.check(
+  'a value with no canonical row is CARRIED ACROSS, not dropped',
+  (SELECT value FROM public.system_settings WHERE key = 'registration_fee_discount') = '25',
+  'a discount Lee had set in admin must survive the consolidation');
+
+SELECT pg_temp.check(
+  'and the stale row is gone afterwards',
+  NOT EXISTS (SELECT 1 FROM public.system_settings
+               WHERE key = 'settings_registration_fee_discount'));
+
+-- Put the fixture back, so a later reader of this file is not surprised by a 25% discount.
+UPDATE public.system_settings SET value = '0' WHERE key = 'registration_fee_discount';
 
 -- ============================================================
 --  Report

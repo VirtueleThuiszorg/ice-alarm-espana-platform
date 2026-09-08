@@ -255,6 +255,66 @@ settled zero, absent with ≥1 contact, and not colour-dependent. Written negati
 assertions that matter most are the two **absences**, because a banner that is merely present
 is easy and a banner that is present only when true is the actual requirement.
 
+## 5.1.6 The SECOND readiness condition — PENDANT NEVER TESTED
+
+*Added 2026-09-07 (WP2 increment 5c). **HELD FOR A HUMAN**: this is the SOS path, and CLAUDE.md
+makes a human gate mandatory before merge. The PR is open, not merged.*
+
+D4 made monitoring readiness two conditions. §5.1.4's banner covers the first. This covers the
+second, and it is deliberately **not** a second copy of it.
+
+**They are different kinds of fact.** "No emergency contacts" tells the operator that level 5 of
+the escalation ladder will do nothing — it changes what they do in the next thirty seconds.
+"Pendant never tested" tells them the member has never been through a test call, so they may not
+know the pendant can speak, may not expect a voice from it, and have probably never heard an
+operator before. It changes **how they open the call**, not what they escalate to.
+
+So:
+
+| | contacts (§5.1.4) | pendant (this) |
+|---|---|---|
+| colour | red | **amber** |
+| ARIA | `role="alert"` | `role="status"` |
+| position | first, above the join button | after it |
+| advice | *"Escalate to 112 on your own judgement."* | *"Say who you are and where you are calling from before anything else."* |
+
+**Two red banners is one red banner**, and the one that gets diluted is the one about there
+being nobody to call. §0.1's attention budget is the binding constraint here, not symmetry.
+
+**The three-state rule of §5.1.2 and §5.1.3 applies unchanged, and more strictly.** This is the
+one screen where a read happens while an alarm is already firing:
+
+* `undefined` renders **nothing** — not "tested", not "untested"
+* a failed read stays `undefined`. An operator told "never tested" because a read timed out
+  would be given a fact about the member that nobody established
+
+**IT MUST NOT TOUCH §5.1.4.** The contacts banner derives from `contacts` and nothing else. This
+read failing, hanging, or never returning leaves that banner behaving exactly as it does today —
+asserted by rendering with this read failing and the red banner still present.
+
+### 5.1.6.1 One rule was narrowed rather than deleted
+
+`operatorCardNoContacts.test.tsx` asserted the panel never mentions
+`member_monitoring_readiness` at all. That was the right rule for the CONTACTS fact — the panel
+already holds it, and §5.1.4 says the card derives while the view serves the queue — but it was
+stated too widely: the panel does **not** hold whether a pendant has been tested.
+
+The ban is now on the thing it was protecting rather than on a table name:
+
+1. exactly one read of `emergency_contacts`, and exactly one of the view
+2. the view read may select `device_tested_at` and **nothing else**, so it cannot become a
+   second source of truth for the contacts fact or for readiness itself
+3. `hasNoEmergencyContacts` is asserted not to reference the new state at all
+
+### 5.1.6.2 Proven by
+
+`src/test/operatorCardNoContacts.test.tsx`, seven further assertions, negative-first as above:
+absent while in flight, absent on a failed read, absent for a tested pendant, present on a
+settled `false`, not red, `role="status"` not `alert`, and the contacts banner unaffected when
+this read fails. Mutation-tested six ways — rendered on `undefined`, a failed read treated as
+untested, the contacts banner gated on this read, the banner turned red, the select widened,
+and both banners made `role="alert"` — each producing a verdict.
+
 ---
 
 ## 5.2 The MEMBER surface — same fact, opposite register

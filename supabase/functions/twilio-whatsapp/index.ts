@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { twilioParams, verifyTwilioSignature } from "../_shared/twilio-signature.ts";
+import { inboundReply, recordInboundMessage, type InboundDb } from "../_shared/inbound-message.ts";
 
 
 
@@ -42,57 +44,70 @@ serve(async (req) => {
     const action = url.searchParams.get("action");
 
     if (action === "incoming") {
-      // Handle incoming WhatsApp message
-      const formData = await req.formData();
-      const rawFrom = (formData.get("From") as string)?.replace("whatsapp:", "");
-      const body = formData.get("Body") as string;
-      const messageSid = formData.get("MessageSid") as string;
+      /*
+        SIGNATURE FIRST, AND IT REFUSES — see `_shared/twilio-signature.ts`. This handler writes
+        into a member's conversation now; an unsigned POST would let anybody put words in a
+        member's mouth in their own thread.
+      */
+      const form = await req.formData();
+      const params = twilioParams(form);
+      const verdict = await verifyTwilioSignature({
+        authToken: twilioConfig.settings_twilio_auth_token,
+        url: req.url,
+        params,
+        signature: req.headers.get("x-twilio-signature"),
+      });
+      if (!verdict.valid) {
+        console.warn(`twilio-whatsapp: refusing unsigned inbound (${verdict.reason})`);
+        return new Response("Forbidden", { status: 403, headers: corsHeaders });
+      }
 
-      // Sanitize phone number — strip everything except digits and +
-      const from = (rawFrom || "").replace(/[^\d+]/g, "");
-      const phoneWithoutPlus = from.replace("+", "");
+      const from = (params.From ?? "").replace("whatsapp:", "");
+      const body = params.Body ?? "";
+      const messageSid = params.MessageSid ?? "";
 
-      console.log("Incoming WhatsApp from:", from, "Body:", body);
+      const outcome = await recordInboundMessage(supabase as unknown as InboundDb, {
+        from,
+        body,
+        providerSid: messageSid,
+        channel: "whatsapp",
+      });
 
-      // Find member by phone (sanitized input prevents injection via .or())
-      const { data: member } = await supabase
-        .from("members")
-        .select("id, first_name, last_name")
-        .or(`phone.eq.${from},phone.eq.${phoneWithoutPlus}`)
-        .single();
-
-      // Log the incoming message
-      if (member) {
-        // Check for active alert
-        const { data: activeAlert } = await supabase
-          .from("alerts")
+      // UNCHANGED: during an open alert the same message also belongs on the alert record.
+      if (outcome.status === "stored" || outcome.status === "duplicate") {
+        const phoneClean = from.replace(/[^\d+]/g, "");
+        const { data: member } = await supabase
+          .from("members")
           .select("id")
-          .eq("member_id", member.id)
-          .in("status", ["incoming", "in_progress"])
-          .order("received_at", { ascending: false })
-          .limit(1)
-          .single();
+          .eq("phone", phoneClean)
+          .maybeSingle();
+        if (member) {
+          const { data: activeAlert } = await supabase
+            .from("alerts")
+            .select("id")
+            .eq("member_id", member.id)
+            .in("status", ["incoming", "in_progress"])
+            .order("received_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-        if (activeAlert) {
-          await supabase.from("alert_communications").insert({
-            alert_id: activeAlert.id,
-            communication_type: "whatsapp",
-            direction: "inbound",
-            recipient_type: "member",
-            recipient_phone: from,
-            message_content: body,
-            twilio_sid: messageSid
-          });
+          if (activeAlert) {
+            await supabase.from("alert_communications").insert({
+              alert_id: activeAlert.id,
+              communication_type: "whatsapp",
+              direction: "inbound",
+              recipient_type: "member",
+              recipient_phone: from,
+              message_content: body,
+              twilio_sid: messageSid
+            });
+          }
         }
       }
 
-      // Response message
-      const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>Gracias por contactar ICE Alarm España por WhatsApp. Un operador le atenderá pronto. / Thank you for contacting ICE Alarm España via WhatsApp. An operator will assist you shortly.</Message>
-</Response>`;
-
-      return new Response(twiml, {
+      const reply = inboundReply(outcome);
+      return new Response(reply.xml, {
+        status: reply.httpStatus,
         headers: { ...corsHeaders, "Content-Type": "application/xml" },
       });
     }
@@ -128,7 +143,21 @@ serve(async (req) => {
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioConfig.settings_twilio_account_sid}/Messages.json`;
     const auth = btoa(`${twilioConfig.settings_twilio_account_sid}:${twilioConfig.settings_twilio_auth_token}`);
 
-    const whatsappFrom = twilioConfig.settings_twilio_whatsapp_number || "+34900000000";
+    /*
+      NO CONFIGURED NUMBER MEANS NO SEND. This read `|| "+34900000000"` — a number this company
+      does not own — so with the setting unset every WhatsApp message was addressed FROM a
+      stranger's number, rejected by Twilio, and reported back to the caller as an ordinary
+      Twilio API response. It looked configured and delivered nothing. Same rule as the emergency
+      phone (`noFakeEmergencyNumber.test.ts`): a wrong number is worse than no number.
+    */
+    const whatsappFrom = twilioConfig.settings_twilio_whatsapp_number;
+    if (!whatsappFrom) {
+      return new Response(
+        JSON.stringify({ error: "WhatsApp sender number is not configured (settings_twilio_whatsapp_number)" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     
     const response = await fetch(twilioUrl, {
       method: "POST",

@@ -28,7 +28,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   7  ███
 ```
 
-171 distinct wires across 535 call sites and 108 routes.
+171 distinct wires across 536 call sites and 108 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
@@ -66,7 +66,7 @@ and a control with no wire cannot do anything:
 | `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 341 |
 | `fn` | `supabase.functions.invoke(f)` — an edge function | 77 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 4 |
-| `channel` | `postgres_changes` — a realtime subscription | 50 |
+| `channel` | `postgres_changes` — a realtime subscription | 51 |
 | `link` | `mailto:` / `tel:` / `wa.me` — a hand-off off the platform | 63 |
 
 Routes come from an import graph over `src/App.tsx`, so a wire in a shared hook is
@@ -106,7 +106,7 @@ failing silently, and it is exactly what the contact form did.
 | **4** | `channel:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 5 |
 | **4** | `channel:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
 | **4** | `channel:isabella_assessment_notes` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 2 |
-| **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 3 |
+| **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 4 |
 | **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 8 |
 | **4** | `channel:outreach_raw_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 1 |
 | **4** | `channel:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
@@ -188,7 +188,7 @@ failing silently, and it is exactly what the contact form did.
 | **5** | `table:crm_profiles` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 2 |
 | **5** | `table:documentation` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | toast | none | 1 |
 | **5** | `table:emergency_contacts` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 7 |
-| **5** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Message Sent! … Our team will review your message and respond within 24 hours.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads | screen | inline | none | 8 |
+| **5** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | screen | inline | none | 8 |
 | **5** | `table:media_audiences` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 3 |
 | **5** | `table:media_content_calendar` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 10 |
 | **5** | `table:media_goals` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 3 |
@@ -280,7 +280,7 @@ failing silently, and it is exactly what the contact form did.
 | **4** | `channel:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 5 |
 | **4** | `channel:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
 | **4** | `channel:isabella_assessment_notes` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 2 |
-| **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 3 |
+| **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 4 |
 | **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 8 |
 | **4** | `channel:outreach_raw_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 1 |
 | **4** | `channel:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
@@ -362,7 +362,7 @@ failing silently, and it is exactly what the contact form did.
 | **5** | `table:crm_profiles` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 2 |
 | **5** | `table:documentation` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | toast | none | 1 |
 | **5** | `table:emergency_contacts` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 7 |
-| **5** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Message Sent! … Our team will review your message and respond within 24 hours.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads | screen | inline | none | 8 |
+| **5** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | screen | inline | none | 8 |
 | **5** | `table:media_audiences` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 3 |
 | **5** | `table:media_content_calendar` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 10 |
 | **5** | `table:media_goals` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 3 |
@@ -454,7 +454,7 @@ failing silently, and it is exactly what the contact form did.
 | **4** | `channel:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 5 |
 | **4** | `channel:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
 | **4** | `channel:isabella_assessment_notes` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 2 |
-| **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 3 |
+| **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 4 |
 | **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 8 |
 | **4** | `channel:outreach_raw_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 1 |
 | **4** | `channel:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
@@ -536,7 +536,7 @@ failing silently, and it is exactly what the contact form did.
 | **5** | `table:crm_profiles` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 2 |
 | **5** | `table:documentation` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | toast | none | 1 |
 | **5** | `table:emergency_contacts` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 7 |
-| **5** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Message Sent! … Our team will review your message and respond within 24 hours.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads | screen | inline | none | 8 |
+| **5** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | screen | inline | none | 8 |
 | **5** | `table:media_audiences` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 3 |
 | **5** | `table:media_content_calendar` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 10 |
 | **5** | `table:media_goals` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 3 |
@@ -628,7 +628,7 @@ failing silently, and it is exactly what the contact form did.
 | **4** | `channel:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 5 |
 | **4** | `channel:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
 | **4** | `channel:isabella_assessment_notes` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 2 |
-| **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 3 |
+| **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 4 |
 | **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 8 |
 | **4** | `channel:outreach_raw_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 1 |
 | **4** | `channel:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
@@ -710,7 +710,7 @@ failing silently, and it is exactly what the contact form did.
 | **5** | `table:crm_profiles` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 2 |
 | **5** | `table:documentation` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | toast | none | 1 |
 | **5** | `table:emergency_contacts` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 7 |
-| **5** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Message Sent! … Our team will review your message and respond within 24 hours.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads | screen | inline | none | 8 |
+| **5** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | screen | inline | none | 8 |
 | **5** | `table:media_audiences` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 3 |
 | **5** | `table:media_content_calendar` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 10 |
 | **5** | `table:media_goals` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 3 |
@@ -802,7 +802,7 @@ failing silently, and it is exactly what the contact form did.
 | **4** | `channel:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 5 |
 | **4** | `channel:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
 | **4** | `channel:isabella_assessment_notes` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 2 |
-| **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 3 |
+| **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 4 |
 | **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 8 |
 | **4** | `channel:outreach_raw_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 1 |
 | **4** | `channel:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
@@ -884,7 +884,7 @@ failing silently, and it is exactly what the contact form did.
 | **5** | `table:crm_profiles` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 2 |
 | **5** | `table:documentation` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | toast | none | 1 |
 | **5** | `table:emergency_contacts` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 7 |
-| **5** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Message Sent! … Our team will review your message and respond within 24 hours.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads | screen | inline | none | 8 |
+| **5** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | screen | inline | none | 8 |
 | **5** | `table:media_audiences` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 3 |
 | **5** | `table:media_content_calendar` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 10 |
 | **5** | `table:media_goals` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 3 |
@@ -976,7 +976,7 @@ failing silently, and it is exactly what the contact form did.
 | **4** | `channel:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 5 |
 | **4** | `channel:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
 | **4** | `channel:isabella_assessment_notes` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 2 |
-| **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 3 |
+| **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 4 |
 | **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 8 |
 | **4** | `channel:outreach_raw_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 1 |
 | **4** | `channel:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
@@ -1058,7 +1058,7 @@ failing silently, and it is exactly what the contact form did.
 | **5** | `table:crm_profiles` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 2 |
 | **5** | `table:documentation` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | toast | none | 1 |
 | **5** | `table:emergency_contacts` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 7 |
-| **5** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Message Sent! … Our team will review your message and respond within 24 hours.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads | screen | inline | none | 8 |
+| **5** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | screen | inline | none | 8 |
 | **5** | `table:media_audiences` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 3 |
 | **5** | `table:media_content_calendar` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 10 |
 | **5** | `table:media_goals` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 3 |
@@ -1197,7 +1197,7 @@ Same cause as the two above — table not in the publication. Lower consequence 
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
-- **call sites** src/pages/call-centre/StaffDashboard.tsx:184
+- **call sites** src/pages/call-centre/StaffDashboard.tsx:185
 - **tests naming it** src/test/adminPortalNight.test.ts (candidates, not proofs)
 
 `tasks` is NOT in the supabase_realtime publication (verified against the real schema, not grep: 28 tables are published and this is not one). The subscription is established and never fires, so a courtesy call assigned to an operator does not appear until they reload. Fixed in the held schema bundle.
@@ -1347,7 +1347,8 @@ The one path golden rule 8 forbids mocking. Published and subscribed, and the op
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
-- **call sites** src/components/dashboard/LeadsWidget.tsx:42, src/pages/admin/LeadsPage.tsx:184, src/pages/call-centre/LeadsPage.tsx:78
+- **call sites** src/components/call-centre/NewEnquiriesCard.tsx:67, src/components/dashboard/LeadsWidget.tsx:42, src/pages/admin/LeadsPage.tsx:184, src/pages/call-centre/LeadsPage.tsx:78
+- **tests naming it** src/test/contactEnquiryReachesTeam.test.ts (candidates, not proofs)
 
 This subscription WORKS — leads is published and the refetch fires. It is also the reason the original defect was so easy to miss: the wire looks alive, because on a screen someone has open the lead really does appear. Nothing brings anyone TO that screen, which is the whole difference between a live list and being told. PR (a) adds the notification; this row stays `screen` because that is all a subscription can ever be.
 
@@ -1886,7 +1887,7 @@ See channel:shift_notes — the note lands, the live update does not.
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
-- **call sites** src/hooks/useMembersRealtime.ts:27, src/pages/call-centre/StaffDashboard.tsx:177
+- **call sites** src/hooks/useMembersRealtime.ts:27, src/pages/call-centre/StaffDashboard.tsx:178
 - **tests naming it** src/test/addMemberWizard.test.tsx, src/test/addMemberWizardHonesty.test.ts, src/test/awayAndAddress.test.tsx, src/test/clientWriteSweep.test.ts +6 (candidates, not proofs)
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
@@ -2280,7 +2281,7 @@ Read-only, so nothing to notify. `get_user_role_info` is on the critical path fo
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
-- **call sites** src/pages/call-centre/StaffDashboard.tsx:342
+- **call sites** src/pages/call-centre/StaffDashboard.tsx:343
 
 Read-only, so nothing to notify. `get_user_role_info` is on the critical path for every protected route: if it fails, the guard sees no role.
 
@@ -2448,15 +2449,18 @@ Life-safety data with no notification owed — the member is the actor. What it 
 ### `table:leads` — 5/10 (arrives, unproven)
 
 - **control** Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens
-- **promised** “Message Sent! … Our team will review your message and respond within 24 hours.”
-- **goes to** leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads
+- **promised** “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.”
+- **goes to** leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard
 - **who is told** screen
 - **failure shown to user** inline
 - **proof** none — capped at 6
 - **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
 - **call sites** src/components/products/NotifyInterestDialog.tsx:48, src/pages/admin/LeadsPage.tsx:258, src/pages/admin/LeadsPage.tsx:272, src/pages/admin/LeadsPage.tsx:286 +4
+- **tests naming it** src/test/contactEnquiryReachesTeam.test.ts (candidates, not proofs)
 
-THE DEFECT THIS REGISTER CAME FROM. The row arrives and both Leads screens show it, but the only trigger on `leads` is `update_leads_updated_at` — no notification, no task, no queue. `leads` IS in supabase_realtime and /call-centre/leads does subscribe, so a lead appears live on a screen nobody is required to have open. That is not being told, and the copy promises 24 hours. Fixed in PR (a): a SECURITY DEFINER trigger notifies staff on the bell, the dashboard grows a New enquiries card, and the copy stops promising a deadline nobody committed to.
+THE DEFECT THIS REGISTER CAME FROM. The row arrives and both Leads screens show it, but the only trigger on `leads` is `update_leads_updated_at` — no notification, no task, no queue. `leads` IS in supabase_realtime and /call-centre/leads does subscribe, so a lead appears live on a screen nobody is required to have open. That is not being told.
+
+STILL `screen`, DELIBERATELY. The browser half of the fix has shipped: the success copy no longer promises 24 hours (nothing enforced it and nobody was even told), a New enquiries card puts unworked leads on the dashboard operators already have open, and a `lead` notification now routes to the enquiry from both places a notification is shown. The NOTIFICATION itself is a database trigger in the held bundle, so until that migration is applied to production this row has not earned `bell` — scoring it now would be the register claiming a fix that is sitting in a branch.
 
 ### `table:media_audiences` — 5/10 (arrives, unproven)
 

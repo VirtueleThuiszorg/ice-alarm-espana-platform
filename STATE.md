@@ -13,6 +13,71 @@
 
 ---
 
+## Wiring — 2026-09-08 · **register built, distribution measured**
+
+Lee sent a message from the public Contact page and found nothing in Communications,
+Messages or notifications. It had gone to `leads`, and nobody was told. `WIRING_REGISTER.md`
+now answers that question for **every** control on every page instead of one at a time:
+where each wire goes, who finds out, on which channel, what the user sees when it fails, and
+what would go red if it broke.
+
+**171 distinct wires · 535 call sites · 108 routes.** Wires are derived from the source, so
+the register cannot fall behind the code — `node scripts/wiring/build.mjs --check` regenerates
+and diffs, and CI runs it.
+
+| band | meaning | wires |
+|---|---|---:|
+| 10 | arrives · right person told on a live channel · failure shown · proof that goes red | 1 |
+| 7–9 | arrives and proven; notification missing or on a channel not live today | 8 |
+| 4–6 | arrives; nobody told; nothing proves it | 155 |
+| 1–3 | fails, fails silently, or lands where nobody looks | 0 |
+| 0 | dead control | 7 |
+
+**Only nine wires have a proof at all**, and each cites one of four suites that
+were READ and confirmed to exercise the wire: `staffMemberActions`,
+`notifyFulfilmentDispatcher`, `partnerJourney`, `inboundMessages`. Nine more
+citations were withdrawn on reading them — `alertResolution` pins a call
+contract and scans for bypasses but never executes the destination;
+`isabellaGate` proves what Isabella may *not* do, which is a different property
+from the wire; and three suites were being credited to neighbouring wires they
+do not touch. Four further "proofs" named at first did not exist as files at
+all. The generator now refuses to score on a test file that is absent.
+
+**Read the 145 correctly.** Almost every wire on this platform *arrives*. What they lack is a
+proof that would go red if they stopped arriving, and that alone caps a row at 6 — no rounding
+up. A screen of buttons that all work today scores 5 because nothing would tell anyone the day
+one of them stops.
+
+**Only the bell is a channel proven live.** `notification_log` is in `supabase_realtime` and
+needs no secret. Email, SMS and WhatsApp all return "not configured" without a production
+secret this repo cannot read, so they cap at 8 and are listed for Lee to confirm.
+
+**Seven dead controls found**, all mechanically, none previously known:
+
+| wire | what was dead |
+|---|---|
+| `channel:tasks` | 🔴 a courtesy call assigned to an operator never appears — table not in `supabase_realtime` |
+| `channel:shift_notes` | 🔴 the handover list is not live, on the one screen whose purpose is handover; its own comment promised it was |
+| `channel:registration_drafts` · `channel:social_posts` · `channel:social_post_metrics` | 🔴 same cause, admin surfaces |
+| `fn:send-email` (billing reminders) | 🔴 `useBillingReminders` is imported by nothing and has no server twin — no billing reminder has ever been sent |
+| `table:member_interactions` | 🔴 `communicationLogger.ts` exports ten log functions and is called by none; `ActivityTab` and `AlertDetailPanel` read the table, so both screens can only ever be empty |
+
+**Nothing in the database notifies anybody.** No PL/pgSQL function anywhere writes
+`notification_log` — verified against the real schema. Every notification the platform sends
+comes from client code or an edge function, which is why so many table writes reach a row and
+tell no one.
+
+Fixed / in flight:
+
+| # | Item | Status | Evidence |
+|---|---|---|---|
+| W1 | New enquiry tells nobody | 🟡 **held for Lee** (schema) | `chore/wiring-held-bundle` — `AFTER INSERT` trigger on `leads` raises a targeted bell notification per active staff member. Proven by `scripts/rls/wiring.sql` §2, mutation-tested three ways (no trigger → "a lead arrived and NOBODY was notified"; broadcast instead of targeted → caught; inactive staff notified → caught). |
+| W2 | Five dead realtime subscriptions | 🟡 **held for Lee** (schema) | Same bundle. Proven by `scripts/rls/wiring.sql` §1, which derives the subscribed-table list from `src/` and checks it against `pg_publication_tables`; mutation-tested by removing the migration (all five named) and by adding a fresh bad subscription (`products` → caught). |
+| W3 | Contact form promised 24 hours | ✅ FIXED | `fix/contact-form-truthful` — the copy no longer commits to a deadline nobody agreed, and the bell routes a `lead` notification to the enquiry. |
+| W4 | Nothing surfaced unworked enquiries | ✅ FIXED | Same branch — a **New enquiries** card on the call-centre dashboard, reading `leads` where `status='new'`. |
+| W5 | The register itself | ✅ SHIPPED | `WIRING_REGISTER.md` + `scripts/wiring/*`, gated in CI (`Wiring register`). Gate proven both ways: a tampered score fails; a new wire with no row fails naming the file and line. |
+| W6 | Billing reminders, communication log | 🔴 **reported, not fixed** | Both are dead code whose revival is a business decision (chasing members for payment; which events deserve a log row), and `AlertDetailPanel` is on the alert path. Lee's call. |
+
 ## Backend identity — SETTLED 2026-08-11
 
 | # | Item | Status | Evidence |

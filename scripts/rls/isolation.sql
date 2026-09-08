@@ -3322,6 +3322,144 @@ SELECT pg_temp.check(
   'ON DELETE SET NULL — the record of what we charged must survive the person leaving');
 
 -- ============================================================
+--  Join path — who issued a second-stage token (item 6)
+-- ============================================================
+--
+-- REVIEW_JOIN_PATH.md F6. The payment path will mint these tokens itself, so `created_by` has no
+-- staff member to name — and NULL already means "the operator who issued it has left"
+-- (20260905100000 made that FK ON DELETE SET NULL on purpose). `issued_via` is what tells those
+-- two apart. The assertions are about the vocabulary and about the one coherence rule that is
+-- safe to enforce.
+
+SELECT pg_temp.check(
+  'an automated token can be issued with NO staff member named',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.member_update_tokens
+       (member_id, token, requested_fields, expires_at, issued_via)
+     VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''tok-auto-1'',
+             ARRAY[''emergency_contacts'', ''medical_information''],
+             now() + interval ''30 days'', ''post_payment'')') = false,
+  'the whole point: post-payment.ts has no operator to attribute');
+
+SELECT pg_temp.check(
+  'CONTROL: that token is there, marked automated, with nobody named',
+  (SELECT issued_via = 'post_payment' AND created_by IS NULL
+     FROM public.member_update_tokens WHERE token = 'tok-auto-1'));
+
+SELECT pg_temp.check(
+  'an automated token that ALSO names a staff member is REFUSED',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.member_update_tokens
+       (member_id, token, requested_fields, expires_at, issued_via, created_by)
+     VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''tok-auto-2'',
+             ARRAY[''emergency_contacts''], now() + interval ''30 days'',
+             ''post_payment'',
+             (SELECT id FROM public.staff WHERE email = ''superadmin@example.com''))'),
+  'either the payment path issued it or a person did, not both');
+
+SELECT pg_temp.check(
+  'a staff-issued token naming the operator is accepted',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.member_update_tokens
+       (member_id, token, requested_fields, expires_at, issued_via, created_by)
+     VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''tok-staff-1'',
+             ARRAY[''emergency_contacts''], now() + interval ''30 days'', ''staff'',
+             (SELECT id FROM public.staff WHERE email = ''superadmin@example.com''))') = false);
+
+SELECT pg_temp.check(
+  'an issued_via value nobody defined is REFUSED',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.member_update_tokens
+       (member_id, token, requested_fields, expires_at, issued_via)
+     VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''tok-bogus'',
+             ARRAY[''emergency_contacts''], now() + interval ''30 days'', ''magic'')'),
+  'the vocabulary is two words; a third is a decision, not a typo');
+
+SELECT pg_temp.check(
+  'a token with issued_via NULL is still legal — existing rows are untouched',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'INSERT INTO public.member_update_tokens
+       (member_id, token, requested_fields, expires_at)
+     VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''tok-legacy'',
+             ARRAY[''emergency_contacts''], now() + interval ''30 days'')') = false,
+  'nothing is backfilled: writing provenance in retrospectively would be asserting it');
+
+-- THE TRAP 20260905100000 HAD TO UNDO. A CHECK coupling issued_via to created_by presence makes
+-- the row un-orphanable: deleting a staff member then fails instead of the record surviving them.
+-- This proves the delete still works with a staff-issued token pointing at them.
+DO $$
+DECLARE v_staff uuid;
+BEGIN
+  INSERT INTO auth.users (id, email)
+  VALUES ('a9000000-0000-0000-0000-000000000001', 'leaver@example.com');
+  INSERT INTO public.staff (user_id, email, first_name, last_name, role)
+  VALUES ('a9000000-0000-0000-0000-000000000001', 'leaver@example.com', 'Lee', 'Leaver', 'call_centre')
+  RETURNING id INTO v_staff;
+
+  INSERT INTO public.member_update_tokens
+    (member_id, token, requested_fields, expires_at, issued_via, created_by)
+  VALUES ('aaaaaaaa-0000-0000-0000-000000000001', 'tok-leaver',
+          ARRAY['emergency_contacts'], now() + interval '30 days', 'staff', v_staff);
+
+  DELETE FROM public.staff WHERE id = v_staff;
+
+  PERFORM pg_temp.check(
+    'a staff member with an issued token CAN still be deleted',
+    EXISTS (SELECT 1 FROM public.member_update_tokens WHERE token = 'tok-leaver'),
+    'a CHECK requiring created_by for issued_via=staff would make this fail — which is exactly '
+    'what 20260905100000 had to undo for submitted_via');
+
+  PERFORM pg_temp.check(
+    'and the token now reads staff-issued with nobody named — ambiguous WITHOUT issued_via',
+    (SELECT created_by IS NULL AND issued_via = 'staff'
+       FROM public.member_update_tokens WHERE token = 'tok-leaver'),
+    'this row and tok-auto-1 both have created_by NULL; issued_via is the only thing that '
+    'distinguishes "their operator left" from "the payment path issued it"');
+END $$;
+
+SELECT pg_temp.check(
+  'a member cannot mint themselves a second-stage token',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO public.member_update_tokens
+       (member_id, token, requested_fields, expires_at, issued_via)
+     VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''tok-self-minted'',
+             ARRAY[''emergency_contacts''], now() + interval ''30 days'', ''post_payment'')'),
+  'the token is the authorisation; minting your own would be authorising yourself');
+
+-- Behaviourally, not structurally. The policy here is `FOR ALL USING (is_staff(auth.uid()))`
+-- with no TO clause, so it is recorded against `{public}` and a pg_policies check reads as a
+-- finding when the predicate is what actually refuses anonymous writes. Asserting the shape
+-- rather than the effect said this table was wide open. It is not; is_staff(NULL) is false.
+DO $$
+DECLARE failed boolean := false; n bigint;
+BEGIN
+  PERFORM set_config('request.jwt.claims', '', true);
+  SET LOCAL ROLE anon;
+  BEGIN
+    EXECUTE 'INSERT INTO public.member_update_tokens
+               (member_id, token, requested_fields, expires_at, issued_via)
+             VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''tok-anon-minted'',
+                     ARRAY[''emergency_contacts''], now() + interval ''30 days'',
+                     ''post_payment'')';
+  EXCEPTION WHEN OTHERS THEN
+    failed := true;
+  END;
+  EXECUTE 'SELECT count(*) FROM public.member_update_tokens' INTO n;
+  RESET ROLE;
+
+  PERFORM pg_temp.check(
+    'anonymous cannot mint a second-stage token', failed,
+    'the token IS the authorisation for the second stage; minting one is authorising yourself');
+  PERFORM pg_temp.check(
+    'anonymous cannot read the tokens either', n = 0,
+    'a readable token table is a list of live authorisations');
+END $$;
+
+SELECT pg_temp.check(
+  'CONTROL: no anonymously minted token exists',
+  NOT EXISTS (SELECT 1 FROM public.member_update_tokens WHERE token = 'tok-anon-minted'));
+
+-- ============================================================
 --  Report
 -- ============================================================
 

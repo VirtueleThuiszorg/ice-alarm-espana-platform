@@ -1,9 +1,17 @@
 import type { Database } from "@/integrations/supabase/types";
 
 /**
- * THE FIVE THINGS STAFF DO TO A MEMBER'S SUBSCRIPTION — WP7.
+ * THE THINGS STAFF DO TO A MEMBER'S SUBSCRIPTION — WP7.
  *
- * Renew, switch single↔couple, add a pendant, pause, cancel. Every one changes what a
+ * Renew, switch single↔couple, add a pendant, pause, RESUME, cancel.
+ *
+ * RESUME WAS MISSING FROM BOTH THE ENUM AND THIS LIST, and pause was not. The old
+ * `SubscriptionTab.updateStatus` did pause, resume and cancel by writing `subscriptions.status`
+ * from the browser; WP7 deleted it and rebuilt the two the brief names — leaving a member record
+ * that could pause a subscription and had no way to un-pause it. The brief's six verbs do not
+ * include resume because the brief lists what to build, not what already worked. `member_action`
+ * gains `'resume'` in the held seed bundle and this is its spec; the two ship together, because a
+ * client writing an enum value the database does not have yet fails at the insert. Every one changes what a
  * vulnerable person is paying and what protection they have, and the brief's rule for all of
  * them is the same: *"EVERY one creates a Stripe action and the webhook changes state — staff
  * never write status='active' or a subscription row directly."*
@@ -132,6 +140,20 @@ export const MEMBER_ACTIONS = [
     serverAction: "pause",
     reasonRequired: true,
     destructive: true,
+  },
+  {
+    action: "resume",
+    label: { key: "admin.memberActions.resume", fallback: "Resume the subscription" },
+    description: {
+      key: "admin.memberActions.resumeDesc",
+      fallback:
+        "Restarts the billing and the monitoring after a pause. Their pendant reaches an operator again from the moment Stripe accepts it.",
+    },
+    automation: "automated",
+    serverAction: "resume",
+    reasonRequired: true,
+    // Restores protection rather than removing it. The pause was the destructive half.
+    destructive: false,
   },
   {
     action: "cancel",

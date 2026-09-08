@@ -18,9 +18,11 @@ make the manifest lie, and the drift gate (#164) depends on that manifest being 
 
 | # | Migration | What it does | Reversible |
 |---|---|---|---|
-| _(none outstanding)_ | | | |
+| 1 | `20260907120000_wp3_wp6_seed_bundle.sql` — **PR held open, not merged** | Rows only, plus one enum value. WP6 G5's canned replies (six shortcuts × three languages), WP3 N7's notification templates (four transitions × three channels × three languages, member-only), and WP7 W7's `resume` on `member_action`. Nothing sends because of it: all three `notify_channel_*` flags are still off, and the second gate (the member's own opt-in) applies after them | Rows yes, by the DELETEs in the file's header. **The enum value no** — Postgres has no `DROP VALUE`; reversing it means recreating the type. Called out in the migration rather than buried |
 
-> **Nothing is outstanding right now, and that is a real state rather than an empty table.**
+> **One is outstanding, and its PR is deliberately NOT merged.** Merging a migration before you
+> can push it turns the drift gate red for *every* pull request behind it (D-3), so it waits in
+> §5 until you can do both together: `supabase db push`, append the filename here, merge.
 >
 > **One is waiting in §5 and deliberately unmerged**: #219, the seed bundle. It is not listed above
 > because it is not in `main` — merging a migration before you can push it turns the drift gate red

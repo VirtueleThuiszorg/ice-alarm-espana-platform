@@ -3604,6 +3604,81 @@ SELECT pg_temp.check(
       WHERE order_number = ''ICE-AWAIT-1''') = 1,
   'backwards, so it is an ordinary correction — but it must be POSSIBLE');
 
+-- ── the BACKFILL, which a fresh database cannot otherwise exercise ─────────
+--
+-- Every order in this suite is inserted AFTER the migrations have run, so the backfill has
+-- nothing to act on and an assertion about it passes whatever it does. Two mutations proved it:
+-- one that moved every `paid` order regardless of payment, and one that dragged `allocated`
+-- orders backwards as well, both SURVIVED.
+--
+-- So the pre-state is seeded here and the migration is RE-EXECUTED (`\ir`, so the SQL under test
+-- is the migration file rather than a copy that can drift). Every statement in that file is
+-- idempotent: CREATE OR REPLACE, SET DEFAULT, DISABLE/ENABLE TRIGGER, and an UPDATE whose WHERE
+-- clause stops matching once it has run.
+--
+-- Three orders, one per outcome the backfill has to get right.
+INSERT INTO public.orders
+  (id, member_id, order_number, status, subtotal, tax_amount, total_amount, shipping_amount,
+   shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code,
+   fulfilment_state)
+VALUES
+  ('0dde0000-0000-0000-0000-00000000f001', 'aaaaaaaa-0000-0000-0000-000000000001',
+   'ICE-BACKFILL-UNPAID', 'pending', 100, 10, 110, 0,
+   'Calle A 1', 'Albox', 'Almeria', '04800', 'paid'),
+  ('0dde0000-0000-0000-0000-00000000f002', 'aaaaaaaa-0000-0000-0000-000000000001',
+   'ICE-BACKFILL-PAID', 'pending', 100, 10, 110, 0,
+   'Calle A 1', 'Albox', 'Almeria', '04800', 'paid'),
+  ('0dde0000-0000-0000-0000-00000000f003', 'aaaaaaaa-0000-0000-0000-000000000001',
+   'ICE-BACKFILL-ALLOCATED', 'processing', 100, 10, 110, 0,
+   'Calle A 1', 'Albox', 'Almeria', '04800', 'allocated');
+
+-- Only the second one has money against it.
+INSERT INTO public.payments
+  (member_id, order_id, amount, payment_type, payment_method, status, paid_at)
+VALUES ('aaaaaaaa-0000-0000-0000-000000000001', '0dde0000-0000-0000-0000-00000000f002',
+        110, 'order', 'stripe', 'completed', now());
+
+-- And a completed payment against the ALLOCATED one would make the third case pass for the
+-- wrong reason, so it deliberately has none: it must stay put because of its STATE, not its
+-- payments.
+
+\ir ../../supabase/migrations/20260908120400_awaiting_payment_wiring.sql
+
+SELECT pg_temp.check(
+  'the backfill moves a `paid` order with NO completed payment to awaiting_payment',
+  (SELECT fulfilment_state FROM public.orders
+    WHERE id = '0dde0000-0000-0000-0000-00000000f001') = 'awaiting_payment',
+  'this is the row F14 is about: an order claiming a payment nobody made');
+
+SELECT pg_temp.check(
+  'it leaves a `paid` order that DID pay alone',
+  (SELECT fulfilment_state FROM public.orders
+    WHERE id = '0dde0000-0000-0000-0000-00000000f002') = 'paid',
+  'un-paying a real customer would take their pendant out of the fulfilment queue');
+
+SELECT pg_temp.check(
+  'it does NOT drag an `allocated` order backwards, whatever its payment rows say',
+  (SELECT fulfilment_state FROM public.orders
+    WHERE id = '0dde0000-0000-0000-0000-00000000f003') = 'allocated',
+  'a device is already reserved against it; that discrepancy is for a person, not a migration');
+
+SELECT pg_temp.check(
+  'the backfill wrote no activity_logs rows — it is not a transition',
+  NOT EXISTS (
+    SELECT 1 FROM public.activity_logs
+     WHERE entity_type = 'order'
+       AND entity_id IN ('0dde0000-0000-0000-0000-00000000f001',
+                         '0dde0000-0000-0000-0000-00000000f002',
+                         '0dde0000-0000-0000-0000-00000000f003')),
+  'a log row would claim a staff member acted today on an order from March');
+
+SELECT pg_temp.check(
+  'CONTROL: the trigger is ENABLED again after the backfill',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000002',
+    'UPDATE public.orders SET fulfilment_state = ''dispatched''
+      WHERE id = ''0dde0000-0000-0000-0000-00000000f003'''),
+  'a backfill that left the trigger disabled would silently un-govern every later write');
+
 -- ============================================================
 --  Report
 -- ============================================================

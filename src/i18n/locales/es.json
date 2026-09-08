@@ -2068,7 +2068,10 @@
     "courtesyCalls": "Llamadas de cortesía",
     "noCourtesyCallsDue": "No hay llamadas de cortesía pendientes",
     "fetchError": "Error al cargar los datos del panel",
-    "alreadyClaimed": "Otro operador ya ha reclamado esta alerta."
+    "alreadyClaimed": "Otro operador ya ha reclamado esta alerta.",
+    "newEnquiries": "Nuevas consultas",
+    "noNewEnquiries": "Todas las consultas han sido atendidas",
+    "enquiryNoName": "Sin nombre"
   },
   "leadsWidget": {
     "newLeads": "Nuevos leads",
@@ -3315,9 +3318,9 @@
       "responseDesc": "Una operadora real responde directamente a través de su colgante: sin menús ni colas de espera."
     },
     "success": {
-      "title": "¡Mensaje Enviado!",
-      "message": "Gracias por contactarnos. Nos pondremos en contacto pronto.",
-      "description": "Nuestro equipo revisará su mensaje y responderá en 24 horas. Para asuntos urgentes, llámenos directamente.",
+      "title": "Mensaje enviado",
+      "message": "Gracias por escribirnos. Su mensaje está con nuestro equipo.",
+      "description": "Su consulta ha llegado al equipo y alguien le responderá. Desde esta página no podemos prometerle un plazo de respuesta, así que si el asunto es urgente, llame al número indicado arriba.",
       "returnHome": "Volver al Inicio",
       "callNow": "Llámenos Ahora"
     },

@@ -2068,7 +2068,10 @@
     "courtesyCalls": "Courtesy Calls",
     "noCourtesyCallsDue": "No courtesy calls pending",
     "fetchError": "Failed to load dashboard data",
-    "alreadyClaimed": "Een andere medewerker heeft deze melding al geclaimd."
+    "alreadyClaimed": "Een andere medewerker heeft deze melding al geclaimd.",
+    "newEnquiries": "Nieuwe aanvragen",
+    "noNewEnquiries": "Alle aanvragen zijn opgepakt",
+    "enquiryNoName": "Geen naam opgegeven"
   },
   "leadsWidget": {
     "newLeads": "New Leads",
@@ -3315,9 +3318,9 @@
       "responseDesc": "Een echte operator antwoordt direct via uw hanger — geen keuzemenu's, geen wachtrij."
     },
     "success": {
-      "title": "Bericht verzonden!",
-      "message": "Bedankt voor uw bericht. We nemen binnenkort contact met u op.",
-      "description": "Ons team beoordeelt uw bericht en reageert binnen 24 uur. Bel ons rechtstreeks voor dringende zaken.",
+      "title": "Bericht verzonden",
+      "message": "Bedankt voor uw bericht. Uw bericht ligt bij ons team.",
+      "description": "Uw vraag is bij het team aangekomen en iemand neemt contact met u op. Via deze pagina kunnen we geen reactietermijn beloven, dus bel bij dringende zaken het nummer hierboven.",
       "returnHome": "Terug naar home",
       "callNow": "Bel ons nu"
     },

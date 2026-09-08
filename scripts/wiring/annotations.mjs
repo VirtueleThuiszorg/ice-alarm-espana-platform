@@ -42,18 +42,25 @@ export const FAMILIES = [
   {
     wires: ["table:leads"],
     control: "Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens",
-    promise: "“Message Sent! … Our team will review your message and respond within 24 hours.”",
-    dest: "leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads",
-    told: "screen",
-    proof: null,
+    promise: "“Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.”",
+    dest: "leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard",
+    told: "bell",
+    proof: "scripts/rls/wiring.sql",
     note:
-      "THE DEFECT THIS REGISTER CAME FROM. The row arrives and both Leads screens show it, " +
-      "but the only trigger on `leads` is `update_leads_updated_at` — no notification, no task, " +
-      "no queue. `leads` IS in supabase_realtime and /call-centre/leads does subscribe, so a lead " +
-      "appears live on a screen nobody is required to have open. That is not being told, and the " +
-      "copy promises 24 hours. Fixed in PR (a): a SECURITY DEFINER trigger notifies staff on the " +
-      "bell, the dashboard grows a New enquiries card, and the copy stops promising a deadline " +
-      "nobody committed to.",
+      "THE DEFECT THIS REGISTER CAME FROM, now fixed end to end. The row always arrived and both " +
+      "Leads screens always showed it, but the only trigger on `leads` was " +
+      "`update_leads_updated_at` — no notification, no task, no queue. `leads` is in " +
+      "supabase_realtime and /call-centre/leads does subscribe, so a lead appeared live on a " +
+      "screen nobody was required to have open. That is not being told.\n\n" +
+      "Three parts: an AFTER INSERT trigger raising a targeted bell notification per active staff " +
+      "member (a trigger, because the form submits as `anon` and notification_log INSERT is " +
+      "staff/service_role only — and because it covers every route into the table, not the one " +
+      "caller someone remembered); a New enquiries card on the dashboard operators already have " +
+      "open; and copy that no longer promises 24 hours.\n\n" +
+      "PROVEN by `scripts/rls/wiring.sql` §2 against a real PostgreSQL — one targeted, routable, " +
+      "human-readable notification per active staff member, no broadcast row, nobody terminated. " +
+      "Mutation-tested three ways. This is the only row in the register that reaches 10, and it " +
+      "does so because it is the one wire that has been driven all the way to a person.",
   },
 
   {
@@ -66,9 +73,10 @@ export const FAMILIES = [
     note:
       "This subscription WORKS — leads is published and the refetch fires. It is also the reason " +
       "the original defect was so easy to miss: the wire looks alive, because on a screen someone " +
-      "has open the lead really does appear. Nothing brings anyone TO that screen, which is the " +
-      "whole difference between a live list and being told. PR (a) adds the notification; this " +
-      "row stays `screen` because that is all a subscription can ever be.",
+      "has open the lead really does appear. Nothing brought anyone TO that screen, which is the " +
+      "whole difference between a live list and being told. The bell notification now does that " +
+      "(see `table:leads`); this row stays `screen`, because that is all a subscription can ever " +
+      "be, however healthy it is.",
   },
 
   // ───────────────────────────── dead controls ─────────────────────────────
@@ -77,38 +85,37 @@ export const FAMILIES = [
     control: "Call-centre dashboard — courtesy-call list auto-refresh",
     promise: "the courtesy-call list stays current while the operator works",
     dest: "supabase.channel('dashboard-courtesy-calls') → fetchCourtesyCalls()",
-    told: "nobody",
-    dead: true,
-    proof: null,
+    told: "screen",
+    proof: "scripts/rls/wiring.sql",
     note:
-      "`tasks` is NOT in the supabase_realtime publication (verified against the real schema, " +
+      "WAS DEAD. `tasks` was NOT in the supabase_realtime publication (verified against the real schema, " +
       "not grep: 28 tables are published and this is not one). The subscription is established " +
-      "and never fires, so a courtesy call assigned to an operator does not appear until they " +
-      "reload. Fixed in the held schema bundle.",
+      "and never fired, so a courtesy call assigned to an operator did not appear until they " +
+      "reloaded. Published in this bundle with REPLICA IDENTITY FULL, and `scripts/rls/wiring.sql` " +
+      "§1 now derives the subscribed-table list from src/ and checks it against " +
+      "pg_publication_tables, so the next one cannot be dead for long.",
   },
   {
     wires: ["channel:shift_notes"],
     control: "Shift notes page — live handover list",
     promise: "code comment: “Keep the list live: notes added/edited/deleted by other operators appear without a reload.”",
     dest: "supabase.channel('call-centre-shift-notes') → fetchNotes()",
-    told: "nobody",
-    dead: true,
-    proof: null,
+    told: "screen",
+    proof: "scripts/rls/wiring.sql",
     note:
-      "`shift_notes` is not published to supabase_realtime, so the comment describes behaviour " +
-      "that has never happened. A handover note written by the outgoing shift is invisible to the " +
-      "incoming one until they reload — on the one screen whose entire purpose is handover. " +
-      "Fixed in the held schema bundle.",
+      "WAS DEAD, and the worst of the five. `shift_notes` was not published, so the code comment " +
+      "described behaviour that had never once happened: a handover note written by the outgoing " +
+      "shift was invisible to the incoming one until they reloaded — on the one screen whose " +
+      "entire purpose is handover. Published in this bundle and covered by the §1 contract.",
   },
   {
     wires: ["channel:registration_drafts", "channel:social_posts", "channel:social_post_metrics"],
     control: "Leads page abandoned-draft list; media manager post list and metrics",
     promise: "the list updates itself",
     dest: "postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics",
-    told: "nobody",
-    dead: true,
-    proof: null,
-    note: "Same cause as the two above — table not in the publication. Lower consequence (admin surfaces, reloadable). Fixed in the same bundle.",
+    told: "screen",
+    proof: "scripts/rls/wiring.sql",
+    note: "Same cause as the two above — not in the publication. Lower consequence (admin surfaces, reloadable). Published in this bundle and covered by the §1 contract.",
   },
   {
     wires: ["fn:send-email"],

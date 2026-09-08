@@ -10,6 +10,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
+import { notificationLink } from "@/lib/notificationLink";
 import { join } from "node:path";
 
 const ROOT = process.cwd();
@@ -158,14 +159,25 @@ describe("client surfaces route through the function (no direct denied writes)",
 });
 
 describe("member UX honesty fixes hold", () => {
-  it("NotificationBell routes members before the admin entity_type switch", () => {
-    const bell = read("src/components/notifications/NotificationBell.tsx");
-    const memberBranch = bell.indexOf("if (!isStaff)");
-    const adminSwitch = bell.indexOf('"/admin/media-manager"');
-    expect(memberBranch).toBeGreaterThan(-1);
-    expect(memberBranch).toBeLessThan(adminSwitch);
-    // member metadata links are allowlisted to the member portal
-    expect(bell).toMatch(/metadata\.link\.startsWith\("\/dashboard"\)/);
+  it("notification routing sends members to member pages, whatever the metadata says", () => {
+    // WAS a source check on NotificationBell.tsx: that the `if (!isStaff)`
+    // branch appeared before the admin entity_type switch, and that a
+    // metadata.link for a member was allowlisted to /dashboard. The routing has
+    // since moved into src/lib/notificationLink.ts — NotificationBell and
+    // /admin/notifications each had their own copy and they disagreed — so the
+    // same two properties are asserted here as BEHAVIOUR instead of as text.
+    // Behaviour is what mattered and it survives the next move.
+    for (const entity of [undefined, "lead", "social_post", "video_render", "outreach_email"]) {
+      for (const type of ["message", "alert", "task", "system"] as const) {
+        const link = notificationLink(type, { entity_type: entity }, false);
+        expect(link, `member routed off /dashboard for ${type}/${entity}`).toMatch(/^\/dashboard/);
+      }
+    }
+    // A stored `link` is no longer honoured for anyone, so the member
+    // allowlist it needed is moot: there is no column to populate it, and the
+    // branch read a staff-authored string and navigated to it.
+    expect(notificationLink("message", { link: "/admin/settings" }, false)).toMatch(/^\/dashboard/);
+    expect(read("src/lib/notificationLink.ts")).not.toMatch(/metadata\?\.link/);
   });
 
   it("dashboard connectivity stat uses is_online, not allocation status", () => {

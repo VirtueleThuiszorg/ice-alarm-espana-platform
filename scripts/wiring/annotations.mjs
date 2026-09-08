@@ -42,18 +42,22 @@ export const FAMILIES = [
   {
     wires: ["table:leads"],
     control: "Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens",
-    promise: "“Message Sent! … Our team will review your message and respond within 24 hours.”",
-    dest: "leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads",
+    promise: "“Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.”",
+    dest: "leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard",
     told: "screen",
     proof: null,
     note:
-      "THE DEFECT THIS REGISTER CAME FROM. The row arrives and both Leads screens show it, " +
-      "but the only trigger on `leads` is `update_leads_updated_at` — no notification, no task, " +
-      "no queue. `leads` IS in supabase_realtime and /call-centre/leads does subscribe, so a lead " +
-      "appears live on a screen nobody is required to have open. That is not being told, and the " +
-      "copy promises 24 hours. Fixed in PR (a): a SECURITY DEFINER trigger notifies staff on the " +
-      "bell, the dashboard grows a New enquiries card, and the copy stops promising a deadline " +
-      "nobody committed to.",
+      "THE DEFECT THIS REGISTER CAME FROM. The row arrives and both Leads screens show it, but " +
+      "the only trigger on `leads` is `update_leads_updated_at` — no notification, no task, no " +
+      "queue. `leads` IS in supabase_realtime and /call-centre/leads does subscribe, so a lead " +
+      "appears live on a screen nobody is required to have open. That is not being told.\n\n" +
+      "STILL `screen`, DELIBERATELY. The browser half of the fix has shipped: the success copy no " +
+      "longer promises 24 hours (nothing enforced it and nobody was even told), a New enquiries " +
+      "card puts unworked leads on the dashboard operators already have open, and a `lead` " +
+      "notification now routes to the enquiry from both places a notification is shown. The " +
+      "NOTIFICATION itself is a database trigger in the held bundle, so until that migration is " +
+      "applied to production this row has not earned `bell` — scoring it now would be the " +
+      "register claiming a fix that is sitting in a branch.",
   },
 
   {

@@ -32,28 +32,7 @@ import {
   useNotifications,
   NotificationType,
 } from "@/hooks/useNotifications";
-
-// Map notification types to navigation routes
-function getNotificationLink(
-  type: NotificationType,
-  metadata: Record<string, unknown> | null
-): string | null {
-  if (metadata?.link && typeof metadata.link === "string") {
-    return metadata.link;
-  }
-  switch (type) {
-    case "alert":
-      return "/call-centre";
-    case "message":
-      return "/admin/messages";
-    case "task":
-      return "/admin/tasks";
-    case "system":
-      return "/admin/settings";
-    default:
-      return null;
-  }
-}
+import { notificationLink } from "@/lib/notificationLink";
 
 function getNotificationIcon(type: NotificationType) {
   switch (type) {
@@ -117,7 +96,8 @@ export default function NotificationsPage() {
       markAsRead(notification.id);
     }
     // Navigate to the relevant page
-    const link = getNotificationLink(notification.type, notification.metadata);
+    // This route is behind requireAdmin, so the viewer is always staff.
+    const link = notificationLink(notification.type, notification.metadata, true);
     if (link) {
       navigate(link);
     }

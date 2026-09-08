@@ -27,6 +27,7 @@ import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { notificationLink } from "@/lib/notificationLink";
 
 interface NotificationBellProps {
   staffId: string | null;
@@ -44,61 +45,6 @@ function getNotificationIcon(type: NotificationType) {
       return <Settings className="h-4 w-4 text-gray-500" />;
     default:
       return <Bell className="h-4 w-4" />;
-  }
-}
-
-function getNotificationLink(
-  type: NotificationType,
-  metadata: Record<string, unknown> | null,
-  isStaff: boolean
-): string | null {
-  // Members are routed FIRST — the entity_type switch below targets admin
-  // routes, and metadata.link can be staff-authored; sending a member there
-  // lands on /unauthorized.
-  if (!isStaff) {
-    if (metadata?.link && typeof metadata.link === "string" && metadata.link.startsWith("/dashboard")) {
-      return metadata.link;
-    }
-    // Member-facing links
-    switch (type) {
-      case "message":
-        return "/dashboard/messages";
-      case "alert":
-        return "/dashboard/alerts";
-      default:
-        return "/dashboard";
-    }
-  }
-
-  if (metadata?.link && typeof metadata.link === "string") {
-    return metadata.link;
-  }
-
-  // Route by entity_type for section-specific navigation
-  const entityType = metadata?.entity_type as string;
-  if (entityType) {
-    switch (entityType) {
-      case "social_post":
-        return "/admin/media-manager";
-      case "outreach_pipeline":
-      case "outreach_email":
-        return "/admin/ai-outreach";
-      case "video_render":
-        return "/admin/video-hub";
-    }
-  }
-
-  switch (type) {
-    case "alert":
-      return "/call-centre";
-    case "message":
-      return "/admin/messages";
-    case "task":
-      return "/admin/tasks";
-    case "system":
-      return "/admin/settings";
-    default:
-      return null;
   }
 }
 
@@ -138,7 +84,7 @@ export function NotificationBell({ staffId }: NotificationBellProps) {
     if (!notification.read) {
       markAsRead(notification.id);
     }
-    const link = getNotificationLink(notification.type, notification.metadata, isStaff);
+    const link = notificationLink(notification.type, notification.metadata, isStaff);
     if (link) {
       navigate(link);
     }

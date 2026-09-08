@@ -2068,7 +2068,10 @@
     "courtesyCalls": "Courtesy Calls",
     "noCourtesyCallsDue": "No courtesy calls pending",
     "fetchError": "Failed to load dashboard data",
-    "alreadyClaimed": "Another operator has already claimed this alert."
+    "alreadyClaimed": "Another operator has already claimed this alert.",
+    "newEnquiries": "New enquiries",
+    "noNewEnquiries": "Every enquiry has been picked up",
+    "enquiryNoName": "No name given"
   },
   "leadsWidget": {
     "newLeads": "New Leads",
@@ -3315,9 +3318,9 @@
       "responseDesc": "A real operator answers directly through your pendant — no menus, no hold queue."
     },
     "success": {
-      "title": "Message Sent!",
-      "message": "Thank you for contacting us. We'll get back to you soon.",
-      "description": "Our team will review your message and respond within 24 hours. For urgent matters, please call us directly.",
+      "title": "Message sent",
+      "message": "Thanks for getting in touch. Your message is with our team.",
+      "description": "Your enquiry has reached the team and someone will come back to you. We can't promise a response time from this page, so if the matter is urgent please call the number above instead.",
       "returnHome": "Return to Home",
       "callNow": "Call Us Now"
     },

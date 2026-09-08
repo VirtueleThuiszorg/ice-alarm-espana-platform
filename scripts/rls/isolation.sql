@@ -3279,12 +3279,17 @@ SELECT pg_temp.check(
      VALUES (''shipping'', ''prod_x'', ''price_recurring_shipping'', 1499, ''month'')'),
   'charging shipping every month is the same defect pointing the other way');
 
+-- `recurring_interval` is supplied deliberately. Without it this row also violates the
+-- interval/key constraint, so the assertion passed with the price_key CHECK removed entirely —
+-- it was being refused by the wrong rule. Named alternatives are worth nothing if the test can
+-- be satisfied by a neighbour.
 SELECT pg_temp.check(
   'a price_key we do not sell is REFUSED',
   pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
     'INSERT INTO public.stripe_prices
-       (price_key, stripe_product_id, stripe_price_id, amount_cents)
-     VALUES (''plan_family_monthly'', ''prod_x'', ''price_family'', 4999)'));
+       (price_key, stripe_product_id, stripe_price_id, amount_cents, recurring_interval)
+     VALUES (''plan_family_monthly'', ''prod_x'', ''price_family'', 4999, ''month'')'),
+  'we sell single and couple; a third plan is a decision, not an insert');
 
 SELECT pg_temp.check(
   'a NEGATIVE amount is REFUSED',

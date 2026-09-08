@@ -7557,7 +7557,7 @@ export type Database = {
       ticket_status: "open" | "in_progress" | "pending" | "resolved" | "closed"
       consent_basis: "member_self" | "staff_recorded"
       consent_category: "alerts" | "location" | "medical"
-      fulfilment_state: "paid" | "allocated" | "programmed" | "dispatched" | "delivered" | "tested" | "cancelled"
+      fulfilment_state: "awaiting_payment" | "paid" | "allocated" | "programmed" | "dispatched" | "delivered" | "tested" | "cancelled"
       member_action: "renew" | "switch_to_single" | "switch_to_couple" | "add_pendant" | "pause" | "resume" | "cancel"
       notification_channel: "sms" | "email" | "whatsapp"
     }
@@ -7687,7 +7687,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      fulfilment_state: ["paid", "allocated", "programmed", "dispatched", "delivered", "tested", "cancelled"],
+      fulfilment_state: ["awaiting_payment", "paid", "allocated", "programmed", "dispatched", "delivered", "tested", "cancelled"],
       alert_status: ["incoming", "in_progress", "resolved", "escalated"],
       alert_type: [
         "sos_button",

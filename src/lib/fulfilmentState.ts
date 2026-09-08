@@ -26,13 +26,17 @@ export type FulfilmentState = Database["public"]["Enums"]["fulfilment_state"];
 type AppRole = Database["public"]["Enums"]["app_role"];
 
 /**
- * The ranked sequence — the six states that are a PLACE in fulfilment, in order.
+ * The ranked sequence — the seven states that are a PLACE in fulfilment, in order.
  *
  * `cancelled` is deliberately absent: `fulfilment_state_rank()` returns NULL for it, because it
  * is not a point on the line. An order can reach it from anywhere and leaving it is a correction
  * like any other. Keeping it out of this array is what makes `fulfilmentRank` honest.
  */
 export const FULFILMENT_SEQUENCE = [
+  // An order exists from the moment the wizard is submitted, which is BEFORE the customer has
+  // paid. It used to start at `paid` (20260907100000's DEFAULT), so an abandoned checkout
+  // entered the fulfilment queue and `awaiting_allocation` counted it — REVIEW_JOIN_PATH.md F14.
+  "awaiting_payment",
   "paid",
   "allocated",
   "programmed",
@@ -68,16 +72,28 @@ export function fulfilmentRank(state: FulfilmentState): number | null {
 }
 
 /**
- * The trigger's `is_correction`, verbatim in its three clauses:
- *   NEW = cancelled  OR  OLD = cancelled  OR  new_rank < old_rank
+ * The trigger's `needs_authority`, verbatim in its four clauses:
+ *   NEW = cancelled  OR  OLD = cancelled  OR  NEW = paid  OR  new_rank < old_rank
  *
- * A correction is what needs a D9 role, a NEW reason, and an activity_logs row. Getting this
- * predicate wrong in the UI means either asking for a reason nobody needs or, worse, not asking
- * for one and letting the write fail with a database error the member's operator has to read.
+ * This is what needs a D9 role, a NEW reason, and an activity_logs row. Getting the predicate
+ * wrong in the UI means either asking for a reason nobody needs or, worse, not asking for one
+ * and letting the write fail with a database error the member's operator has to read.
+ *
+ * `NEW = paid` is the fourth clause and the newest. It is not a backward move: it is the one
+ * forward move that ASSERTS SOMETHING ABOUT MONEY, and everything else in the sequence asserts
+ * something about a device that a person can check by looking at it. Before `awaiting_payment`
+ * existed there was nothing below `paid`, so "entering paid" was not a move at all; now that it
+ * is, an ungoverned one would be a free membership granted by a dropdown. The payment path
+ * satisfies it with the service role and a reason naming the payment.
+ *
+ * The name stays `isFulfilmentCorrection` because that is what every caller asks it — "does
+ * this move need the correction dialog" — and the answer is unchanged for all seven of the
+ * moves it already covered.
  */
 export function isFulfilmentCorrection(from: FulfilmentState, to: FulfilmentState): boolean {
   if (from === to) return false;
   if (to === "cancelled" || from === "cancelled") return true;
+  if (to === "paid") return true;
   const fromRank = fulfilmentRank(from);
   const toRank = fulfilmentRank(to);
   // Both are non-null here: neither is `cancelled` by the branch above. The guard is for the
@@ -96,14 +112,17 @@ export function isFulfilmentCorrection(from: FulfilmentState, to: FulfilmentStat
  */
 export function nextFulfilmentState(
   state: FulfilmentState,
-): Exclude<FulfilmentState, "paid"> | null {
+): Exclude<FulfilmentState, "awaiting_payment"> | null {
   const rank = fulfilmentRank(state);
   if (rank === null) return null;
   // `rank` is 1-based, so index `rank` is the state AFTER this one and index 0 is unreachable.
-  // `paid` is therefore never a return value — which is why it is excluded from the return type
-  // rather than left in it and handled by every caller. `FULFILMENT_ACTION_LABEL` has no `paid`
-  // entry for the same reason: nobody moves an order INTO `paid`, it starts there.
-  return (FULFILMENT_SEQUENCE[rank] as Exclude<FulfilmentState, "paid"> | undefined) ?? null;
+  // `awaiting_payment` is therefore never a return value — which is why it is excluded from the
+  // return type rather than left in it and handled by every caller. Nobody moves an order INTO
+  // it; an order starts there. `paid` used to be excluded here for that same reason, and no
+  // longer is: `awaiting_payment → paid` is a real forward move, made by the payment path.
+  return (
+    (FULFILMENT_SEQUENCE[rank] as Exclude<FulfilmentState, "awaiting_payment"> | undefined) ?? null
+  );
 }
 
 /**
@@ -123,12 +142,23 @@ export function nextFulfilmentState(
  *               a resolvable staff id, because the whole content of the state is that a named
  *               person answered.
  */
-export type FulfilmentTransitionOwner = "allocation" | "checklist" | "staff" | "operator";
+export type FulfilmentTransitionOwner =
+  /** The payment webhook, through post-payment.ts. Never a person, never a button. */
+  | "payment"
+  | "allocation"
+  | "checklist"
+  | "staff"
+  | "operator";
 
 export const FULFILMENT_TRANSITION_OWNER: Record<
-  Exclude<FulfilmentState, "paid" | "cancelled">,
+  Exclude<FulfilmentState, "awaiting_payment" | "cancelled">,
   FulfilmentTransitionOwner
 > = {
+  // Golden rule 4's shape, one column over: a member is activated by the payment webhook and
+  // never by client-side code, and the order's claim that money arrived belongs to the same
+  // actor. The only human route in is the correction dialog, which demands a reason — for the
+  // bank transfer that arrived outside Stripe.
+  paid: "payment",
   allocated: "allocation",
   programmed: "checklist",
   dispatched: "staff",
@@ -145,7 +175,7 @@ export const FULFILMENT_TRANSITION_OWNER: Record<
  */
 export const STAFF_MOVABLE_STATES = (
   Object.entries(FULFILMENT_TRANSITION_OWNER) as [
-    Exclude<FulfilmentState, "paid" | "cancelled">,
+    Exclude<FulfilmentState, "awaiting_payment" | "cancelled">,
     FulfilmentTransitionOwner,
   ][]
 )
@@ -185,6 +215,10 @@ export function mayCorrectFulfilment(role: AppRole | null | undefined): boolean 
  * into the locale files in one later PR without touching any of these call sites.
  */
 export const FULFILMENT_LABEL: Record<FulfilmentState, { key: string; fallback: string }> = {
+  awaiting_payment: {
+    key: "admin.fulfilment.awaitingPayment",
+    fallback: "Awaiting payment",
+  },
   paid: { key: "admin.fulfilment.paid", fallback: "Paid" },
   allocated: { key: "admin.fulfilment.allocated", fallback: "Device allocated" },
   programmed: { key: "admin.fulfilment.programmed", fallback: "Programmed" },
@@ -205,9 +239,13 @@ export const FULFILMENT_LABEL: Record<FulfilmentState, { key: string; fallback: 
  * Only the states a human moves an order into appear here. `paid` is where an order starts.
  */
 export const FULFILMENT_ACTION_LABEL: Record<
-  Exclude<FulfilmentState, "paid">,
+  Exclude<FulfilmentState, "awaiting_payment">,
   { key: string; fallback: string }
 > = {
+  // Reached only through the correction dialog, which asks for a reason. There is no menu item
+  // that moves an order into `paid`: the payment webhook does it, or a supervisor records a
+  // payment that arrived another way and says so.
+  paid: { key: "admin.fulfilment.action.paid", fallback: "Record payment received" },
   allocated: { key: "admin.fulfilment.action.allocated", fallback: "Allocate a device" },
   programmed: { key: "admin.fulfilment.action.programmed", fallback: "Finish provisioning" },
   dispatched: {
@@ -225,6 +263,11 @@ export const FULFILMENT_ACTION_LABEL: Record<
  * member whose pendant nobody is looking for.
  */
 export const FULFILMENT_MEANING: Record<FulfilmentState, { key: string; fallback: string }> = {
+  awaiting_payment: {
+    key: "admin.fulfilment.meaning.awaitingPayment",
+    fallback:
+      "The registration was submitted but no payment has cleared. Nothing to fulfil yet, and nobody to chase but the checkout.",
+  },
   paid: {
     key: "admin.fulfilment.meaning.paid",
     fallback: "Payment cleared. No device assigned yet.",
@@ -263,6 +306,9 @@ export const FULFILMENT_MEANING: Record<FulfilmentState, { key: string; fallback
  * halfway down the sequence is progress, not a problem.
  */
 export const FULFILMENT_BADGE: Record<FulfilmentState, string> = {
+  // Deliberately the flattest treatment of the eight: an unpaid order is not progress and not a
+  // problem, it is a checkout somebody may still finish.
+  awaiting_payment: "bg-muted text-muted-foreground border-border",
   paid: "bg-amber-500/10 text-amber-600 border-amber-500/20",
   allocated: "bg-sky-500/10 text-sky-600 border-sky-500/20",
   programmed: "bg-blue-500/10 text-blue-600 border-blue-500/20",
@@ -310,6 +356,10 @@ export function fulfilmentCondition(order: {
   // Only a `paid` order can be awaiting anything. Past that rung a device is assigned, and an
   // order at `dispatched` whose status still reads `awaiting_stock` is DRIFT rather than a
   // condition — flagged as drift, which is a different and louder thing.
+  //
+  // BELOW that rung there is nothing to allocate either: an `awaiting_payment` order is not work
+  // for the fulfilment desk, and counting it as `awaiting_allocation` is precisely the defect
+  // F14 describes — staff chasing pendants for people who never paid.
   if (order.fulfilment_state !== "paid") return "none";
   if (order.status === "awaiting_stock") return "awaiting_stock";
   return "awaiting_allocation";
@@ -393,6 +443,9 @@ export function describeFulfilmentError(message: string): { title: string; body:
  * order in `tested` stays `delivered`, which is exactly what the commission path should see.
  */
 export const FULFILMENT_TO_ORDER_STATUS: Record<FulfilmentState, OrderStatus | null> = {
+  // `pending` is what submit_registration_atomic already writes, so this pair agrees from the
+  // start rather than needing a reconciliation on the first move.
+  awaiting_payment: "pending",
   paid: null,
   allocated: "processing",
   programmed: null,

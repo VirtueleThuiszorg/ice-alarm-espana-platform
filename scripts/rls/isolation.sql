@@ -1365,11 +1365,16 @@ SELECT pg_temp.check(
 UPDATE public.devices SET status = 'active'
 WHERE id = '22222222-dddd-0000-0000-000000000002';
 
+-- `fulfilment_state` is named rather than left to the DEFAULT, which is now `awaiting_payment`
+-- (20260908120400). The walk below starts from `paid`, and an INSERT is not governed by the
+-- BEFORE UPDATE trigger, so naming it here is a fixture stating its own premise — not a way
+-- around a rule.
 INSERT INTO public.orders
   (id, member_id, order_number, subtotal, tax_amount, total_amount,
-   shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code)
+   shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code,
+   fulfilment_state)
 VALUES ('0dde0000-0000-0000-0000-0000000000b1', 'bbbbbbbb-0000-0000-0000-000000000002',
-        'ORD-RLS-B-QUEUE', 100, 21, 121, 'Calle B 2', 'Albox', 'Almeria', '04800');
+        'ORD-RLS-B-QUEUE', 100, 21, 121, 'Calle B 2', 'Albox', 'Almeria', '04800', 'paid');
 
 INSERT INTO public.order_items
   (order_id, item_type, description, quantity, unit_price, tax_rate, tax_amount, total_price, device_id)
@@ -2069,15 +2074,21 @@ INSERT INTO public.staff (user_id, email, first_name, last_name, role) VALUES
   ('a6000000-0000-0000-0000-00000000000f', 'ordinary-staff@example.com',
    'Otto', 'Ordinary', 'call_centre');
 
--- A fresh order for member B, at `paid`, to walk forwards through.
+-- A fresh order for member B, pinned at `paid`, to walk forwards through.
 INSERT INTO public.orders
   (id, member_id, order_number, subtotal, tax_amount, total_amount,
-   shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code)
+   shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code,
+   fulfilment_state)
 VALUES ('0dde0000-0000-0000-0000-00000000000b', 'bbbbbbbb-0000-0000-0000-000000000002',
-        'ORD-RLS-B', 100, 21, 121, 'Calle B 2', 'Albox', 'Almeria', '04800');
+        'ORD-RLS-B', 100, 21, 121, 'Calle B 2', 'Albox', 'Almeria', '04800', 'paid');
 
+-- THIS ASSERTION USED TO READ "a new order starts at `paid` — the only state the payment webhook
+-- may create", against the DEFAULT. That sentence was the F14 defect written down as if it were
+-- the design: an order existed before any payment, and starting it at `paid` is what put
+-- abandoned checkouts in front of the fulfilment desk. The default is now `awaiting_payment`
+-- (asserted in the item 7 section below); this fixture NAMES `paid` because the walk needs it.
 SELECT pg_temp.check(
-  'a new order starts at `paid` — the only state the payment webhook may create',
+  'the forward-walk fixture is pinned at `paid`, by naming it rather than by default',
   (SELECT fulfilment_state FROM public.orders
     WHERE id = '0dde0000-0000-0000-0000-00000000000b') = 'paid');
 
@@ -2103,9 +2114,10 @@ SELECT pg_temp.check(
 -- verdict, not an absence of one — the same distinction run.sh draws between exit 1 and 3.
 INSERT INTO public.orders
   (id, member_id, order_number, subtotal, tax_amount, total_amount,
-   shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code)
+   shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code,
+   fulfilment_state)
 VALUES ('0dde0000-0000-0000-0000-0000000000bc', 'bbbbbbbb-0000-0000-0000-000000000002',
-        'ORD-RLS-B-SKIP', 100, 21, 121, 'Calle B 2', 'Albox', 'Almeria', '04800');
+        'ORD-RLS-B-SKIP', 100, 21, 121, 'Calle B 2', 'Albox', 'Almeria', '04800', 'paid');
 
 SELECT pg_temp.check(
   'NOBODY may skip a step: paid → dispatched in one write is refused',
@@ -3474,6 +3486,123 @@ END $$;
 SELECT pg_temp.check(
   'CONTROL: no anonymously minted token exists',
   NOT EXISTS (SELECT 1 FROM public.member_update_tokens WHERE token = 'tok-anon-minted'));
+
+-- ============================================================
+--  Join path — an order is not `paid` before payment (item 7, F14)
+-- ============================================================
+--
+-- The default was `paid`, so an order created by the wizard claimed a payment nobody had made and
+-- entered the fulfilment queue at registration. The new state below it is only half the fix; the
+-- other half is that ENTERING `paid` is now governed, because otherwise a dropdown grants a free
+-- membership.
+
+SELECT pg_temp.check(
+  'a new order starts at awaiting_payment, not paid',
+  (SELECT column_default LIKE '%awaiting_payment%'
+     FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'orders'
+      AND column_name = 'fulfilment_state'),
+  'DEFAULT paid is what put abandoned checkouts in front of the fulfilment desk');
+
+SELECT pg_temp.check(
+  'awaiting_payment ranks below paid, and the ranks are one apart',
+  public.fulfilment_state_rank('awaiting_payment') = public.fulfilment_state_rank('paid') - 1,
+  'one step, so the payment path can move it forward without a skip');
+
+-- A fixture order of our own, so nothing here depends on another section's rows.
+DO $$
+DECLARE v_order uuid;
+BEGIN
+  INSERT INTO public.orders
+    (member_id, order_number, status, subtotal, tax_amount, total_amount, shipping_amount,
+     shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code)
+  VALUES ('aaaaaaaa-0000-0000-0000-000000000001', 'ICE-AWAIT-1', 'pending',
+          100, 10, 110, 0, 'Calle A 1', 'Albox', 'Almeria', '04800')
+  RETURNING id INTO v_order;
+
+  PERFORM pg_temp.check(
+    'CONTROL: it really landed on awaiting_payment',
+    (SELECT fulfilment_state = 'awaiting_payment' FROM public.orders WHERE id = v_order));
+
+  PERFORM set_config('rls.await_order', v_order::text, false);
+END $$;
+
+-- ── entering `paid` is a claim about money, so it needs authority AND a reason ──
+SELECT pg_temp.check(
+  'call-centre staff CANNOT mark an unpaid order paid',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000002',
+    format('UPDATE public.orders SET fulfilment_state = ''paid'',
+                   fulfilment_state_reason = ''customer says they paid''
+             WHERE id = %L', current_setting('rls.await_order'))),
+  'a free membership granted by a dropdown is the failure this closes');
+
+SELECT pg_temp.check(
+  'a supervisor cannot mark it paid WITHOUT a reason either',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    format('UPDATE public.orders SET fulfilment_state = ''paid''
+             WHERE id = %L', current_setting('rls.await_order'))),
+  'the reason is the audit line: which payment, arriving how');
+
+SELECT pg_temp.check(
+  'a supervisor CAN record a payment that arrived another way, with a reason',
+  pg_temp.exec_as('a8000000-0000-0000-0000-000000000001',
+    format('UPDATE public.orders SET fulfilment_state = ''paid'',
+                   fulfilment_state_reason = ''SEPA transfer received 2026-09-08, ref 4471''
+             WHERE id = %L', current_setting('rls.await_order'))) = 1,
+  'a bank transfer outside Stripe is real; refusing it entirely would send staff to the SQL console');
+
+SELECT pg_temp.check(
+  'and that is written to activity_logs as a payment, not as a correction',
+  (SELECT action = 'fulfilment_payment_recorded'
+     FROM public.activity_logs
+    WHERE entity_type = 'order'
+      AND entity_id = current_setting('rls.await_order')::uuid
+    ORDER BY created_at DESC LIMIT 1),
+  'a reason held only in the column is overwritten by the next move; the log survives');
+
+SELECT pg_temp.check(
+  'the log names the reason given',
+  (SELECT reason LIKE '%SEPA transfer%'
+     FROM public.activity_logs
+    WHERE entity_type = 'order'
+      AND entity_id = current_setting('rls.await_order')::uuid
+    ORDER BY created_at DESC LIMIT 1));
+
+-- ── the forward sequence still works from `paid` onward ────────────────────
+SELECT pg_temp.check(
+  'CONTROL: paid → allocated is still an ordinary forward move, no reason needed',
+  pg_temp.exec_as('a8000000-0000-0000-0000-000000000002',
+    format('UPDATE public.orders SET fulfilment_state = ''allocated''
+             WHERE id = %L', current_setting('rls.await_order'))) = 1,
+  'if the new clause caught every forward move, fulfilment would need a supervisor per step');
+
+-- The order this needs is created first. An UPDATE that matches NO ROWS raises nothing, so an
+-- assertion written before its own fixture reads as "the guard is missing" — which is what the
+-- first version of this said, loudly and wrongly.
+DO $$
+BEGIN
+  INSERT INTO public.orders
+    (member_id, order_number, status, subtotal, tax_amount, total_amount, shipping_amount,
+     shipping_address_line_1, shipping_city, shipping_province, shipping_postal_code)
+  VALUES ('aaaaaaaa-0000-0000-0000-000000000001', 'ICE-AWAIT-2', 'pending',
+          100, 10, 110, 0, 'Calle A 1', 'Albox', 'Almeria', '04800');
+END $$;
+
+SELECT pg_temp.check(
+  'awaiting_payment → allocated is refused as a skip (with the order in place)',
+  pg_temp.raises_as('a8000000-0000-0000-0000-000000000001',
+    'UPDATE public.orders SET fulfilment_state = ''allocated'',
+            fulfilment_state_reason = ''trying to skip''
+      WHERE order_number = ''ICE-AWAIT-2'''),
+  'even a supervisor with a reason cannot allocate a device against no payment');
+
+SELECT pg_temp.check(
+  'a supervisor CAN move a paid order back to awaiting_payment — a payment that did not clear',
+  pg_temp.exec_as('a8000000-0000-0000-0000-000000000001',
+    'UPDATE public.orders SET fulfilment_state = ''awaiting_payment'',
+            fulfilment_state_reason = ''chargeback: the SEPA transfer was reversed''
+      WHERE order_number = ''ICE-AWAIT-1''') = 1,
+  'backwards, so it is an ordinary correction — but it must be POSSIBLE');
 
 -- ============================================================
 --  Report

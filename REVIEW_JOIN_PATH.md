@@ -38,7 +38,55 @@ both, and the Mollie path is *worse* on amount handling (F7) and idempotency (F1
 
 ## Findings
 
+**STATUS AT 9 SEP 2026.** Items 5, 6 and 8 closed most of this list. Read the per-finding
+`**Status:**` lines below for the detail; this is the shape of it.
+
+`PR #253` and branch `item6/second-stage` are **open and held for Lee's read** — they touch
+`create-checkout` and `stripe-webhook`, which carry the standing human gate (CLAUDE.md). A
+finding marked fixed there is fixed in code and reviewed by tests, and is **not yet on main**.
+That distinction is the whole point of writing it down: GOALS G5 exists because a STATE.md
+section once claimed two fixes that were sitting on an unmerged branch.
+
+| | Finding | Status |
+|---|---|---|
+| F1 | schema rejects the wizard's own payload | fixed · main |
+| F2 | anon cannot read the gateway setting | fixed · main |
+| F3 | create-checkout rejects the amounts | fixed · #253 |
+| F4 | no login is ever created | fixed · item6 |
+| F5 | subscription stays `pending` | fixed · #253 |
+| F6 | emergency contacts never collected | fixed · item6 |
+| F7 | the browser chooses the amount | fixed (Stripe) · #253 — **open for Mollie** |
+| F8 | the recurring amount too | fixed (Stripe) · #253 — **open for Mollie** |
+| F9 | idempotency records before processing | fixed · #253 |
+| F10 | Mollie guard keyed on the payment id | **open** |
+| F11 | no recurring charge at all | fixed · #253 |
+| F12 | payment secrets readable by all staff | fixed · main |
+| F13 | success screen believes the URL | fixed · item6 |
+| F14 | orders born `paid` | fixed · main |
+| F15 | never advances `paid → allocated` | fixed · #253 |
+| F16 | fee shown ≠ fee charged | fixed (Stripe) · #253 |
+| F17 | order numbers collide | fixed · main |
+| F18 | sale reported from the browser | **open** |
+| F19 | CORS admits any `*.vercel.app` | **open** |
+| F20 | staff-awareness depends on four settings | partial · #253 |
+| F21 | Mollie webhook secret read by nothing | **open** |
+| F22 | anon INSERT into `registration_drafts` | fixed · main |
+| F23 | `ai_agents` readable anonymously | fixed · main |
+
+**THE FIVE STILL OPEN ARE FOUR THINGS.** `create-mollie-checkout` carries the same
+browser-names-the-price defect on the other gateway (F7, F8, F10, F21) and needs its own pass;
+the Sync Hub report (F18) sends a figure computed in the browser; and CORS (F19) admits any
+Vercel preview origin. None is on the Stripe money path.
+
+**AND ONE THING THIS REVIEW DID NOT ORIGINALLY FIND**, added while fixing the rest: shipping was
+in `orders.total_amount` but absent from the `lineItems` `submit-registration` returned, so
+**Stripe collected less than the order said was due on every order with a pendant**. Fixed by
+construction in #253 — the lines are built from `stripe_prices`, and the total is cross-checked
+against the order row.
+
 ### F1 — `submit-registration` rejects the wizard's own payload · **BLOCKER**
+
+**Status:** **FIXED · on main.** The schema no longer requires `medicalInfo` / `emergencyContacts`; both move to the post-payment second stage.
 
 **Where:** `supabase/functions/_shared/validation.ts:68` and `:70`; `src/lib/registrationPayload.ts:23-27, 73`; refusal at `supabase/functions/submit-registration/index.ts:213-214`.
 
@@ -75,6 +123,8 @@ nothing fails until a real browser tries.
 
 ### F2 — the anonymous browser cannot read the payment-gateway setting, so the Pay button refuses · **BLOCKER**
 
+**Status:** **FIXED · on main** (`20260908120000_settings_read_policies.sql`, applied). The gateway setting is on the public whitelist, and the client refuses rather than defaulting to Stripe when it is unreadable.
+
 **Where:** `supabase/migrations/20260203185605_...sql:21-31`; `src/hooks/usePricingSettings.ts:45`; `src/components/join/steps/JoinPaymentStep.tsx:63-66`.
 
 **What happens.** The only policy that grants a non-staff read of `system_settings` whitelists
@@ -109,6 +159,8 @@ checkout URLs to use.
 
 ### F3 — `create-checkout` rejects the amounts `submit-registration` produces · **BLOCKER**
 
+**Status:** **FIXED · PR #253 (held).** There is no amounts contract left to disagree about: `create-checkout` takes four ids and reads the plan, the quantity and the prices from the database.
+
 **Where:** `supabase/functions/_shared/validation.ts:97`; `supabase/functions/submit-registration/index.ts:414-432`.
 
 **What happens.** The schema demands integers:
@@ -137,6 +189,8 @@ minimum — see F7.
 
 ### F4 — no login is ever created, and no reachable page can create one · **BLOCKER**
 
+**Status:** **FIXED · branch `item6/second-stage`.** `handleSuccessfulPayment` creates the auth user with `generateLink` and sets `members.user_id`; the welcome email's CTA is the sign-in link.
+
 **Where:** no `auth.admin.createUser` call for members anywhere in `supabase/functions/` (only `partner-register:134`, `partner-admin-create:273`, `staff-register:131`, `partner-complete-invite:99`); `src/App.tsx:345`; `src/pages/auth/CompleteRegistration.tsx:73-75`; `supabase/functions/_shared/welcome-email.ts:50, 166`.
 
 **What happens.**
@@ -164,6 +218,8 @@ chosen, `members.user_id` has to end up populated by something the member can tr
 ---
 
 ### F5 — after payment the subscription stays `pending` · **BLOCKER**
+
+**Status:** **FIXED · PR #253 (held).** The root cause was `mode: "payment"`, which produces no `session.subscription`, so the activation block could never run. Now `mode: "subscription"`, and both rows of a couple are activated BY ID.
 
 **Where:** `supabase/functions/_shared/post-payment.ts` (no `subscriptions` write anywhere in the file); `supabase/functions/stripe-webhook/index.ts:108-129`; `supabase/functions/create-checkout/index.ts:93`.
 
@@ -195,6 +251,8 @@ branch that depends on an object the checkout mode never creates.
 
 ### F6 — emergency contacts are never collected · **BLOCKER (safety)**
 
+**Status:** **FIXED · branch `item6/second-stage`.** The payment path mints one `member_update_tokens` row per member (`issued_via: 'post_payment'`), and the confirmation screen shows the link on screen — no email transport needed.
+
 **Where:** `src/pages/join/JoinWizard.tsx:30-32`; `src/lib/registrationPayload.ts:11-13`; `supabase/functions/send-member-update-request/index.ts:27-60`; `src/components/admin/member-detail/MemberUpdateRequestModal.tsx:123`.
 
 **What happens.** The wizard no longer asks for contacts; the stated replacement is the
@@ -220,6 +278,8 @@ wizard should collect contacts again). One of the two, not neither.
 ---
 
 ### F7 — the amount charged is chosen by the browser and never checked · **HIGH (money)**
+
+**Status:** **FIXED for Stripe · PR #253 (held). STILL OPEN for Mollie.** `create-checkout` charges synced Stripe Price ids and the webhook refuses activation when `amount_total` disagrees with the server-written `payments.amount`. `create-mollie-checkout` is untouched: still `lineItems` with amounts, still no schema at all.
 
 **Where:** `supabase/functions/create-checkout/index.ts:78-87`; `supabase/functions/create-mollie-checkout/index.ts:64, 67-71`; `supabase/config.toml:61-62, 97-98`; `supabase/functions/stripe-webhook/index.ts:140`; `supabase/functions/_shared/post-payment.ts:39-55`.
 
@@ -254,6 +314,8 @@ it, ignoring any client amounts; and the webhook should refuse to activate when
 
 ### F8 — the *recurring* amount is also chosen by the browser · **HIGH (money)**
 
+**Status:** **FIXED for Stripe · PR #253 (held). STILL OPEN for Mollie.** The recurring line is a synced Price id from `stripe_prices`, cross-checked against `calculateOrder` and against `orders.total_amount`.
+
 **Where:** `src/components/join/steps/JoinPaymentStep.tsx:69` (`subscriptionAmount: order.subscriptionFinal`); `supabase/functions/create-mollie-checkout/index.ts:138`; `supabase/functions/mollie-webhook/index.ts:131-146`.
 
 **What happens.** The browser sends `subscriptionAmount`; `create-mollie-checkout` copies it into
@@ -276,6 +338,8 @@ error-swallowing `catch` of F5.
 ---
 
 ### F9 — webhook idempotency records the event *before* processing it · **HIGH**
+
+**Status:** **FIXED · PR #253 (held).** The event is claimed with `processed_at: null` and stamped only after the handler returns, so a run that throws is retried instead of being answered "duplicate, skipping".
 
 **Where:** `supabase/functions/stripe-webhook/index.ts:77-96`; `supabase/functions/mollie-webhook/index.ts:90-105`; `supabase/migrations/20260302130000_webhook_events_idempotency.sql:3-9`.
 
@@ -301,6 +365,8 @@ A retry must be able to complete work the first attempt failed to do.
 
 ### F10 — the Mollie guard is keyed on the payment id, so only the first notification is ever processed · **HIGH (live gateway)**
 
+**Status:** **OPEN.** Mollie is out of item 5's scope and untouched. It needs its own pass, alongside F7, F8 and F21.
+
 **Where:** `supabase/functions/mollie-webhook/index.ts:96, 105`.
 
 **What happens.** Mollie calls one webhook URL and identifies the payment, not the event:
@@ -321,6 +387,8 @@ each transition is processed exactly once rather than the first transition only.
 ---
 
 ### F11 — Stripe monthly and annual create no recurring charge at all · **HIGH (money)**
+
+**Status:** **FIXED · PR #253 (held).** `mode: "subscription"` with the one-off items on the first invoice (P1).
 
 **Where:** `supabase/functions/create-checkout/index.ts:90-112`; `supabase/migrations/20260302120000_submit_registration_atomic.sql:229-244`.
 
@@ -345,6 +413,8 @@ the Stripe functions are removed rather than left as a broken alternative.
 ---
 
 ### F12 — payment secrets live in a table every staff account can read · **HIGH (security)**
+
+**Status:** **FIXED · on main** (`20260908120000_settings_read_policies.sql`, applied). Staff may read non-credential settings only.
 
 **Where:** `supabase/migrations/20260203185605_...sql:35-39`; readers at `create-checkout/index.ts:50-54`, `stripe-webhook/index.ts:21-25, 46-50`, `create-mollie-checkout/index.ts:43-47`, `mollie-webhook/index.ts:53-57`, `notify-admin/index.ts:227-237`.
 
@@ -375,6 +445,8 @@ already are; or at minimum restrict SELECT of `settings_*_secret_key` / `_auth_t
 
 ### F13 — the success screen believes the URL, not the payment · **HIGH (member trust)**
 
+**Status:** **FIXED · branch `item6/second-stage`.** The screen polls `join-order-status` until the order is really confirmed, keyed on the Stripe session id — never the order number, which is sequential.
+
 **Where:** `src/pages/join/JoinWizard.tsx:121-192`.
 
 **What happens.** On return, the wizard reads `?success=true&order=<n>` and immediately sets
@@ -395,6 +467,8 @@ is not yet `completed`, rather than asserting success from a query string.
 
 ### F14 — every order is born `fulfilment_state = 'paid'`, before any money moves · **MEDIUM**
 
+**Status:** **FIXED · on main** (`20260908120300` / `20260908120400`, applied). The default is `awaiting_payment`, and moving INTO `paid` is privileged and needs a reason.
+
 **Where:** `supabase/migrations/20260907100000_fulfilment_state_machine.sql:44`; `supabase/migrations/20260302120000_submit_registration_atomic.sql:264-279`.
 
 **What happens.** The column is `NOT NULL DEFAULT 'paid'`, and the registration RPC does not name
@@ -410,6 +484,8 @@ to ship a pendant.
 ---
 
 ### F15 — payment allocates a device but never advances `paid → allocated` · **MEDIUM**
+
+**Status:** **FIXED · PR #253 (held).** `handleSuccessfulPayment` moves `awaiting_payment → paid` (naming the gateway payment) and then `→ allocated`, but only when every pendant on the order really got a device.
 
 **Where:** `supabase/functions/_shared/post-payment.ts:120-140`; documented at `src/lib/allocatePendant.ts:14-19`.
 
@@ -428,6 +504,8 @@ device assignment must not be able to disagree.
 ---
 
 ### F16 — the registration fee shown can differ from the fee charged · **MEDIUM (money, cosmetic direction)**
+
+**Status:** **FIXED for Stripe · PR #253 (held).** The charge is cross-checked against `orders.total_amount` and refuses with `ORDER_PRICING_CHANGED` rather than charging a figure no screen showed.
 
 **Where:** `src/hooks/usePricingSettings.ts:45, 55-56, 64-65`; `supabase/functions/submit-registration/index.ts:219-235`.
 
@@ -452,6 +530,8 @@ calculation drives both the display and the charge.
 
 ### F17 — order numbers collide within the same second · **MEDIUM**
 
+**Status:** **FIXED · on main** (`20260908120500_order_number_sequence.sql`, applied). A sequence cannot collide.
+
 **Where:** `supabase/migrations/20260302120000_submit_registration_atomic.sql:261`; `supabase/migrations/20260121143325_...sql:132`.
 
 **What happens.**
@@ -470,6 +550,8 @@ conflict. At current volumes it is unlikely; it is also entirely silent until it
 ---
 
 ### F18 — the sale is reported to a second database from the browser, with a browser-computed amount · **MEDIUM**
+
+**Status:** **OPEN.** `JoinWizard` still calls `reportEvent('new_sale', …)` with a browser-computed `totalPence`. Nothing on the money path depends on it, which is why it is not a blocker — but the figure in Sync Hub is not the figure charged.
 
 **Where:** `src/pages/join/JoinWizard.tsx:133-155`; `src/lib/syncHub.ts:13-21, 36-38, 99`.
 
@@ -490,6 +572,8 @@ accept the number as indicative and label it as such wherever it is displayed.
 
 ### F19 — CORS admits any `*.vercel.app` origin · **MEDIUM (security)**
 
+**Status:** **OPEN.** The `^https://[\w-]+\.vercel\.app$` pattern is still in `supabase/functions/_shared/cors.ts`.
+
 **Where:** `supabase/functions/_shared/cors.ts:9-12`.
 
 ```ts
@@ -507,6 +591,8 @@ not the whole namespace.
 ---
 
 ### F20 — "staff aware a sale happened" depends on four production settings, and fails silently · **MEDIUM**
+
+**Status:** **PARTIALLY FIXED · PR #253 (held).** The FAILURE cases now raise targeted admin notifications in `notification_log` — amount mismatch, a subscription that did not activate, a failed renewal, a cancellation — which need no production secret. The `sale.paid` success path still goes through `notify-admin` and still depends on those four settings.
 
 **Where:** `supabase/functions/_shared/post-payment.ts:217-248`; `supabase/functions/notify-admin/index.ts:227-253, 278-280, 341-352, 387`.
 
@@ -529,6 +615,8 @@ be visible somewhere other than function logs.
 
 ### F21 — `settings_mollie_webhook_secret` is read by no code, while a migration says payments cannot be verified without it · **LOW**
 
+**Status:** **OPEN.** Part of the Mollie pass.
+
 **Where:** `supabase/migrations/20260902160000_payment_gateway_mollie.sql:67-69` and its `RAISE NOTICE`; no reader anywhere in `supabase/functions/`.
 
 **What happens.** The migration warns: *"settings_mollie_webhook_secret is empty. Payments would
@@ -545,6 +633,8 @@ a non-existent control costs attention the next real warning needs.
 
 ### F22 — anonymous clients may INSERT into `registration_drafts` directly · **LOW**
 
+**Status:** **FIXED · on main** (`20260228100000_fix_permissive_rls_policies.sql`).
+
 **Where:** `supabase/migrations/20260121182221_...sql:29-33`; edge function at `supabase/functions/save-registration-draft/index.ts:53-56`.
 
 **What happens.** `CREATE POLICY "Anyone can insert drafts" ... FOR INSERT WITH CHECK (true)` —
@@ -559,6 +649,8 @@ service role.
 ---
 
 ### F23 — `ai_agents` is readable by anonymous visitors · **LOW**
+
+**Status:** **FIXED · on main** (`20260203185605`, which drops the "Public can view enabled agents" policy).
 
 **Where:** `supabase/migrations/20260203185605_...sql:7-10`.
 

@@ -260,3 +260,119 @@ END $$;
 
 ROLLBACK;
 
+-- ============================================================================
+-- ── 3. ISABELLA'S HEALTH PILL READS SOMETHING THE CHAT PATH ACTUALLY WRITES ──
+--
+-- Lee, 9 Sep: the pill said "No run has ever completed" while Isabella was
+-- answering questions on the public site. It was telling the truth about
+-- `ai_runs` — and nothing on the chat path was writing a row.
+--
+-- WHAT WAS ACTUALLY WRONG. `ai-run/index.ts` has three `ai_runs` writes, and all
+-- three are in the AGENT/EVENT branch: they carry `agent.id` and
+-- `trigger_event_id` and sit past line 1400. The CHAT branch returns long before
+-- reaching them — at the streaming Response, or at either non-streaming return.
+-- So the table recorded scheduled agent runs only, and chat, which is the surface
+-- the public touches, recorded nothing at all in either mode.
+--
+-- The fix is a writer, not a different table. The card was already reading the
+-- one table in the schema that distinguishes "she ran and it worked" from "she
+-- ran and it broke"; `conversation_messages` cannot make that distinction,
+-- because the client saves the assistant turn whether the answer was real or the
+-- fallback string, and `ai_events` is the inbox for events that may never run.
+--
+-- These assertions pin the two halves that PostgreSQL can settle: that the row
+-- shape `recordChatRun` inserts is accepted, and that the pill's own query finds
+-- it. The verdict itself is a pure function and is asserted in
+-- src/test/isabellaHealthCard.test.tsx.
+-- ============================================================================
+\echo
+\echo '── wiring contract: a chat turn records a run the pill can see ──'
+
+BEGIN;
+
+INSERT INTO public.ai_agents (id, agent_key, name, enabled)
+VALUES ('dddd1111-1111-1111-1111-111111111111', 'customer_service_expert', 'Isabella', true)
+ON CONFLICT (agent_key) DO UPDATE SET enabled = true;
+
+DO $$
+DECLARE
+  agent uuid;
+  completed_at timestamptz;
+  n_visible int;
+  n_failed int;
+BEGIN
+  SELECT id INTO agent FROM public.ai_agents WHERE agent_key = 'customer_service_expert';
+
+  -- Exactly the shape src/../ai-run/index.ts recordChatRun() inserts: agent id,
+  -- NULL trigger event, the chat marker in input_context, no message content.
+  INSERT INTO public.ai_runs (agent_id, trigger_event_id, input_context, status, duration_ms, tokens_used, error_message)
+  VALUES (agent, NULL, '{"source":"chat_widget","streamed":true}'::jsonb, 'completed', 812, 344, NULL);
+
+  -- THE PILL'S QUERY, verbatim in shape: the newest completed run.
+  SELECT created_at INTO completed_at
+  FROM public.ai_runs WHERE status = 'completed'
+  ORDER BY created_at DESC LIMIT 1;
+
+  IF completed_at IS NULL THEN
+    RAISE EXCEPTION 'a completed chat run is invisible to the pill query — this is the reported defect';
+  END IF;
+
+  SELECT count(*) INTO n_visible
+  FROM public.ai_runs
+  WHERE status = 'completed' AND input_context->>'source' = 'chat_widget';
+  IF n_visible <> 1 THEN
+    RAISE EXCEPTION 'expected 1 completed chat run, found %', n_visible;
+  END IF;
+
+  -- The pill is GREEN only if the completed run is recent AND no failures are in
+  -- the window, so the failure half of the query has to be right too.
+  SELECT count(*) INTO n_failed
+  FROM public.ai_runs
+  WHERE status = 'failed' AND created_at >= now() - interval '60 minutes';
+  IF n_failed <> 0 THEN
+    RAISE EXCEPTION 'a fresh completed run should leave 0 failures in the window, found %', n_failed;
+  END IF;
+
+  RAISE NOTICE 'wiring contract OK — a chat turn is recorded as completed and the pill query finds it';
+END $$;
+
+-- The failure half: a streamed chat turn that broke must land as `failed` WITH
+-- the provider's text, because that text is what the popover shows and what told
+-- us the balance was zero on 8 Sep.
+DO $$
+DECLARE
+  agent uuid;
+  msg text;
+BEGIN
+  SELECT id INTO agent FROM public.ai_agents WHERE agent_key = 'customer_service_expert';
+  INSERT INTO public.ai_runs (agent_id, trigger_event_id, input_context, status, duration_ms, tokens_used, error_message)
+  VALUES (agent, NULL, '{"source":"chat_widget","streamed":true}'::jsonb, 'failed', 120, NULL,
+          'Anthropic API error: 400 Your credit balance is too low to access the Anthropic API.');
+
+  SELECT error_message INTO msg
+  FROM public.ai_runs
+  WHERE status = 'failed' AND created_at >= now() - interval '60 minutes'
+  ORDER BY created_at DESC LIMIT 1;
+
+  IF msg IS NULL OR msg NOT LIKE '%credit balance%' THEN
+    RAISE EXCEPTION 'a failed chat run lost the provider error the popover exists to show: %', COALESCE(msg, '<null>');
+  END IF;
+  RAISE NOTICE 'wiring contract OK — a failed chat turn keeps the provider error: %', left(msg, 48);
+END $$;
+
+-- A chat run must NOT need an ai_events row. `trigger_event_id` is nullable and
+-- stays null: an event-driven run and a chat turn are different things, and
+-- requiring an inbox row would have been the reason to write to the wrong table.
+DO $$
+DECLARE n int;
+BEGIN
+  SELECT count(*) INTO n FROM public.ai_runs
+  WHERE input_context->>'source' = 'chat_widget' AND trigger_event_id IS NOT NULL;
+  IF n <> 0 THEN
+    RAISE EXCEPTION '% chat run(s) carry a trigger_event_id — chat is not an event-driven run', n;
+  END IF;
+  RAISE NOTICE 'wiring contract OK — chat runs carry no trigger event';
+END $$;
+
+ROLLBACK;
+

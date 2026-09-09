@@ -5665,7 +5665,8 @@
         "intermittent": "Sommige uitvoeringen mislukken, andere worden voltooid.",
         "notToday": "De laatste geslaagde uitvoering was voor vandaag.",
         "healthy": "Uitvoeringen worden voltooid en er is er in het laatste uur geen mislukt."
-      }
+      },
+      "pillLabel": "Status van Isabella — details openen"
     },
     "advancedConfig": {
       "title": "Advanced Configuration",
@@ -6194,6 +6195,8 @@
     "loading": "MedConneqt laden…",
     "blockedTitle": "MedConneqt kan niet in het portaal worden weergegeven",
     "blockedBody": "MedConneqt staat niet toe dat het in een andere site wordt ingesloten. Open het in een nieuw tabblad — daar werkt alles gewoon.",
+    "blockedHeaderNote": "MedConneqt zou deze header moeten meesturen om de ingebedde weergave hier te laten werken:",
+    "blockedHeaderXfo": "Ze moeten ook stoppen met het meesturen van X-Frame-Options op deze pagina — die kent geen toegestane-lijst, dus kan niet tot ons worden beperkt.",
     "retry": "Opnieuw proberen",
     "unreachableTitle": "MedConneqt reageert niet",
     "unreachableBody": "We konden alarm.medconneqt.nl niet bereiken. Mogelijk is de dienst offline of blokkeert uw verbinding deze. Probeer het opnieuw of open het in een nieuw tabblad om te controleren."
@@ -6287,5 +6290,18 @@
       "none": "We hebben nog niemand die we voor u kunnen waarschuwen.",
       "unknown": "We konden uw contactpersonen voor noodgevallen nu niet controleren."
     }
+  },
+  "salesPill": {
+    "aiHot": "AI-aandachtspunten",
+    "failed": "Verkoopstatistieken niet beschikbaar",
+    "followups": "Openstaande opvolgingen",
+    "heading": "Verkoop",
+    "label": "Verkoop van vandaag — details openen",
+    "last60": "Laatste 60 min",
+    "newSubs": "Nieuwe abonnementen",
+    "orders": "{{count}} orders",
+    "paidToday": "Vandaag betaald",
+    "partnerSignups": "Partneraanmeldingen",
+    "today": "Verkoop vandaag"
   }
 }

@@ -3899,9 +3899,49 @@ BEGIN
     format('%s', stats));
 
   PERFORM pg_temp.check(
-    'the money figures are numbers, not nulls, with no payments at all today',
+    'the money figures are numbers, not nulls',
     (stats->>'paid_amount_today')::numeric >= 0
     AND (stats->>'paid_amount_60min')::numeric >= 0);
+END $$;
+
+-- ── the COALESCE on SUM, proven rather than asserted ──────────────────────
+--
+-- `SUM(amount)` over ZERO matching rows returns NULL, not 0, and json_build_object renders that
+-- as `null` — a blank tile where the card should read €0.00. Proving it needs a window with no
+-- rows in it, so the completed payments are moved three hours back, the function is called, and
+-- they are moved straight back. Self-contained: every assertion above has already run, and the
+-- shift is undone in the same block.
+--
+-- The `:= 0` initialisers on the DECLARE list are belt to this braces and are NOT proven here:
+-- every SELECT in the function always assigns, so the initialiser only matters if a future edit
+-- adds a branch that skips one. Said plainly rather than counted as tested.
+DO $$
+DECLARE stats json; moved int;
+BEGIN
+  UPDATE public.payments SET paid_at = paid_at - INTERVAL '3 hours'
+   WHERE status = 'completed' AND paid_at >= NOW() - INTERVAL '60 minutes';
+  GET DIAGNOSTICS moved = ROW_COUNT;
+
+  stats := public.get_sales_command_stats();
+
+  PERFORM pg_temp.check(
+    'with NO payment in the last 60 minutes, the amount is 0 — not null',
+    stats->>'paid_amount_60min' IS NOT NULL
+    AND (stats->>'paid_amount_60min')::numeric = 0,
+    format('got %s; SUM over no rows is NULL without the COALESCE', stats->'paid_amount_60min'));
+
+  PERFORM pg_temp.check(
+    'and the 60-minute COUNT is 0 too',
+    (stats->>'paid_sales_60min')::int = 0);
+
+  UPDATE public.payments SET paid_at = paid_at + INTERVAL '3 hours'
+   WHERE status = 'completed' AND paid_at >= NOW() - INTERVAL '4 hours'
+     AND paid_at < NOW() - INTERVAL '60 minutes';
+
+  PERFORM pg_temp.check(
+    'CONTROL: the fixture payments were moved and put back',
+    moved > 0,
+    'if nothing moved, the assertion above proved nothing — there was never a row in the window');
 END $$;
 
 -- A resolved follow-up must not be counted, and the count must MOVE when the data moves —

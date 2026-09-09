@@ -25,10 +25,15 @@
 -- would have loaded, the follow-up count would have silently omitted every sales ticket forever,
 -- and nobody would have known the clause did nothing.
 --
--- NULL-SAFE COUNTS. `COUNT(*)` cannot return NULL, but `SELECT … INTO` leaves a variable
--- untouched when a query is skipped, and json_build_object of a NULL renders `null` on the card
--- rather than 0. Every variable is initialised to 0 at declaration and every aggregate is
--- wrapped, so the card can show a real zero instead of a blank.
+-- NULL-SAFE COUNTS, and which half of that is actually proven. `SUM(amount)` over ZERO matching
+-- rows returns NULL, and json_build_object renders that as `null` — a blank tile where the card
+-- should read €0.00. That is the real one, and scripts/rls/isolation.sql proves it by emptying
+-- the 60-minute window and asserting the amount comes back 0.
+--
+-- The `:= 0` initialisers on the DECLARE list are belt to that braces: `COUNT(*)` cannot return
+-- NULL and every SELECT here always assigns, so they only matter if a future edit adds a branch
+-- that skips one. Kept, and not counted as tested — a mutation that removes one survives the
+-- suite, correctly.
 --
 -- ROLLBACK: re-create the function from 20260123171850 verbatim. That restores a function that
 -- raises 22P02 on every call, so the only reason to do it is to reproduce the defect.

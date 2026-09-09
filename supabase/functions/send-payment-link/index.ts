@@ -4,7 +4,7 @@ import Stripe from "https://esm.sh/stripe@14.21.0";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { sendEmail } from "../_shared/email.ts";
-import { buildPricingConfig } from "../_shared/pricing-calc.ts";
+import { loadPricingInputs, PricingNotConfiguredError } from "../_shared/checkout-pricing.ts";
 import { sendPaymentLinkSchema, validateRequest } from "../_shared/validation.ts";
 import {
   PriceResolutionError,
@@ -42,9 +42,11 @@ import {
  * a figure no screen is showing), a member who already has a live subscription (that is a plan
  * change, not a second signup), and any caller who is not active staff.
  *
- * `create-checkout` and `stripe-webhook` are NOT touched. The webhook already handles a
- * subscription-mode `checkout.session.completed` and reads its ids from metadata, which is what
- * makes that possible.
+ * SHARED WITH `create-checkout` as of item 5. This function was written first and deliberately
+ * left the join path alone; `create-checkout` now loads its pricing through the same
+ * `_shared/checkout-pricing.ts` and builds its lines through the same
+ * `_shared/checkout-lines.ts`, so there is one price-id implementation on the platform rather
+ * than a staff one and a customer one that drift apart.
  */
 
 type Json = Record<string, unknown>;
@@ -107,47 +109,33 @@ serve(async (req) => {
     if (memberError || !member) return json(404, { error: "Member not found" });
 
     // ── the money, from our tables only ──────────────────────────────────────
-    const [{ data: plans }, { data: settings }, { data: prices }] = await Promise.all([
-      admin.from("pricing_plans").select("plan_key, monthly_net, annual_months, subscription_tax_rate"),
-      admin.from("pricing_settings").select("key, value"),
-      admin
-        .from("stripe_prices")
-        .select("price_key, stripe_product_id, stripe_price_id, amount_cents, recurring_interval")
-        .eq("is_current", true),
-    ]);
-
-    let config;
+    // The fetch itself lives in `_shared/checkout-pricing.ts` because `create-checkout` now
+    // needs exactly the same rows read in exactly the same way — one implementation, not two.
+    let pricing;
     try {
-      config = buildPricingConfig(plans ?? [], (settings ?? []) as Array<{ key: string; value: number }>);
+      pricing = await loadPricingInputs(admin);
     } catch (e) {
-      // buildPricingConfig throws rather than falling back to literals, deliberately: a charge
-      // computed from baked-in numbers is a charge nobody can reconcile.
-      return json(503, {
-        error: e instanceof Error ? e.message : "Pricing is not configured",
-        code: "PRICING_NOT_CONFIGURED",
-      });
+      // It throws rather than falling back to literals, deliberately: a charge computed from
+      // baked-in numbers is a charge nobody can reconcile.
+      if (e instanceof PricingNotConfiguredError) {
+        return json(503, { error: e.message, code: e.code });
+      }
+      throw e;
     }
-
-    // The registration fee's two settings are `system_settings` rows, not pricing_settings, and
-    // the canonical keys are the ones the money path reads (P5, 20260908120000).
-    const { data: feeSettings } = await admin
-      .from("system_settings")
-      .select("key, value")
-      .in("key", ["registration_fee_enabled", "registration_fee_discount", "notify_channel_sms"]);
-    const setting = (key: string) => feeSettings?.find((r) => r.key === key)?.value ?? null;
+    const setting = pricing.setting;
 
     const selection = {
       membershipType: body.membershipType,
       billingFrequency: body.billingFrequency,
       pendantCount: body.pendantCount,
       includeShipping: body.pendantCount > 0,
-      registrationFeeEnabled: setting("registration_fee_enabled") !== "false",
-      registrationFeeDiscount: Number(setting("registration_fee_discount") ?? 0) || 0,
+      registrationFeeEnabled: pricing.registrationFeeEnabled,
+      registrationFeeDiscount: pricing.registrationFeeDiscount,
     };
 
     let resolved;
     try {
-      resolved = resolveCheckoutLines(selection, prices ?? [], config);
+      resolved = resolveCheckoutLines(selection, pricing.prices, pricing.config);
     } catch (e) {
       if (e instanceof PriceResolutionError) {
         return json(409, { error: e.message, code: e.code, priceKeys: e.priceKeys });

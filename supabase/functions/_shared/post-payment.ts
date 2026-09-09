@@ -1,6 +1,16 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { sendEmail } from "./email.ts";
 import { buildMemberWelcomeEmail, memberWelcomeSubject } from "./welcome-email.ts";
+import { ensureMemberAuthUser } from "./member-auth.ts";
+import { ensureSecondStageToken } from "./second-stage.ts";
+
+/**
+ * The site the member is sent to. One place, because a wrong host here is a sign-in link that
+ * lands nowhere and a member who cannot get in.
+ */
+function memberSiteUrl(): string {
+  return (Deno.env.get("PUBLIC_SITE_URL") || "https://icealarm.es").replace(/\/+$/, "");
+}
 
 interface PostPaymentParams {
   orderId: string;
@@ -36,11 +46,29 @@ export async function handleSuccessfulPayment(
     gateway,
   } = params;
 
-  // 1. Update order status to confirmed
-  await supabase
+  // 1. Update order status to confirmed, and move it out of `awaiting_payment`
+  //
+  // `fulfilment_state` is the PHYSICAL sequence (20260908120400) and it started at
+  // `awaiting_payment`, because an order exists from the moment the wizard is submitted —
+  // before anybody has paid. Nothing was moving it, so every paid order still read
+  // "awaiting payment" on the fulfilment board and no pendant was ever picked from it.
+  //
+  // Moving INTO `paid` is the one forward step the trigger treats as privileged, because it is
+  // the one that asserts something about MONEY, and it demands a NEW reason distinct from the
+  // old one. The service role satisfies `may_reverse_fulfilment()` (no JWT); the reason names
+  // the gateway payment so the claim is auditable back to Stripe or Mollie.
+  const { error: orderError } = await supabase
     .from("orders")
-    .update({ status: "confirmed" })
+    .update({
+      status: "confirmed",
+      fulfilment_state: "paid",
+      fulfilment_state_reason: `${gateway} payment ${gatewayPaymentId} confirmed by webhook`,
+    })
     .eq("id", orderId);
+  if (orderError) {
+    // Checked, because a silent failure here is an order that is paid and looks unpaid.
+    console.error("Error confirming order:", orderError);
+  }
 
   // 2. Update payment status to completed
   const paymentUpdate: Record<string, unknown> = {
@@ -78,7 +106,67 @@ export async function handleSuccessfulPayment(
     }
   }
 
-  // 5. Auto-allocate EV-07B devices from stock
+  // 4b. The second stage: an account they can sign into, and the link that makes them reachable
+  //
+  // ORDER MATTERS AND THIS IS WHY IT IS HERE. Activation is above, because a member who has
+  // paid must be activated whatever else fails. This comes next — before device allocation and
+  // long before the emails — because the second-stage token is the SAFETY-relevant one: the
+  // wizard no longer collects emergency contacts, so until that link exists and is used, an
+  // operator answering this person's SOS has nobody to ring (REVIEW_JOIN_PATH.md F6).
+  //
+  // Neither helper throws. A login that could not be created and a token that failed to mint
+  // are both reported and logged; the paid-but-not-ready queue is what catches the member.
+  const onboarded: Array<{ memberId: string; userId: string | null; token: string | null }> = [];
+  let primaryActionLink: string | null = null;
+
+  for (const id of [memberId, ...(partnerMemberId ? [partnerMemberId] : [])]) {
+    const { data: person } = await supabase
+      .from("members")
+      .select("id, first_name, last_name, email, preferred_language")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (!person?.email) {
+      console.error(`Member ${id} has no email — no login and no second-stage link can be made.`);
+      onboarded.push({ memberId: id, userId: null, token: null });
+      continue;
+    }
+
+    const auth = await ensureMemberAuthUser(supabase, {
+      memberId: id,
+      email: person.email,
+      firstName: person.first_name,
+      lastName: person.last_name,
+      language: person.preferred_language,
+      redirectTo: `${memberSiteUrl()}/dashboard`,
+    });
+
+    // One token per member, never one per household: a couple is two data subjects, and a
+    // token that could write two people's medical records makes "who supplied this"
+    // unanswerable from the data (ONBOARDING_SPLIT.md option B).
+    const token = await ensureSecondStageToken(supabase, id);
+
+    if (id === memberId) primaryActionLink = auth.actionLink;
+    onboarded.push({ memberId: id, userId: auth.userId, token: token?.token ?? null });
+  }
+
+  console.log(
+    `Onboarded ${onboarded.length} member(s): ` +
+      onboarded
+        .map((o) => `${o.memberId} login=${o.userId ? "yes" : "NO"} link=${o.token ? "yes" : "NO"}`)
+        .join(", "),
+  );
+
+  // 5. Auto-allocate EV-07B devices from stock, then move fulfilment_state paid → allocated
+  //
+  // The move is CONDITIONAL on the allocation having actually happened, for every pendant the
+  // order is for. `allocated` on the fulfilment board means "a device is set aside for this
+  // person", and claiming it when stock ran out would hide the one case that needs a human.
+  // An order with no pendant stays at `paid`: there is no device to allocate, and there is
+  // nothing to dispatch, so pretending otherwise would put it in a queue it does not belong in.
+  let pendantsNeeded = 0;
+  let pendantsAllocated = 0;
+
   try {
     const { data: pendantItems, error: itemsError } = await supabase
       .from("order_items")
@@ -92,12 +180,17 @@ export async function handleSuccessfulPayment(
       console.log(`Found ${pendantItems.length} pendant order items to allocate`);
 
       for (const item of pendantItems) {
+        const quantityNeeded = item.quantity || 1;
+        pendantsNeeded += quantityNeeded;
+
         if (item.device_id) {
           console.log(`Order item ${item.id} already has device ${item.device_id} allocated`);
+          // A re-delivered webhook must not re-allocate, and must not read as short of stock
+          // either: this item is already served.
+          pendantsAllocated += quantityNeeded;
           continue;
         }
 
-        const quantityNeeded = item.quantity || 1;
         for (let i = 0; i < quantityNeeded; i++) {
           const { data: availableDevice, error: pickError } = await supabase
             .from("devices")
@@ -134,17 +227,45 @@ export async function handleSuccessfulPayment(
             continue;
           }
 
+          // NOTE for a couple (quantity 2): `order_items.device_id` holds ONE device id, so the
+          // second write overwrites the first and the item points at only one of the two
+          // devices. The link is not lost — both devices carry `reserved_order_id` — but the
+          // column cannot express two. Fixing it properly is a schema decision (one row per
+          // pendant, or a join table) and is recorded in REVIEW_JOIN_PATH.md for the held
+          // schema PR rather than papered over here.
           await supabase
             .from("order_items")
             .update({ device_id: availableDevice.id })
             .eq("id", item.id);
 
+          pendantsAllocated += 1;
           console.log(`Allocated device ${availableDevice.id} to order item ${item.id}`);
         }
       }
     }
   } catch (allocError) {
     console.error("Device allocation error:", allocError);
+  }
+
+  // 5b. paid → allocated, only if every pendant on the order actually has a device
+  if (pendantsNeeded > 0 && pendantsAllocated >= pendantsNeeded) {
+    // A single forward step, so the trigger needs no reason for it — unlike the move into
+    // `paid` above, this claim is about a device somebody can go and look at.
+    const { error: allocStateError } = await supabase
+      .from("orders")
+      .update({ fulfilment_state: "allocated" })
+      .eq("id", orderId)
+      .eq("fulfilment_state", "paid");
+    if (allocStateError) {
+      console.error("Error moving fulfilment_state to allocated:", allocStateError);
+    } else {
+      console.log(`Order ${orderId} fulfilment_state: paid → allocated`);
+    }
+  } else if (pendantsNeeded > 0) {
+    console.warn(
+      `Order ${orderId} allocated ${pendantsAllocated}/${pendantsNeeded} pendants — ` +
+        "fulfilment_state stays at `paid` so the shortfall stays visible.",
+    );
   }
 
   // 6-9. CRM event, AI event, admin notification, welcome email
@@ -252,7 +373,11 @@ export async function handleSuccessfulPayment(
       try {
         const orderNum = orderData?.order_number || orderId;
         const lang = memberData?.preferred_language || "es";
-        const dashboardUrl = "https://icealarm.es/dashboard";
+        // THE CTA IS THE SIGN-IN LINK. It used to be a bare `/dashboard` URL, which asked
+        // somebody who had never had an account — and, until 4b above, could not have had one
+        // — to log in. One click now signs them in. If the link could not be minted the button
+        // still has to go somewhere, so it falls back to the login page rather than nowhere.
+        const dashboardUrl = primaryActionLink ?? `${memberSiteUrl()}/login`;
 
         const emailHtml = buildMemberWelcomeEmail(
           memberData.first_name,

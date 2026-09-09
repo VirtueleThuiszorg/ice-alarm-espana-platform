@@ -49,6 +49,15 @@ export function notificationLink(
     // on /unauthorized. Admins reach the call-centre route too.
     case "lead":
       return "/call-centre/leads";
+    // Money problems from `stripe-webhook`: a payment that did not match the order, a
+    // subscription that failed to activate, a failed renewal. Both routes are inside
+    // `/admin`, which is behind requireAdmin — safe here ONLY because these notifications are
+    // addressed to individual admins rather than broadcast to all staff
+    // (`_shared/staff-bell.ts` explains why that matters).
+    case "order":
+      return "/admin/orders";
+    case "subscription":
+      return "/admin/subscriptions";
   }
 
   switch (type) {

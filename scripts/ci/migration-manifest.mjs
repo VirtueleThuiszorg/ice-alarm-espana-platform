@@ -308,3 +308,118 @@ export function summaryMarkdown(result, { runUrl } = {}) {
 
   return lines.join("\n");
 }
+
+/**
+ * IS THE MANIFEST TELLING THE TRUTH? Asked of the database, not of the repo.
+ *
+ * The file-based drift gate compares the repo against the manifest, which catches a migration
+ * that was merged and never applied. It cannot catch the manifest being WRONG, because it has
+ * nothing to check it against — and on 2026-09-09 the manifest was wrong: production had
+ * `20260909100000`, `20260909110000` and `20260909121500`, applied by hand, and the manifest
+ * named none of them.
+ *
+ * That gap was invisible for as long as nobody looked, and then it surfaced in the worst possible
+ * way: applying `...121500` without `...120000` left an unapplied migration behind the newest
+ * applied one, and `supabase db push` refuses that state outright. The first automated migrate run
+ * failed on it. A three-line bookkeeping error stopped the pipeline, and the only reason anyone
+ * found out is that the run printed the remote list.
+ *
+ * So this asks production what it has and compares BOTH directions, because they fail differently:
+ *
+ *   UNRECORDED  production has it, the manifest does not name it. Understates reality. This is
+ *               what happened. Harmless-looking, and it silently breaks `db push` ordering.
+ *   PHANTOM     the manifest names it, production does not have it. OVERSTATES reality, which is
+ *               the dangerous direction — every check downstream reads this file and would
+ *               conclude production is up to date while it is behind.
+ *
+ * Neither is tolerated. `pending` is returned for the summary but is NOT a failure here: a
+ * migration merged and not yet applied is the file-based gate's business, and failing on it twice
+ * would just mean two red Xs for one fact.
+ */
+export function compareManifestToRemote({ remoteStdout, repoFiles, manifestText }) {
+  const remote = new Set(parseMigrationList(remoteStdout).remote);
+  const recorded = manifestEntries(manifestText);
+  const recordedSet = new Set(recorded);
+
+  const byVersion = new Map();
+  for (const file of repoFiles) {
+    const v = versionOf(file);
+    if (v) byVersion.set(v, file);
+  }
+
+  const pendingAll = repoFiles
+    .filter((f) => {
+      const v = versionOf(f);
+      return v !== null && !remote.has(v);
+    })
+    .sort();
+
+  // AN EMPTY REMOTE LIST BESIDE A NON-EMPTY MANIFEST IS NOT A FINDING, IT IS A BROKEN READ — and
+  // it returns EMPTY lists, not the findings it would otherwise compute. Against a 183-migration
+  // database an unparseable `migration list` would otherwise call every recorded entry a phantom
+  // and demand the whole manifest be deleted. Reporting nothing but the reason is the only safe
+  // answer, because `phantom` is a list somebody (or something) might act on.
+  if (remote.size === 0 && recordedSet.size > 0) {
+    return {
+      ok: false,
+      problems: [
+        `production reported NO applied migrations while the manifest names ${recorded.length}. ` +
+          `That is a failed or unparseable \`supabase migration list\`, not an empty database — ` +
+          `refusing to draw any conclusion from it.`,
+      ],
+      unrecorded: [],
+      phantom: [],
+      unknownRemote: [],
+      pending: pendingAll,
+      remoteCount: 0,
+      recordedCount: recorded.length,
+    };
+  }
+
+  const unrecorded = [];
+  const unknownRemote = [];
+  for (const version of [...remote].sort()) {
+    const file = byVersion.get(version);
+    if (!file) {
+      unknownRemote.push(version);
+      continue;
+    }
+    if (!recordedSet.has(file)) unrecorded.push(file);
+  }
+
+  const phantom = recorded.filter((file) => {
+    const v = versionOf(file);
+    // A manifest line that is not version-first cannot be checked against the remote list; the
+    // repo-level naming guard is what polices that, so it is not called a phantom here.
+    return v !== null && !remote.has(v);
+  });
+
+  const problems = [];
+  {
+    if (unrecorded.length > 0) {
+      problems.push(
+        `production has ${unrecorded.length} migration(s) the manifest does not name: ` +
+          `${unrecorded.join(", ")}. Append them — an unrecorded applied migration is what left ` +
+          `production's history out of order and made \`db push\` refuse.`,
+      );
+    }
+    if (phantom.length > 0) {
+      problems.push(
+        `the manifest names ${phantom.length} migration(s) production does NOT have: ` +
+          `${phantom.join(", ")}. This is the dangerous direction: every check downstream trusts ` +
+          `this file and would read production as up to date while it is behind.`,
+      );
+    }
+  }
+
+  return {
+    ok: problems.length === 0,
+    problems,
+    unrecorded,
+    phantom,
+    unknownRemote,
+    pending: pendingAll,
+    remoteCount: remote.size,
+    recordedCount: recorded.length,
+  };
+}

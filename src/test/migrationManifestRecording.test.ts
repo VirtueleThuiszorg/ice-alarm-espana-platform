@@ -23,6 +23,7 @@
 
 import { describe, it, expect } from "vitest";
 import {
+  compareManifestToRemote,
   parseMigrationList,
   versionOf,
   diffRemote,
@@ -410,5 +411,83 @@ describe("the job summary a human reads to decide where production is", () => {
 
   it("includes the remote list, so the summary is checkable against the database", () => {
     expect(summaryMarkdown(applied)).toContain(A);
+  });
+});
+
+describe("compareManifestToRemote — is the manifest telling the truth?", () => {
+  // The check that would have caught the 2026-09-09 state before it broke anything. The
+  // file-based drift gate compares the repo to the manifest and therefore cannot tell whether the
+  // manifest is RIGHT; production had three migrations it did not name, and the consequence was a
+  // `db push` that refused to run at all.
+  const run = (rows: Array<[string, string]>, manifest: string) =>
+    compareManifestToRemote({
+      remoteStdout: realJsonOutput(rows),
+      repoFiles: FILES,
+      manifestText: manifest,
+    });
+
+  it("passes when production and the manifest agree exactly", () => {
+    const r = run([[A, A], [B, ""], [C, ""]], `${FILES[0]}\n`);
+    expect(r.ok).toBe(true);
+    expect(r.unrecorded).toEqual([]);
+    expect(r.phantom).toEqual([]);
+    expect(r.pending).toEqual([FILES[1], FILES[2]]);
+  });
+
+  it("FAILS on an UNRECORDED migration — the exact 9 Sep state", () => {
+    // Production has A; the manifest is empty. This is what nothing was checking.
+    const r = run([[A, A], [B, ""], [C, ""]], "");
+    expect(r.ok).toBe(false);
+    expect(r.unrecorded).toEqual([FILES[0]]);
+    expect(r.problems.join(" ")).toContain(FILES[0]);
+    expect(r.problems.join(" ")).toMatch(/out of order/);
+  });
+
+  it("FAILS on a PHANTOM entry, and says why that direction is worse", () => {
+    // The manifest claims B is applied; production does not have it. Everything downstream reads
+    // this file, so it would conclude production is up to date while it is behind.
+    const r = run([[A, A], [B, ""], [C, ""]], `${FILES[0]}\n${FILES[1]}\n`);
+    expect(r.ok).toBe(false);
+    expect(r.phantom).toEqual([FILES[1]]);
+    expect(r.problems.join(" ")).toMatch(/dangerous direction/);
+  });
+
+  it("reports BOTH directions at once rather than stopping at the first", () => {
+    const r = run([[A, A], [B, ""], [C, ""]], `${FILES[1]}\n`);
+    expect(r.unrecorded).toEqual([FILES[0]]);
+    expect(r.phantom).toEqual([FILES[1]]);
+    expect(r.problems).toHaveLength(2);
+  });
+
+  it("does NOT fail on a migration that is merely pending — that is the other gate's job", () => {
+    // Failing here too would mean two red Xs for one fact, and this check would be red for days
+    // at a time for a reason it cannot do anything about.
+    const r = run([[A, A]], `${FILES[0]}\n`);
+    expect(r.ok).toBe(true);
+    expect(r.pending).toEqual([FILES[1], FILES[2]]);
+  });
+
+  it("refuses to conclude anything when production reports NOTHING", () => {
+    // An unparseable or failed `migration list` reads as "production is empty", which against a
+    // 183-migration database would call every recorded entry a phantom and demand they all be
+    // deleted — the manifest destroyed by a transient CLI error.
+    const r = compareManifestToRemote({
+      remoteStdout: "Connecting to remote database...\nsomething unreadable",
+      repoFiles: FILES,
+      manifestText: `${FILES[0]}\n`,
+    });
+    expect(r.ok).toBe(false);
+    expect(r.phantom).toEqual([]);
+    expect(r.problems.join(" ")).toMatch(/refusing to draw any conclusion/);
+  });
+
+  it("names a production version with no file here, without calling it unrecorded", () => {
+    const r = compareManifestToRemote({
+      remoteStdout: realJsonOutput([["", "20260909999999"], [A, A]]),
+      repoFiles: FILES,
+      manifestText: `${FILES[0]}\n`,
+    });
+    expect(r.unknownRemote).toEqual(["20260909999999"]);
+    expect(r.unrecorded).toEqual([]);
   });
 });

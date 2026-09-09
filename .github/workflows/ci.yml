@@ -82,6 +82,56 @@ jobs:
           origin/${{ github.base_ref || 'main' }}
           ${{ github.event_name == 'pull_request' && '--pr' || '--main' }}
 
+  # ASKS PRODUCTION WHETHER THE MANIFEST IS TRUE. The gate above compares the repo against
+  # APPLIED_TO_PROD.txt and cannot tell whether that file is right, because it has nothing to
+  # check it against. On 2026-09-09 it was wrong: production had `20260909100000`,
+  # `20260909110000` and `20260909121500` applied by hand and the manifest named none of them.
+  # That went unnoticed until the first automated migrate run failed — `supabase db push` refuses
+  # to run when an unapplied migration sits behind the newest applied one, which is exactly the
+  # state those unrecorded hand-pushes created.
+  #
+  # MAIN ONLY, and that is not a compromise. A pull request has no database to ask: the secrets
+  # are not available to a fork, and the manifest on a branch is not what production is measured
+  # against anyway. So the file-based half runs everywhere and this half runs where the truth is
+  # knowable. Because it only runs where the credentials are supposed to exist, a missing secret
+  # is a real failure here and `require-secrets` treats it as one.
+  #
+  # It reads. It changes nothing.
+  migration-truth:
+    name: Manifest matches production
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Require truth-check secrets
+        run: >
+          node scripts/ci/require-secrets.mjs
+          SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF SUPABASE_DB_PASSWORD
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link to the production project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+
+      - name: Manifest matches production
+        run: node scripts/ci/check-manifest-truth.mjs
+
   # A message sent from the public Contact page landed in `leads` and told nobody, and nothing in
   # CI had an opinion about that. WIRING_REGISTER.md records, for every control on every page,
   # where it goes and who finds out; this regenerates it from the code and fails if the committed

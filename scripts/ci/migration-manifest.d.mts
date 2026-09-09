@@ -76,3 +76,25 @@ export function appendEntries(
 ): string;
 
 export function summaryMarkdown(result: RecordResult, options?: { runUrl?: string }): string;
+
+export interface TruthResult {
+  /** False when production and the manifest disagree in either direction. */
+  ok: boolean;
+  problems: string[];
+  /** Applied in production, absent from the manifest. Understates reality; breaks push ordering. */
+  unrecorded: string[];
+  /** Named by the manifest, absent from production. OVERSTATES reality — the dangerous one. */
+  phantom: string[];
+  /** Applied in production with no matching file in this repo. */
+  unknownRemote: string[];
+  /** In the repo, not in production. Reported, but not a failure of this check. */
+  pending: string[];
+  remoteCount: number;
+  recordedCount: number;
+}
+
+export function compareManifestToRemote(input: {
+  remoteStdout: string;
+  repoFiles: string[];
+  manifestText: string;
+}): TruthResult;

@@ -9,7 +9,7 @@
 // and two things went through the hole: an unparseable test file (#268) and the review fix for a
 // live auth stale-token hole (#273). Neither was subtle; nothing was looking.
 //
-// RULE 2 — A MISSING SECRET FAILS. `deploy-functions.yml` skipped its whole deploy and reported
+// RULE 2 — A MISSING SECRET FAILS. The old `deploy-functions.yml` skipped its whole deploy and reported
 // success when its credentials were absent, so "green" meant either "deployed" or "never tried".
 // A deploy workflow that cannot tell you which is not a deploy workflow.
 //
@@ -102,8 +102,35 @@ function soleJobWithStep(jobs: Map<string, string>, step: string): string {
   return owners[0];
 }
 
+/**
+ * Just ONE step's text, bounded at the next step.
+ *
+ * Slicing from a step name to the end of the job is the trap that let two mutations through here:
+ * removing `if: always()` from "Remote migration list AFTER" still passed, because the slice ran
+ * on into the recorder step below and found ITS `if: always()`. An assertion about a step has to
+ * stop at that step, or it is really an assertion about the rest of the file.
+ */
+function stepBody(jobBody: string, stepName: string): string {
+  const start = jobBody.indexOf(`- name: ${stepName}`);
+  expect(start, `no step named "${stepName}"`).toBeGreaterThanOrEqual(0);
+  const rest = jobBody.slice(start);
+  const next = rest.indexOf("\n      - name:");
+  return next === -1 ? rest : rest.slice(0, next);
+}
+
+/** YAML comments are not executed, so no assertion may be satisfied by one. */
+function stripComments(yaml: string): string {
+  return yaml
+    .split("\n")
+    .filter((l) => !/^\s*#/.test(l))
+    .join("\n");
+}
+
 const ci = readFileSync(join(WORKFLOW_DIR, "ci.yml"), "utf8");
 const ciJobs = jobsOf(ci);
+
+const migrate = readFileSync(join(WORKFLOW_DIR, "migrate.yml"), "utf8");
+const migrateJobs = jobsOf(migrate);
 
 describe("the splitter this file's assertions depend on", () => {
   // Written first and deliberately: every structural assertion below is only worth as much as
@@ -229,7 +256,9 @@ describe("RULE 2 — a missing secret fails the job, in every workflow", () => {
 
   it("finds the workflows to check, so this suite cannot pass by looking at nothing", () => {
     expect(workflows.length).toBeGreaterThanOrEqual(4);
-    expect(workflows.map((w) => w.file)).toContain("deploy-functions.yml");
+    // `deploy-functions.yml` was folded into migrate.yml as a dependent job, so that the schema a
+    // function reads is always applied first. See the ordering block below.
+    expect(workflows.map((w) => w.file)).toContain("migrate.yml");
   });
 
   it("no workflow declares a secret is optional by making steps conditional on it", () => {
@@ -283,27 +312,46 @@ describe("RULE 2 — a missing secret fails the job, in every workflow", () => {
     }
   });
 
-  it("deploy-functions guards BOTH its documented secrets, in one call", () => {
+  it("the migrate job guards ALL THREE of its secrets, in one call", () => {
     // Comments are stripped FIRST. The header explains the change and names the script, and the
     // first version of this assertion matched that prose instead of the `run:` line — passing on
     // the strength of a comment, which is the one thing a workflow does not execute.
-    const deploy = readFileSync(join(WORKFLOW_DIR, "deploy-functions.yml"), "utf8")
-      .split("\n")
-      .filter((l) => !/^\s*#/.test(l))
-      .join("\n");
-    const guard = /require-secrets\.mjs([^\n]*)/.exec(deploy);
-    expect(guard, "no require-secrets call in deploy-functions.yml").not.toBeNull();
+    const body = stripComments(migrateJobs.get("migrate")!);
+    const guard = /require-secrets\.mjs([\s\S]*?)\n\s*-/.exec(body);
+    expect(guard, "no require-secrets call in the migrate job").not.toBeNull();
+    for (const secret of [
+      "SUPABASE_ACCESS_TOKEN",
+      "SUPABASE_PROJECT_REF",
+      "SUPABASE_DB_PASSWORD",
+    ]) {
+      expect(guard![1], `migrate does not require ${secret}`).toContain(secret);
+    }
+  });
+
+  it("the deploy job guards the two secrets IT needs", () => {
+    const body = stripComments(migrateJobs.get("deploy")!);
+    const guard = /require-secrets\.mjs([^\n]*)/.exec(body);
+    expect(guard).not.toBeNull();
     expect(guard![1]).toContain("SUPABASE_ACCESS_TOKEN");
     expect(guard![1]).toContain("SUPABASE_PROJECT_REF");
   });
 
-  it("the guard runs BEFORE anything is installed or deployed", () => {
-    const deploy = readFileSync(join(WORKFLOW_DIR, "deploy-functions.yml"), "utf8");
-    const names = stepNames(jobsOf(deploy).get("deploy")!);
-    const guardAt = names.findIndex((n) => /require|secret/i.test(n));
-    const deployAt = names.findIndex((n) => /deploy all edge functions/i.test(n));
-    expect(guardAt).toBeGreaterThanOrEqual(0);
-    expect(deployAt).toBeGreaterThan(guardAt);
+  it("each guard runs BEFORE anything is installed or deployed", () => {
+    for (const job of ["migrate", "deploy"]) {
+      const names = stepNames(migrateJobs.get(job)!);
+      const guardAt = names.findIndex((n) => /require .*secrets/i.test(n));
+      expect(guardAt, `${job} has no secrets guard`).toBeGreaterThanOrEqual(0);
+      const actsAt = names.findIndex((n) => /apply migrations|deploy all edge functions/i.test(n));
+      expect(actsAt, `${job} never acts`).toBeGreaterThan(guardAt);
+    }
+  });
+
+  it("the DB PASSWORD is never a command-line argument, only env", () => {
+    // A password on a command line reaches the process list and any `set -x` log line. The CLI
+    // reads it from the environment, so `--password` is never needed.
+    const migrateRaw = stripComments(readFileSync(join(WORKFLOW_DIR, "migrate.yml"), "utf8"));
+    expect(migrateRaw).not.toMatch(/--password/);
+    expect(migrateRaw).not.toMatch(/echo[^\n]*SUPABASE_DB_PASSWORD/);
   });
 });
 
@@ -363,5 +411,166 @@ describe("require-secrets.mjs actually exits non-zero — driven, not read", () 
   it("never prints a secret's VALUE, only its name", () => {
     const r = run(["A_TOKEN", "B_REF"], { A_TOKEN: "super-secret-value" });
     expect(r.output).not.toContain("super-secret-value");
+  });
+});
+
+describe("RULE 3 — schema is applied BEFORE the functions that read it", () => {
+  // The #277 outage in one sentence: a function went live while the migration it depends on was
+  // unapplied, `notify-admin` answered 500, and all twelve of its events stopped — including the
+  // four that report the SOS machinery itself failing. Every caller swallows notification errors
+  // (correctly — a notification must never break an escalation), so the loss was silent.
+  //
+  // These assertions are about the DEPENDENCY, because that is the guarantee. A comment promising
+  // the order, or two workflows that merely tend to run in the right sequence, is not one.
+
+  const deployBody = () => stripComments(migrateJobs.get("deploy")!);
+
+  it("there is exactly ONE job that deploys functions, across every workflow", () => {
+    // The race this design exists to remove: with a separate deploy workflow triggered on `push`,
+    // a commit touching a migration AND a function starts the deploy immediately while also
+    // chaining it after the migration — so the function still goes live first, precisely on the
+    // pushes where the ordering matters most. `paths:` filters a workflow, not a job, and cannot
+    // express "functions but NOT migrations".
+    const deployers: string[] = [];
+    for (const file of workflowFiles) {
+      const text = stripComments(readFileSync(join(WORKFLOW_DIR, file), "utf8"));
+      for (const [id, body] of jobsOf(text)) {
+        if (/supabase functions deploy/.test(body)) deployers.push(`${file}:${id}`);
+      }
+    }
+    expect(deployers, `function deploys found in: ${deployers.join(", ")}`).toEqual([
+      "migrate.yml:deploy",
+    ]);
+  });
+
+  it("the deploy job DEPENDS on the migrate job", () => {
+    expect(migrateJobs.get("deploy")).toBeDefined();
+    expect(deployBody()).toMatch(/needs:\s*\[[^\]]*\bmigrate\b[^\]]*\]/);
+  });
+
+  it("deploy runs when migrate SUCCEEDED or was SKIPPED — and on nothing else", () => {
+    // `skipped` has to be allowed explicitly: on a functions-only push there is no migration to
+    // apply, `migrate` is skipped, and a skipped dependency would otherwise skip the deploy too —
+    // which would mean functions never deploy unless a migration happens to change.
+    const body = deployBody();
+    expect(body).toContain("needs.migrate.result == 'success'");
+    expect(body).toContain("needs.migrate.result == 'skipped'");
+  });
+
+  it("deploy does NOT run when migrate failed or was cancelled", () => {
+    // The negative form of the same property, asserted directly: a `result != 'failure'` style
+    // guard would silently allow `cancelled`, and a cancelled migration leaves production in a
+    // state nobody recorded.
+    const body = deployBody();
+    expect(body).not.toMatch(/needs\.migrate\.result\s*!=/);
+    for (const bad of ["'failure'", "'cancelled'"]) {
+      expect(
+        body.includes(`needs.migrate.result == ${bad}`),
+        `deploy permits migrate.result == ${bad}`,
+      ).toBe(false);
+    }
+  });
+
+  it("migrate runs only when a migration actually changed, so a functions-only push is not delayed", () => {
+    const body = stripComments(migrateJobs.get("migrate")!);
+    expect(body).toContain("needs.changes.outputs.migrations == 'true'");
+  });
+
+  it("the changed-path detector fetches full history, or it cannot diff at all", () => {
+    expect(stripComments(migrateJobs.get("changes")!)).toMatch(/fetch-depth:\s*0/);
+  });
+});
+
+describe("RULE 4 — the migrate job cannot report green without having applied the schema", () => {
+  const migrateBody = () => stripComments(migrateJobs.get("migrate")!);
+  const names = () => stepNames(migrateJobs.get("migrate")!);
+
+  it("the migration tests run BEFORE production is touched", () => {
+    // A malformed migration set — two files sharing a version, say — must never reach `db push`.
+    const order = names();
+    const testsAt = order.findIndex((n) => /migration tests/i.test(n));
+    const pushAt = order.findIndex((n) => /^apply migrations$/i.test(n));
+    expect(testsAt, "no migration-test step").toBeGreaterThanOrEqual(0);
+    expect(pushAt).toBeGreaterThan(testsAt);
+  });
+
+  it("it runs the two test files by name, so the gate cannot become an empty glob", () => {
+    const body = migrateBody();
+    expect(body).toContain("src/test/migrationDrift.test.ts");
+    expect(body).toContain("src/test/migrationManifestRecording.test.ts");
+  });
+
+  it("db push is non-interactive — a prompt in CI is a 20-minute timeout, not a failure", () => {
+    expect(migrateBody()).toMatch(/supabase db push[^\n]*--yes/);
+  });
+
+  it("the remote list is captured both before AND after the push", () => {
+    const order = names().map((n) => n.toLowerCase());
+    expect(order.some((n) => n.includes("before"))).toBe(true);
+    expect(order.some((n) => n.includes("after"))).toBe(true);
+  });
+
+  it("the AFTER capture and the recorder run even when the push failed", () => {
+    // A partial push really applied migrations. Not recording them leaves the manifest lying in
+    // the one direction nothing downstream can detect — it would report production as further
+    // behind than it is, and the next push would try to re-apply what is already there.
+    //
+    // Each step is inspected in ISOLATION. The first version of this sliced to the end of the job
+    // and passed with `if: always()` deleted from the AFTER capture, because it found the
+    // recorder's one further down. Caught by mutation.
+    const body = migrateBody();
+    expect(stepBody(body, "Remote migration list AFTER")).toMatch(/if:\s*always\(\)/);
+    expect(stepBody(body, "Record what actually applied")).toMatch(/if:\s*always\(\)/);
+  });
+
+  it("a failed push FAILS the job, decided in one place", () => {
+    // `continue-on-error` on the push step is deliberate and safe ONLY because the verdict step
+    // re-fails the job. Asserted as the actual branch, not as two strings present somewhere in the
+    // step: replacing the condition with `if false` left both `steps.push.outcome` and `exit 1` in
+    // place and passed. Caught by mutation.
+    const verdict = stepBody(migrateBody(), "Verdict");
+    expect(verdict).toContain("PUSH: ${{ steps.push.outcome }}");
+    expect(verdict, "the verdict does not branch on the push outcome").toMatch(
+      /if\s*\[\s*"\$PUSH"\s*!=\s*"success"\s*\]/,
+    );
+    // …and that branch must end the job.
+    const branch = verdict.slice(verdict.indexOf('if [ "$PUSH"'));
+    expect(branch.slice(0, branch.indexOf("fi"))).toMatch(/exit 1/);
+  });
+
+  it("the manifest commit names the count and the run", () => {
+    expect(migrateBody()).toMatch(/chore\(prod\): record \$\{APPLIED_COUNT\} migrations applied by CI/);
+  });
+
+  it("nothing is committed when nothing applied", () => {
+    const body = migrateBody();
+    const commit = body.slice(body.indexOf("- name: Commit the manifest"));
+    expect(commit).toContain("applied_count != '0'");
+  });
+});
+
+describe("the migrate workflow's own settings match what production needs", () => {
+  const head = migrate.slice(0, migrate.indexOf("\njobs:"));
+
+  it("never two migrations at once, and never cancels one mid-push", () => {
+    // A cancelled `db push` leaves production in a state nobody recorded.
+    expect(head).toMatch(/group:\s*migrate-prod/);
+    expect(head).toMatch(/cancel-in-progress:\s*false/);
+  });
+
+  it("triggers on a migration push to main, and can be run by hand", () => {
+    expect(head).toContain("supabase/migrations/**");
+    expect(head).toMatch(/branches:\s*\[main\]/);
+    expect(head).toContain("workflow_dispatch");
+  });
+
+  it("can write, because it commits the manifest — and has no wider permission than that", () => {
+    expect(head).toMatch(/permissions:\s*\n\s*(#[^\n]*\n\s*)*contents:\s*write\s*$/m);
+  });
+
+  it("both jobs have a timeout, so a hung push cannot hold the queue for six hours", () => {
+    for (const id of ["migrate", "deploy"]) {
+      expect(migrateJobs.get(id), `${id} missing`).toMatch(/timeout-minutes:\s*20/);
+    }
   });
 });

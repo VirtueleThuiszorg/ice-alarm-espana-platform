@@ -1,12 +1,23 @@
 # Migrations APPLIED TO PRODUCTION (crpsuhoixfdhjugprbuc).
 #
-# Migrations are deliberately NOT auto-applied (deploy-functions.yml), so the repo can
-# run ahead of the database. It did: production was 6 WEEKS AND 24 MIGRATIONS behind main,
-# and the drift was discoverable only when a query failed. This file is what makes it
-# visible instead.
+# WRITTEN BY CI (.github/workflows/migrate.yml). Do not edit it by hand unless a run summary
+# tells you to: `migrate.yml` appends to this file after every `supabase db push` it performs,
+# and it appends EXACTLY the migrations whose versions appeared in the production migration
+# list after the push and were absent before it. Not the ones it meant to apply — the ones the
+# database says it gained. That is what makes a partial push (four applied, the fifth failed)
+# record four rather than five or none.
 #
-# MAINTAINED BY WHOEVER RUNS `supabase db push`: after a successful push, add the
-# filenames you just applied and commit that in its own small PR. Nothing else writes it.
+# It used to be maintained by whoever ran `supabase db push` by hand, and migrations were
+# deliberately not auto-applied so the repo could run ahead of the database. It did: production
+# was 6 WEEKS AND 24 MIGRATIONS behind main, and the drift was discoverable only when a query
+# failed. Since 2026-09-09 CI applies schema on every push to main that touches
+# supabase/migrations/**, and this file is its record.
+#
+# THE TWO WAYS TO BREAK THIS FILE ARE NOT SYMMETRICAL. A missing name makes the gate call a
+# migration pending for ever — loud, and safe. A name that never ran makes the gate report
+# production as up to date when it is behind, and NOTHING downstream can catch that, because
+# everything downstream reads this file. So: never add a name you have not seen in the remote
+# migration list.
 #
 # The gate (scripts/migrationDrift.ts, run by CI) fails a pull request that ADDS a
 # migration while an EARLIER one is still missing from this list. One pending migration is

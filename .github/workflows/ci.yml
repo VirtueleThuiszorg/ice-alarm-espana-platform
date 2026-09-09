@@ -42,8 +42,10 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # Production is not auto-migrated (deploy-functions.yml), so the repo can run ahead of the
-  # database — it did, by 6 weeks and 24 migrations, and only a failing query revealed it.
+  # Production is migrated by `migrate.yml` on every push to main that touches
+  # supabase/migrations/**. Before that (until 2026-09-09) it was a human running `supabase db
+  # push`, and the repo ran ahead of the database by 6 weeks and 24 migrations before a failing
+  # query revealed it. This gate is what makes the gap visible either way.
   #
   # Two halves, and the flag is which one applies:
   #   --main  any pending migration FAILS. Main is the branch production should match, and

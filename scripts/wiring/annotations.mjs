@@ -133,32 +133,6 @@ export const ABSENT_ADMIN_EVENTS = [
     },
   },
   {
-    id: "A4",
-    event: "Isabella cannot complete a run (a failed `ai_runs` row)",
-    audience: "admin",
-    expectation:
-      "somebody is told the assistant is down. On 8 Sep the Anthropic balance hit zero, every run " +
-      "failed all day, and the dashboard said ACTIVE",
-    today:
-      "`ai-run` records the failure in `ai_runs.error_message` and tells nobody. The health card " +
-      "added in item 1 makes it VISIBLE on the admin dashboard — which is a reader, not a " +
-      "notifier: it says so only to somebody who opens that page",
-    owner: "the wiring session",
-    absence: {
-      kind: "absentPair",
-      a: "ai_runs",
-      b: "notification_log|notify-admin",
-      window: 4000,
-      scan: ["supabase/functions", "supabase/migrations", "src"],
-      why:
-        "the function that records the failure is the natural place to raise the bell, so a " +
-        "notification anywhere in it would make this row false. `src` is scanned too, and that " +
-        "is not decoration: the dashboard surface that READS ai_runs was rewritten an hour " +
-        "after this row was written, and a client-side notifier is exactly the kind of fix " +
-        "somebody would put there",
-    },
-  },
-  {
     id: "A5",
     event: "A price was edited without syncing it to Stripe",
     audience: "admin (super_admin)",

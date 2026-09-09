@@ -777,16 +777,29 @@ export const FAMILIES = [
   // ───────────────────────── admin content & config ───────────────────────
   {
     wires: ["table:products", "table:pricing_plans", "table:pricing_settings", "table:system_settings", "table:email_settings", "table:email_templates", "table:notification_settings", "table:isabella_settings", "table:website_images", "table:testimonials", "table:blog_posts", "table:operational_costs", "table:app_finance", "table:app_events", "table:app_daily_metrics", "table:admin_ideas"],
-    control: "Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs",
+    control:
+      "Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, " +
+      "costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS",
     promise: "the change is saved and takes effect",
-    dest: "the named configuration tables",
+    dest:
+      "the named configuration tables. `system_settings.checkout_payment_methods` and " +
+      "`checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and " +
+      "passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each " +
+      "change is an activity_logs row carrying the old and the new value",
     told: "self",
-    proof: null,
+    proof: "src/test/checkoutPaymentMethods.test.ts",
     note:
       "One promise, one audience: the admin who pressed Save is the only person who needs to " +
-      "know, and a toast tells them. No notification is owed and none is missing. These score on " +
-      "failure visibility and proof alone — which is why a screen full of working buttons still " +
-      "sits at 5: nothing would go red if a save silently stopped working.",
+      "know, and a toast tells them. No notification is owed and none is missing. " +
+      "THE PAYMENT-METHOD ROWS ARE THE EXCEPTION TO 'cosmetic': neither checkout function set " +
+      "`payment_method_types`, so STRIPE'S DASHBOARD DEFAULTS decided — and in the EEA those " +
+      "include SEPA Direct Debit, which is ASYNCHRONOUS. Its session completes with " +
+      "`payment_status: \"unpaid\"` and activation depends on " +
+      "`checkout.session.async_payment_succeeded`; unless the webhook destination is subscribed " +
+      "to that, the customer pays and is NEVER ACTIVATED, with no error anywhere. Card is " +
+      "always offered and cannot be unticked; the three async methods are greyed with the " +
+      "reason until an admin confirms the destination listens, and that acknowledgement is " +
+      "re-applied when the setting is READ as well as when it is written.",
   },
   {
     wires: ["table:media_topics", "table:media_topic_goals", "table:media_goals", "table:media_audiences", "table:media_image_styles", "table:media_content_calendar", "table:media_schedule_settings", "table:social_posts", "fn:publish-scheduled", "fn:generate-content-plan", "fn:facebook-metrics", "fn:facebook-unpublish", "fn:youtube-publish", "fn:youtube-oauth-start", "fn:youtube-disconnect", "fn:youtube-integration-status"],

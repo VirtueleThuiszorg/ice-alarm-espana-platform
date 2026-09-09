@@ -4,6 +4,7 @@ import Stripe from "https://esm.sh/stripe@14.21.0";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { sendEmail } from "../_shared/email.ts";
+import { loadCheckoutPaymentMethods } from "../_shared/checkout-payment-methods.ts";
 import { loadPricingInputs, PricingNotConfiguredError } from "../_shared/checkout-pricing.ts";
 import { sendPaymentLinkSchema, validateRequest } from "../_shared/validation.ts";
 import {
@@ -231,8 +232,21 @@ serve(async (req) => {
       source: "send-payment-link",
     };
 
+    /*
+      WHICH METHODS THE CUSTOMER IS OFFERED — from `system_settings`, defaulting to card.
+
+      Setting this at all is the point: with `payment_method_types` absent, STRIPE'S DASHBOARD
+      DEFAULTS decide, and in the EEA that means SEPA Direct Debit appears next to the card. A
+      SEPA checkout completes with `payment_status: "unpaid"` and only activates on
+      `checkout.session.async_payment_succeeded` — so unless that event is enabled on the webhook
+      destination, the customer pays and is never activated, silently. Card only until an admin
+      confirms the destination is listening (Admin → Settings → Payments).
+    */
+    const { methods: paymentMethodTypes } = await loadCheckoutPaymentMethods(supabase);
+
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
+      payment_method_types: paymentMethodTypes as never,
       line_items: toStripeLineItems(resolved.lines) as never,
       customer_email: payerEmail ?? undefined,
       success_url: `${SITE_URL}/payment-success?order=${encodeURIComponent(ids.orderNumber)}`,

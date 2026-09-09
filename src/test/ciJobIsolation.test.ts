@@ -588,3 +588,52 @@ describe("the migrate workflow's own settings match what production needs", () =
     }
   });
 });
+
+describe("RULE 5 — the manifest is checked against production itself, on main only", () => {
+  // The file-based drift gate compares the repo to APPLIED_TO_PROD.txt and therefore cannot tell
+  // whether that file is TRUE. On 2026-09-09 it was not: production had three migrations applied
+  // by hand that the manifest did not name, and nothing noticed until `supabase db push` refused
+  // to run because those hand-pushes had left production's history out of order.
+  const truth = () => {
+    const job = ciJobs.get("migration-truth");
+    expect(job, "no migration-truth job").toBeDefined();
+    return stripComments(job!);
+  };
+
+  it("is its own job, so a red truth-check cannot skip another gate", () => {
+    const owner = soleJobWithStep(ciJobs, "Manifest matches production");
+    expect(owner).toBe("migration-truth");
+    for (const other of ["Migration drift gate", "Type check", "Build", "Wiring register"]) {
+      expect(soleJobWithStep(ciJobs, other)).not.toBe(owner);
+    }
+  });
+
+  it("runs on main ONLY — a pull request has no database to ask", () => {
+    // The secrets are not available to a fork, and a branch's manifest is not what production is
+    // measured against. Without this condition every PR would fail on a missing secret.
+    expect(truth()).toMatch(/if:\s*github\.event_name == 'push'/);
+  });
+
+  it("requires all three secrets, because it only runs where they exist", () => {
+    // The file-based gate tolerates their absence by never asking for them. This job cannot do
+    // its work without them, so a missing one is a real failure rather than a reason to skip.
+    const guard = /require-secrets\.mjs([\s\S]*?)\n\s*-/.exec(truth());
+    expect(guard).not.toBeNull();
+    for (const secret of ["SUPABASE_ACCESS_TOKEN", "SUPABASE_PROJECT_REF", "SUPABASE_DB_PASSWORD"]) {
+      expect(guard![1]).toContain(secret);
+    }
+  });
+
+  it("only READS — it must never push, apply or commit", () => {
+    // A check that can change production is not a check. This one exists to compare two lists.
+    const body = truth();
+    for (const forbidden of ["db push", "git commit", "git push", "functions deploy"]) {
+      expect(body, `the truth check runs "${forbidden}"`).not.toContain(forbidden);
+    }
+  });
+
+  it("the drift gate still runs everywhere, so PRs keep their file-based check", () => {
+    // The two halves are complementary: this one is unconditional, the truth check is main-only.
+    expect(stripComments(ciJobs.get("migration-drift")!)).not.toMatch(/^\s+if:/m);
+  });
+});

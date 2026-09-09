@@ -9,19 +9,38 @@
  *
  * WHY DERIVE THE INVENTORY INSTEAD OF WRITING IT BY HAND: a hand-walked list of
  * buttons misses the button someone adds next week. Every wire out of this app
- * is one of six syntactic things, and all six are greppable:
+ * is one of eight syntactic things, and all eight are greppable:
  *
  *   table   supabase.from('t').insert/update/upsert/delete
  *   fn      supabase.functions.invoke('f')
  *   rpc     supabase.rpc('f')
- *   link    href={`mailto:…`} / tel: / wa.me
  *   channel supabase.channel(…).on('postgres_changes', { table: 't' })
- *   route   navigate('/…') / <Link to="/…">
+ *   auth    supabase.auth.signInWithPassword / signOut / resetPasswordForEmail / …
+ *   storage supabase.storage.from('b').upload / remove / …
+ *   link    href={`mailto:…`} / tel: / wa.me
+ *   open    window.open(…) / window.location.href = …
  *
  * A control with no wire cannot do anything, so a complete wire list bounds the
  * set of controls that can. The register's own rows carry the human half — what
  * the user is promised, who is told, what failure looks like — which no grep
  * can know.
+ *
+ * THAT CLAIM WAS FALSE FOR THE FIRST THREE KINDS ABOVE. The original scanner
+ * looked for table/fn/rpc/channel/link only, and this header nonetheless claimed
+ * completeness. `auth`, `storage` and `open` were missing, and the gap was not
+ * marginal: sign in, sign out, register and password reset are none of the five,
+ * so /login, /staff/login, /partner/login, /forgot-password and /reset-password
+ * carried no wire of their own on a register whose brief named the login and
+ * reset flows explicitly. Adding them also surfaced a dead page (Register.tsx,
+ * unreachable, holding the only self-service signUp) and put the
+ * password-reset EMAIL on the register, which is the highest-stakes channel
+ * question in the product.
+ *
+ * STILL NOT ENUMERATED, deliberately: internal navigation — `navigate('/x')`
+ * and `<Link to>`. There are hundreds, one per button, and a broken internal
+ * link fails visibly (NotFound, or /unauthorized behind a guard) rather than
+ * silently, which is the failure this register is built to catch. Enumerating
+ * them would triple the file to record something a click already tells you.
  *
  * ROUTE ATTRIBUTION is by import graph, not by directory: `useMemberAction` sits
  * in src/hooks and its wire belongs to every page that reaches it. Pages are
@@ -69,28 +88,53 @@ function resolveImport(spec, fromFile) {
   return null;
 }
 
+const APP = join(SRC, "App.tsx");
+
+/**
+ * Import edges. Static (`from "…"`) and dynamic (`import("…")`) are kept apart
+ * because App.tsx needs only the static ones.
+ *
+ * WHY THAT MATTERS — this is the bug that made the routes column worthless.
+ * App.tsx was treated as a page reaching every route, so that a wire mounted
+ * app-wide (the PageTracker's `website_events`) was not orphaned. But App.tsx
+ * *dynamically* imports every page, so reachability from App.tsx is
+ * reachability from anywhere: 169 of 171 wires came back claiming all 108
+ * routes, and `table:leads` claimed `/dashboard/medical`. The per-surface
+ * tables were then just the same list six times.
+ *
+ * App.tsx's own edges are therefore its STATIC imports only — PageTracker, the
+ * cookie banner, the layouts, the auth provider: exactly the things mounted on
+ * every route — and never the lazy page imports.
+ */
 const imports = new Map(); // file -> Set<file>
 for (const f of files) {
   const set = new Set();
-  for (const m of text.get(f).matchAll(/(?:from\s+|import\(\s*)["']([^"']+)["']/g)) {
+  const src = text.get(f);
+  for (const m of src.matchAll(/from\s+["']([^"']+)["']/g)) {
     const r = resolveImport(m[1], f);
     if (r) set.add(r);
+  }
+  if (f !== APP) {
+    for (const m of src.matchAll(/import\(\s*["']([^"']+)["']/g)) {
+      const r = resolveImport(m[1], f);
+      if (r) set.add(r);
+    }
   }
   imports.set(f, set);
 }
 
 /** Pages are the route endpoints named in App.tsx's lazy imports plus layouts. */
-const appTsx = text.get(join(SRC, "App.tsx")) ?? "";
+const appTsx = text.get(APP) ?? "";
 const routeOf = new Map(); // page file -> route path(s)
 {
   // const Name = lazyWithRetry(() => import("./pages/x/Y"));
   const compFile = new Map();
   for (const m of appTsx.matchAll(/const (\w+) = lazyWithRetry\(\(\) => import\("([^"]+)"\)\)/g)) {
-    const r = resolveImport(m[2], join(SRC, "App.tsx"));
+    const r = resolveImport(m[2], APP);
     if (r) compFile.set(m[1], r);
   }
   for (const m of appTsx.matchAll(/import \{ (\w+) \} from "@\/components\/layout\/(\w+)"/g)) {
-    const r = resolveImport(`@/components/layout/${m[2]}`, join(SRC, "App.tsx"));
+    const r = resolveImport(`@/components/layout/${m[2]}`, APP);
     if (r) compFile.set(m[1], r);
   }
   // Tag-ordered walk with a path stack, so a nested route inherits its parent's
@@ -178,9 +222,17 @@ const routeOf = new Map(); // page file -> route path(s)
 // App.tsx is not a page but it mounts things that are on every route — the
 // PageTracker's `website_events` writes and the cookie banner among them. Left
 // out, those wires came back attributed to no route at all.
+//
+// Its edges exclude anything the route walk has already placed: App.tsx
+// statically imports the four LAYOUTS, and following those made the
+// notification bell — which lives in the headers of the authenticated layouts
+// — come back attributed to all 108 routes including `/contact`. A layout
+// belongs to its group, and layoutGroups above says which.
 {
-  const appFile = join(SRC, "App.tsx");
-  routeOf.set(appFile, [...new Set([...routeOf.values()].flat())]);
+  const placed = new Set(routeOf.keys());
+  const appEdges = new Set([...(imports.get(APP) ?? [])].filter((f) => !placed.has(f)));
+  imports.set(APP, appEdges);
+  routeOf.set(APP, [...new Set([...routeOf.values()].flat())]);
 }
 
 const pages = [...routeOf.keys()];
@@ -242,6 +294,30 @@ for (const f of files) {
     push("link", m[0].replace(/[/:]+$/, ""), "open", m.index);
   for (const m of src.matchAll(/postgres_changes["'][\s\S]{0,200}?table:\s*["'](\w+)["']/g))
     push("channel", m[1], "subscribe", m.index);
+
+  // ── three classes this scanner originally missed entirely ────────────────
+  //
+  // The header used to claim that a complete wire list bounds the set of
+  // controls that can do anything. That was FALSE while these were absent, and
+  // the omission was not marginal: the whole authentication surface — sign in,
+  // sign out, register, request a password reset, set a new password — is none
+  // of table/fn/rpc/channel/link, so /login, /staff/login, /partner/login,
+  // /forgot-password and /reset-password carried no wire of their own at all,
+  // on a register whose brief was to walk the login and reset flows.
+  //
+  // auth     — GoTrue. `resetPasswordForEmail` is a channel question ("does
+  //            the email arrive?") of exactly the kind this register exists to
+  //            ask, and it was not being asked.
+  // storage  — a file put somewhere, which can silently go nowhere.
+  // open     — window.open / window.location, the platform being left. A
+  //            `tel:` in an href was counted while the same number handed to
+  //            window.location.href was not.
+  for (const m of src.matchAll(/\bauth\.(signInWithPassword|signInWithOtp|signUp|signOut|resetPasswordForEmail|updateUser|verifyOtp|exchangeCodeForSession|setSession|refreshSession)\b/g))
+    push("auth", m[1], "call", m.index);
+  for (const m of src.matchAll(/storage\s*\.\s*from\(\s*["']([\w-]+)["']\s*\)[\s\S]{0,200}?\.(upload|remove|move|copy|createSignedUrl)\(/g))
+    push("storage", m[1], m[2], m.index);
+  for (const m of src.matchAll(/window\.open\(|window\.location\.(?:href\s*=|assign\(|replace\()/g))
+    push("open", "window", "navigate", m.index);
 }
 
 // ── derived: does the user see it fail? ─────────────────────────────────────

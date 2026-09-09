@@ -19,24 +19,24 @@ main cannot drift from the code in main. To change a row, change the wire or the
  9 │   5  ██
  8 │   0  
  7 │   8  ███
- 6 │  21  ████████
- 5 │  85  ██████████████████████████████████
- 4 │  48  ███████████████████
+ 6 │  25  █████████
+ 5 │  92  ██████████████████████████████████
+ 4 │  48  ██████████████████
  3 │   0  
  2 │   0  
  1 │   0  
- 0 │   2  █
+ 0 │   3  █
 ```
 
-171 distinct wires across 536 call sites and 108 routes.
+183 distinct wires across 628 call sites and 108 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
 | 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 2 | 1% |
-| 7–9 | arrives and proven; notification missing or on a channel not live today | 13 | 8% |
-| 4–6 | arrives; nobody told; nothing proves it | 154 | 90% |
+| 7–9 | arrives and proven; notification missing or on a channel not live today | 13 | 7% |
+| 4–6 | arrives; nobody told; nothing proves it | 165 | 90% |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0% |
-| 0 | dead control | 2 | 1% |
+| 0 | dead control | 3 | 2% |
 
 ### How to read a low score
 
@@ -58,8 +58,8 @@ Two rules do the most work:
 ## Method
 
 Wires are **derived from the source**, not walked by hand — a hand-walked list misses the
-control someone adds next week. Every exit from this app is one of five syntactic things,
-and a control with no wire cannot do anything:
+control someone adds next week. Every exit from this app is one of these eight syntactic
+things, and a control with no wire cannot do anything:
 
 | kind | what it is | call sites |
 |---|---|---:|
@@ -67,7 +67,10 @@ and a control with no wire cannot do anything:
 | `fn` | `supabase.functions.invoke(f)` — an edge function | 77 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 4 |
 | `channel` | `postgres_changes` — a realtime subscription | 51 |
+| `auth` | `supabase.auth.*` — sign in, sign out, register, password reset | 19 |
+| `storage` | `supabase.storage.from(b).upload/remove/…` — a file put somewhere | 14 |
 | `link` | `mailto:` / `tel:` / `wa.me` — a hand-off off the platform | 63 |
+| `open` | `window.open` / `window.location` — the SPA being left | 59 |
 
 Routes come from an import graph over `src/App.tsx`, so a wire in a shared hook is
 attributed to every page that can reach it, and a wire in a **layout** (the notification
@@ -93,523 +96,89 @@ failing silently, and it is exactly what the contact form did.
 
 | score | wire | control · what is promised | where it goes | who is told | failure shown | proof | sites |
 |---:|---|---|---|---|---|---|---:|
-| **4** | `channel:alert_escalations` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 1 |
-| **4** | `channel:alerts` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 7 |
-| **4** | `channel:conference_participants` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `channel:conference_rooms` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `channel:conversations` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 6 |
-| **4** | `channel:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 5 |
-| **4** | `channel:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
-| **4** | `channel:isabella_assessment_notes` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 2 |
-| **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 4 |
-| **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 8 |
-| **4** | `channel:outreach_raw_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 1 |
-| **4** | `channel:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
-| **4** | `channel:video_exports` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | — | none | 1 |
-| **4** | `channel:video_renders` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | — | none | 1 |
-| **4** | `fn:facebook-metrics` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | — | none | 1 |
-| **4** | `fn:member-self-service` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 3 |
-| **4** | `fn:partner-admin-create` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
-| **4** | `fn:partner-complete-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
-| **4** | `fn:partner-send-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 2 |
-| **4** | `fn:partner-validate-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
-| **4** | `fn:process-commissions` | Run the commission calculation — partners are paid what they earned | process-commissions → partner_commissions | nobody | — | none | 2 |
-| **4** | `fn:save-registration-draft` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | — | none | 1 |
-| **4** | `fn:sos-alert-resolve` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 1 |
-| **4** | `fn:sos-conference-join` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `fn:sos-conference-leave` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `fn:sos-drill` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 1 |
-| **4** | `fn:staff-complete-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 1 |
-| **4** | `fn:staff-validate-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 1 |
 | **4** | `fn:track-invite-view` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
 | **4** | `fn:twilio-call-me` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `fn:twilio-token` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `fn:validate-member-update-token` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | — | none | 1 |
-| **4** | `fn:video-render-queue` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | — | none | 5 |
 | **4** | `link:wa.me` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | — | none | 12 |
-| **4** | `table:ai_events` | Isabella actions and observations — what the assistant did is on the record | ai_events (published to supabase_realtime) | bell | — | none | 4 |
-| **4** | `table:alerts` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 4 |
-| **4** | `table:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 10 |
-| **4** | `table:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 2 |
-| **4** | `table:order_items` | Staff move an order through fulfilment; add or remove an order line — the order says where the device actually is | orders / order_items | bell | — | none | 1 |
-| **4** | `table:orders` | Staff move an order through fulfilment; add or remove an order line — the order says where the device actually is | orders / order_items | bell | — | none | 3 |
-| **4** | `table:outreach_campaigns` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 2 |
-| **4** | `table:outreach_daily_usage` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 2 |
-| **4** | `table:outreach_email_drafts` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 2 |
-| **4** | `table:partner_commissions` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 3 |
-| **4** | `table:partner_invites` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 3 |
-| **4** | `table:social_posts` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | — | none | 3 |
-| **4** | `table:staff` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 11 |
-| **4** | `table:staff_presence` | Write a handover note; go on/off duty — the next shift knows what happened | shift_notes / staff_presence | screen | — | none | 1 |
-| **5** | `channel:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 2 |
-| **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
-| **5** | `channel:outreach_crm_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | mutation onError | none | 1 |
+| **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
 | **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
-| **5** | `fn:complete-member-registration` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | toast | none | 1 |
-| **5** | `fn:create-checkout` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | inline | none | 1 |
-| **5** | `fn:create-mollie-checkout` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | inline | none | 1 |
-| **5** | `fn:facebook-unpublish` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
-| **5** | `fn:generate-content-plan` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `fn:notify-admin` | Server-side admin alerts: sale.paid, partner.joined, EV-07B alert, shift no-show, runner failure, escalation failures — an operational failure is not silent | notify-admin edge function → notification_log (+ WhatsApp where configured) | bell | toast | none | 2 |
-| **5** | `fn:outreach-send-email` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 1 |
-| **5** | `fn:partner-admin-delete` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
-| **5** | `fn:partner-admin-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
-| **5** | `fn:publish-scheduled` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `fn:send-member-update-request` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | toast | none | 1 |
-| **5** | `fn:staff-register` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 2 |
-| **5** | `fn:staff-send-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
-| **5** | `fn:submit-member-update` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | toast | none | 1 |
-| **5** | `fn:submit-registration` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | inline | none | 1 |
-| **5** | `fn:twilio-sms` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 3 |
-| **5** | `fn:twilio-whatsapp` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | toast | none | 1 |
-| **5** | `fn:youtube-disconnect` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `fn:youtube-integration-status` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
-| **5** | `fn:youtube-oauth-start` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
-| **5** | `fn:youtube-publish` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
 | **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
-| **5** | `rpc:get_admin_dashboard_stats` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
-| **5** | `rpc:get_sales_command_stats` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
-| **5** | `rpc:get_todays_birthdays` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 30 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
-| **5** | `table:app_daily_metrics` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
-| **5** | `table:app_events` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
-| **5** | `table:app_finance` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
 | **5** | `table:conversation_messages` | Isabella conversation turns — the assistant's reply appears as it is produced | conversation_messages | self | — | none | 2 |
-| **5** | `table:crm_contacts` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 2 |
 | **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:crm_import_batches` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:crm_import_rows` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:crm_profiles` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 2 |
-| **5** | `table:documentation` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | toast | none | 1 |
-| **5** | `table:emergency_contacts` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 3 |
-| **5** | `table:media_audiences` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_content_calendar` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 2 |
-| **5** | `table:media_goals` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_image_styles` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_schedule_settings` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_topic_goals` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_topics` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:medical_information` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 2 |
-| **5** | `table:member_contact_methods` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 1 |
-| **5** | `table:member_notes` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 3 |
 | **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 9 |
-| **5** | `table:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 3 |
-| **5** | `table:notification_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 2 |
-| **5** | `table:outreach_crm_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 3 |
-| **5** | `table:outreach_queued_tasks` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | mutation onError | none | 1 |
-| **5** | `table:outreach_raw_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 1 |
-| **5** | `table:outreach_settings` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 2 |
-| **5** | `table:outreach_suppression` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 1 |
-| **5** | `table:partner_agreements` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:partner_alert_notifications` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:partner_alert_subscriptions` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:partner_members` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:partner_post_links` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
-| **5** | `table:partner_presentations` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
-| **5** | `table:partner_pricing_tiers` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:payers` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 1 |
-| **5** | `table:shift_escalation_chain` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
-| **5** | `table:shift_notes` | Write a handover note; go on/off duty — the next shift knows what happened | shift_notes / staff_presence | screen | toast | none | 1 |
-| **5** | `table:staff_activity_log` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
-| **5** | `table:staff_documents` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | mutation onError | none | 1 |
-| **5** | `table:staff_holidays` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
-| **5** | `table:staff_invites` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
-| **5** | `table:staff_shift_covers` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
-| **5** | `table:staff_shifts` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 2 |
-| **5** | `table:subscriptions` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 1 |
-| **5** | `table:tasks` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 4 |
-| **5** | `table:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 1 |
-| **5** | `table:video_brand_settings` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
-| **5** | `table:video_outreach_links` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
-| **5** | `table:video_projects` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
-| **5** | `table:video_renders` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
-| **5** | `table:website_images` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
 | **6** | `fn:ai-execute-action` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | mutation onError | none | 1 |
-| **6** | `fn:save-api-keys` | Settings — save provider keys, send a test email, test Twilio — your credentials work | save-api-keys (secrets never reach the client); send-test-email; test-twilio | self | toast | none | 2 |
-| **6** | `fn:send-test-email` | Settings — save provider keys, send a test email, test Twilio — your credentials work | save-api-keys (secrets never reach the client); send-test-email; test-twilio | self | toast | none | 1 |
-| **6** | `fn:test-twilio` | Settings — save provider keys, send a test email, test Twilio — your credentials work | save-api-keys (secrets never reach the client); send-test-email; test-twilio | self | mutation onError | none | 1 |
-| **6** | `table:admin_ideas` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | mutation onError | none | 1 |
 | **6** | `table:ai_actions` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | toast | none | 2 |
 | **6** | `table:ai_agent_configs` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
 | **6** | `table:ai_agents` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | toast | none | 2 |
 | **6** | `table:ai_memory` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
-| **6** | `table:blog_posts` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:email_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:email_templates` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:isabella_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:member_notification_optin` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | mutation onError | none | 1 |
-| **6** | `table:operational_costs` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:payments` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | toast | none | 1 |
-| **6** | `table:pricing_plans` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:pricing_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:products` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 2 |
-| **6** | `table:system_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 3 |
 | **6** | `table:testimonials` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **7** | `channel:registration_drafts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | toast | `scripts/rls/wiring.sql` | 1 |
-| **7** | `channel:shift_notes` | Shift notes page — live handover list — code comment: “Keep the list live: notes added/edited/deleted by other operators appear without a reload.” | supabase.channel('call-centre-shift-notes') → fetchNotes() | screen | — | `scripts/rls/wiring.sql` | 1 |
-| **7** | `channel:social_post_metrics` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
-| **7** | `channel:social_posts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
-| **7** | `channel:tasks` | Call-centre dashboard — courtesy-call list auto-refresh — the courtesy-call list stays current while the operator works | supabase.channel('dashboard-courtesy-calls') → fetchCourtesyCalls() | screen | — | `scripts/rls/wiring.sql` | 1 |
-| **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
-| **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
-| **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
-| **9** | `fn:notify-fulfilment` | Order state transition fan-out — paid → allocated → programmed → dispatched → delivered → tested — the next person in the chain knows the device is theirs to move | notify-fulfilment → member_notification_log, one row per channel decision | bell | — | `src/test/notifyFulfilmentDispatcher.test.ts` | 1 |
-| **9** | `fn:partner-register` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | — | `e2e/partnerJourney.spec.ts` | 1 |
-| **9** | `fn:partner-verify` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | — | `e2e/partnerJourney.spec.ts` | 1 |
 | **9** | `table:conversations` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 8 |
-| **9** | `table:messages` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 7 |
 | **10** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | bell | inline | `scripts/rls/wiring.sql` | 4 |
-| **10** | `table:partners` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | toast | `e2e/partnerJourney.spec.ts` | 5 |
 
 ### Join & auth
 
 | score | wire | control · what is promised | where it goes | who is told | failure shown | proof | sites |
 |---:|---|---|---|---|---|---|---:|
-| **4** | `channel:alert_escalations` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 1 |
-| **4** | `channel:alerts` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 7 |
-| **4** | `channel:conference_participants` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `channel:conference_rooms` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `channel:conversations` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 6 |
-| **4** | `channel:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 5 |
-| **4** | `channel:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
-| **4** | `channel:isabella_assessment_notes` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 2 |
-| **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 4 |
-| **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 8 |
-| **4** | `channel:outreach_raw_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 1 |
-| **4** | `channel:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
-| **4** | `channel:video_exports` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | — | none | 1 |
-| **4** | `channel:video_renders` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | — | none | 1 |
-| **4** | `fn:facebook-metrics` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | — | none | 1 |
-| **4** | `fn:member-self-service` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 3 |
-| **4** | `fn:partner-admin-create` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
-| **4** | `fn:partner-complete-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
-| **4** | `fn:partner-send-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 2 |
-| **4** | `fn:partner-validate-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
-| **4** | `fn:process-commissions` | Run the commission calculation — partners are paid what they earned | process-commissions → partner_commissions | nobody | — | none | 2 |
 | **4** | `fn:save-registration-draft` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | — | none | 1 |
-| **4** | `fn:sos-alert-resolve` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 1 |
-| **4** | `fn:sos-conference-join` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `fn:sos-conference-leave` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `fn:sos-drill` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 1 |
 | **4** | `fn:staff-complete-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 1 |
 | **4** | `fn:staff-validate-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 1 |
-| **4** | `fn:track-invite-view` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
-| **4** | `fn:twilio-call-me` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `fn:twilio-token` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
 | **4** | `fn:validate-member-update-token` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | — | none | 1 |
-| **4** | `fn:video-render-queue` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | — | none | 5 |
-| **4** | `link:wa.me` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | — | none | 12 |
-| **4** | `table:ai_events` | Isabella actions and observations — what the assistant did is on the record | ai_events (published to supabase_realtime) | bell | — | none | 4 |
-| **4** | `table:alerts` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 4 |
-| **4** | `table:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 10 |
-| **4** | `table:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 2 |
-| **4** | `table:order_items` | Staff move an order through fulfilment; add or remove an order line — the order says where the device actually is | orders / order_items | bell | — | none | 1 |
-| **4** | `table:orders` | Staff move an order through fulfilment; add or remove an order line — the order says where the device actually is | orders / order_items | bell | — | none | 3 |
-| **4** | `table:outreach_campaigns` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 2 |
-| **4** | `table:outreach_daily_usage` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 2 |
-| **4** | `table:outreach_email_drafts` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 2 |
-| **4** | `table:partner_commissions` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 3 |
-| **4** | `table:partner_invites` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 3 |
-| **4** | `table:social_posts` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | — | none | 3 |
-| **4** | `table:staff` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 11 |
-| **4** | `table:staff_presence` | Write a handover note; go on/off duty — the next shift knows what happened | shift_notes / staff_presence | screen | — | none | 1 |
-| **5** | `channel:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 2 |
-| **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
-| **5** | `channel:outreach_crm_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | mutation onError | none | 1 |
-| **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
+| **5** | `auth:resetPasswordForEmail` | Forgot password → email link → set a new one — we will email you a link to get back in | resetPasswordForEmail sends via GoTrue's own mailer; the link returns to /reset-password, where updateUser sets the password | email | toast | none | 1 |
+| **5** | `auth:signInWithPassword` | Sign in — /login (member), /staff/login, /partner/login — your password gets you into your account | supabase.auth.signInWithPassword → GoTrue; the session then decides every ProtectedRoute | self | — | none | 3 |
+| **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
+| **5** | `auth:updateUser` | Forgot password → email link → set a new one — we will email you a link to get back in | resetPasswordForEmail sends via GoTrue's own mailer; the link returns to /reset-password, where updateUser sets the password | email | toast | none | 1 |
 | **5** | `fn:complete-member-registration` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | toast | none | 1 |
 | **5** | `fn:create-checkout` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | inline | none | 1 |
 | **5** | `fn:create-mollie-checkout` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | inline | none | 1 |
-| **5** | `fn:facebook-unpublish` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
-| **5** | `fn:generate-content-plan` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `fn:notify-admin` | Server-side admin alerts: sale.paid, partner.joined, EV-07B alert, shift no-show, runner failure, escalation failures — an operational failure is not silent | notify-admin edge function → notification_log (+ WhatsApp where configured) | bell | toast | none | 2 |
-| **5** | `fn:outreach-send-email` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 1 |
-| **5** | `fn:partner-admin-delete` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
-| **5** | `fn:partner-admin-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
-| **5** | `fn:publish-scheduled` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `fn:send-member-update-request` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | toast | none | 1 |
-| **5** | `fn:staff-register` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 2 |
-| **5** | `fn:staff-send-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
 | **5** | `fn:submit-member-update` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | toast | none | 1 |
 | **5** | `fn:submit-registration` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | inline | none | 1 |
-| **5** | `fn:twilio-sms` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 3 |
-| **5** | `fn:twilio-whatsapp` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | toast | none | 1 |
-| **5** | `fn:youtube-disconnect` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `fn:youtube-integration-status` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
-| **5** | `fn:youtube-oauth-start` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
-| **5** | `fn:youtube-publish` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
 | **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
-| **5** | `rpc:get_admin_dashboard_stats` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
-| **5** | `rpc:get_sales_command_stats` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
-| **5** | `rpc:get_todays_birthdays` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 30 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:app_daily_metrics` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
 | **5** | `table:app_events` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
 | **5** | `table:app_finance` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
-| **5** | `table:conversation_messages` | Isabella conversation turns — the assistant's reply appears as it is produced | conversation_messages | self | — | none | 2 |
-| **5** | `table:crm_contacts` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 2 |
 | **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:crm_import_batches` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:crm_import_rows` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:crm_profiles` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 2 |
-| **5** | `table:documentation` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | toast | none | 1 |
-| **5** | `table:emergency_contacts` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 3 |
-| **5** | `table:media_audiences` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_content_calendar` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 2 |
-| **5** | `table:media_goals` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_image_styles` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_schedule_settings` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_topic_goals` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_topics` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:medical_information` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 2 |
-| **5** | `table:member_contact_methods` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 1 |
-| **5** | `table:member_notes` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 3 |
 | **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 9 |
-| **5** | `table:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 3 |
-| **5** | `table:notification_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 2 |
-| **5** | `table:outreach_crm_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 3 |
-| **5** | `table:outreach_queued_tasks` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | mutation onError | none | 1 |
-| **5** | `table:outreach_raw_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 1 |
-| **5** | `table:outreach_settings` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 2 |
-| **5** | `table:outreach_suppression` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 1 |
-| **5** | `table:partner_agreements` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:partner_alert_notifications` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:partner_alert_subscriptions` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:partner_members` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:partner_post_links` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
-| **5** | `table:partner_presentations` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
-| **5** | `table:partner_pricing_tiers` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:payers` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 1 |
-| **5** | `table:shift_escalation_chain` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
-| **5** | `table:shift_notes` | Write a handover note; go on/off duty — the next shift knows what happened | shift_notes / staff_presence | screen | toast | none | 1 |
-| **5** | `table:staff_activity_log` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
-| **5** | `table:staff_documents` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | mutation onError | none | 1 |
-| **5** | `table:staff_holidays` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
-| **5** | `table:staff_invites` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
-| **5** | `table:staff_shift_covers` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
-| **5** | `table:staff_shifts` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 2 |
-| **5** | `table:subscriptions` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 1 |
-| **5** | `table:tasks` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 4 |
-| **5** | `table:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 1 |
-| **5** | `table:video_brand_settings` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
-| **5** | `table:video_outreach_links` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
-| **5** | `table:video_projects` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
-| **5** | `table:video_renders` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
-| **5** | `table:website_images` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
-| **6** | `fn:ai-execute-action` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | mutation onError | none | 1 |
-| **6** | `fn:save-api-keys` | Settings — save provider keys, send a test email, test Twilio — your credentials work | save-api-keys (secrets never reach the client); send-test-email; test-twilio | self | toast | none | 2 |
-| **6** | `fn:send-test-email` | Settings — save provider keys, send a test email, test Twilio — your credentials work | save-api-keys (secrets never reach the client); send-test-email; test-twilio | self | toast | none | 1 |
-| **6** | `fn:test-twilio` | Settings — save provider keys, send a test email, test Twilio — your credentials work | save-api-keys (secrets never reach the client); send-test-email; test-twilio | self | mutation onError | none | 1 |
-| **6** | `table:admin_ideas` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | mutation onError | none | 1 |
-| **6** | `table:ai_actions` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | toast | none | 2 |
-| **6** | `table:ai_agent_configs` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
-| **6** | `table:ai_agents` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | toast | none | 2 |
-| **6** | `table:ai_memory` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
-| **6** | `table:blog_posts` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:email_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:email_templates` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:isabella_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:member_notification_optin` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | mutation onError | none | 1 |
-| **6** | `table:operational_costs` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:payments` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | toast | none | 1 |
-| **6** | `table:pricing_plans` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:pricing_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:products` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 2 |
-| **6** | `table:system_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 3 |
-| **6** | `table:testimonials` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **7** | `channel:registration_drafts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | toast | `scripts/rls/wiring.sql` | 1 |
-| **7** | `channel:shift_notes` | Shift notes page — live handover list — code comment: “Keep the list live: notes added/edited/deleted by other operators appear without a reload.” | supabase.channel('call-centre-shift-notes') → fetchNotes() | screen | — | `scripts/rls/wiring.sql` | 1 |
-| **7** | `channel:social_post_metrics` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
-| **7** | `channel:social_posts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
-| **7** | `channel:tasks` | Call-centre dashboard — courtesy-call list auto-refresh — the courtesy-call list stays current while the operator works | supabase.channel('dashboard-courtesy-calls') → fetchCourtesyCalls() | screen | — | `scripts/rls/wiring.sql` | 1 |
-| **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
-| **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
-| **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
-| **9** | `fn:notify-fulfilment` | Order state transition fan-out — paid → allocated → programmed → dispatched → delivered → tested — the next person in the chain knows the device is theirs to move | notify-fulfilment → member_notification_log, one row per channel decision | bell | — | `src/test/notifyFulfilmentDispatcher.test.ts` | 1 |
-| **9** | `fn:partner-register` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | — | `e2e/partnerJourney.spec.ts` | 1 |
-| **9** | `fn:partner-verify` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | — | `e2e/partnerJourney.spec.ts` | 1 |
-| **9** | `table:conversations` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 8 |
-| **9** | `table:messages` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 7 |
-| **10** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | bell | inline | `scripts/rls/wiring.sql` | 4 |
-| **10** | `table:partners` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | toast | `e2e/partnerJourney.spec.ts` | 5 |
+| **6** | `auth:setSession` | Accept a staff or partner invite from an emailed link — this link makes your account real | auth.setSession with the tokens in the invite URL, then the *-complete-invite function | self | toast | none | 2 |
 
 ### Member dashboard
 
 | score | wire | control · what is promised | where it goes | who is told | failure shown | proof | sites |
 |---:|---|---|---|---|---|---|---:|
-| **4** | `channel:alert_escalations` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 1 |
-| **4** | `channel:alerts` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 7 |
-| **4** | `channel:conference_participants` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `channel:conference_rooms` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
 | **4** | `channel:conversations` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 6 |
 | **4** | `channel:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 5 |
-| **4** | `channel:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
-| **4** | `channel:isabella_assessment_notes` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 2 |
-| **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 4 |
 | **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 8 |
-| **4** | `channel:outreach_raw_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 1 |
-| **4** | `channel:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
-| **4** | `channel:video_exports` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | — | none | 1 |
-| **4** | `channel:video_renders` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | — | none | 1 |
-| **4** | `fn:facebook-metrics` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | — | none | 1 |
 | **4** | `fn:member-self-service` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 3 |
-| **4** | `fn:partner-admin-create` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
-| **4** | `fn:partner-complete-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
-| **4** | `fn:partner-send-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 2 |
-| **4** | `fn:partner-validate-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
-| **4** | `fn:process-commissions` | Run the commission calculation — partners are paid what they earned | process-commissions → partner_commissions | nobody | — | none | 2 |
-| **4** | `fn:save-registration-draft` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | — | none | 1 |
-| **4** | `fn:sos-alert-resolve` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 1 |
-| **4** | `fn:sos-conference-join` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `fn:sos-conference-leave` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `fn:sos-drill` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 1 |
-| **4** | `fn:staff-complete-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 1 |
-| **4** | `fn:staff-validate-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 1 |
-| **4** | `fn:track-invite-view` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
 | **4** | `fn:twilio-call-me` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `fn:twilio-token` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `fn:validate-member-update-token` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | — | none | 1 |
-| **4** | `fn:video-render-queue` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | — | none | 5 |
 | **4** | `link:wa.me` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | — | none | 12 |
-| **4** | `table:ai_events` | Isabella actions and observations — what the assistant did is on the record | ai_events (published to supabase_realtime) | bell | — | none | 4 |
-| **4** | `table:alerts` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 4 |
-| **4** | `table:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 10 |
-| **4** | `table:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 2 |
-| **4** | `table:order_items` | Staff move an order through fulfilment; add or remove an order line — the order says where the device actually is | orders / order_items | bell | — | none | 1 |
-| **4** | `table:orders` | Staff move an order through fulfilment; add or remove an order line — the order says where the device actually is | orders / order_items | bell | — | none | 3 |
-| **4** | `table:outreach_campaigns` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 2 |
-| **4** | `table:outreach_daily_usage` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 2 |
-| **4** | `table:outreach_email_drafts` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 2 |
-| **4** | `table:partner_commissions` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 3 |
-| **4** | `table:partner_invites` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 3 |
-| **4** | `table:social_posts` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | — | none | 3 |
 | **4** | `table:staff` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 11 |
-| **4** | `table:staff_presence` | Write a handover note; go on/off duty — the next shift knows what happened | shift_notes / staff_presence | screen | — | none | 1 |
-| **5** | `channel:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 2 |
+| **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
 | **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
-| **5** | `channel:outreach_crm_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | mutation onError | none | 1 |
 | **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
-| **5** | `fn:complete-member-registration` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | toast | none | 1 |
-| **5** | `fn:create-checkout` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | inline | none | 1 |
-| **5** | `fn:create-mollie-checkout` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | inline | none | 1 |
-| **5** | `fn:facebook-unpublish` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
-| **5** | `fn:generate-content-plan` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `fn:notify-admin` | Server-side admin alerts: sale.paid, partner.joined, EV-07B alert, shift no-show, runner failure, escalation failures — an operational failure is not silent | notify-admin edge function → notification_log (+ WhatsApp where configured) | bell | toast | none | 2 |
-| **5** | `fn:outreach-send-email` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 1 |
-| **5** | `fn:partner-admin-delete` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
-| **5** | `fn:partner-admin-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
-| **5** | `fn:publish-scheduled` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `fn:send-member-update-request` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | toast | none | 1 |
-| **5** | `fn:staff-register` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 2 |
-| **5** | `fn:staff-send-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
-| **5** | `fn:submit-member-update` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | toast | none | 1 |
-| **5** | `fn:submit-registration` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | inline | none | 1 |
-| **5** | `fn:twilio-sms` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 3 |
-| **5** | `fn:twilio-whatsapp` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | toast | none | 1 |
-| **5** | `fn:youtube-disconnect` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `fn:youtube-integration-status` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
-| **5** | `fn:youtube-oauth-start` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
-| **5** | `fn:youtube-publish` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
 | **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
-| **5** | `rpc:get_admin_dashboard_stats` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
-| **5** | `rpc:get_sales_command_stats` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
-| **5** | `rpc:get_todays_birthdays` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 30 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
-| **5** | `table:app_daily_metrics` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
-| **5** | `table:app_events` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
-| **5** | `table:app_finance` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
 | **5** | `table:conversation_messages` | Isabella conversation turns — the assistant's reply appears as it is produced | conversation_messages | self | — | none | 2 |
-| **5** | `table:crm_contacts` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 2 |
-| **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:crm_import_batches` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:crm_import_rows` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:crm_profiles` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 2 |
 | **5** | `table:documentation` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | toast | none | 1 |
 | **5** | `table:emergency_contacts` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 3 |
-| **5** | `table:media_audiences` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_content_calendar` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 2 |
-| **5** | `table:media_goals` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_image_styles` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_schedule_settings` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_topic_goals` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_topics` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:medical_information` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 2 |
-| **5** | `table:member_contact_methods` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 1 |
-| **5** | `table:member_notes` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 3 |
 | **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 9 |
 | **5** | `table:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 3 |
-| **5** | `table:notification_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 2 |
-| **5** | `table:outreach_crm_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 3 |
-| **5** | `table:outreach_queued_tasks` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | mutation onError | none | 1 |
-| **5** | `table:outreach_raw_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 1 |
-| **5** | `table:outreach_settings` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 2 |
-| **5** | `table:outreach_suppression` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 1 |
-| **5** | `table:partner_agreements` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:partner_alert_notifications` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:partner_alert_subscriptions` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:partner_members` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:partner_post_links` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
-| **5** | `table:partner_presentations` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
-| **5** | `table:partner_pricing_tiers` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:payers` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 1 |
-| **5** | `table:shift_escalation_chain` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
-| **5** | `table:shift_notes` | Write a handover note; go on/off duty — the next shift knows what happened | shift_notes / staff_presence | screen | toast | none | 1 |
-| **5** | `table:staff_activity_log` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
-| **5** | `table:staff_documents` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | mutation onError | none | 1 |
-| **5** | `table:staff_holidays` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
-| **5** | `table:staff_invites` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
-| **5** | `table:staff_shift_covers` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
-| **5** | `table:staff_shifts` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 2 |
-| **5** | `table:subscriptions` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 1 |
-| **5** | `table:tasks` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 4 |
-| **5** | `table:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 1 |
-| **5** | `table:video_brand_settings` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
-| **5** | `table:video_outreach_links` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
-| **5** | `table:video_projects` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
-| **5** | `table:video_renders` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
-| **5** | `table:website_images` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
 | **6** | `fn:ai-execute-action` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | mutation onError | none | 1 |
-| **6** | `fn:save-api-keys` | Settings — save provider keys, send a test email, test Twilio — your credentials work | save-api-keys (secrets never reach the client); send-test-email; test-twilio | self | toast | none | 2 |
-| **6** | `fn:send-test-email` | Settings — save provider keys, send a test email, test Twilio — your credentials work | save-api-keys (secrets never reach the client); send-test-email; test-twilio | self | toast | none | 1 |
-| **6** | `fn:test-twilio` | Settings — save provider keys, send a test email, test Twilio — your credentials work | save-api-keys (secrets never reach the client); send-test-email; test-twilio | self | mutation onError | none | 1 |
-| **6** | `table:admin_ideas` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | mutation onError | none | 1 |
 | **6** | `table:ai_actions` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | toast | none | 2 |
 | **6** | `table:ai_agent_configs` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
 | **6** | `table:ai_agents` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | toast | none | 2 |
 | **6** | `table:ai_memory` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
-| **6** | `table:blog_posts` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:email_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:email_templates` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:isabella_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
 | **6** | `table:member_notification_optin` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | mutation onError | none | 1 |
-| **6** | `table:operational_costs` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:payments` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | toast | none | 1 |
-| **6** | `table:pricing_plans` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:pricing_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:products` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 2 |
-| **6** | `table:system_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 3 |
-| **6** | `table:testimonials` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **7** | `channel:registration_drafts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | toast | `scripts/rls/wiring.sql` | 1 |
-| **7** | `channel:shift_notes` | Shift notes page — live handover list — code comment: “Keep the list live: notes added/edited/deleted by other operators appear without a reload.” | supabase.channel('call-centre-shift-notes') → fetchNotes() | screen | — | `scripts/rls/wiring.sql` | 1 |
-| **7** | `channel:social_post_metrics` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
-| **7** | `channel:social_posts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
-| **7** | `channel:tasks` | Call-centre dashboard — courtesy-call list auto-refresh — the courtesy-call list stays current while the operator works | supabase.channel('dashboard-courtesy-calls') → fetchCourtesyCalls() | screen | — | `scripts/rls/wiring.sql` | 1 |
-| **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
-| **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
 | **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
-| **9** | `fn:notify-fulfilment` | Order state transition fan-out — paid → allocated → programmed → dispatched → delivered → tested — the next person in the chain knows the device is theirs to move | notify-fulfilment → member_notification_log, one row per channel decision | bell | — | `src/test/notifyFulfilmentDispatcher.test.ts` | 1 |
-| **9** | `fn:partner-register` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | — | `e2e/partnerJourney.spec.ts` | 1 |
-| **9** | `fn:partner-verify` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | — | `e2e/partnerJourney.spec.ts` | 1 |
 | **9** | `table:conversations` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 8 |
 | **9** | `table:messages` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 7 |
-| **10** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | bell | inline | `scripts/rls/wiring.sql` | 4 |
-| **10** | `table:partners` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | toast | `e2e/partnerJourney.spec.ts` | 5 |
 
 ### Call centre
 
@@ -625,29 +194,13 @@ failing silently, and it is exactly what the contact form did.
 | **4** | `channel:isabella_assessment_notes` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 2 |
 | **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 4 |
 | **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 8 |
-| **4** | `channel:outreach_raw_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 1 |
 | **4** | `channel:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
-| **4** | `channel:video_exports` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | — | none | 1 |
-| **4** | `channel:video_renders` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | — | none | 1 |
-| **4** | `fn:facebook-metrics` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | — | none | 1 |
 | **4** | `fn:member-self-service` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 3 |
-| **4** | `fn:partner-admin-create` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
-| **4** | `fn:partner-complete-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
-| **4** | `fn:partner-send-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 2 |
-| **4** | `fn:partner-validate-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
-| **4** | `fn:process-commissions` | Run the commission calculation — partners are paid what they earned | process-commissions → partner_commissions | nobody | — | none | 2 |
-| **4** | `fn:save-registration-draft` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | — | none | 1 |
 | **4** | `fn:sos-alert-resolve` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 1 |
 | **4** | `fn:sos-conference-join` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
 | **4** | `fn:sos-conference-leave` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `fn:sos-drill` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 1 |
-| **4** | `fn:staff-complete-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 1 |
-| **4** | `fn:staff-validate-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 1 |
-| **4** | `fn:track-invite-view` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
 | **4** | `fn:twilio-call-me` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
 | **4** | `fn:twilio-token` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `fn:validate-member-update-token` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | — | none | 1 |
-| **4** | `fn:video-render-queue` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | — | none | 5 |
 | **4** | `link:wa.me` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | — | none | 12 |
 | **4** | `table:ai_events` | Isabella actions and observations — what the assistant did is on the record | ai_events (published to supabase_realtime) | bell | — | none | 4 |
 | **4** | `table:alerts` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 4 |
@@ -655,148 +208,63 @@ failing silently, and it is exactly what the contact form did.
 | **4** | `table:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 2 |
 | **4** | `table:order_items` | Staff move an order through fulfilment; add or remove an order line — the order says where the device actually is | orders / order_items | bell | — | none | 1 |
 | **4** | `table:orders` | Staff move an order through fulfilment; add or remove an order line — the order says where the device actually is | orders / order_items | bell | — | none | 3 |
-| **4** | `table:outreach_campaigns` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 2 |
-| **4** | `table:outreach_daily_usage` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 2 |
-| **4** | `table:outreach_email_drafts` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 2 |
 | **4** | `table:partner_commissions` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 3 |
 | **4** | `table:partner_invites` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 3 |
-| **4** | `table:social_posts` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | — | none | 3 |
 | **4** | `table:staff` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 11 |
 | **4** | `table:staff_presence` | Write a handover note; go on/off duty — the next shift knows what happened | shift_notes / staff_presence | screen | — | none | 1 |
+| **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
 | **5** | `channel:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 2 |
 | **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
-| **5** | `channel:outreach_crm_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | mutation onError | none | 1 |
 | **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
-| **5** | `fn:complete-member-registration` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | toast | none | 1 |
-| **5** | `fn:create-checkout` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | inline | none | 1 |
-| **5** | `fn:create-mollie-checkout` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | inline | none | 1 |
-| **5** | `fn:facebook-unpublish` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
-| **5** | `fn:generate-content-plan` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `fn:notify-admin` | Server-side admin alerts: sale.paid, partner.joined, EV-07B alert, shift no-show, runner failure, escalation failures — an operational failure is not silent | notify-admin edge function → notification_log (+ WhatsApp where configured) | bell | toast | none | 2 |
-| **5** | `fn:outreach-send-email` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 1 |
-| **5** | `fn:partner-admin-delete` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
-| **5** | `fn:partner-admin-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
-| **5** | `fn:publish-scheduled` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
 | **5** | `fn:send-member-update-request` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | toast | none | 1 |
-| **5** | `fn:staff-register` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 2 |
-| **5** | `fn:staff-send-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
-| **5** | `fn:submit-member-update` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | toast | none | 1 |
-| **5** | `fn:submit-registration` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | inline | none | 1 |
 | **5** | `fn:twilio-sms` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 3 |
 | **5** | `fn:twilio-whatsapp` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | toast | none | 1 |
-| **5** | `fn:youtube-disconnect` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `fn:youtube-integration-status` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
-| **5** | `fn:youtube-oauth-start` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
-| **5** | `fn:youtube-publish` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
 | **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
-| **5** | `rpc:get_admin_dashboard_stats` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
-| **5** | `rpc:get_sales_command_stats` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 30 |
 | **5** | `rpc:get_todays_birthdays` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
-| **5** | `table:app_daily_metrics` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
-| **5** | `table:app_events` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
-| **5** | `table:app_finance` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
 | **5** | `table:conversation_messages` | Isabella conversation turns — the assistant's reply appears as it is produced | conversation_messages | self | — | none | 2 |
-| **5** | `table:crm_contacts` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 2 |
 | **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:crm_import_batches` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:crm_import_rows` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:crm_profiles` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 2 |
 | **5** | `table:documentation` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | toast | none | 1 |
 | **5** | `table:emergency_contacts` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 3 |
-| **5** | `table:media_audiences` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_content_calendar` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 2 |
-| **5** | `table:media_goals` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_image_styles` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_schedule_settings` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_topic_goals` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_topics` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
 | **5** | `table:medical_information` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 2 |
-| **5** | `table:member_contact_methods` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 1 |
 | **5** | `table:member_notes` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 3 |
 | **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 9 |
 | **5** | `table:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 3 |
-| **5** | `table:notification_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 2 |
-| **5** | `table:outreach_crm_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 3 |
-| **5** | `table:outreach_queued_tasks` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | mutation onError | none | 1 |
-| **5** | `table:outreach_raw_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 1 |
-| **5** | `table:outreach_settings` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 2 |
-| **5** | `table:outreach_suppression` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 1 |
-| **5** | `table:partner_agreements` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:partner_alert_notifications` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:partner_alert_subscriptions` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:partner_members` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:partner_post_links` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
-| **5** | `table:partner_presentations` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
-| **5** | `table:partner_pricing_tiers` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:payers` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 1 |
-| **5** | `table:shift_escalation_chain` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
 | **5** | `table:shift_notes` | Write a handover note; go on/off duty — the next shift knows what happened | shift_notes / staff_presence | screen | toast | none | 1 |
-| **5** | `table:staff_activity_log` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
-| **5** | `table:staff_documents` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | mutation onError | none | 1 |
 | **5** | `table:staff_holidays` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
-| **5** | `table:staff_invites` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
 | **5** | `table:staff_shift_covers` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
 | **5** | `table:staff_shifts` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 2 |
 | **5** | `table:subscriptions` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 1 |
 | **5** | `table:tasks` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 4 |
 | **5** | `table:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 1 |
-| **5** | `table:video_brand_settings` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
-| **5** | `table:video_outreach_links` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
-| **5** | `table:video_projects` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
-| **5** | `table:video_renders` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
-| **5** | `table:website_images` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
 | **6** | `fn:ai-execute-action` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | mutation onError | none | 1 |
-| **6** | `fn:save-api-keys` | Settings — save provider keys, send a test email, test Twilio — your credentials work | save-api-keys (secrets never reach the client); send-test-email; test-twilio | self | toast | none | 2 |
-| **6** | `fn:send-test-email` | Settings — save provider keys, send a test email, test Twilio — your credentials work | save-api-keys (secrets never reach the client); send-test-email; test-twilio | self | toast | none | 1 |
-| **6** | `fn:test-twilio` | Settings — save provider keys, send a test email, test Twilio — your credentials work | save-api-keys (secrets never reach the client); send-test-email; test-twilio | self | mutation onError | none | 1 |
 | **6** | `table:admin_ideas` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | mutation onError | none | 1 |
 | **6** | `table:ai_actions` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | toast | none | 2 |
 | **6** | `table:ai_agent_configs` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
 | **6** | `table:ai_agents` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | toast | none | 2 |
 | **6** | `table:ai_memory` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
-| **6** | `table:blog_posts` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:email_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:email_templates` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:isabella_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:member_notification_optin` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | mutation onError | none | 1 |
-| **6** | `table:operational_costs` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
 | **6** | `table:payments` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | toast | none | 1 |
-| **6** | `table:pricing_plans` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:pricing_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:products` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 2 |
-| **6** | `table:system_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 3 |
-| **6** | `table:testimonials` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **7** | `channel:registration_drafts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | toast | `scripts/rls/wiring.sql` | 1 |
 | **7** | `channel:shift_notes` | Shift notes page — live handover list — code comment: “Keep the list live: notes added/edited/deleted by other operators appear without a reload.” | supabase.channel('call-centre-shift-notes') → fetchNotes() | screen | — | `scripts/rls/wiring.sql` | 1 |
-| **7** | `channel:social_post_metrics` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
-| **7** | `channel:social_posts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
 | **7** | `channel:tasks` | Call-centre dashboard — courtesy-call list auto-refresh — the courtesy-call list stays current while the operator works | supabase.channel('dashboard-courtesy-calls') → fetchCourtesyCalls() | screen | — | `scripts/rls/wiring.sql` | 1 |
 | **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
 | **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
 | **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
 | **9** | `fn:notify-fulfilment` | Order state transition fan-out — paid → allocated → programmed → dispatched → delivered → tested — the next person in the chain knows the device is theirs to move | notify-fulfilment → member_notification_log, one row per channel decision | bell | — | `src/test/notifyFulfilmentDispatcher.test.ts` | 1 |
-| **9** | `fn:partner-register` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | — | `e2e/partnerJourney.spec.ts` | 1 |
-| **9** | `fn:partner-verify` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | — | `e2e/partnerJourney.spec.ts` | 1 |
 | **9** | `table:conversations` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 8 |
 | **9** | `table:messages` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 7 |
 | **10** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | bell | inline | `scripts/rls/wiring.sql` | 4 |
-| **10** | `table:partners` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | toast | `e2e/partnerJourney.spec.ts` | 5 |
 
 ### Admin
 
 | score | wire | control · what is promised | where it goes | who is told | failure shown | proof | sites |
 |---:|---|---|---|---|---|---|---:|
-| **4** | `channel:alert_escalations` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 1 |
 | **4** | `channel:alerts` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 7 |
-| **4** | `channel:conference_participants` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `channel:conference_rooms` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
 | **4** | `channel:conversations` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 6 |
 | **4** | `channel:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 5 |
 | **4** | `channel:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
-| **4** | `channel:isabella_assessment_notes` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 2 |
 | **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 4 |
 | **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 8 |
 | **4** | `channel:outreach_raw_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 1 |
@@ -806,21 +274,10 @@ failing silently, and it is exactly what the contact form did.
 | **4** | `fn:facebook-metrics` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | — | none | 1 |
 | **4** | `fn:member-self-service` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 3 |
 | **4** | `fn:partner-admin-create` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
-| **4** | `fn:partner-complete-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
-| **4** | `fn:partner-send-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 2 |
-| **4** | `fn:partner-validate-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
 | **4** | `fn:process-commissions` | Run the commission calculation — partners are paid what they earned | process-commissions → partner_commissions | nobody | — | none | 2 |
-| **4** | `fn:save-registration-draft` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | — | none | 1 |
 | **4** | `fn:sos-alert-resolve` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 1 |
-| **4** | `fn:sos-conference-join` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `fn:sos-conference-leave` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
 | **4** | `fn:sos-drill` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 1 |
-| **4** | `fn:staff-complete-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 1 |
-| **4** | `fn:staff-validate-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 1 |
-| **4** | `fn:track-invite-view` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
 | **4** | `fn:twilio-call-me` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `fn:twilio-token` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `fn:validate-member-update-token` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | — | none | 1 |
 | **4** | `fn:video-render-queue` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | — | none | 5 |
 | **4** | `link:wa.me` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | — | none | 12 |
 | **4** | `table:ai_events` | Isabella actions and observations — what the assistant did is on the record | ai_events (published to supabase_realtime) | bell | — | none | 4 |
@@ -836,14 +293,11 @@ failing silently, and it is exactly what the contact form did.
 | **4** | `table:partner_invites` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 3 |
 | **4** | `table:social_posts` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | — | none | 3 |
 | **4** | `table:staff` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 11 |
-| **4** | `table:staff_presence` | Write a handover note; go on/off duty — the next shift knows what happened | shift_notes / staff_presence | screen | — | none | 1 |
+| **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
 | **5** | `channel:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 2 |
 | **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
 | **5** | `channel:outreach_crm_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | mutation onError | none | 1 |
 | **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
-| **5** | `fn:complete-member-registration` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | toast | none | 1 |
-| **5** | `fn:create-checkout` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | inline | none | 1 |
-| **5** | `fn:create-mollie-checkout` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | inline | none | 1 |
 | **5** | `fn:facebook-unpublish` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
 | **5** | `fn:generate-content-plan` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
 | **5** | `fn:notify-admin` | Server-side admin alerts: sale.paid, partner.joined, EV-07B alert, shift no-show, runner failure, escalation failures — an operational failure is not silent | notify-admin edge function → notification_log (+ WhatsApp where configured) | bell | toast | none | 2 |
@@ -854,20 +308,19 @@ failing silently, and it is exactly what the contact form did.
 | **5** | `fn:send-member-update-request` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | toast | none | 1 |
 | **5** | `fn:staff-register` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 2 |
 | **5** | `fn:staff-send-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
-| **5** | `fn:submit-member-update` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | toast | none | 1 |
-| **5** | `fn:submit-registration` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | inline | none | 1 |
 | **5** | `fn:twilio-sms` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 3 |
-| **5** | `fn:twilio-whatsapp` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | toast | none | 1 |
 | **5** | `fn:youtube-disconnect` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
 | **5** | `fn:youtube-integration-status` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
 | **5** | `fn:youtube-oauth-start` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
 | **5** | `fn:youtube-publish` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
 | **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 30 |
 | **5** | `rpc:get_admin_dashboard_stats` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `rpc:get_sales_command_stats` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
-| **5** | `rpc:get_todays_birthdays` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
+| **5** | `storage:ai-agent-avatars` | Upload a website image, a staff document, a post image, a partner presentation, an agent avatar — the file is saved and will show where you put it | Supabase Storage buckets of those names | self | — | none | 1 |
+| **5** | `storage:website-images` | Upload a website image, a staff document, a post image, a partner presentation, an agent avatar — the file is saved and will show where you put it | Supabase Storage buckets of those names | self | — | none | 2 |
 | **5** | `table:app_daily_metrics` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
 | **5** | `table:app_events` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
 | **5** | `table:app_finance` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
@@ -897,16 +350,12 @@ failing silently, and it is exactly what the contact form did.
 | **5** | `table:outreach_raw_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 1 |
 | **5** | `table:outreach_settings` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 2 |
 | **5** | `table:outreach_suppression` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 1 |
-| **5** | `table:partner_agreements` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
 | **5** | `table:partner_alert_notifications` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
 | **5** | `table:partner_alert_subscriptions` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
 | **5** | `table:partner_members` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:partner_post_links` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
-| **5** | `table:partner_presentations` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
 | **5** | `table:partner_pricing_tiers` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
 | **5** | `table:payers` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 1 |
 | **5** | `table:shift_escalation_chain` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
-| **5** | `table:shift_notes` | Write a handover note; go on/off duty — the next shift knows what happened | shift_notes / staff_presence | screen | toast | none | 1 |
 | **5** | `table:staff_activity_log` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
 | **5** | `table:staff_documents` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | mutation onError | none | 1 |
 | **5** | `table:staff_holidays` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
@@ -926,6 +375,8 @@ failing silently, and it is exactly what the contact form did.
 | **6** | `fn:save-api-keys` | Settings — save provider keys, send a test email, test Twilio — your credentials work | save-api-keys (secrets never reach the client); send-test-email; test-twilio | self | toast | none | 2 |
 | **6** | `fn:send-test-email` | Settings — save provider keys, send a test email, test Twilio — your credentials work | save-api-keys (secrets never reach the client); send-test-email; test-twilio | self | toast | none | 1 |
 | **6** | `fn:test-twilio` | Settings — save provider keys, send a test email, test Twilio — your credentials work | save-api-keys (secrets never reach the client); send-test-email; test-twilio | self | mutation onError | none | 1 |
+| **6** | `storage:social-post-images` | Upload a website image, a staff document, a post image, a partner presentation, an agent avatar — the file is saved and will show where you put it | Supabase Storage buckets of those names | self | toast | none | 1 |
+| **6** | `storage:staff-documents` | Upload a website image, a staff document, a post image, a partner presentation, an agent avatar — the file is saved and will show where you put it | Supabase Storage buckets of those names | self | mutation onError | none | 1 |
 | **6** | `table:admin_ideas` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | mutation onError | none | 1 |
 | **6** | `table:ai_actions` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | toast | none | 2 |
 | **6** | `table:ai_agent_configs` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
@@ -935,7 +386,6 @@ failing silently, and it is exactly what the contact form did.
 | **6** | `table:email_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
 | **6** | `table:email_templates` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
 | **6** | `table:isabella_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:member_notification_optin` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | mutation onError | none | 1 |
 | **6** | `table:operational_costs` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
 | **6** | `table:payments` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | toast | none | 1 |
 | **6** | `table:pricing_plans` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
@@ -944,16 +394,12 @@ failing silently, and it is exactly what the contact form did.
 | **6** | `table:system_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 3 |
 | **6** | `table:testimonials` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
 | **7** | `channel:registration_drafts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | toast | `scripts/rls/wiring.sql` | 1 |
-| **7** | `channel:shift_notes` | Shift notes page — live handover list — code comment: “Keep the list live: notes added/edited/deleted by other operators appear without a reload.” | supabase.channel('call-centre-shift-notes') → fetchNotes() | screen | — | `scripts/rls/wiring.sql` | 1 |
 | **7** | `channel:social_post_metrics` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
 | **7** | `channel:social_posts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
-| **7** | `channel:tasks` | Call-centre dashboard — courtesy-call list auto-refresh — the courtesy-call list stays current while the operator works | supabase.channel('dashboard-courtesy-calls') → fetchCourtesyCalls() | screen | — | `scripts/rls/wiring.sql` | 1 |
 | **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
 | **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
 | **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
 | **9** | `fn:notify-fulfilment` | Order state transition fan-out — paid → allocated → programmed → dispatched → delivered → tested — the next person in the chain knows the device is theirs to move | notify-fulfilment → member_notification_log, one row per channel decision | bell | — | `src/test/notifyFulfilmentDispatcher.test.ts` | 1 |
-| **9** | `fn:partner-register` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | — | `e2e/partnerJourney.spec.ts` | 1 |
-| **9** | `fn:partner-verify` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | — | `e2e/partnerJourney.spec.ts` | 1 |
 | **9** | `table:conversations` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 8 |
 | **9** | `table:messages` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 7 |
 | **10** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | bell | inline | `scripts/rls/wiring.sql` | 4 |
@@ -963,177 +409,49 @@ failing silently, and it is exactly what the contact form did.
 
 | score | wire | control · what is promised | where it goes | who is told | failure shown | proof | sites |
 |---:|---|---|---|---|---|---|---:|
-| **4** | `channel:alert_escalations` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 1 |
-| **4** | `channel:alerts` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 7 |
-| **4** | `channel:conference_participants` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `channel:conference_rooms` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `channel:conversations` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 6 |
-| **4** | `channel:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 5 |
-| **4** | `channel:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
-| **4** | `channel:isabella_assessment_notes` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 2 |
-| **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 4 |
-| **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 8 |
-| **4** | `channel:outreach_raw_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 1 |
-| **4** | `channel:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
-| **4** | `channel:video_exports` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | — | none | 1 |
-| **4** | `channel:video_renders` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | — | none | 1 |
-| **4** | `fn:facebook-metrics` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | — | none | 1 |
-| **4** | `fn:member-self-service` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 3 |
-| **4** | `fn:partner-admin-create` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
 | **4** | `fn:partner-complete-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
 | **4** | `fn:partner-send-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 2 |
 | **4** | `fn:partner-validate-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
-| **4** | `fn:process-commissions` | Run the commission calculation — partners are paid what they earned | process-commissions → partner_commissions | nobody | — | none | 2 |
-| **4** | `fn:save-registration-draft` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | — | none | 1 |
-| **4** | `fn:sos-alert-resolve` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 1 |
-| **4** | `fn:sos-conference-join` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `fn:sos-conference-leave` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `fn:sos-drill` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 1 |
-| **4** | `fn:staff-complete-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 1 |
-| **4** | `fn:staff-validate-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 1 |
-| **4** | `fn:track-invite-view` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
-| **4** | `fn:twilio-call-me` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `fn:twilio-token` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `fn:validate-member-update-token` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | — | none | 1 |
-| **4** | `fn:video-render-queue` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | — | none | 5 |
 | **4** | `link:wa.me` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | — | none | 12 |
-| **4** | `table:ai_events` | Isabella actions and observations — what the assistant did is on the record | ai_events (published to supabase_realtime) | bell | — | none | 4 |
-| **4** | `table:alerts` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 4 |
-| **4** | `table:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 10 |
-| **4** | `table:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 2 |
-| **4** | `table:order_items` | Staff move an order through fulfilment; add or remove an order line — the order says where the device actually is | orders / order_items | bell | — | none | 1 |
-| **4** | `table:orders` | Staff move an order through fulfilment; add or remove an order line — the order says where the device actually is | orders / order_items | bell | — | none | 3 |
-| **4** | `table:outreach_campaigns` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 2 |
-| **4** | `table:outreach_daily_usage` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 2 |
-| **4** | `table:outreach_email_drafts` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 2 |
-| **4** | `table:partner_commissions` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 3 |
 | **4** | `table:partner_invites` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 3 |
 | **4** | `table:social_posts` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | — | none | 3 |
-| **4** | `table:staff` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 11 |
-| **4** | `table:staff_presence` | Write a handover note; go on/off duty — the next shift knows what happened | shift_notes / staff_presence | screen | — | none | 1 |
-| **5** | `channel:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 2 |
+| **5** | `auth:signInWithPassword` | Sign in — /login (member), /staff/login, /partner/login — your password gets you into your account | supabase.auth.signInWithPassword → GoTrue; the session then decides every ProtectedRoute | self | — | none | 3 |
+| **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
 | **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
-| **5** | `channel:outreach_crm_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | mutation onError | none | 1 |
-| **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
-| **5** | `fn:complete-member-registration` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | toast | none | 1 |
-| **5** | `fn:create-checkout` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | inline | none | 1 |
-| **5** | `fn:create-mollie-checkout` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | inline | none | 1 |
-| **5** | `fn:facebook-unpublish` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
-| **5** | `fn:generate-content-plan` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `fn:notify-admin` | Server-side admin alerts: sale.paid, partner.joined, EV-07B alert, shift no-show, runner failure, escalation failures — an operational failure is not silent | notify-admin edge function → notification_log (+ WhatsApp where configured) | bell | toast | none | 2 |
-| **5** | `fn:outreach-send-email` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 1 |
-| **5** | `fn:partner-admin-delete` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
-| **5** | `fn:partner-admin-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
-| **5** | `fn:publish-scheduled` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `fn:send-member-update-request` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | toast | none | 1 |
-| **5** | `fn:staff-register` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 2 |
-| **5** | `fn:staff-send-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
-| **5** | `fn:submit-member-update` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | toast | none | 1 |
-| **5** | `fn:submit-registration` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | inline | none | 1 |
-| **5** | `fn:twilio-sms` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 3 |
-| **5** | `fn:twilio-whatsapp` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | toast | none | 1 |
-| **5** | `fn:youtube-disconnect` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `fn:youtube-integration-status` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
-| **5** | `fn:youtube-oauth-start` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
-| **5** | `fn:youtube-publish` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
 | **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
-| **5** | `rpc:get_admin_dashboard_stats` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
-| **5** | `rpc:get_sales_command_stats` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
-| **5** | `rpc:get_todays_birthdays` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 30 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
-| **5** | `table:app_daily_metrics` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
-| **5** | `table:app_events` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
-| **5** | `table:app_finance` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
-| **5** | `table:conversation_messages` | Isabella conversation turns — the assistant's reply appears as it is produced | conversation_messages | self | — | none | 2 |
-| **5** | `table:crm_contacts` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 2 |
 | **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:crm_import_batches` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:crm_import_rows` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:crm_profiles` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 2 |
-| **5** | `table:documentation` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | toast | none | 1 |
-| **5** | `table:emergency_contacts` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 3 |
-| **5** | `table:media_audiences` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_content_calendar` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 2 |
-| **5** | `table:media_goals` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_image_styles` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_schedule_settings` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_topic_goals` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:media_topics` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
-| **5** | `table:medical_information` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 2 |
-| **5** | `table:member_contact_methods` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 1 |
-| **5** | `table:member_notes` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 3 |
 | **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 9 |
 | **5** | `table:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 3 |
-| **5** | `table:notification_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 2 |
-| **5** | `table:outreach_crm_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 3 |
-| **5** | `table:outreach_queued_tasks` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | mutation onError | none | 1 |
-| **5** | `table:outreach_raw_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 1 |
-| **5** | `table:outreach_settings` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 2 |
-| **5** | `table:outreach_suppression` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 1 |
 | **5** | `table:partner_agreements` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
 | **5** | `table:partner_alert_notifications` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
 | **5** | `table:partner_alert_subscriptions` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
 | **5** | `table:partner_members` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
 | **5** | `table:partner_post_links` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
 | **5** | `table:partner_presentations` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
-| **5** | `table:partner_pricing_tiers` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:payers` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 1 |
-| **5** | `table:shift_escalation_chain` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
-| **5** | `table:shift_notes` | Write a handover note; go on/off duty — the next shift knows what happened | shift_notes / staff_presence | screen | toast | none | 1 |
-| **5** | `table:staff_activity_log` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
-| **5** | `table:staff_documents` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | mutation onError | none | 1 |
-| **5** | `table:staff_holidays` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
-| **5** | `table:staff_invites` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
-| **5** | `table:staff_shift_covers` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
-| **5** | `table:staff_shifts` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 2 |
-| **5** | `table:subscriptions` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 1 |
-| **5** | `table:tasks` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 4 |
-| **5** | `table:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 1 |
-| **5** | `table:video_brand_settings` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
-| **5** | `table:video_outreach_links` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
-| **5** | `table:video_projects` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
-| **5** | `table:video_renders` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
-| **5** | `table:website_images` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 1 |
-| **6** | `fn:ai-execute-action` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | mutation onError | none | 1 |
-| **6** | `fn:save-api-keys` | Settings — save provider keys, send a test email, test Twilio — your credentials work | save-api-keys (secrets never reach the client); send-test-email; test-twilio | self | toast | none | 2 |
-| **6** | `fn:send-test-email` | Settings — save provider keys, send a test email, test Twilio — your credentials work | save-api-keys (secrets never reach the client); send-test-email; test-twilio | self | toast | none | 1 |
-| **6** | `fn:test-twilio` | Settings — save provider keys, send a test email, test Twilio — your credentials work | save-api-keys (secrets never reach the client); send-test-email; test-twilio | self | mutation onError | none | 1 |
-| **6** | `table:admin_ideas` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | mutation onError | none | 1 |
-| **6** | `table:ai_actions` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | toast | none | 2 |
-| **6** | `table:ai_agent_configs` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
-| **6** | `table:ai_agents` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | toast | none | 2 |
-| **6** | `table:ai_memory` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
-| **6** | `table:blog_posts` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:email_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:email_templates` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:isabella_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:member_notification_optin` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | mutation onError | none | 1 |
-| **6** | `table:operational_costs` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:payments` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | toast | none | 1 |
-| **6** | `table:pricing_plans` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:pricing_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **6** | `table:products` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 2 |
-| **6** | `table:system_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 3 |
-| **6** | `table:testimonials` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
-| **7** | `channel:registration_drafts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | toast | `scripts/rls/wiring.sql` | 1 |
-| **7** | `channel:shift_notes` | Shift notes page — live handover list — code comment: “Keep the list live: notes added/edited/deleted by other operators appear without a reload.” | supabase.channel('call-centre-shift-notes') → fetchNotes() | screen | — | `scripts/rls/wiring.sql` | 1 |
-| **7** | `channel:social_post_metrics` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
-| **7** | `channel:social_posts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
-| **7** | `channel:tasks` | Call-centre dashboard — courtesy-call list auto-refresh — the courtesy-call list stays current while the operator works | supabase.channel('dashboard-courtesy-calls') → fetchCourtesyCalls() | screen | — | `scripts/rls/wiring.sql` | 1 |
-| **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
-| **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
-| **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
-| **9** | `fn:notify-fulfilment` | Order state transition fan-out — paid → allocated → programmed → dispatched → delivered → tested — the next person in the chain knows the device is theirs to move | notify-fulfilment → member_notification_log, one row per channel decision | bell | — | `src/test/notifyFulfilmentDispatcher.test.ts` | 1 |
+| **6** | `auth:setSession` | Accept a staff or partner invite from an emailed link — this link makes your account real | auth.setSession with the tokens in the invite URL, then the *-complete-invite function | self | toast | none | 2 |
+| **6** | `storage:partner-presentations` | Upload a website image, a staff document, a post image, a partner presentation, an agent avatar — the file is saved and will show where you put it | Supabase Storage buckets of those names | self | toast | none | 1 |
 | **9** | `fn:partner-register` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | — | `e2e/partnerJourney.spec.ts` | 1 |
 | **9** | `fn:partner-verify` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | — | `e2e/partnerJourney.spec.ts` | 1 |
-| **9** | `table:conversations` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 8 |
-| **9** | `table:messages` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 7 |
-| **10** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | bell | inline | `scripts/rls/wiring.sql` | 4 |
 | **10** | `table:partners` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | toast | `e2e/partnerJourney.spec.ts` | 5 |
 
 ## Notes, worst first
+
+### `auth:signUp` — 0/10 (dead control)
+
+- **control** Self-service account creation on src/pages/auth/Register.tsx
+- **promised** create an account
+- **goes to** supabase.auth.signUp
+- **who is told** self — the wire cannot fire at all
+- **failure shown to user** toast
+- **proof** none — capped at 6
+- **routes** —
+- **call sites** src/pages/auth/Register.tsx
+
+UNREACHABLE. `Register.tsx` is imported by nothing and `/register` is a Navigate to /join, so the page cannot be opened — it is the only wire in the register with zero routes attributed by the import graph. Harmless while dead, and worth removing rather than leaving: it creates an account OUTSIDE the join wizard, so reviving it would be a route to a member record with no payment behind it, which is golden rule 4's whole subject. Reported, not deleted — removing a page is a product call.
 
 ### `fn:send-email` — 0/10 (dead control)
 
@@ -1169,7 +487,7 @@ failing silently, and it is exactly what the contact form did.
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /call-centre/sos-alert
 - **call sites** src/hooks/useSOSConference.ts
 
 The one path golden rule 8 forbids mocking. Published and subscribed, and the operator is by definition watching the queue, so `screen` is the right audience here rather than a notification. Score is capped below 10 by this register's own rule that a proof must be named and end-to-end; see the proof column and §Proofs.
@@ -1182,7 +500,7 @@ The one path golden rule 8 forbids mocking. Published and subscribed, and the op
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin, /admin/devices, /admin/ev07b, /call-centre, /call-centre/alerts, /call-centre/documents +13
 - **call sites** src/components/call-centre/DeviceOfflineAlertsCard.tsx, src/components/layout/CallCentreSidebar.tsx, src/hooks/useAlerts.ts, src/hooks/useAlertsRealtime.ts +3
 
 The one path golden rule 8 forbids mocking. Published and subscribed, and the operator is by definition watching the queue, so `screen` is the right audience here rather than a notification. Score is capped below 10 by this register's own rule that a proof must be named and end-to-end; see the proof column and §Proofs.
@@ -1195,7 +513,7 @@ The one path golden rule 8 forbids mocking. Published and subscribed, and the op
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /call-centre/sos-alert
 - **call sites** src/hooks/useSOSConference.ts
 
 SOS path — untouched here and flagged. No end-to-end proof was found for the conference leg, and Twilio credentials are a production secret this repo cannot check, so it cannot score above 6 under the rubric. Lee's gate.
@@ -1208,7 +526,7 @@ SOS path — untouched here and flagged. No end-to-end proof was found for the c
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /call-centre/sos-alert
 - **call sites** src/hooks/useSOSConference.ts
 
 SOS path — untouched here and flagged. No end-to-end proof was found for the conference leg, and Twilio credentials are a production secret this repo cannot check, so it cannot score above 6 under the rubric. Lee's gate.
@@ -1221,7 +539,7 @@ SOS path — untouched here and flagged. No end-to-end proof was found for the c
 - **who is told** bell
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/messages, /call-centre/alerts, /call-centre/messages, /dashboard/messages, /dashboard/support
 - **call sites** src/components/call-centre/MessagesPanel.tsx, src/pages/admin/MessagesPage.tsx, src/pages/call-centre/CallCentreDashboard.tsx, src/pages/call-centre/MessagesPage.tsx +2
 
 Split from the tables above, which cite `inboundMessages`. That suite proves an INBOUND SMS becomes a message row; it does not exercise these subscriptions, and it does not cover member-self-service's `notify_staff` leg — the one that actually rings the bell. Claiming it for all five wires was the register scoring a neighbour's test, which is the habit it exists to break.
@@ -1234,7 +552,7 @@ Split from the tables above, which cite `inboundMessages`. That suite proves an 
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin, /admin/devices, /admin/devices/:id, /admin/ev07b, /admin/members/:id, /call-centre +2
 - **call sites** src/components/call-centre/DeviceIssuesQueue.tsx, src/components/call-centre/PendantLiveStatusModal.tsx, src/hooks/useDeviceRealtime.ts, src/hooks/useOpsRealtime.ts +1
 
 Device state feeds the operator card, so this is adjacent to the SOS path without being on it.
@@ -1247,7 +565,7 @@ Device state feeds the operator card, so this is adjacent to the SOS path withou
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/tickets, /call-centre/tickets
 - **call sites** src/pages/admin/TicketsPage.tsx
 
 Tickets and comments ARE published, so they arrive live on an open Tickets screen. `tasks` is not (see channel:tasks above) — assigning a task tells its owner nothing, on any channel. Listed as a red.
@@ -1260,7 +578,7 @@ Tickets and comments ARE published, so they arrive live on an open Tickets scree
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /call-centre, /call-centre/alerts, /call-centre/documents, /call-centre/holiday-approvals, /call-centre/holidays, /call-centre/leads +10
 - **call sites** src/components/call-centre/sos/SOSAlertBar.tsx, src/hooks/useSOSConference.ts
 
 The one path golden rule 8 forbids mocking. Published and subscribed, and the operator is by definition watching the queue, so `screen` is the right audience here rather than a notification. Score is capped below 10 by this register's own rule that a proof must be named and end-to-end; see the proof column and §Proofs.
@@ -1273,7 +591,7 @@ The one path golden rule 8 forbids mocking. Published and subscribed, and the op
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin, /admin/leads, /call-centre, /call-centre/leads
 - **call sites** src/components/call-centre/NewEnquiriesCard.tsx, src/components/dashboard/LeadsWidget.tsx, src/pages/admin/LeadsPage.tsx, src/pages/call-centre/LeadsPage.tsx
 
 This subscription WORKS — leads is published and the refetch fires. It is also the reason the original defect was so easy to miss: the wire looks alive, because on a screen someone has open the lead really does appear. Nothing brought anyone TO that screen, which is the whole difference between a live list and being told. The bell notification now does that (see `table:leads`); this row stays `screen`, because that is all a subscription can ever be, however healthy it is.
@@ -1286,7 +604,7 @@ This subscription WORKS — leads is published and the refetch fires. It is also
 - **who is told** bell
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/members/:id, /admin/messages, /call-centre, /call-centre/alerts, /call-centre/documents, /call-centre/holiday-approvals +14
 - **call sites** src/components/admin/member-detail/MessagesTab.tsx, src/components/call-centre/MessagesPanel.tsx, src/components/layout/CallCentreSidebar.tsx, src/pages/admin/MessagesPage.tsx +4
 
 Split from the tables above, which cite `inboundMessages`. That suite proves an INBOUND SMS becomes a message row; it does not exercise these subscriptions, and it does not cover member-self-service's `notify_staff` leg — the one that actually rings the bell. Claiming it for all five wires was the register scoring a neighbour's test, which is the habit it exists to break.
@@ -1299,7 +617,7 @@ Split from the tables above, which cite `inboundMessages`. That suite proves an 
 - **who is told** bell
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/ai-outreach
 - **call sites** src/hooks/useOutreachRawLeads.ts
 
 outreach-send-email writes notification_log. Suppression and daily-usage caps are the guard rails and neither is tested.
@@ -1312,7 +630,7 @@ outreach-send-email writes notification_log. Suppression and daily-usage caps ar
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/tickets, /call-centre/tickets
 - **call sites** src/pages/admin/TicketsPage.tsx
 
 Tickets and comments ARE published, so they arrive live on an open Tickets screen. `tasks` is not (see channel:tasks above) — assigning a task tells its owner nothing, on any channel. Listed as a red.
@@ -1325,7 +643,7 @@ Tickets and comments ARE published, so they arrive live on an open Tickets scree
 - **who is told** bell
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/video-hub
 - **call sites** src/hooks/useVideoExports.ts
 
 Renders and exports are both published, and the webhook notifies. Unproven.
@@ -1338,7 +656,7 @@ Renders and exports are both published, and the webhook notifies. Unproven.
 - **who is told** bell
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/video-hub
 - **call sites** src/hooks/useVideoRenders.ts
 
 Renders and exports are both published, and the webhook notifies. Unproven.
@@ -1351,7 +669,7 @@ Renders and exports are both published, and the webhook notifies. Unproven.
 - **who is told** bell
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/media-manager
 - **call sites** src/hooks/usePublishedPosts.ts
 
 publish-scheduled writes a notification_log row on failure, so a post that does not go out does reach the bell. The two dead realtime subscriptions in this surface are broken out above.
@@ -1364,7 +682,7 @@ publish-scheduled writes a notification_log row on failure, so a post that does 
 - **who is told** bell
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/members/:id, /admin/messages, /call-centre/alerts, /call-centre/members/:id, /call-centre/messages, /dashboard +8
 - **call sites** src/hooks/useFeedback.ts, src/pages/client/MedicalInfoPage.tsx, src/utils/notifications.ts
 
 Split from the tables above, which cite `inboundMessages`. That suite proves an INBOUND SMS becomes a message row; it does not exercise these subscriptions, and it does not cover member-self-service's `notify_staff` leg — the one that actually rings the bell. Claiming it for all five wires was the register scoring a neighbour's test, which is the habit it exists to break.
@@ -1377,7 +695,7 @@ Split from the tables above, which cite `inboundMessages`. That suite proves an 
 - **who is told** nobody
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/partners/new
 - **call sites** src/pages/admin/AddPartnerPage.tsx
 
 Split out from registration deliberately. Nothing here notifies anybody — an invite sent, an agreement signed, a commission row written and a partner deleted are all silent, and `partner_alert_subscriptions` decides who gets told about a MEMBER'S alert, which makes it the most consequential untested row in this family.
@@ -1390,7 +708,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 - **who is told** nobody
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /partner/invite
 - **call sites** src/pages/partner/PartnerInvitePage.tsx
 
 Split out from registration deliberately. Nothing here notifies anybody — an invite sent, an agreement signed, a commission row written and a partner deleted are all silent, and `partner_alert_subscriptions` decides who gets told about a MEMBER'S alert, which makes it the most consequential untested row in this family.
@@ -1403,7 +721,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 - **who is told** nobody
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /partner-dashboard, /partner-dashboard/invites
 - **call sites** src/components/partner/CareDashboard.tsx, src/pages/partner/PartnerInvitesPage.tsx
 
 Split out from registration deliberately. Nothing here notifies anybody — an invite sent, an agreement signed, a commission row written and a partner deleted are all silent, and `partner_alert_subscriptions` decides who gets told about a MEMBER'S alert, which makes it the most consequential untested row in this family.
@@ -1416,7 +734,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 - **who is told** nobody
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /partner/invite
 - **call sites** src/pages/partner/PartnerInvitePage.tsx
 
 Split out from registration deliberately. Nothing here notifies anybody — an invite sent, an agreement signed, a commission row written and a partner deleted are all silent, and `partner_alert_subscriptions` decides who gets told about a MEMBER'S alert, which makes it the most consequential untested row in this family.
@@ -1429,7 +747,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 - **who is told** nobody
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/commissions, /admin/partners-qa
 - **call sites** src/pages/admin/CommissionsPage.tsx, src/pages/admin/PartnersQAPage.tsx
 
 Money. Nobody is told it ran, or that it failed, and there is no test. A red in the report.
@@ -1442,7 +760,7 @@ Money. Nobody is told it ran, or that it failed, and there is no test. A red in 
 - **who is told** bell
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /join
 - **call sites** src/hooks/useRegistrationDraft.ts
 
 OUT OF SCOPE HERE BY INSTRUCTION — the join→pay path is covered by the separate goal already running, and duplicating it would put two changes on the same files. Recorded so the register is complete, deliberately not re-proven or altered. notify-admin fires `sale.paid` from the webhook side, which is why `told` is bell.
@@ -1455,7 +773,7 @@ OUT OF SCOPE HERE BY INSTRUCTION — the join→pay path is covered by the separ
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/alerts, /admin/ev07b, /call-centre, /call-centre/alerts, /call-centre/documents, /call-centre/holiday-approvals +12
 - **call sites** src/lib/alertResolution.ts
 
 Human gate: any change here is Lee's read (SOS path). Not touched by this goal.
@@ -1470,7 +788,7 @@ Human gate: any change here is Lee's read (SOS path). Not touched by this goal.
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /call-centre/sos-alert
 - **call sites** src/hooks/useSOSConference.ts
 
 SOS path — untouched here and flagged. No end-to-end proof was found for the conference leg, and Twilio credentials are a production secret this repo cannot check, so it cannot score above 6 under the rubric. Lee's gate.
@@ -1483,7 +801,7 @@ SOS path — untouched here and flagged. No end-to-end proof was found for the c
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /call-centre/sos-alert
 - **call sites** src/hooks/useSOSConference.ts
 
 SOS path — untouched here and flagged. No end-to-end proof was found for the conference leg, and Twilio credentials are a production secret this repo cannot check, so it cannot score above 6 under the rubric. Lee's gate.
@@ -1496,7 +814,7 @@ SOS path — untouched here and flagged. No end-to-end proof was found for the c
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/alerts
 - **call sites** src/lib/sosDrill.ts
 
 Human gate: any change here is Lee's read (SOS path). Not touched by this goal.
@@ -1511,7 +829,7 @@ Human gate: any change here is Lee's read (SOS path). Not touched by this goal.
 - **who is told** email
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /staff/invite
 - **call sites** src/pages/staff/StaffInvitePage.tsx
 
 Roles are assigned by trigger/admin only (golden rule 3) — nothing in this family lets a user set their own role. Delivery of the invite depends on the email secret, so `email`.
@@ -1524,7 +842,7 @@ Roles are assigned by trigger/admin only (golden rule 3) — nothing in this fam
 - **who is told** email
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /staff/invite
 - **call sites** src/pages/staff/StaffInvitePage.tsx
 
 Roles are assigned by trigger/admin only (golden rule 3) — nothing in this family lets a user set their own role. Delivery of the invite depends on the email secret, so `email`.
@@ -1537,7 +855,7 @@ Roles are assigned by trigger/admin only (golden rule 3) — nothing in this fam
 - **who is told** nobody
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /
 - **call sites** src/pages/LandingPage.tsx
 
 Split out from registration deliberately. Nothing here notifies anybody — an invite sent, an agreement signed, a commission row written and a partner deleted are all silent, and `partner_alert_subscriptions` decides who gets told about a MEMBER'S alert, which makes it the most consequential untested row in this family.
@@ -1550,7 +868,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +77
 - **call sites** src/components/chat/CallMeModal.tsx
 
 SOS path — untouched here and flagged. No end-to-end proof was found for the conference leg, and Twilio credentials are a production secret this repo cannot check, so it cannot score above 6 under the rubric. Lee's gate.
@@ -1563,7 +881,7 @@ SOS path — untouched here and flagged. No end-to-end proof was found for the c
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /call-centre, /call-centre/alerts, /call-centre/documents, /call-centre/holiday-approvals, /call-centre/holidays, /call-centre/leads +10
 - **call sites** src/hooks/useTwilioDevice.ts
 
 SOS path — untouched here and flagged. No end-to-end proof was found for the conference leg, and Twilio credentials are a production secret this repo cannot check, so it cannot score above 6 under the rubric. Lee's gate.
@@ -1576,7 +894,7 @@ SOS path — untouched here and flagged. No end-to-end proof was found for the c
 - **who is told** nobody
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /member-update
 - **call sites** src/pages/MemberUpdatePage.tsx
 
 A member confirms or corrects their details and no one is told the answer came back. Not fixed in this goal (below the reds being fixed, and it needs a decision about who owns the follow-up) — listed as a red in the report.
@@ -1589,7 +907,7 @@ A member confirms or corrects their details and no one is told the answer came b
 - **who is told** bell
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/communications, /admin/video-hub
 - **call sites** src/components/admin/video-hub/RenderVariantButtons.tsx, src/components/admin/video-hub/VideoCreateTab.tsx, src/components/admin/video-hub/VideoProjectsTab.tsx, src/hooks/useFailedActions.ts +1
 
 Renders and exports are both published, and the webhook notifies. Unproven.
@@ -1602,7 +920,7 @@ Renders and exports are both published, and the webhook notifies. Unproven.
 - **who is told** whatsapp
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /, /admin/members/:id, /call-centre/alerts, /call-centre/members/:id, /dashboard, /dashboard/device +8
 - **call sites** src/components/call-centre/MemberQuickSearch.tsx, src/components/client/NotificationPreferences.tsx, src/components/partner/ShareContentSection.tsx, src/hooks/useInputValidation.ts +8
 
 Deep link always works; the outbound function returns “Twilio not configured” when the secret is absent, which is a production question.
@@ -1615,7 +933,7 @@ Deep link always works; the outbound function returns “Twilio not configured�
 - **who is told** bell
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin, /admin/holidays, /admin/rota, /call-centre, /call-centre/alerts, /call-centre/documents +13
 - **call sites** src/components/admin/dashboard/AISalesDesk.tsx, src/hooks/useShiftCovers.ts, src/hooks/useStaffHolidays.ts, src/hooks/useStaffShifts.ts
 
 Some ai_events call sites sit beside notifyUsers; the log row itself is for humans to audit later.
@@ -1628,7 +946,7 @@ Some ai_events call sites sit beside notifyUsers; the log row itself is for huma
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/alerts, /call-centre, /call-centre/alerts, /call-centre/documents, /call-centre/holiday-approvals, /call-centre/holidays +11
 - **call sites** src/components/call-centre/sos/SOSActionPanel.tsx, src/hooks/useAlerts.ts, src/lib/alertOwnership.ts, src/pages/admin/AlertsPage.tsx
 
 Human gate: any change here is Lee's read (SOS path). Not touched by this goal.
@@ -1643,7 +961,7 @@ Human gate: any change here is Lee's read (SOS path). Not touched by this goal.
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/crm-import, /admin/devices, /admin/devices/:id, /admin/ev07b, /admin/members/:id, /call-centre/members/:id
 - **call sites** src/components/admin/devices/DeviceManagementModeToggle.tsx, src/components/admin/member-detail/DeviceTab.tsx, src/components/admin/products/BulkImeiImportModal.tsx, src/hooks/useDeviceProvisioning.ts +6
 
 Device state feeds the operator card, so this is adjacent to the SOS path without being on it.
@@ -1656,7 +974,7 @@ Device state feeds the operator card, so this is adjacent to the SOS path withou
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/tickets, /call-centre/tickets
 - **call sites** src/hooks/useAgentHandoff.ts, src/pages/admin/TicketsPage.tsx
 
 Tickets and comments ARE published, so they arrive live on an open Tickets screen. `tasks` is not (see channel:tasks above) — assigning a task tells its owner nothing, on any channel. Listed as a red.
@@ -1669,7 +987,7 @@ Tickets and comments ARE published, so they arrive live on an open Tickets scree
 - **who is told** bell
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/devices/:id, /admin/members/:id, /call-centre/members/:id
 - **call sites** src/lib/allocatePendant.ts
 
 Split from `fn:notify-fulfilment`, which was carrying these two rows on its proof. That suite proves the FAN-OUT decides correctly; it does not prove a staff edit to an order reaches the table and shows on the screen. Different wire, so no proof.
@@ -1682,7 +1000,7 @@ Split from `fn:notify-fulfilment`, which was carrying these two rows on its proo
 - **who is told** bell
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/devices/:id, /admin/members/:id, /admin/orders, /call-centre/members/:id
 - **call sites** src/hooks/useFulfilmentState.ts, src/hooks/useOrderActions.ts, src/lib/allocatePendant.ts
 
 Split from `fn:notify-fulfilment`, which was carrying these two rows on its proof. That suite proves the FAN-OUT decides correctly; it does not prove a staff edit to an order reaches the table and shows on the screen. Different wire, so no proof.
@@ -1695,7 +1013,7 @@ Split from `fn:notify-fulfilment`, which was carrying these two rows on its proo
 - **who is told** bell
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/ai-outreach
 - **call sites** src/hooks/useOutreachCampaigns.ts, src/hooks/useOutreachRawLeads.ts
 
 outreach-send-email writes notification_log. Suppression and daily-usage caps are the guard rails and neither is tested.
@@ -1708,7 +1026,7 @@ outreach-send-email writes notification_log. Suppression and daily-usage caps ar
 - **who is told** bell
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/ai-outreach
 - **call sites** src/hooks/useOutreachCaps.ts, src/hooks/useOutreachRawLeads.ts
 
 outreach-send-email writes notification_log. Suppression and daily-usage caps are the guard rails and neither is tested.
@@ -1721,7 +1039,7 @@ outreach-send-email writes notification_log. Suppression and daily-usage caps ar
 - **who is told** bell
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/ai-outreach, /admin/communications
 - **call sites** src/components/admin/outreach/OutreachLeadDetailDialog.tsx, src/hooks/useFailedActions.ts
 
 outreach-send-email writes notification_log. Suppression and daily-usage caps are the guard rails and neither is tested.
@@ -1734,7 +1052,7 @@ outreach-send-email writes notification_log. Suppression and daily-usage caps ar
 - **who is told** nobody
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/commissions, /admin/members/:id, /admin/orders, /admin/partners/:id, /call-centre/members/:id
 - **call sites** src/hooks/useOrderActions.ts, src/pages/admin/CommissionsPage.tsx, src/pages/admin/PartnerDetailPage.tsx
 
 Split out from registration deliberately. Nothing here notifies anybody — an invite sent, an agreement signed, a commission row written and a partner deleted are all silent, and `partner_alert_subscriptions` decides who gets told about a MEMBER'S alert, which makes it the most consequential untested row in this family.
@@ -1747,7 +1065,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 - **who is told** nobody
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/members/:id, /admin/orders, /call-centre/members/:id, /partner-dashboard, /partner-dashboard/invites
 - **call sites** src/components/partner/CareDashboard.tsx, src/hooks/useOrderActions.ts, src/pages/partner/PartnerInvitesPage.tsx
 
 Split out from registration deliberately. Nothing here notifies anybody — an invite sent, an agreement signed, a commission row written and a partner deleted are all silent, and `partner_alert_subscriptions` decides who gets told about a MEMBER'S alert, which makes it the most consequential untested row in this family.
@@ -1760,7 +1078,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 - **who is told** bell
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/communications, /admin/media-manager, /partner-dashboard, /partner-dashboard/marketing
 - **call sites** src/hooks/useFailedActions.ts, src/hooks/usePartnerPostLinks.ts, src/hooks/useSocialPosts.ts
 
 publish-scheduled writes a notification_log row on failure, so a post that does not go out does reach the bell. The two dead realtime subscriptions in this surface are broken out above.
@@ -1773,7 +1091,7 @@ publish-scheduled writes a notification_log row on failure, so a post that does 
 - **who is told** email
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin, /admin/members/:id, /admin/settings, /admin/staff, /admin/staff/:staffId, /call-centre +16
 - **call sites** src/components/admin/dashboard/AISalesDesk.tsx, src/components/admin/member-detail/MessagesTab.tsx, src/components/admin/member-detail/NotesTab.tsx, src/components/call-centre/AlertDetailPanel.tsx +7
 
 Roles are assigned by trigger/admin only (golden rule 3) — nothing in this family lets a user set their own role. Delivery of the invite depends on the email secret, so `email`.
@@ -1786,10 +1104,62 @@ Roles are assigned by trigger/admin only (golden rule 3) — nothing in this fam
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /call-centre, /call-centre/alerts, /call-centre/documents, /call-centre/holiday-approvals, /call-centre/holidays, /call-centre/leads +10
 - **call sites** src/hooks/useStaffHeartbeat.ts
 
 See channel:shift_notes — the note lands, the live update does not.
+
+### `auth:resetPasswordForEmail` — 5/10 (arrives, unproven)
+
+- **control** Forgot password → email link → set a new one
+- **promised** we will email you a link to get back in
+- **goes to** resetPasswordForEmail sends via GoTrue's own mailer; the link returns to /reset-password, where updateUser sets the password
+- **who is told** email
+- **failure shown to user** toast
+- **proof** none — capped at 6
+- **routes** /forgot-password
+- **call sites** src/pages/auth/ForgotPassword.tsx
+
+THE MOST CONSEQUENTIAL EMAIL IN THE PRODUCT, and the register was not asking about it. If GoTrue's SMTP is unconfigured or its redirect is wrong, the user sees a success message and no email ever arrives — the contact-form failure shape exactly, on the path someone locked out of a life-safety account has to use. `RecoveryRedirect` in App.tsx also has a 10-second fallback that navigates to /reset-password whether or not PASSWORD_RECOVERY fired, so a broken token lands on the form rather than on an error. Cannot be settled from the repo — it is a Supabase Auth setting, and it is in the list for Lee.
+
+### `auth:signInWithPassword` — 5/10 (arrives, unproven)
+
+- **control** Sign in — /login (member), /staff/login, /partner/login
+- **promised** your password gets you into your account
+- **goes to** supabase.auth.signInWithPassword → GoTrue; the session then decides every ProtectedRoute
+- **who is told** self
+- **failure shown to user** no
+- **proof** none — capped at 6
+- **routes** /login, /partner/login, /staff/login
+- **call sites** src/pages/auth/Login.tsx, src/pages/auth/StaffLogin.tsx, src/pages/partner/PartnerLogin.tsx
+
+The front door, on three surfaces. Nothing in the repo proves a member can actually get in: `partnerJourney.spec.ts` drives the partner login in a browser but stubs Supabase, so it proves the form and the routing, not the credential exchange. Whether sign-in works in production is a click, and it is in the list for Lee.
+
+### `auth:signOut` — 5/10 (arrives, unproven)
+
+- **control** Sign out — every header, plus the forced sign-out on a wrong-surface login
+- **promised** you are signed out
+- **goes to** supabase.auth.signOut()
+- **who is told** self
+- **failure shown to user** no
+- **proof** none — capped at 6
+- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **call sites** src/components/layout/AdminHeader.tsx, src/components/layout/ClientLayout.tsx, src/contexts/AuthContext.tsx, src/pages/auth/ResetPassword.tsx +2
+
+Present on every route because it lives in the layouts and in AuthContext. StaffLogin and PartnerLogin also call it deliberately: signing in on the wrong surface signs you back out rather than leaving a half-authorised session. That is the right behaviour and it is untested.
+
+### `auth:updateUser` — 5/10 (arrives, unproven)
+
+- **control** Forgot password → email link → set a new one
+- **promised** we will email you a link to get back in
+- **goes to** resetPasswordForEmail sends via GoTrue's own mailer; the link returns to /reset-password, where updateUser sets the password
+- **who is told** email
+- **failure shown to user** toast
+- **proof** none — capped at 6
+- **routes** /reset-password
+- **call sites** src/pages/auth/ResetPassword.tsx
+
+THE MOST CONSEQUENTIAL EMAIL IN THE PRODUCT, and the register was not asking about it. If GoTrue's SMTP is unconfigured or its redirect is wrong, the user sees a success message and no email ever arrives — the contact-form failure shape exactly, on the path someone locked out of a life-safety account has to use. `RecoveryRedirect` in App.tsx also has a 10-second fallback that navigates to /reset-password whether or not PASSWORD_RECOVERY fired, so a broken token lands on the form rather than on an error. Cannot be settled from the repo — it is a Supabase Auth setting, and it is in the list for Lee.
 
 ### `channel:members` — 5/10 (arrives, unproven)
 
@@ -1799,7 +1169,7 @@ See channel:shift_notes — the note lands, the live update does not.
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/members, /call-centre
 - **call sites** src/hooks/useMembersRealtime.ts, src/pages/call-centre/StaffDashboard.tsx
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
@@ -1812,7 +1182,7 @@ See channel:shift_notes — the note lands, the live update does not.
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations, /admin/alerts +76
 - **call sites** src/components/admin/dashboard/NotificationLog.tsx, src/hooks/useNotifications.ts
 
 The one notification channel this repo can prove is live: published, no secret required, and RLS verified so a member sees only rows addressed to them. Everything scored `bell` depends on this row being right.
@@ -1825,7 +1195,7 @@ The one notification channel this repo can prove is live: published, no secret r
 - **who is told** bell
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/ai-outreach
 - **call sites** src/hooks/useOutreachCRMLeads.ts
 
 outreach-send-email writes notification_log. Suppression and daily-usage caps are the guard rails and neither is tested.
@@ -1838,7 +1208,7 @@ outreach-send-email writes notification_log. Suppression and daily-usage caps ar
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +77
 - **call sites** src/hooks/useAIAgentHealth.ts, src/hooks/useAIAgents.ts, src/hooks/useAIChat.ts
 
 Split from the gate above: `isabellaGate` proves the hard blocks, not that a prompt saved in this UI reaches the database and is the one she reads. Citing it here would have been the register scoring itself on an adjacent test.
@@ -1851,7 +1221,7 @@ Split from the gate above: `isabellaGate` proves the hard blocks, not that a pro
 - **who is told** bell
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /complete-registration
 - **call sites** src/pages/auth/CompleteRegistration.tsx
 
 OUT OF SCOPE HERE BY INSTRUCTION — the join→pay path is covered by the separate goal already running, and duplicating it would put two changes on the same files. Recorded so the register is complete, deliberately not re-proven or altered. notify-admin fires `sale.paid` from the webhook side, which is why `told` is bell.
@@ -1864,7 +1234,7 @@ OUT OF SCOPE HERE BY INSTRUCTION — the join→pay path is covered by the separ
 - **who is told** bell
 - **failure shown to user** inline
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /join
 - **call sites** src/components/join/steps/JoinPaymentStep.tsx
 
 OUT OF SCOPE HERE BY INSTRUCTION — the join→pay path is covered by the separate goal already running, and duplicating it would put two changes on the same files. Recorded so the register is complete, deliberately not re-proven or altered. notify-admin fires `sale.paid` from the webhook side, which is why `told` is bell.
@@ -1877,7 +1247,7 @@ OUT OF SCOPE HERE BY INSTRUCTION — the join→pay path is covered by the separ
 - **who is told** bell
 - **failure shown to user** inline
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /join
 - **call sites** src/components/join/steps/JoinPaymentStep.tsx
 
 OUT OF SCOPE HERE BY INSTRUCTION — the join→pay path is covered by the separate goal already running, and duplicating it would put two changes on the same files. Recorded so the register is complete, deliberately not re-proven or altered. notify-admin fires `sale.paid` from the webhook side, which is why `told` is bell.
@@ -1890,7 +1260,7 @@ OUT OF SCOPE HERE BY INSTRUCTION — the join→pay path is covered by the separ
 - **who is told** bell
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/media-manager
 - **call sites** src/hooks/usePublishedPosts.ts
 
 publish-scheduled writes a notification_log row on failure, so a post that does not go out does reach the bell. The two dead realtime subscriptions in this surface are broken out above.
@@ -1903,7 +1273,7 @@ publish-scheduled writes a notification_log row on failure, so a post that does 
 - **who is told** bell
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/media-manager
 - **call sites** src/components/admin/media/strategy/ContentPlanner.tsx
 
 publish-scheduled writes a notification_log row on failure, so a post that does not go out does reach the bell. The two dead realtime subscriptions in this surface are broken out above.
@@ -1916,7 +1286,7 @@ publish-scheduled writes a notification_log row on failure, so a post that does 
 - **who is told** bell
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin
 - **call sites** src/components/admin/dashboard/NotificationSettings.tsx, src/components/admin/dashboard/PaidSalesFeed.tsx
 
 Reaches the bell, which is live. Untested end-to-end from the caller side.
@@ -1929,7 +1299,7 @@ Reaches the bell, which is live. Untested end-to-end from the caller side.
 - **who is told** bell
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/ai-outreach
 - **call sites** src/hooks/useOutreachPipeline.ts
 
 outreach-send-email writes notification_log. Suppression and daily-usage caps are the guard rails and neither is tested.
@@ -1942,7 +1312,7 @@ outreach-send-email writes notification_log. Suppression and daily-usage caps ar
 - **who is told** nobody
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/partners
 - **call sites** src/pages/admin/PartnersPage.tsx
 
 Split out from registration deliberately. Nothing here notifies anybody — an invite sent, an agreement signed, a commission row written and a partner deleted are all silent, and `partner_alert_subscriptions` decides who gets told about a MEMBER'S alert, which makes it the most consequential untested row in this family.
@@ -1955,7 +1325,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 - **who is told** nobody
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/partners
 - **call sites** src/components/admin/InvitePartnerDialog.tsx
 
 Split out from registration deliberately. Nothing here notifies anybody — an invite sent, an agreement signed, a commission row written and a partner deleted are all silent, and `partner_alert_subscriptions` decides who gets told about a MEMBER'S alert, which makes it the most consequential untested row in this family.
@@ -1968,7 +1338,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 - **who is told** bell
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/media-manager
 - **call sites** src/hooks/useScheduledContent.ts
 
 publish-scheduled writes a notification_log row on failure, so a post that does not go out does reach the bell. The two dead realtime subscriptions in this surface are broken out above.
@@ -1981,7 +1351,7 @@ publish-scheduled writes a notification_log row on failure, so a post that does 
 - **who is told** nobody
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/members/:id, /call-centre/members/:id
 - **call sites** src/components/admin/member-detail/MemberUpdateRequestModal.tsx
 
 A member confirms or corrects their details and no one is told the answer came back. Not fixed in this goal (below the reds being fixed, and it needs a decision about who owns the follow-up) — listed as a red in the report.
@@ -1994,7 +1364,7 @@ A member confirms or corrects their details and no one is told the answer came b
 - **who is told** email
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/staff, /admin/staff/:staffId
 - **call sites** src/components/admin/staff/StaffForm.tsx, src/hooks/useStaffMembers.ts
 
 Roles are assigned by trigger/admin only (golden rule 3) — nothing in this family lets a user set their own role. Delivery of the invite depends on the email secret, so `email`.
@@ -2007,7 +1377,7 @@ Roles are assigned by trigger/admin only (golden rule 3) — nothing in this fam
 - **who is told** email
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/staff/:staffId
 - **call sites** src/hooks/useStaffInvites.ts
 
 Roles are assigned by trigger/admin only (golden rule 3) — nothing in this family lets a user set their own role. Delivery of the invite depends on the email secret, so `email`.
@@ -2020,7 +1390,7 @@ Roles are assigned by trigger/admin only (golden rule 3) — nothing in this fam
 - **who is told** nobody
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /member-update
 - **call sites** src/pages/MemberUpdatePage.tsx
 
 A member confirms or corrects their details and no one is told the answer came back. Not fixed in this goal (below the reds being fixed, and it needs a decision about who owns the follow-up) — listed as a red in the report.
@@ -2033,7 +1403,7 @@ A member confirms or corrects their details and no one is told the answer came b
 - **who is told** bell
 - **failure shown to user** inline
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /join
 - **call sites** src/components/join/steps/JoinPaymentStep.tsx
 
 OUT OF SCOPE HERE BY INSTRUCTION — the join→pay path is covered by the separate goal already running, and duplicating it would put two changes on the same files. Recorded so the register is complete, deliberately not re-proven or altered. notify-admin fires `sale.paid` from the webhook side, which is why `told` is bell.
@@ -2046,7 +1416,7 @@ OUT OF SCOPE HERE BY INSTRUCTION — the join→pay path is covered by the separ
 - **who is told** external
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/devices/:id, /call-centre/alerts
 - **call sites** src/components/admin/devices/ProvisioningChecklist.tsx, src/components/call-centre/AlertDetailPanel.tsx, src/hooks/useDeviceSmsCommands.ts
 
 mailto: leaves the platform entirely — nothing is recorded and nothing can be. twilio-sms degrades to “Twilio not configured”.
@@ -2059,7 +1429,7 @@ mailto: leaves the platform entirely — nothing is recorded and nothing can be.
 - **who is told** whatsapp
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /call-centre/alerts
 - **call sites** src/components/call-centre/AlertDetailPanel.tsx
 
 Deep link always works; the outbound function returns “Twilio not configured” when the secret is absent, which is a production question.
@@ -2072,7 +1442,7 @@ Deep link always works; the outbound function returns “Twilio not configured�
 - **who is told** bell
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/settings, /admin/video-hub
 - **call sites** src/hooks/useYouTubeIntegration.ts
 
 publish-scheduled writes a notification_log row on failure, so a post that does not go out does reach the bell. The two dead realtime subscriptions in this surface are broken out above.
@@ -2085,7 +1455,7 @@ publish-scheduled writes a notification_log row on failure, so a post that does 
 - **who is told** bell
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/settings, /admin/video-hub
 - **call sites** src/hooks/useYouTubeIntegration.ts
 
 publish-scheduled writes a notification_log row on failure, so a post that does not go out does reach the bell. The two dead realtime subscriptions in this surface are broken out above.
@@ -2098,7 +1468,7 @@ publish-scheduled writes a notification_log row on failure, so a post that does 
 - **who is told** bell
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/settings, /admin/video-hub
 - **call sites** src/hooks/useYouTubeIntegration.ts
 
 publish-scheduled writes a notification_log row on failure, so a post that does not go out does reach the bell. The two dead realtime subscriptions in this surface are broken out above.
@@ -2111,7 +1481,7 @@ publish-scheduled writes a notification_log row on failure, so a post that does 
 - **who is told** bell
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/settings, /admin/video-hub
 - **call sites** src/hooks/useYouTubeIntegration.ts
 
 publish-scheduled writes a notification_log row on failure, so a post that does not go out does reach the bell. The two dead realtime subscriptions in this surface are broken out above.
@@ -2124,7 +1494,7 @@ publish-scheduled writes a notification_log row on failure, so a post that does 
 - **who is told** external
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /, /admin, /admin/leads, /call-centre, /call-centre/leads, /call-centre/messages +8
 - **call sites** src/components/call-centre/sos/SOSActionPanel.tsx, src/components/dashboard/LeadsWidget.tsx, src/components/join/steps/JoinConfirmationStep.tsx, src/components/partner/ShareContentSection.tsx +9
 
 mailto: leaves the platform entirely — nothing is recorded and nothing can be. twilio-sms degrades to “Twilio not configured”.
@@ -2137,10 +1507,23 @@ mailto: leaves the platform entirely — nothing is recorded and nothing can be.
 - **who is told** external
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /, /admin, /admin/leads, /admin/members/:id, /admin/messages, /admin/tasks +18
 - **call sites** src/components/call-centre/AlertDetailPanel.tsx, src/components/call-centre/DeviceOfflineAlertsCard.tsx, src/components/call-centre/MemberQuickSearch.tsx, src/components/call-centre/PendantLiveStatusModal.tsx +14
 
 Reaches the dialler, and `telHref()` returns null when the number is unset so a “Call us” card with no number in it is not rendered — the right failure. Nothing is recorded: a call placed this way leaves no interaction row (see table:member_interactions, whose logger is dead code), so the platform cannot say a member was ever phoned. On the SOS path the brief already calls for replacing tel: with the Twilio conference; that is Lee's gate, not this goal.
+
+### `open:window` — 5/10 (arrives, unproven)
+
+- **control** Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard
+- **promised** this takes you where it says
+- **goes to** a new tab or a full navigation, out of the SPA
+- **who is told** external
+- **failure shown to user** no
+- **proof** none — capped at 6
+- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **call sites** src/components/admin/media/PublishedPostCard.tsx, src/components/admin/video-hub/ExportArtifactButtons.tsx, src/components/admin/video-hub/VideoPreviewDialog.tsx, src/components/admin/video-hub/VideoProjectsTab.tsx +26
+
+The counterpart to `link:*`, and originally invisible to the scanner: a `tel:` in an href was counted while the same number handed to window.location.href was not. 59 call sites. This is also how the checkout redirect leaves the app, which is why the join→pay goal owns that part and this row does not re-prove it.
 
 ### `rpc:get_admin_dashboard_stats` — 5/10 (arrives, unproven)
 
@@ -2150,7 +1533,7 @@ Reaches the dialler, and `telHref()` returns null when the number is unset so a 
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin
 - **call sites** src/pages/admin/AdminDashboard.tsx
 
 Read-only, so nothing to notify. `get_user_role_info` is on the critical path for every protected route: if it fails, the guard sees no role.
@@ -2163,6 +1546,8 @@ Read-only, so nothing to notify. `get_user_role_info` is on the critical path fo
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
+- **routes** /admin
+- **call sites** src/components/admin/dashboard/SalesCommandStrip.tsx
 - **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
 - **call sites** src/hooks/useSalesCommandStats.ts
 
@@ -2176,7 +1561,7 @@ Read-only, so nothing to notify. `get_user_role_info` is on the critical path fo
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /call-centre
 - **call sites** src/pages/call-centre/StaffDashboard.tsx
 
 Read-only, so nothing to notify. `get_user_role_info` is on the critical path for every protected route: if it fails, the guard sees no role.
@@ -2194,6 +1579,32 @@ Read-only, so nothing to notify. `get_user_role_info` is on the critical path fo
 
 Read-only, so nothing to notify. `get_user_role_info` is on the critical path for every protected route: if it fails, the guard sees no role.
 
+### `storage:ai-agent-avatars` — 5/10 (arrives, unproven)
+
+- **control** Upload a website image, a staff document, a post image, a partner presentation, an agent avatar
+- **promised** the file is saved and will show where you put it
+- **goes to** Supabase Storage buckets of those names
+- **who is told** self
+- **failure shown to user** no
+- **proof** none — capped at 6
+- **routes** /admin/ai/agents/:agentKey
+- **call sites** src/components/admin/ai/AIAvatarUpload.tsx
+
+Also missed by the original scanner. Each bucket is used on exactly one admin or partner screen and the admin who pressed Upload is the audience. What none has is a proof that the object is READABLE afterwards — the failure mode is an upload that succeeds and a broken image — and `staff-documents` is where that matters, because an HR document nobody can open later is the same as one never filed.
+
+### `storage:website-images` — 5/10 (arrives, unproven)
+
+- **control** Upload a website image, a staff document, a post image, a partner presentation, an agent avatar
+- **promised** the file is saved and will show where you put it
+- **goes to** Supabase Storage buckets of those names
+- **who is told** self
+- **failure shown to user** no
+- **proof** none — capped at 6
+- **routes** /admin/settings, /admin/video-hub
+- **call sites** src/components/admin/settings/ImageUploadCard.tsx, src/components/admin/video-hub/LogoUploadSection.tsx
+
+Also missed by the original scanner. Each bucket is used on exactly one admin or partner screen and the admin who pressed Upload is the audience. What none has is a proof that the object is READABLE afterwards — the failure mode is an upload that succeeds and a broken image — and `staff-documents` is where that matters, because an HR document nobody can open later is the same as one never filed.
+
 ### `table:app_daily_metrics` — 5/10 (arrives, unproven)
 
 - **control** Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs
@@ -2202,7 +1613,7 @@ Read-only, so nothing to notify. `get_user_role_info` is on the critical path fo
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin, /admin/finance, /join
 - **call sites** src/lib/syncHub.ts
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
@@ -2215,7 +1626,7 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin, /admin/finance, /join
 - **call sites** src/lib/syncHub.ts
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
@@ -2228,7 +1639,7 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin, /admin/finance, /join
 - **call sites** src/lib/syncHub.ts
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
@@ -2241,7 +1652,7 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +77
 - **call sites** src/hooks/useAgentHandoff.ts, src/hooks/useAIChat.ts
 
 The person who typed is the person watching. No notification owed.
@@ -2254,7 +1665,7 @@ The person who typed is the person watching. No notification owed.
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/crm-contacts/:id, /admin/crm-import
 - **call sites** src/pages/admin/CRMContactDetailPage.tsx, src/pages/admin/CRMImportPage.tsx
 
 Migrated subscriptions are written `pending` on purpose — golden rule 4 — and nothing here activates anyone. The single-member import UI is a separate brief item (§3c), not this goal.
@@ -2267,7 +1678,7 @@ Migrated subscriptions are written `pending` on purpose — golden rule 4 — an
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /, /admin/commissions, /admin/members/:id, /admin/orders, /admin/partners/:id, /call-centre/members/:id +10
 - **call sites** src/lib/crmEvents.ts
 
 Migrated subscriptions are written `pending` on purpose — golden rule 4 — and nothing here activates anyone. The single-member import UI is a separate brief item (§3c), not this goal.
@@ -2280,7 +1691,7 @@ Migrated subscriptions are written `pending` on purpose — golden rule 4 — an
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/crm-import
 - **call sites** src/pages/admin/CRMImportPage.tsx
 
 Migrated subscriptions are written `pending` on purpose — golden rule 4 — and nothing here activates anyone. The single-member import UI is a separate brief item (§3c), not this goal.
@@ -2293,7 +1704,7 @@ Migrated subscriptions are written `pending` on purpose — golden rule 4 — an
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/crm-import
 - **call sites** src/pages/admin/CRMImportPage.tsx
 
 Migrated subscriptions are written `pending` on purpose — golden rule 4 — and nothing here activates anyone. The single-member import UI is a separate brief item (§3c), not this goal.
@@ -2306,7 +1717,7 @@ Migrated subscriptions are written `pending` on purpose — golden rule 4 — an
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/crm-contacts/:id, /admin/crm-import
 - **call sites** src/pages/admin/CRMContactDetailPage.tsx, src/pages/admin/CRMImportPage.tsx
 
 Migrated subscriptions are written `pending` on purpose — golden rule 4 — and nothing here activates anyone. The single-member import UI is a separate brief item (§3c), not this goal.
@@ -2319,7 +1730,7 @@ Migrated subscriptions are written `pending` on purpose — golden rule 4 — an
 - **who is told** screen
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/settings, /call-centre/documents, /dashboard/support
 - **call sites** src/hooks/useDocumentation.ts
 
 Device state feeds the operator card, so this is adjacent to the SOS path without being on it.
@@ -2332,7 +1743,7 @@ Device state feeds the operator card, so this is adjacent to the SOS path withou
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/crm-import, /admin/members/:id, /call-centre/members/:id, /dashboard/contacts
 - **call sites** src/components/admin/member-detail/ContactsTab.tsx, src/pages/admin/CRMImportPage.tsx, src/pages/client/EmergencyContactsPage.tsx
 
 Life-safety data with no notification owed — the member is the actor. What it DOES need is proof that an operator can read it and a stranger cannot; the RLS harness covers the isolation half, and the end-to-end half is unproven, so 5.
@@ -2345,7 +1756,7 @@ Life-safety data with no notification owed — the member is the actor. What it 
 - **who is told** bell
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/media-manager
 - **call sites** src/hooks/useMediaStrategy.ts
 
 publish-scheduled writes a notification_log row on failure, so a post that does not go out does reach the bell. The two dead realtime subscriptions in this surface are broken out above.
@@ -2358,7 +1769,7 @@ publish-scheduled writes a notification_log row on failure, so a post that does 
 - **who is told** bell
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/media-manager
 - **call sites** src/hooks/useContentCalendar.ts, src/hooks/useScheduledContent.ts
 
 publish-scheduled writes a notification_log row on failure, so a post that does not go out does reach the bell. The two dead realtime subscriptions in this surface are broken out above.
@@ -2371,7 +1782,7 @@ publish-scheduled writes a notification_log row on failure, so a post that does 
 - **who is told** bell
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/media-manager
 - **call sites** src/hooks/useMediaStrategy.ts
 
 publish-scheduled writes a notification_log row on failure, so a post that does not go out does reach the bell. The two dead realtime subscriptions in this surface are broken out above.
@@ -2384,7 +1795,7 @@ publish-scheduled writes a notification_log row on failure, so a post that does 
 - **who is told** bell
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/media-manager
 - **call sites** src/hooks/useMediaStrategy.ts
 
 publish-scheduled writes a notification_log row on failure, so a post that does not go out does reach the bell. The two dead realtime subscriptions in this surface are broken out above.
@@ -2397,7 +1808,7 @@ publish-scheduled writes a notification_log row on failure, so a post that does 
 - **who is told** bell
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/media-manager
 - **call sites** src/hooks/useMediaStrategy.ts
 
 publish-scheduled writes a notification_log row on failure, so a post that does not go out does reach the bell. The two dead realtime subscriptions in this surface are broken out above.
@@ -2410,7 +1821,7 @@ publish-scheduled writes a notification_log row on failure, so a post that does 
 - **who is told** bell
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/media-manager
 - **call sites** src/hooks/useMediaStrategy.ts
 
 publish-scheduled writes a notification_log row on failure, so a post that does not go out does reach the bell. The two dead realtime subscriptions in this surface are broken out above.
@@ -2423,7 +1834,7 @@ publish-scheduled writes a notification_log row on failure, so a post that does 
 - **who is told** bell
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/media-manager
 - **call sites** src/hooks/useMediaStrategy.ts
 
 publish-scheduled writes a notification_log row on failure, so a post that does not go out does reach the bell. The two dead realtime subscriptions in this surface are broken out above.
@@ -2436,7 +1847,7 @@ publish-scheduled writes a notification_log row on failure, so a post that does 
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/crm-import, /admin/members/:id, /call-centre/members/:id
 - **call sites** src/components/admin/member-detail/MedicalTab.tsx, src/pages/admin/CRMImportPage.tsx
 
 Life-safety data with no notification owed — the member is the actor. What it DOES need is proof that an operator can read it and a stranger cannot; the RLS harness covers the isolation half, and the end-to-end half is unproven, so 5.
@@ -2449,7 +1860,7 @@ Life-safety data with no notification owed — the member is the actor. What it 
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/crm-import
 - **call sites** src/pages/admin/CRMImportPage.tsx
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
@@ -2462,7 +1873,7 @@ Life-safety data with no notification owed — the member is the actor. What it 
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/crm-contacts/:id, /admin/crm-import, /admin/members/:id, /call-centre/members/:id
 - **call sites** src/components/admin/member-detail/NotesTab.tsx, src/pages/admin/CRMContactDetailPage.tsx, src/pages/admin/CRMImportPage.tsx
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
@@ -2475,7 +1886,7 @@ Life-safety data with no notification owed — the member is the actor. What it 
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +89
 - **call sites** src/components/admin/member-detail/CourtesyCallsCard.tsx, src/components/admin/member-detail/ProfileTab.tsx, src/components/LanguageSelector.tsx, src/pages/admin/AddMemberWizard.tsx +5
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
@@ -2488,7 +1899,7 @@ Life-safety data with no notification owed — the member is the actor. What it 
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations, /admin/alerts +76
 - **call sites** src/hooks/useNotifications.ts, src/lib/staffNotify.ts, src/utils/notifications.ts
 
 The one notification channel this repo can prove is live: published, no secret required, and RLS verified so a member sees only rows addressed to them. Everything scored `bell` depends on this row being right.
@@ -2501,7 +1912,7 @@ The one notification channel this repo can prove is live: published, no secret r
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin
 - **call sites** src/components/admin/dashboard/NotificationSettings.tsx, src/hooks/usePushNotifications.ts
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
@@ -2514,7 +1925,7 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **who is told** bell
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/ai-outreach
 - **call sites** src/components/admin/outreach/OutreachLeadDetailDialog.tsx, src/hooks/useOutreachCRMLeads.ts, src/hooks/useOutreachRawLeads.ts
 
 outreach-send-email writes notification_log. Suppression and daily-usage caps are the guard rails and neither is tested.
@@ -2527,7 +1938,7 @@ outreach-send-email writes notification_log. Suppression and daily-usage caps ar
 - **who is told** bell
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/ai-outreach
 - **call sites** src/hooks/useOutreachRawLeads.ts
 
 outreach-send-email writes notification_log. Suppression and daily-usage caps are the guard rails and neither is tested.
@@ -2540,7 +1951,7 @@ outreach-send-email writes notification_log. Suppression and daily-usage caps ar
 - **who is told** bell
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/ai-outreach
 - **call sites** src/hooks/useOutreachRawLeads.ts
 
 outreach-send-email writes notification_log. Suppression and daily-usage caps are the guard rails and neither is tested.
@@ -2553,7 +1964,7 @@ outreach-send-email writes notification_log. Suppression and daily-usage caps ar
 - **who is told** bell
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/ai-outreach
 - **call sites** src/components/admin/outreach/OutreachControlPanel.tsx, src/hooks/useOutreachCaps.ts
 
 outreach-send-email writes notification_log. Suppression and daily-usage caps are the guard rails and neither is tested.
@@ -2566,7 +1977,7 @@ outreach-send-email writes notification_log. Suppression and daily-usage caps ar
 - **who is told** bell
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/ai-outreach
 - **call sites** src/components/admin/outreach/OutreachLeadDetailDialog.tsx
 
 outreach-send-email writes notification_log. Suppression and daily-usage caps are the guard rails and neither is tested.
@@ -2579,7 +1990,7 @@ outreach-send-email writes notification_log. Suppression and daily-usage caps ar
 - **who is told** nobody
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /partner-dashboard, /partner-dashboard/agreement, /partner-dashboard/alerts, /partner-dashboard/commissions, /partner-dashboard/invites, /partner-dashboard/marketing +3
 - **call sites** src/components/partner/AgreementRequiredModal.tsx
 
 Split out from registration deliberately. Nothing here notifies anybody — an invite sent, an agreement signed, a commission row written and a partner deleted are all silent, and `partner_alert_subscriptions` decides who gets told about a MEMBER'S alert, which makes it the most consequential untested row in this family.
@@ -2592,7 +2003,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 - **who is told** nobody
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/partners/:id, /partner-dashboard, /partner-dashboard/alerts
 - **call sites** src/hooks/usePartnerAlertNotifications.ts
 
 Split out from registration deliberately. Nothing here notifies anybody — an invite sent, an agreement signed, a commission row written and a partner deleted are all silent, and `partner_alert_subscriptions` decides who gets told about a MEMBER'S alert, which makes it the most consequential untested row in this family.
@@ -2605,7 +2016,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 - **who is told** nobody
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/partners/:id, /partner-dashboard/members
 - **call sites** src/hooks/usePartnerAlertSubscriptions.ts
 
 Split out from registration deliberately. Nothing here notifies anybody — an invite sent, an agreement signed, a commission row written and a partner deleted are all silent, and `partner_alert_subscriptions` decides who gets told about a MEMBER'S alert, which makes it the most consequential untested row in this family.
@@ -2618,7 +2029,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 - **who is told** nobody
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/partners/:id, /partner-dashboard, /partner-dashboard/members
 - **call sites** src/hooks/usePartnerMembers.ts
 
 Split out from registration deliberately. Nothing here notifies anybody — an invite sent, an agreement signed, a commission row written and a partner deleted are all silent, and `partner_alert_subscriptions` decides who gets told about a MEMBER'S alert, which makes it the most consequential untested row in this family.
@@ -2631,7 +2042,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 - **who is told** nobody
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /partner-dashboard, /partner-dashboard/marketing
 - **call sites** src/hooks/usePartnerPostLinks.ts
 
 Split out from registration deliberately. Nothing here notifies anybody — an invite sent, an agreement signed, a commission row written and a partner deleted are all silent, and `partner_alert_subscriptions` decides who gets told about a MEMBER'S alert, which makes it the most consequential untested row in this family.
@@ -2644,7 +2055,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 - **who is told** nobody
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /partner-dashboard/marketing
 - **call sites** src/pages/partner/PartnerMarketingPage.tsx
 
 Split out from registration deliberately. Nothing here notifies anybody — an invite sent, an agreement signed, a commission row written and a partner deleted are all silent, and `partner_alert_subscriptions` decides who gets told about a MEMBER'S alert, which makes it the most consequential untested row in this family.
@@ -2657,7 +2068,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 - **who is told** nobody
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/partners/:id
 - **call sites** src/hooks/usePartnerPricing.ts
 
 Split out from registration deliberately. Nothing here notifies anybody — an invite sent, an agreement signed, a commission row written and a partner deleted are all silent, and `partner_alert_subscriptions` decides who gets told about a MEMBER'S alert, which makes it the most consequential untested row in this family.
@@ -2670,7 +2081,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/members/new
 - **call sites** src/pages/admin/AddMemberWizard.tsx
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
@@ -2683,7 +2094,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 - **who is told** bell
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/rota
 - **call sites** src/hooks/useEscalationChain.ts
 
 The existing good pattern: one write path (`notifyUsers`), targeted rows so mark-as-read cannot clear someone else's, and insert errors logged rather than swallowed. No named end-to-end proof yet, so capped at 6 despite being the best-wired workflow here.
@@ -2696,7 +2107,7 @@ The existing good pattern: one write path (`notifyUsers`), targeted rows so mark
 - **who is told** screen
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /call-centre/shift-notes
 - **call sites** src/pages/call-centre/ShiftNotesPage.tsx
 
 See channel:shift_notes — the note lands, the live update does not.
@@ -2709,7 +2120,7 @@ See channel:shift_notes — the note lands, the live update does not.
 - **who is told** email
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/staff/:staffId
 - **call sites** src/hooks/useStaffDocuments.ts
 
 Roles are assigned by trigger/admin only (golden rule 3) — nothing in this family lets a user set their own role. Delivery of the invite depends on the email secret, so `email`.
@@ -2722,7 +2133,7 @@ Roles are assigned by trigger/admin only (golden rule 3) — nothing in this fam
 - **who is told** email
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/staff/:staffId
 - **call sites** src/hooks/useStaffDocuments.ts
 
 Roles are assigned by trigger/admin only (golden rule 3) — nothing in this family lets a user set their own role. Delivery of the invite depends on the email secret, so `email`.
@@ -2735,7 +2146,7 @@ Roles are assigned by trigger/admin only (golden rule 3) — nothing in this fam
 - **who is told** bell
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/holidays, /call-centre, /call-centre/holiday-approvals, /call-centre/holidays
 - **call sites** src/hooks/useStaffHolidays.ts
 
 The existing good pattern: one write path (`notifyUsers`), targeted rows so mark-as-read cannot clear someone else's, and insert errors logged rather than swallowed. No named end-to-end proof yet, so capped at 6 despite being the best-wired workflow here.
@@ -2748,7 +2159,7 @@ The existing good pattern: one write path (`notifyUsers`), targeted rows so mark
 - **who is told** email
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/staff/:staffId
 - **call sites** src/hooks/useStaffInvites.ts
 
 Roles are assigned by trigger/admin only (golden rule 3) — nothing in this family lets a user set their own role. Delivery of the invite depends on the email secret, so `email`.
@@ -2761,7 +2172,7 @@ Roles are assigned by trigger/admin only (golden rule 3) — nothing in this fam
 - **who is told** bell
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/holidays, /call-centre, /call-centre/holiday-approvals
 - **call sites** src/hooks/useShiftCovers.ts
 
 The existing good pattern: one write path (`notifyUsers`), targeted rows so mark-as-read cannot clear someone else's, and insert errors logged rather than swallowed. No named end-to-end proof yet, so capped at 6 despite being the best-wired workflow here.
@@ -2774,7 +2185,7 @@ The existing good pattern: one write path (`notifyUsers`), targeted rows so mark
 - **who is told** bell
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin, /admin/holidays, /admin/rota, /call-centre, /call-centre/alerts, /call-centre/documents +13
 - **call sites** src/hooks/useShiftCovers.ts, src/hooks/useStaffShifts.ts
 
 The existing good pattern: one write path (`notifyUsers`), targeted rows so mark-as-read cannot clear someone else's, and insert errors logged rather than swallowed. No named end-to-end proof yet, so capped at 6 despite being the best-wired workflow here.
@@ -2787,7 +2198,7 @@ The existing good pattern: one write path (`notifyUsers`), targeted rows so mark
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/members/:id, /call-centre/members/:id
 - **call sites** src/components/admin/member-detail/DeviceTab.tsx
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
@@ -2800,7 +2211,7 @@ The existing good pattern: one write path (`notifyUsers`), targeted rows so mark
 - **who is told** screen
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/alerts, /admin/members/:id, /admin/tasks, /call-centre, /call-centre/members/:id, /call-centre/tasks
 - **call sites** src/components/admin/FalseAlarmMonitor.tsx, src/components/admin/member-detail/TasksTab.tsx, src/pages/admin/TasksPage.tsx, src/pages/call-centre/StaffDashboard.tsx
 
 Tickets and comments ARE published, so they arrive live on an open Tickets screen. `tasks` is not (see channel:tasks above) — assigning a task tells its owner nothing, on any channel. Listed as a red.
@@ -2813,7 +2224,7 @@ Tickets and comments ARE published, so they arrive live on an open Tickets scree
 - **who is told** screen
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/tickets, /call-centre/tickets
 - **call sites** src/pages/admin/TicketsPage.tsx
 
 Tickets and comments ARE published, so they arrive live on an open Tickets screen. `tasks` is not (see channel:tasks above) — assigning a task tells its owner nothing, on any channel. Listed as a red.
@@ -2826,7 +2237,7 @@ Tickets and comments ARE published, so they arrive live on an open Tickets scree
 - **who is told** bell
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/video-hub
 - **call sites** src/hooks/useVideoBrandSettings.ts
 
 Renders and exports are both published, and the webhook notifies. Unproven.
@@ -2839,7 +2250,7 @@ Renders and exports are both published, and the webhook notifies. Unproven.
 - **who is told** bell
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/video-hub
 - **call sites** src/hooks/useVideoExports.ts
 
 Renders and exports are both published, and the webhook notifies. Unproven.
@@ -2852,7 +2263,7 @@ Renders and exports are both published, and the webhook notifies. Unproven.
 - **who is told** bell
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/video-hub
 - **call sites** src/hooks/useVideoProjects.ts
 
 Renders and exports are both published, and the webhook notifies. Unproven.
@@ -2865,7 +2276,7 @@ Renders and exports are both published, and the webhook notifies. Unproven.
 - **who is told** bell
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/video-hub
 - **call sites** src/hooks/useVideoRenders.ts
 
 Renders and exports are both published, and the webhook notifies. Unproven.
@@ -2891,10 +2302,23 @@ Analytics. Present on every route because PageTracker is mounted in App.tsx, not
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/settings
 - **call sites** src/components/admin/settings/ImageUploadCard.tsx
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
+
+### `auth:setSession` — 6/10 (arrives, unproven)
+
+- **control** Accept a staff or partner invite from an emailed link
+- **promised** this link makes your account real
+- **goes to** auth.setSession with the tokens in the invite URL, then the *-complete-invite function
+- **who is told** self
+- **failure shown to user** toast
+- **proof** none — capped at 6
+- **routes** /partner/invite, /staff/invite
+- **call sites** src/pages/partner/PartnerInvitePage.tsx, src/pages/staff/StaffInvitePage.tsx
+
+Golden rule 3 lives near here: an invite establishes a session, and the ROLE must still come from the trigger/admin path rather than from anything in the link. Nothing here writes a role.
 
 ### `fn:ai-execute-action` — 6/10 (arrives, unproven)
 
@@ -2904,7 +2328,7 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **who is told** self
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +77
 - **call sites** src/hooks/useAIAgents.ts
 
 Golden rule 6: the hard-blocked tools (update_user_role, manage_alert escalate/resolve, admit_resident, discharge_resident, toggle_user_status) are unreachable in code, and `src/test/isabellaGate.test.ts` proves that by executing the real gate — including that it FAILS OPEN on a settings error and is suppressed when no row exists. That is a real and important property, and it is NOT this wire: it proves what she may not do, not that an action she may do is executed and recorded. Cited here at first and withdrawn on reading it. The block is proven; the wire is not.
@@ -2917,7 +2341,7 @@ Golden rule 6: the hard-blocked tools (update_user_role, manage_alert escalate/r
 - **who is told** self
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/settings
 - **call sites** src/components/admin/settings/SocialMediaSection.tsx, src/pages/admin/SettingsPage.tsx
 
 These are the only in-app way to find out whether the email and SMS channels are live, which is exactly what this register cannot determine from code. They are the clicks listed for Lee in §Only Lee can verify.
@@ -2930,7 +2354,7 @@ These are the only in-app way to find out whether the email and SMS channels are
 - **who is told** self
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/settings
 - **call sites** src/hooks/useEmailSettings.ts
 
 These are the only in-app way to find out whether the email and SMS channels are live, which is exactly what this register cannot determine from code. They are the clicks listed for Lee in §Only Lee can verify.
@@ -2943,10 +2367,49 @@ These are the only in-app way to find out whether the email and SMS channels are
 - **who is told** self
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/settings
 - **call sites** src/pages/admin/SettingsPage.tsx
 
 These are the only in-app way to find out whether the email and SMS channels are live, which is exactly what this register cannot determine from code. They are the clicks listed for Lee in §Only Lee can verify.
+
+### `storage:partner-presentations` — 6/10 (arrives, unproven)
+
+- **control** Upload a website image, a staff document, a post image, a partner presentation, an agent avatar
+- **promised** the file is saved and will show where you put it
+- **goes to** Supabase Storage buckets of those names
+- **who is told** self
+- **failure shown to user** toast
+- **proof** none — capped at 6
+- **routes** /partner-dashboard/marketing
+- **call sites** src/pages/partner/PartnerMarketingPage.tsx
+
+Also missed by the original scanner. Each bucket is used on exactly one admin or partner screen and the admin who pressed Upload is the audience. What none has is a proof that the object is READABLE afterwards — the failure mode is an upload that succeeds and a broken image — and `staff-documents` is where that matters, because an HR document nobody can open later is the same as one never filed.
+
+### `storage:social-post-images` — 6/10 (arrives, unproven)
+
+- **control** Upload a website image, a staff document, a post image, a partner presentation, an agent avatar
+- **promised** the file is saved and will show where you put it
+- **goes to** Supabase Storage buckets of those names
+- **who is told** self
+- **failure shown to user** toast
+- **proof** none — capped at 6
+- **routes** /admin/media-manager
+- **call sites** src/hooks/useSocialPostImages.ts
+
+Also missed by the original scanner. Each bucket is used on exactly one admin or partner screen and the admin who pressed Upload is the audience. What none has is a proof that the object is READABLE afterwards — the failure mode is an upload that succeeds and a broken image — and `staff-documents` is where that matters, because an HR document nobody can open later is the same as one never filed.
+
+### `storage:staff-documents` — 6/10 (arrives, unproven)
+
+- **control** Upload a website image, a staff document, a post image, a partner presentation, an agent avatar
+- **promised** the file is saved and will show where you put it
+- **goes to** Supabase Storage buckets of those names
+- **who is told** self
+- **failure shown to user** mutation onError
+- **proof** none — capped at 6
+- **routes** /admin/staff/:staffId
+- **call sites** src/hooks/useStaffDocuments.ts
+
+Also missed by the original scanner. Each bucket is used on exactly one admin or partner screen and the admin who pressed Upload is the audience. What none has is a proof that the object is READABLE afterwards — the failure mode is an upload that succeeds and a broken image — and `staff-documents` is where that matters, because an HR document nobody can open later is the same as one never filed.
 
 ### `table:admin_ideas` — 6/10 (arrives, unproven)
 
@@ -2956,7 +2419,7 @@ These are the only in-app way to find out whether the email and SMS channels are
 - **who is told** self
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations, /admin/alerts +58
 - **call sites** src/hooks/useAdminIdeas.ts
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
@@ -2969,7 +2432,7 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **who is told** self
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +77
 - **call sites** src/components/admin/dashboard/AISalesDesk.tsx, src/hooks/useAIAgents.ts
 
 Golden rule 6: the hard-blocked tools (update_user_role, manage_alert escalate/resolve, admit_resident, discharge_resident, toggle_user_status) are unreachable in code, and `src/test/isabellaGate.test.ts` proves that by executing the real gate — including that it FAILS OPEN on a settings error and is suppressed when no row exists. That is a real and important property, and it is NOT this wire: it proves what she may not do, not that an action she may do is executed and recorded. Cited here at first and withdrawn on reading it. The block is proven; the wire is not.
@@ -2982,7 +2445,7 @@ Golden rule 6: the hard-blocked tools (update_user_role, manage_alert escalate/r
 - **who is told** self
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +77
 - **call sites** src/hooks/useAIAgents.ts
 
 Split from the gate above: `isabellaGate` proves the hard blocks, not that a prompt saved in this UI reaches the database and is the one she reads. Citing it here would have been the register scoring itself on an adjacent test.
@@ -2995,7 +2458,7 @@ Split from the gate above: `isabellaGate` proves the hard blocks, not that a pro
 - **who is told** self
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +77
 - **call sites** src/components/admin/ai/AIAvatarUpload.tsx, src/hooks/useAIAgents.ts
 
 Split from the gate above: `isabellaGate` proves the hard blocks, not that a prompt saved in this UI reaches the database and is the one she reads. Citing it here would have been the register scoring itself on an adjacent test.
@@ -3008,7 +2471,7 @@ Split from the gate above: `isabellaGate` proves the hard blocks, not that a pro
 - **who is told** self
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +77
 - **call sites** src/hooks/useAIAgents.ts
 
 Split from the gate above: `isabellaGate` proves the hard blocks, not that a prompt saved in this UI reaches the database and is the one she reads. Citing it here would have been the register scoring itself on an adjacent test.
@@ -3021,7 +2484,7 @@ Split from the gate above: `isabellaGate` proves the hard blocks, not that a pro
 - **who is told** self
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/blog
 - **call sites** src/hooks/useBlogEditor.ts
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
@@ -3034,7 +2497,7 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **who is told** self
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/settings
 - **call sites** src/hooks/useEmailSettings.ts
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
@@ -3047,7 +2510,7 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **who is told** self
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/settings
 - **call sites** src/hooks/useEmailTemplates.ts
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
@@ -3060,7 +2523,7 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **who is told** self
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/ai, /admin/ai/operations
 - **call sites** src/hooks/useIsabellaSettings.ts
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
@@ -3073,7 +2536,7 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **who is told** self
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /dashboard/profile
 - **call sites** src/hooks/useMemberNotificationOptin.ts
 
 Life-safety data with no notification owed — the member is the actor. What it DOES need is proof that an operator can read it and a stranger cannot; the RLS harness covers the isolation half, and the end-to-end half is unproven, so 5.
@@ -3086,7 +2549,7 @@ Life-safety data with no notification owed — the member is the actor. What it 
 - **who is told** self
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/ev07b, /admin/finance
 - **call sites** src/hooks/useOperationalCosts.ts
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
@@ -3099,7 +2562,7 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **who is told** self
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/members/:id, /call-centre/members/:id
 - **call sites** src/components/admin/member-detail/PaymentsTab.tsx
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
@@ -3112,7 +2575,7 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **who is told** self
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/settings
 - **call sites** src/components/admin/PricingPlansEditor.tsx
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
@@ -3125,7 +2588,7 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **who is told** self
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/settings
 - **call sites** src/components/admin/PricingPlansEditor.tsx
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
@@ -3138,7 +2601,7 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **who is told** self
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/products
 - **call sites** src/hooks/useProducts.ts, src/pages/admin/ProductCatalogPage.tsx
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
@@ -3151,7 +2614,7 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **who is told** self
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/partner-pricing, /admin/settings
 - **call sites** src/components/admin/settings/DevicesSettingsTab.tsx, src/components/admin/settings/VoiceSettingsSection.tsx, src/pages/admin/PartnerPricingSettingsPage.tsx
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
@@ -3164,7 +2627,7 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **who is told** self
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /, /admin/testimonials, /pendant
 - **call sites** src/hooks/useTestimonials.ts
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
@@ -3177,7 +2640,7 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **who is told** screen
 - **failure shown to user** toast
 - **proof** `scripts/rls/wiring.sql`
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/leads
 - **call sites** src/pages/admin/LeadsPage.tsx
 
 Same cause as the two above — not in the publication. Lower consequence (admin surfaces, reloadable). Published in this bundle and covered by the §1 contract.
@@ -3190,7 +2653,7 @@ Same cause as the two above — not in the publication. Lower consequence (admin
 - **who is told** screen
 - **failure shown to user** no
 - **proof** `scripts/rls/wiring.sql`
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /call-centre/shift-notes
 - **call sites** src/pages/call-centre/ShiftNotesPage.tsx
 
 WAS DEAD, and the worst of the five. `shift_notes` was not published, so the code comment described behaviour that had never once happened: a handover note written by the outgoing shift was invisible to the incoming one until they reloaded — on the one screen whose entire purpose is handover. Published in this bundle and covered by the §1 contract.
@@ -3203,7 +2666,7 @@ WAS DEAD, and the worst of the five. `shift_notes` was not published, so the cod
 - **who is told** screen
 - **failure shown to user** mutation onError
 - **proof** `scripts/rls/wiring.sql`
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/media-manager
 - **call sites** src/hooks/usePublishedPosts.ts
 
 Same cause as the two above — not in the publication. Lower consequence (admin surfaces, reloadable). Published in this bundle and covered by the §1 contract.
@@ -3216,7 +2679,7 @@ Same cause as the two above — not in the publication. Lower consequence (admin
 - **who is told** screen
 - **failure shown to user** mutation onError
 - **proof** `scripts/rls/wiring.sql`
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/media-manager
 - **call sites** src/hooks/useSocialPosts.ts
 
 Same cause as the two above — not in the publication. Lower consequence (admin surfaces, reloadable). Published in this bundle and covered by the §1 contract.
@@ -3229,7 +2692,7 @@ Same cause as the two above — not in the publication. Lower consequence (admin
 - **who is told** screen
 - **failure shown to user** no
 - **proof** `scripts/rls/wiring.sql`
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /call-centre
 - **call sites** src/pages/call-centre/StaffDashboard.tsx
 
 WAS DEAD. `tasks` was NOT in the supabase_realtime publication (verified against the real schema, not grep: 28 tables are published and this is not one). The subscription is established and never fired, so a courtesy call assigned to an operator did not appear until they reloaded. Published in this bundle with REPLICA IDENTITY FULL, and `scripts/rls/wiring.sql` §1 now derives the subscribed-table list from src/ and checks it against pg_publication_tables, so the next one cannot be dead for long.
@@ -3242,7 +2705,7 @@ WAS DEAD. `tasks` was NOT in the supabase_realtime publication (verified against
 - **who is told** self
 - **failure shown to user** mutation onError
 - **proof** `src/test/staffMemberActions.test.tsx`
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/members/:id, /admin/subscriptions, /call-centre/members/:id
 - **call sites** src/hooks/useMemberAction.ts, src/pages/admin/SubscriptionsPage.tsx
 
 Gateway FIRST, record second, and the half-applied case is said out loud rather than swallowed. Note the live drift: `member_action` gained 'resume' in a migration that is in main and NOT yet applied to production, so a resume in production performs the Stripe change and then fails to record it. Flagged to Lee separately; not this goal's to fix.
@@ -3255,7 +2718,7 @@ Gateway FIRST, record second, and the half-applied case is said out loud rather 
 - **who is told** self
 - **failure shown to user** mutation onError
 - **proof** `src/test/staffMemberActions.test.tsx`
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/members/:id, /call-centre/members/:id
 - **call sites** src/hooks/useMemberAction.ts
 
 Gateway FIRST, record second, and the half-applied case is said out loud rather than swallowed. Note the live drift: `member_action` gained 'resume' in a migration that is in main and NOT yet applied to production, so a resume in production performs the Stripe change and then fails to record it. Flagged to Lee separately; not this goal's to fix.
@@ -3268,7 +2731,7 @@ Gateway FIRST, record second, and the half-applied case is said out loud rather 
 - **who is told** self
 - **failure shown to user** no
 - **proof** `src/test/staffMemberActions.test.tsx`
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/commissions, /admin/media-manager, /admin/members/:id, /admin/members/new, /admin/orders, /admin/partners/:id +2
 - **call sites** src/hooks/useGdprDeletion.ts, src/hooks/useMemberAction.ts, src/lib/auditLog.ts, src/pages/admin/AddMemberWizard.tsx
 
 The database refuses a `member_action` row without a reason and an actor, which is why this scores on its trigger rather than on a notification.
@@ -3281,7 +2744,7 @@ The database refuses a `member_action` row without a reason and an actor, which 
 - **who is told** bell
 - **failure shown to user** no
 - **proof** `src/test/notifyFulfilmentDispatcher.test.ts`
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/devices/:id, /admin/members/:id, /admin/orders, /call-centre/members/:id
 - **call sites** src/lib/notifyTransition.ts
 
 A genuine end-to-end proof, and one of very few: it drives the REAL dispatcher module against a recording double and asserts one log row per decision — including the refusals, which are the assertions that matter while every outbound channel is off. A suite that only proved it CAN send would pass against a version that sends to people who never agreed.
@@ -3294,7 +2757,7 @@ A genuine end-to-end proof, and one of very few: it drives the REAL dispatcher m
 - **who is told** bell
 - **failure shown to user** no
 - **proof** `e2e/partnerJourney.spec.ts`
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /partner/join
 - **call sites** src/pages/partner/PartnerJoin.tsx
 
 The registration leg only. `notify-admin` fires `partner.joined`, so a new partner really does reach the bell, and the Playwright journey is the one browser-level proof in the repo that walks a whole flow. It covers REGISTRATION — which is why the rest of the partner surface below cannot cite it, however tempting it was to apply one proof to nineteen rows.
@@ -3307,7 +2770,7 @@ The registration leg only. `notify-admin` fires `partner.joined`, so a new partn
 - **who is told** bell
 - **failure shown to user** no
 - **proof** `e2e/partnerJourney.spec.ts`
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /partner/verify
 - **call sites** src/pages/partner/PartnerVerify.tsx
 
 The registration leg only. `notify-admin` fires `partner.joined`, so a new partner really does reach the bell, and the Playwright journey is the one browser-level proof in the repo that walks a whole flow. It covers REGISTRATION — which is why the rest of the partner surface below cannot cite it, however tempting it was to apply one proof to nineteen rows.
@@ -3320,7 +2783,7 @@ The registration leg only. `notify-admin` fires `partner.joined`, so a new partn
 - **who is told** bell
 - **failure shown to user** no
 - **proof** `src/test/inboundMessages.test.ts`
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +77
 - **call sites** src/components/admin/member-detail/MessagesTab.tsx, src/components/call-centre/MessagesPanel.tsx, src/hooks/useAgentHandoff.ts, src/hooks/useAIChat.ts +4
 
 This is the wire the platform gets RIGHT, and it is the model for fixing the lead: the member surface cannot write the staff notification itself, so it calls a server function that verifies ownership and then broadcasts. Both tables are published and both screens subscribe. Failure is shown.
@@ -3335,7 +2798,7 @@ This is the wire the platform gets RIGHT, and it is the model for fixing the lea
 - **who is told** bell
 - **failure shown to user** no
 - **proof** `src/test/inboundMessages.test.ts`
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/members/:id, /admin/messages, /call-centre/alerts, /call-centre/members/:id, /call-centre/messages, /dashboard/messages +1
 - **call sites** src/components/admin/member-detail/MessagesTab.tsx, src/components/call-centre/MessagesPanel.tsx, src/lib/communicationLogger.ts, src/pages/admin/MessagesPage.tsx +3
 
 This is the wire the platform gets RIGHT, and it is the model for fixing the lead: the member surface cannot write the staff notification itself, so it calls a server function that verifies ownership and then broadcasts. Both tables are published and both screens subscribe. Failure is shown.
@@ -3350,7 +2813,7 @@ This is the wire the platform gets RIGHT, and it is the model for fixing the lea
 - **who is told** bell
 - **failure shown to user** inline
 - **proof** `scripts/rls/wiring.sql`
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/leads, /call-centre/leads, /contact
 - **call sites** src/components/products/NotifyInterestDialog.tsx, src/pages/admin/LeadsPage.tsx, src/pages/call-centre/LeadsPage.tsx, src/pages/ContactPage.tsx
 
 THE DEFECT THIS REGISTER CAME FROM, now fixed end to end. The row always arrived and both Leads screens always showed it, but the only trigger on `leads` was `update_leads_updated_at` — no notification, no task, no queue. `leads` is in supabase_realtime and /call-centre/leads does subscribe, so a lead appeared live on a screen nobody was required to have open. That is not being told.
@@ -3367,7 +2830,7 @@ PROVEN by `scripts/rls/wiring.sql` §2 against a real PostgreSQL — one targete
 - **who is told** bell
 - **failure shown to user** toast
 - **proof** `e2e/partnerJourney.spec.ts`
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /admin/partners, /admin/partners/:id, /partner-dashboard, /partner-dashboard/agreement, /partner-dashboard/alerts, /partner-dashboard/commissions +5
 - **call sites** src/components/admin/partner/PartnerOrganizationTab.tsx, src/components/partner/AgreementRequiredModal.tsx, src/pages/admin/PartnerDetailPage.tsx, src/pages/admin/PartnersPage.tsx +1
 
 The registration leg only. `notify-admin` fires `partner.joined`, so a new partner really does reach the bell, and the Playwright journey is the one browser-level proof in the repo that walks a whole flow. It covers REGISTRATION — which is why the rest of the partner surface below cannot cite it, however tempting it was to apply one proof to nineteen rows.

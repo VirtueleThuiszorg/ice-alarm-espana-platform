@@ -28,12 +28,18 @@ import { PageHeader } from "@/components/client/PageHeader";
 import { MembershipConditionCard } from "@/components/client/MembershipConditionCard";
 import { membershipCondition } from "@/lib/membershipCondition";
 import { supportActionPath } from "@/lib/supportActions";
+import { subscriptionPrice, taxRatePercent } from "@/lib/subscriptionPrice";
+import { usePricing } from "@/hooks/usePricing";
 
 export default function SubscriptionPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: subscriptions, isLoading: subLoading } = useMemberSubscriptions();
   const { data: payments, isLoading: paymentsLoading } = useMemberPayments();
+  // Hydrates the module-level pricing config from `pricing_plans`, so the IVA rate applied to
+  // this member's net is the one an admin set rather than a literal. Unconditional and above
+  // the early returns, because it is a hook.
+  usePricing();
 
   const isLoading = subLoading || paymentsLoading;
   const subscription = subscriptions?.active ?? null;
@@ -74,6 +80,9 @@ export default function SubscriptionPage() {
       </div>
     );
   }
+
+  // Their contracted net (from the row) plus the plan's IVA rate — see subscriptionPrice.ts.
+  const price = subscriptionPrice(subscription.amount, subscription.plan_type);
 
   const planLabel = subscription.plan_type === "single" 
     ? t("membership.single") 
@@ -137,15 +146,40 @@ export default function SubscriptionPage() {
             </div>
             <div className="p-4 rounded-lg bg-muted/50">
               <p className="text-sm text-muted-foreground">{t("subscription.amount")}</p>
-              <p className="text-xl font-semibold">
-                €{(subscription.amount || 0).toFixed(2)}
-                {/* `subscription.mo` is "/mo" and `subscription.yr` is "/yr" — the slash is IN
-                    the string, as `ClientDashboard` (its other caller) relies on. A literal "/"
-                    in front of it rendered "€24.99//mo" on this page. */}
-                <span className="text-sm font-normal text-muted-foreground">
-                  {subscription.billing_frequency === "monthly" ? t("subscription.mo") : t("subscription.yr")}
-                </span>
-              </p>
+              {/*
+                WHAT LEAVES THEIR BANK, not the net.
+
+                This read `€{subscription.amount}` straight out of the row — and both functions
+                that create a subscription write the NET there (`v_subscription_net` /
+                `v_sub_net`). So a member debited €27.39 read €24.90 on the one page that is
+                supposed to tell them what their membership costs, while the join wizard, the
+                plan cards and the Stripe line items all showed the inclusive figure.
+                `subscriptionPrice()` carries why this is derived rather than fixed in the column.
+              */}
+              {price === null ? (
+                // Not "€0.00". Zero is a real price (`is_free_of_charge`), so rendering it for
+                // an unreadable amount would tell a paying member their membership is free.
+                <p className="text-xl font-semibold" data-testid="subscription-amount-unknown">
+                  {t("subscription.amountUnavailable", "Not available")}
+                </p>
+              ) : (
+                <>
+                  <p className="text-xl font-semibold" data-testid="subscription-amount">
+                    €{price.final.toFixed(2)}
+                    {/* `subscription.mo` is "/mo" and `subscription.yr` is "/yr" — the slash is
+                        IN the string, as `ClientDashboard` (its other caller) relies on. A
+                        literal "/" in front of it rendered "€24.99//mo" on this page. */}
+                    <span className="text-sm font-normal text-muted-foreground">
+                      {subscription.billing_frequency === "monthly" ? t("subscription.mo") : t("subscription.yr")}
+                    </span>
+                  </p>
+                  {price.taxApplied && (
+                    <p className="text-xs text-muted-foreground" data-testid="subscription-amount-iva">
+                      {t("joinWizard.summary.inclIvaRate", { rate: taxRatePercent(price) })}
+                    </p>
+                  )}
+                </>
+              )}
             </div>
           </div>
 

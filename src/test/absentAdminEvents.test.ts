@@ -198,16 +198,6 @@ describe("A4 is RETIRED — Isabella failing now tells the admins", () => {
   });
 
   it("every failure path in ai-run goes through the ONE funnel", () => {
-  it("and the item 1 PILL is a READER, which is a different thing from being told", () => {
-    // Was IsabellaHealthCard.tsx. That card became IsabellaHealthPill.tsx when Lee corrected the
-    // dashboard layout (#247), and this assertion and that rename landed in main from two
-    // different branches on the same morning — so the suite went red on a file neither PR was
-    // wrong about. The PROPERTY is untouched: A4 says a failed run tells nobody, and a dashboard
-    // widget that has to be opened is a reader, not a notifier.
-    const pill = read("src/components/admin/dashboard/IsabellaHealthPill.tsx");
-    expect(pill).toContain("useIsabellaHealth");
-    expect(pill).not.toMatch(/notification_log|notify-admin/);
-  it("and the item 1 surface is a READER, which is a different thing from being told", () => {
     /*
       Three places record a failure: two chat paths through `recordChatRun` and the agent/event
       branch's direct update. A fourth added later that notified nobody would be the original
@@ -228,9 +218,10 @@ describe("A4 is RETIRED — Isabella failing now tells the admins", () => {
       notification raised from the browser would fire once per admin who happened to be looking.
 
       Resolved by NAME PATTERN, not by path: item 1 shipped `IsabellaHealthCard`, another
-      session replaced the dashboard cards with pills and deleted it, and this assertion went red
-      on main for reading a file that no longer existed. Whatever renders Isabella's health there
-      is the surface.
+      session replaced the dashboard cards with pills (#247) and deleted it, and this assertion
+      went red on main for reading a file that no longer existed. The surface is
+      `IsabellaHealthPill.tsx` today; the pattern is what stops the NEXT rename doing it again,
+      and it is why this test survived a merge that broke the file around it.
     */
     const dir = "src/components/admin/dashboard";
     const surfaces = readdirSync(join(ROOT, dir)).filter((f) => /^IsabellaHealth.*\.tsx$/.test(f));
@@ -354,6 +345,53 @@ describe("the absence checks bite", () => {
     // the check would be unusable in the file that documents the defect.
     expect(read("supabase/functions/_shared/isabella-gate.ts")).toContain("ai-dispatch-events");
     expect(build().code).toBe(0);
+  });
+});
+
+// ── the register is GENERATED, so a hand-merge is a detectable defect ─────
+describe("WIRING_REGISTER.md was generated, not hand-merged", () => {
+  /*
+    THIS FILE WAS BROKEN IN MAIN ON 9 SEPTEMBER, in the way CLAUDE.md warns about twice: several
+    PRs touched the generated register in a burst, and each merge "resolved" it by KEEPING BOTH
+    SIDES. What landed had four different summary lines —
+
+        183 distinct wires across 630 call sites and 108 routes.
+        183 distinct wires across 629 call sites and 108 routes.
+        184 distinct wires across 630 call sites and 108 routes.
+        184 distinct wires across 629 call sites and 108 routes.
+
+    — and a histogram with duplicated bands. `build.mjs --check` did catch it; the merge happened
+    anyway.
+
+    The fix for a generated file is ALWAYS regeneration, never editing the conflict. These
+    assertions exist so the failure says WHICH kind of wrong it is: "out of date" sends somebody
+    to re-run the generator, where "the same line four times" tells them a merge did it and that
+    two PRs' worth of rows may be missing.
+  */
+  const register = read("WIRING_REGISTER.md");
+
+  it("states its totals exactly once", () => {
+    const totals = register.match(/^\d+ distinct wires across .+$/gm) ?? [];
+    expect(totals).toHaveLength(1);
+  });
+
+  it("has one histogram row per band, not two", () => {
+    const bands = (register.match(/^\s*(\d+) │/gm) ?? []).map((m) => m.trim().split(" ")[0]);
+    expect(bands.length).toBeGreaterThan(0);
+    expect(new Set(bands).size).toBe(bands.length);
+  });
+
+  it("names each absence claim twice — its table row and its check — and never more", () => {
+    /*
+      The register prints each claim once in the inventory table and once in "the checks,
+      verified on every build", so TWO is correct and three is a merge. Counting to exactly two
+      rather than "at least one" is the point: a duplicated row renders two contradictory claims
+      about the same event, and the reader has no way to tell which is current.
+    */
+    for (const e of EVENTS) {
+      const mentions = register.match(new RegExp(`\\*\\*${e.id}\\*\\*`, "g")) ?? [];
+      expect(mentions, e.id).toHaveLength(2);
+    }
   });
 });
 

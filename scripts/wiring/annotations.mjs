@@ -513,6 +513,24 @@ export const FAMILIES = [
       "depends on this row being right.",
   },
   {
+    wires: ["table:notification_routes", "table:staff_notification_prefs", "fn:notify-staff"],
+    control: "Admin → Settings → Notifications: the event × channel switches, the per-staff matrix beneath, and \"send a test notification\"",
+    promise: "the person who needs to know is told, on a channel that works",
+    dest: "notification_routes (company policy) and staff_notification_prefs (the person), both read by the notify-staff router on every send — so a switch changes the next notification, with no redeploy. Each change writes an activity_logs row carrying the old and new value.",
+    told: "screen",
+    proof: "src/test/notificationMatrix.test.ts",
+    note:
+      "The switches are the fix for the schema this replaces: a boolean COLUMN PER EVENT on " +
+      "notification_settings, which is how `whatsapp_ev07b_alerts` came to be read by " +
+      "notify-admin without any migration ever creating it. THE FOUR ALWAYS-LOUD EVENTS RENDER " +
+      "AS LOCKED, not as switches: the router ignores both tables for them, and a switch that " +
+      "cannot silence the alarm saying the SOS ladder is broken must not look like one. Every " +
+      "dark cell names which of the three gates stopped it, and `wouldReach` is driven against " +
+      "the router's own `planNotifications` across all 19 events × 4 channels × both switches " +
+      "so the screen cannot claim something the router will not do. Scored on the screen only: " +
+      "until the migration is applied the matrix says so rather than rendering an empty grid.",
+  },
+  {
     wires: ["table:staff_push_tokens"],
     control: '"Enable notifications on this phone" — Admin → Settings → Notifications, and Staff preferences',
     promise: "an alert reaches you when this page is closed",

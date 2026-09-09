@@ -18,6 +18,9 @@ main cannot drift from the code in main. To change a row, change the wire or the
 10 │   2  █
  9 │   5  ██
  8 │   0  
+ 7 │  12  ████
+ 6 │  26  ██████████
+ 5 │  91  ██████████████████████████████████
  7 │  10  ████
  6 │  25  █████████
  5 │  92  ██████████████████████████████████
@@ -28,11 +31,14 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   3  █
 ```
 
+187 distinct wires across 633 call sites and 108 routes.
 185 distinct wires across 631 call sites and 108 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
 | 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 2 | 1% |
+| 7–9 | arrives and proven; notification missing or on a channel not live today | 17 | 9% |
+| 4–6 | arrives; nobody told; nothing proves it | 165 | 88% |
 | 7–9 | arrives and proven; notification missing or on a channel not live today | 15 | 8% |
 | 4–6 | arrives; nobody told; nothing proves it | 165 | 89% |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0% |
@@ -63,6 +69,7 @@ things, and a control with no wire cannot do anything:
 
 | kind | what it is | call sites |
 |---|---|---:|
+| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 345 |
 | `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 342 |
 | `fn` | `supabase.functions.invoke(f)` — an edge function | 78 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 4 |
@@ -424,15 +431,18 @@ The checks, verified on every build:
 | **6** | `table:pricing_plans` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
 | **6** | `table:pricing_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
 | **6** | `table:products` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 2 |
-| **6** | `table:system_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 3 |
+| **6** | `table:system_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 4 |
 | **6** | `table:testimonials` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
 | **7** | `channel:registration_drafts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | toast | `scripts/rls/wiring.sql` | 1 |
 | **7** | `channel:social_post_metrics` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
 | **7** | `channel:social_posts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
 | **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
 | **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
+| **7** | `fn:notify-staff` | Admin → Settings → Notifications: the event × channel switches, the per-staff matrix beneath, and "send a test notification" — the person who needs to know is told, on a channel that works | notification_routes (company policy) and staff_notification_prefs (the person), both read by the notify-staff router on every send — so a switch changes the next notification, with no redeploy. Each change writes an activity_logs row carrying the old and new value. | screen | mutation onError | `src/test/notificationMatrix.test.ts` | 1 |
 | **7** | `fn:send-payment-link` | Staff send a member a Stripe payment link (CRM → member → Subscription) — a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are switched on, and always shown on screen to copy | send-payment-link → create_payment_link_order (pending order + items + subscription + payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms and/or send-email; activation is stripe-webhook's alone | the payer (SMS + email), and activity_logs twice — the order created, and what was sent | mutation onError | `src/test/sendPaymentLink.test.ts` | 1 |
 | **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
+| **7** | `table:notification_routes` | Admin → Settings → Notifications: the event × channel switches, the per-staff matrix beneath, and "send a test notification" — the person who needs to know is told, on a channel that works | notification_routes (company policy) and staff_notification_prefs (the person), both read by the notify-staff router on every send — so a switch changes the next notification, with no redeploy. Each change writes an activity_logs row carrying the old and new value. | screen | toast | `src/test/notificationMatrix.test.ts` | 1 |
+| **7** | `table:staff_notification_prefs` | Admin → Settings → Notifications: the event × channel switches, the per-staff matrix beneath, and "send a test notification" — the person who needs to know is told, on a channel that works | notification_routes (company policy) and staff_notification_prefs (the person), both read by the notify-staff router on every send — so a switch changes the next notification, with no redeploy. Each change writes an activity_logs row carrying the old and new value. | screen | toast | `src/test/notificationMatrix.test.ts` | 1 |
 | **7** | `table:staff_push_tokens` | "Enable notifications on this phone" — Admin → Settings → Notifications, and Staff preferences — an alert reaches you when this page is closed | staff_push_tokens, one row per device keyed on the FCM registration token; read by the notify-staff router's push transport (_shared/fcm.ts) and pruned by it when Google says a token is dead | push | toast | `src/test/pushClient.test.ts` | 1 |
 | **9** | `fn:notify-fulfilment` | Order state transition fan-out — paid → allocated → programmed → dispatched → delivered → tested — the next person in the chain knows the device is theirs to move | notify-fulfilment → member_notification_log, one row per channel decision | bell | — | `src/test/notifyFulfilmentDispatcher.test.ts` | 1 |
 | **9** | `table:conversations` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 8 |
@@ -2648,7 +2658,7 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **failure shown to user** toast
 - **proof** none — capped at 6
 - **routes** /admin/partner-pricing, /admin/settings
-- **call sites** src/components/admin/settings/DevicesSettingsTab.tsx, src/components/admin/settings/VoiceSettingsSection.tsx, src/pages/admin/PartnerPricingSettingsPage.tsx
+- **call sites** src/components/admin/settings/DevicesSettingsTab.tsx, src/components/admin/settings/VoiceSettingsSection.tsx, src/hooks/useNotificationMatrix.ts, src/pages/admin/PartnerPricingSettingsPage.tsx
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
 
@@ -2756,6 +2766,18 @@ Gateway FIRST, record second, and the half-applied case is said out loud rather 
 
 Gateway FIRST, record second, and the half-applied case is said out loud rather than swallowed. Note the live drift: `member_action` gained 'resume' in a migration that is in main and NOT yet applied to production, so a resume in production performs the Stripe change and then fails to record it. Flagged to Lee separately; not this goal's to fix.
 
+### `fn:notify-staff` — 7/10 (proven; nobody told)
+
+- **control** Admin → Settings → Notifications: the event × channel switches, the per-staff matrix beneath, and "send a test notification"
+- **promised** the person who needs to know is told, on a channel that works
+- **goes to** notification_routes (company policy) and staff_notification_prefs (the person), both read by the notify-staff router on every send — so a switch changes the next notification, with no redeploy. Each change writes an activity_logs row carrying the old and new value.
+- **who is told** screen
+- **failure shown to user** mutation onError
+- **proof** `src/test/notificationMatrix.test.ts`
+- **routes** /admin/settings
+- **call sites** src/hooks/useNotificationMatrix.ts
+
+The switches are the fix for the schema this replaces: a boolean COLUMN PER EVENT on notification_settings, which is how `whatsapp_ev07b_alerts` came to be read by notify-admin without any migration ever creating it. THE FOUR ALWAYS-LOUD EVENTS RENDER AS LOCKED, not as switches: the router ignores both tables for them, and a switch that cannot silence the alarm saying the SOS ladder is broken must not look like one. Every dark cell names which of the three gates stopped it, and `wouldReach` is driven against the router's own `planNotifications` across all 19 events × 4 channels × both switches so the screen cannot claim something the router will not do. Scored on the screen only: until the migration is applied the matrix says so rather than rendering an empty grid.
 ### `fn:send-payment-link` — 7/10 (proven; nobody told)
 
 - **control** Staff send a member a Stripe payment link (CRM → member → Subscription)
@@ -2777,10 +2799,36 @@ Replaces a `Create Subscription` button that had NO onClick. The browser sends a
 - **who is told** self
 - **failure shown to user** no
 - **proof** `src/test/staffMemberActions.test.tsx`
-- **routes** /admin/commissions, /admin/media-manager, /admin/members/:id, /admin/members/new, /admin/orders, /admin/partners/:id +2
+- **routes** /admin/commissions, /admin/media-manager, /admin/members/:id, /admin/members/new, /admin/orders, /admin/partners/:id +3
 - **call sites** src/hooks/useGdprDeletion.ts, src/hooks/useMemberAction.ts, src/lib/auditLog.ts, src/pages/admin/AddMemberWizard.tsx
 
 The database refuses a `member_action` row without a reason and an actor, which is why this scores on its trigger rather than on a notification.
+
+### `table:notification_routes` — 7/10 (proven; nobody told)
+
+- **control** Admin → Settings → Notifications: the event × channel switches, the per-staff matrix beneath, and "send a test notification"
+- **promised** the person who needs to know is told, on a channel that works
+- **goes to** notification_routes (company policy) and staff_notification_prefs (the person), both read by the notify-staff router on every send — so a switch changes the next notification, with no redeploy. Each change writes an activity_logs row carrying the old and new value.
+- **who is told** screen
+- **failure shown to user** toast
+- **proof** `src/test/notificationMatrix.test.ts`
+- **routes** /admin/settings
+- **call sites** src/hooks/useNotificationMatrix.ts
+
+The switches are the fix for the schema this replaces: a boolean COLUMN PER EVENT on notification_settings, which is how `whatsapp_ev07b_alerts` came to be read by notify-admin without any migration ever creating it. THE FOUR ALWAYS-LOUD EVENTS RENDER AS LOCKED, not as switches: the router ignores both tables for them, and a switch that cannot silence the alarm saying the SOS ladder is broken must not look like one. Every dark cell names which of the three gates stopped it, and `wouldReach` is driven against the router's own `planNotifications` across all 19 events × 4 channels × both switches so the screen cannot claim something the router will not do. Scored on the screen only: until the migration is applied the matrix says so rather than rendering an empty grid.
+
+### `table:staff_notification_prefs` — 7/10 (proven; nobody told)
+
+- **control** Admin → Settings → Notifications: the event × channel switches, the per-staff matrix beneath, and "send a test notification"
+- **promised** the person who needs to know is told, on a channel that works
+- **goes to** notification_routes (company policy) and staff_notification_prefs (the person), both read by the notify-staff router on every send — so a switch changes the next notification, with no redeploy. Each change writes an activity_logs row carrying the old and new value.
+- **who is told** screen
+- **failure shown to user** toast
+- **proof** `src/test/notificationMatrix.test.ts`
+- **routes** /admin/settings
+- **call sites** src/hooks/useNotificationMatrix.ts
+
+The switches are the fix for the schema this replaces: a boolean COLUMN PER EVENT on notification_settings, which is how `whatsapp_ev07b_alerts` came to be read by notify-admin without any migration ever creating it. THE FOUR ALWAYS-LOUD EVENTS RENDER AS LOCKED, not as switches: the router ignores both tables for them, and a switch that cannot silence the alarm saying the SOS ladder is broken must not look like one. Every dark cell names which of the three gates stopped it, and `wouldReach` is driven against the router's own `planNotifications` across all 19 events × 4 channels × both switches so the screen cannot claim something the router will not do. Scored on the screen only: until the migration is applied the matrix says so rather than rendering an empty grid.
 
 ### `table:staff_push_tokens` — 7/10 (proven; nobody told)
 

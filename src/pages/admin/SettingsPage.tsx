@@ -24,11 +24,14 @@ import {
   FlaskConical,
   ToggleLeft,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { isAdminRole } from "@/config/constants";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { EnablePushCard } from "@/components/notifications/EnablePushCard";
+import { NotificationMatrix } from "@/components/admin/settings/NotificationMatrix";
 import { ImagesSettingsTab } from "@/components/admin/settings/ImagesSettingsTab";
 import { DocumentationSettingsTab } from "@/components/admin/settings/DocumentationSettingsTab";
 import { TwoFactorSetup } from "@/components/auth/TwoFactorSetup";
@@ -94,6 +97,11 @@ const SETTINGS_TABS = ["company", "pricing", "payments", "communications", "noti
 
 export default function SettingsPage() {
   const { t } = useTranslation();
+  // Only an admin or super_admin may change who gets told what. The RLS policies on
+  // `notification_routes` and `staff_notification_prefs` are the real guard; this is so an
+  // operator who reaches the page sees the truth read-only instead of switches that 403.
+  const { staffRole } = useAuth();
+  const canEditNotifications = isAdminRole(staffRole);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1012,6 +1020,7 @@ export default function SettingsPage() {
             </p>
           </div>
           <EnablePushCard />
+          <NotificationMatrix canEdit={canEditNotifications} />
         </TabsContent>
 
         {/* Devices Tab */}

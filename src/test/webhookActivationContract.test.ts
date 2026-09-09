@@ -249,6 +249,147 @@ describe("device allocation — paid → allocated, and its failure mode", () =>
   });
 });
 
+/**
+ * `fulfilment_state` is the PHYSICAL sequence (20260908120400). It starts at
+ * `awaiting_payment` because an order exists from the moment the wizard is submitted — before
+ * anybody has paid — and NOTHING was moving it afterwards. Every paid order therefore still
+ * read "awaiting payment" on the fulfilment board, so no pendant was ever picked from it.
+ */
+describe("fulfilment_state — the paid order reaches the fulfilment board", () => {
+  it("moves awaiting_payment → paid, with the reason the trigger demands", async () => {
+    const { client, writes } = makeSupabase();
+    await handleSuccessfulPayment(client, PARAMS);
+
+    const paid = updatesTo(writes, "orders").find((w) => w.payload.fulfilment_state === "paid");
+    expect(paid, "the order never left awaiting_payment").toBeTruthy();
+    expect(paid!.filters).toContainEqual(["id", "order-1"]);
+
+    // Moving INTO `paid` is privileged and needs a NEW reason distinct from the old one, or
+    // enforce_fulfilment_state() raises and the whole update is refused.
+    expect(paid!.payload.fulfilment_state_reason).toEqual(expect.stringContaining("pi_test_123"));
+    expect(paid!.payload.fulfilment_state_reason).toEqual(expect.stringContaining("stripe"));
+  });
+
+  it("names the gateway that actually paid, so the claim is auditable", async () => {
+    const { client, writes } = makeSupabase();
+    await handleSuccessfulPayment(client, {
+      ...PARAMS,
+      gateway: "mollie",
+      gatewayPaymentId: "tr_test_456",
+    });
+
+    const paid = updatesTo(writes, "orders").find((w) => w.payload.fulfilment_state === "paid")!;
+    expect(paid.payload.fulfilment_state_reason).toEqual(expect.stringContaining("mollie"));
+    expect(paid.payload.fulfilment_state_reason).toEqual(expect.stringContaining("tr_test_456"));
+  });
+
+  it("moves paid → allocated once every pendant on the order has a device", async () => {
+    const { client, writes } = makeSupabase({
+      order_items: { data: [{ id: "item-1", quantity: 1, device_id: null }], error: null },
+      devices: { data: { id: "device-1" }, error: null },
+    });
+    await handleSuccessfulPayment(client, PARAMS);
+
+    const allocated = updatesTo(writes, "orders").find(
+      (w) => w.payload.fulfilment_state === "allocated",
+    );
+    expect(allocated, "a device was allocated but the board still says paid").toBeTruthy();
+    // Guarded on the current state, so a re-delivered webhook cannot drag a dispatched order
+    // back to `allocated`.
+    expect(allocated!.filters).toContainEqual(["fulfilment_state", "paid"]);
+  });
+
+  it("does NOT claim allocated when stock ran out — the shortfall stays visible", async () => {
+    const { client, writes } = makeSupabase({
+      order_items: { data: [{ id: "item-1", quantity: 1, device_id: null }], error: null },
+      devices: { data: null, error: { message: "no rows" } },
+    });
+    await handleSuccessfulPayment(client, PARAMS);
+
+    expect(
+      updatesTo(writes, "orders").some((w) => w.payload.fulfilment_state === "allocated"),
+      "claiming `allocated` with no device hides the one case that needs a human",
+    ).toBe(false);
+    expect(updatesTo(writes, "orders").map((w) => w.payload.status)).toContain("awaiting_stock");
+  });
+
+  it("does NOT claim allocated for a couple when only one of two pendants was found", async () => {
+    // One order item for TWO pendants, and only one device in stock. Everything is the real
+    // double except the SECOND `devices` lookup, which finds nothing — so exactly one of the
+    // two pendants is really allocated.
+    //
+    // Only `devices` is intercepted, and only after the first pick, so every other call
+    // (including the `devices` and `order_items` UPDATEs) still goes through the recording
+    // double. An override that swallowed those would make the allocation throw, and the
+    // assertion below would then pass because nothing ran at all.
+    const { client, writes } = makeSupabase({
+      order_items: { data: [{ id: "item-1", quantity: 2, device_id: null }], error: null },
+      devices: { data: { id: "device-1" }, error: null },
+    });
+    const realFrom = client.from.bind(client);
+    const alreadyAllocated = () =>
+      writes.some((w) => w.table === "devices" && w.payload.status === "allocated");
+
+    // Keyed on STATE, not on a call count: `from("devices")` is called for the SELECT and
+    // again for the UPDATE, so counting calls intercepted the update and made the whole
+    // allocation throw.
+    (client as { from: unknown }).from = (table: string) => {
+      const chain = realFrom(table) as Record<string, unknown>;
+      if (table !== "devices") return chain as never;
+      return {
+        ...chain,
+        select: () => {
+          const picking: Record<string, unknown> = {
+            eq: () => picking,
+            is: () => picking,
+            limit: () => picking,
+            single: async () =>
+              alreadyAllocated()
+                ? { data: null, error: { message: "no rows" } }
+                : { data: { id: "device-1" }, error: null },
+          };
+          return picking;
+        },
+      } as never;
+    };
+
+    await handleSuccessfulPayment(client, PARAMS);
+
+    // Proof the run got far enough to matter: the first pendant WAS allocated.
+    expect(updatesTo(writes, "devices").filter((w) => w.payload.status === "allocated")).toHaveLength(1);
+
+    expect(
+      updatesTo(writes, "orders").some((w) => w.payload.fulfilment_state === "allocated"),
+      "a couple with one pendant in the box is not allocated",
+    ).toBe(false);
+  });
+
+  it("leaves an order with no pendant at `paid` — there is nothing to allocate", async () => {
+    const { client, writes } = makeSupabase({
+      order_items: { data: [], error: null },
+    });
+    await handleSuccessfulPayment(client, PARAMS);
+
+    expect(updatesTo(writes, "orders").some((w) => w.payload.fulfilment_state === "paid")).toBe(true);
+    expect(
+      updatesTo(writes, "orders").some((w) => w.payload.fulfilment_state === "allocated"),
+      "no device exists to allocate, so `allocated` would be a false claim",
+    ).toBe(false);
+  });
+
+  it("counts an already-allocated item as served, so a retry does not read as short of stock", async () => {
+    const { client, writes } = makeSupabase({
+      order_items: { data: [{ id: "item-1", quantity: 1, device_id: "device-existing" }], error: null },
+      devices: { data: { id: "device-1" }, error: null },
+    });
+    await handleSuccessfulPayment(client, PARAMS);
+
+    expect(updatesTo(writes, "orders").some((w) => w.payload.fulfilment_state === "allocated")).toBe(
+      true,
+    );
+  });
+});
+
 describe("the sale is announced to a human", () => {
   it("notifies admin, so a paid member is not something only the database knows", async () => {
     adminNotifyCalls.length = 0;

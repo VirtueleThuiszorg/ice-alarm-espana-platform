@@ -480,14 +480,33 @@ export const FAMILIES = [
     wires: ["fn:create-checkout", "fn:create-mollie-checkout", "fn:submit-registration", "fn:save-registration-draft", "fn:complete-member-registration"],
     control: "/join — submit registration, pay by card (Stripe) or SEPA (Mollie)",
     promise: "you are signed up and covered once you have paid",
-    dest: "submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4)",
+    dest: "submit-registration → create-checkout (synced Stripe Price ids, ids-only request) → gateway; activation is by webhook only (golden rule 4)",
     told: "bell",
-    proof: null,
+    proof: "src/test/createCheckoutContract.test.ts",
     note:
-      "OUT OF SCOPE HERE BY INSTRUCTION — the join→pay path is covered by the separate goal " +
-      "already running, and duplicating it would put two changes on the same files. Recorded so " +
-      "the register is complete, deliberately not re-proven or altered. notify-admin fires " +
+      "OWNED HERE AS OF ITEM 5 — this entry previously read 'out of scope by instruction', " +
+      "which was true while a separate goal held the path. `create-checkout` now takes ids only " +
+      "and prices from `stripe_prices` (REVIEW_JOIN_PATH.md F7/F9 closed), and `stripe-webhook` " +
+      "refuses activation when `amount_total` disagrees with `payments.amount`. " +
+      "`create-mollie-checkout` is STILL on the old shape — it takes `lineItems` with amounts " +
+      "from the browser — and is the reason this row is not a 10. notify-admin fires " +
       "`sale.paid` from the webhook side, which is why `told` is bell.",
+  },
+  {
+    wires: ["fn:join-order-status"],
+    control: "/join?success — the confirmation screen, polling for the webhook",
+    promise: "your payment is confirmed, and here is the one thing still to do",
+    dest:
+      "join-order-status, keyed on the Stripe Checkout Session id (never the order number, " +
+      "which is sequential) → the member's second-stage link and the 24-hour number",
+    told: "screen",
+    proof: "src/test/joinOrderPolling.test.tsx",
+    note:
+      "Item 6. The screen used to announce 'registration complete' from a query parameter, " +
+      "before the webhook had run and for ever if it never ran. It now waits, then shows the " +
+      "`member_update_tokens` link that collects the emergency contacts the wizard stopped " +
+      "asking for — on screen, because no member email is deliverable yet. It gives up after " +
+      "90s and falls back to the phone route.",
   },
 
   // ───────────────────────── things that do notify ─────────────────────────

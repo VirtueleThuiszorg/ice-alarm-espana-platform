@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+import { identifyNotifyCaller } from "../_shared/admin-caller.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { sendEmail } from "../_shared/email.ts";
 import { parseServiceAccount, sendPush } from "../_shared/fcm.ts";
@@ -235,29 +236,16 @@ serve(async (req) => {
     const db = createClient(Deno.env.get("SUPABASE_URL")!, serviceRoleKey);
 
     // ── who is calling ───────────────────────────────────────────────────────
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const bearer = authHeader.replace(/^Bearer\s+/i, "");
-    if (!bearer) return json(401, { error: "Unauthorized" });
-
-    let caller: "service_role" | "admin";
-    if (bearer === serviceRoleKey) {
-      // An edge function or a trigger. The router's normal caller.
-      caller = "service_role";
-    } else {
-      const { data: userData } = await db.auth.getUser(bearer);
-      if (!userData?.user) return json(401, { error: "Invalid token" });
-      const { data: staff } = await db
-        .from("staff")
-        .select("role")
-        .eq("user_id", userData.user.id)
-        .eq("is_active", true)
-        .maybeSingle();
-      if (!staff || !["admin", "super_admin"].includes(staff.role)) {
-        // Not "staff": an operator who could post here could text the whole company.
-        return json(403, { error: "Admin access required" });
-      }
-      caller = "admin";
-    }
+    // The service role (an edge function or a pg_net trigger) or an admin's own JWT — and
+    // nothing else, because an operator who could post here could text the whole company.
+    // Shared with notify-admin: one rule, one set of tests. See _shared/admin-caller.ts.
+    const verdict = await identifyNotifyCaller(
+      db,
+      req.headers.get("Authorization"),
+      serviceRoleKey,
+    );
+    if (!verdict.ok) return json(verdict.status, { error: verdict.error });
+    const caller = verdict.caller;
 
     // ── the event ────────────────────────────────────────────────────────────
     // Validated by `parseNotifyRequest` in the shared module rather than by four `if`s here:

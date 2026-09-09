@@ -738,10 +738,20 @@ describe("parseNotifyRequest", () => {
 describe("the notify-staff function", () => {
   const fn = stripComments(read("supabase/functions/notify-staff/index.ts"));
 
-  it("accepts the service role and an admin, and nobody else", () => {
-    expect(fn).toContain("bearer === serviceRoleKey");
-    expect(fn).toContain('["admin", "super_admin"].includes(staff.role)');
-    expect(fn).toContain("Admin access required");
+  it("identifies its caller through the shared guard, and returns the refusal", () => {
+    /*
+      The rule itself — service role or admin, nobody else — is EXECUTED in
+      src/test/notifyCallerGuard.test.ts against `identifyNotifyCaller`. It moved out of this
+      file when notify-admin needed the identical check (it had none at all), and this asserts
+      the call and the branch rather than the words, because the previous version of this test
+      (`expect(fn).toContain("bearer === serviceRoleKey")`) survives deleting the `if` that
+      acts on the answer.
+    */
+    expect(fn).toMatch(/await identifyNotifyCaller\(/);
+    expect(fn).toMatch(/if \(!verdict\.ok\) return json\(verdict\.status/);
+    // No second, looser copy of the rule left behind here.
+    expect(fn).not.toContain("auth.getUser");
+    expect(fn).not.toContain("Admin access required");
     // An operator who could post here could text the whole company.
     expect(fn).not.toMatch(/is_staff|isStaff/);
   });
@@ -763,12 +773,12 @@ describe("the notify-staff function", () => {
 
   it("resolves recipients from ACTIVE staff only — in the recipients query, not just the auth check", () => {
     /*
-      TWO `.eq("is_active", true)` calls in this file: one checks the CALLER is an active staff
-      member, one filters the RECIPIENTS. A regex looking for the string found the first and
-      passed while a mutation deleted the second — so this asserts both, and asserts the
-      recipient one inside the function that resolves recipients.
+      There were TWO `.eq("is_active", true)` calls in this file — one checking the CALLER, one
+      filtering the RECIPIENTS — and a regex looking for the string found the first while a
+      mutation deleted the second. The caller half now lives in _shared/admin-caller.ts (its own
+      test asserts it), so exactly ONE is left here and it must be the recipient filter.
     */
-    expect(fn.match(/\.eq\("is_active", true\)/g) ?? []).toHaveLength(2);
+    expect(fn.match(/\.eq\("is_active", true\)/g) ?? []).toHaveLength(1);
     const recipients = fn.slice(fn.indexOf("async recipients("), fn.indexOf("async routes("));
     expect(recipients).toContain('.eq("is_active", true)');
     expect(recipients).toContain('from("staff")');

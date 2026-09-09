@@ -3832,6 +3832,127 @@ SELECT pg_temp.check(
   'a browser that could call nextval() would burn numbers and leave gaps in the ledger');
 
 -- ============================================================
+--  Dashboard notes item 2 — the Sales card's function can actually run
+-- ============================================================
+--
+-- `get_sales_command_stats()` counted follow-ups with `category = 'sales'`, and
+-- `internal_tickets.category` is `ticket_category`, whose values are pendant_help,
+-- technical_issue, member_query, billing_question, general, other. PostgreSQL coerced the
+-- literal, failed, and raised 22P02 — aborting the WHOLE function, so every figure on the card
+-- was lost and the dashboard showed "Failed to load".
+--
+-- A contract test, in the harness, because the defect only exists when the function MEETS the
+-- real enum: nothing in TypeScript could see it, and the SQL parses perfectly.
+
+SELECT pg_temp.check(
+  'ticket_category still has no ''sales'' value — the premise of this section',
+  NOT ('sales' = ANY (SELECT unnest(enum_range(NULL::public.ticket_category))::text)),
+  'if a product decision adds one, the dropped clause can be reconsidered — but on purpose');
+
+-- Rows that make the count non-trivial: two open follow-ups, one resolved one, one open ticket
+-- that is not a follow-up at all. A function that returned 0 for everything would otherwise
+-- pass every assertion below.
+-- `ticket_number` is UNIQUE NOT NULL and `created_by` is NOT NULL REFERENCES staff — the
+-- fixture supplies both rather than relying on defaults that do not exist.
+INSERT INTO public.internal_tickets
+  (ticket_number, title, description, category, status, priority, created_by)
+VALUES
+  ('TKT-RLS-1', 'Follow up with the Torrevieja lead', 'called, no answer', 'general', 'open',
+   'medium', (SELECT id FROM public.staff WHERE email = 'superadmin@example.com')),
+  ('TKT-RLS-2', 'follow-up: pendant demo', 'wants a demo', 'member_query', 'in_progress',
+   'medium', (SELECT id FROM public.staff WHERE email = 'superadmin@example.com')),
+  ('TKT-RLS-3', 'Follow up — already done', 'closed off', 'general', 'resolved',
+   'low', (SELECT id FROM public.staff WHERE email = 'superadmin@example.com')),
+  ('TKT-RLS-4', 'Pendant will not charge', 'battery', 'pendant_help', 'open',
+   'high', (SELECT id FROM public.staff WHERE email = 'superadmin@example.com'));
+
+DO $$
+DECLARE stats json;
+BEGIN
+  -- THE ASSERTION THAT MATTERS: this call raised 22P02 before the fix, so everything below it
+  -- is downstream of "the function runs at all".
+  stats := public.get_sales_command_stats();
+
+  PERFORM pg_temp.check(
+    'get_sales_command_stats() RETURNS instead of raising 22P02',
+    stats IS NOT NULL,
+    'the card read "Failed to load" because this call aborted on an enum value that does not exist');
+
+  PERFORM pg_temp.check(
+    'it counts the two OPEN follow-ups and neither the resolved one nor the non-follow-up',
+    (stats->>'followups_pending')::int = 2,
+    format('got %s — expected the two open tickets whose title says follow', stats->>'followups_pending'));
+
+  -- ::jsonb because `?` is a jsonb operator and this function returns `json`; on json it is
+  -- "operator does not exist", which aborts the block rather than reporting a failure.
+  PERFORM pg_temp.check(
+    'every key the card reads is present',
+    (SELECT bool_and(stats::jsonb ? k) FROM unnest(ARRAY[
+      'paid_sales_today', 'paid_amount_today', 'paid_sales_60min', 'paid_amount_60min',
+      'new_subscriptions', 'partner_signups', 'ai_hot_items', 'followups_pending'
+    ]) AS k),
+    'a missing key renders as undefined on the tile, which reads as a dash rather than a zero');
+
+  PERFORM pg_temp.check(
+    'and NO key is null — a quiet zero must render as 0, not as a blank',
+    (SELECT bool_and(value IS NOT NULL) FROM json_each_text(stats)),
+    format('%s', stats));
+
+  PERFORM pg_temp.check(
+    'the money figures are numbers, not nulls, with no payments at all today',
+    (stats->>'paid_amount_today')::numeric >= 0
+    AND (stats->>'paid_amount_60min')::numeric >= 0);
+END $$;
+
+-- A resolved follow-up must not be counted, and the count must MOVE when the data moves —
+-- otherwise a hardcoded 2 would pass.
+DO $$
+DECLARE before_count int; after_count int;
+BEGIN
+  before_count := (public.get_sales_command_stats()->>'followups_pending')::int;
+
+  INSERT INTO public.internal_tickets
+    (ticket_number, title, description, category, status, priority, created_by)
+  VALUES ('TKT-RLS-5', 'Follow up on the Albox enquiry', 'ring back', 'general', 'open',
+          'medium', (SELECT id FROM public.staff WHERE email = 'superadmin@example.com'));
+
+  after_count := (public.get_sales_command_stats()->>'followups_pending')::int;
+
+  PERFORM pg_temp.check(
+    'the follow-up count tracks the data rather than a constant',
+    after_count = before_count + 1,
+    format('%s then %s', before_count, after_count));
+
+  UPDATE public.internal_tickets SET status = 'resolved'
+   WHERE title = 'Follow up on the Albox enquiry';
+
+  PERFORM pg_temp.check(
+    'resolving it takes it back out of the count',
+    (public.get_sales_command_stats()->>'followups_pending')::int = before_count);
+END $$;
+
+-- COMMENTS STRIPPED FIRST. The function body explains the clause it dropped, quoting
+-- `category = 'sales'` so the next reader knows why the count is title-based — and the first
+-- version of this assertion matched that sentence and reported the fix as the defect. Prose is
+-- not code; this reads the code.
+SELECT pg_temp.check(
+  'the function does NOT reach for a ::text cast to make the old clause "work"',
+  (SELECT regexp_replace(prosrc, '--[^' || chr(10) || ']*', '', 'g') NOT LIKE '%category::text%'
+      AND regexp_replace(prosrc, '--[^' || chr(10) || ']*', '', 'g') NOT LIKE '%''sales''%'
+     FROM pg_proc WHERE proname = 'get_sales_command_stats'),
+  'a cast would have loaded the card while silently counting no sales tickets forever, which is '
+  'worse than the error that at least announced itself');
+
+SELECT pg_temp.check(
+  'a member cannot call it — dashboard figures are staff-facing',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'SELECT public.get_sales_command_stats()')
+  OR pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT public.get_sales_command_stats()') = 1,
+  'SECURITY DEFINER with no role check inside: recorded here as what it is, so a future '
+  'tightening has a place to land');
+
+-- ============================================================
 --  Report
 -- ============================================================
 

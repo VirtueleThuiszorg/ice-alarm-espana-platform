@@ -21,6 +21,8 @@ import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
+import { stripComments } from "./helpers/stripComments";
+
 const SRC = path.resolve(process.cwd(), "src");
 const read = (p: string) => readFileSync(p, "utf8");
 
@@ -113,7 +115,12 @@ describe("functions.invoke error surfacing", () => {
       (f) =>
         // The helper names the string in its own docs, which is the point of it.
         f !== "src/lib/functionError.ts" &&
-        /non-2xx status code/i.test(read(path.resolve(process.cwd(), f)))
+        // COMMENTS STRIPPED. This scan read raw source and therefore flagged
+        // `src/hooks/useSendPaymentLink.ts`, whose comment EXPLAINS that invoke hides the real
+        // message behind "non-2xx status code" — the ninth time this repo has caught an
+        // assertion matching the prose about a defect instead of the defect. A file that quotes
+        // the string in a comment while calling functionError is doing the right thing.
+        /non-2xx status code/i.test(stripComments(read(path.resolve(process.cwd(), f))))
     );
     expect(leaking, `hardcodes the generic invoke error: ${leaking.join(", ")}`).toEqual([]);
   });

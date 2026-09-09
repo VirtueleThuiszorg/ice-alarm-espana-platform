@@ -18,7 +18,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
 10 │   2  █
  9 │   5  ██
  8 │   0  
- 7 │   8  ███
+ 7 │   9  ████
  6 │  21  ████████
  5 │  85  ██████████████████████████████████
  4 │  48  ███████████████████
@@ -28,12 +28,12 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   2  █
 ```
 
-171 distinct wires across 536 call sites and 108 routes.
+172 distinct wires across 537 call sites and 108 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
 | 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 2 | 1% |
-| 7–9 | arrives and proven; notification missing or on a channel not live today | 13 | 8% |
+| 7–9 | arrives and proven; notification missing or on a channel not live today | 14 | 8% |
 | 4–6 | arrives; nobody told; nothing proves it | 154 | 90% |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0% |
 | 0 | dead control | 2 | 1% |
@@ -64,7 +64,7 @@ and a control with no wire cannot do anything:
 | kind | what it is | call sites |
 |---|---|---:|
 | `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 341 |
-| `fn` | `supabase.functions.invoke(f)` — an edge function | 77 |
+| `fn` | `supabase.functions.invoke(f)` — an edge function | 78 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 4 |
 | `channel` | `postgres_changes` — a realtime subscription | 51 |
 | `link` | `mailto:` / `tel:` / `wa.me` — a hand-off off the platform | 63 |
@@ -254,6 +254,7 @@ failing silently, and it is exactly what the contact form did.
 | **7** | `channel:tasks` | Call-centre dashboard — courtesy-call list auto-refresh — the courtesy-call list stays current while the operator works | supabase.channel('dashboard-courtesy-calls') → fetchCourtesyCalls() | screen | — | `scripts/rls/wiring.sql` | 1 |
 | **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
 | **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
+| **7** | `fn:send-payment-link` | Staff send a member a Stripe payment link (CRM → member → Subscription) — a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are switched on, and always shown on screen to copy | send-payment-link → create_payment_link_order (pending order + items + subscription + payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms and/or send-email; activation is stripe-webhook's alone | the payer (SMS + email), and activity_logs twice — the order created, and what was sent | mutation onError | `src/test/sendPaymentLink.test.ts` | 1 |
 | **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
 | **9** | `fn:notify-fulfilment` | Order state transition fan-out — paid → allocated → programmed → dispatched → delivered → tested — the next person in the chain knows the device is theirs to move | notify-fulfilment → member_notification_log, one row per channel decision | bell | — | `src/test/notifyFulfilmentDispatcher.test.ts` | 1 |
 | **9** | `fn:partner-register` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | — | `e2e/partnerJourney.spec.ts` | 1 |
@@ -428,6 +429,7 @@ failing silently, and it is exactly what the contact form did.
 | **7** | `channel:tasks` | Call-centre dashboard — courtesy-call list auto-refresh — the courtesy-call list stays current while the operator works | supabase.channel('dashboard-courtesy-calls') → fetchCourtesyCalls() | screen | — | `scripts/rls/wiring.sql` | 1 |
 | **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
 | **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
+| **7** | `fn:send-payment-link` | Staff send a member a Stripe payment link (CRM → member → Subscription) — a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are switched on, and always shown on screen to copy | send-payment-link → create_payment_link_order (pending order + items + subscription + payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms and/or send-email; activation is stripe-webhook's alone | the payer (SMS + email), and activity_logs twice — the order created, and what was sent | mutation onError | `src/test/sendPaymentLink.test.ts` | 1 |
 | **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
 | **9** | `fn:notify-fulfilment` | Order state transition fan-out — paid → allocated → programmed → dispatched → delivered → tested — the next person in the chain knows the device is theirs to move | notify-fulfilment → member_notification_log, one row per channel decision | bell | — | `src/test/notifyFulfilmentDispatcher.test.ts` | 1 |
 | **9** | `fn:partner-register` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | — | `e2e/partnerJourney.spec.ts` | 1 |
@@ -602,6 +604,7 @@ failing silently, and it is exactly what the contact form did.
 | **7** | `channel:tasks` | Call-centre dashboard — courtesy-call list auto-refresh — the courtesy-call list stays current while the operator works | supabase.channel('dashboard-courtesy-calls') → fetchCourtesyCalls() | screen | — | `scripts/rls/wiring.sql` | 1 |
 | **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
 | **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
+| **7** | `fn:send-payment-link` | Staff send a member a Stripe payment link (CRM → member → Subscription) — a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are switched on, and always shown on screen to copy | send-payment-link → create_payment_link_order (pending order + items + subscription + payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms and/or send-email; activation is stripe-webhook's alone | the payer (SMS + email), and activity_logs twice — the order created, and what was sent | mutation onError | `src/test/sendPaymentLink.test.ts` | 1 |
 | **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
 | **9** | `fn:notify-fulfilment` | Order state transition fan-out — paid → allocated → programmed → dispatched → delivered → tested — the next person in the chain knows the device is theirs to move | notify-fulfilment → member_notification_log, one row per channel decision | bell | — | `src/test/notifyFulfilmentDispatcher.test.ts` | 1 |
 | **9** | `fn:partner-register` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | — | `e2e/partnerJourney.spec.ts` | 1 |
@@ -776,6 +779,7 @@ failing silently, and it is exactly what the contact form did.
 | **7** | `channel:tasks` | Call-centre dashboard — courtesy-call list auto-refresh — the courtesy-call list stays current while the operator works | supabase.channel('dashboard-courtesy-calls') → fetchCourtesyCalls() | screen | — | `scripts/rls/wiring.sql` | 1 |
 | **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
 | **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
+| **7** | `fn:send-payment-link` | Staff send a member a Stripe payment link (CRM → member → Subscription) — a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are switched on, and always shown on screen to copy | send-payment-link → create_payment_link_order (pending order + items + subscription + payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms and/or send-email; activation is stripe-webhook's alone | the payer (SMS + email), and activity_logs twice — the order created, and what was sent | mutation onError | `src/test/sendPaymentLink.test.ts` | 1 |
 | **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
 | **9** | `fn:notify-fulfilment` | Order state transition fan-out — paid → allocated → programmed → dispatched → delivered → tested — the next person in the chain knows the device is theirs to move | notify-fulfilment → member_notification_log, one row per channel decision | bell | — | `src/test/notifyFulfilmentDispatcher.test.ts` | 1 |
 | **9** | `fn:partner-register` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | — | `e2e/partnerJourney.spec.ts` | 1 |
@@ -950,6 +954,7 @@ failing silently, and it is exactly what the contact form did.
 | **7** | `channel:tasks` | Call-centre dashboard — courtesy-call list auto-refresh — the courtesy-call list stays current while the operator works | supabase.channel('dashboard-courtesy-calls') → fetchCourtesyCalls() | screen | — | `scripts/rls/wiring.sql` | 1 |
 | **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
 | **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
+| **7** | `fn:send-payment-link` | Staff send a member a Stripe payment link (CRM → member → Subscription) — a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are switched on, and always shown on screen to copy | send-payment-link → create_payment_link_order (pending order + items + subscription + payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms and/or send-email; activation is stripe-webhook's alone | the payer (SMS + email), and activity_logs twice — the order created, and what was sent | mutation onError | `src/test/sendPaymentLink.test.ts` | 1 |
 | **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
 | **9** | `fn:notify-fulfilment` | Order state transition fan-out — paid → allocated → programmed → dispatched → delivered → tested — the next person in the chain knows the device is theirs to move | notify-fulfilment → member_notification_log, one row per channel decision | bell | — | `src/test/notifyFulfilmentDispatcher.test.ts` | 1 |
 | **9** | `fn:partner-register` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | — | `e2e/partnerJourney.spec.ts` | 1 |
@@ -1124,6 +1129,7 @@ failing silently, and it is exactly what the contact form did.
 | **7** | `channel:tasks` | Call-centre dashboard — courtesy-call list auto-refresh — the courtesy-call list stays current while the operator works | supabase.channel('dashboard-courtesy-calls') → fetchCourtesyCalls() | screen | — | `scripts/rls/wiring.sql` | 1 |
 | **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
 | **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
+| **7** | `fn:send-payment-link` | Staff send a member a Stripe payment link (CRM → member → Subscription) — a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are switched on, and always shown on screen to copy | send-payment-link → create_payment_link_order (pending order + items + subscription + payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms and/or send-email; activation is stripe-webhook's alone | the payer (SMS + email), and activity_logs twice — the order created, and what was sent | mutation onError | `src/test/sendPaymentLink.test.ts` | 1 |
 | **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
 | **9** | `fn:notify-fulfilment` | Order state transition fan-out — paid → allocated → programmed → dispatched → delivered → tested — the next person in the chain knows the device is theirs to move | notify-fulfilment → member_notification_log, one row per channel decision | bell | — | `src/test/notifyFulfilmentDispatcher.test.ts` | 1 |
 | **9** | `fn:partner-register` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | — | `e2e/partnerJourney.spec.ts` | 1 |
@@ -3259,6 +3265,19 @@ Gateway FIRST, record second, and the half-applied case is said out loud rather 
 - **call sites** src/hooks/useMemberAction.ts
 
 Gateway FIRST, record second, and the half-applied case is said out loud rather than swallowed. Note the live drift: `member_action` gained 'resume' in a migration that is in main and NOT yet applied to production, so a resume in production performs the Stripe change and then fails to record it. Flagged to Lee separately; not this goal's to fix.
+
+### `fn:send-payment-link` — 7/10 (proven; nobody told)
+
+- **control** Staff send a member a Stripe payment link (CRM → member → Subscription)
+- **promised** a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are switched on, and always shown on screen to copy
+- **goes to** send-payment-link → create_payment_link_order (pending order + items + subscription + payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms and/or send-email; activation is stripe-webhook's alone
+- **who is told** the payer (SMS + email), and activity_logs twice — the order created, and what was sent
+- **failure shown to user** mutation onError
+- **proof** `src/test/sendPaymentLink.test.ts`
+- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **call sites** src/hooks/useSendPaymentLink.ts
+
+Replaces a `Create Subscription` button that had NO onClick. The browser sends a plan, a billing frequency, a pendant count and who pays — no amounts: every line item names a Stripe Price id created from pricing_plans/pricing_settings, and the request schema has no amount field. Refuses rather than guessing when a Price is unsynced or stale. REQUIRES 20260909110000 in production (the SQL function it calls); until that is applied the button returns a 409 naming the missing function.
 
 ### `table:activity_logs` — 7/10 (proven; no notification owed)
 

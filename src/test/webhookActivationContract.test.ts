@@ -77,6 +77,11 @@ function makeSupabase(reads: Record<string, unknown> = {}) {
         select: () => chain,
         eq: (c: string, v: unknown) => { filters.push([c, v]); return chain; },
         is: (c: string, v: unknown) => { filters.push([c, v]); return chain; },
+        // `gt` and `in` arrived with item 6: the second-stage token lookup asks for an unused,
+        // unexpired token, and without them the chain threw and the failure looked like a
+        // rejected promise rather than a missing double method.
+        gt: (c: string, v: unknown) => { filters.push([c, v]); return chain; },
+        in: (c: string, v: unknown) => { filters.push([c, v]); return chain; },
         limit: () => chain,
         order: () => chain,
         single: async () => (reads[table] ?? { data: null, error: null }),
@@ -387,6 +392,125 @@ describe("fulfilment_state — the paid order reaches the fulfilment board", () 
     expect(updatesTo(writes, "orders").some((w) => w.payload.fulfilment_state === "allocated")).toBe(
       true,
     );
+  });
+});
+
+/**
+ * Item 6, driven rather than described.
+ *
+ * The wizard no longer collects emergency contacts — they moved to a post-payment second stage
+ * — and until item 6 NOTHING on the payment path minted the token that stage needs, so a member
+ * who paid had no contacts at all and an operator answering their SOS had nobody to ring
+ * (REVIEW_JOIN_PATH.md F6). Nothing created an auth user either, so "sign in to your dashboard"
+ * named an account that did not exist.
+ *
+ * ORDER IS ASSERTED FROM THE RECORDED WRITES, not from positions in the source. The source-text
+ * version of these assertions survived a mutation, because moving code does not necessarily
+ * move the strings a regex is looking for.
+ */
+describe("the second stage is set up by the payment path", () => {
+  const withAuth = (client: Record<string, unknown>) => {
+    (client as { auth?: unknown }).auth = {
+      admin: {
+        generateLink: async () => ({
+          data: { user: { id: "user-1" }, properties: { action_link: "https://magic" } },
+        }),
+      },
+    };
+    return client;
+  };
+
+  const readsFor = (memberIds: string[]) => ({
+    members: { data: { id: memberIds[0], first_name: "Ana", last_name: "Ruiz", email: "ana@example.com", preferred_language: "es", user_id: null }, error: null },
+  });
+
+  it("mints a second-stage token for the member", async () => {
+    const { client, writes } = makeSupabase(readsFor(["member-1"]));
+    await handleSuccessfulPayment(withAuth(client as never) as never, PARAMS);
+
+    const token = writes.find((w) => w.table === "member_update_tokens" && w.op === "insert");
+    expect(token, "no second-stage token was minted — the member has no way to give us contacts").toBeTruthy();
+    expect(token!.payload.member_id).toBe("member-1");
+    expect(token!.payload.issued_via).toBe("post_payment");
+    expect(token!.payload.created_by).toBeNull();
+  });
+
+  it("mints ONE PER MEMBER for a couple — two data subjects, two tokens", async () => {
+    const { client, writes } = makeSupabase(readsFor(["member-1"]));
+    await handleSuccessfulPayment(withAuth(client as never) as never, {
+      ...PARAMS,
+      partnerMemberId: "member-2",
+    });
+
+    const tokens = writes.filter((w) => w.table === "member_update_tokens" && w.op === "insert");
+    expect(tokens).toHaveLength(2);
+  });
+
+  it("points members.user_id at the auth user it created", async () => {
+    const { client, writes } = makeSupabase(readsFor(["member-1"]));
+    await handleSuccessfulPayment(withAuth(client as never) as never, PARAMS);
+
+    // Without this write every member-facing RLS policy matches nothing, so the member signs
+    // in and sees an empty dashboard.
+    const link = writes.find((w) => w.table === "members" && w.payload.user_id === "user-1");
+    expect(link, "the auth user was never linked to the member row").toBeTruthy();
+  });
+
+  it("ACTIVATES first, then onboards — activation must not be lost to either step", async () => {
+    const { client, writes } = makeSupabase(readsFor(["member-1"]));
+    await handleSuccessfulPayment(withAuth(client as never) as never, PARAMS);
+
+    const activation = writes.findIndex((w) => w.table === "members" && w.payload.status === "active");
+    const token = writes.findIndex((w) => w.table === "member_update_tokens");
+    expect(activation).toBeGreaterThanOrEqual(0);
+    expect(token).toBeGreaterThan(activation);
+  });
+
+  it("onboards BEFORE allocating a device — the token is the safety-relevant one", async () => {
+    const { client, writes } = makeSupabase({
+      ...readsFor(["member-1"]),
+      order_items: { data: [{ id: "item-1", quantity: 1, device_id: null }], error: null },
+      devices: { data: { id: "device-1" }, error: null },
+    });
+    await handleSuccessfulPayment(withAuth(client as never) as never, PARAMS);
+
+    const token = writes.findIndex((w) => w.table === "member_update_tokens");
+    const allocation = writes.findIndex((w) => w.table === "devices");
+    expect(token).toBeGreaterThanOrEqual(0);
+    expect(allocation).toBeGreaterThan(token);
+  });
+
+  it("still activates the member when the login could not be created", async () => {
+    // The payment path must never lose an activation to a downstream failure, and an auth
+    // service that is down is exactly that.
+    const { client, writes } = makeSupabase(readsFor(["member-1"]));
+    (client as { auth?: unknown }).auth = {
+      admin: { generateLink: async () => { throw new Error("auth down"); } },
+    };
+
+    await expect(handleSuccessfulPayment(client as never, PARAMS)).resolves.not.toThrow();
+    expect(writes.some((w) => w.table === "members" && w.payload.status === "active")).toBe(true);
+  });
+
+  it("still activates the member when the token could not be minted", async () => {
+    const { client, writes } = makeSupabase(readsFor(["member-1"]));
+    withAuth(client as never);
+    const realFrom = client.from.bind(client);
+    (client as { from: unknown }).from = (table: string) => {
+      if (table === "member_update_tokens") {
+        const chain: Record<string, unknown> = {
+          select: () => chain, eq: () => chain, is: () => chain, gt: () => chain,
+          order: () => chain, limit: () => chain,
+          maybeSingle: async () => ({ data: null, error: null }),
+          insert: async () => ({ error: { message: "rls denied" } }),
+        };
+        return chain as never;
+      }
+      return realFrom(table);
+    };
+
+    await expect(handleSuccessfulPayment(client as never, PARAMS)).resolves.not.toThrow();
+    expect(writes.some((w) => w.table === "members" && w.payload.status === "active")).toBe(true);
   });
 });
 

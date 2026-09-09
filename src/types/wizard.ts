@@ -77,6 +77,14 @@ export interface JoinWizardData {
   // Generated after submission
   orderId?: string;
   memberId?: string;
+  /**
+   * The Stripe Checkout Session id, handed back on the success redirect.
+   *
+   * It is the confirmation screen's only credential: `join-order-status` will not answer to an
+   * order number, because order numbers are sequential and the answer includes the member's
+   * second-stage link to their medical and emergency-contact form.
+   */
+  stripeSessionId?: string;
 }
 
 export const initialJoinWizardData: JoinWizardData = {

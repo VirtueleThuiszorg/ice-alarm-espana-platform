@@ -47,6 +47,10 @@ const rel = (p: string) => path.relative(process.cwd(), p).replace(/\\/g, "/");
 const NO_USER_FACING_ERROR: Record<string, string> = {
   "src/lib/functionError.ts": "the helper itself",
   "src/hooks/useAIAgentHealth.ts": "background health poll; result renders as a status dot, no error toast",
+  "src/hooks/useJoinOrderStatus.ts":
+    "post-payment poll; an endpoint error is DELIBERATELY treated as 'not yet' and retried — " +
+    "the member has already paid, and a transient failure of this endpoint is not something to " +
+    "report to them as a problem with their payment. It gives up after 90s into the phone route",
   "src/hooks/useTwilioDevice.ts": "device token refresh loop; failure degrades to no-calling, logged only",
   "src/utils/notifications.ts": "fire-and-forget notification dispatch; caller owns any messaging",
   "src/components/admin/dashboard/PaidSalesFeed.tsx": "read-only dashboard feed; empty state on failure",

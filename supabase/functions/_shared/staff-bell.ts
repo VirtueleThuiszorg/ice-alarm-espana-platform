@@ -14,6 +14,30 @@
  * the retry re-runs whatever already succeeded. The failure is logged and reported in the
  * return value instead, so the caller can record "the money was refused AND nobody was told",
  * which is a different and worse fact than either alone.
+ *
+ * ── NOT A DUPLICATE OF `_shared/notify-staff.ts`, and the reason matters ────
+ *
+ * Another session landed a staff-notification ROUTER while this was in review, and two modules
+ * that both "tell staff something" is exactly the duplicate parallel implementation the
+ * engineering bar forbids — so it was checked rather than assumed. They cover DIFFERENT
+ * CHANNELS:
+ *
+ *   notify-staff.ts   `NOTIFY_CHANNELS = ["sms", "whatsapp", "push", "email"]` — the four
+ *                     OUTBOUND channels. Every one is gated on a production secret or a
+ *                     `notify_channel_*` flag, and all three flags are OFF in production
+ *                     (STATE.md, D7).
+ *   this module       `notification_log` — the IN-APP bell. No secret, no flag; published to
+ *                     `supabase_realtime`, so it is the only channel provable from this repo.
+ *
+ * The router has no in-app channel at all. So routing these alerts through it INSTEAD would
+ * mean that today — with the flags off — a payment mismatch, a subscription that failed to
+ * activate and a failed renewal would tell NOBODY. That is the failure this module exists to
+ * prevent, so it stays.
+ *
+ * THE RIGHT END STATE is one call that raises the bell AND fans out to whichever outbound
+ * channels are on, with the bell unconditional. That is a change to the router's contract (it
+ * would need an always-on `in_app` channel), which belongs to whoever owns it — not something
+ * to force from this side by deleting the only notifier that currently works.
  */
 
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";

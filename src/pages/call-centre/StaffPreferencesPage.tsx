@@ -15,6 +15,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { EnablePushCard } from "@/components/notifications/EnablePushCard";
+import { MyNotificationPrefs } from "@/components/notifications/MyNotificationPrefs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -338,6 +339,10 @@ export default function StaffPreferencesPage() {
               token registered against this staff member's row in `staff_push_tokens`, which the
               notify-staff router reads when it sends. Per-event switches follow it. */}
           <EnablePushCard />
+
+          {/* The device is half the answer; this is the other half — WHICH events reach them.
+              Read-only by instruction: an admin sets these. */}
+          <MyNotificationPrefs />
 
           {/* Account Information */}
           <Card>

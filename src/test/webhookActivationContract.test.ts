@@ -77,6 +77,11 @@ function makeSupabase(reads: Record<string, unknown> = {}) {
         select: () => chain,
         eq: (c: string, v: unknown) => { filters.push([c, v]); return chain; },
         is: (c: string, v: unknown) => { filters.push([c, v]); return chain; },
+        // `gt` and `in` arrived with item 6: the second-stage token lookup asks for an unused,
+        // unexpired token, and without them the chain threw and the failure looked like a
+        // rejected promise rather than a missing double method.
+        gt: (c: string, v: unknown) => { filters.push([c, v]); return chain; },
+        in: (c: string, v: unknown) => { filters.push([c, v]); return chain; },
         limit: () => chain,
         order: () => chain,
         single: async () => (reads[table] ?? { data: null, error: null }),
@@ -246,6 +251,266 @@ describe("device allocation — paid → allocated, and its failure mode", () =>
     await handleSuccessfulPayment(client, PARAMS);
 
     expect(updatesTo(writes, "devices").filter((w) => w.payload.status === "allocated")).toHaveLength(0);
+  });
+});
+
+/**
+ * `fulfilment_state` is the PHYSICAL sequence (20260908120400). It starts at
+ * `awaiting_payment` because an order exists from the moment the wizard is submitted — before
+ * anybody has paid — and NOTHING was moving it afterwards. Every paid order therefore still
+ * read "awaiting payment" on the fulfilment board, so no pendant was ever picked from it.
+ */
+describe("fulfilment_state — the paid order reaches the fulfilment board", () => {
+  it("moves awaiting_payment → paid, with the reason the trigger demands", async () => {
+    const { client, writes } = makeSupabase();
+    await handleSuccessfulPayment(client, PARAMS);
+
+    const paid = updatesTo(writes, "orders").find((w) => w.payload.fulfilment_state === "paid");
+    expect(paid, "the order never left awaiting_payment").toBeTruthy();
+    expect(paid!.filters).toContainEqual(["id", "order-1"]);
+
+    // Moving INTO `paid` is privileged and needs a NEW reason distinct from the old one, or
+    // enforce_fulfilment_state() raises and the whole update is refused.
+    expect(paid!.payload.fulfilment_state_reason).toEqual(expect.stringContaining("pi_test_123"));
+    expect(paid!.payload.fulfilment_state_reason).toEqual(expect.stringContaining("stripe"));
+  });
+
+  it("names the gateway that actually paid, so the claim is auditable", async () => {
+    const { client, writes } = makeSupabase();
+    await handleSuccessfulPayment(client, {
+      ...PARAMS,
+      gateway: "mollie",
+      gatewayPaymentId: "tr_test_456",
+    });
+
+    const paid = updatesTo(writes, "orders").find((w) => w.payload.fulfilment_state === "paid")!;
+    expect(paid.payload.fulfilment_state_reason).toEqual(expect.stringContaining("mollie"));
+    expect(paid.payload.fulfilment_state_reason).toEqual(expect.stringContaining("tr_test_456"));
+  });
+
+  it("moves paid → allocated once every pendant on the order has a device", async () => {
+    const { client, writes } = makeSupabase({
+      order_items: { data: [{ id: "item-1", quantity: 1, device_id: null }], error: null },
+      devices: { data: { id: "device-1" }, error: null },
+    });
+    await handleSuccessfulPayment(client, PARAMS);
+
+    const allocated = updatesTo(writes, "orders").find(
+      (w) => w.payload.fulfilment_state === "allocated",
+    );
+    expect(allocated, "a device was allocated but the board still says paid").toBeTruthy();
+    // Guarded on the current state, so a re-delivered webhook cannot drag a dispatched order
+    // back to `allocated`.
+    expect(allocated!.filters).toContainEqual(["fulfilment_state", "paid"]);
+  });
+
+  it("does NOT claim allocated when stock ran out — the shortfall stays visible", async () => {
+    const { client, writes } = makeSupabase({
+      order_items: { data: [{ id: "item-1", quantity: 1, device_id: null }], error: null },
+      devices: { data: null, error: { message: "no rows" } },
+    });
+    await handleSuccessfulPayment(client, PARAMS);
+
+    expect(
+      updatesTo(writes, "orders").some((w) => w.payload.fulfilment_state === "allocated"),
+      "claiming `allocated` with no device hides the one case that needs a human",
+    ).toBe(false);
+    expect(updatesTo(writes, "orders").map((w) => w.payload.status)).toContain("awaiting_stock");
+  });
+
+  it("does NOT claim allocated for a couple when only one of two pendants was found", async () => {
+    // One order item for TWO pendants, and only one device in stock. Everything is the real
+    // double except the SECOND `devices` lookup, which finds nothing — so exactly one of the
+    // two pendants is really allocated.
+    //
+    // Only `devices` is intercepted, and only after the first pick, so every other call
+    // (including the `devices` and `order_items` UPDATEs) still goes through the recording
+    // double. An override that swallowed those would make the allocation throw, and the
+    // assertion below would then pass because nothing ran at all.
+    const { client, writes } = makeSupabase({
+      order_items: { data: [{ id: "item-1", quantity: 2, device_id: null }], error: null },
+      devices: { data: { id: "device-1" }, error: null },
+    });
+    const realFrom = client.from.bind(client);
+    const alreadyAllocated = () =>
+      writes.some((w) => w.table === "devices" && w.payload.status === "allocated");
+
+    // Keyed on STATE, not on a call count: `from("devices")` is called for the SELECT and
+    // again for the UPDATE, so counting calls intercepted the update and made the whole
+    // allocation throw.
+    (client as { from: unknown }).from = (table: string) => {
+      const chain = realFrom(table) as Record<string, unknown>;
+      if (table !== "devices") return chain as never;
+      return {
+        ...chain,
+        select: () => {
+          const picking: Record<string, unknown> = {
+            eq: () => picking,
+            is: () => picking,
+            limit: () => picking,
+            single: async () =>
+              alreadyAllocated()
+                ? { data: null, error: { message: "no rows" } }
+                : { data: { id: "device-1" }, error: null },
+          };
+          return picking;
+        },
+      } as never;
+    };
+
+    await handleSuccessfulPayment(client, PARAMS);
+
+    // Proof the run got far enough to matter: the first pendant WAS allocated.
+    expect(updatesTo(writes, "devices").filter((w) => w.payload.status === "allocated")).toHaveLength(1);
+
+    expect(
+      updatesTo(writes, "orders").some((w) => w.payload.fulfilment_state === "allocated"),
+      "a couple with one pendant in the box is not allocated",
+    ).toBe(false);
+  });
+
+  it("leaves an order with no pendant at `paid` — there is nothing to allocate", async () => {
+    const { client, writes } = makeSupabase({
+      order_items: { data: [], error: null },
+    });
+    await handleSuccessfulPayment(client, PARAMS);
+
+    expect(updatesTo(writes, "orders").some((w) => w.payload.fulfilment_state === "paid")).toBe(true);
+    expect(
+      updatesTo(writes, "orders").some((w) => w.payload.fulfilment_state === "allocated"),
+      "no device exists to allocate, so `allocated` would be a false claim",
+    ).toBe(false);
+  });
+
+  it("counts an already-allocated item as served, so a retry does not read as short of stock", async () => {
+    const { client, writes } = makeSupabase({
+      order_items: { data: [{ id: "item-1", quantity: 1, device_id: "device-existing" }], error: null },
+      devices: { data: { id: "device-1" }, error: null },
+    });
+    await handleSuccessfulPayment(client, PARAMS);
+
+    expect(updatesTo(writes, "orders").some((w) => w.payload.fulfilment_state === "allocated")).toBe(
+      true,
+    );
+  });
+});
+
+/**
+ * Item 6, driven rather than described.
+ *
+ * The wizard no longer collects emergency contacts — they moved to a post-payment second stage
+ * — and until item 6 NOTHING on the payment path minted the token that stage needs, so a member
+ * who paid had no contacts at all and an operator answering their SOS had nobody to ring
+ * (REVIEW_JOIN_PATH.md F6). Nothing created an auth user either, so "sign in to your dashboard"
+ * named an account that did not exist.
+ *
+ * ORDER IS ASSERTED FROM THE RECORDED WRITES, not from positions in the source. The source-text
+ * version of these assertions survived a mutation, because moving code does not necessarily
+ * move the strings a regex is looking for.
+ */
+describe("the second stage is set up by the payment path", () => {
+  const withAuth = (client: Record<string, unknown>) => {
+    (client as { auth?: unknown }).auth = {
+      admin: {
+        generateLink: async () => ({
+          data: { user: { id: "user-1" }, properties: { action_link: "https://magic" } },
+        }),
+      },
+    };
+    return client;
+  };
+
+  const readsFor = (memberIds: string[]) => ({
+    members: { data: { id: memberIds[0], first_name: "Ana", last_name: "Ruiz", email: "ana@example.com", preferred_language: "es", user_id: null }, error: null },
+  });
+
+  it("mints a second-stage token for the member", async () => {
+    const { client, writes } = makeSupabase(readsFor(["member-1"]));
+    await handleSuccessfulPayment(withAuth(client as never) as never, PARAMS);
+
+    const token = writes.find((w) => w.table === "member_update_tokens" && w.op === "insert");
+    expect(token, "no second-stage token was minted — the member has no way to give us contacts").toBeTruthy();
+    expect(token!.payload.member_id).toBe("member-1");
+    expect(token!.payload.issued_via).toBe("post_payment");
+    expect(token!.payload.created_by).toBeNull();
+  });
+
+  it("mints ONE PER MEMBER for a couple — two data subjects, two tokens", async () => {
+    const { client, writes } = makeSupabase(readsFor(["member-1"]));
+    await handleSuccessfulPayment(withAuth(client as never) as never, {
+      ...PARAMS,
+      partnerMemberId: "member-2",
+    });
+
+    const tokens = writes.filter((w) => w.table === "member_update_tokens" && w.op === "insert");
+    expect(tokens).toHaveLength(2);
+  });
+
+  it("points members.user_id at the auth user it created", async () => {
+    const { client, writes } = makeSupabase(readsFor(["member-1"]));
+    await handleSuccessfulPayment(withAuth(client as never) as never, PARAMS);
+
+    // Without this write every member-facing RLS policy matches nothing, so the member signs
+    // in and sees an empty dashboard.
+    const link = writes.find((w) => w.table === "members" && w.payload.user_id === "user-1");
+    expect(link, "the auth user was never linked to the member row").toBeTruthy();
+  });
+
+  it("ACTIVATES first, then onboards — activation must not be lost to either step", async () => {
+    const { client, writes } = makeSupabase(readsFor(["member-1"]));
+    await handleSuccessfulPayment(withAuth(client as never) as never, PARAMS);
+
+    const activation = writes.findIndex((w) => w.table === "members" && w.payload.status === "active");
+    const token = writes.findIndex((w) => w.table === "member_update_tokens");
+    expect(activation).toBeGreaterThanOrEqual(0);
+    expect(token).toBeGreaterThan(activation);
+  });
+
+  it("onboards BEFORE allocating a device — the token is the safety-relevant one", async () => {
+    const { client, writes } = makeSupabase({
+      ...readsFor(["member-1"]),
+      order_items: { data: [{ id: "item-1", quantity: 1, device_id: null }], error: null },
+      devices: { data: { id: "device-1" }, error: null },
+    });
+    await handleSuccessfulPayment(withAuth(client as never) as never, PARAMS);
+
+    const token = writes.findIndex((w) => w.table === "member_update_tokens");
+    const allocation = writes.findIndex((w) => w.table === "devices");
+    expect(token).toBeGreaterThanOrEqual(0);
+    expect(allocation).toBeGreaterThan(token);
+  });
+
+  it("still activates the member when the login could not be created", async () => {
+    // The payment path must never lose an activation to a downstream failure, and an auth
+    // service that is down is exactly that.
+    const { client, writes } = makeSupabase(readsFor(["member-1"]));
+    (client as { auth?: unknown }).auth = {
+      admin: { generateLink: async () => { throw new Error("auth down"); } },
+    };
+
+    await expect(handleSuccessfulPayment(client as never, PARAMS)).resolves.not.toThrow();
+    expect(writes.some((w) => w.table === "members" && w.payload.status === "active")).toBe(true);
+  });
+
+  it("still activates the member when the token could not be minted", async () => {
+    const { client, writes } = makeSupabase(readsFor(["member-1"]));
+    withAuth(client as never);
+    const realFrom = client.from.bind(client);
+    (client as { from: unknown }).from = (table: string) => {
+      if (table === "member_update_tokens") {
+        const chain: Record<string, unknown> = {
+          select: () => chain, eq: () => chain, is: () => chain, gt: () => chain,
+          order: () => chain, limit: () => chain,
+          maybeSingle: async () => ({ data: null, error: null }),
+          insert: async () => ({ error: { message: "rls denied" } }),
+        };
+        return chain as never;
+      }
+      return realFrom(table);
+    };
+
+    await expect(handleSuccessfulPayment(client as never, PARAMS)).resolves.not.toThrow();
+    expect(writes.some((w) => w.table === "members" && w.payload.status === "active")).toBe(true);
   });
 });
 

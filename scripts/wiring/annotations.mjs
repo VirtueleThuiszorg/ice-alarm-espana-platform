@@ -88,50 +88,41 @@ export const ABSENT_ADMIN_EVENTS = [
       why: "an invocation anywhere — invoke(), fetch, cron.schedule — would make this row false",
     },
   },
-  {
-    id: "A2",
-    event: "A member's card is declined (`invoice.payment_failed`)",
-    audience: "staff (bell + attention queue)",
-    expectation:
-      "P4, decided: Stripe retries → `past_due` → monitoring CONTINUES → STAFF ARE TOLD. Somebody " +
-      "has to ring the member before the retries run out, or a life-safety subscription lapses " +
-      "quietly",
-    today:
-      "`stripe-webhook` sets `subscriptions.status = 'past_due'` and returns. No bell, no task, " +
-      "no queue, no email. The only place it surfaces is a status badge on a screen somebody " +
-      "would have to already be looking at",
-    owner: "the wiring session (the fix is a notifier; the webhook itself is human-gated)",
-    absence: {
-      kind: "absentPair",
-      a: "invoice.payment_failed",
-      b: "notification_log|notify-admin|notify_staff",
-      window: 900,
-      scan: ["supabase/functions", "supabase/migrations"],
-      why: "a notification raised anywhere near that case would make this row false",
-    },
-  },
-  {
-    id: "A3",
-    event: "A subscription is cancelled at Stripe (`customer.subscription.deleted`)",
-    audience: "admin",
-    expectation:
-      "the `cancellation_alert` switch exists in `isabella_settings` and an owner expects to hear " +
-      "that somebody stopped paying — it is the single most important number in the business",
-    today:
-      "`stripe-webhook` sets `status = 'cancelled'` and returns. Nothing is written anywhere a " +
-      "human is required to look",
-    owner: "the wiring session",
-    absence: {
-      kind: "absentPair",
-      a: "customer.subscription.deleted",
-      b: "notification_log|notify-admin",
-      window: 900,
-      scan: ["supabase/functions", "supabase/migrations"],
-      why:
-        "same shape as A2: a bell notification, a task or an admin notifier raised anywhere near " +
-        "that case would make this row false",
-    },
-  },
+  // A2 IS FIXED AND THEREFORE GONE. "A member's card is declined (`invoice.payment_failed`)"
+  // claimed: "`stripe-webhook` sets `subscriptions.status = 'past_due'` and returns. No bell, no
+  // task, no queue, no email." Item 5b gives it `notifyAdmins()` — a TARGETED notification to
+  // every active admin, because these route to /admin/subscriptions and /admin is behind
+  // requireAdmin, so a staff broadcast would land an operator on /unauthorized. Monitoring
+  // continues (P4): the webhook does not touch `members.status`, and a test asserts no handler
+  // in the file does.
+  //
+  // WORTH KEEPING THE SCAR. This row's own check did NOT notice the fix. It looked for the
+  // literal spellings `notification_log|notify-admin|notify_staff`, and the notifier is called
+  // `notifyAdmins` — so the claim read "still absent" while the code beside it told somebody.
+  // That is the ninth-or-so guard in this repo to assert a spelling instead of a behaviour. The
+  // `b` pattern on every remaining row now includes `notifyAdmins`, and A2 was only removable
+  // because broadening it first made the check fail out loud.
+  //
+  // Proof of the wire: src/test/stripeWebhookContract.test.ts, "a failed payment never stops the
+  // monitoring (P4)". Item 8 adds the queue half — these rows on the admin attention list.
+
+  // A3 IS FIXED AND THEREFORE GONE. "A subscription is cancelled at Stripe
+  // (`customer.subscription.deleted`)" claimed: "`stripe-webhook` sets `status = 'cancelled'`
+  // and returns. Nothing is written anywhere a human is required to look" — while
+  // `isabella_settings` carried a `cancellation_alert` switch promising the opposite. Item 5b's
+  // `onSubscriptionChange` now calls `notifyAdmins()` on `deleted` only, because Stripe sends
+  // `customer.subscription.updated` for routine things (a price change, a period rolling over)
+  // and an admin who gets a bell for each stops reading them.
+  //
+  // AND WHY IT WAS FIXED RATHER THAN ARGUED WITH. Once A2's pattern was broadened, this row's
+  // proximity check started failing too — but for the wrong reason: `notifyAdmins` from a
+  // DIFFERENT handler sat inside its 900-character window. A coarse `absentPair` cannot tell
+  // "this case notifies" from "something near this case notifies", so the choice was to make
+  // the check precise or to make the claim false. Wiring it was one call on a mechanism already
+  // there, and it is what the switch in the settings table had been promising all along.
+  //
+  // Proof: src/test/stripeWebhookContract.test.ts, "a cancellation is announced to a human".
+
   {
     id: "A5",
     event: "A price was edited without syncing it to Stripe",
@@ -148,7 +139,7 @@ export const ABSENT_ADMIN_EVENTS = [
     absence: {
       kind: "absentPair",
       a: "stripe_prices",
-      b: "notification_log|notify-admin",
+      b: "notification_log|notify-admin|notifyAdmins",
       window: 4000,
       scan: ["supabase/functions", "supabase/migrations"],
       why: "a notifier that reads stripe_prices would make this row false",
@@ -169,7 +160,7 @@ export const ABSENT_ADMIN_EVENTS = [
     absence: {
       kind: "absentPair",
       a: "awaiting_payment",
-      b: "notification_log|notify-admin",
+      b: "notification_log|notify-admin|notifyAdmins",
       window: 4000,
       scan: ["supabase/functions", "supabase/migrations"],
       why: "a sweep or a trigger raising the bell for this state would make this row false",
@@ -489,14 +480,33 @@ export const FAMILIES = [
     wires: ["fn:create-checkout", "fn:create-mollie-checkout", "fn:submit-registration", "fn:save-registration-draft", "fn:complete-member-registration"],
     control: "/join — submit registration, pay by card (Stripe) or SEPA (Mollie)",
     promise: "you are signed up and covered once you have paid",
-    dest: "submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4)",
+    dest: "submit-registration → create-checkout (synced Stripe Price ids, ids-only request) → gateway; activation is by webhook only (golden rule 4)",
     told: "bell",
-    proof: null,
+    proof: "src/test/createCheckoutContract.test.ts",
     note:
-      "OUT OF SCOPE HERE BY INSTRUCTION — the join→pay path is covered by the separate goal " +
-      "already running, and duplicating it would put two changes on the same files. Recorded so " +
-      "the register is complete, deliberately not re-proven or altered. notify-admin fires " +
+      "OWNED HERE AS OF ITEM 5 — this entry previously read 'out of scope by instruction', " +
+      "which was true while a separate goal held the path. `create-checkout` now takes ids only " +
+      "and prices from `stripe_prices` (REVIEW_JOIN_PATH.md F7/F9 closed), and `stripe-webhook` " +
+      "refuses activation when `amount_total` disagrees with `payments.amount`. " +
+      "`create-mollie-checkout` is STILL on the old shape — it takes `lineItems` with amounts " +
+      "from the browser — and is the reason this row is not a 10. notify-admin fires " +
       "`sale.paid` from the webhook side, which is why `told` is bell.",
+  },
+  {
+    wires: ["fn:join-order-status"],
+    control: "/join?success — the confirmation screen, polling for the webhook",
+    promise: "your payment is confirmed, and here is the one thing still to do",
+    dest:
+      "join-order-status, keyed on the Stripe Checkout Session id (never the order number, " +
+      "which is sequential) → the member's second-stage link and the 24-hour number",
+    told: "screen",
+    proof: "src/test/joinOrderPolling.test.tsx",
+    note:
+      "Item 6. The screen used to announce 'registration complete' from a query parameter, " +
+      "before the webhook had run and for ever if it never ran. It now waits, then shows the " +
+      "`member_update_tokens` link that collects the emergency contacts the wizard stopped " +
+      "asking for — on screen, because no member email is deliverable yet. It gives up after " +
+      "90s and falls back to the phone route.",
   },
 
   // ───────────────────────── things that do notify ─────────────────────────

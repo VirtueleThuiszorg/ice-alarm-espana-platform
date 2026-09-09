@@ -13,6 +13,7 @@ import {
   TrendingUp,
   Package,
   AlertTriangle,
+  ShieldAlert,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,8 +32,14 @@ import { useDeviceRealtime } from "@/hooks/useDeviceRealtime";
 import { useAlertsRealtime } from "@/hooks/useAlertsRealtime";
 import { IsabellaHealthPill } from "@/components/admin/dashboard/IsabellaHealthPill";
 import { useOnShiftNow } from "@/hooks/useStaffShifts";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useMonitoringReadiness } from "@/hooks/useMonitoringReadiness";
+import { AdminMobileHome, type AdminMobileHomeProps } from "@/components/admin/dashboard/AdminMobileHome";
 import { SHIFT_TYPES } from "@/config/shifts";
 import type { ShiftType } from "@/config/shifts";
+
+/** The alert shape the phone home reads — a subset of the dashboard's own alert rows. */
+type AdminMobileHomeAlert = AdminMobileHomeProps["alerts"][number];
 
 interface DashboardStats {
   active_members: number;
@@ -53,6 +60,15 @@ export default function AdminDashboard() {
   useAlertsRealtime();
 
   const { data: onShiftNow = [] } = useOnShiftNow();
+
+  // 768px, from the shared hook — the same breakpoint Tailwind's `md:` uses, so the phone home
+  // and the responsive classes elsewhere cannot disagree about what "a phone" is.
+  const isMobile = useIsMobile();
+
+  // Paid members who are not yet monitored. Read here as well as on the phone home, from the
+  // SAME hook: the number that says money has been taken and nobody is watching belongs on both
+  // surfaces, and two derivations of it would eventually disagree.
+  const readiness = useMonitoringReadiness();
 
   // Single RPC call replaces 7 separate queries
   const { data: stats, isLoading: statsLoading, error: statsError, refetch: refetchStats } = useQuery({
@@ -113,6 +129,26 @@ export default function AdminDashboard() {
     staleTime: STALE_TIMES.MEDIUM,
   });
 
+  /*
+    THE PHONE HOME. Under 768px /admin renders the five things Lee opens his phone for, each one
+    a tap-through, instead of a twenty-card column.
+
+    IT IS A BRANCH INSIDE THIS COMPONENT, not a second route and not a second set of queries:
+    `stats` and `alertsData` are handed over already fetched, so the phone and the desktop cannot
+    show different numbers and rotating the device costs no round trip. That is what "same data
+    hooks as desktop" has to mean to be worth anything.
+  */
+  if (isMobile) {
+    return (
+      <AdminMobileHome
+        stats={stats}
+        statsLoading={statsLoading}
+        statsError={!!statsError}
+        alerts={(alertsData ?? []) as AdminMobileHomeAlert[]}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/*
@@ -153,7 +189,7 @@ export default function AdminDashboard() {
       )}
 
       {/* Stats Grid - Now using single RPC data */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t('adminDashboard.activeMembers')}</CardTitle>
@@ -244,6 +280,43 @@ export default function AdminDashboard() {
               </div>
             )}
             <p className="text-xs text-muted-foreground">{t('common.inNext30Days')}</p>
+          </CardContent>
+        </Card>
+
+        {/*
+          PAID, NOT YET MONITORED. The dashboard counted active members and never counted ready
+          ones, and they are not the same thing: a member can be paying, activated by the
+          webhook, and still unmonitored because their pendant is untested or they have no
+          emergency contact. Money taken, nobody watching — and until now that number lived only
+          on a queue page somebody had to think to open.
+
+          A failed read renders as a failure, not as zero: "nobody is waiting" is the one wrong
+          answer here that looks like good news.
+        */}
+        <Card className={readiness.data?.waiting ? "border-amber-500/50 bg-amber-500/5" : ""}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              {t("adminDashboard.notYetMonitored", "Paid, not yet monitored")}
+            </CardTitle>
+            <ShieldAlert
+              className={`h-4 w-4 ${readiness.data?.waiting ? "text-amber-500" : "text-muted-foreground"}`}
+            />
+          </CardHeader>
+          <CardContent>
+            {readiness.isLoading ? (
+              <Skeleton className="h-8 w-12" />
+            ) : readiness.isError ? (
+              <div className="text-sm font-medium text-destructive">
+                {t("adminDashboard.notYetMonitoredFailed", "could not be read")}
+              </div>
+            ) : (
+              <div className={`text-2xl font-bold ${readiness.data?.waiting ? "text-amber-500" : ""}`}>
+                {readiness.data?.waiting ?? 0}
+              </div>
+            )}
+            <Link to="/admin/members/readiness-queue" className="text-xs text-muted-foreground underline">
+              {t("adminDashboard.notYetMonitoredLink", "Readiness queue")}
+            </Link>
           </CardContent>
         </Card>
       </div>

@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { calculateOrder, formatPrice } from "@/config/pricing";
 import { getStoredReferralData, clearReferralData } from "@/lib/crmEvents";
 import { buildRegistrationBody } from "@/lib/registrationPayload";
+import { extractFunctionErrorCode, functionError } from "@/lib/functionError";
 import { usePricingSettings } from "@/hooks/usePricingSettings";
 
 interface JoinPaymentStepProps {
@@ -71,8 +72,31 @@ export function JoinPaymentStep({ data, onUpdate, onPaymentInitiated }: JoinPaym
         if (!checkoutResult?.url) throw new Error("No checkout URL received");
         checkoutUrl = checkoutResult.url;
       } else {
-        const { data: checkoutResult, error: checkoutError } = await supabase.functions.invoke("create-checkout", { body: { memberId: registrationResult.memberId, orderId: registrationResult.orderId, paymentId: registrationResult.paymentId, subscriptionId: registrationResult.subscriptionId, lineItems: registrationResult.lineItems, customerEmail: data.primaryMember.email, customerName: `${data.primaryMember.firstName} ${data.primaryMember.lastName}`, successUrl, cancelUrl, metadata: partnerMeta } });
-        if (checkoutError) { if (checkoutResult?.code === "STRIPE_NOT_CONFIGURED") { setError(t("joinWizard.payment.gatewayNotConfigured")); return; } throw new Error(checkoutError.message || "Failed to create checkout session"); }
+        // IDS ONLY. No amounts, no line items, no redirect URLs, no metadata bag: the server
+        // reads what this order costs out of `stripe_prices` and refuses if its own tables
+        // disagree (REVIEW_JOIN_PATH.md F7/F9). Sending a total from here is what let a
+        // tampered request body buy a membership for a cent.
+        const { data: checkoutResult, error: checkoutError } = await supabase.functions.invoke("create-checkout", {
+          body: {
+            memberId: registrationResult.memberId,
+            orderId: registrationResult.orderId,
+            paymentId: registrationResult.paymentId,
+            subscriptionId: registrationResult.subscriptionId,
+            // A couple must name both halves or the server refuses: charging for two people and
+            // activating one is the failure this closes.
+            ...(registrationResult.partnerMemberId ? { partnerMemberId: registrationResult.partnerMemberId } : {}),
+            ...(registrationResult.partnerSubscriptionId ? { partnerSubscriptionId: registrationResult.partnerSubscriptionId } : {}),
+          },
+        });
+        if (checkoutError) {
+          // The code is read off the error body, not off `checkoutResult` — on a non-2xx that
+          // is null, which is why this branch never used to fire (src/lib/functionError.ts).
+          if ((await extractFunctionErrorCode(checkoutError)) === "STRIPE_NOT_CONFIGURED") {
+            setError(t("joinWizard.payment.gatewayNotConfigured"));
+            return;
+          }
+          throw await functionError(checkoutError, "Failed to create checkout session");
+        }
         if (!checkoutResult?.url) throw new Error("No checkout URL received");
         checkoutUrl = checkoutResult.url;
       }

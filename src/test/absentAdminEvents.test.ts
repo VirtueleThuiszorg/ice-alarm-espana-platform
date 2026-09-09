@@ -141,31 +141,42 @@ describe("A1 — nothing invokes ai-dispatch-events", () => {
   });
 });
 
-describe("A2 / A3 — a failed payment and a cancellation tell nobody", () => {
+describe("A2 / A3 — a failed payment and a cancellation NOW tell somebody", () => {
+  /*
+    THIS DESCRIBE USED TO ASSERT THE OPPOSITE, and the inversion is the point.
+
+    It read: "invoice.payment_failed writes past_due and nothing else" and
+    "customer.subscription.deleted writes cancelled and nothing else", each by slicing the
+    webhook's `case` block and asserting it contained no notifier. Item 5b wired both, so those
+    assertions are now false — and their `caseBlock()` helper stopped working anyway, because the
+    rewritten webhook dispatches to named handlers instead of putting the logic inline between
+    `case` and `break;`.
+
+    Kept rather than deleted, because a fix that can silently un-fix itself is not finished. The
+    wires' real proofs (what is written, to whom, and that monitoring continues) live in
+    `src/test/stripeWebhookContract.test.ts`; these two assert only that the inventory above and
+    the code below still agree about which of the six are done.
+  */
   const webhook = read("supabase/functions/stripe-webhook/index.ts");
-  const caseBlock = (name: string) => {
-    const start = webhook.indexOf(`case "${name}"`);
-    expect(start, name).toBeGreaterThan(-1);
-    return webhook.slice(start, webhook.indexOf("break;", start));
-  };
 
-  it("invoice.payment_failed writes past_due and nothing else", () => {
-    const block = caseBlock("invoice.payment_failed");
-    expect(block).toContain('status: "past_due"');
-    expect(block).not.toMatch(/notification_log|notify-admin|invoke\(/);
+  it("neither is still listed as absent", () => {
+    expect(EVENTS.find((e) => e.id === "A2")).toBeUndefined();
+    expect(EVENTS.find((e) => e.id === "A3")).toBeUndefined();
   });
 
-  it("customer.subscription.deleted writes cancelled and nothing else", () => {
-    const block = caseBlock("customer.subscription.deleted");
-    expect(block).toContain('status: "cancelled"');
-    expect(block).not.toMatch(/notification_log|notify-admin|invoke\(/);
+  it("the webhook raises a notification for the failed invoice, and still does not suspend", () => {
+    const handler = webhook.slice(webhook.indexOf("async function onInvoiceFailed"));
+    expect(handler).toMatch(/status:\s*"past_due"/);
+    expect(handler).toContain("notifyAdmins");
+    // P4, and it is not my opinion — monitoring continues. Somebody whose card expired is still
+    // somebody who may press an SOS button tonight.
+    expect(handler).not.toMatch(/from\("members"\)/);
   });
 
-  it("P4 says staff MUST be told about the failed payment — so A2 is a decision already made", () => {
-    // Not my opinion: it is in the join-path decisions, and the register row cites it.
-    const a2 = EVENTS.find((e) => e.id === "A2")!;
-    expect(a2.expectation).toContain("P4");
-    expect(a2.expectation).toMatch(/monitoring CONTINUES/);
+  it("and for the cancellation", () => {
+    const handler = webhook.slice(webhook.indexOf("async function onSubscriptionChange"));
+    expect(handler).toMatch(/status:\s*"cancelled"|"cancelled"/);
+    expect(handler).toContain("notifyAdmins");
   });
 });
 
@@ -311,28 +322,30 @@ describe("the absence checks bite", () => {
       writeFileSync(
         planted,
         'const tell = () => supabase.from("notification_log").insert({});\n' +
-          'export const handle = (t: string) => (t === "invoice.payment_failed" ? tell() : null);\n',
+          'export const handle = (s: string) => (s === "awaiting_payment" ? tell() : null);\n',
       );
       const result = build();
       expect(result.code).not.toBe(0);
-      expect(result.out).toMatch(/A2 claims nobody is told/);
+      // Repointed from A2 to A6 when item 5b wired A2. The probe has to name a row that is
+      // still absent, or it proves nothing about the window and passes for the wrong reason.
+      expect(result.out).toMatch(/A6 claims nobody is told/);
     } finally {
       execFileSync("rm", ["-f", planted]);
     }
     expect(build().code).toBe(0);
   });
 
-  it("a pair check bites too — a notifier next to the failed-payment case", () => {
+  it("a pair check bites too — a notifier next to the abandoned-order case", () => {
     const planted = join(ROOT, "supabase/functions/_shared/__absence_probe_pair.ts");
     try {
       writeFileSync(
         planted,
         // The two halves within the window: the event, and somebody being told.
-        'const e = "invoice.payment_failed";\nawait supabase.from("notification_log").insert({ event_type: e });\n',
+        'const s = "awaiting_payment";\nawait supabase.from("notification_log").insert({ event_type: s });\n',
       );
       const result = build();
       expect(result.code).not.toBe(0);
-      expect(result.out).toMatch(/A2 claims nobody is told/);
+      expect(result.out).toMatch(/A6 claims nobody is told/);
     } finally {
       execFileSync("rm", ["-f", planted]);
     }
@@ -344,6 +357,56 @@ describe("the absence checks bite", () => {
     // the check would be unusable in the file that documents the defect.
     expect(read("supabase/functions/_shared/isabella-gate.ts")).toContain("ai-dispatch-events");
     expect(build().code).toBe(0);
+  });
+});
+
+// ── the register is GENERATED, so a hand-merge is a detectable defect ─────
+describe("WIRING_REGISTER.md was generated, not hand-merged", () => {
+  /*
+    THIS FILE WAS BROKEN IN MAIN TWICE ON 9 SEPTEMBER, in the way CLAUDE.md warns about twice:
+    several PRs touched the generated register in a burst, and each merge "resolved" it by
+    KEEPING BOTH SIDES. The first time it landed with four different summary lines —
+
+        183 distinct wires across 630 call sites and 108 routes.
+        183 distinct wires across 629 call sites and 108 routes.
+        184 distinct wires across 630 call sites and 108 routes.
+        184 distinct wires across 629 call sites and 108 routes.
+
+    — and a histogram with bands 7, 6 and 5 printed three times each with different counts. The
+    fix for it merged, and the SAME thing happened again two merges later: 187 and 185 side by
+    side. Twice in one morning is not bad luck; it is what merging a generated file concurrently
+    does.
+
+    `build.mjs --check` catches it, and it is in CI. It was merged past anyway, both times. What
+    a test can still do is say WHICH KIND of wrong it is: "out of date" sends somebody to re-run
+    the generator, where "the same line twice" tells them a merge did it and that a PR's worth of
+    rows may be missing — and the fix for a generated file is ALWAYS regeneration, never editing
+    the conflict.
+  */
+  const register = read("WIRING_REGISTER.md");
+
+  it("states its totals exactly once", () => {
+    const totals = register.match(/^\d+ distinct wires across .+$/gm) ?? [];
+    expect(totals).toHaveLength(1);
+  });
+
+  it("has one histogram row per band, not two", () => {
+    const bands = (register.match(/^\s*(\d+) │/gm) ?? []).map((m) => m.trim().split(" ")[0]);
+    expect(bands.length).toBeGreaterThan(0);
+    expect(new Set(bands).size).toBe(bands.length);
+  });
+
+  it("names each absence claim twice — its table row and its check — and never more", () => {
+    /*
+      The register prints each claim once in the inventory table and once in "the checks,
+      verified on every build", so TWO is correct and three is a merge. Counting to exactly two
+      rather than "at least one" is the point: a duplicated row renders two contradictory claims
+      about the same event, and a reader has no way to tell which is current.
+    */
+    for (const e of EVENTS) {
+      const mentions = register.match(new RegExp(`\\*\\*${e.id}\\*\\*`, "g")) ?? [];
+      expect(mentions, e.id).toHaveLength(2);
+    }
   });
 });
 

@@ -393,7 +393,7 @@ describe("only an admin may change it, and every change is audited", () => {
     // The component switches on that decision, and names the migration it is waiting for.
     expect(matrix).toMatch(/const view = matrixView\(/);
     expect(matrix).toMatch(/if \(view === "schema_missing"\)/);
-    expect(matrix).toContain("20260909120000_notify_staff.sql");
+    expect(matrix).toContain("20260909121500_notify_staff.sql");
     // The two PostgREST codes for "no such table" — the hook's own detection.
     expect(hook).toContain("42P01");
     expect(hook).toContain("PGRST205");

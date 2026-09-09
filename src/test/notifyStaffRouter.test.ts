@@ -132,7 +132,7 @@ describe("the event types", () => {
       than reading a path from another branch — a test that read one would simply be red on main.
       The moment the migration lands, this becomes a strict comparison.
     */
-    const migration = "supabase/migrations/20260909120000_notify_staff.sql";
+    const migration = "supabase/migrations/20260909121500_notify_staff.sql";
     if (!existsSync(join(ROOT, migration))) {
       expect(existsSync(join(ROOT, migration))).toBe(false);
       return;

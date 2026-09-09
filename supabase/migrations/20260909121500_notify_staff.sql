@@ -1,3 +1,10 @@
+-- RENAMED FROM 20260909120000. `20260909120000_rota_2026_seed_and_generator.sql` landed on
+-- main with the same version prefix, and the Supabase CLI keys applied migrations by that
+-- prefix alone: `supabase_migrations.schema_migrations` has ONE row per version, so of two
+-- files sharing one, at most one ever runs and the other is recorded as applied without having
+-- been. Neither was in production yet, so renaming is free — and it had to be the one whose
+-- number nothing else cites.
+--
 -- ONE ROUTER NEEDS FOUR THINGS THE SCHEMA DOES NOT HAVE: per-staff preferences, a company-wide
 -- switch per event × channel, somewhere to keep a phone's push token, and a notification_log
 -- that can tell a bell entry apart from an SMS attempt.

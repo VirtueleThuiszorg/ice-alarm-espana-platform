@@ -2,7 +2,7 @@
 --
 -- SEPARATE FILE, AND THAT IS THE POINT. This needs `pg_net`, which cannot be installed on a
 -- stock PostgreSQL — so `scripts/rls/run.sh` skips migrations that use it. Putting this in
--- 20260909120000 would have made the whole notify-staff schema unverifiable by the isolation
+-- 20260909121500 would have made the whole notify-staff schema unverifiable by the isolation
 -- harness: three tables, nine policies and a seed policy, none of them ever applied in a test
 -- run. One extension turns 473 real assertions into zero. So the tables live in a file the
 -- harness applies, and the one statement that needs pg_net lives here.

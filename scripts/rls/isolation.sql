@@ -4414,6 +4414,370 @@ SELECT pg_temp.check(
      FROM pg_proc WHERE proname = 'guard_member_status_self_write'));
 
 -- ============================================================
+--  The 2026 rota — seed, generator and isolation
+--  (migration 20260909120000; derivation in ROTA_MODEL.md)
+-- ============================================================
+--
+-- The seed function is a no-op on an empty staff table by design, so this section creates the
+-- four operators, calls it, and asserts the counts that ROTA_MODEL.md §3 derived from
+-- docs/rota/rota_2026_clean.csv. Written negative-first where it can be: the assertions that
+-- matter most are the ones that fail when the rota can be tampered with, or when the generator
+-- breaks a day.
+
+INSERT INTO auth.users (id, email) VALUES
+  ('c0000001-0000-0000-0000-000000000001', 'asoares@icealarm.es'),
+  ('c0000002-0000-0000-0000-000000000002', 'cnicolas@icealarm.es'),
+  ('c0000003-0000-0000-0000-000000000003', 'mbonner@icealarm.es'),
+  ('c0000004-0000-0000-0000-000000000004', 'travis@icealarm.es'),
+  ('c0000005-0000-0000-0000-000000000005', 'rota-admin@icealarm.es');
+
+INSERT INTO public.staff (user_id, email, first_name, last_name, role) VALUES
+  ('c0000001-0000-0000-0000-000000000001', 'asoares@icealarm.es',  'Albert', 'Soares',  'call_centre'),
+  ('c0000002-0000-0000-0000-000000000002', 'cnicolas@icealarm.es', 'Carmen', 'Nicolas', 'call_centre'),
+  ('c0000003-0000-0000-0000-000000000003', 'mbonner@icealarm.es',  'Mary',   'Bonner',  'call_centre'),
+  ('c0000004-0000-0000-0000-000000000004', 'travis@icealarm.es',   'Travis', 'Nelison', 'call_centre'),
+  ('c0000005-0000-0000-0000-000000000005', 'rota-admin@icealarm.es','Rota',  'Admin',   'super_admin');
+
+-- Run the import. Counts are asserted below, not here.
+SELECT public.seed_rota_2026();
+
+-- ── the seed produced exactly the sheet ─────────────────────────────────────
+
+SELECT pg_temp.check(
+  'ROTA: 339 shifts seeded for 2026-09-10..2026-12-31',
+  (SELECT count(*) FROM public.staff_shifts
+    WHERE shift_date BETWEEN '2026-09-10' AND '2026-12-31') = 339,
+  'ROTA_MODEL.md §3: 113 days x 3');
+
+SELECT pg_temp.check(
+  'ROTA: every date in the window has exactly one morning, one afternoon and one night',
+  NOT EXISTS (
+    SELECT 1 FROM public.staff_shifts
+    WHERE shift_date BETWEEN '2026-09-10' AND '2026-12-31'
+    GROUP BY shift_date
+    HAVING count(*) <> 3 OR count(DISTINCT shift_type) <> 3));
+
+SELECT pg_temp.check(
+  'ROTA: no (date, shift_type) slot is filled twice',
+  NOT EXISTS (
+    SELECT 1 FROM public.staff_shifts
+    GROUP BY shift_date, shift_type HAVING count(*) > 1),
+  'the invariant a per-person guard would break');
+
+SELECT pg_temp.check(
+  'ROTA: per-person shift totals match the sheet (Mary 72, Albert 73, Carmen 66, Travis 128)',
+  (SELECT count(*) FROM (
+     SELECT s.email, count(*) AS n
+     FROM public.staff_shifts ss JOIN public.staff s ON s.id = ss.staff_id
+     WHERE ss.shift_date BETWEEN '2026-09-10' AND '2026-12-31'
+     GROUP BY s.email
+   ) t
+   WHERE (t.email, t.n) NOT IN (
+     ('mbonner@icealarm.es', 72), ('asoares@icealarm.es', 73),
+     ('cnicolas@icealarm.es', 66), ('travis@icealarm.es', 128))) = 0,
+  'Travis has 128 and not 113 because a covered shift belongs to whoever WORKED it');
+
+SELECT pg_temp.check(
+  'ROTA: 9 approved holiday rows — Albert 4 days, Mary 4, Carmen 9 across 7 ranges',
+  (SELECT count(*) FROM public.staff_holidays) = 9
+  AND (SELECT count(*) FROM public.staff_holidays WHERE status = 'approved') = 9
+  AND (SELECT sum(total_days) FROM public.staff_holidays h
+        JOIN public.staff s ON s.id = h.staff_id
+       WHERE s.email = 'cnicolas@icealarm.es') = 9
+  AND (SELECT count(*) FROM public.staff_holidays h
+        JOIN public.staff s ON s.id = h.staff_id
+       WHERE s.email = 'cnicolas@icealarm.es') = 7);
+
+SELECT pg_temp.check(
+  'ROTA: 17 covers, of which exactly 2 have holiday_id NULL',
+  (SELECT count(*) FROM public.staff_shift_covers) = 17
+  AND (SELECT count(*) FROM public.staff_shift_covers WHERE holiday_id IS NULL) = 2,
+  'the two "(moved)" rows: Carmen vacating her own afternoon is not her holiday (§2-B)');
+
+SELECT pg_temp.check(
+  'ROTA: the 2 holiday_id-NULL covers are Travis taking Carmen''s afternoon on 09-10 and 09-11',
+  (SELECT count(*) FROM public.staff_shift_covers sc
+     JOIN public.staff_shifts ss ON ss.id = sc.shift_id
+     JOIN public.staff cov  ON cov.id  = sc.cover_staff_id
+     JOIN public.staff orig ON orig.id = sc.original_staff_id
+   WHERE sc.holiday_id IS NULL
+     AND cov.email = 'travis@icealarm.es'
+     AND orig.email = 'cnicolas@icealarm.es'
+     AND ss.shift_type = 'afternoon'
+     AND ss.shift_date IN (DATE '2026-09-10', DATE '2026-09-11')) = 2);
+
+SELECT pg_temp.check(
+  'ROTA: 14 bank holidays stored, 6 of them inside the import window',
+  (SELECT count(*) FROM public.bank_holidays) = 14
+  AND (SELECT count(*) FROM public.bank_holidays
+        WHERE holiday_date BETWEEN '2026-09-10' AND '2026-12-31') = 6);
+
+-- ── the CORRECTED long-day assertion (ROTA_MODEL.md §2-A) ───────────────────
+--
+-- The brief said "no person has two shifts on one date except Travis on his 30 flagged days".
+-- Over the whole year it is 52 dates, not 30 — 30 afternoon+night, 24 morning+night, and 2 of
+-- them all three. Inside the imported window it is 6 and 9. Asserting "30" here would have been
+-- asserting a number that is not true of this data.
+
+SELECT pg_temp.check(
+  'ROTA: in the window, Travis has 6 afternoon+night dates and 9 morning+night dates',
+  (SELECT count(*) FROM public.staff_shifts ss JOIN public.staff s ON s.id = ss.staff_id
+    WHERE s.email = 'travis@icealarm.es' AND ss.shift_type = 'afternoon'
+      AND ss.shift_date BETWEEN '2026-09-10' AND '2026-12-31') = 6
+  AND (SELECT count(*) FROM public.staff_shifts ss JOIN public.staff s ON s.id = ss.staff_id
+        WHERE s.email = 'travis@icealarm.es' AND ss.shift_type = 'morning'
+          AND ss.shift_date BETWEEN '2026-09-10' AND '2026-12-31') = 9);
+
+SELECT pg_temp.check(
+  'ROTA: nobody except Travis holds two shifts on the same date',
+  NOT EXISTS (
+    SELECT 1 FROM public.staff_shifts ss JOIN public.staff s ON s.id = ss.staff_id
+    WHERE s.email <> 'travis@icealarm.es'
+    GROUP BY ss.staff_id, ss.shift_date HAVING count(*) > 1));
+
+SELECT pg_temp.check(
+  'ROTA: no date in the window gives one person all three shifts',
+  NOT EXISTS (
+    SELECT 1 FROM public.staff_shifts
+    WHERE shift_date BETWEEN '2026-09-10' AND '2026-12-31'
+    GROUP BY staff_id, shift_date HAVING count(*) = 3),
+  'the 2026-05-20 / 2026-07-18 shape: 07:00 to 07:00, one operator');
+
+-- ── idempotence ─────────────────────────────────────────────────────────────
+
+SELECT public.seed_rota_2026();
+
+SELECT pg_temp.check(
+  'ROTA: re-running the seed inserts nothing',
+  (SELECT count(*) FROM public.staff_shifts
+    WHERE shift_date BETWEEN '2026-09-10' AND '2026-12-31') = 339
+  AND (SELECT count(*) FROM public.staff_holidays) = 9
+  AND (SELECT count(*) FROM public.staff_shift_covers) = 17
+  AND (SELECT count(*) FROM public.bank_holidays) = 14);
+
+-- ── the generator continues the cycle ───────────────────────────────────────
+
+SELECT public.generate_rota(DATE '2027-01-01', DATE '2027-01-06');
+
+SELECT pg_temp.check(
+  'ROTA: generate_rota continues the six-day cycle across the year boundary',
+  (SELECT count(*) FROM (
+     SELECT ss.shift_date, ss.shift_type, s.email
+     FROM public.staff_shifts ss JOIN public.staff s ON s.id = ss.staff_id
+     WHERE ss.shift_date BETWEEN '2027-01-01' AND '2027-01-06'
+       AND ss.shift_type <> 'night'
+   ) t
+   WHERE (t.shift_date, t.shift_type, t.email) NOT IN (
+     (DATE '2027-01-01','morning','cnicolas@icealarm.es'), (DATE '2027-01-01','afternoon','asoares@icealarm.es'),
+     (DATE '2027-01-02','morning','mbonner@icealarm.es'),  (DATE '2027-01-02','afternoon','cnicolas@icealarm.es'),
+     (DATE '2027-01-03','morning','mbonner@icealarm.es'),  (DATE '2027-01-03','afternoon','cnicolas@icealarm.es'),
+     (DATE '2027-01-04','morning','mbonner@icealarm.es'),  (DATE '2027-01-04','afternoon','asoares@icealarm.es'),
+     (DATE '2027-01-05','morning','mbonner@icealarm.es'),  (DATE '2027-01-05','afternoon','asoares@icealarm.es'),
+     (DATE '2027-01-06','morning','cnicolas@icealarm.es'), (DATE '2027-01-06','afternoon','asoares@icealarm.es'))) = 0,
+  'phase is anchored on 2026-12-31 = Albert afternoon, Carmen morning, Mary OFF');
+
+SELECT pg_temp.check(
+  'ROTA: generate_rota puts Travis on all six generated nights',
+  (SELECT count(*) FROM public.staff_shifts ss JOIN public.staff s ON s.id = ss.staff_id
+    WHERE ss.shift_date BETWEEN '2027-01-01' AND '2027-01-06'
+      AND ss.shift_type = 'night' AND s.email = 'travis@icealarm.es') = 6);
+
+SELECT pg_temp.check(
+  'ROTA: re-generating the same range inserts 0',
+  (SELECT shifts_created FROM public.generate_rota(DATE '2027-01-01', DATE '2027-01-06')) = 0);
+
+-- generate_rota must never break a day that a human has already bent. A per-person guard would
+-- leave the hand-made shift in place AND add the cycle's own candidate, producing two mornings.
+INSERT INTO public.staff_shifts (staff_id, shift_date, shift_type, start_time, end_time, is_confirmed, notes)
+SELECT id, DATE '2027-02-01', 'morning', TIME '07:00', TIME '15:00', true, 'HAND-MADE SWAP'
+FROM public.staff WHERE email = 'asoares@icealarm.es';
+
+SELECT public.generate_rota(DATE '2027-02-01', DATE '2027-02-01');
+
+SELECT pg_temp.check(
+  'ROTA: a hand-made shift survives generation, and the day still has exactly three slots',
+  (SELECT count(*) FROM public.staff_shifts WHERE shift_date = '2027-02-01') = 3
+  AND (SELECT s.email FROM public.staff_shifts ss JOIN public.staff s ON s.id = ss.staff_id
+        WHERE ss.shift_date = '2027-02-01' AND ss.shift_type = 'morning') = 'asoares@icealarm.es'
+  AND (SELECT notes FROM public.staff_shifts
+        WHERE shift_date = '2027-02-01' AND shift_type = 'morning') = 'HAND-MADE SWAP');
+
+SELECT pg_temp.check(
+  'ROTA: generate_rota refuses a backwards range',
+  (SELECT count(*) = 0 FROM public.generate_rota(DATE '2027-06-01', DATE '2027-06-02')) IS NOT NULL);
+
+-- ── negatives: the rota is not member-readable and not staff-writable ───────
+
+SELECT pg_temp.check(
+  'ROTA: a member sees NO staff_shifts row',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.staff_shifts') = 0);
+
+SELECT pg_temp.check(
+  'ROTA: a member sees NO staff_holidays row',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.staff_holidays') = 0);
+
+SELECT pg_temp.check(
+  'CONTROL: Travis really can see his own shifts',
+  pg_temp.count_as('c0000004-0000-0000-0000-000000000004',
+    'SELECT id FROM public.staff_shifts') > 100,
+  'if this fails the two negatives below are vacuous');
+
+-- Scoped to the imported window on purpose: the generator assertions above add 2027 rows, and
+-- an unscoped count would then measure the fixture rather than the policy.
+SELECT pg_temp.check(
+  'ROTA: an operator sees ONLY their own shifts, not the whole rota',
+  pg_temp.count_as('c0000003-0000-0000-0000-000000000003',
+    'SELECT id FROM public.staff_shifts
+      WHERE shift_date BETWEEN ''2026-09-10'' AND ''2026-12-31''') = 72,
+  'Mary worked 72 of the window''s 339 shifts');
+
+SELECT pg_temp.check(
+  'ROTA: an operator cannot give themselves somebody else''s shift',
+  pg_temp.exec_as('c0000003-0000-0000-0000-000000000003',
+    'UPDATE public.staff_shifts
+        SET staff_id = (SELECT id FROM public.staff WHERE email = ''mbonner@icealarm.es'')
+      WHERE shift_type = ''afternoon'' AND shift_date = ''2026-11-20''') = 0);
+
+SELECT pg_temp.check(
+  'ROTA: an operator cannot delete a shift',
+  pg_temp.exec_as('c0000003-0000-0000-0000-000000000003',
+    'DELETE FROM public.staff_shifts WHERE shift_date = ''2026-11-20''') = 0);
+
+-- raises_as, not exec_as: staff_shifts has no permissive INSERT policy for an ordinary
+-- operator at all, so the write is REFUSED with an error rather than silently filtered to zero
+-- rows. exec_as would have thrown out of the harness itself — which it did, on the first run.
+SELECT pg_temp.check(
+  'ROTA: an operator cannot invent a shift for themselves',
+  pg_temp.raises_as('c0000003-0000-0000-0000-000000000003',
+    'INSERT INTO public.staff_shifts (staff_id, shift_date, shift_type, start_time, end_time)
+     SELECT id, ''2027-09-09'', ''morning'', ''07:00'', ''15:00''
+     FROM public.staff WHERE email = ''mbonner@icealarm.es'''));
+
+SELECT pg_temp.check(
+  'ROTA: a member cannot write a bank holiday',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO public.bank_holidays (holiday_date, name)
+     VALUES (''2027-01-01'', ''invented by a member'')'));
+
+SELECT pg_temp.check(
+  'ROTA: a member CAN read bank holidays (deliberate — a public date leaks nothing)',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT holiday_date FROM public.bank_holidays') = 14);
+
+SELECT pg_temp.check(
+  'ROTA: a non-admin operator cannot run generate_rota',
+  pg_temp.raises_as('c0000004-0000-0000-0000-000000000004',
+    'SELECT public.generate_rota(DATE ''2027-07-01'', DATE ''2027-07-07'')'));
+
+SELECT pg_temp.check(
+  'ROTA: seed_rota_2026 is not granted to authenticated',
+  NOT has_function_privilege('authenticated', 'public.seed_rota_2026()', 'EXECUTE'));
+
+-- ── negatives on the swap flow ──────────────────────────────────────────────
+
+-- This assertion passed FOR THE WRONG REASON twice, and both wrong reasons are worth keeping
+-- on the record, because each looked exactly like a pass.
+--
+--   v1  `INSERT ... SELECT ss.id FROM staff_shifts WHERE ss.staff_id = Albert`. Run as Mary,
+--       the SELECT is filtered by staff_shifts' own READ policy, so it returned no rows, the
+--       INSERT inserted nothing, and nothing raised. The write was stopped by the read policy;
+--       the swap table's WITH CHECK was never reached.
+--   v2  the same, with the target id staged in a pg_temp table. `authenticated` has no
+--       privileges on a temp table created by the harness's superuser session, so the insert
+--       raised "permission denied for table" — the right verdict for the wrong reason. Deleting
+--       the ownership clause from the policy under test left this GREEN.
+--
+-- So the id is interpolated as a LITERAL by psql, before any role change, and the control below
+-- proves Mary cannot read that shift. Now the only thing that can refuse the write is the
+-- policy being tested.
+SELECT ss.id AS other_shift
+FROM public.staff_shifts ss
+WHERE ss.staff_id = (SELECT id FROM public.staff WHERE email = 'asoares@icealarm.es')
+LIMIT 1
+\gset
+
+SELECT pg_temp.check(
+  'CONTROL: an Albert shift exists to try to steal, and Mary cannot even see it',
+  (SELECT count(*) FROM public.staff_shifts WHERE id = :'other_shift') = 1
+  AND pg_temp.count_as('c0000003-0000-0000-0000-000000000003',
+        'SELECT id FROM public.staff_shifts WHERE id = ' || quote_literal(:'other_shift')) = 0,
+  'if this fails the next assertion is vacuous');
+
+SELECT pg_temp.check(
+  'ROTA SWAP: an operator cannot open a swap for a shift that is not theirs',
+  pg_temp.raises_as('c0000003-0000-0000-0000-000000000003',
+    'INSERT INTO public.staff_shift_swaps (requested_shift_id, requested_by, counterparty_id)
+     VALUES (' || quote_literal(:'other_shift') || ',
+             (SELECT id FROM public.staff WHERE email = ''mbonner@icealarm.es''),
+             (SELECT id FROM public.staff WHERE email = ''asoares@icealarm.es''))'));
+
+-- A real swap request, opened correctly by its owner, so the next negatives are not vacuous.
+-- requested_by / counterparty_id are STAFF ids, not auth user ids. Resolved by email so the
+-- fixture cannot silently reference a row that does not exist.
+INSERT INTO public.staff_shift_swaps (id, requested_shift_id, requested_by, counterparty_id)
+SELECT 'dddddddd-0000-0000-0000-00000000000a', ss.id,
+       (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+       (SELECT id FROM public.staff WHERE email = 'asoares@icealarm.es')
+FROM public.staff_shifts ss
+WHERE ss.staff_id = (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es')
+LIMIT 1;
+
+SELECT pg_temp.check(
+  'CONTROL: the swap request exists',
+  (SELECT count(*) FROM public.staff_shift_swaps) = 1,
+  'if this fails the swap negatives below are vacuous');
+
+SELECT pg_temp.check(
+  'ROTA SWAP: a third party sees nothing of a swap between two other people',
+  pg_temp.count_as('c0000004-0000-0000-0000-000000000004',
+    'SELECT id FROM public.staff_shift_swaps') = 0);
+
+SELECT pg_temp.check(
+  'ROTA SWAP: the counterparty can accept',
+  pg_temp.exec_as('c0000001-0000-0000-0000-000000000001',
+    'UPDATE public.staff_shift_swaps SET status = ''accepted''
+      WHERE id = ''dddddddd-0000-0000-0000-00000000000a''') = 1);
+
+SELECT pg_temp.check(
+  'ROTA SWAP: the counterparty CANNOT approve their own swap — that is the supervisor''s step',
+  pg_temp.exec_as('c0000001-0000-0000-0000-000000000001',
+    'UPDATE public.staff_shift_swaps SET status = ''approved''
+      WHERE id = ''dddddddd-0000-0000-0000-00000000000a''') = 0);
+
+-- raises_as rather than exec_as, and the difference is informative. The requester's own
+-- policy lets them TOUCH this row (USING allows status 'requested' or 'accepted'), so it is not
+-- filtered away — it reaches the WITH CHECK, which permits only 'cancelled'. The database
+-- therefore REFUSES the write outright instead of quietly matching nothing, which is the
+-- stronger guarantee of the two.
+SELECT pg_temp.check(
+  'ROTA SWAP: the requester cannot mark their own swap applied',
+  pg_temp.raises_as('c0000003-0000-0000-0000-000000000003',
+    'UPDATE public.staff_shift_swaps SET status = ''applied''
+      WHERE id = ''dddddddd-0000-0000-0000-00000000000a'''));
+
+SELECT pg_temp.check(
+  'ROTA SWAP: a member sees no swap at all',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.staff_shift_swaps') = 0);
+
+SELECT pg_temp.check(
+  'ROTA SWAP: you cannot swap a shift with itself, or with yourself',
+  (SELECT count(*) FROM pg_constraint
+    WHERE conrelid = 'public.staff_shift_swaps'::regclass
+      AND conname IN ('staff_shift_swaps_distinct_shifts',
+                      'staff_shift_swaps_distinct_people')) = 2);
+
+SELECT pg_temp.check(
+  'ROTA: RLS is enabled on both new tables',
+  (SELECT count(*) FROM pg_class
+    WHERE relname IN ('bank_holidays', 'staff_shift_swaps')
+      AND relnamespace = 'public'::regnamespace
+      AND relrowsecurity) = 2,
+  'golden rule 2');
+
+-- ============================================================
 --  Report
 -- ============================================================
 

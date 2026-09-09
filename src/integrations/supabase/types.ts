@@ -660,6 +660,27 @@ export type Database = {
           },
         ]
       }
+      bank_holidays: {
+        Row: {
+          created_at: string
+          holiday_date: string
+          name: string
+          region: string
+        }
+        Insert: {
+          created_at?: string
+          holiday_date: string
+          name: string
+          region?: string
+        }
+        Update: {
+          created_at?: string
+          holiday_date?: string
+          name?: string
+          region?: string
+        }
+        Relationships: []
+      }
       blog_posts: {
         Row: {
           ai_intro: string | null
@@ -6313,6 +6334,90 @@ export type Database = {
           {
             foreignKeyName: "staff_shift_covers_shift_id_fkey"
             columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "staff_shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_shift_swaps: {
+        Row: {
+          accepted_at: string | null
+          applied_at: string | null
+          approved_at: string | null
+          approved_by: string | null
+          counterparty_id: string
+          created_at: string
+          id: string
+          offered_shift_id: string | null
+          reason: string | null
+          requested_by: string
+          requested_shift_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          applied_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          counterparty_id: string
+          created_at?: string
+          id?: string
+          offered_shift_id?: string | null
+          reason?: string | null
+          requested_by: string
+          requested_shift_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          applied_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          counterparty_id?: string
+          created_at?: string
+          id?: string
+          offered_shift_id?: string | null
+          reason?: string | null
+          requested_by?: string
+          requested_shift_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_shift_swaps_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_shift_swaps_counterparty_id_fkey"
+            columns: ["counterparty_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_shift_swaps_offered_shift_id_fkey"
+            columns: ["offered_shift_id"]
+            isOneToOne: false
+            referencedRelation: "staff_shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_shift_swaps_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_shift_swaps_requested_shift_id_fkey"
+            columns: ["requested_shift_id"]
             isOneToOne: false
             referencedRelation: "staff_shifts"
             referencedColumns: ["id"]

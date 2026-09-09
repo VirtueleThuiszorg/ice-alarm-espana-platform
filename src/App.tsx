@@ -12,7 +12,6 @@ import { fetchCompanySettings } from "@/hooks/useCompanySettings";
 import { LanguageSelectionModal } from "@/components/LanguageSelectionModal";
 import { CookieConsentBanner } from "@/components/gdpr/CookieConsentBanner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { SessionTimeoutWarning } from "@/components/SessionTimeoutWarning";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { SkipLink } from "@/components/ui/skip-link";
 import { RouteAnnouncer } from "@/components/ui/route-announcer";
@@ -301,7 +300,18 @@ const App = () => {
           <AuthProvider>
             <Toaster />
             <Sonner />
-            <SessionTimeoutWarning />
+            {/*
+              NO IDLE LOGOUT. `<SessionTimeoutWarning />` stood here and signed EVERYBODY out
+              after 30 minutes without a mousemove — and it was the only reason anybody ever
+              re-logged-in or re-entered a TOTP code, because Supabase persists the session and
+              refreshes the token by itself.
+
+              It was worst for the people it mattered most to. The SOS ladder's tier 1 is an
+              operator watching an open screen; an operator who has been reading rather than
+              clicking for half an hour is doing their job, and signing them out takes the first
+              responder off the alert path. A session now lasts until the browser is closed or
+              somebody signs out — `src/lib/authStorage.ts` decides which.
+            */}
             <GlobalSearch />
 
             {/* Language Selection Modal for First-Time Visitors */}

@@ -198,6 +198,16 @@ describe("A4 is RETIRED — Isabella failing now tells the admins", () => {
   });
 
   it("every failure path in ai-run goes through the ONE funnel", () => {
+  it("and the item 1 PILL is a READER, which is a different thing from being told", () => {
+    // Was IsabellaHealthCard.tsx. That card became IsabellaHealthPill.tsx when Lee corrected the
+    // dashboard layout (#247), and this assertion and that rename landed in main from two
+    // different branches on the same morning — so the suite went red on a file neither PR was
+    // wrong about. The PROPERTY is untouched: A4 says a failed run tells nobody, and a dashboard
+    // widget that has to be opened is a reader, not a notifier.
+    const pill = read("src/components/admin/dashboard/IsabellaHealthPill.tsx");
+    expect(pill).toContain("useIsabellaHealth");
+    expect(pill).not.toMatch(/notification_log|notify-admin/);
+  it("and the item 1 surface is a READER, which is a different thing from being told", () => {
     /*
       Three places record a failure: two chat paths through `recordChatRun` and the agent/event
       branch's direct update. A fourth added later that notified nobody would be the original

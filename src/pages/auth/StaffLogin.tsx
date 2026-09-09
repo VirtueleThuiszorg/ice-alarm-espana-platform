@@ -14,6 +14,8 @@ import { Logo } from "@/components/ui/logo";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { Loader2, ArrowLeft, Shield, KeyRound } from "lucide-react";
 import { toast } from "sonner";
+import { KeepSignedInCheckbox } from "@/components/auth/KeepSignedInCheckbox";
+import { setPersistentLogin } from "@/lib/authStorage";
 import { Label } from "@/components/ui/label";
 import { ADMIN_2FA_SETUP_ROUTE, isAdminRole, staffPostLoginPath } from "@/config/constants";
 
@@ -29,6 +31,15 @@ export default function StaffLogin() {
 
   // 2FA state
   const [needs2FA, setNeeds2FA] = useState(false);
+  /*
+    OFF BY DEFAULT FOR STAFF, and this is the important half of the two defaults.
+
+    A call-centre machine is shared between shifts. With this clear the session lives in
+    `sessionStorage` and never reaches that disk, so closing the browser at the end of a shift
+    really does end the session and the next operator gets their own login. Members default the
+    other way — see Login.
+  */
+  const [keepSignedIn, setKeepSignedIn] = useState(false);
   const [totpCode, setTotpCode] = useState("");
   const [totpFactorId, setTotpFactorId] = useState<string | null>(null);
   const [pendingStaffData, setPendingStaffData] = useState<{
@@ -62,6 +73,15 @@ export default function StaffLogin() {
   const onSubmit = async (values: LoginFormValues) => {
     setIsLoading(true);
     try {
+      /*
+        BEFORE `signInWithPassword`. The storage adapter reads this on every call and Supabase
+        writes the session DURING sign-in, so setting it afterwards would put this login's
+        tokens in the wrong store. It is set once here and NOT touched again in
+        `handleTotpVerify`: `mfa.verify` upgrades the same session in place, so re-setting it
+        would only risk disagreeing with the choice already made.
+      */
+      setPersistentLogin(keepSignedIn);
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email: values.email,
         password: values.password,
@@ -299,6 +319,13 @@ export default function StaffLogin() {
                         <FormMessage />
                       </FormItem>
                     )}
+                  />
+
+                  <KeepSignedInCheckbox
+                    checked={keepSignedIn}
+                    onChange={setKeepSignedIn}
+                    disabled={isLoading}
+                    audience="staff"
                   />
 
                   <Button type="submit" className="w-full" disabled={isLoading}>

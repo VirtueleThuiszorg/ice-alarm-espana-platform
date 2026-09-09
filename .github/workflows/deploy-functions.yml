@@ -3,11 +3,29 @@ name: Deploy Edge Functions
 # Keeps deployed Supabase Edge Functions in lock-step with `main` so they can
 # never silently drift/go stale (STAGE_0B_PLAN.md §3). Deploys on every push to
 # main that touches functions or their config. Migrations are intentionally NOT
-# auto-applied here — schema changes stay manual under the human gate.
+# auto-applied here — schema changes are a `supabase db push` by hand.
 #
 # Required repo secrets:
 #   SUPABASE_ACCESS_TOKEN  — a personal access token for the LifeLink Sync org
 #   SUPABASE_PROJECT_REF   — crpsuhoixfdhjugprbuc
+#
+# ── A MISSING SECRET FAILS THIS JOB. It used to skip it. ───────────────────────
+#
+# The first step was called "Check deploy secrets (skip gracefully until configured)": with either
+# secret unset it printed a `::notice::`, set `configured=false`, and every remaining step was
+# guarded `if: steps.secrets.outputs.configured == 'true'`. The job then reported SUCCESS having
+# deployed nothing.
+#
+# For this workflow specifically that is the most damaging possible default. Its entire purpose is
+# the guarantee that what is on main is what is running; "green" therefore has to mean "deployed",
+# and it meant "deployed, or else I never tried" — two facts that matter enormously differently
+# and looked exactly the same on the Checks tab. Functions could stay weeks stale behind an
+# unbroken row of ticks, which is how the 24-migration drift happened: not an alarm that was
+# ignored, an alarm that never sounded.
+#
+# So the guard is now `scripts/ci/require-secrets.mjs` and it exits 1, naming what is absent. If
+# this repo has no Supabase credentials the correct outcome is a red X telling somebody to add
+# them — not a deploy pipeline that quietly is not one.
 
 on:
   push:
@@ -30,22 +48,16 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
     steps:
-      - name: Check deploy secrets (skip gracefully until configured)
-        id: secrets
-        run: |
-          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_PROJECT_REF" ]; then
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=Function deploy skipped::SUPABASE_ACCESS_TOKEN / SUPABASE_PROJECT_REF not set — skipping deploy (the job stays green). Add the repo secrets to enable auto-deploy."
-          else
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Checkout code
-        if: steps.secrets.outputs.configured == 'true'
         uses: actions/checkout@v4
 
+      # Before the CLI is installed and before anything is deployed: if the credentials are not
+      # here, say so and stop. Both names are checked in one call so a repo missing both learns
+      # that in one run instead of two.
+      - name: Require deploy secrets
+        run: node scripts/ci/require-secrets.mjs SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF
+
       - name: Setup Supabase CLI
-        if: steps.secrets.outputs.configured == 'true'
         uses: supabase/setup-cli@v1
         with:
           version: latest
@@ -54,5 +66,4 @@ jobs:
         # `deploy` (no function name) deploys every function under
         # supabase/functions and honours per-function verify_jwt in config.toml
         # (e.g. the SOS ingress functions that must stay verify_jwt=false).
-        if: steps.secrets.outputs.configured == 'true'
         run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"

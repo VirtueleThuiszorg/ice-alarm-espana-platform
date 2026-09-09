@@ -62,8 +62,20 @@ Single Vite + React 18 + TypeScript SPA (npm, **not** a pnpm monorepo) · Tailwi
 - Run one work package as one `/goal` loop; its stop condition IS the WP's Definition of Done plus **every criterion in GOALS.md** (the five non-negotiables + the engineering bar) holding. Cap turns.
 - **Highest professional standard is the bar, defined concretely (plan §16):** proven not claimed (no feature "done" without a test or click-through) · zero type errors, zero lint warnings, no dead code · critical-path tests green · RLS + isolation test on every new table · one concern per branch/PR, no God commits · STATE.md updated honestly · WCAG AA + scalable fonts · observable, no PII/auth logs · consistent with existing `src/components` and shared modules (no duplicate parallel implementations) · migrations reversible. If any item fails, keep looping — do not stop.
 - Success criteria must be deterministic. "Clean"/"good"/"polished" are never stop criteria. Vague quality words don't count; the §16 checklist does.
-- A `/loop 10m` may handle PRs and CI — but never auto-merge changes to the SOS path, Stripe activation, or RLS policies. Flag those for the human.
-- The human gate is mandatory before merge on: the SOS/alert path, Stripe activation, RLS policies, and Isabella's tool permissions.
+- A `/loop 10m` may handle PRs and CI, merging each one when it is green.
+
+## Merge authority (rule change, Lee, 9 Sep 2026 — supersedes the human gate)
+**Nothing is held for Lee.** There are no `[HOLD FOR LEE]` PRs and no gate waiting on his read. Every PR targets `main` and merges when CI is green — **schema included**, and including the SOS/alert path, Stripe activation, RLS policies and Isabella's tool permissions, all four of which previously required his sign-off.
+
+What this replaces, so the change is not mistaken for drift: until this date the rule was *"the human gate is mandatory before merge on: the SOS/alert path, Stripe activation, RLS policies, and Isabella's tool permissions."* Holding those turned out to cost more than it bought — #271 sat open carrying a **live** fix for a payment path that charged browser-supplied amounts, so the gate was protecting the defect rather than production.
+
+**Green is now the only gate, which puts the whole weight on CI being honest.** Two things follow, and they are not optional:
+- **Never merge red.** Unchanged, and now the single line of defence rather than one of two.
+- **A check that cannot fail is not a check.** No `continue-on-error` on a gate, no job that skips its work and reports success, and no gate sharing a job with another — a failing step marks every later step `skipped`, and `skipped` is not red. Enforced by `src/test/ciJobIsolation.test.ts`.
+
+Golden rules 1–10 above are **not** affected. Merge authority changed; what the code may do did not. A missing RLS policy or a client-writable role is still a defect that must not merge, and CI failing is still what stops it.
 
 ## Quality gates (CI, must be green to merge)
-typecheck · lint · RLS isolation tests · webhook contract tests · E2E on checkout→activation and SOS→operator · no known-critical CVEs.
+typecheck · lint · migration drift · wiring register · RLS isolation tests · webhook contract tests · E2E on checkout→activation and SOS→operator · no known-critical CVEs.
+
+**Each gate gets its own CI job.** Until 9 Sep 2026 drift, register, typecheck and build were four steps of one job, so the drift gate — legitimately red for days while production trails `main` — reported the other three as `skipped` for a whole day. A syntax error and a dropped security fix both landed through that hole. A required secret that is absent **fails** its job (`scripts/ci/require-secrets.mjs`); it never skips the work and reports green.

@@ -1,5 +1,32 @@
 name: CI
 
+# ONE GATE PER JOB, and that is the whole point of this file's shape.
+#
+# Until 2026-09-09 the migration drift gate, the wiring register check, typecheck and build were
+# four steps of ONE job, in that order. A step that fails ends its job, so the three after it
+# reported `skipped` — and `skipped` is not red. Main carried five unapplied migrations for a day,
+# so the drift gate failed first every time, and for that whole day main had NO SIGNAL AT ALL for
+# typecheck, build or register freshness.
+#
+# That is not a theory about what could go wrong. Both of these got onto main through the hole:
+#   - a syntax error in `src/test/absentAdminEvents.test.ts` (an unclosed `it(`), which made the
+#     file unparseable — invisible because typecheck never ran (#268).
+#   - the review fix for a live auth stale-token hole, dropped by a half-merge and unnoticed
+#     because nothing was checking anything (#273).
+#
+# So each gate now gets its own job. A failing drift gate is one red X beside four other verdicts
+# that still mean something, instead of one red X and three shrugs. The gates are independent —
+# none needs another's output — so there are no `needs:` edges and they all run in parallel.
+#
+# WHY THE TWO NEW JOBS DO NOT RUN `npm ci`: `check-migration-drift.mjs` and `scripts/wiring/*.mjs`
+# import nothing but `node:` builtins. Installing 1,200 packages to run them would add a minute
+# and a second way for either gate to fail for a reason that has nothing to do with the gate.
+#
+# SECRETS FAIL, THEY DO NOT SKIP. No job here needs one, and if one ever does it must declare it
+# through `scripts/ci/require-secrets.mjs` — never with a conditional that turns a missing secret
+# into a green tick. `src/test/ciJobIsolation.test.ts` enforces both halves of that across every
+# workflow in this directory.
+
 on:
   push:
     branches: [main]
@@ -15,6 +42,67 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Production is not auto-migrated (deploy-functions.yml), so the repo can run ahead of the
+  # database — it did, by 6 weeks and 24 migrations, and only a failing query revealed it.
+  #
+  # Two halves, and the flag is which one applies:
+  #   --main  any pending migration FAILS. Main is the branch production should match, and
+  #           the red X is the standing alarm until somebody pushes it.
+  #   --pr    STACKING fails: adding a migration while an earlier one is still pending.
+  #           A PR that adds NONE passes with a ::warning:: naming what is pending.
+  #
+  # `github.event_name` is the only place that knows which context this is, so it is passed
+  # rather than guessed. continue-on-error is deliberately NOT set: the warning path exits 0
+  # by itself, and a step that cannot fail is not a gate.
+  migration-drift:
+    name: Migration drift gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # The gate diffs this branch against its merge base. The default shallow clone has no
+          # merge base, and the gate then treats the PR as adding nothing — which is the strict
+          # direction, so an ordinary one-migration PR would fail for the wrong reason and the
+          # gate would be switched off within a week. Full history instead.
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Migration drift gate
+        run: >
+          node scripts/check-migration-drift.mjs
+          origin/${{ github.base_ref || 'main' }}
+          ${{ github.event_name == 'pull_request' && '--pr' || '--main' }}
+
+  # A message sent from the public Contact page landed in `leads` and told nobody, and nothing in
+  # CI had an opinion about that. WIRING_REGISTER.md records, for every control on every page,
+  # where it goes and who finds out; this regenerates it from the code and fails if the committed
+  # file differs. So a new control cannot be added without saying what it promises, where it
+  # lands, who is told and what proves it — and a wire that is deleted cannot leave a stale row
+  # behind claiming it still works.
+  wiring-register:
+    name: Wiring register
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Wiring register
+        run: node scripts/wiring/build.mjs --check
+
   lint-typecheck-build:
     name: Lint, Type Check & Build
     runs-on: ubuntu-latest
@@ -23,12 +111,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          # The migration-drift gate below diffs this branch against its merge base. The default
-          # shallow clone has no merge base, and the gate then treats the PR as adding nothing —
-          # which is the strict direction, so an ordinary one-migration PR would fail for the
-          # wrong reason and the gate would be switched off within a week. Full history instead.
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -41,40 +123,6 @@ jobs:
 
       - name: Lint
         run: npm run lint
-
-      # Production is not auto-migrated (deploy-functions.yml), so the repo can run ahead of the
-      # database — it did, by 6 weeks and 24 migrations, and only a failing query revealed it.
-      #
-      # Two halves, and the flag is which one applies:
-      #   --main  any pending migration FAILS. Main is the branch production should match, and
-      #           the red X is the standing alarm until somebody pushes it.
-      #   --pr    STACKING fails: adding a migration while an earlier one is still pending.
-      #           A PR that adds NONE passes with a ::warning:: naming what is pending.
-      #
-      # The second half used to fail every PR while anything was pending. On 2026-09-08 one
-      # unapplied migration turned every open PR red — a docs change, a validation fix, a test —
-      # none of which could clear it, because clearing it needs `supabase db push` and a manifest
-      # line that no PR can carry. This step also runs BEFORE typecheck and build, so those
-      # reported `skipped` and nothing had a typecheck signal for as long as the drift stood.
-      #
-      # `github.event_name` is the only place that knows which context this is, so it is passed
-      # rather than guessed. continue-on-error is deliberately NOT set: the warning path exits 0
-      # by itself, and a step that cannot fail is not a gate.
-      - name: Migration drift gate
-        run: >
-          node scripts/check-migration-drift.mjs
-          origin/${{ github.base_ref || 'main' }}
-          ${{ github.event_name == 'pull_request' && '--pr' || '--main' }}
-
-      # A message sent from the public Contact page landed in `leads` and told
-      # nobody, and nothing in CI had an opinion about that. WIRING_REGISTER.md
-      # records, for every control on every page, where it goes and who finds
-      # out; this regenerates it from the code and fails if the committed file
-      # differs. So a new control cannot be added without saying what it
-      # promises, where it lands, who is told and what proves it — and a wire
-      # that is deleted cannot leave a stale row behind claiming it still works.
-      - name: Wiring register
-        run: node scripts/wiring/build.mjs --check
 
       # Both referenced projects explicitly. `npx tsc --noEmit` reads the root
       # tsconfig.json, which is a project-references stub: it has "files": []
@@ -89,6 +137,9 @@ jobs:
       - name: Build
         run: npm run build
         env:
+          # Deliberately fake, not secrets. The build only needs these to be present and
+          # syntactically valid; it never connects. Real values here would put production
+          # credentials in a build artifact that every fork's PR run can reach.
           VITE_SUPABASE_PROJECT_ID: "ci-test"
           VITE_SUPABASE_PUBLISHABLE_KEY: "ci-test-key"
           VITE_SUPABASE_URL: "https://ci-test.supabase.co"

@@ -313,9 +313,29 @@ describe("the gate is wired into CI the way this module expects", () => {
   it("the gate step is NOT continue-on-error — the warning path exits 0 on its own", () => {
     // A step that cannot fail is not a gate. The distinction between pass-with-warning and fail
     // lives in the script's exit code, not in the workflow relaxing the step.
+    //
+    // The gate is now the last step of its OWN job, so there is no following `- name:` to slice
+    // to. Taking the rest of the file would reach into later jobs and assert about them by
+    // accident; `continue-on-error` anywhere in ci.yml is checked properly in
+    // src/test/ciJobIsolation.test.ts, per job.
     const step = ci.slice(ci.indexOf("- name: Migration drift gate"));
     const nextStep = step.indexOf("      - name:", 10);
-    expect(step.slice(0, nextStep)).not.toContain("continue-on-error");
+    expect(step.slice(0, nextStep === -1 ? undefined : nextStep)).not.toContain(
+      "continue-on-error",
+    );
+  });
+
+  it("the gate has a job to itself, so failing it cannot mark other gates `skipped`", () => {
+    // This is the whole reason the drift gate is worth having: it is legitimately red for days
+    // while production is behind main, and for one of those days it took typecheck, build and the
+    // wiring register down with it — they reported `skipped`, which nobody reads as broken.
+    // The structural version of this assertion lives in ciJobIsolation.test.ts; this one is here
+    // so that a change to THIS gate's wiring is caught by THIS gate's test file.
+    const jobBlock = ci.slice(ci.indexOf("\n  migration-drift:"), ci.indexOf("\n  wiring-register:"));
+    expect(jobBlock).toContain("check-migration-drift.mjs");
+    for (const foreign of ["npm run lint", "npm run build", "wiring/build.mjs", "tsc -p"]) {
+      expect(jobBlock, `the drift gate job also runs "${foreign}"`).not.toContain(foreign);
+    }
   });
 
   it("the declaration file exists, so the tests are type-checked against the rule", () => {

@@ -13,6 +13,80 @@
 
 ---
 
+## Dashboard notes — 2026-09-09 · **five merged, four held, two findings for Lee**
+
+Lee walked the admin dashboard, the Holidays page, the product catalog, the call-centre
+dashboard and the member CRM record, and sent nine items. This is what came of them, with the
+evidence, and it is written to the same rule as everything else in this file: a ✅ names the
+proof, and a 🟡 says what is missing.
+
+| # | item | state | proof |
+|---|---|---|---|
+| 1 | Isabella card said ACTIVE while every run failed | ✅ **in main** (#244), then reshaped into a header pill by a later session (`IsabellaHealthPill`) | `src/test/isabellaHealthCard.test.tsx` — 38 assertions, 25/25 mutations killed |
+| 2 | Sales card "Failed to load" (`22P02`) | 🟡 **merged in main (#243), NOT yet in production** | `scripts/rls/isolation.sql`, 9 assertions by execution; 7/7 mutations killed |
+| 3 | admin-audience events writing nowhere | ✅ **in main** (#249) — inventory only, six rows (A1–A6), each check verified on every build | `src/test/absentAdminEvents.test.ts` — 21 assertions, 10/10 mutations killed |
+| 4 | "Create Subscription" had no handler | 🟡 **held** (#248 code, #243 schema) | `src/test/sendPaymentLink.test.ts` + `memberCrmControls.test.ts` — 81 assertions, 34/34 mutations killed; 36 harness assertions |
+| 5 | admins on the Holidays page | ✅ **in main** (#241) | `src/test/holidaysExcludeAdmins.test.tsx` |
+| 6 | `sidebar.productCatalog` rendered its own key | ✅ **in main** (#240) | `src/test/i18nKeyCoverage.test.ts` (now collects `labelKey` declarations), `productCatalogAuthority.test.ts` |
+| 7 | Start Shift / on duty | ✅ **in main** (#246) — Lee merged the held PR; it changes an input to the SOS escalation ladder | `src/test/onDutyDeclaration.test.tsx` (17) + `e2e/onDuty.spec.ts` (2, real browser); 12/12 mutations killed |
+| 8 | MedConneqt framing + session | ✅ **in main** (#245) | `src/test/medconneqtKeepAlive.test.tsx` — frame identity across navigation; 11/11 mutations killed |
+| 9 | sidebar order | ✅ **in main** (#238) | `src/test/callCentreSidebarOrder.test.ts` |
+
+**Where the held work stands.** Lee merged #243 and #246 himself the same morning; #248 is
+still open.
+
+- 🔴 **`20260909100000` and `20260909110000` are in main and NOT in production.** #243 merged
+  before `supabase db push` ran, so **main's CI is red on the drift gate** and stays red until
+  the two filenames are appended to `APPLIED_TO_PROD.txt`. That is the gate working as
+  specified, not a break: everything else on main — tests, lint, typecheck, build, RLS, page
+  audit — is green. Nothing in this repo may append those lines; only `db push` makes them true.
+- 🟡 **#248 (Send payment link)** is held on the payment human gate (CLAUDE.md) **and** on those
+  two migrations: the SQL function it calls is one of them. Sending a link before then returns a
+  409 naming the missing function.
+- **#242** was the wiring session's and is now merged.
+
+**A merge artefact reached main and was caught by CI (#251).** #242 rewrote `WIRING_REGISTER.md`
+and #249 added a section to the older version; git merged them with no conflict and left BOTH
+summary lines — the "kept both sides" pattern from the two locale outages, in a generated file
+this time. Regenerating fixed it, which is the whole reason that file is generated. The lesson
+is the one CLAUDE.md already carries and this run repeated anyway: **merge PRs that touch the
+same generated or shared file one at a time.**
+
+**Two things this run FOUND and deliberately did not fix** (`PENDING_FOR_LEE.md` S18/S19), both
+from the item 4 walk of the member record:
+
+- `PaymentsTab` records a manual bank transfer as `status: 'completed'` **from the browser**,
+  with no actor and no reason. Golden rule 4 is intact — it activates nobody — but *"who says
+  this money arrived?"* is unanswerable from the row.
+- `DeviceTab` mirrors `has_pendant` onto **every** subscription a member has ever had
+  (`.eq("member_id", …)`, no status filter). The same shape, larger, exists on the gated file:
+  `stripe-webhook` sets `status: 'active'` on every subscription row for the member.
+
+**Two defects found in the instruments themselves**, which is worth recording because it is the
+second and third time this has happened:
+
+- `pg_temp.check()` in the RLS harness recorded a **NULL** assertion as neither pass nor fail:
+  the report printed FAIL and the suite **exited 0**. Every assertion of the form
+  `<nullable column> = <value>` was un-failable — precisely the shape that matters, because "the
+  column we expected to be written is NULL" *is* the defect. Found by a mutation that should have
+  died and did not. Now COALESCEd to false and labelled; the clean suite still passes 433/433, so
+  the hole was not hiding a live failure.
+- `functionErrorAdoption`'s leak guard read raw source and flagged a new file for a **comment**
+  explaining the string it guards against — the **ninth** prose-instead-of-code assertion this
+  repo has caught. It strips comments now, and the guard was re-proven by planting a real leak.
+
+**The absence inventory proved itself within the hour.** A4 ("Isabella failing tells nobody")
+named `IsabellaHealthCard.tsx`; another session replaced the dashboard cards with header pills
+and deleted that file, and the assertion went red on main. The CLAIM was still true — the pill
+reads and notifies nobody — so the row stands; the test now resolves the surface by name pattern
+and A4's check scans `src` as well, because a client-side notifier is exactly where that fix
+would go. An absence claim that cannot go stale unnoticed is the only kind worth writing down.
+
+**Item 8's one honest gap:** whether `alarm.medconneqt.nl` allows framing could not be checked
+from this environment — outbound HTTPS to that host is refused at the proxy (`403 to CONNECT`).
+The page answers it at runtime in the operator's browser instead, which is the only place the
+answer counts, and `PENDING_FOR_LEE.md` **S17** carries the header Martijn would need to send.
+
 ## Wiring — 2026-09-08 · **register built, distribution measured**
 
 Lee sent a message from the public Contact page and found nothing in Communications,

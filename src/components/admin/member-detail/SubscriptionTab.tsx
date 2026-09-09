@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { MemberActionsCard } from "@/components/admin/member-detail/MemberActionsCard";
+import { SendPaymentLinkDialog } from "@/components/admin/member-detail/SendPaymentLinkDialog";
 
 interface Subscription {
   id: string;
@@ -26,9 +27,17 @@ interface Subscription {
 
 interface SubscriptionTabProps {
   memberId: string;
+  /** For the payment-link dialog's copy — it writes to whoever pays, who may not be the member. */
+  memberName?: string;
 }
 
-export function SubscriptionTab({ memberId }: SubscriptionTabProps) {
+/**
+ * Which statuses mean "this member is paying us". `past_due` counts: P4 keeps monitoring running
+ * while Stripe retries a failed card, so a past_due member has a subscription, not a gap.
+ */
+const LIVE_STATUSES = ["active", "past_due"];
+
+export function SubscriptionTab({ memberId, memberName }: SubscriptionTabProps) {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -36,13 +45,22 @@ export function SubscriptionTab({ memberId }: SubscriptionTabProps) {
     fetchSubscription();
   }, [memberId]);
 
+  /*
+    THE MOST RECENT SUBSCRIPTION, WHATEVER ITS STATUS — not `.eq("status", "active")`.
+
+    That filter is why this tab said "no active subscription" to a member who had just been sent
+    a payment link: the row exists and is `pending`, waiting for the webhook. A staff member
+    looking at an empty tab sends a second link, and now two orders are chasing one member.
+    Ordered newest-first because a member can legitimately have an old cancelled row.
+  */
   const fetchSubscription = async () => {
     try {
       const { data, error } = await supabase
         .from("subscriptions")
         .select("*")
         .eq("member_id", memberId)
-        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error && error.code !== "PGRST116") throw error;
@@ -76,6 +94,10 @@ export function SubscriptionTab({ memberId }: SubscriptionTabProps) {
     switch (status) {
       case "active":
         return <Badge className="bg-alert-resolved text-alert-resolved-foreground">Active</Badge>;
+      case "pending":
+        return <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30">Awaiting payment</Badge>;
+      case "past_due":
+        return <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30">Payment overdue</Badge>;
       case "paused":
         return <Badge variant="secondary">Paused</Badge>;
       case "cancelled":
@@ -95,21 +117,64 @@ export function SubscriptionTab({ memberId }: SubscriptionTabProps) {
     );
   }
 
-  if (!subscription) {
+  const isLive = !!subscription && LIVE_STATUSES.includes(subscription.status);
+
+  /*
+    NOT LIVE — no subscription at all, or one that is pending, cancelled or expired.
+
+    `Create Subscription` used to sit here with NO onClick: pressing it did nothing at all, and
+    a staff member could press it repeatedly while believing they had signed the member up
+    (Lee's dashboard notes, 9 Sep, item 4). It is replaced by a dialog that asks the SERVER for a
+    Stripe Checkout Session — and by golden rule 4, that is as far as any screen may go: the
+    member becomes active when the webhook sees the money.
+  */
+  if (!isLive) {
+    const pending = subscription?.status === "pending";
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Subscription</CardTitle>
-          <CardDescription>No active subscription found for this member.</CardDescription>
-        </CardHeader>
-        <CardContent className="text-center py-8">
-          <CreditCard className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
-          <p className="text-muted-foreground mb-4">
-            This member does not have an active subscription.
-          </p>
-          <Button>Create Subscription</Button>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <CardTitle>Subscription</CardTitle>
+                <CardDescription>
+                  {pending
+                    ? "A payment link has been created for this member and is waiting to be paid."
+                    : "This member has no live subscription."}
+                </CardDescription>
+              </div>
+              {subscription && getStatusBadge(subscription.status)}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 py-6 text-center">
+            <CreditCard className="mx-auto h-16 w-16 text-muted-foreground" />
+            {pending && subscription && (
+              <div className="mx-auto max-w-sm space-y-1 text-sm text-muted-foreground">
+                <p>
+                  {subscription.plan_type} · {subscription.billing_frequency} · €
+                  {Number(subscription.amount).toFixed(2)}
+                </p>
+                <p>
+                  Created {format(new Date(subscription.start_date), "PPP")}. It becomes active the
+                  moment Stripe confirms the payment — nothing on this screen can activate it.
+                </p>
+              </div>
+            )}
+            <div className="flex justify-center">
+              <SendPaymentLinkDialog
+                memberId={memberId}
+                memberName={memberName ?? "This member"}
+                trigger={
+                  <Button data-testid="send-payment-link-open">
+                    <CreditCard className="h-4 w-4" />
+                    {pending ? "Send another payment link" : "Send payment link"}
+                  </Button>
+                }
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -196,19 +261,18 @@ export function SubscriptionTab({ memberId }: SubscriptionTabProps) {
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex flex-wrap gap-2 pt-4 border-t">
-            <Button variant="outline">
-              Change Plan
-            </Button>
-            
-            {/*
-              The actions live in `MemberActionsCard`, below. Not beside these buttons: two ways
-              to cancel a subscription, one of which wrote the database and left Stripe
-              charging, is worse than either alone — whichever a staff member reaches for first
-              is the one that decides whether the member keeps paying.
-            */}
-          </div>
+          {/*
+            `Change Plan` USED TO BE HERE, WITH NO HANDLER — a second dead button beside the
+            dead `Create Subscription` one (item 4). Changing a plan is `switch_to_single` /
+            `switch_to_couple` in `MemberActionsCard` below, where it carries the reason and the
+            attribution the database demands. A button that looks like it changes a plan and
+            does nothing is worse than no button: the staff member believes the plan changed.
+
+            Nothing replaces it in this card on purpose. Two ways to change a subscription, one
+            of which writes the database and leaves Stripe charging, is worse than either alone
+            — whichever a staff member reaches for first is the one that decides what the member
+            pays.
+          */}
         </CardContent>
       </Card>
 

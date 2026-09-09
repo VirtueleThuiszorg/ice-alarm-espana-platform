@@ -161,7 +161,17 @@ export default function MemberDetailPage() {
       fetchMember();
     } catch (error) {
       console.error("Error updating member:", error);
-      toast.error(t("adminMemberDetail.failedUpdate", "Failed to update member"));
+      /*
+        SHOW WHAT THE DATABASE SAID, not a generic failure.
+
+        Since 20260909110000 the guard trigger refuses `status = 'active'` for a member with no
+        active or past_due subscription, and its message names the remedy: "activation is the
+        payment webhook's job — send them a payment link instead". A staff member reinstating an
+        unpaid member needs to read that sentence; "Failed to update member" sends them to look
+        for a bug that is not there.
+      */
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(message || t("adminMemberDetail.failedUpdate", "Failed to update member"));
     }
   };
 
@@ -255,7 +265,10 @@ export default function MemberDetailPage() {
         </TabsContent>
 
         <TabsContent value="subscription">
-          <SubscriptionTab memberId={member.id} />
+          <SubscriptionTab
+            memberId={member.id}
+            memberName={`${member.first_name} ${member.last_name}`}
+          />
         </TabsContent>
 
         <TabsContent value="payments">

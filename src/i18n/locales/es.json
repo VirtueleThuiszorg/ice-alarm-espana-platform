@@ -5640,10 +5640,24 @@
       "interactionsToday": "{{count}} interacciones hoy",
       "escalatedToHumans": "{{count}} escaladas a humanos"
     },
-    "banner": {
-      "isabellaActive": "ISABELLA ACTIVA",
-      "humanMode": "MODO HUMANO: Todas las alertas y comunicaciones derivadas al personal",
-      "managing": "Gestionando {{interactions}} interacciones hoy | {{escalated}} escaladas a humanos"
+    "health": {
+      "title": "Isabella",
+      "healthy": "Correcto",
+      "degraded": "Degradado",
+      "down": "Caído",
+      "unknown": "Desconocido",
+      "readFailed": "No se pudo leer el historial de ejecuciones de Isabella.",
+      "never": "Nunca",
+      "lastRun": "Última ejecución correcta",
+      "errors": "Errores ({{minutes}} min)",
+      "reason": {
+        "failing": "Las ejecuciones están fallando y ninguna ha tenido éxito en la última hora.",
+        "noRunEver": "Ninguna ejecución se ha completado nunca.",
+        "stale": "Sin ejecuciones correctas en más de 24 horas.",
+        "intermittent": "Algunas ejecuciones fallan, pero otras se completan.",
+        "notToday": "La última ejecución correcta fue antes de hoy.",
+        "healthy": "Las ejecuciones se completan y ninguna ha fallado en la última hora."
+      }
     },
     "advancedConfig": {
       "title": "Configuración Avanzada",

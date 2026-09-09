@@ -5640,10 +5640,24 @@
       "interactionsToday": "{{count}} interactions today",
       "escalatedToHumans": "{{count}} escalated to humans"
     },
-    "banner": {
-      "isabellaActive": "ISABELLA ACTIVE",
-      "humanMode": "HUMAN MODE: All alerts and communications routed to staff",
-      "managing": "Managing {{interactions}} interactions today | {{escalated}} escalated to humans"
+    "health": {
+      "title": "Isabella",
+      "healthy": "Gezond",
+      "degraded": "Verminderd",
+      "down": "Uit",
+      "unknown": "Onbekend",
+      "readFailed": "Kon de uitvoeringsgeschiedenis van Isabella niet lezen.",
+      "never": "Nooit",
+      "lastRun": "Laatste geslaagde uitvoering",
+      "errors": "Fouten ({{minutes}} min)",
+      "reason": {
+        "failing": "Uitvoeringen mislukken en er is er in het laatste uur geen geslaagd.",
+        "noRunEver": "Er is nog nooit een uitvoering voltooid.",
+        "stale": "Geen geslaagde uitvoering in meer dan 24 uur.",
+        "intermittent": "Sommige uitvoeringen mislukken, andere worden voltooid.",
+        "notToday": "De laatste geslaagde uitvoering was voor vandaag.",
+        "healthy": "Uitvoeringen worden voltooid en er is er in het laatste uur geen mislukt."
+      }
     },
     "advancedConfig": {
       "title": "Advanced Configuration",

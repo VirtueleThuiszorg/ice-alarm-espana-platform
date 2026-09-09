@@ -113,6 +113,11 @@ export const INTERVALS = {
   CLOCK_TICK: 1_000, // 1 second
   /** Live visitors polling */
   LIVE_VISITORS: 10_000, // 10 seconds
+  /**
+   * Isabella health card refresh. 60s, per Lee's dashboard notes (9 Sep): `ai_runs` is not in
+   * the realtime publication (only `ai_events` is), so the card polls rather than subscribes.
+   */
+  ISABELLA_HEALTH_REFRESH: 60_000, // 60 seconds
 } as const;
 
 // ============================================================

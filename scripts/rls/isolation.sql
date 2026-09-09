@@ -3844,6 +3844,23 @@ SELECT pg_temp.check(
 -- A contract test, in the harness, because the defect only exists when the function MEETS the
 -- real enum: nothing in TypeScript could see it, and the SQL parses perfectly.
 
+/**
+ * The function's result, or NULL if the call raised.
+ *
+ * EVERY call in this section goes through this. An unguarded one takes the whole suite down and
+ * prints no FAIL row at all: the mutation that restores the 'sales' clause was "killed" by a
+ * crash rather than by an assertion, which is a verdict nobody can read — the same distinction
+ * run.sh draws between exit 1 (a result) and exit 3 (no verdict).
+ */
+CREATE OR REPLACE FUNCTION pg_temp.sales_stats_or_null()
+RETURNS json LANGUAGE plpgsql AS $$
+BEGIN
+  RETURN public.get_sales_command_stats();
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'get_sales_command_stats() raised: % (%)', SQLERRM, SQLSTATE;
+  RETURN NULL;
+END $$;
+
 SELECT pg_temp.check(
   'ticket_category still has no ''sales'' value — the premise of this section',
   NOT ('sales' = ANY (SELECT unnest(enum_range(NULL::public.ticket_category))::text)),
@@ -3869,14 +3886,20 @@ VALUES
 DO $$
 DECLARE stats json;
 BEGIN
-  -- THE ASSERTION THAT MATTERS: this call raised 22P02 before the fix, so everything below it
-  -- is downstream of "the function runs at all".
-  stats := public.get_sales_command_stats();
+  -- THE ASSERTION THAT MATTERS: this call raised 22P02 before the fix, so everything below it is
+  -- downstream of "the function runs at all".
+  --
+  stats := pg_temp.sales_stats_or_null();
 
   PERFORM pg_temp.check(
     'get_sales_command_stats() RETURNS instead of raising 22P02',
     stats IS NOT NULL,
     'the card read "Failed to load" because this call aborted on an enum value that does not exist');
+
+  IF stats IS NULL THEN
+    -- Nothing below can say anything useful; the failure above is the report.
+    RETURN;
+  END IF;
 
   PERFORM pg_temp.check(
     'it counts the two OPEN follow-ups and neither the resolved one nor the non-follow-up',
@@ -3922,17 +3945,17 @@ BEGIN
    WHERE status = 'completed' AND paid_at >= NOW() - INTERVAL '60 minutes';
   GET DIAGNOSTICS moved = ROW_COUNT;
 
-  stats := public.get_sales_command_stats();
+  stats := pg_temp.sales_stats_or_null();
 
   PERFORM pg_temp.check(
     'with NO payment in the last 60 minutes, the amount is 0 — not null',
-    stats->>'paid_amount_60min' IS NOT NULL
+    stats IS NOT NULL AND stats->>'paid_amount_60min' IS NOT NULL
     AND (stats->>'paid_amount_60min')::numeric = 0,
     format('got %s; SUM over no rows is NULL without the COALESCE', stats->'paid_amount_60min'));
 
   PERFORM pg_temp.check(
     'and the 60-minute COUNT is 0 too',
-    (stats->>'paid_sales_60min')::int = 0);
+    stats IS NOT NULL AND (stats->>'paid_sales_60min')::int = 0);
 
   UPDATE public.payments SET paid_at = paid_at + INTERVAL '3 hours'
    WHERE status = 'completed' AND paid_at >= NOW() - INTERVAL '4 hours'
@@ -3947,28 +3970,35 @@ END $$;
 -- A resolved follow-up must not be counted, and the count must MOVE when the data moves —
 -- otherwise a hardcoded 2 would pass.
 DO $$
-DECLARE before_count int; after_count int;
+DECLARE before_stats json; after_stats json; resolved_stats json;
 BEGIN
-  before_count := (public.get_sales_command_stats()->>'followups_pending')::int;
+  before_stats := pg_temp.sales_stats_or_null();
 
   INSERT INTO public.internal_tickets
     (ticket_number, title, description, category, status, priority, created_by)
   VALUES ('TKT-RLS-5', 'Follow up on the Albox enquiry', 'ring back', 'general', 'open',
           'medium', (SELECT id FROM public.staff WHERE email = 'superadmin@example.com'));
 
-  after_count := (public.get_sales_command_stats()->>'followups_pending')::int;
-
-  PERFORM pg_temp.check(
-    'the follow-up count tracks the data rather than a constant',
-    after_count = before_count + 1,
-    format('%s then %s', before_count, after_count));
+  after_stats := pg_temp.sales_stats_or_null();
 
   UPDATE public.internal_tickets SET status = 'resolved'
    WHERE title = 'Follow up on the Albox enquiry';
 
+  resolved_stats := pg_temp.sales_stats_or_null();
+
+  PERFORM pg_temp.check(
+    'the follow-up count tracks the data rather than a constant',
+    before_stats IS NOT NULL AND after_stats IS NOT NULL
+    AND (after_stats->>'followups_pending')::int
+        = (before_stats->>'followups_pending')::int + 1,
+    format('%s then %s', before_stats->'followups_pending', after_stats->'followups_pending'));
+
   PERFORM pg_temp.check(
     'resolving it takes it back out of the count',
-    (public.get_sales_command_stats()->>'followups_pending')::int = before_count);
+    resolved_stats IS NOT NULL AND before_stats IS NOT NULL
+    AND (resolved_stats->>'followups_pending')::int
+        = (before_stats->>'followups_pending')::int,
+    format('%s back to %s', after_stats->'followups_pending', resolved_stats->'followups_pending'));
 END $$;
 
 -- COMMENTS STRIPPED FIRST. The function body explains the clause it dropped, quoting

@@ -18,14 +18,9 @@ main cannot drift from the code in main. To change a row, change the wire or the
 10 │   2  █
  9 │   5  ██
  8 │   0  
- 7 │   8  ███
- 6 │  24  █████████
- 5 │  93  ██████████████████████████████████
- 7 │   9  ███
+ 7 │  10  ████
  6 │  25  █████████
  5 │  92  ██████████████████████████████████
- 6 │  26  ██████████
- 5 │  91  ██████████████████████████████████
  4 │  48  ██████████████████
  3 │   0  
  2 │   0  
@@ -33,16 +28,13 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   3  █
 ```
 
-183 distinct wires across 630 call sites and 108 routes.
-183 distinct wires across 629 call sites and 108 routes.
-184 distinct wires across 630 call sites and 108 routes.
-184 distinct wires across 629 call sites and 108 routes.
+185 distinct wires across 631 call sites and 108 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
 | 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 2 | 1% |
-| 7–9 | arrives and proven; notification missing or on a channel not live today | 14 | 8% |
-| 4–6 | arrives; nobody told; nothing proves it | 165 | 90% |
+| 7–9 | arrives and proven; notification missing or on a channel not live today | 15 | 8% |
+| 4–6 | arrives; nobody told; nothing proves it | 165 | 89% |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0% |
 | 0 | dead control | 3 | 2% |
 

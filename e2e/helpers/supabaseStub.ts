@@ -40,7 +40,26 @@ export interface RecordedCall {
   body: unknown;
 }
 
+/** A `staff` row, as the staff login and the call-centre header read it. */
+export interface StaffRow {
+  id: string;
+  user_id?: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+  is_active: boolean;
+  is_on_call: boolean;
+}
+
 export interface StubScenario {
+  /**
+   * The `staff` row the staff login and the call-centre header find, or absent for a
+   * non-staff journey. The stub keeps it STATEFUL: a PATCH to `/rest/v1/staff` mutates it, so a
+   * reload — or a fresh login — sees what the app actually wrote. That is what makes "on duty
+   * survives a reload" a real assertion rather than a re-render of a value the test supplied.
+   */
+  staff?: StaffRow | null;
   /**
    * The `partners` row the login lookup finds, or `null` for "no row" — the
    * applicant case, where an application exists under the email but carries no
@@ -150,9 +169,10 @@ export async function installSupabaseStub(page: Page, initial: StubScenario = {}
 
   const roleInfoFor = (): RoleInfo => {
     const isActivePartner = scenario.partner?.status === "active";
+    const staff = scenario.staff;
     return {
-      is_staff: false,
-      staff_role: null,
+      is_staff: !!staff?.is_active,
+      staff_role: staff?.is_active ? staff.role : null,
       is_partner: isActivePartner,
       partner_id: isActivePartner ? (scenario.partner?.id ?? null) : null,
       member_id: null,
@@ -241,6 +261,22 @@ export async function installSupabaseStub(page: Page, initial: StubScenario = {}
       return json(route, roleInfoFor());
     }
 
+    // ── staff (stateful) ──────────────────────────────────────────────────
+    if (url.pathname === "/rest/v1/staff") {
+      if (method === "PATCH") {
+        const patch = (body ?? {}) as Partial<StaffRow>;
+        if (scenario.staff) scenario.staff = { ...scenario.staff, ...patch };
+        return json(route, scenario.staff ? [scenario.staff] : []);
+      }
+      return json(route, scenario.staff ? [scenario.staff] : []);
+    }
+
+    // Presence is an OBSERVATION and the app only ever writes it; the rows are recorded in
+    // `calls` so a test can prove the heartbeat fired, and nothing reads them back.
+    if (url.pathname === "/rest/v1/staff_presence") {
+      return json(route, []);
+    }
+
     if (url.pathname === "/rest/v1/partners") {
       // `.maybeSingle()` on no row: PostgREST returns an empty array, and
       // supabase-js resolves `data: null` WITHOUT an error. That distinction is
@@ -264,6 +300,10 @@ export async function installSupabaseStub(page: Page, initial: StubScenario = {}
     /** Change the backend's answers mid-journey (verification, suspension, …). */
     patch(next: StubScenario) {
       scenario = { ...scenario, ...next };
+    },
+    /** The staff row as it stands after whatever the app has written to it. */
+    staffRow() {
+      return scenario.staff ?? null;
     },
     /** Every recorded call to a given edge function. */
     functionCalls(name: string) {

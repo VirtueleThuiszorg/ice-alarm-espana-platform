@@ -31,6 +31,16 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -48,6 +58,7 @@ export function CallCentreHeader() {
   const queryClient = useQueryClient();
   const [staffId, setStaffId] = useState<string | null>(null);
   const [ideasOpen, setIdeasOpen] = useState(false);
+  const [dutyWarningOpen, setDutyWarningOpen] = useState(false);
   const { uncompleteCount } = useAdminIdeas();
   const { data: onShiftNow } = useOnShiftNow();
   const logActivity = useLogStaffActivity();
@@ -135,9 +146,36 @@ export function CallCentreHeader() {
     );
   };
 
+  /** Sign out for real. Never called without either no duty, or a decision about it. */
+  const signOutNow = async () => {
+    await signOut();
+    navigate("/staff/login");
+  };
+
+  /**
+   * Logging out is NOT going off duty (Lee's dashboard notes, 9 Sep, item 7).
+   *
+   * This used to clear `is_on_call` silently on the way out, which is wrong in both directions.
+   * Duty here is MANUAL — an operator declares it and the escalation ladder trusts it, ringing
+   * their MOBILE (`sos-escalation-runner` selects `status = 'active' AND is_on_call = true`),
+   * not their browser tab. So closing a laptop is not evidence of anything: a supervisor on
+   * call from a phone was silently removed from the ladder by tidying up their browser, and an
+   * operator who meant to hand over got no reminder that they had not.
+   *
+   * So: warn, and make the operator choose. Both choices are recorded in the activity log.
+   */
   const handleSignOut = async () => {
-    // End shift if on duty — but never block logout if the update fails.
     if (isOnDuty && staffInfo?.id) {
+      setDutyWarningOpen(true);
+      return;
+    }
+    await signOutNow();
+  };
+
+  /** "End shift and log out" — the tidy case, and still not allowed to block the logout. */
+  const endShiftAndSignOut = async () => {
+    setDutyWarningOpen(false);
+    if (staffInfo?.id) {
       const { error } = await supabase
         .from("staff")
         .update({ is_on_call: false })
@@ -162,9 +200,23 @@ export function CallCentreHeader() {
         },
       });
     }
+    await signOutNow();
+  };
 
-    await signOut();
-    navigate("/staff/login");
+  /** "Stay on duty" — logged, because it means the ladder will still ring this person. */
+  const stayOnDutyAndSignOut = async () => {
+    setDutyWarningOpen(false);
+    if (staffInfo?.id) {
+      logActivity.mutate({
+        staffId: staffInfo.id,
+        action: "shift.kept_on_logout",
+        details: {
+          timestamp: new Date().toISOString(),
+          method: "sign_out",
+        },
+      });
+    }
+    await signOutNow();
   };
 
   const displayName = staffInfo
@@ -179,10 +231,28 @@ export function CallCentreHeader() {
       <div className="flex items-center gap-3">
         {/* Shift Status & Toggle */}
         <div className="flex items-center gap-2">
+          {/*
+            Duty state, said out loud. The button's colour and label carry it, and this adds the
+            two things a colour cannot: a live region, so a screen reader is told when it
+            changes, and `data-on-duty`, which is what the Playwright spec reads to prove duty
+            survived a reload rather than reading a CSS class.
+          */}
+          <span className="sr-only" role="status" aria-live="polite">
+            {isOnDuty
+              ? t("callCentreHeader.onDutyAnnounce", "You are on duty. Alerts escalate to you.")
+              : t("callCentreHeader.offDutyAnnounce", "You are off duty.")}
+          </span>
           <Button
             variant={isOnDuty ? "default" : "outline"}
             size="sm"
             onClick={handleToggleDuty}
+            data-on-duty={isOnDuty ? "true" : "false"}
+            data-testid="duty-toggle"
+            title={
+              isOnDuty
+                ? t("callCentreHeader.onDutyHint", "On duty — alerts escalate to you. Click to end your shift.")
+                : t("callCentreHeader.offDutyHint", "Off duty — click to start your shift.")
+            }
             className={cn(
               "gap-2 font-semibold transition-all",
               isOnDuty
@@ -363,6 +433,38 @@ export function CallCentreHeader() {
           <LogOut className="h-4 w-4" />
         </Button>
       </div>
+
+      {/*
+        Logging out while on duty. Three ways out and no default: the operator decides, because
+        only they know whether they are still reachable. `AlertDialog` rather than `ConfirmDialog`
+        precisely because this is not a two-answer question.
+      */}
+      <AlertDialog open={dutyWarningOpen} onOpenChange={setDutyWarningOpen}>
+        <AlertDialogContent data-testid="duty-logout-warning">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("callCentreHeader.stillOnDutyTitle", "You are still on duty")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t(
+                "callCentreHeader.stillOnDutyBody",
+                "Logging out does not end your shift. While you are on duty the escalation ladder keeps sending alerts to you and calls your mobile — so stay on duty only if you are still reachable.",
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel", "Cancel")}</AlertDialogCancel>
+            <Button variant="outline" onClick={stayOnDutyAndSignOut}>
+              <Shield className="mr-2 h-4 w-4" />
+              {t("callCentreHeader.stayOnDuty", "Stay on duty and log out")}
+            </Button>
+            <AlertDialogAction onClick={endShiftAndSignOut}>
+              <ShieldOff className="mr-2 h-4 w-4" />
+              {t("callCentreHeader.endShiftAndLogOut", "End shift and log out")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   );
 }

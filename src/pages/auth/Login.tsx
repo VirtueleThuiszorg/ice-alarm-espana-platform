@@ -15,12 +15,20 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { Loader2, ArrowLeft, Shield, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { staffPostLoginPath } from "@/config/constants";
+import { KeepSignedInCheckbox } from "@/components/auth/KeepSignedInCheckbox";
+import { setPersistentLogin } from "@/lib/authStorage";
 
 export default function Login() {
   const { t } = useTranslation();
   const { refreshAuth, user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  /*
+    ON BY DEFAULT FOR MEMBERS. Their device is their own, and asking somebody to re-enter a
+    password to look at their own alarm history is friction on the least sensitive surface we
+    have. Staff default the other way — see StaffLogin.
+  */
+  const [keepSignedIn, setKeepSignedIn] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || "/dashboard";
@@ -50,6 +58,15 @@ export default function Login() {
   const onSubmit = async (values: LoginFormValues) => {
     setIsLoading(true);
     try {
+      /*
+        BEFORE `signInWithPassword`, not after, and that ordering is the whole mechanism.
+
+        The storage adapter reads this preference on every call, and Supabase writes the session
+        DURING the sign-in call — so setting it afterwards would put this login's tokens in the
+        wrong store and only take effect from the next one.
+      */
+      setPersistentLogin(keepSignedIn);
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email: values.email,
         password: values.password,
@@ -181,6 +198,12 @@ export default function Login() {
                         <FormMessage />
                       </FormItem>
                     )}
+                  />
+
+                  <KeepSignedInCheckbox
+                    checked={keepSignedIn}
+                    onChange={setKeepSignedIn}
+                    disabled={isLoading}
                   />
 
                   <Button type="submit" className="w-full h-11 font-semibold" disabled={isLoading}>

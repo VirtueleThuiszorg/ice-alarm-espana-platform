@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { hasVerifiedMfaFactor } from "@/lib/hasVerifiedMfaFactor";
 import { setSentryUser, clearSentryUser } from "@/lib/sentry";
 import { TIMEOUTS } from "@/config/constants";
+import { clearAllAuthStorage } from "@/lib/authStorage";
+import { adoptSessionFromOtherTab, serveSessionToOtherTabs } from "@/lib/authSessionSync";
 
 type StaffRole = "super_admin" | "admin" | "call_centre_supervisor" | "call_centre" | null;
 
@@ -198,6 +200,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       
       try {
+        /*
+          MULTI-TAB, BEFORE ANYTHING DECIDES THIS TAB IS SIGNED OUT.
+
+          With "Keep me signed in" off, the session lives in `sessionStorage`, which is per-tab —
+          so a tab opened from the address bar or a bookmark starts with nothing while the tab
+          next to it is signed in. This asks the other tabs for the session and installs it.
+          It resolves in a few hundred milliseconds at most (`REPLY_TIMEOUT_MS`), and it must be
+          awaited HERE, before `getSession()`, or that read answers "no session" for a tab that
+          is about to have one and the operator sees a login page.
+
+          A no-op in persistent mode, and a no-op when this tab already has a session.
+        */
+        await adoptSessionFromOtherTab(supabase);
+
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!isMounted) return;
@@ -225,6 +241,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Initialize auth first
     initializeAuth();
+
+    // Answer the other tabs for as long as this one lives. Registered outside
+    // `initializeAuth` so a tab starts serving immediately rather than after its own role
+    // fetch — the tab asking is usually the one that needs it soonest.
+    const stopServing = serveSessionToOtherTabs(supabase);
 
     // Set up auth state listener AFTER initial fetch starts
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -277,11 +298,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       isMounted = false;
       subscription.unsubscribe();
+      stopServing();
     };
   }, []);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    /*
+      EXPLICIT SIGN OUT CLEARS BOTH STORES, and the "keep me signed in" preference with them.
+
+      `supabase.auth.signOut()` removes the token from whichever store the adapter currently
+      points at. That is not enough on a shared machine: a token left in the store the user is
+      not currently using is a token the next browser session — or the next tab — picks up, so
+      "sign out" would be undone by opening a tab. The preference goes too, or the next person
+      at that terminal finds "keep me signed in on this device" already ticked.
+    */
+    clearAllAuthStorage();
     clearSentryUser();
     setUser(null);
     setSession(null);

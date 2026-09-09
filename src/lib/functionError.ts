@@ -67,6 +67,34 @@ export async function functionError(
   return new Error(await extractFunctionError(error, fallback));
 }
 
+/**
+ * The machine-readable `code` a function refused with, or null.
+ *
+ * WHY THIS IS NEEDED SEPARATELY from `extractFunctionError`. Call sites were written as
+ *
+ *   const { data, error } = await supabase.functions.invoke(...);
+ *   if (error) { if (data?.code === "STRIPE_NOT_CONFIGURED") { ...show our own copy... } }
+ *
+ * and that branch can never run: on a non-2xx `data` is null and the body is unread on
+ * `error.context`. So every refusal — however carefully the function worded its `code` — came
+ * out as one generic message, and the join wizard's "payment isn't set up, don't worry, nothing
+ * was charged" copy was unreachable. This reads the code from where it actually is, so a call
+ * site can branch on the refusal it wants to translate and fall back to the server's sentence
+ * for the rest.
+ *
+ * Never throws: an unparseable body is simply "no code".
+ */
+export async function extractFunctionErrorCode(error: unknown): Promise<string | null> {
+  if (!(error instanceof FunctionsHttpError)) return null;
+  try {
+    const body = await error.context.clone().json();
+    const code = (body as Record<string, unknown> | null)?.code;
+    return typeof code === "string" && code ? code : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Normalises the `details` field, which may be a string[] or a single string. */
 function extractDetails(body: unknown): string[] {
   if (typeof body !== "object" || body === null) return [];

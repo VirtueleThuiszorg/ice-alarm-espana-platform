@@ -22,10 +22,6 @@ main cannot drift from the code in main. To change a row, change the wire or the
  6 │  25  ██████████
  5 │  88  ██████████████████████████████████
  4 │  47  ██████████████████
- 7 │  13  █████
- 6 │  25  █████████
- 5 │  92  ██████████████████████████████████
- 4 │  48  ██████████████████
  3 │   0  
  2 │   0  
  1 │   0  
@@ -39,13 +35,6 @@ main cannot drift from the code in main. To change a row, change the wire or the
 | 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 6 | 3% |
 | 7–9 | arrives and proven; notification missing or on a channel not live today | 20 | 11% |
 | 4–6 | arrives; nobody told; nothing proves it | 160 | 85% |
-188 distinct wires across 635 call sites and 108 routes.
-
-| band | meaning | wires | share |
-|---|---|---:|---:|
-| 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 2 | 1% |
-| 7–9 | arrives and proven; notification missing or on a channel not live today | 18 | 10% |
-| 4–6 | arrives; nobody told; nothing proves it | 165 | 88% |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0% |
 | 0 | dead control | 3 | 2% |
 
@@ -76,7 +65,6 @@ things, and a control with no wire cannot do anything:
 |---|---|---:|
 | `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 345 |
 | `fn` | `supabase.functions.invoke(f)` — an edge function | 80 |
-| `fn` | `supabase.functions.invoke(f)` — an edge function | 79 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 4 |
 | `channel` | `postgres_changes` — a realtime subscription | 51 |
 | `auth` | `supabase.auth.*` — sign in, sign out, register, password reset | 20 |

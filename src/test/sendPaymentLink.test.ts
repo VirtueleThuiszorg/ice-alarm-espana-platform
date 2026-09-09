@@ -656,11 +656,16 @@ describe("nothing in this path activates anybody", () => {
       expect(source).not.toContain('from("pricing_plans")');
     }
 
-    // The webhook still reads its ids from the session metadata both functions stamp. Item 5b
-    // rewrites what it does WITH them; that it reads them there is the shared contract.
+    // The webhook still reads its ids from the session metadata both functions stamp — item 5b
+    // now destructures it once (`const metadata = session.metadata ?? {}`) instead of
+    // repeating `session.metadata?.x` at each use, so the contract is asserted on the fields
+    // rather than on the old spelling.
     const webhook = read("supabase/functions/stripe-webhook/index.ts");
     expect(webhook).toContain("checkout.session.completed");
-    expect(webhook).toContain("session.metadata?.subscription_id");
+    expect(webhook).toMatch(/const metadata = session\.metadata/);
+    for (const key of ["order_id", "payment_id", "member_id", "subscription_id"]) {
+      expect(webhook, key).toMatch(new RegExp(`metadata\\.${key}`));
+    }
     expect(webhook).not.toContain("send-payment-link");
   });
 

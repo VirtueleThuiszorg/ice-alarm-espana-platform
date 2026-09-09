@@ -28,8 +28,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   3  █
 ```
 
-171 distinct wires across 537 call sites and 108 routes.
-183 distinct wires across 628 call sites and 108 routes.
+183 distinct wires across 629 call sites and 108 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
@@ -116,7 +115,7 @@ The checks, verified on every build:
 - **A1** — `ai-dispatch-events` appears nowhere in src, supabase/functions, supabase/migrations, .github/workflows. an invocation anywhere — invoke(), fetch, cron.schedule — would make this row false
 - **A2** — `invoice.payment_failed` and `notification_log|notify-admin|notify_staff` never appear within 900 characters of each other in the same file (supabase/functions, supabase/migrations). a notification raised anywhere near that case would make this row false
 - **A3** — `customer.subscription.deleted` and `notification_log|notify-admin` never appear within 900 characters of each other in the same file (supabase/functions, supabase/migrations). same shape as A2: a bell notification, a task or an admin notifier raised anywhere near that case would make this row false
-- **A4** — `ai_runs` and `notification_log|notify-admin` never appear within 4000 characters of each other in the same file (supabase/functions, supabase/migrations). the function that records the failure is the natural place to raise the bell, so a notification anywhere in it would make this row false
+- **A4** — `ai_runs` and `notification_log|notify-admin` never appear within 4000 characters of each other in the same file (supabase/functions, supabase/migrations, src). the function that records the failure is the natural place to raise the bell, so a notification anywhere in it would make this row false. `src` is scanned too, and that is not decoration: the dashboard surface that READS ai_runs was rewritten an hour after this row was written, and a client-side notifier is exactly the kind of fix somebody would put there
 - **A5** — `stripe_prices` and `notification_log|notify-admin` never appear within 4000 characters of each other in the same file (supabase/functions, supabase/migrations). a notifier that reads stripe_prices would make this row false
 - **A6** — `awaiting_payment` and `notification_log|notify-admin` never appear within 4000 characters of each other in the same file (supabase/functions, supabase/migrations). a sweep or a trigger raising the bell for this state would make this row false
 
@@ -1577,8 +1576,6 @@ Read-only, so nothing to notify. `get_user_role_info` is on the critical path fo
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /admin
-- **call sites** src/components/admin/dashboard/SalesCommandStrip.tsx
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
 - **call sites** src/hooks/useSalesCommandStats.ts
 
 Read-only, so nothing to notify. `get_user_role_info` is on the critical path for every protected route: if it fails, the guard sees no role.

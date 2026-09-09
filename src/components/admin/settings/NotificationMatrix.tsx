@@ -121,7 +121,7 @@ export function NotificationMatrix({ canEdit }: { canEdit: boolean }) {
           <CardTitle className="text-base">Not applied yet</CardTitle>
           <CardDescription>
             The notification tables are in a migration that has not been applied to production
-            yet (<code>20260909120000_notify_staff.sql</code>). Until <code>supabase db push</code>{" "}
+            yet (<code>20260909121500_notify_staff.sql</code>). Until <code>supabase db push</code>{" "}
             runs, there is nothing to switch — the router treats every route as off, apart from the
             four alerts that say the safety machinery has failed. See PENDING_FOR_LEE.md.
           </CardDescription>

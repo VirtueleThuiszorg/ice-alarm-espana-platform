@@ -13,6 +13,80 @@
 
 ---
 
+## Dashboard notes — 2026-09-09 · **five merged, four held, two findings for Lee**
+
+Lee walked the admin dashboard, the Holidays page, the product catalog, the call-centre
+dashboard and the member CRM record, and sent nine items. This is what came of them, with the
+evidence, and it is written to the same rule as everything else in this file: a ✅ names the
+proof, and a 🟡 says what is missing.
+
+| # | item | state | proof |
+|---|---|---|---|
+| 1 | Isabella card said ACTIVE while every run failed | ✅ **in main** (#244), then reshaped into a header pill by a later session (`IsabellaHealthPill`) | `src/test/isabellaHealthCard.test.tsx` — 38 assertions, 25/25 mutations killed |
+| 2 | Sales card "Failed to load" (`22P02`) | 🟡 **merged in main (#243), NOT yet in production** | `scripts/rls/isolation.sql`, 9 assertions by execution; 7/7 mutations killed |
+| 3 | admin-audience events writing nowhere | ✅ **in main** (#249) — inventory only, six rows (A1–A6), each check verified on every build | `src/test/absentAdminEvents.test.ts` — 21 assertions, 10/10 mutations killed |
+| 4 | "Create Subscription" had no handler | 🟡 **held** (#248 code, #243 schema) | `src/test/sendPaymentLink.test.ts` + `memberCrmControls.test.ts` — 81 assertions, 34/34 mutations killed; 36 harness assertions |
+| 5 | admins on the Holidays page | ✅ **in main** (#241) | `src/test/holidaysExcludeAdmins.test.tsx` |
+| 6 | `sidebar.productCatalog` rendered its own key | ✅ **in main** (#240) | `src/test/i18nKeyCoverage.test.ts` (now collects `labelKey` declarations), `productCatalogAuthority.test.ts` |
+| 7 | Start Shift / on duty | ✅ **in main** (#246) — Lee merged the held PR; it changes an input to the SOS escalation ladder | `src/test/onDutyDeclaration.test.tsx` (17) + `e2e/onDuty.spec.ts` (2, real browser); 12/12 mutations killed |
+| 8 | MedConneqt framing + session | ✅ **in main** (#245) | `src/test/medconneqtKeepAlive.test.tsx` — frame identity across navigation; 11/11 mutations killed |
+| 9 | sidebar order | ✅ **in main** (#238) | `src/test/callCentreSidebarOrder.test.ts` |
+
+**Where the held work stands.** Lee merged #243 and #246 himself the same morning; #248 is
+still open.
+
+- 🔴 **`20260909100000` and `20260909110000` are in main and NOT in production.** #243 merged
+  before `supabase db push` ran, so **main's CI is red on the drift gate** and stays red until
+  the two filenames are appended to `APPLIED_TO_PROD.txt`. That is the gate working as
+  specified, not a break: everything else on main — tests, lint, typecheck, build, RLS, page
+  audit — is green. Nothing in this repo may append those lines; only `db push` makes them true.
+- 🟡 **#248 (Send payment link)** is held on the payment human gate (CLAUDE.md) **and** on those
+  two migrations: the SQL function it calls is one of them. Sending a link before then returns a
+  409 naming the missing function.
+- **#242** was the wiring session's and is now merged.
+
+**A merge artefact reached main and was caught by CI (#251).** #242 rewrote `WIRING_REGISTER.md`
+and #249 added a section to the older version; git merged them with no conflict and left BOTH
+summary lines — the "kept both sides" pattern from the two locale outages, in a generated file
+this time. Regenerating fixed it, which is the whole reason that file is generated. The lesson
+is the one CLAUDE.md already carries and this run repeated anyway: **merge PRs that touch the
+same generated or shared file one at a time.**
+
+**Two things this run FOUND and deliberately did not fix** (`PENDING_FOR_LEE.md` S18/S19), both
+from the item 4 walk of the member record:
+
+- `PaymentsTab` records a manual bank transfer as `status: 'completed'` **from the browser**,
+  with no actor and no reason. Golden rule 4 is intact — it activates nobody — but *"who says
+  this money arrived?"* is unanswerable from the row.
+- `DeviceTab` mirrors `has_pendant` onto **every** subscription a member has ever had
+  (`.eq("member_id", …)`, no status filter). The same shape, larger, exists on the gated file:
+  `stripe-webhook` sets `status: 'active'` on every subscription row for the member.
+
+**Two defects found in the instruments themselves**, which is worth recording because it is the
+second and third time this has happened:
+
+- `pg_temp.check()` in the RLS harness recorded a **NULL** assertion as neither pass nor fail:
+  the report printed FAIL and the suite **exited 0**. Every assertion of the form
+  `<nullable column> = <value>` was un-failable — precisely the shape that matters, because "the
+  column we expected to be written is NULL" *is* the defect. Found by a mutation that should have
+  died and did not. Now COALESCEd to false and labelled; the clean suite still passes 433/433, so
+  the hole was not hiding a live failure.
+- `functionErrorAdoption`'s leak guard read raw source and flagged a new file for a **comment**
+  explaining the string it guards against — the **ninth** prose-instead-of-code assertion this
+  repo has caught. It strips comments now, and the guard was re-proven by planting a real leak.
+
+**The absence inventory proved itself within the hour.** A4 ("Isabella failing tells nobody")
+named `IsabellaHealthCard.tsx`; another session replaced the dashboard cards with header pills
+and deleted that file, and the assertion went red on main. The CLAIM was still true — the pill
+reads and notifies nobody — so the row stands; the test now resolves the surface by name pattern
+and A4's check scans `src` as well, because a client-side notifier is exactly where that fix
+would go. An absence claim that cannot go stale unnoticed is the only kind worth writing down.
+
+**Item 8's one honest gap:** whether `alarm.medconneqt.nl` allows framing could not be checked
+from this environment — outbound HTTPS to that host is refused at the proxy (`403 to CONNECT`).
+The page answers it at runtime in the operator's browser instead, which is the only place the
+answer counts, and `PENDING_FOR_LEE.md` **S17** carries the header Martijn would need to send.
+
 ## Wiring — 2026-09-08 · **register built, distribution measured**
 
 Lee sent a message from the public Contact page and found nothing in Communications,
@@ -21,17 +95,17 @@ now answers that question for **every** control on every page instead of one at 
 where each wire goes, who finds out, on which channel, what the user sees when it fails, and
 what would go red if it broke.
 
-**171 distinct wires · 536 call sites · 108 routes.** Wires are derived from the source, so
+**183 distinct wires · 628 call sites · 108 routes.** Wires are derived from the source, so
 the register cannot fall behind the code — `node scripts/wiring/build.mjs --check` regenerates
 and diffs, and CI runs it.
 
-| band | meaning | at first measure | in main now |
+| band | meaning | at first measure | now |
 |---|---|---:|---:|
 | 10 | arrives · right person told on a live channel · failure shown · proof that goes red | 1 | **2** |
 | 7–9 | arrives and proven; notification missing or on a channel not live today | 8 | **13** |
-| 4–6 | arrives; nobody told; nothing proves it | 155 | **154** |
+| 4–6 | arrives; nobody told; nothing proves it | 155 | **165** |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | **0** |
-| 0 | dead control | 7 | **2** |
+| 0 | dead control | 7 | **3** |
 
 Both columns are real measurements of main, before and after #234. The five dead
 realtime subscriptions are live and carry the only proof any of them has ever
@@ -39,10 +113,11 @@ had; the lead reaches the bell and is the second row to reach 10. The two
 remaining 0s are billing reminders and the communication log — dead code whose
 revival is a decision, not a fix (W6).
 
-⚠️ **The `20260908130000` migration is in main and NOT yet applied to production.**
-Until it is, the trigger and the five publication additions exist in the repo
-only: in production a new enquiry still tells nobody, and the handover list is
-still not live. The drift gate on main says so out loud.
+The `20260908130000` migration was applied to production and recorded in
+`APPLIED_TO_PROD.txt` (#239), so the drift gate on main reads *"production is
+level with the repo"*. A new enquiry now raises a bell notification for every
+active staff member in production, and the five previously-dead realtime
+subscriptions deliver.
 
 **Only nine wires have a proof at all**, and each cites one of four suites that
 were READ and confirmed to exercise the wire: `staffMemberActions`,
@@ -54,14 +129,35 @@ from the wire; and three suites were being credited to neighbouring wires they
 do not touch. Four further "proofs" named at first did not exist as files at
 all. The generator now refuses to score on a test file that is absent.
 
+**A REVIEW OF THIS WORK FOUND TWO DEFECTS IN THE REGISTER ITSELF**, both mine, both fixed:
+
+- **The routes column was worthless.** App.tsx was treated as a page reaching every route so
+  that app-wide mounts were not orphaned — but App.tsx dynamically imports every page, so
+  169 of 171 wires came back claiming all 108 routes and `table:leads` claimed
+  `/dashboard/medical`. The six per-surface tables were the same list six times. App.tsx's
+  edges are now its STATIC imports only, minus the layouts (already placed by route group).
+  Surfaces are now 21 / 24 / 28 / 72 / 143 / 28 rows instead of ~171 each.
+- **Three wire classes were never scanned for**, while the file claimed a complete wire list
+  bounds every control. `supabase.auth.*`, `supabase.storage.*` and `window.open` /
+  `window.location` were absent — so **sign in, sign out, register and password reset had no
+  row at all**, on a register whose brief named the login and reset flows. 12 wires added,
+  including the password-reset email (the highest-stakes channel question in the product) and
+  a third dead control: `Register.tsx` is unreachable (`/register` redirects to `/join`) and
+  holds the only self-service `signUp` — a route to a member record with no payment behind it
+  if it were ever revived.
+
+Internal navigation (`navigate()`, `<Link to>`) is still deliberately not enumerated: hundreds
+of sites, and a broken internal link fails visibly rather than silently.
+
 **A note on how this section has behaved, because it is the thing GOALS G5 exists for.** W3 and
 W4 were first written up as FIXED while the fix sat on a branch; that branch was closed
 unmerged, so the file was claiming a fix that did not exist. They were corrected to red, and
 have now genuinely landed in main via #234 — so they are green on evidence this time, not on
-intent. W1 and W2 are code-in-main but **not applied to production**, which is a third state and
-is recorded as such rather than rounded to either end.
+intent. W1 and W2 spent a day as code-in-main-but-not-in-production — a third state, recorded as one
+rather than rounded to either end — and #239 has since applied the migration, so they are now
+green on both counts.
 
-**Read the 154 correctly.** Almost every wire on this platform *arrives*. What they lack is a
+**Read the 165 correctly.** Almost every wire on this platform *arrives*. What they lack is a
 proof that would go red if they stopped arriving, and that alone caps a row at 6 — no rounding
 up. A screen of buttons that all work today scores 5 because nothing would tell anyone the day
 one of them stops.
@@ -89,11 +185,12 @@ Fixed / in flight:
 
 | # | Item | Status | Evidence |
 |---|---|---|---|
-| W1 | New enquiry tells nobody | 🟡 **in main, NOT in production** | `20260908130000_wiring_held_bundle.sql` (#234) — `AFTER INSERT` trigger on `leads` raises a targeted bell notification per active staff member. Proven by `scripts/rls/wiring.sql` §2, mutation-tested three ways (no trigger → "a lead arrived and NOBODY was notified"; broadcast instead of targeted → caught; inactive staff notified → caught). |
-| W2 | Five dead realtime subscriptions | 🟡 **in main, NOT in production** | Same migration. Proven by `scripts/rls/wiring.sql` §1, which derives the subscribed-table list from `src/` and checks it against `pg_publication_tables`; mutation-tested by removing the migration (all five named) and by adding a fresh bad subscription (`products` → caught). |
+| W1 | New enquiry tells nobody | ✅ **FIXED, APPLIED TO PRODUCTION** | `20260908130000_wiring_held_bundle.sql` (#234), pushed to `crpsuhoixfdhjugprbuc` and recorded in `APPLIED_TO_PROD.txt` by #239 — `AFTER INSERT` trigger on `leads` raises a targeted bell notification per active staff member. Proven by `scripts/rls/wiring.sql` §2, mutation-tested three ways (no trigger → "a lead arrived and NOBODY was notified"; broadcast instead of targeted → caught; inactive staff notified → caught). |
+| W2 | Five dead realtime subscriptions | ✅ **FIXED, APPLIED TO PRODUCTION** | Same migration, applied by #239. Proven by `scripts/rls/wiring.sql` §1, which derives the subscribed-table list from `src/` and checks it against `pg_publication_tables`; mutation-tested by removing the migration (all five named) and by adding a fresh bad subscription (`products` → caught). |
 | W3 | Contact form promised 24 hours | ✅ FIXED IN MAIN | **#234**. `main`'s `en.json` now reads *"We can't promise a response time from this page, so if the matter is urgent please call the number above instead."* — verified by reading main, not by trusting a PR. `src/test/contactEnquiryReachesTeam.test.ts` asserts all three locales no longer name a deadline, and that none of them claims the team "has been notified" while W1 is unapplied. |
 | W4 | Nothing surfaced unworked enquiries | ✅ FIXED IN MAIN | **#234** — a **New enquiries** card on the call-centre dashboard reading `leads` where `status='new'`, plus one notification-routing implementation replacing two that disagreed about where the same notification led. |
 | W5 | The register itself | ✅ SHIPPED | `WIRING_REGISTER.md` + `scripts/wiring/*`, gated in CI (`Wiring register`). Gate proven both ways: a tampered score fails; a new wire with no row fails naming the file. **It then went wrong twice in its first day, both my fault and both fixed in #233:** it reddened main over a moved line number and two new test filenames (no wiring change at all), so the checked content is now file-level and the volatile "tests naming it" list is gone; and because it churned, a merge conflict in the generated file got resolved by keeping both sides — leaving main's register with **six duplicated wire keys** and a `table:leads` row still quoting the 24-hour promise the code had stopped making. That is the 2026-07-23/25 locale failure class, in a generated file. The resolution for a generated file is to regenerate it, never to merge it by hand; #233 does that and removes the churn that invited the conflict. |
+| W7 | `Register.tsx` unreachable, holds the only self-service `signUp` | 🔴 **reported, not fixed** | Found by the review. `/register` is a `Navigate to /join` and nothing imports the page, so it cannot be opened — the only wire in the register with zero routes. Harmless while dead; reviving it would create an account outside the join wizard, with no payment behind it. Deleting a page is a product call. |
 | W6 | Billing reminders, communication log | 🔴 **reported, not fixed** | Both are dead code whose revival is a business decision (chasing members for payment; which events deserve a log row), and `AlertDetailPanel` is on the alert path. Lee's call. |
 
 ## Backend identity — SETTLED 2026-08-11

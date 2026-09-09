@@ -95,12 +95,29 @@ describe("CallCentreHeader", () => {
     expect(header).not.toMatch(/import \{ Input \}/);
   });
 
-  it("sign-out checks the end-of-shift update result and warns without blocking logout", () => {
+  it("ending a shift checks the update result and warns without blocking logout", () => {
     expect(header).toMatch(/const \{ error \} = await supabase\s*\n\s*\.from\("staff"\)/);
     expect(header).toContain("toast.warning(");
     expect(header).toContain('"callCentreHeader.shiftUpdateFailed"');
-    // signOut still runs after the guarded block — logout is never blocked.
-    expect(header).toMatch(/toast\.warning\([\s\S]*await signOut\(\)/);
+    // The sign-out still runs after the guarded block, so logout is never blocked — but it is
+    // now `signOutNow()`, a named helper declared ABOVE the branch that warns (item 7 split
+    // sign-out into three outcomes: cancel, stay on duty, end shift). The old assertion was
+    // `toast.warning([\s\S]*await signOut()`, i.e. source ORDER, which stopped describing the
+    // file the moment the helper moved up — while the behaviour it names is unchanged. That
+    // behaviour is asserted by execution in src/test/onDutyDeclaration.test.tsx ("a failed
+    // end-of-shift write still lets the operator out"); what is left here is the structure.
+    expect(header).toMatch(/toast\.warning\([\s\S]*await signOutNow\(\)/);
+    expect(header).toMatch(/const signOutNow = async \(\) => \{[\s\S]*?await signOut\(\)/);
+  });
+
+  it("logging out while on duty warns instead of silently ending the shift (item 7)", () => {
+    // The declaration outlives the browser session: `sos-escalation-runner` selects
+    // `is_on_call = true` and rings a MOBILE, so a closed tab is not evidence about anything.
+    expect(header).toContain("stillOnDutyTitle");
+    expect(header).toContain("stayOnDuty");
+    expect(header).toContain("endShiftAndLogOut");
+    // No path from the log-out button to an is_on_call write that the operator did not choose.
+    expect(header).toMatch(/const handleSignOut = async \(\) => \{\s*\n\s*if \(isOnDuty/);
   });
 
   it("user-visible strings are localized under callCentreHeader.* and green badges use the resolved token", () => {

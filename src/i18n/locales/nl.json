@@ -1685,6 +1685,14 @@
   "callCentreHeader": {
     "operator": "Operator",
     "onDuty": "Dienst actief",
+    "onDutyAnnounce": "Je bent op dienst. Meldingen escaleren naar jou.",
+    "offDutyAnnounce": "Je bent niet op dienst.",
+    "onDutyHint": "Op dienst — meldingen escaleren naar jou. Klik om je dienst te beëindigen.",
+    "offDutyHint": "Niet op dienst — klik om je dienst te starten.",
+    "stillOnDutyTitle": "Je bent nog op dienst",
+    "stillOnDutyBody": "Uitloggen beëindigt je dienst niet. Zolang je op dienst bent blijft de escalatieladder meldingen naar jou sturen en je mobiel bellen — blijf dus alleen op dienst als je bereikbaar blijft.",
+    "stayOnDuty": "Op dienst blijven en uitloggen",
+    "endShiftAndLogOut": "Dienst beëindigen en uitloggen",
     "startShift": "Dienst starten",
     "scheduled": "Ingepland",
     "onShift": "van dienst",
@@ -5693,7 +5701,8 @@
         "intermittent": "Sommige uitvoeringen mislukken, andere worden voltooid.",
         "notToday": "De laatste geslaagde uitvoering was voor vandaag.",
         "healthy": "Uitvoeringen worden voltooid en er is er in het laatste uur geen mislukt."
-      }
+      },
+      "pillLabel": "Status van Isabella — details openen"
     },
     "advancedConfig": {
       "title": "Advanced Configuration",
@@ -6317,5 +6326,18 @@
       "none": "We hebben nog niemand die we voor u kunnen waarschuwen.",
       "unknown": "We konden uw contactpersonen voor noodgevallen nu niet controleren."
     }
+  },
+  "salesPill": {
+    "aiHot": "AI-aandachtspunten",
+    "failed": "Verkoopstatistieken niet beschikbaar",
+    "followups": "Openstaande opvolgingen",
+    "heading": "Verkoop",
+    "label": "Verkoop van vandaag — details openen",
+    "last60": "Laatste 60 min",
+    "newSubs": "Nieuwe abonnementen",
+    "orders": "{{count}} orders",
+    "paidToday": "Vandaag betaald",
+    "partnerSignups": "Partneraanmeldingen",
+    "today": "Verkoop vandaag"
   }
 }

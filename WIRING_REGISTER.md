@@ -90,6 +90,35 @@ applied to a throwaway PostgreSQL and queried:
 react-query mutation. A bare `console.error` does **not** count — that is the definition of
 failing silently, and it is exactly what the contact form did.
 
+## Admin-audience events that write nowhere
+
+The register above answers *who is told* for every wire that EXISTS. It cannot answer it
+for something that never happens — and that is the more dangerous half, because a
+notification nobody wrote looks exactly like a notification nobody needed. The bell is
+fine as a reader; what is missing is on the other side of it.
+
+Each row below is a claim about an ABSENCE, and each carries a check that this generator
+verifies — so the build FAILS if one of these has since been wired, naming the file. A
+fixed item cannot sit here looking broken, and a broken item cannot be quietly dropped.
+
+| # | event | who should be told | what happens today | owner |
+|---|---|---|---|---|
+| **A1** | Every `ai_events` row — including `sale.paid` | admin / owner — Isabella's Boss & Owner Intelligence switches do what their labels say: a new sale, a cancellation, a failed payment, the daily briefing, the weekly revenue summary, a negative-feedback alert | `ai-dispatch-events` is the only consumer of `ai_events`, and NOTHING INVOKES IT — no client call, no cron schedule, no trigger. `post-payment.ts` writes a `sale.paid` row on every paid order and it is read by nobody; `ai-run` and `ai-execute-action` write more. So all seven owner-intelligence switches in `isabella_settings` can be turned ON and produce nothing at all, which is the same shape of defect as the Isabella status banner reading ACTIVE off a switch (item 1). Worth knowing before it is wired: `supabase/config.toml` sets `verify_jwt = false` on it, so the endpoint is PUBLIC — whoever gives it a caller has to give it auth in the same PR | the wiring session |
+| **A2** | A member's card is declined (`invoice.payment_failed`) | staff (bell + attention queue) — P4, decided: Stripe retries → `past_due` → monitoring CONTINUES → STAFF ARE TOLD. Somebody has to ring the member before the retries run out, or a life-safety subscription lapses quietly | `stripe-webhook` sets `subscriptions.status = 'past_due'` and returns. No bell, no task, no queue, no email. The only place it surfaces is a status badge on a screen somebody would have to already be looking at | the wiring session (the fix is a notifier; the webhook itself is human-gated) |
+| **A3** | A subscription is cancelled at Stripe (`customer.subscription.deleted`) | admin — the `cancellation_alert` switch exists in `isabella_settings` and an owner expects to hear that somebody stopped paying — it is the single most important number in the business | `stripe-webhook` sets `status = 'cancelled'` and returns. Nothing is written anywhere a human is required to look | the wiring session |
+| **A4** | Isabella cannot complete a run (a failed `ai_runs` row) | admin — somebody is told the assistant is down. On 8 Sep the Anthropic balance hit zero, every run failed all day, and the dashboard said ACTIVE | `ai-run` records the failure in `ai_runs.error_message` and tells nobody. The health card added in item 1 makes it VISIBLE on the admin dashboard — which is a reader, not a notifier: it says so only to somebody who opens that page | the wiring session |
+| **A5** | A price was edited without syncing it to Stripe | admin (super_admin) — the person who changed the price is told it is not live yet. Until the sync runs, every screen shows the new figure and Stripe would charge the old one | nothing watches for it. `send-payment-link` REFUSES at the point of use (`PRICE_STALE`, item 4) and the pricing editor shows drift when it is open, but no notification is raised — so the first person to find out is a customer or the staff member trying to send them a link | the wiring session |
+| **A6** | An order sits in `awaiting_payment` — the checkout was abandoned | staff — somebody chases it. The state exists precisely so an unpaid order is distinguishable (F14, `20260908120400`), and a staff-sent payment link (item 4) creates one every time | nothing sweeps the state and nothing is raised when an order stays in it. The fulfilment dispatcher covers the edges FROM `paid` onwards; the edge into `awaiting_payment` has no audience at all | the wiring session |
+
+The checks, verified on every build:
+
+- **A1** — `ai-dispatch-events` appears nowhere in src, supabase/functions, supabase/migrations, .github/workflows. an invocation anywhere — invoke(), fetch, cron.schedule — would make this row false
+- **A2** — `invoice.payment_failed` and `notification_log|notify-admin|notify_staff` never appear within 900 characters of each other in the same file (supabase/functions, supabase/migrations). a notification raised anywhere near that case would make this row false
+- **A3** — `customer.subscription.deleted` and `notification_log|notify-admin` never appear within 900 characters of each other in the same file (supabase/functions, supabase/migrations). same shape as A2: a bell notification, a task or an admin notifier raised anywhere near that case would make this row false
+- **A4** — `ai_runs` and `notification_log|notify-admin` never appear within 4000 characters of each other in the same file (supabase/functions, supabase/migrations). the function that records the failure is the natural place to raise the bell, so a notification anywhere in it would make this row false
+- **A5** — `stripe_prices` and `notification_log|notify-admin` never appear within 4000 characters of each other in the same file (supabase/functions, supabase/migrations). a notifier that reads stripe_prices would make this row false
+- **A6** — `awaiting_payment` and `notification_log|notify-admin` never appear within 4000 characters of each other in the same file (supabase/functions, supabase/migrations). a sweep or a trigger raising the bell for this state would make this row false
+
 ## The register
 
 ### Public & marketing

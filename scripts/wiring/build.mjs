@@ -11,9 +11,9 @@
  * (the human columns) or the code (the wires), never the markdown.
  */
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { FAMILIES } from "./annotations.mjs";
+import { ABSENT_ADMIN_EVENTS, FAMILIES } from "./annotations.mjs";
 import { scoreRow, distribution } from "./score.mjs";
 
 const HERE = dirname(new URL(import.meta.url).pathname);
@@ -104,6 +104,99 @@ if (unannotated.length || stale.length) {
     console.error(`\n✗ ${stale.length} annotated wire(s) no longer exist in the code:`);
     for (const k of stale) console.error(`    - ${k}`);
   }
+  process.exit(1);
+}
+
+// ── verify the ABSENCE claims (item 3) ──────────────────────────────────────
+//
+// Every row in ABSENT_ADMIN_EVENTS says "this event tells nobody". A claim like that goes stale
+// the moment somebody wires it — and a register that still says "nobody is told" about a fixed
+// wire is worse than no register, because it sends the next reader to fix something twice. So
+// each row carries a check and this fails the build when the check no longer holds.
+//
+// Comments are stripped first. Half of these claims are about a string that the code DISCUSSES
+// at length ("nothing invokes ai-dispatch-events" is written in isabella-gate's own header), and
+// this repo has now caught nine assertions matching prose instead of code.
+
+const stripComments = (src) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*(\/\/|--).*$/gm, "");
+
+/** Every scannable file under a path, as [relativePath, sourceWithoutComments]. */
+function* filesUnder(rel) {
+  const abs = join(REPO, rel);
+  let st;
+  try { st = statSync(abs); } catch { return; }
+  if (st.isFile()) {
+    yield [rel, stripComments(readFileSync(abs, "utf8"))];
+    return;
+  }
+  for (const entry of readdirSync(abs, { withFileTypes: true })) {
+    if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
+    yield* filesUnder(join(rel, entry.name));
+  }
+}
+
+const SCANNABLE = /\.(ts|tsx|js|mjs|jsx|sql|yml|yaml)$/;
+
+// TESTS ARE NOT WIRING. `src/test/absentAdminEvents.test.ts` plants the string
+// "ai-dispatch-events" on purpose, to prove A1's check bites — and without this exclusion that
+// probe made A1 report itself as fixed. A test naming a function is not a caller of it, and a
+// test asserting an absence is the opposite of wiring one up.
+const NOT_WIRING = ["src/test/", "e2e/", "scripts/wiring/"];
+
+/** Files matching a claim's scan, minus its exclusions. */
+function claimFiles(claim) {
+  const out = [];
+  for (const rel of claim.scan) {
+    for (const [file, src] of filesUnder(rel)) {
+      if (!SCANNABLE.test(file)) continue;
+      if (NOT_WIRING.some((ex) => file.startsWith(ex))) continue;
+      if ((claim.exclude ?? []).some((ex) => file.startsWith(ex))) continue;
+      out.push([file, src]);
+    }
+  }
+  return out;
+}
+
+const brokenClaims = [];
+for (const row of ABSENT_ADMIN_EVENTS) {
+  const claim = row.absence;
+  const hits = [];
+
+  if (claim.kind === "absentEverywhere") {
+    const re = new RegExp(claim.pattern, "g");
+    for (const [file, src] of claimFiles(claim)) if (re.test(src)) hits.push(file);
+  } else if (claim.kind === "absentPair") {
+    const reA = new RegExp(claim.a, "g");
+    const reB = new RegExp(claim.b);
+    for (const [file, src] of claimFiles(claim)) {
+      let m;
+      reA.lastIndex = 0;
+      while ((m = reA.exec(src)) !== null) {
+        // Both directions: a notifier can sit before or after the event it reports on.
+        const from = Math.max(0, m.index - claim.window);
+        if (reB.test(src.slice(from, m.index + claim.window))) { hits.push(file); break; }
+      }
+    }
+  } else {
+    brokenClaims.push(`${row.id}: unknown absence check kind "${claim.kind}"`);
+    continue;
+  }
+
+  if (hits.length) {
+    brokenClaims.push(
+      `${row.id} claims nobody is told about "${row.event}", but ${hits.length} file(s) say ` +
+        `otherwise: ${hits.slice(0, 3).join(", ")}`,
+    );
+  }
+}
+
+if (brokenClaims.length) {
+  console.error(`✗ ${brokenClaims.length} absence claim(s) in ABSENT_ADMIN_EVENTS no longer hold:`);
+  for (const c of brokenClaims) console.error(`    - ${c}`);
+  console.error("\n  If the wire now exists, give it a real register row in FAMILIES and delete");
+  console.error("  the ABSENT_ADMIN_EVENTS entry. A register that still calls a fixed wire dead");
+  console.error("  sends the next reader to fix it twice.");
   process.exit(1);
 }
 
@@ -201,6 +294,30 @@ md += "  \"who is told\" is only ever true where client code or an edge function
 md += "`failure shown` is derived too: a `toast.error`, an inline error, or a throw inside a\n";
 md += "react-query mutation. A bare `console.error` does **not** count — that is the definition of\n";
 md += "failing silently, and it is exactly what the contact form did.\n\n";
+
+md += "## Admin-audience events that write nowhere\n\n";
+md += "The register above answers *who is told* for every wire that EXISTS. It cannot answer it\n";
+md += "for something that never happens — and that is the more dangerous half, because a\n";
+md += "notification nobody wrote looks exactly like a notification nobody needed. The bell is\n";
+md += "fine as a reader; what is missing is on the other side of it.\n\n";
+md += "Each row below is a claim about an ABSENCE, and each carries a check that this generator\n";
+md += "verifies — so the build FAILS if one of these has since been wired, naming the file. A\n";
+md += "fixed item cannot sit here looking broken, and a broken item cannot be quietly dropped.\n\n";
+md += "| # | event | who should be told | what happens today | owner |\n";
+md += "|---|---|---|---|---|\n";
+for (const r of ABSENT_ADMIN_EVENTS) {
+  md += `| **${r.id}** | ${esc(r.event)} | ${esc(r.audience)} — ${esc(r.expectation)} | ${esc(r.today)} | ${esc(r.owner)} |\n`;
+}
+md += "\nThe checks, verified on every build:\n\n";
+for (const r of ABSENT_ADMIN_EVENTS) {
+  const a = r.absence;
+  const how =
+    a.kind === "absentEverywhere"
+      ? `\`${a.pattern}\` appears nowhere in ${a.scan.join(", ")}`
+      : `\`${a.a}\` and \`${a.b}\` never appear within ${a.window} characters of each other in the same file (${a.scan.join(", ")})`;
+  md += `- **${r.id}** — ${how}. ${esc(a.why)}\n`;
+}
+md += "\n";
 
 md += "## The register\n\n";
 for (const [name, pred] of SURFACES) {

@@ -38,11 +38,13 @@ describe("MedConneqt embed — routing", () => {
   });
 
   it("sits directly under Dashboard", () => {
-    const dashboard = sidebar.indexOf('labelKey: "sidebar.dashboard"');
-    const medconneqt = sidebar.indexOf('labelKey: "sidebar.medconneqt"');
-    const alerts = sidebar.indexOf('labelKey: "sidebar.alerts"');
-    expect(medconneqt).toBeGreaterThan(dashboard);
-    expect(medconneqt).toBeLessThan(alerts);
+    // ADJACENCY, not "somewhere before alerts". The previous version of this assertion compared
+    // medconneqt against alerts, and stayed green through the 9 Sep reorder that moved alerts
+    // three slots down — it was never testing what its name says. The full order lives in
+    // src/test/callCentreSidebarOrder.test.ts; this checks the one relationship this file owns.
+    const keys = [...sidebar.matchAll(/labelKey:\s*"sidebar\.(\w+)"/g)].map((m) => m[1]);
+    expect(keys.length).toBeGreaterThan(2);
+    expect(keys.indexOf("medconneqt")).toBe(keys.indexOf("dashboard") + 1);
   });
 });
 

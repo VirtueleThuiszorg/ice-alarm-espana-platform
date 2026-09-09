@@ -42,12 +42,22 @@ interface MenuItem {
   badgeKey?: "alerts" | "messages";
 }
 
+/**
+ * ORDER IS THE POINT OF THIS LIST, and it is Lee's (dashboard notes, 9 Sep): Dashboard,
+ * MedConneqt, Members, Leads, Alerts, Messages, then the rest. Members moves to third and Alerts
+ * takes the slot Members had.
+ *
+ * Alerts moving DOWN is not a demotion of the alert path. An operator reaches a live alert from
+ * the dashboard, from the badge on this item, and from the alert itself arriving — never by
+ * hunting for it third in a list. What they do reach for by hand, dozens of times a shift, is a
+ * member's record. Pinned by src/test/callCentreSidebarOrder.test.ts, which reads this array.
+ */
 const menuItems: MenuItem[] = [
   { icon: LayoutDashboard, labelKey: "sidebar.dashboard", path: "/call-centre" },
   { icon: Pill, labelKey: "sidebar.medconneqt", path: "/call-centre/medconneqt" },
-  { icon: AlertTriangle, labelKey: "sidebar.alerts", path: "/call-centre/alerts", badgeKey: "alerts" },
-  { icon: UserPlus, labelKey: "sidebar.leads", path: "/call-centre/leads" },
   { icon: Users, labelKey: "sidebar.members", path: "/call-centre/members" },
+  { icon: UserPlus, labelKey: "sidebar.leads", path: "/call-centre/leads" },
+  { icon: AlertTriangle, labelKey: "sidebar.alerts", path: "/call-centre/alerts", badgeKey: "alerts" },
   { icon: MessageSquare, labelKey: "sidebar.messages", path: "/call-centre/messages", badgeKey: "messages" },
   { icon: CheckSquare, labelKey: "sidebar.tasks", path: "/call-centre/tasks" },
   { icon: Ticket, labelKey: "sidebar.staffTickets", path: "/call-centre/tickets" },

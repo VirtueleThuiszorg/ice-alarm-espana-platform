@@ -2521,7 +2521,7 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **who is told** self
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /admin, /admin/ai, /admin/ai/operations
+- **routes** /admin/ai, /admin/ai/operations
 - **call sites** src/hooks/useIsabellaSettings.ts
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.

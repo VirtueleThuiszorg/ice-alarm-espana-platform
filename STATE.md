@@ -13,6 +13,47 @@
 
 ---
 
+## ⚠️ RULE CHANGE — 2026-09-09 · **nothing is held for Lee any more**
+
+Read this before believing any "HELD — Lee" or "human gate" status below.
+
+Lee's instruction, this date: *"nothing is held for me. No [HOLD FOR LEE] PRs, no gates waiting on
+my read — every PR targets main and merges when green, schema included."* The four categories that
+required his sign-off — the SOS/alert path, Stripe activation, RLS policies, Isabella's tool
+permissions — no longer do. `CLAUDE.md` § *Merge authority* is the rule; this is the pointer to it.
+
+**Consequence for the entries in this file.** Wherever a row below reads ⬜ HELD, *"behind the human
+gate"*, *"pending Lee's review"* or *"needs a human gate"*, that is now a record of **why the work
+stopped at the time**, not a live blocker. The work itself is unblocked; each item still needs
+doing, and merges on green like anything else. Individual rows are deliberately **not** rewritten —
+they are dated findings, and editing history to match today's rule is how a truth file stops being
+one.
+
+What did **not** change: golden rules 1–10 in `CLAUDE.md`, and **never merge red**. Merge authority
+moved; the standard for what may merge did not. Green is now the only gate, which is why the CI
+gates were split one-per-job the same day (below).
+
+## CI — 2026-09-09 · **one gate per job; a missing secret fails**
+
+Four gates shared one job — drift, wiring register, typecheck, build, in that order. A failing step
+ends its job and marks every later step `skipped`, and `skipped` is not red. Main carried five
+unapplied migrations for a day, so the drift gate failed first every time, and for that whole day
+**main had no signal at all** for typecheck, build or register freshness. Two things went through
+the hole: an unparseable test file (#268) and the review fix for a live auth stale-token hole
+(#273). Neither was subtle; nothing was looking.
+
+`migration-drift` and `wiring-register` are now their own jobs, with no `needs:` edges, so a red
+gate sits beside four verdicts that still mean something. Neither runs `npm ci` — both scripts
+import only `node:` builtins.
+
+`deploy-functions.yml` no longer skips: its first step was *"Check deploy secrets (skip gracefully
+until configured)"*, which reported **success having deployed nothing** when the credentials were
+absent — so "green" meant either "deployed" or "never tried", on the one workflow whose entire
+promise is that main and production run the same code. `scripts/ci/require-secrets.mjs` exits 1 and
+names what is missing. Proven by `src/test/ciJobIsolation.test.ts` (23 assertions, 12 mutations
+killed — including a duplicate gate re-added inside the shared job, which the first version of the
+test missed).
+
 ## Sessions — 2026-09-09 · **the idle logout is gone, and the browser decides**
 
 A session now lasts until the browser is closed or the user signs out. Nothing expires it on a

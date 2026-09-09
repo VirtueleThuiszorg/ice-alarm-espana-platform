@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { STALE_TIMES } from "@/config/constants";
-import type { HolidayStatus } from "@/config/shifts";
+import { HOLIDAY_ROLES, takesHolidays, type HolidayStatus } from "@/config/shifts";
 import { toast } from "sonner";
 import i18n from "@/i18n";
 import { getApproverUserIds, getStaffContact, notifyUsers } from "@/lib/staffNotify";
@@ -19,7 +19,8 @@ export interface StaffHoliday {
   review_notes: string | null;
   created_at: string;
   updated_at: string;
-  staff?: { first_name: string; last_name: string };
+  /** `role` is selected so the client-side guard below can see it. */
+  staff?: { first_name: string; last_name: string; role?: string };
   reviewer?: { first_name: string; last_name: string };
 }
 
@@ -70,34 +71,81 @@ export function useMyHolidayBalance(staffId: string | undefined) {
   });
 }
 
-// All holidays (admin view)
+/**
+ * All holidays, for the review screens.
+ *
+ * ADMINS ARE EXCLUDED (Lee, 9 Sep, item 5), twice over. `!inner` makes the staff join a real
+ * inner join so `staff.role` can be filtered server-side; `holidaysOfRotaStaff` then drops
+ * anything that arrives anyway — a stale cache entry, or a future caller that changes the
+ * select. The filter is the mechanism; the guard is what makes the assertion testable without a
+ * live database.
+ */
 export function useAllHolidays(statusFilter?: HolidayStatus) {
   return useQuery<StaffHoliday[]>({
     queryKey: ["all-holidays", statusFilter],
     queryFn: async () => {
       let query = supabase
         .from("staff_holidays")
-        .select("*, staff:staff_id(first_name, last_name), reviewer:reviewed_by(first_name, last_name)")
+        .select(
+          "*, staff:staff_id!inner(first_name, last_name, role), reviewer:reviewed_by(first_name, last_name)",
+        )
+        .in("staff.role", [...HOLIDAY_ROLES])
         .order("created_at", { ascending: false });
       if (statusFilter) {
         query = query.eq("status", statusFilter);
       }
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as unknown as StaffHoliday[];
+      return holidaysOfRotaStaff((data || []) as unknown as StaffHoliday[]);
     },
     staleTime: STALE_TIMES.SHORT,
   });
 }
 
-// All holiday balances (admin view)
+/**
+ * Drop any holiday whose staff member does not take holidays through the rota.
+ *
+ * A row with NO role attached is kept: the embedded select is what supplies it, and silently
+ * dropping rows whose role we simply failed to read would hide real requests — the opposite
+ * failure, and the worse one for somebody waiting on an answer.
+ */
+export function holidaysOfRotaStaff(rows: StaffHoliday[]): StaffHoliday[] {
+  return rows.filter((h) => h.staff?.role === undefined || takesHolidays(h.staff.role));
+}
+
+/**
+ * All holiday balances, for the counts on the Holidays page.
+ *
+ * `staff_holiday_balance` is a view over every ACTIVE staff row (20260303150000) and carries no
+ * role column, so it cannot be filtered on role directly — an admin has always had a balance row
+ * there, with a 30-day allowance nobody tracks. The eligible staff ids are read first and the
+ * view is filtered by them.
+ *
+ * Two queries rather than one is deliberate. Adding `role` to the view is the tidier fix and it
+ * is a migration, which would put this behind the held schema PR; the page can be right today
+ * without waiting for that.
+ */
 export function useAllHolidayBalances() {
   return useQuery<HolidayBalance[]>({
-    queryKey: ["all-holiday-balances"],
+    queryKey: ["all-holiday-balances", ...HOLIDAY_ROLES],
     queryFn: async () => {
+      const { data: rotaStaff, error: staffError } = await supabase
+        .from("staff")
+        .select("id")
+        .in("role", [...HOLIDAY_ROLES])
+        .eq("status", "active");
+      if (staffError) throw staffError;
+
+      const ids = (rotaStaff || []).map((s) => s.id);
+      // No rota staff at all means no balances — NOT "show everybody". An unfiltered `.in()`
+      // with an empty list returns nothing in PostgREST, which is the correct answer here, but
+      // it is short-circuited so the intent does not depend on that behaviour.
+      if (ids.length === 0) return [];
+
       const { data, error } = await supabase
         .from("staff_holiday_balance")
         .select("*")
+        .in("staff_id", ids)
         .order("first_name");
       if (error) throw error;
       return (data || []) as HolidayBalance[];

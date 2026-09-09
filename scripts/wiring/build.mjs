@@ -170,17 +170,20 @@ md += "   cannot read — so they cap at 8 and appear in *Only Lee can verify* b
 
 md += "## Method\n\n";
 md += "Wires are **derived from the source**, not walked by hand — a hand-walked list misses the\n";
-md += "control someone adds next week. Every exit from this app is one of five syntactic things,\n";
-md += "and a control with no wire cannot do anything:\n\n";
+md += "control someone adds next week. Every exit from this app is one of these eight syntactic\n";
+md += "things, and a control with no wire cannot do anything:\n\n";
 md += "| kind | what it is | call sites |\n|---|---|---:|\n";
-for (const k of ["table", "fn", "rpc", "channel", "link"]) {
+for (const k of ["table", "fn", "rpc", "channel", "auth", "storage", "link", "open"]) {
   const n = inv.wires.filter((w) => w.kind === k).length;
   const what = {
     table: "`supabase.from(t).insert/update/upsert/delete` — a row written",
     fn: "`supabase.functions.invoke(f)` — an edge function",
     rpc: "`supabase.rpc(f)` — a SQL function",
     channel: "`postgres_changes` — a realtime subscription",
+    auth: "`supabase.auth.*` — sign in, sign out, register, password reset",
+    storage: "`supabase.storage.from(b).upload/remove/…` — a file put somewhere",
     link: "`mailto:` / `tel:` / `wa.me` — a hand-off off the platform",
+    open: "`window.open` / `window.location` — the SPA being left",
   }[k];
   md += `| \`${k}\` | ${what} | ${n} |\n`;
 }

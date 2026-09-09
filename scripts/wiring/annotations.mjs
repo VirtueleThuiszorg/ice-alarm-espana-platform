@@ -79,7 +79,115 @@ export const FAMILIES = [
       "be, however healthy it is.",
   },
 
+  // ───────────────────────── authentication ────────────────────────────────
+  //
+  // Added after a review found the register's central claim — that a complete
+  // wire list bounds the set of controls that can do anything — was false.
+  // Sign-in is not a table write, an edge function, an RPC, a subscription or a
+  // mailto:, so the five login and reset routes carried no wire of their own on
+  // a register whose brief explicitly named the login/reset flows.
+  {
+    wires: ["auth:signInWithPassword"],
+    control: "Sign in — /login (member), /staff/login, /partner/login",
+    promise: "your password gets you into your account",
+    dest: "supabase.auth.signInWithPassword → GoTrue; the session then decides every ProtectedRoute",
+    told: "self",
+    proof: null,
+    note:
+      "The front door, on three surfaces. Nothing in the repo proves a member can actually get " +
+      "in: `partnerJourney.spec.ts` drives the partner login in a browser but stubs Supabase, so " +
+      "it proves the form and the routing, not the credential exchange. Whether sign-in works in " +
+      "production is a click, and it is in the list for Lee.",
+  },
+  {
+    wires: ["auth:resetPasswordForEmail", "auth:updateUser"],
+    control: "Forgot password → email link → set a new one",
+    promise: "we will email you a link to get back in",
+    dest: "resetPasswordForEmail sends via GoTrue's own mailer; the link returns to /reset-password, where updateUser sets the password",
+    told: "email",
+    proof: null,
+    note:
+      "THE MOST CONSEQUENTIAL EMAIL IN THE PRODUCT, and the register was not asking about it. If " +
+      "GoTrue's SMTP is unconfigured or its redirect is wrong, the user sees a success message and " +
+      "no email ever arrives — the contact-form failure shape exactly, on the path someone locked " +
+      "out of a life-safety account has to use. `RecoveryRedirect` in App.tsx also has a " +
+      "10-second fallback that navigates to /reset-password whether or not PASSWORD_RECOVERY " +
+      "fired, so a broken token lands on the form rather than on an error. Cannot be settled from " +
+      "the repo — it is a Supabase Auth setting, and it is in the list for Lee.",
+  },
+  {
+    wires: ["auth:signOut"],
+    control: "Sign out — every header, plus the forced sign-out on a wrong-surface login",
+    promise: "you are signed out",
+    dest: "supabase.auth.signOut()",
+    told: "self",
+    proof: null,
+    note:
+      "Present on every route because it lives in the layouts and in AuthContext. StaffLogin and " +
+      "PartnerLogin also call it deliberately: signing in on the wrong surface signs you back out " +
+      "rather than leaving a half-authorised session. That is the right behaviour and it is untested.",
+  },
+  {
+    wires: ["auth:setSession"],
+    control: "Accept a staff or partner invite from an emailed link",
+    promise: "this link makes your account real",
+    dest: "auth.setSession with the tokens in the invite URL, then the *-complete-invite function",
+    told: "self",
+    proof: null,
+    note:
+      "Golden rule 3 lives near here: an invite establishes a session, and the ROLE must still come " +
+      "from the trigger/admin path rather than from anything in the link. Nothing here writes a role.",
+  },
+
+  // ───────────────────────── file storage ──────────────────────────────────
+  {
+    wires: ["storage:website-images", "storage:staff-documents", "storage:social-post-images", "storage:partner-presentations", "storage:ai-agent-avatars"],
+    control: "Upload a website image, a staff document, a post image, a partner presentation, an agent avatar",
+    promise: "the file is saved and will show where you put it",
+    dest: "Supabase Storage buckets of those names",
+    told: "self",
+    proof: null,
+    note:
+      "Also missed by the original scanner. Each bucket is used on exactly one admin or partner " +
+      "screen and the admin who pressed Upload is the audience. What none has is a proof that the " +
+      "object is READABLE afterwards — the failure mode is an upload that succeeds and a broken " +
+      "image — and `staff-documents` is where that matters, because an HR document nobody can " +
+      "open later is the same as one never filed.",
+  },
+
+  // ───────────────────────── leaving the platform ──────────────────────────
+  {
+    wires: ["open:window"],
+    control: "Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard",
+    promise: "this takes you where it says",
+    dest: "a new tab or a full navigation, out of the SPA",
+    told: "external",
+    proof: null,
+    note:
+      "The counterpart to `link:*`, and originally invisible to the scanner: a `tel:` in an href " +
+      "was counted while the same number handed to window.location.href was not. 59 call sites. " +
+      "This is also how the checkout redirect leaves the app, which is why the join→pay goal owns " +
+      "that part and this row does not re-prove it.",
+  },
+
   // ───────────────────────────── dead controls ─────────────────────────────
+  {
+    wires: ["auth:signUp"],
+    control: "Self-service account creation on src/pages/auth/Register.tsx",
+    promise: "create an account",
+    dest: "supabase.auth.signUp",
+    told: "self",
+    dead: true,
+    proof: null,
+    note:
+      "UNREACHABLE. `Register.tsx` is imported by nothing and `/register` is a Navigate to /join, " +
+      "so the page cannot be opened — it is the only wire in the register with zero routes " +
+      "attributed by the import graph. Harmless while dead, and worth removing rather than " +
+      "leaving: it creates an account OUTSIDE the join wizard, so reviving it would be a route to " +
+      "a member record with no payment behind it, which is golden rule 4's whole subject. " +
+      "Reported, not deleted — removing a page is a product call.",
+  },
+
   {
     wires: ["channel:tasks"],
     control: "Call-centre dashboard — courtesy-call list auto-refresh",

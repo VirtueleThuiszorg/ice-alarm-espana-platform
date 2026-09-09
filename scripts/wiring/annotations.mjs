@@ -539,6 +539,21 @@ export const FAMILIES = [
       "depends on this row being right.",
   },
   {
+    wires: ["table:staff_push_tokens"],
+    control: '"Enable notifications on this phone" — Admin → Settings → Notifications, and Staff preferences',
+    promise: "an alert reaches you when this page is closed",
+    dest: "staff_push_tokens, one row per device keyed on the FCM registration token; read by the notify-staff router's push transport (_shared/fcm.ts) and pruned by it when Google says a token is dead",
+    told: "push",
+    proof: "src/test/pushClient.test.ts",
+    note:
+      "REPLACES A WIRE THAT WENT NOWHERE. The previous hook upserted " +
+      "`notification_settings { user_id, push_token, push_enabled }` — three columns that table " +
+      "has never had — through a hand-written `supabase as unknown as` façade whose only effect " +
+      "was to stop TypeScript saying so, and no component called it. Not scored higher than push " +
+      "itself: until FIREBASE_SERVICE_ACCOUNT and the six VITE_FIREBASE_* variables exist, the " +
+      "card says so rather than offering a button that does nothing.",
+  },
+  {
     wires: ["table:staff_holidays", "table:staff_shift_covers", "table:staff_shifts", "table:shift_escalation_chain"],
     control: "Request holiday, approve/decline, offer and accept shift cover, edit the rota",
     promise: "the person who has to act finds out",

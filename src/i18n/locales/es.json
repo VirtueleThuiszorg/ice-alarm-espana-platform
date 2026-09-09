@@ -1685,6 +1685,14 @@
   "callCentreHeader": {
     "operator": "Operador",
     "onDuty": "De servicio",
+    "onDutyAnnounce": "Estás de guardia. Las alertas se escalan a ti.",
+    "offDutyAnnounce": "No estás de guardia.",
+    "onDutyHint": "De guardia: las alertas se escalan a ti. Pulsa para terminar tu turno.",
+    "offDutyHint": "Fuera de guardia: pulsa para iniciar tu turno.",
+    "stillOnDutyTitle": "Sigues de guardia",
+    "stillOnDutyBody": "Cerrar sesión no termina tu turno. Mientras estés de guardia, la cadena de escalado seguirá enviándote alertas y llamando a tu móvil, así que sigue de guardia solo si continúas disponible.",
+    "stayOnDuty": "Seguir de guardia y cerrar sesión",
+    "endShiftAndLogOut": "Terminar turno y cerrar sesión",
     "startShift": "Iniciar turno",
     "scheduled": "Programado",
     "onShift": "en turno",
@@ -5657,7 +5665,8 @@
         "intermittent": "Algunas ejecuciones fallan, pero otras se completan.",
         "notToday": "La última ejecución correcta fue antes de hoy.",
         "healthy": "Las ejecuciones se completan y ninguna ha fallado en la última hora."
-      }
+      },
+      "pillLabel": "Estado de Isabella — abrir detalle"
     },
     "advancedConfig": {
       "title": "Configuración Avanzada",
@@ -6281,5 +6290,18 @@
       "none": "Todavía no tenemos a nadie a quien avisar en su nombre.",
       "unknown": "No hemos podido comprobar sus contactos de emergencia en este momento."
     }
+  },
+  "salesPill": {
+    "aiHot": "Elementos destacados de IA",
+    "failed": "Estadísticas de ventas no disponibles",
+    "followups": "Seguimientos pendientes",
+    "heading": "Ventas",
+    "label": "Ventas de hoy — abrir detalle",
+    "last60": "Últimos 60 min",
+    "newSubs": "Nuevas suscripciones",
+    "orders": "{{count}} pedidos",
+    "paidToday": "Pagado hoy",
+    "partnerSignups": "Registros de socios",
+    "today": "Ventas hoy"
   }
 }

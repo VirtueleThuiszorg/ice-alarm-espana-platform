@@ -36,6 +36,173 @@
  *   note     anything a reviewer needs, especially why a score is low.
  */
 
+
+/**
+ * ADMIN-AUDIENCE EVENTS THAT WRITE NOWHERE (Lee's dashboard notes, 9 Sep, item 3).
+ *
+ * The register above answers "who is told?" for every wire that EXISTS. It cannot answer it for
+ * something that never happens — and that is the more dangerous half, because a notification
+ * nobody wrote looks exactly like a notification nobody needed. The bell is fine as a reader;
+ * what is missing is on the other side of it.
+ *
+ * These rows are therefore claims about ABSENCE, and each one carries its own check so the claim
+ * cannot rot: `build.mjs` verifies the absence and FAILS if the thing has since been wired,
+ * naming the file. A fixed item cannot sit here looking broken, and a broken item cannot be
+ * quietly dropped — removing a row means the wire now exists and needs a real register row.
+ *
+ * THE FIXES ARE NOT MINE. Item 3 says the wiring session owns them and says not to duplicate
+ * its work; this is the inventory it needs, with the evidence attached.
+ *
+ * CHECK SHAPES
+ *   absentEverywhere  a string/pattern that appears NOWHERE in the scanned trees. Used for
+ *                     "nothing invokes this function".
+ *   absentPair        two patterns that never appear within `window` characters of each other
+ *                     in the SAME file. Used for "this event happens here and nothing near it
+ *                     tells anybody".
+ */
+/** @type {Array<Record<string, unknown>>} */
+export const ABSENT_ADMIN_EVENTS = [
+  {
+    id: "A1",
+    event: "Every `ai_events` row — including `sale.paid`",
+    audience: "admin / owner",
+    expectation:
+      "Isabella's Boss & Owner Intelligence switches do what their labels say: a new sale, a " +
+      "cancellation, a failed payment, the daily briefing, the weekly revenue summary, a " +
+      "negative-feedback alert",
+    today:
+      "`ai-dispatch-events` is the only consumer of `ai_events`, and NOTHING INVOKES IT — no " +
+      "client call, no cron schedule, no trigger. `post-payment.ts` writes a `sale.paid` row on " +
+      "every paid order and it is read by nobody; `ai-run` and `ai-execute-action` write more. " +
+      "So all seven owner-intelligence switches in `isabella_settings` can be turned ON and " +
+      "produce nothing at all, which is the same shape of defect as the Isabella status banner " +
+      "reading ACTIVE off a switch (item 1). Worth knowing before it is wired: " +
+      "`supabase/config.toml` sets `verify_jwt = false` on it, so the endpoint is PUBLIC — " +
+      "whoever gives it a caller has to give it auth in the same PR",
+    owner: "the wiring session",
+    absence: {
+      kind: "absentEverywhere",
+      pattern: "ai-dispatch-events",
+      scan: ["src", "supabase/functions", "supabase/migrations", ".github/workflows"],
+      exclude: ["supabase/functions/ai-dispatch-events/"],
+      why: "an invocation anywhere — invoke(), fetch, cron.schedule — would make this row false",
+    },
+  },
+  {
+    id: "A2",
+    event: "A member's card is declined (`invoice.payment_failed`)",
+    audience: "staff (bell + attention queue)",
+    expectation:
+      "P4, decided: Stripe retries → `past_due` → monitoring CONTINUES → STAFF ARE TOLD. Somebody " +
+      "has to ring the member before the retries run out, or a life-safety subscription lapses " +
+      "quietly",
+    today:
+      "`stripe-webhook` sets `subscriptions.status = 'past_due'` and returns. No bell, no task, " +
+      "no queue, no email. The only place it surfaces is a status badge on a screen somebody " +
+      "would have to already be looking at",
+    owner: "the wiring session (the fix is a notifier; the webhook itself is human-gated)",
+    absence: {
+      kind: "absentPair",
+      a: "invoice.payment_failed",
+      b: "notification_log|notify-admin|notify_staff",
+      window: 900,
+      scan: ["supabase/functions", "supabase/migrations"],
+      why: "a notification raised anywhere near that case would make this row false",
+    },
+  },
+  {
+    id: "A3",
+    event: "A subscription is cancelled at Stripe (`customer.subscription.deleted`)",
+    audience: "admin",
+    expectation:
+      "the `cancellation_alert` switch exists in `isabella_settings` and an owner expects to hear " +
+      "that somebody stopped paying — it is the single most important number in the business",
+    today:
+      "`stripe-webhook` sets `status = 'cancelled'` and returns. Nothing is written anywhere a " +
+      "human is required to look",
+    owner: "the wiring session",
+    absence: {
+      kind: "absentPair",
+      a: "customer.subscription.deleted",
+      b: "notification_log|notify-admin",
+      window: 900,
+      scan: ["supabase/functions", "supabase/migrations"],
+      why:
+        "same shape as A2: a bell notification, a task or an admin notifier raised anywhere near " +
+        "that case would make this row false",
+    },
+  },
+  {
+    id: "A4",
+    event: "Isabella cannot complete a run (a failed `ai_runs` row)",
+    audience: "admin",
+    expectation:
+      "somebody is told the assistant is down. On 8 Sep the Anthropic balance hit zero, every run " +
+      "failed all day, and the dashboard said ACTIVE",
+    today:
+      "`ai-run` records the failure in `ai_runs.error_message` and tells nobody. The health card " +
+      "added in item 1 makes it VISIBLE on the admin dashboard — which is a reader, not a " +
+      "notifier: it says so only to somebody who opens that page",
+    owner: "the wiring session",
+    absence: {
+      kind: "absentPair",
+      a: "ai_runs",
+      b: "notification_log|notify-admin",
+      window: 4000,
+      scan: ["supabase/functions", "supabase/migrations", "src"],
+      why:
+        "the function that records the failure is the natural place to raise the bell, so a " +
+        "notification anywhere in it would make this row false. `src` is scanned too, and that " +
+        "is not decoration: the dashboard surface that READS ai_runs was rewritten an hour " +
+        "after this row was written, and a client-side notifier is exactly the kind of fix " +
+        "somebody would put there",
+    },
+  },
+  {
+    id: "A5",
+    event: "A price was edited without syncing it to Stripe",
+    audience: "admin (super_admin)",
+    expectation:
+      "the person who changed the price is told it is not live yet. Until the sync runs, every " +
+      "screen shows the new figure and Stripe would charge the old one",
+    today:
+      "nothing watches for it. `send-payment-link` REFUSES at the point of use (`PRICE_STALE`, " +
+      "item 4) and the pricing editor shows drift when it is open, but no notification is raised " +
+      "— so the first person to find out is a customer or the staff member trying to send them a " +
+      "link",
+    owner: "the wiring session",
+    absence: {
+      kind: "absentPair",
+      a: "stripe_prices",
+      b: "notification_log|notify-admin",
+      window: 4000,
+      scan: ["supabase/functions", "supabase/migrations"],
+      why: "a notifier that reads stripe_prices would make this row false",
+    },
+  },
+  {
+    id: "A6",
+    event: "An order sits in `awaiting_payment` — the checkout was abandoned",
+    audience: "staff",
+    expectation:
+      "somebody chases it. The state exists precisely so an unpaid order is distinguishable " +
+      "(F14, `20260908120400`), and a staff-sent payment link (item 4) creates one every time",
+    today:
+      "nothing sweeps the state and nothing is raised when an order stays in it. The fulfilment " +
+      "dispatcher covers the edges FROM `paid` onwards; the edge into `awaiting_payment` has no " +
+      "audience at all",
+    owner: "the wiring session",
+    absence: {
+      kind: "absentPair",
+      a: "awaiting_payment",
+      b: "notification_log|notify-admin",
+      window: 4000,
+      scan: ["supabase/functions", "supabase/migrations"],
+      why: "a sweep or a trigger raising the bell for this state would make this row false",
+    },
+  },
+];
+
 /** @type {Array<{wires: string[]} & Record<string, unknown>>} */
 export const FAMILIES = [
   // ───────────────────────────── the anchor defect ─────────────────────────
@@ -79,7 +246,115 @@ export const FAMILIES = [
       "be, however healthy it is.",
   },
 
+  // ───────────────────────── authentication ────────────────────────────────
+  //
+  // Added after a review found the register's central claim — that a complete
+  // wire list bounds the set of controls that can do anything — was false.
+  // Sign-in is not a table write, an edge function, an RPC, a subscription or a
+  // mailto:, so the five login and reset routes carried no wire of their own on
+  // a register whose brief explicitly named the login/reset flows.
+  {
+    wires: ["auth:signInWithPassword"],
+    control: "Sign in — /login (member), /staff/login, /partner/login",
+    promise: "your password gets you into your account",
+    dest: "supabase.auth.signInWithPassword → GoTrue; the session then decides every ProtectedRoute",
+    told: "self",
+    proof: null,
+    note:
+      "The front door, on three surfaces. Nothing in the repo proves a member can actually get " +
+      "in: `partnerJourney.spec.ts` drives the partner login in a browser but stubs Supabase, so " +
+      "it proves the form and the routing, not the credential exchange. Whether sign-in works in " +
+      "production is a click, and it is in the list for Lee.",
+  },
+  {
+    wires: ["auth:resetPasswordForEmail", "auth:updateUser"],
+    control: "Forgot password → email link → set a new one",
+    promise: "we will email you a link to get back in",
+    dest: "resetPasswordForEmail sends via GoTrue's own mailer; the link returns to /reset-password, where updateUser sets the password",
+    told: "email",
+    proof: null,
+    note:
+      "THE MOST CONSEQUENTIAL EMAIL IN THE PRODUCT, and the register was not asking about it. If " +
+      "GoTrue's SMTP is unconfigured or its redirect is wrong, the user sees a success message and " +
+      "no email ever arrives — the contact-form failure shape exactly, on the path someone locked " +
+      "out of a life-safety account has to use. `RecoveryRedirect` in App.tsx also has a " +
+      "10-second fallback that navigates to /reset-password whether or not PASSWORD_RECOVERY " +
+      "fired, so a broken token lands on the form rather than on an error. Cannot be settled from " +
+      "the repo — it is a Supabase Auth setting, and it is in the list for Lee.",
+  },
+  {
+    wires: ["auth:signOut"],
+    control: "Sign out — every header, plus the forced sign-out on a wrong-surface login",
+    promise: "you are signed out",
+    dest: "supabase.auth.signOut()",
+    told: "self",
+    proof: null,
+    note:
+      "Present on every route because it lives in the layouts and in AuthContext. StaffLogin and " +
+      "PartnerLogin also call it deliberately: signing in on the wrong surface signs you back out " +
+      "rather than leaving a half-authorised session. That is the right behaviour and it is untested.",
+  },
+  {
+    wires: ["auth:setSession"],
+    control: "Accept a staff or partner invite from an emailed link",
+    promise: "this link makes your account real",
+    dest: "auth.setSession with the tokens in the invite URL, then the *-complete-invite function",
+    told: "self",
+    proof: null,
+    note:
+      "Golden rule 3 lives near here: an invite establishes a session, and the ROLE must still come " +
+      "from the trigger/admin path rather than from anything in the link. Nothing here writes a role.",
+  },
+
+  // ───────────────────────── file storage ──────────────────────────────────
+  {
+    wires: ["storage:website-images", "storage:staff-documents", "storage:social-post-images", "storage:partner-presentations", "storage:ai-agent-avatars"],
+    control: "Upload a website image, a staff document, a post image, a partner presentation, an agent avatar",
+    promise: "the file is saved and will show where you put it",
+    dest: "Supabase Storage buckets of those names",
+    told: "self",
+    proof: null,
+    note:
+      "Also missed by the original scanner. Each bucket is used on exactly one admin or partner " +
+      "screen and the admin who pressed Upload is the audience. What none has is a proof that the " +
+      "object is READABLE afterwards — the failure mode is an upload that succeeds and a broken " +
+      "image — and `staff-documents` is where that matters, because an HR document nobody can " +
+      "open later is the same as one never filed.",
+  },
+
+  // ───────────────────────── leaving the platform ──────────────────────────
+  {
+    wires: ["open:window"],
+    control: "Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard",
+    promise: "this takes you where it says",
+    dest: "a new tab or a full navigation, out of the SPA",
+    told: "external",
+    proof: null,
+    note:
+      "The counterpart to `link:*`, and originally invisible to the scanner: a `tel:` in an href " +
+      "was counted while the same number handed to window.location.href was not. 59 call sites. " +
+      "This is also how the checkout redirect leaves the app, which is why the join→pay goal owns " +
+      "that part and this row does not re-prove it.",
+  },
+
   // ───────────────────────────── dead controls ─────────────────────────────
+  {
+    wires: ["auth:signUp"],
+    control: "Self-service account creation on src/pages/auth/Register.tsx",
+    promise: "create an account",
+    dest: "supabase.auth.signUp",
+    told: "self",
+    dead: true,
+    proof: null,
+    note:
+      "UNREACHABLE. `Register.tsx` is imported by nothing and `/register` is a Navigate to /join, " +
+      "so the page cannot be opened — it is the only wire in the register with zero routes " +
+      "attributed by the import graph. Harmless while dead, and worth removing rather than " +
+      "leaving: it creates an account OUTSIDE the join wizard, so reviving it would be a route to " +
+      "a member record with no payment behind it, which is golden rule 4's whole subject. " +
+      "Reported, not deleted — removing a page is a product call.",
+  },
+
   {
     wires: ["channel:tasks"],
     control: "Call-centre dashboard — courtesy-call list auto-refresh",

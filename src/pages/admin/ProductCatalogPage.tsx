@@ -31,7 +31,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, Trash2, ExternalLink, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, ExternalLink, Loader2, AlertTriangle, Lock } from "lucide-react";
+import { usePricing } from "@/hooks/usePricing";
+import { isCatalogEntry, priceAuthority } from "@/lib/catalogPriceAuthority";
 
 interface CatalogProduct {
   id: string;
@@ -114,6 +116,9 @@ function useAdminProducts() {
 export default function ProductCatalogPage() {
   const queryClient = useQueryClient();
   const { data: products, isLoading } = useAdminProducts();
+  // The canonical prices, so a row that duplicates one can say what is really charged rather
+  // than showing its own number as if it governed anything.
+  const { config: pricing, isLoading: pricingLoading } = usePricing();
   const [editingProduct, setEditingProduct] = useState<CatalogProduct | null>(null);
   const [isNewProduct, setIsNewProduct] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -229,16 +234,48 @@ export default function ProductCatalogPage() {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <span className="font-semibold truncate">{p.name}</span>
                   <Badge className={`text-xs ${STATUS_COLORS[p.status] ?? ""}`} variant="secondary">
                     {p.status === "coming_soon" ? "Coming Soon" : p.status}
                   </Badge>
                   {p.category && <Badge variant="outline" className="text-xs">{p.category}</Badge>}
+                  {!isCatalogEntry(p) && (
+                    <Badge variant="outline" className="text-xs border-amber-500 text-amber-700" data-testid={`not-catalog-${p.id}`}>
+                      Not a catalog product — no slug, no public page
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground truncate">
                   {p.slug ? `/products/${p.slug}` : "No slug"} · Order: {p.display_order} · Net: €{p.selling_price_net.toFixed(2)}
                 </p>
+                {(() => {
+                  const authority = priceAuthority(p, pricingLoading ? null : pricing);
+                  if (authority.authority !== "pricing") return null;
+                  return (
+                    <p
+                      className={`text-xs mt-1 flex items-start gap-1 ${authority.mismatch ? "text-destructive" : "text-muted-foreground"}`}
+                      data-testid={`price-authority-${p.id}`}
+                    >
+                      {authority.mismatch ? (
+                        <AlertTriangle className="h-3.5 w-3.5 mt-px flex-shrink-0" />
+                      ) : (
+                        <Lock className="h-3.5 w-3.5 mt-px flex-shrink-0" />
+                      )}
+                      <span>
+                        {authority.mismatch ? (
+                          <>
+                            <b>This price is not what customers are charged.</b> Checkout charges
+                            €{authority.charged?.toFixed(2)}; this row says €{authority.catalog.toFixed(2)}.
+                          </>
+                        ) : (
+                          <>Charged price comes from the pricing tables (€{authority.charged?.toFixed(2)}), not from here.</>
+                        )}{" "}
+                        Change it in {authority.editedAt}.
+                      </span>
+                    </p>
+                  );
+                })()}
               </div>
               <div className="flex items-center gap-2">
                 {p.slug && (

@@ -78,7 +78,7 @@ export function SalesCommandStrip() {
 
   if (isLoading) {
     return (
-      <div className="grid gap-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-6 bg-gradient-to-r from-primary/5 via-background to-green-500/5 p-4 rounded-lg border">
+      <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 bg-gradient-to-r from-primary/5 via-background to-green-500/5 p-4 rounded-lg border">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-background/50 border">
             <Skeleton className="h-8 w-8 rounded-full" />
@@ -104,7 +104,7 @@ export function SalesCommandStrip() {
   }
 
   return (
-    <div className="grid gap-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-6 bg-gradient-to-r from-primary/5 via-background to-green-500/5 p-4 rounded-lg border">
+    <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 bg-gradient-to-r from-primary/5 via-background to-green-500/5 p-4 rounded-lg border">
       <StatCard 
         icon={CreditCard} 
         label="Paid Today" 

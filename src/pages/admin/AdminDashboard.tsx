@@ -29,7 +29,7 @@ import { NotificationLog } from "@/components/admin/dashboard/NotificationLog";
 import { EV07BStatusWidget } from "@/components/admin/dashboard/EV07BStatusWidget";
 import { useDeviceRealtime } from "@/hooks/useDeviceRealtime";
 import { useAlertsRealtime } from "@/hooks/useAlertsRealtime";
-import { IsabellaStatusBanner } from "@/components/admin/dashboard/IsabellaStatusBanner";
+import { IsabellaHealthCard } from "@/components/admin/dashboard/IsabellaHealthCard";
 import { useOnShiftNow } from "@/hooks/useStaffShifts";
 import { SHIFT_TYPES } from "@/config/shifts";
 import type { ShiftType } from "@/config/shifts";
@@ -128,11 +128,18 @@ export default function AdminDashboard() {
         </Button>
       </div>
 
-      {/* Isabella Status Banner */}
-      <IsabellaStatusBanner />
-
-      {/* Sales Command Strip - Real-time sales metrics */}
-      <SalesCommandStrip />
+      {/*
+        Isabella health beside the sales strip, one row, directly under the header — Lee's
+        dashboard notes (9 Sep) items 1 and 2, which are the same layout change asked for from
+        either side. What was here before was a full-width Alert saying ISABELLA ACTIVE off the
+        back of `isabella_settings`; the card is a normal dashboard card reading `ai_runs`.
+      */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <IsabellaHealthCard />
+        <div className="lg:col-span-2">
+          <SalesCommandStrip />
+        </div>
+      </div>
 
       {/* Error Banner */}
       {statsError && (

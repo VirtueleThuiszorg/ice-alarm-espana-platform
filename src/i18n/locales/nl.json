@@ -2802,7 +2802,7 @@
     "subscriptions": "Subscriptions",
     "payments": "Payments",
     "commissions": "Commissions",
-    "products": "Products",
+    "productCatalog": "Productcatalogus",
     "ev07b": "EV-07B",
     "analytics": "Analytics",
     "reports": "Reports",
@@ -5640,10 +5640,24 @@
       "interactionsToday": "{{count}} interactions today",
       "escalatedToHumans": "{{count}} escalated to humans"
     },
-    "banner": {
-      "isabellaActive": "ISABELLA ACTIVE",
-      "humanMode": "HUMAN MODE: All alerts and communications routed to staff",
-      "managing": "Managing {{interactions}} interactions today | {{escalated}} escalated to humans"
+    "health": {
+      "title": "Isabella",
+      "healthy": "Gezond",
+      "degraded": "Verminderd",
+      "down": "Uit",
+      "unknown": "Onbekend",
+      "readFailed": "Kon de uitvoeringsgeschiedenis van Isabella niet lezen.",
+      "never": "Nooit",
+      "lastRun": "Laatste geslaagde uitvoering",
+      "errors": "Fouten ({{minutes}} min)",
+      "reason": {
+        "failing": "Uitvoeringen mislukken en er is er in het laatste uur geen geslaagd.",
+        "noRunEver": "Er is nog nooit een uitvoering voltooid.",
+        "stale": "Geen geslaagde uitvoering in meer dan 24 uur.",
+        "intermittent": "Sommige uitvoeringen mislukken, andere worden voltooid.",
+        "notToday": "De laatste geslaagde uitvoering was voor vandaag.",
+        "healthy": "Uitvoeringen worden voltooid en er is er in het laatste uur geen mislukt."
+      }
     },
     "advancedConfig": {
       "title": "Advanced Configuration",
@@ -6172,6 +6186,8 @@
     "loading": "MedConneqt laden…",
     "blockedTitle": "MedConneqt kan niet in het portaal worden weergegeven",
     "blockedBody": "MedConneqt staat niet toe dat het in een andere site wordt ingesloten. Open het in een nieuw tabblad — daar werkt alles gewoon.",
+    "blockedHeaderNote": "MedConneqt zou deze header moeten meesturen om de ingebedde weergave hier te laten werken:",
+    "blockedHeaderXfo": "Ze moeten ook stoppen met het meesturen van X-Frame-Options op deze pagina — die kent geen toegestane-lijst, dus kan niet tot ons worden beperkt.",
     "retry": "Opnieuw proberen",
     "unreachableTitle": "MedConneqt reageert niet",
     "unreachableBody": "We konden alarm.medconneqt.nl niet bereiken. Mogelijk is de dienst offline of blokkeert uw verbinding deze. Probeer het opnieuw of open het in een nieuw tabblad om te controleren."

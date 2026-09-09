@@ -2981,7 +2981,16 @@ INSERT INTO public.system_settings (key, value) VALUES
   -- Seeded because the assertion below says this key is NOT public. With no row at all,
   -- anon reads nothing whatever the policy says, and adding the key to the whitelist would
   -- have passed the suite. (It did: the mutation survived until this row existed.)
-  ('registration_test_mode_enabled', 'false')
+  ('registration_test_mode_enabled', 'false'),
+  -- THE THREE FIREBASE ROWS, seeded together because the whole point of the assertions below is
+  -- the CONTRAST: two of them are staff-readable and must be, the third must not be, and the
+  -- only thing that decides which is the key's NAME. With any of the three missing, its
+  -- assertion passes for the wrong reason (no row is unreadable by everybody).
+  ('settings_firebase_web_config',
+   '{"apiKey":"AIza-test","authDomain":"x.firebaseapp.com","projectId":"x","storageBucket":"x.appspot.com","messagingSenderId":"1","appId":"1:1:web:1"}'),
+  ('settings_firebase_vapid_public',   'B-test-vapid-public-value'),
+  ('settings_firebase_service_account_key',
+   '{"project_id":"x","client_email":"x@x.iam.gserviceaccount.com","private_key":"-----BEGIN PRIVATE KEY-----\\nAAA\\n-----END PRIVATE KEY-----\\n"}')
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 
 -- This section seeds its OWN call-centre operator rather than reusing the suite's, because the
@@ -3091,6 +3100,61 @@ SELECT pg_temp.check(
                     ''settings_twilio_auth_token'', ''settings_ev07b_checkin_key'')') = 0,
   'settings_ev07b_checkin_key matches none of the four names in the brief — it is why the '
   'pattern carries _key as a fifth alternative');
+
+-- ── Firebase: the six web values are staff-readable, the service account is not ──
+--
+-- WHY THIS IS AN RLS ASSERTION AND NOT A CODE ONE. Push is now configured by pasting three
+-- values into Admin → Settings instead of setting six Vercel variables and an Edge secret. Two
+-- of the three MUST be readable by every staff account — an operator's phone registers for push
+-- with them, and the Firebase web config is public by design (it identifies a project to a
+-- browser; it authorises nothing). The third can send a push notification to any registered
+-- staff device AS US.
+--
+-- And the ONLY thing separating them is the key's NAME, matched by a regex in the policy
+-- (20260908120000: `key !~* '(secret|token|password|api_key|_key)'`). Nothing warns you when a
+-- name falls on the wrong side of it — which is exactly what would have happened here:
+-- `settings_firebase_service_account`, the obvious name, matches NONE of the five alternatives.
+-- The `_key` suffix is what excludes it, and this is where that is proven rather than reasoned
+-- about.
+SELECT pg_temp.check(
+  'call-centre staff CANNOT read the Firebase service account',
+  pg_temp.count_as('a8000000-0000-0000-0000-000000000002',
+    'SELECT value FROM public.system_settings
+      WHERE key = ''settings_firebase_service_account_key''') = 0,
+  'it can push to any registered staff device as us; the _key suffix is what hides it');
+
+SELECT pg_temp.check(
+  'an ADMIN who is not super_admin cannot read it either',
+  pg_temp.count_as('a7000000-0000-0000-0000-00000000000f',
+    'SELECT value FROM public.system_settings
+      WHERE key = ''settings_firebase_service_account_key''') = 0,
+  'the Settings page is admin-reachable, and the card asks whether the row EXISTS rather than '
+  'selecting it — count(*) with head, never the value');
+
+SELECT pg_temp.check(
+  'the name that was NOT chosen would have been readable by every operator',
+  pg_temp.count_as('a8000000-0000-0000-0000-000000000002',
+    'SELECT value FROM public.system_settings
+      WHERE key = ''settings_firebase_service_account''') = 0
+  AND NOT ('settings_firebase_service_account' ~* '(secret|token|password|api_key|_key)'),
+  'the count is 0 only because no such row exists — the second half is the real assertion, and '
+  'it is why the stored key ends in _key');
+
+SELECT pg_temp.check(
+  'CONTROL: staff CAN read the Firebase web config and the VAPID public key',
+  pg_temp.count_as('a8000000-0000-0000-0000-000000000002',
+    'SELECT value FROM public.system_settings
+      WHERE key IN (''settings_firebase_web_config'', ''settings_firebase_vapid_public'')') = 2,
+  'every operator phone registers for push with these; hiding them would break the feature '
+  'while every assertion above still passed');
+
+SELECT pg_temp.check(
+  'and NEITHER of those two is public — a visitor has no business with them',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT key FROM public.system_settings
+      WHERE key IN (''settings_firebase_web_config'', ''settings_firebase_vapid_public'')') = 0,
+  'staff-readable is not the same as whitelisted: push is a staff feature, so the anonymous '
+  'whitelist stays at seven keys');
 
 SELECT pg_temp.check(
   'CONTROL: staff CAN still read an ordinary setting',

@@ -50,6 +50,13 @@ export function readPushEnv(env: Record<string, string | undefined>): {
   return missing.length === 0 ? { config, missing } : { config: null, missing };
 }
 
+/**
+ * The build-time variables, as a FALLBACK ONLY.
+ *
+ * `useFirebaseConfig` prefers the `system_settings` rows an admin pasted, because those take
+ * effect without a redeploy — which is the entire reason the settings path exists. This is here
+ * so a deployment already configured through Vercel keeps working untouched.
+ */
 export function pushEnv(): { config: FirebasePushConfig | null; missing: string[] } {
   return readPushEnv(import.meta.env as unknown as Record<string, string | undefined>);
 }
@@ -132,12 +139,14 @@ export type PushRegistration =
  * somebody what to do next, and "couldn't enable notifications" is the message that produces a
  * support call.
  */
-export async function registerForPush(): Promise<PushRegistration> {
+export async function registerForPush(config: FirebasePushConfig | null): Promise<PushRegistration> {
   if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("Notification" in window)) {
     return { ok: false, reason: "unsupported" };
   }
 
-  const { config } = pushEnv();
+  // THE CONFIG IS PASSED IN, not read from `import.meta.env` here. It now comes from
+  // `system_settings` (pasted into Admin → Settings) with the VITE_FIREBASE_* variables as a
+  // fallback — a decision made once, in useFirebaseConfig, rather than in three places.
   if (!config) return { ok: false, reason: "not_configured" };
 
   const standalone =
@@ -172,8 +181,7 @@ export async function registerForPush(): Promise<PushRegistration> {
 }
 
 /** Revoke this device's token at Firebase, so it stops being a live target. */
-export async function unregisterForPush(): Promise<boolean> {
-  const { config } = pushEnv();
+export async function unregisterForPush(config: FirebasePushConfig | null): Promise<boolean> {
   if (!config || typeof window === "undefined") return false;
   try {
     const messaging = await messagingFor(config);
@@ -186,9 +194,9 @@ export async function unregisterForPush(): Promise<boolean> {
 
 /** Foreground messages: the app is open, so there is no OS notification. Returns an unsubscribe. */
 export async function onForegroundMessage(
+  config: FirebasePushConfig | null,
   callback: (payload: { title: string; body: string; link?: string }) => void,
 ): Promise<(() => void) | null> {
-  const { config } = pushEnv();
   if (!config || typeof window === "undefined") return null;
   try {
     const messaging = await messagingFor(config);

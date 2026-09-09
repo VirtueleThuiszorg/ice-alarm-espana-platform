@@ -22,27 +22,35 @@ proof, and a 🟡 says what is missing.
 
 | # | item | state | proof |
 |---|---|---|---|
-| 1 | Isabella card said ACTIVE while every run failed | ✅ **in main** (#244) | `src/test/isabellaHealthCard.test.tsx` — 38 assertions, 25/25 mutations killed |
-| 2 | Sales card "Failed to load" (`22P02`) | 🟡 **held** (#243) — migration written, applied to prod by Lee | `scripts/rls/isolation.sql`, 9 assertions by execution; 7/7 mutations killed |
-| 3 | admin-audience events writing nowhere | ✅ **in main** (#249) — inventory only | `src/test/absentAdminEvents.test.ts` — 21 assertions, 10/10 mutations killed |
+| 1 | Isabella card said ACTIVE while every run failed | ✅ **in main** (#244), then reshaped into a header pill by a later session (`IsabellaHealthPill`) | `src/test/isabellaHealthCard.test.tsx` — 38 assertions, 25/25 mutations killed |
+| 2 | Sales card "Failed to load" (`22P02`) | 🟡 **merged in main (#243), NOT yet in production** | `scripts/rls/isolation.sql`, 9 assertions by execution; 7/7 mutations killed |
+| 3 | admin-audience events writing nowhere | ✅ **in main** (#249) — inventory only, six rows (A1–A6), each check verified on every build | `src/test/absentAdminEvents.test.ts` — 21 assertions, 10/10 mutations killed |
 | 4 | "Create Subscription" had no handler | 🟡 **held** (#248 code, #243 schema) | `src/test/sendPaymentLink.test.ts` + `memberCrmControls.test.ts` — 81 assertions, 34/34 mutations killed; 36 harness assertions |
 | 5 | admins on the Holidays page | ✅ **in main** (#241) | `src/test/holidaysExcludeAdmins.test.tsx` |
 | 6 | `sidebar.productCatalog` rendered its own key | ✅ **in main** (#240) | `src/test/i18nKeyCoverage.test.ts` (now collects `labelKey` declarations), `productCatalogAuthority.test.ts` |
-| 7 | Start Shift / on duty | 🟡 **held** (#246) — changes an input to the SOS escalation ladder | `src/test/onDutyDeclaration.test.tsx` (17) + `e2e/onDuty.spec.ts` (2, real browser); 12/12 mutations killed |
+| 7 | Start Shift / on duty | ✅ **in main** (#246) — Lee merged the held PR; it changes an input to the SOS escalation ladder | `src/test/onDutyDeclaration.test.tsx` (17) + `e2e/onDuty.spec.ts` (2, real browser); 12/12 mutations killed |
 | 8 | MedConneqt framing + session | ✅ **in main** (#245) | `src/test/medconneqtKeepAlive.test.tsx` — frame identity across navigation; 11/11 mutations killed |
 | 9 | sidebar order | ✅ **in main** (#238) | `src/test/callCentreSidebarOrder.test.ts` |
 
-**What the four held PRs are waiting for, and why each is held**
+**Where the held work stands.** Lee merged #243 and #246 himself the same morning; #248 is
+still open.
 
-- **#243 (schema)** — `supabase db push`, then the two filenames appended to `APPLIED_TO_PROD.txt`.
-  Nothing in this repo may claim a migration is live; the drift gate depends on that manifest
-  being true.
-- **#248 (Send payment link)** — creates Stripe Checkout Sessions, so the payment human gate
-  applies (CLAUDE.md). It also **depends on #243 being applied**: the SQL function it calls
-  lives there.
-- **#246 (on duty)** — logging out no longer clears `is_on_call`, and `sos-escalation-runner`
-  selects on that column. Anything that changes who a real alert reaches is human-gated.
-- **#242** is the wiring session's, not this run's.
+- 🔴 **`20260909100000` and `20260909110000` are in main and NOT in production.** #243 merged
+  before `supabase db push` ran, so **main's CI is red on the drift gate** and stays red until
+  the two filenames are appended to `APPLIED_TO_PROD.txt`. That is the gate working as
+  specified, not a break: everything else on main — tests, lint, typecheck, build, RLS, page
+  audit — is green. Nothing in this repo may append those lines; only `db push` makes them true.
+- 🟡 **#248 (Send payment link)** is held on the payment human gate (CLAUDE.md) **and** on those
+  two migrations: the SQL function it calls is one of them. Sending a link before then returns a
+  409 naming the missing function.
+- **#242** was the wiring session's and is now merged.
+
+**A merge artefact reached main and was caught by CI (#251).** #242 rewrote `WIRING_REGISTER.md`
+and #249 added a section to the older version; git merged them with no conflict and left BOTH
+summary lines — the "kept both sides" pattern from the two locale outages, in a generated file
+this time. Regenerating fixed it, which is the whole reason that file is generated. The lesson
+is the one CLAUDE.md already carries and this run repeated anyway: **merge PRs that touch the
+same generated or shared file one at a time.**
 
 **Two things this run FOUND and deliberately did not fix** (`PENDING_FOR_LEE.md` S18/S19), both
 from the item 4 walk of the member record:
@@ -66,6 +74,13 @@ second and third time this has happened:
 - `functionErrorAdoption`'s leak guard read raw source and flagged a new file for a **comment**
   explaining the string it guards against — the **ninth** prose-instead-of-code assertion this
   repo has caught. It strips comments now, and the guard was re-proven by planting a real leak.
+
+**The absence inventory proved itself within the hour.** A4 ("Isabella failing tells nobody")
+named `IsabellaHealthCard.tsx`; another session replaced the dashboard cards with header pills
+and deleted that file, and the assertion went red on main. The CLAIM was still true — the pill
+reads and notifies nobody — so the row stands; the test now resolves the surface by name pattern
+and A4's check scans `src` as well, because a client-side notifier is exactly where that fix
+would go. An absence claim that cannot go stale unnoticed is the only kind worth writing down.
 
 **Item 8's one honest gap:** whether `alarm.medconneqt.nl` allows framing could not be checked
 from this environment — outbound HTTPS to that host is refused at the proxy (`403 to CONNECT`).

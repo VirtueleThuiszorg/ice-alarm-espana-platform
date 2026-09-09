@@ -22,8 +22,8 @@
  *   4. the source, proving the old banner is gone and the new files cannot read a setting.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, renderHook, screen, waitFor, cleanup } from "@testing-library/react";
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
+import { render, renderHook, screen, waitFor, cleanup, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -113,11 +113,34 @@ vi.mock("react-router-dom", () => ({
   Link: ({ to, children }: { to: string; children: ReactNode }) => <a href={to}>{children}</a>,
 }));
 
+/**
+ * Radix's Popover asks jsdom for pointer-capture APIs it does not implement. Stubbed here
+ * rather than swapping the component for a plain div: the point of these tests after the
+ * pill change is that the detail is REACHABLE by opening the real popover, and a stand-in
+ * would prove only that a div renders.
+ */
+beforeAll(() => {
+  if (!Element.prototype.hasPointerCapture) {
+    Element.prototype.hasPointerCapture = () => false;
+    Element.prototype.setPointerCapture = () => {};
+    Element.prototype.releasePointerCapture = () => {};
+  }
+  if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = () => {};
+});
+
+/** Render the pill and open its popover, which is where the detail now lives. */
+async function openPill() {
+  render(<IsabellaHealthPill />, { wrapper });
+  const trigger = await waitFor(() => screen.getByRole("button"));
+  fireEvent.click(trigger);
+  return trigger;
+}
+
 const { isabellaHealth, commonestOf, summariseError, STALE_MS, ERROR_WINDOW_MS } = await import(
   "@/lib/isabellaHealth"
 );
 const { useIsabellaHealth } = await import("@/hooks/useIsabellaHealth");
-const { IsabellaHealthCard } = await import("@/components/admin/dashboard/IsabellaHealthCard");
+const { IsabellaHealthPill } = await import("@/components/admin/dashboard/IsabellaHealthPill");
 
 const NOW = new Date("2026-09-09T16:00:00Z");
 const ago = (ms: number) => new Date(NOW.getTime() - ms).toISOString();
@@ -385,15 +408,15 @@ describe("useIsabellaHealth — what it asks the database", () => {
   });
 });
 
-// ── 3. the card ─────────────────────────────────────────────────────────────
-describe("the card on the dashboard", () => {
+// ── 3. the pill ─────────────────────────────────────────────────────────────
+describe("the pill in the dashboard header", () => {
   it("SEEDED CREDIT ERRORS TURN IT RED, WITH SETTINGS UNTOUCHED", async () => {
     // Lee's test, verbatim. Isabella last succeeded three hours ago; since then every run has
     // failed on a zero balance. Nothing in `isabella_settings` has changed — and nothing reads it.
     completedRow = { created_at: new Date(Date.now() - 3 * 60 * 60_000).toISOString() };
     failureRows = Array.from({ length: 9 }, () => ({ error_message: CREDIT_ERROR }));
 
-    render(<IsabellaHealthCard />, { wrapper });
+    await openPill();
 
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Down"));
     expect(screen.getByText(/credit balance is too low/)).toBeTruthy();
@@ -404,17 +427,17 @@ describe("the card on the dashboard", () => {
   });
 
   it("shows Never when no run has ever completed", async () => {
-    render(<IsabellaHealthCard />, { wrapper });
+    await openPill();
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Down"));
-    expect(screen.getByText("Never")).toBeTruthy();
+    expect(screen.getAllByText(/Never/).length).toBeGreaterThan(0);
     expect(screen.getByText(/No run has ever completed/)).toBeTruthy();
   });
 
   it("shows Healthy, with the timestamp, when runs are completing", async () => {
     completedRow = { created_at: new Date(Date.now() - 4 * 60_000).toISOString() };
-    render(<IsabellaHealthCard />, { wrapper });
+    await openPill();
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Healthy"));
-    expect(screen.getByText(/minutes ago/)).toBeTruthy();
+    expect(screen.getAllByText(/minutes ago/).length).toBeGreaterThan(0);
     expect(screen.getByText("0")).toBeTruthy();
     expect(screen.queryByText(/credit balance/)).toBeNull();
   });
@@ -422,32 +445,49 @@ describe("the card on the dashboard", () => {
   it("says Degraded — not Healthy — when some runs fail and some complete", async () => {
     completedRow = { created_at: new Date(Date.now() - 2 * 60_000).toISOString() };
     failureRows = [{ error_message: "Anthropic API error: 529 overloaded" }];
-    render(<IsabellaHealthCard />, { wrapper });
+    await openPill();
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Degraded"));
     expect(screen.getByText(/529 overloaded/)).toBeTruthy();
   });
 
   it("says UNKNOWN, never Healthy, when it cannot read the runs at all", async () => {
     completedError = { message: "permission denied for table ai_runs" };
-    render(<IsabellaHealthCard />, { wrapper });
+    // No popover on the error pill — there is no detail to show, and a trigger that opens an
+    // empty panel is worse than none.
+    render(<IsabellaHealthPill />, { wrapper });
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Unknown"));
-    expect(screen.getByText(/Could not read/)).toBeTruthy();
   });
 
   it("carries the level as a WORD, not only as a colour (WCAG AA)", async () => {
     // The four states an admin can land on, each named in text. A colour-only signal is
     // unreadable to a third of the people who use this dashboard on a bright terrace.
     completedRow = { created_at: new Date(Date.now() - 60_000).toISOString() };
-    render(<IsabellaHealthCard />, { wrapper });
+    render(<IsabellaHealthPill />, { wrapper });
     const status = await waitFor(() => screen.getByRole("status"));
-    expect(status.textContent?.trim()).toBe("Healthy");
+    // The pill names Isabella and her state; the word is what carries the level, never the dot.
+    expect(status.textContent).toContain("Healthy");
     expect(status.getAttribute("aria-live")).toBe("polite");
   });
 
   it("links to the operations page rather than claiming to manage anything itself", async () => {
-    render(<IsabellaHealthCard />, { wrapper });
+    await openPill();
     const link = await waitFor(() => screen.getByText("Manage"));
     expect(link.getAttribute("href")).toBe("/admin/ai/operations");
+  });
+
+  it("is header-height, and the detail is BEHIND the pill rather than printed on it", async () => {
+    // The whole point of the correction: a compact pill on the title line, not a card. 36px.
+    completedRow = { created_at: new Date(Date.now() - 4 * 60_000).toISOString() };
+    render(<IsabellaHealthPill />, { wrapper });
+    const trigger = await waitFor(() => screen.getByRole("button"));
+    expect(trigger.className).toContain("h-9");
+    expect(trigger.className).toContain("rounded-full");
+    // Closed: no last-run label, no error count label, no Manage link on the header line.
+    expect(screen.queryByText("Manage")).toBeNull();
+    expect(screen.queryByText(/Last successful run/)).toBeNull();
+    fireEvent.click(trigger);
+    expect(await waitFor(() => screen.getByText("Manage"))).toBeTruthy();
+    expect(screen.getByText(/Last successful run/)).toBeTruthy();
   });
 });
 
@@ -457,16 +497,16 @@ describe("the banner is gone, and cannot come back by accident", () => {
     expect(existsSync(join(ROOT, "src/components/admin/dashboard/IsabellaStatusBanner.tsx"))).toBe(false);
   });
 
-  it("nothing imports it, and the dashboard renders the health card instead", () => {
+  it("nothing imports it, and the dashboard renders the health pill instead", () => {
     const dash = code("src/pages/admin/AdminDashboard.tsx");
     expect(dash).not.toContain("IsabellaStatusBanner");
-    expect(dash).toContain("<IsabellaHealthCard />");
+    expect(dash).toContain("<IsabellaHealthPill />");
   });
 
   it("neither the card, the hook nor the verdict reads isabella_settings", () => {
     // Comments stripped: all three files DISCUSS isabella_settings at length, which is the point.
     for (const f of [
-      "src/components/admin/dashboard/IsabellaHealthCard.tsx",
+      "src/components/admin/dashboard/IsabellaHealthPill.tsx",
       "src/hooks/useIsabellaHealth.ts",
       "src/lib/isabellaHealth.ts",
     ]) {
@@ -475,16 +515,44 @@ describe("the banner is gone, and cannot come back by accident", () => {
     }
   });
 
-  it("the card sits beside the sales strip, in one row under the header", () => {
-    // Item 1 asks for it "beside item 2" and item 2 asks for the same thing from the other side,
-    // so the row is asserted rather than left to whoever next edits the page.
+  it("BOTH PILLS SIT IN THE HEADER BLOCK, LEFT OF ADD MEMBER — not in a row of their own", () => {
+    // Lee's correction (9 Sep). The pills must be inside the same flex block as the title and
+    // the primary action, in that order, because that ordering is what makes them wrap under
+    // the title on a narrow screen instead of forming a row above the tiles.
     const dash = code("src/pages/admin/AdminDashboard.tsx");
-    const row = dash.slice(dash.indexOf('<div className="grid gap-4 lg:grid-cols-3">'));
-    const block = row.slice(0, row.indexOf("</div>", row.indexOf("<SalesCommandStrip />")));
-    expect(block).toContain("<IsabellaHealthCard />");
-    expect(block).toContain("<SalesCommandStrip />");
-    // And above the stats grid, which is the rest of the dashboard.
-    expect(dash.indexOf("<IsabellaHealthCard />")).toBeLessThan(dash.indexOf("adminDashboard.activeMembers"));
+    const header = dash.slice(
+      dash.indexOf('<div className="flex flex-wrap items-center justify-between gap-3">'),
+    );
+    const block = header.slice(0, header.indexOf("adminDashboard.statsError"));
+
+    expect(block).toContain("adminDashboard.title");
+    expect(block).toContain("<IsabellaHealthPill />");
+    expect(block).toContain("<SalesTodayPill />");
+    expect(block).toContain("adminDashboard.addMember");
+
+    // Order on the line: title → Isabella → Sales → Add Member.
+    const at = (needle: string) => block.indexOf(needle);
+    expect(at("adminDashboard.title")).toBeLessThan(at("<IsabellaHealthPill />"));
+    expect(at("<IsabellaHealthPill />")).toBeLessThan(at("<SalesTodayPill />"));
+    expect(at("<SalesTodayPill />")).toBeLessThan(at("adminDashboard.addMember"));
+
+    // Wrapping is what puts them under the title on narrow screens.
+    expect(block).toContain("flex-wrap");
+
+    // And the row they used to occupy is gone, so the tiles moved up.
+    expect(dash).not.toContain('<div className="grid gap-4 lg:grid-cols-3">');
+    expect(dash).not.toContain("SalesCommandStrip");
+    expect(dash).not.toContain("IsabellaHealthCard");
+  });
+
+  it("the two large cards are deleted, not merely unmounted", () => {
+    // Left on disk they would be imported back by the next person looking for a sales panel.
+    for (const gone of [
+      "src/components/admin/dashboard/IsabellaHealthCard.tsx",
+      "src/components/admin/dashboard/SalesCommandStrip.tsx",
+    ]) {
+      expect(existsSync(join(ROOT, gone)), gone).toBe(false);
+    }
   });
 
   it("the dead banner keys went with it — isabella.banner is out of all three locales", () => {

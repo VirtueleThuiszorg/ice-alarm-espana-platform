@@ -46,7 +46,7 @@ import {
 } from "@/hooks/useStaffHolidays";
 import { useShiftCoverMutations } from "@/hooks/useShiftCovers";
 import { useCurrentStaff } from "@/hooks/useCurrentStaff";
-import { HOLIDAY_STATUSES } from "@/config/shifts";
+import { HOLIDAY_ROLES, HOLIDAY_STATUSES } from "@/config/shifts";
 import type { HolidayStatus } from "@/config/shifts";
 import { format } from "date-fns";
 
@@ -78,7 +78,9 @@ export default function HolidaysPage() {
       const { data, error } = await supabase
         .from("staff")
         .select("id, first_name, last_name")
-        .in("role", ["call_centre", "call_centre_supervisor"])
+        // The shared list, not a second copy of it. This picker was the only one of the four
+        // surfaces on this page that filtered at all (Lee, 9 Sep, item 5).
+        .in("role", [...HOLIDAY_ROLES])
         .eq("status", "active")
         .order("first_name");
       if (error) throw error;

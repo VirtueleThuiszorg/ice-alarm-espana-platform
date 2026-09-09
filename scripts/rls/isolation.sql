@@ -2602,10 +2602,17 @@ SELECT pg_temp.check(
     'INSERT INTO public.member_notification_log (member_id, channel, event_key, status)
      VALUES (''aaaaaaaa-0000-0000-0000-000000000001'', ''sms'', ''fake'', ''sent'')'));
 
--- ── the three flags exist and are OFF ─────────────────────────────────────
+-- ── the FOUR flags exist and are OFF ──────────────────────────────────────
+-- Was three (20260907100200: sms, email, whatsapp). `notify_channel_push` joins them in
+-- 20260909120000 — the transport switch push had been missing, which is why the router's
+-- outermost gate had nothing to read for it. Named rather than counted: a count of four also
+-- passes if somebody drops sms and adds a fourth of their own.
 SELECT pg_temp.check(
-  'all three notify_channel_* flags exist as rows, so OFF is written rather than missing',
-  (SELECT count(*) FROM public.system_settings WHERE key LIKE 'notify_channel_%') = 3);
+  'all four notify_channel_* flags exist as rows, so OFF is written rather than missing',
+  (SELECT count(*) FROM public.system_settings
+    WHERE key IN ('notify_channel_sms', 'notify_channel_email',
+                  'notify_channel_whatsapp', 'notify_channel_push')) = 4
+  AND (SELECT count(*) FROM public.system_settings WHERE key LIKE 'notify_channel_%') = 4);
 
 SELECT pg_temp.check(
   'and every one of them is OFF — no channel turns itself on by shipping',
@@ -4412,6 +4419,386 @@ SELECT pg_temp.check(
   (SELECT regexp_replace(prosrc, '--[^' || chr(10) || ']*', '', 'g') LIKE '%past_due%'
       AND regexp_replace(prosrc, '--[^' || chr(10) || ']*', '', 'g') LIKE '%is_staff%'
      FROM pg_proc WHERE proname = 'guard_member_status_self_write'));
+
+
+-- ============================================================
+--  notify-staff: preferences, routes, devices, and the log's channel
+-- ============================================================
+--
+-- Three gates decide whether a notification goes out, and each one is a table this section
+-- exercises by WRITING to it as a real role. The seed policy is asserted by reading back what
+-- the migration's own function produced — not by re-stating the CASE expression here, which
+-- would only prove I can copy a CASE expression.
+--
+-- Section-local staff, because the suite's operators are deleted by the FK-audit section and
+-- the seed trigger means every staff row inserted anywhere now carries 32 preference rows.
+
+INSERT INTO auth.users (id, email) VALUES
+  ('c1000000-0000-0000-0000-00000000000a', 'notify-admin@example.com'),
+  ('c1000000-0000-0000-0000-00000000000b', 'notify-operator@example.com'),
+  ('c1000000-0000-0000-0000-00000000000c', 'notify-other@example.com');
+
+INSERT INTO public.staff (id, user_id, email, first_name, last_name, role, personal_mobile) VALUES
+  ('c1a00000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-00000000000a',
+   'notify-admin@example.com', 'Nadia', 'Admin', 'admin', '+34600000101'),
+  ('c1a00000-0000-0000-0000-00000000000b', 'c1000000-0000-0000-0000-00000000000b',
+   'notify-operator@example.com', 'Omar', 'Operator', 'call_centre', '+34600000102'),
+  ('c1a00000-0000-0000-0000-00000000000c', 'c1000000-0000-0000-0000-00000000000c',
+   'notify-other@example.com', 'Olga', 'Other', 'call_centre', '+34600000103');
+
+-- ── the seed is a set of ROWS, and the right ones ──────────────────────────
+-- The counts below compare against `notification_routes` rather than a literal, so extending
+-- the event list does not redden the suite for a reason nobody can act on. THIS assertion is
+-- what stops that being vacuous: the routes table has to be the real 19 x 4.
+SELECT pg_temp.check(
+  'the routes table carries every event type x every channel — 19 x 4',
+  (SELECT count(*) FROM public.notification_routes) = 76
+  AND (SELECT count(DISTINCT event_type) FROM public.notification_routes) = 19
+  AND (SELECT count(DISTINCT channel) FROM public.notification_routes) = 4,
+  'the eight this router was built for, the eleven notify-admin already sends, and `test`');
+
+SELECT pg_temp.check(
+  'the four that say the SAFETY MACHINERY failed are routed ON, on every channel',
+  (SELECT bool_and(enabled) FROM public.notification_routes
+    WHERE event_type = 'system.runner_failure' OR event_type LIKE 'escalation.%'),
+  'the router ignores this table for them (ALWAYS_LOUD); the rows are true so the data agrees '
+  'with the behaviour rather than showing a switch that does nothing');
+
+SELECT pg_temp.check(
+  'and every staff member is seeded ON for them, not shown as opted out',
+  (SELECT bool_and(enabled) FROM public.staff_notification_prefs
+    WHERE event_type = 'system.runner_failure' OR event_type LIKE 'escalation.%'));
+SELECT pg_temp.check(
+  'the AFTER INSERT trigger seeded a row per event x channel for each new staff member',
+  (SELECT count(*) FROM public.staff_notification_prefs
+    WHERE staff_id = 'c1a00000-0000-0000-0000-00000000000b')
+    = (SELECT count(*) FROM public.notification_routes),
+  'without the trigger, "every default is a row" means "for whoever existed on 9 September"');
+
+SELECT pg_temp.check(
+  'an ADMIN is seeded ON for sale.paid on all four channels (Lee''s policy)',
+  (SELECT count(*) FROM public.staff_notification_prefs
+    WHERE staff_id = 'c1a00000-0000-0000-0000-00000000000a'
+      AND event_type = 'sale.paid' AND enabled) = 4);
+
+SELECT pg_temp.check(
+  'and ON for lead.new on all four',
+  (SELECT count(*) FROM public.staff_notification_prefs
+    WHERE staff_id = 'c1a00000-0000-0000-0000-00000000000a'
+      AND event_type = 'lead.new' AND enabled) = 4);
+
+SELECT pg_temp.check(
+  'EVERY staff member gets the sale.paid EMAIL — the whole team hears about a sale',
+  (SELECT bool_and(enabled) FROM public.staff_notification_prefs
+    WHERE event_type = 'sale.paid' AND channel = 'email'),
+  'Lee: "ALL staff get an EMAIL for every sale.paid to their registered staff email"');
+
+SELECT pg_temp.check(
+  'but an operator is NOT seeded onto the paid-sale SMS — that is an admin route',
+  (SELECT NOT enabled FROM public.staff_notification_prefs
+    WHERE staff_id = 'c1a00000-0000-0000-0000-00000000000b'
+      AND event_type = 'sale.paid' AND channel = 'sms'));
+
+SELECT pg_temp.check(
+  'every staff member is seeded ON for sos.* PUSH — an alert is everybody''s business',
+  (SELECT bool_and(enabled) FROM public.staff_notification_prefs
+    WHERE event_type LIKE 'sos.%' AND channel = 'push'));
+
+SELECT pg_temp.check(
+  'and NOT onto sos SMS, which would be a per-message bill on every alert',
+  (SELECT bool_and(NOT enabled) FROM public.staff_notification_prefs
+    WHERE event_type LIKE 'sos.%' AND channel = 'sms'));
+
+-- A default is what somebody gets before they decide. Re-seeding must not re-decide.
+DO $$
+DECLARE still_off boolean;
+BEGIN
+  UPDATE public.staff_notification_prefs SET enabled = false
+   WHERE staff_id = 'c1a00000-0000-0000-0000-00000000000a'
+     AND event_type = 'sale.paid' AND channel = 'sms';
+
+  PERFORM public.seed_staff_notification_prefs('c1a00000-0000-0000-0000-00000000000a');
+
+  SELECT NOT enabled INTO still_off FROM public.staff_notification_prefs
+   WHERE staff_id = 'c1a00000-0000-0000-0000-00000000000a'
+     AND event_type = 'sale.paid' AND channel = 'sms';
+
+  PERFORM pg_temp.check(
+    'RE-SEEDING DOES NOT UNDO A SWITCH AN ADMIN TURNED OFF',
+    still_off,
+    'ON CONFLICT DO UPDATE here would make an admin''s decision revert on every deploy');
+
+  -- put it back so later assertions read the seeded state
+  UPDATE public.staff_notification_prefs SET enabled = true
+   WHERE staff_id = 'c1a00000-0000-0000-0000-00000000000a'
+     AND event_type = 'sale.paid' AND channel = 'sms';
+END $$;
+
+-- ── the event list cannot drift between the two tables ─────────────────────
+SELECT pg_temp.check(
+  'a preference for an event/channel pair with no route is refused (FK, not a second CHECK)',
+  pg_temp.raises_as('c1000000-0000-0000-0000-00000000000a',
+    'INSERT INTO public.staff_notification_prefs (staff_id, event_type, channel, enabled)
+       VALUES (''c1a00000-0000-0000-0000-00000000000b'', ''sale.invented'', ''sms'', true)'),
+  'two copies of an event list drift, and this one decides who hears about money');
+
+SELECT pg_temp.check(
+  'a channel outside the four is refused',
+  pg_temp.raises_as('c1000000-0000-0000-0000-00000000000a',
+    'INSERT INTO public.staff_notification_prefs (staff_id, event_type, channel, enabled)
+       VALUES (''c1a00000-0000-0000-0000-00000000000b'', ''sale.paid'', ''pigeon'', true)'));
+
+-- ── who may read and write a preference ────────────────────────────────────
+SELECT pg_temp.check(
+  'an operator sees their OWN preference rows and nobody else''s',
+  pg_temp.count_as('c1000000-0000-0000-0000-00000000000b',
+    'SELECT id FROM public.staff_notification_prefs')
+    = (SELECT count(*) FROM public.notification_routes));
+
+SELECT pg_temp.check(
+  'an operator CANNOT read a colleague''s preferences',
+  pg_temp.count_as('c1000000-0000-0000-0000-00000000000b',
+    'SELECT id FROM public.staff_notification_prefs
+      WHERE staff_id = ''c1a00000-0000-0000-0000-00000000000c''') = 0,
+  'who agreed to be texted at 3am is not a colleague''s business');
+
+SELECT pg_temp.check(
+  'an operator cannot turn their OWN sos.opened push OFF — that is the escalation path',
+  pg_temp.exec_as('c1000000-0000-0000-0000-00000000000b',
+    'UPDATE public.staff_notification_prefs SET enabled = false
+      WHERE staff_id = ''c1a00000-0000-0000-0000-00000000000b''
+        AND event_type = ''sos.opened'' AND channel = ''push''') = 0,
+  'a life-safety product cannot let somebody remove themselves from the ladder silently');
+
+SELECT pg_temp.check(
+  'CONTROL: that row really is still on',
+  (SELECT enabled FROM public.staff_notification_prefs
+    WHERE staff_id = 'c1a00000-0000-0000-0000-00000000000b'
+      AND event_type = 'sos.opened' AND channel = 'push'));
+
+SELECT pg_temp.check(
+  'an admin reads every preference row — the matrix is an admin screen',
+  pg_temp.count_as('c1000000-0000-0000-0000-00000000000a',
+    'SELECT id FROM public.staff_notification_prefs
+      WHERE staff_id = ''c1a00000-0000-0000-0000-00000000000c''')
+    = (SELECT count(*) FROM public.notification_routes));
+
+SELECT pg_temp.check(
+  'an admin can flip somebody else''s switch',
+  pg_temp.exec_as('c1000000-0000-0000-0000-00000000000a',
+    'UPDATE public.staff_notification_prefs SET enabled = true
+      WHERE staff_id = ''c1a00000-0000-0000-0000-00000000000c''
+        AND event_type = ''device.offline'' AND channel = ''email''') = 1);
+
+SELECT pg_temp.check(
+  'a MEMBER cannot read the staff notification prefs at all',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.staff_notification_prefs') = 0);
+
+-- ── routes: everybody reads, admins write ──────────────────────────────────
+SELECT pg_temp.check(
+  'an operator can SEE the company routes — "why was I not texted" deserves an answer',
+  pg_temp.count_as('c1000000-0000-0000-0000-00000000000b',
+    'SELECT event_type FROM public.notification_routes')
+    = (SELECT count(*) FROM public.notification_routes));
+
+SELECT pg_temp.check(
+  'an operator cannot change a route',
+  pg_temp.exec_as('c1000000-0000-0000-0000-00000000000b',
+    'UPDATE public.notification_routes SET enabled = false WHERE event_type = ''sale.paid''') = 0);
+
+SELECT pg_temp.check(
+  'an admin can — a switch, not a redeploy',
+  pg_temp.exec_as('c1000000-0000-0000-0000-00000000000a',
+    'UPDATE public.notification_routes SET enabled = false
+      WHERE event_type = ''device.offline'' AND channel = ''email''') = 1);
+
+SELECT pg_temp.check(
+  'a member cannot read the routes',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT event_type FROM public.notification_routes') = 0);
+
+-- ── push tokens belong to a device, and to one person ──────────────────────
+SELECT pg_temp.check(
+  'a staff member registers their own device',
+  pg_temp.exec_as('c1000000-0000-0000-0000-00000000000b',
+    'INSERT INTO public.staff_push_tokens (staff_id, token, platform, label)
+       VALUES (''c1a00000-0000-0000-0000-00000000000b'', ''fcm-omar-phone'', ''ios'', ''iPhone'')') = 1);
+
+SELECT pg_temp.check(
+  'and CANNOT register a device against a colleague',
+  pg_temp.raises_as('c1000000-0000-0000-0000-00000000000b',
+    'INSERT INTO public.staff_push_tokens (staff_id, token, platform)
+       VALUES (''c1a00000-0000-0000-0000-00000000000c'', ''fcm-stolen'', ''ios'')')
+  OR pg_temp.count_as('c1000000-0000-0000-0000-00000000000b',
+    'SELECT id FROM public.staff_push_tokens WHERE token = ''fcm-stolen''') = 0,
+  'a token attached to the wrong staff row sends that person''s alerts to somebody else');
+
+SELECT pg_temp.check(
+  'the same token cannot be attached twice — the shared-tablet case',
+  pg_temp.raises_as('c1000000-0000-0000-0000-00000000000c',
+    'INSERT INTO public.staff_push_tokens (staff_id, token, platform)
+       VALUES (''c1a00000-0000-0000-0000-00000000000c'', ''fcm-omar-phone'', ''ios'')'),
+  'the second person to enable notifications would receive the first person''s alerts');
+
+SELECT pg_temp.check(
+  'a staff member sees only their own devices',
+  pg_temp.count_as('c1000000-0000-0000-0000-00000000000c',
+    'SELECT id FROM public.staff_push_tokens') = 0);
+
+SELECT pg_temp.check(
+  'a staff member can remove their own device',
+  pg_temp.exec_as('c1000000-0000-0000-0000-00000000000b',
+    'DELETE FROM public.staff_push_tokens WHERE token = ''fcm-omar-phone''') = 1);
+
+DO $$
+BEGIN
+  -- Re-register it for the assertions below.
+  INSERT INTO public.staff_push_tokens (staff_id, token, platform)
+  VALUES ('c1a00000-0000-0000-0000-00000000000b', 'fcm-omar-phone', 'ios');
+END $$;
+
+SELECT pg_temp.check(
+  'an admin SEES the devices — the screen says who can be reached on a phone',
+  pg_temp.count_as('c1000000-0000-0000-0000-00000000000a',
+    'SELECT id FROM public.staff_push_tokens') >= 1);
+
+-- `raises_as`, not `exec_as`, and the distinction cost a suite run: a forbidden UPDATE is
+-- FILTERED to zero rows, but an INSERT that fails a WITH CHECK RAISES — and `exec_as` has no
+-- exception handler, so it aborted the whole script instead of reporting a failure. The header
+-- of this file says "RLS turns a forbidden UPDATE into zero rows rather than an error"; INSERT
+-- is the other half of that sentence.
+SELECT pg_temp.check(
+  'but an admin cannot WRITE a token — one they typed proves nothing about a device',
+  pg_temp.raises_as('c1000000-0000-0000-0000-00000000000a',
+    'INSERT INTO public.staff_push_tokens (staff_id, token, platform)
+       VALUES (''c1a00000-0000-0000-0000-00000000000c'', ''fcm-typed-by-admin'', ''web'')'),
+  'admins read devices and never write them');
+
+SELECT pg_temp.check(
+  'CONTROL: and no such row exists',
+  (SELECT count(*) FROM public.staff_push_tokens WHERE token = 'fcm-typed-by-admin') = 0);
+
+SELECT pg_temp.check(
+  'a member cannot read staff devices',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.staff_push_tokens') = 0);
+
+-- ── the log can tell a bell entry from a send attempt ──────────────────────
+DO $$
+DECLARE v_bell uuid; v_sms uuid;
+BEGIN
+  INSERT INTO public.notification_log (admin_user_id, event_type, message, status)
+  VALUES ('c1000000-0000-0000-0000-00000000000a', 'message', 'a bell row', 'pending')
+  RETURNING id INTO v_bell;
+
+  PERFORM pg_temp.check(
+    'a row written the old way is a BELL row, so the bell keeps working unchanged',
+    (SELECT channel FROM public.notification_log WHERE id = v_bell) = 'bell',
+    'the default is what makes this migration safe to apply under a running app');
+
+  INSERT INTO public.notification_log
+    (admin_user_id, event_type, channel, recipient, message, status, idempotency_key)
+  VALUES ('c1000000-0000-0000-0000-00000000000a', 'sale.paid', 'sms', '+34600000101',
+          'sent an SMS', 'sent', 'sale.paid:order-1')
+  RETURNING id INTO v_sms;
+
+  PERFORM pg_temp.check(
+    'and a send attempt names its channel and where it went',
+    (SELECT channel = 'sms' AND recipient = '+34600000101'
+       FROM public.notification_log WHERE id = v_sms));
+END $$;
+
+/*
+  THE SAME EVENT CANNOT BE SENT TWICE — and this assertion had to be rewritten because the first
+  version was VACUOUS. It used `raises_as` as an admin, so ANY refusal counted as the index
+  doing its job: an RLS denial on `notification_log` would have satisfied it just as well as a
+  unique violation. Proved by mutation — dropping UNIQUE from the index left the suite green.
+
+  Written as the ROUTER writes it (service role, no auth.uid()) and catching `unique_violation`
+  SPECIFICALLY, so a refusal for any other reason fails the assertion instead of passing it.
+*/
+DO $$
+DECLARE outcome text; n int;
+BEGIN
+  BEGIN
+    INSERT INTO public.notification_log
+      (admin_user_id, event_type, channel, recipient, message, status, idempotency_key)
+    VALUES ('c1000000-0000-0000-0000-00000000000a', 'sale.paid', 'sms', '+34600000101',
+            'a retry', 'sent', 'sale.paid:order-1');
+    outcome := 'inserted';
+  EXCEPTION
+    WHEN unique_violation THEN outcome := 'unique_violation';
+    WHEN OTHERS THEN outcome := 'other: ' || SQLSTATE;
+  END;
+
+  SELECT count(*) INTO n FROM public.notification_log
+   WHERE idempotency_key = 'sale.paid:order-1' AND channel = 'sms' AND status = 'sent';
+
+  PERFORM pg_temp.check(
+    'THE SAME EVENT CANNOT BE SENT TWICE to the same place on the same channel',
+    outcome = 'unique_violation' AND n = 1,
+    format('outcome=%s, sent rows=%s — a webhook retry must not buzz the same phone twice', outcome, n));
+END $$;
+
+DO $$
+DECLARE n int; outcome text;
+BEGIN
+  -- A FAILED attempt is not a send, so it must stay retryable: partial on status = 'sent'.
+  --
+  -- The second insert is GUARDED, because without the partial clause it raises — and an
+  -- unguarded raise here aborts the whole suite with no FAIL row, which is the failure mode the
+  -- sales-stats section already had to fix once. A crash is not an assertion.
+  INSERT INTO public.notification_log
+    (admin_user_id, event_type, channel, recipient, message, status, idempotency_key, error)
+  VALUES ('c1000000-0000-0000-0000-00000000000a', 'sale.paid', 'whatsapp', '+34600000101',
+          'first try', 'failed', 'sale.paid:order-1', 'twilio 500');
+
+  BEGIN
+    INSERT INTO public.notification_log
+      (admin_user_id, event_type, channel, recipient, message, status, idempotency_key, error)
+    VALUES ('c1000000-0000-0000-0000-00000000000a', 'sale.paid', 'whatsapp', '+34600000101',
+            'second try', 'failed', 'sale.paid:order-1', 'twilio 500');
+    outcome := 'retried';
+  EXCEPTION WHEN OTHERS THEN outcome := 'refused: ' || SQLSTATE;
+  END;
+
+  SELECT count(*) INTO n FROM public.notification_log
+   WHERE idempotency_key = 'sale.paid:order-1' AND channel = 'whatsapp';
+
+  PERFORM pg_temp.check(
+    'a FAILED attempt stays retryable — the index is partial on status = ''sent''',
+    outcome = 'retried' AND n = 2,
+    format('outcome=%s rows=%s — otherwise one Twilio hiccup permanently silences that event '
+           'for that person', outcome, n));
+END $$;
+
+SELECT pg_temp.check(
+  'and the bell''s own rows are unaffected by the idempotency index (no key at all)',
+  (SELECT count(*) FROM public.notification_log
+    WHERE channel = 'bell' AND idempotency_key IS NULL) > 0);
+
+-- The lead trigger from 20260908130000 still writes bell rows, and they are still bell rows.
+DO $$
+DECLARE n_before int; n_after int;
+BEGIN
+  SELECT count(*) INTO n_before FROM public.notification_log WHERE channel = 'bell';
+
+  INSERT INTO public.leads (first_name, last_name, email, phone, enquiry_type, message, source)
+  VALUES ('Nuria', 'Nueva', 'nuria@example.com', '+34600000199', 'general', 'hello', 'contact_form');
+
+  SELECT count(*) INTO n_after FROM public.notification_log WHERE channel = 'bell';
+
+  PERFORM pg_temp.check(
+    'a new lead still raises BELL rows, one per active staff member',
+    n_after > n_before,
+    'the channel column must not have changed what the existing trigger produces');
+
+  PERFORM pg_temp.check(
+    'and none of them is a send attempt',
+    (SELECT count(*) FROM public.notification_log
+      WHERE entity_type = 'lead' AND channel <> 'bell') = 0);
+END $$;
 
 -- ============================================================
 --  The 2026 rota — seed, generator and isolation

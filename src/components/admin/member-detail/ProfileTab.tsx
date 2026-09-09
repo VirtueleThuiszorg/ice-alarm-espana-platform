@@ -125,7 +125,14 @@ export function ProfileTab({ member, onUpdate }: ProfileTabProps) {
       onUpdate();
     } catch (error) {
       console.error("Error updating profile:", error);
-      toast.error("Failed to update profile");
+      /*
+        The database's own sentence, not a generic failure. This form has a `status` dropdown
+        containing `active`, and since 20260909110000 the guard trigger refuses that for a member
+        with no active or past_due subscription — naming the remedy ("send them a payment link").
+        A staff member who reads "Failed to update profile" instead goes looking for a bug.
+      */
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(message || "Failed to update profile");
     } finally {
       setIsLoading(false);
     }

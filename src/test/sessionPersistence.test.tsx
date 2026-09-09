@@ -99,6 +99,19 @@ describe("the idle logout is gone", () => {
   });
 });
 
+/**
+ * Lee's test 1, and an honest note on what these two prove.
+ *
+ * They advance fake time past the old cliff and assert the token is still readable — so they
+ * prove the STORES do not expire a session by themselves. They do NOT mount the app, so no
+ * timer could fire in them regardless; they cannot catch somebody re-adding an inactivity
+ * logout. That is what "no source file arms a timer that signs somebody out" above is for, and
+ * that one IS mutation-proven: planting a `setTimeout(() => handleSignOut(), 30 * 60 * 1000)`
+ * back into `AuthContext` makes it fail.
+ *
+ * Both are kept because they fail for different reasons. Saying so beats a comment claiming
+ * this is the behavioural proof when the behavioural proof is the other assertion.
+ */
 describe("staff idle for 31 minutes are still signed in", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -108,8 +121,8 @@ describe("staff idle for 31 minutes are still signed in", () => {
   });
 
   it("31 minutes of wall-clock silence removes nothing from storage", async () => {
-    // Lee's test 1, driven rather than asserted from the source. A staff session is ephemeral
-    // by default, so this also proves the ephemeral store is not self-expiring.
+    // A staff session is ephemeral by default, so this is the ephemeral store being asked
+    // whether it quietly drops a token over time. It does not.
     setPersistentLogin(false);
     store.setItem(TOKEN_KEY, TOKEN);
     expect(store.getItem(TOKEN_KEY)).toBe(TOKEN);
@@ -194,6 +207,41 @@ describe("closing the browser — the checkbox decides", () => {
 
   it("defaults to ephemeral when nobody has chosen", () => {
     expect(isPersistentLogin()).toBe(false);
+  });
+
+  it("a STALE localStorage token cannot resurrect an ephemeral session", () => {
+    /*
+      THE HOLE THIS FILE ORIGINALLY MISSED, found by reviewing the adapter rather than by a
+      failing test — and the reason it was missed is worth keeping.
+
+      `getItem` used to fall back to the other store when the chosen one was empty. So:
+      an ephemeral staff session closes the browser → `sessionStorage` is empty, as intended →
+      the fallback reads `localStorage` → a token left there by an earlier persistent login is
+      found → the operator is signed in after a browser close, which is the exact opposite of
+      what the unticked box promises.
+
+      Every test above passed regardless, because `setPersistentLogin(false)` clears the other
+      store IN THE SAME CALL and each test set the preference immediately before reading. On a
+      real browser reopen the preference is already recorded, so nothing clears anything.
+
+      Hence: the preference is written directly here, WITHOUT going through
+      `setPersistentLogin`, to reproduce the state a reopened browser is actually in.
+    */
+    window.localStorage.setItem("ice.auth.persist", "false");
+    window.localStorage.setItem(TOKEN_KEY, "stale-but-still-valid");
+
+    expect(
+      store.getItem(TOKEN_KEY),
+      "an ephemeral session read a token out of localStorage",
+    ).toBeNull();
+  });
+
+  it("and the mirror: a persistent session ignores a token in sessionStorage", () => {
+    // The same rule in the other direction. One store, chosen by the flag, and nothing else.
+    window.localStorage.setItem("ice.auth.persist", "true");
+    window.sessionStorage.setItem(TOKEN_KEY, "wrong-store");
+
+    expect(store.getItem(TOKEN_KEY)).toBeNull();
   });
 });
 

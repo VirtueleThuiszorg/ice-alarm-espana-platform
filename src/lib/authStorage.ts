@@ -136,19 +136,28 @@ export function adoptExistingSession(): "adopted" | "no-session" | "already-chos
  * every single call, so the store follows the preference the moment it changes — which is what
  * makes a checkbox on a login form able to decide where that login's tokens land.
  *
- * READS FALL BACK. A `getItem` looks in the chosen store and then in the other one, because the
- * flag can legitimately be read before it is written: a fresh tab of an ephemeral session has a
- * token seeded into `sessionStorage` by `authSessionSync`, and a member arriving with a
- * persistent token has it in `localStorage`. Writes never fall back — they go to exactly one
- * store, or the token would end up in both and outlive the browser.
+ * READS LOOK IN EXACTLY ONE STORE, and an earlier version of this file did not — it fell back to
+ * the other one when the chosen store was empty. That was a hole in the main promise of the
+ * whole change, found by review:
+ *
+ *   an ephemeral (staff) session reopens the browser → `sessionStorage` is empty, as intended →
+ *   the fallback reads `localStorage` → a token left there by an earlier persistent login is
+ *   found → the operator is signed in after a browser close.
+ *
+ * The tests passed anyway, because `setPersistentLogin(false)` clears the other store in the
+ * same call and every test set the preference immediately before reading. On a real browser
+ * reopen the preference is ALREADY recorded, so nothing clears anything and the stale token
+ * wins. There is no legitimate case for the fallback either: a persistent session's token is in
+ * `localStorage`, a fresh ephemeral login's is in `sessionStorage`, a seeded tab's is put in
+ * `sessionStorage` by `setSession`, and the deploy carry-over sets the flag BEFORE the client
+ * reads anything. So it is one store, chosen by the flag, and nothing else.
  */
 export const authStorage: Storage | Record<string, unknown> = {
   getItem: (key: string): string | null =>
-    safely(() => {
-      const primary = isPersistentLogin() ? window.localStorage : window.sessionStorage;
-      const secondary = isPersistentLogin() ? window.sessionStorage : window.localStorage;
-      return primary.getItem(key) ?? secondary.getItem(key);
-    }, null),
+    safely(
+      () => (isPersistentLogin() ? window.localStorage : window.sessionStorage).getItem(key),
+      null,
+    ),
 
   setItem: (key: string, value: string): void =>
     safely(() => {

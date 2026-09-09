@@ -1,0 +1,27 @@
+# WIRING_REGISTER.md IS GENERATED, AND GIT MUST NOT TRY TO MERGE IT.
+#
+# `-merge` makes git treat the file as unmergeable: two branches that both
+# changed it produce a CONFLICT rather than a textual merge.
+#
+# WHY THAT IS THE BEHAVIOUR WE WANT. This file has been silently mis-merged
+# three times in two days, always the same way — git found two adjacent blocks
+# it could interleave, kept both sides, and produced a file that looked
+# plausible and was wrong. The worst of them left `table:leads` present twice
+# with contradictory scores, one copy still quoting a "respond within 24 hours"
+# promise the code had already stopped making. A register that asserts a fixed
+# defect is still live is worse than no register.
+#
+# For a generated file there is nothing to merge: everything in it comes from
+# the code plus scripts/wiring/annotations.mjs. The correct resolution is always
+#
+#     node scripts/wiring/build.mjs
+#
+# and a conflict is what makes somebody run it. A textual merge is what stopped
+# them having to — and `Wiring register` in CI then caught it only after the
+# merge had already landed on main, twice.
+#
+# This is the same class as the locale-JSON rule in CLAUDE.md ("resolving a
+# locale conflict is not concatenation"), which came out of two production
+# outages with the same cause. Here the fix can be structural, because unlike
+# en.json this file has a generator.
+WIRING_REGISTER.md -merge linguist-generated=true

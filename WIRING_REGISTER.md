@@ -30,6 +30,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   3  █
 ```
 
+183 distinct wires across 629 call sites and 108 routes.
 184 distinct wires across 630 call sites and 108 routes.
 184 distinct wires across 629 call sites and 108 routes.
 

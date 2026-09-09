@@ -686,7 +686,11 @@
     "twoFactorDesc": "Introduzca el código de 6 dígitos de su aplicación de autenticación",
     "verificationCode": "Código de verificación",
     "verifying": "Verificando...",
-    "verify": "Verificar"
+    "verify": "Verificar",
+    "keepSignedIn": "Mantener mi sesión abierta en este dispositivo",
+    "keepSignedInOn": "Su sesión permanecerá abierta en este dispositivo hasta que cierre la sesión.",
+    "keepSignedInOff": "Su sesión se cerrará cuando cierre el navegador.",
+    "keepSignedInOffStaff": "Su sesión se cerrará al cerrar el navegador; déjelo sin marcar en un equipo compartido."
   },
   "navigation": {
     "home": "Inicio",

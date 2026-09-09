@@ -686,7 +686,11 @@
     "twoFactorDesc": "Enter the 6-digit code from your authenticator app",
     "verificationCode": "Verification code",
     "verifying": "Verifying...",
-    "verify": "Verify"
+    "verify": "Verify",
+    "keepSignedIn": "Keep me signed in on this device",
+    "keepSignedInOn": "You will stay signed in on this device until you sign out.",
+    "keepSignedInOff": "You will be signed out when you close the browser.",
+    "keepSignedInOffStaff": "You will be signed out when the browser closes — leave this clear on a shared machine."
   },
   "navigation": {
     "home": "Home",

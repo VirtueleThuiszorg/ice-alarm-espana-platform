@@ -686,7 +686,11 @@
     "twoFactorDesc": "Voer de 6-cijferige code uit uw authenticatie-app in",
     "verificationCode": "Verificatiecode",
     "verifying": "Verifiëren...",
-    "verify": "Verifiëren"
+    "verify": "Verifiëren",
+    "keepSignedIn": "Ingelogd blijven op dit apparaat",
+    "keepSignedInOn": "U blijft op dit apparaat ingelogd totdat u uitlogt.",
+    "keepSignedInOff": "U wordt uitgelogd wanneer u de browser sluit.",
+    "keepSignedInOffStaff": "U wordt uitgelogd wanneer de browser sluit — laat dit leeg op een gedeelde computer."
   },
   "navigation": {
     "home": "Home",

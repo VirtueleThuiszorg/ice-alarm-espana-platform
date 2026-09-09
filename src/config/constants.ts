@@ -84,12 +84,12 @@ export const ADMIN_2FA_SETUP_ROUTE = "/admin/settings?tab=security";
 // ============================================================
 
 export const TIMEOUTS = {
-  /** Session inactivity timeout before auto-logout */
-  SESSION_IDLE: 30 * 60 * 1000, // 30 minutes
-  /** Warning shown before session expires */
-  SESSION_WARNING: 5 * 60 * 1000, // 5 minutes
-  /** Throttle for resetting session timer on user activity */
-  ACTIVITY_THROTTLE: 30_000, // 30 seconds
+  /*
+   * SESSION_IDLE / SESSION_WARNING / ACTIVITY_THROTTLE are GONE, with the idle logout they
+   * configured. A session now lasts until the browser is closed or the user signs out
+   * (`src/lib/authStorage.ts`); there is no timer, so there is nothing to configure. Removed
+   * rather than set to Infinity, so nobody re-introduces the behaviour by editing a number.
+   */
   /** Max wait for role fetch on auth */
   ROLE_FETCH: 8_000, // 8 seconds
   /** AI chat conversation time-to-live */

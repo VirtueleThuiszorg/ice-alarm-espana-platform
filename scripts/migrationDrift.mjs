@@ -4,10 +4,15 @@
  * CLI carried a second hand-written copy of the rule — the copy that actually ran, and the one
  * the tests never saw.
  *
- * Migrations are deliberately not auto-applied (`deploy-functions.yml`: "schema changes stay
- * manual under the human gate"), so the repository can run ahead of the database. It did:
- * production sat 6 WEEKS AND 24 MIGRATIONS behind `main`, and the drift was discoverable only
- * when a query failed against a column that did not exist.
+ * Migrations USED to be applied by hand, so the repository could run ahead of the database. It
+ * did: production sat 6 WEEKS AND 24 MIGRATIONS behind `main`, and the drift was discoverable
+ * only when a query failed against a column that did not exist. Since 2026-09-09
+ * `.github/workflows/migrate.yml` applies them on every push to main that touches
+ * supabase/migrations/**, and records what really applied in APPLIED_TO_PROD.txt.
+ *
+ * That does not retire this gate, it changes what a red gate MEANS. Drift is now a symptom of a
+ * migrate run that failed or never fired, rather than of a human who forgot — and a pull request
+ * still has no database to ask, so the file-based comparison below is exactly what a PR needs.
  *
  * THE RULE, IN TWO HALVES — because "who is responsible" differs by context:
  *

@@ -1,7 +1,7 @@
 /**
  * A MISSING SECRET IS A FAILURE, NOT A SKIP.
  *
- * `deploy-functions.yml` used to open with a step called "Check deploy secrets (skip gracefully
+ * The function-deploy workflow used to open with a step called "Check deploy secrets (skip gracefully
  * until configured)". If `SUPABASE_ACCESS_TOKEN` or `SUPABASE_PROJECT_REF` was unset it printed a
  * `::notice::`, set an output, and every later step carried `if: configured == 'true'`. The job
  * then finished GREEN having deployed nothing.

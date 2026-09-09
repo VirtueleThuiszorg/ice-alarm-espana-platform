@@ -462,6 +462,30 @@ async function onSubscriptionChange(
         "know about this Stripe subscription.",
     );
   }
+
+  // ── somebody cancelled: tell a human ────────────────────────────────────
+  //
+  // WIRING_REGISTER's absence row A3: "`stripe-webhook` sets `status = 'cancelled'` and
+  // returns. Nothing is written anywhere a human is required to look." A cancellation is the
+  // single most important number in this business, `isabella_settings` has a
+  // `cancellation_alert` switch that promised exactly this, and the only surface it reached was
+  // a status badge on a page somebody would have to already be looking at.
+  //
+  // Only on `deleted`, not on every `updated`: Stripe sends `customer.subscription.updated` for
+  // routine things — a price change, a payment-method swap, a period rolling over — and an
+  // admin who gets a bell for each stops reading them.
+  if (event.type === "customer.subscription.deleted") {
+    const bell = await notifyAdmins(supabase, {
+      eventType: "system",
+      message:
+        "A membership was cancelled at Stripe. The subscription is now marked cancelled — " +
+        "check whether the member meant to leave, and whether their device needs collecting.",
+      entityType: "subscription",
+      entityId: matched?.[0]?.id,
+    });
+    return { handled: true, status, matched: count, adminsNotified: bell.notified };
+  }
+
   return { handled: true, status, matched: count };
 }
 

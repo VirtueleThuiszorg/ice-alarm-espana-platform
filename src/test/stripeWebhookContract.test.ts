@@ -198,6 +198,36 @@ describe("Stripe statuses we have no enum for are skipped, not written", () => {
   });
 });
 
+describe("a cancellation is announced to a human", () => {
+  const handler = WEBHOOK.slice(WEBHOOK.indexOf("async function onSubscriptionChange"));
+
+  it("notifies the admins when a subscription is deleted at Stripe", () => {
+    // WIRING_REGISTER absence row A3: the webhook set `status = 'cancelled'` and returned, while
+    // `isabella_settings` carried a `cancellation_alert` switch promising the opposite. The only
+    // surface it reached was a badge on a page somebody had to already be looking at — and a
+    // cancellation is the single most important number in this business.
+    expect(handler).toContain("notifyAdmins");
+    expect(handler).toMatch(/entityType:\s*"subscription"/);
+  });
+
+  it("does NOT notify on every subscription.updated", () => {
+    // Stripe sends `updated` for routine things — a price change, a payment-method swap, a
+    // period rolling over. An admin who gets a bell for each stops reading them, which is how a
+    // real cancellation gets missed.
+    expect(handler).toMatch(/if \(event\.type === "customer\.subscription\.deleted"\) \{/);
+    const notifyAt = handler.indexOf("notifyAdmins");
+    const guardAt = handler.indexOf('if (event.type === "customer.subscription.deleted")');
+    expect(guardAt).toBeGreaterThanOrEqual(0);
+    expect(guardAt).toBeLessThan(notifyAt);
+  });
+
+  it("still records the cancellation even when nobody could be told", () => {
+    // The status write happens before the bell, so a notification failure cannot cost us the
+    // fact that the subscription is cancelled.
+    expect(handler.indexOf('.update({ status })')).toBeLessThan(handler.indexOf("notifyAdmins"));
+  });
+});
+
 describe("the signup invoice is not a renewal", () => {
   it("recognises Stripe's billing_reason", () => {
     expect(isFirstInvoice("subscription_create")).toBe(true);

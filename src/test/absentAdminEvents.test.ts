@@ -21,6 +21,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import { ABSENT_ADMIN_EVENTS } from "../../scripts/wiring/annotations.mjs";
+import { stripComments } from "./helpers/stripComments";
 
 const ROOT = process.cwd();
 const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
@@ -50,8 +51,19 @@ function build(): { code: number; out: string } {
 }
 
 describe("the inventory itself", () => {
-  it("names six events, each with an audience, an expectation and today's behaviour", () => {
-    expect(EVENTS.length).toBe(6);
+  it("names the events still absent, each with an audience, an expectation and today's behaviour", () => {
+    /*
+      NOT A FIXED COUNT ANY MORE. The list started at six and shrinks as the fixes land — A4
+      (Isabella failing tells nobody) went when ai-run started raising `isabella.down`. Pinning
+      the number would mean a fix cannot merge without a test edit that says nothing, and the
+      property worth keeping is that every REMAINING row is complete and checkable.
+
+      It must not grow silently either: a new absence is a real finding and belongs in a commit
+      that says so, so the upper bound stays.
+    */
+    expect(EVENTS.length).toBeGreaterThan(0);
+    expect(EVENTS.length).toBeLessThanOrEqual(6);
+    expect(new Set(EVENTS.map((e) => e.id)).size).toBe(EVENTS.length);
     for (const e of EVENTS) {
       expect(e.id, JSON.stringify(e)).toMatch(/^A\d$/);
       expect(e.event.length).toBeGreaterThan(10);
@@ -157,36 +169,58 @@ describe("A2 / A3 — a failed payment and a cancellation tell nobody", () => {
   });
 });
 
-describe("A4 — Isabella failing tells nobody", () => {
-  it("ai-run records the failure and raises nothing", () => {
+describe("A4 is RETIRED — Isabella failing now tells the admins", () => {
+  /*
+    A4 claimed: "ai-run records the failure in `ai_runs.error_message` and tells nobody". That
+    was true, and it was the 8 September outage — the Anthropic balance hit zero, every run
+    failed all day, each failure was recorded faithfully, and the dashboard said ACTIVE.
+
+    It is no longer true, so the row is GONE from ABSENT_ADMIN_EVENTS rather than kept with a
+    weaker check. These tests are its replacement: the claim inverted, so the notifier cannot be
+    removed without something going red, and the row cannot be re-added while the code notifies.
+  */
+
+  it("is no longer claimed as absent", () => {
+    expect(EVENTS.map((e) => e.id)).not.toContain("A4");
+    // ...and nothing else in the register still says Isabella's failure tells nobody.
+    for (const event of EVENTS) {
+      expect(event.event.toLowerCase(), event.id).not.toContain("isabella");
+    }
+  });
+
+  it("ai-run raises isabella.down from the place that records the failure", () => {
     const aiRun = read("supabase/functions/ai-run/index.ts");
     expect(aiRun).toContain('status: "failed"');
     expect(aiRun).toContain("error_message");
-    expect(aiRun).not.toMatch(/notification_log|notify-admin/);
+    // The emitter, and the router it posts to.
+    expect(aiRun).toContain("reportIsabellaDown");
+    expect(aiRun).toContain("/functions/v1/notify-staff");
   });
 
-  it("and the item 1 PILL is a READER, which is a different thing from being told", () => {
-    // Was IsabellaHealthCard.tsx. That card became IsabellaHealthPill.tsx when Lee corrected the
-    // dashboard layout (#247), and this assertion and that rename landed in main from two
-    // different branches on the same morning — so the suite went red on a file neither PR was
-    // wrong about. The PROPERTY is untouched: A4 says a failed run tells nobody, and a dashboard
-    // widget that has to be opened is a reader, not a notifier.
-    const pill = read("src/components/admin/dashboard/IsabellaHealthPill.tsx");
-    expect(pill).toContain("useIsabellaHealth");
-    expect(pill).not.toMatch(/notification_log|notify-admin/);
-  it("and the item 1 surface is a READER, which is a different thing from being told", () => {
+  it("every failure path in ai-run goes through the ONE funnel", () => {
     /*
-      FOUND BY THIS TEST GOING RED ON MAIN, one hour after it merged, and it is worth writing
-      down rather than quietly repointing.
+      Three places record a failure: two chat paths through `recordChatRun` and the agent/event
+      branch's direct update. A fourth added later that notified nobody would be the original
+      defect again, in a file nobody would think to re-read — so the count is pinned, and the
+      funnel is the only caller of the emitter.
+    */
+    const aiRun = stripComments(read("supabase/functions/ai-run/index.ts"));
+    const failures = aiRun.match(/status: "failed"/g) ?? [];
+    expect(failures).toHaveLength(3);
+    expect(aiRun.match(/notifyIsabellaDown\(/g) ?? []).toHaveLength(3);
+    expect(aiRun.match(/reportIsabellaDown\(/g) ?? []).toHaveLength(1);
+  });
 
-      Item 1 shipped `IsabellaHealthCard`; another session then replaced the two dashboard cards
-      with header pills and DELETED the card, so this assertion read a file that no longer
-      existed. The claim it makes was unaffected — the pill reads `useIsabellaHealth` and raises
-      nothing — so A4 still holds. Only the file name was wrong.
+  it("and the dashboard surface is still only a READER", () => {
+    /*
+      A pill is not a notification: it says so to somebody who opens that page. The emitter is
+      server-side for exactly that reason, and this keeps the client half honest — a
+      notification raised from the browser would fire once per admin who happened to be looking.
 
-      It is resolved by NAME PATTERN rather than by a path: whatever renders Isabella's health on
-      the admin dashboard, that is the surface, and a rename must not redden main. What is still
-      asserted strictly is the property — it reads, and it tells nobody.
+      Resolved by NAME PATTERN, not by path: item 1 shipped `IsabellaHealthCard`, another
+      session replaced the dashboard cards with pills and deleted it, and this assertion went red
+      on main for reading a file that no longer existed. Whatever renders Isabella's health there
+      is the surface.
     */
     const dir = "src/components/admin/dashboard";
     const surfaces = readdirSync(join(ROOT, dir)).filter((f) => /^IsabellaHealth.*\.tsx$/.test(f));
@@ -194,7 +228,7 @@ describe("A4 — Isabella failing tells nobody", () => {
     for (const f of surfaces) {
       const src = read(`${dir}/${f}`);
       expect(src, f).toContain("useIsabellaHealth");
-      expect(src, f).not.toMatch(/notification_log|notify-admin/);
+      expect(src, f).not.toMatch(/notification_log|notify-admin|notify-staff/);
     }
   });
 });

@@ -175,8 +175,14 @@ serve(async (req) => {
       mode: "subscription",
       line_items: toStripeLineItems(resolved.lines) as never,
       customer_email: context.member.email,
+      // `{CHECKOUT_SESSION_ID}` is Stripe's own placeholder, substituted on redirect. It is
+      // what lets the confirmation screen ask `join-order-status` whether the webhook has
+      // actually run, and then be given the second-stage link. It has to be the session id and
+      // not the order number: order numbers are sequential, so an endpoint keyed on one would
+      // hand out other people's medical-form links to anybody counting upwards.
       success_url:
-        `${SITE_URL}/join?success=true&order=${encodeURIComponent(context.order.orderNumber)}`,
+        `${SITE_URL}/join?success=true&order=${encodeURIComponent(context.order.orderNumber)}` +
+        "&session_id={CHECKOUT_SESSION_ID}",
       cancel_url: `${SITE_URL}/join?cancelled=true`,
       billing_address_collection: "required",
       metadata,

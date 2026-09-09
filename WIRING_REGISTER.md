@@ -15,26 +15,26 @@ main cannot drift from the code in main. To change a row, change the wire or the
 ## Score distribution
 
 ```
-10 │   2  █
- 9 │   5  ██
+10 │   6  ██
+ 9 │   6  ██
  8 │   0  
- 7 │   9  ███
- 6 │  25  █████████
- 5 │  92  ██████████████████████████████████
- 4 │  48  ██████████████████
+ 7 │  10  ████
+ 6 │  25  ██████████
+ 5 │  88  ██████████████████████████████████
+ 4 │  47  ██████████████████
  3 │   0  
  2 │   0  
  1 │   0  
  0 │   3  █
 ```
 
-184 distinct wires across 630 call sites and 108 routes.
+185 distinct wires across 631 call sites and 108 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
-| 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 2 | 1% |
-| 7–9 | arrives and proven; notification missing or on a channel not live today | 14 | 8% |
-| 4–6 | arrives; nobody told; nothing proves it | 165 | 90% |
+| 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 6 | 3% |
+| 7–9 | arrives and proven; notification missing or on a channel not live today | 16 | 9% |
+| 4–6 | arrives; nobody told; nothing proves it | 160 | 86% |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0% |
 | 0 | dead control | 3 | 2% |
 
@@ -64,7 +64,7 @@ things, and a control with no wire cannot do anything:
 | kind | what it is | call sites |
 |---|---|---:|
 | `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 342 |
-| `fn` | `supabase.functions.invoke(f)` — an edge function | 78 |
+| `fn` | `supabase.functions.invoke(f)` — an edge function | 79 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 4 |
 | `channel` | `postgres_changes` — a realtime subscription | 51 |
 | `auth` | `supabase.auth.*` — sign in, sign out, register, password reset | 19 |
@@ -147,7 +147,6 @@ The checks, verified on every build:
 
 | score | wire | control · what is promised | where it goes | who is told | failure shown | proof | sites |
 |---:|---|---|---|---|---|---|---:|
-| **4** | `fn:save-registration-draft` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | — | none | 1 |
 | **4** | `fn:staff-complete-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 1 |
 | **4** | `fn:staff-validate-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 1 |
 | **4** | `fn:validate-member-update-token` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | — | none | 1 |
@@ -155,11 +154,7 @@ The checks, verified on every build:
 | **5** | `auth:signInWithPassword` | Sign in — /login (member), /staff/login, /partner/login — your password gets you into your account | supabase.auth.signInWithPassword → GoTrue; the session then decides every ProtectedRoute | self | — | none | 3 |
 | **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
 | **5** | `auth:updateUser` | Forgot password → email link → set a new one — we will email you a link to get back in | resetPasswordForEmail sends via GoTrue's own mailer; the link returns to /reset-password, where updateUser sets the password | email | toast | none | 1 |
-| **5** | `fn:complete-member-registration` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | toast | none | 1 |
-| **5** | `fn:create-checkout` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | inline | none | 1 |
-| **5** | `fn:create-mollie-checkout` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | inline | none | 1 |
 | **5** | `fn:submit-member-update` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | toast | none | 1 |
-| **5** | `fn:submit-registration` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4) | bell | inline | none | 1 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
 | **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
 | **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 30 |
@@ -171,6 +166,12 @@ The checks, verified on every build:
 | **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 9 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
 | **6** | `auth:setSession` | Accept a staff or partner invite from an emailed link — this link makes your account real | auth.setSession with the tokens in the invite URL, then the *-complete-invite function | self | toast | none | 2 |
+| **7** | `fn:join-order-status` | /join?success — the confirmation screen, polling for the webhook — your payment is confirmed, and here is the one thing still to do | join-order-status, keyed on the Stripe Checkout Session id (never the order number, which is sequential) → the member's second-stage link and the 24-hour number | screen | — | `src/test/joinOrderPolling.test.tsx` | 1 |
+| **9** | `fn:save-registration-draft` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout (synced Stripe Price ids, ids-only request) → gateway; activation is by webhook only (golden rule 4) | bell | — | `src/test/createCheckoutContract.test.ts` | 1 |
+| **10** | `fn:complete-member-registration` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout (synced Stripe Price ids, ids-only request) → gateway; activation is by webhook only (golden rule 4) | bell | toast | `src/test/createCheckoutContract.test.ts` | 1 |
+| **10** | `fn:create-checkout` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout (synced Stripe Price ids, ids-only request) → gateway; activation is by webhook only (golden rule 4) | bell | inline | `src/test/createCheckoutContract.test.ts` | 1 |
+| **10** | `fn:create-mollie-checkout` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout (synced Stripe Price ids, ids-only request) → gateway; activation is by webhook only (golden rule 4) | bell | inline | `src/test/createCheckoutContract.test.ts` | 1 |
+| **10** | `fn:submit-registration` | /join — submit registration, pay by card (Stripe) or SEPA (Mollie) — you are signed up and covered once you have paid | submit-registration → create-checkout (synced Stripe Price ids, ids-only request) → gateway; activation is by webhook only (golden rule 4) | bell | inline | `src/test/createCheckoutContract.test.ts` | 1 |
 
 ### Member dashboard
 
@@ -779,19 +780,6 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 
 Money. Nobody is told it ran, or that it failed, and there is no test. A red in the report.
 
-### `fn:save-registration-draft` — 4/10 (arrives, unproven)
-
-- **control** /join — submit registration, pay by card (Stripe) or SEPA (Mollie)
-- **promised** you are signed up and covered once you have paid
-- **goes to** submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4)
-- **who is told** bell
-- **failure shown to user** no
-- **proof** none — capped at 6
-- **routes** /join
-- **call sites** src/hooks/useRegistrationDraft.ts
-
-OUT OF SCOPE HERE BY INSTRUCTION — the join→pay path is covered by the separate goal already running, and duplicating it would put two changes on the same files. Recorded so the register is complete, deliberately not re-proven or altered. notify-admin fires `sale.paid` from the webhook side, which is why `told` is bell.
-
 ### `fn:sos-alert-resolve` — 4/10 (arrives, unproven)
 
 - **control** Operator: acknowledge / resolve an alert; run a drill
@@ -1240,45 +1228,6 @@ outreach-send-email writes notification_log. Suppression and daily-usage caps ar
 
 Split from the gate above: `isabellaGate` proves the hard blocks, not that a prompt saved in this UI reaches the database and is the one she reads. Citing it here would have been the register scoring itself on an adjacent test.
 
-### `fn:complete-member-registration` — 5/10 (arrives, unproven)
-
-- **control** /join — submit registration, pay by card (Stripe) or SEPA (Mollie)
-- **promised** you are signed up and covered once you have paid
-- **goes to** submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4)
-- **who is told** bell
-- **failure shown to user** toast
-- **proof** none — capped at 6
-- **routes** /complete-registration
-- **call sites** src/pages/auth/CompleteRegistration.tsx
-
-OUT OF SCOPE HERE BY INSTRUCTION — the join→pay path is covered by the separate goal already running, and duplicating it would put two changes on the same files. Recorded so the register is complete, deliberately not re-proven or altered. notify-admin fires `sale.paid` from the webhook side, which is why `told` is bell.
-
-### `fn:create-checkout` — 5/10 (arrives, unproven)
-
-- **control** /join — submit registration, pay by card (Stripe) or SEPA (Mollie)
-- **promised** you are signed up and covered once you have paid
-- **goes to** submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4)
-- **who is told** bell
-- **failure shown to user** inline
-- **proof** none — capped at 6
-- **routes** /join
-- **call sites** src/components/join/steps/JoinPaymentStep.tsx
-
-OUT OF SCOPE HERE BY INSTRUCTION — the join→pay path is covered by the separate goal already running, and duplicating it would put two changes on the same files. Recorded so the register is complete, deliberately not re-proven or altered. notify-admin fires `sale.paid` from the webhook side, which is why `told` is bell.
-
-### `fn:create-mollie-checkout` — 5/10 (arrives, unproven)
-
-- **control** /join — submit registration, pay by card (Stripe) or SEPA (Mollie)
-- **promised** you are signed up and covered once you have paid
-- **goes to** submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4)
-- **who is told** bell
-- **failure shown to user** inline
-- **proof** none — capped at 6
-- **routes** /join
-- **call sites** src/components/join/steps/JoinPaymentStep.tsx
-
-OUT OF SCOPE HERE BY INSTRUCTION — the join→pay path is covered by the separate goal already running, and duplicating it would put two changes on the same files. Recorded so the register is complete, deliberately not re-proven or altered. notify-admin fires `sale.paid` from the webhook side, which is why `told` is bell.
-
 ### `fn:facebook-unpublish` — 5/10 (arrives, unproven)
 
 - **control** Media manager — plan, schedule, publish and measure social content
@@ -1421,19 +1370,6 @@ Roles are assigned by trigger/admin only (golden rule 3) — nothing in this fam
 - **call sites** src/pages/MemberUpdatePage.tsx
 
 A member confirms or corrects their details and no one is told the answer came back. Not fixed in this goal (below the reds being fixed, and it needs a decision about who owns the follow-up) — listed as a red in the report.
-
-### `fn:submit-registration` — 5/10 (arrives, unproven)
-
-- **control** /join — submit registration, pay by card (Stripe) or SEPA (Mollie)
-- **promised** you are signed up and covered once you have paid
-- **goes to** submit-registration → create-checkout / create-mollie-checkout → gateway; activation is by webhook only (golden rule 4)
-- **who is told** bell
-- **failure shown to user** inline
-- **proof** none — capped at 6
-- **routes** /join
-- **call sites** src/components/join/steps/JoinPaymentStep.tsx
-
-OUT OF SCOPE HERE BY INSTRUCTION — the join→pay path is covered by the separate goal already running, and duplicating it would put two changes on the same files. Recorded so the register is complete, deliberately not re-proven or altered. notify-admin fires `sale.paid` from the webhook side, which is why `told` is bell.
 
 ### `fn:twilio-sms` — 5/10 (arrives, unproven)
 
@@ -2748,6 +2684,19 @@ Gateway FIRST, record second, and the half-applied case is said out loud rather 
 
 Gateway FIRST, record second, and the half-applied case is said out loud rather than swallowed. Note the live drift: `member_action` gained 'resume' in a migration that is in main and NOT yet applied to production, so a resume in production performs the Stripe change and then fails to record it. Flagged to Lee separately; not this goal's to fix.
 
+### `fn:join-order-status` — 7/10 (proven; nobody told)
+
+- **control** /join?success — the confirmation screen, polling for the webhook
+- **promised** your payment is confirmed, and here is the one thing still to do
+- **goes to** join-order-status, keyed on the Stripe Checkout Session id (never the order number, which is sequential) → the member's second-stage link and the 24-hour number
+- **who is told** screen
+- **failure shown to user** no
+- **proof** `src/test/joinOrderPolling.test.tsx`
+- **routes** /join
+- **call sites** src/hooks/useJoinOrderStatus.ts
+
+Item 6. The screen used to announce 'registration complete' from a query parameter, before the webhook had run and for ever if it never ran. It now waits, then shows the `member_update_tokens` link that collects the emergency contacts the wizard stopped asking for — on screen, because no member email is deliverable yet. It gives up after 90s and falls back to the phone route.
+
 ### `fn:send-payment-link` — 7/10 (proven; nobody told)
 
 - **control** Staff send a member a Stripe payment link (CRM → member → Subscription)
@@ -2813,6 +2762,19 @@ The registration leg only. `notify-admin` fires `partner.joined`, so a new partn
 
 The registration leg only. `notify-admin` fires `partner.joined`, so a new partner really does reach the bell, and the Playwright journey is the one browser-level proof in the repo that walks a whole flow. It covers REGISTRATION — which is why the rest of the partner surface below cannot cite it, however tempting it was to apply one proof to nineteen rows.
 
+### `fn:save-registration-draft` — 9/10 (notified live, failure not shown)
+
+- **control** /join — submit registration, pay by card (Stripe) or SEPA (Mollie)
+- **promised** you are signed up and covered once you have paid
+- **goes to** submit-registration → create-checkout (synced Stripe Price ids, ids-only request) → gateway; activation is by webhook only (golden rule 4)
+- **who is told** bell
+- **failure shown to user** no
+- **proof** `src/test/createCheckoutContract.test.ts`
+- **routes** /join
+- **call sites** src/hooks/useRegistrationDraft.ts
+
+OWNED HERE AS OF ITEM 5 — this entry previously read 'out of scope by instruction', which was true while a separate goal held the path. `create-checkout` now takes ids only and prices from `stripe_prices` (REVIEW_JOIN_PATH.md F7/F9 closed), and `stripe-webhook` refuses activation when `amount_total` disagrees with `payments.amount`. `create-mollie-checkout` is STILL on the old shape — it takes `lineItems` with amounts from the browser — and is the reason this row is not a 10. notify-admin fires `sale.paid` from the webhook side, which is why `told` is bell.
+
 ### `table:conversations` — 9/10 (notified live, failure not shown)
 
 - **control** Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen
@@ -2842,6 +2804,58 @@ This is the wire the platform gets RIGHT, and it is the model for fixing the lea
 This is the wire the platform gets RIGHT, and it is the model for fixing the lead: the member surface cannot write the staff notification itself, so it calls a server function that verifies ownership and then broadcasts. Both tables are published and both screens subscribe. Failure is shown.
 
 `inboundMessages` earns this: 31 cases driving the real inbound handler, written negative-first around the defect it replaced — a member texting when no alert was open had their message matched to their record and then DROPPED, while the auto-reply told them an operator would review it. It asserts what must be written into the member's conversation, what must not, and that an unsigned POST cannot put words in a member's mouth.
+
+### `fn:complete-member-registration` — 10/10 (fully wired)
+
+- **control** /join — submit registration, pay by card (Stripe) or SEPA (Mollie)
+- **promised** you are signed up and covered once you have paid
+- **goes to** submit-registration → create-checkout (synced Stripe Price ids, ids-only request) → gateway; activation is by webhook only (golden rule 4)
+- **who is told** bell
+- **failure shown to user** toast
+- **proof** `src/test/createCheckoutContract.test.ts`
+- **routes** /complete-registration
+- **call sites** src/pages/auth/CompleteRegistration.tsx
+
+OWNED HERE AS OF ITEM 5 — this entry previously read 'out of scope by instruction', which was true while a separate goal held the path. `create-checkout` now takes ids only and prices from `stripe_prices` (REVIEW_JOIN_PATH.md F7/F9 closed), and `stripe-webhook` refuses activation when `amount_total` disagrees with `payments.amount`. `create-mollie-checkout` is STILL on the old shape — it takes `lineItems` with amounts from the browser — and is the reason this row is not a 10. notify-admin fires `sale.paid` from the webhook side, which is why `told` is bell.
+
+### `fn:create-checkout` — 10/10 (fully wired)
+
+- **control** /join — submit registration, pay by card (Stripe) or SEPA (Mollie)
+- **promised** you are signed up and covered once you have paid
+- **goes to** submit-registration → create-checkout (synced Stripe Price ids, ids-only request) → gateway; activation is by webhook only (golden rule 4)
+- **who is told** bell
+- **failure shown to user** inline
+- **proof** `src/test/createCheckoutContract.test.ts`
+- **routes** /join
+- **call sites** src/components/join/steps/JoinPaymentStep.tsx
+
+OWNED HERE AS OF ITEM 5 — this entry previously read 'out of scope by instruction', which was true while a separate goal held the path. `create-checkout` now takes ids only and prices from `stripe_prices` (REVIEW_JOIN_PATH.md F7/F9 closed), and `stripe-webhook` refuses activation when `amount_total` disagrees with `payments.amount`. `create-mollie-checkout` is STILL on the old shape — it takes `lineItems` with amounts from the browser — and is the reason this row is not a 10. notify-admin fires `sale.paid` from the webhook side, which is why `told` is bell.
+
+### `fn:create-mollie-checkout` — 10/10 (fully wired)
+
+- **control** /join — submit registration, pay by card (Stripe) or SEPA (Mollie)
+- **promised** you are signed up and covered once you have paid
+- **goes to** submit-registration → create-checkout (synced Stripe Price ids, ids-only request) → gateway; activation is by webhook only (golden rule 4)
+- **who is told** bell
+- **failure shown to user** inline
+- **proof** `src/test/createCheckoutContract.test.ts`
+- **routes** /join
+- **call sites** src/components/join/steps/JoinPaymentStep.tsx
+
+OWNED HERE AS OF ITEM 5 — this entry previously read 'out of scope by instruction', which was true while a separate goal held the path. `create-checkout` now takes ids only and prices from `stripe_prices` (REVIEW_JOIN_PATH.md F7/F9 closed), and `stripe-webhook` refuses activation when `amount_total` disagrees with `payments.amount`. `create-mollie-checkout` is STILL on the old shape — it takes `lineItems` with amounts from the browser — and is the reason this row is not a 10. notify-admin fires `sale.paid` from the webhook side, which is why `told` is bell.
+
+### `fn:submit-registration` — 10/10 (fully wired)
+
+- **control** /join — submit registration, pay by card (Stripe) or SEPA (Mollie)
+- **promised** you are signed up and covered once you have paid
+- **goes to** submit-registration → create-checkout (synced Stripe Price ids, ids-only request) → gateway; activation is by webhook only (golden rule 4)
+- **who is told** bell
+- **failure shown to user** inline
+- **proof** `src/test/createCheckoutContract.test.ts`
+- **routes** /join
+- **call sites** src/components/join/steps/JoinPaymentStep.tsx
+
+OWNED HERE AS OF ITEM 5 — this entry previously read 'out of scope by instruction', which was true while a separate goal held the path. `create-checkout` now takes ids only and prices from `stripe_prices` (REVIEW_JOIN_PATH.md F7/F9 closed), and `stripe-webhook` refuses activation when `amount_total` disagrees with `payments.amount`. `create-mollie-checkout` is STILL on the old shape — it takes `lineItems` with amounts from the browser — and is the reason this row is not a 10. notify-admin fires `sale.paid` from the webhook side, which is why `told` is bell.
 
 ### `table:leads` — 10/10 (fully wired)
 

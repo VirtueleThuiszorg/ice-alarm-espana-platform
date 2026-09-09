@@ -2,9 +2,10 @@ import { useTranslation } from "react-i18next";
 import { JoinWizardData } from "@/types/wizard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PartyPopper, CheckCircle2, Mail, Phone, Calendar, Smartphone, Package, ArrowRight, Download , ShieldAlert} from "lucide-react";
+import { PartyPopper, CheckCircle2, Mail, Phone, Calendar, Smartphone, Package, ArrowRight, Download, ShieldAlert, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useJoinOrderStatus } from "@/hooks/useJoinOrderStatus";
 
 import { telHref } from "@/lib/phone";
 interface JoinConfirmationStepProps {
@@ -13,10 +14,20 @@ interface JoinConfirmationStepProps {
 
 export function JoinConfirmationStep({ data }: JoinConfirmationStepProps) {
   const { settings: companySettings } = useCompanySettings();
-  // Null when settings_emergency_phone is unset (PENDING_FOR_LEE.md S6).
-  const phoneHref = telHref(companySettings.emergency_phone);
   const { t } = useTranslation();
-  
+
+  // Waits for the WEBHOOK, not for the redirect. `/join?success=true` arrives before
+  // stripe-webhook has run, so this screen used to announce "registration complete" on the
+  // strength of a query parameter and kept announcing it if the webhook never ran.
+  const order = useJoinOrderStatus(data.stripeSessionId);
+
+  // The number is preferred from the server's answer — the same setting, but read at the moment
+  // it is needed rather than from a cache warmed on an earlier page. Null when
+  // settings_emergency_phone is unset (PENDING_FOR_LEE.md S6), in which case no number is
+  // rendered at all: a promise to "call us" beside no number is the defect this replaced.
+  const phoneNumber = order.emergencyPhone ?? companySettings.emergency_phone;
+  const phoneHref = telHref(phoneNumber);
+
   const nextSteps = [
     { icon: Mail, titleKey: "joinWizard.confirmation.checkEmail", descKey: "joinWizard.confirmation.checkEmailDesc" },
     { icon: Phone, titleKey: "joinWizard.confirmation.saveNumber", descKey: "joinWizard.confirmation.saveNumberDesc" },
@@ -40,11 +51,24 @@ export function JoinConfirmationStep({ data }: JoinConfirmationStepProps) {
         </div>
       </div>
 
+      {/*
+        WHAT THIS CARD IS ALLOWED TO CLAIM. It used to say "registration complete" the moment
+        Stripe redirected — before the webhook had run, and forever if it never ran. The claim
+        now follows the order's real status, and while that is still unknown it says so.
+      */}
       <Card className="bg-primary/5 border-primary/20">
         <CardContent className="pt-6">
           <div className="flex items-center justify-center gap-2 text-primary">
-            <CheckCircle2 className="h-5 w-5" />
-            <span className="font-medium">{t("joinWizard.confirmation.registrationComplete")}</span>
+            {order.status === "polling" ? (
+              <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+            ) : (
+              <CheckCircle2 className="h-5 w-5" />
+            )}
+            <span className="font-medium">
+              {order.status === "polling"
+                ? t("joinWizard.confirmation.confirmingPayment", "Confirming your payment…")
+                : t("joinWizard.confirmation.registrationComplete")}
+            </span>
           </div>
           {data.orderId && (
             <p className="text-sm text-muted-foreground mt-2">
@@ -68,34 +92,73 @@ export function JoinConfirmationStep({ data }: JoinConfirmationStepProps) {
             {t("joinWizard.confirmation.oneThingLeftTitle", "One thing left: your emergency contacts")}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-3">
           <p className="text-sm font-semibold">
             {t(
               "joinWizard.confirmation.oneThingLeftBody",
               "Until we have at least one person to call, we can answer your alarm but we cannot reach your family.",
             )}
           </p>
+
           {/*
-            Two sentences, not one sentence with an optional number stuck on the end. "Call us
-            and we will take the details now" is a PROMISE; making it while rendering no number
-            to call would be the same class of defect as the invented number this replaced. If
-            settings_emergency_phone is unset (PENDING_FOR_LEE.md S6) the member is offered only
-            the route that actually works.
+            THE LINK, WHEN WE HAVE IT. This is the whole point of item 6: the second-stage token
+            is minted by the payment path and shown HERE, on the one surface we know the member
+            sees. It is not emailed — no member email is deliverable yet (GMAIL_APP_PASSWORD
+            unset, icealarm.es unverified with Resend, SPF/DKIM/DMARC unpublished) — so a screen
+            that only promised an email would be promising nothing.
+
+            A couple gets TWO links, labelled by name: two data subjects, two tokens, one
+            message (ONBOARDING_SPLIT.md option B and its mitigation).
+          */}
+          {order.status === "confirmed" && order.secondStage.length > 0 && (
+            <div className="space-y-2">
+              {order.secondStage.map((invite) => (
+                <Button
+                  key={invite.link}
+                  asChild
+                  size="lg"
+                  className="w-full gap-2 sm:w-auto"
+                >
+                  <a href={invite.link}>
+                    {invite.firstName
+                      ? t("joinWizard.confirmation.addContactsFor", "Add contacts for {{name}}", {
+                          name: invite.firstName,
+                        })
+                      : t("joinWizard.confirmation.addContactsNow", "Add my emergency contacts")}
+                    <ArrowRight className="h-4 w-4" />
+                  </a>
+                </Button>
+              ))}
+            </div>
+          )}
+
+          {order.status === "polling" && (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              {t(
+                "joinWizard.confirmation.preparingLink",
+                "Confirming your payment and preparing your form…",
+              )}
+            </p>
+          )}
+
+          {/*
+            The phone route, always. "Call us and we will take the details now" is a PROMISE,
+            and making it while rendering no number to call would be the same class of defect
+            as the invented number this replaced — so when the number is unset the member is
+            offered only the routes that actually work.
           */}
           {phoneHref ? (
             <p className="text-sm">
               {t(
                 "joinWizard.confirmation.oneThingLeftHow",
-                // No emailed-link promise: no such email is sent (GMAIL_APP_PASSWORD unset,
-                // icealarm.es unverified with Resend, SPF/DKIM/DMARC unpublished). Only the two
-                // routes that actually work.
                 "Call us and we will take the details now, or add them yourself once you sign in.",
               )}{" "}
               <a
                 href={phoneHref}
                 className="font-semibold text-primary underline underline-offset-2"
               >
-                {companySettings.emergency_phone}
+                {phoneNumber}
               </a>
             </p>
           ) : (

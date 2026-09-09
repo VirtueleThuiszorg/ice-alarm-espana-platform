@@ -122,6 +122,10 @@ export default function JoinWizard() {
     const success = searchParams.get("success");
     const cancelled = searchParams.get("cancelled");
     const orderNumber = searchParams.get("order");
+    // Captured BEFORE the params are cleared below. It is the confirmation screen's only
+    // credential for `join-order-status`, which will not answer to an order number because
+    // order numbers are sequential and the answer contains the second-stage link.
+    const sessionId = searchParams.get("session_id") ?? undefined;
 
     if (success === "true" && orderNumber) {
       // Payment was successful - load saved data and go to confirmation
@@ -161,6 +165,7 @@ export default function JoinWizard() {
             ...parsed,
             paymentComplete: true,
             orderId: orderNumber,
+            stripeSessionId: sessionId,
           });
           setCurrentStep(STEP_COMPLETE);
           toast.success(t("joinWizard.payment.success"));
@@ -171,6 +176,7 @@ export default function JoinWizard() {
             ...prev,
             paymentComplete: true,
             orderId: orderNumber,
+          stripeSessionId: sessionId,
           }));
           setCurrentStep(STEP_COMPLETE);
           toast.success(t("joinWizard.paymentSuccessRecovered", "Payment received! Your order is confirmed."));
@@ -181,6 +187,7 @@ export default function JoinWizard() {
           ...prev,
           paymentComplete: true,
           orderId: orderNumber,
+          stripeSessionId: sessionId,
         }));
         setCurrentStep(STEP_COMPLETE);
         toast.success(t("joinWizard.payment.success"));

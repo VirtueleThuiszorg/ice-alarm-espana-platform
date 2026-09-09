@@ -1,6 +1,16 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { sendEmail } from "./email.ts";
 import { buildMemberWelcomeEmail, memberWelcomeSubject } from "./welcome-email.ts";
+import { ensureMemberAuthUser } from "./member-auth.ts";
+import { ensureSecondStageToken } from "./second-stage.ts";
+
+/**
+ * The site the member is sent to. One place, because a wrong host here is a sign-in link that
+ * lands nowhere and a member who cannot get in.
+ */
+function memberSiteUrl(): string {
+  return (Deno.env.get("PUBLIC_SITE_URL") || "https://icealarm.es").replace(/\/+$/, "");
+}
 
 interface PostPaymentParams {
   orderId: string;
@@ -95,6 +105,57 @@ export async function handleSuccessfulPayment(
       console.log("Partner member activated:", partnerMemberId);
     }
   }
+
+  // 4b. The second stage: an account they can sign into, and the link that makes them reachable
+  //
+  // ORDER MATTERS AND THIS IS WHY IT IS HERE. Activation is above, because a member who has
+  // paid must be activated whatever else fails. This comes next — before device allocation and
+  // long before the emails — because the second-stage token is the SAFETY-relevant one: the
+  // wizard no longer collects emergency contacts, so until that link exists and is used, an
+  // operator answering this person's SOS has nobody to ring (REVIEW_JOIN_PATH.md F6).
+  //
+  // Neither helper throws. A login that could not be created and a token that failed to mint
+  // are both reported and logged; the paid-but-not-ready queue is what catches the member.
+  const onboarded: Array<{ memberId: string; userId: string | null; token: string | null }> = [];
+  let primaryActionLink: string | null = null;
+
+  for (const id of [memberId, ...(partnerMemberId ? [partnerMemberId] : [])]) {
+    const { data: person } = await supabase
+      .from("members")
+      .select("id, first_name, last_name, email, preferred_language")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (!person?.email) {
+      console.error(`Member ${id} has no email — no login and no second-stage link can be made.`);
+      onboarded.push({ memberId: id, userId: null, token: null });
+      continue;
+    }
+
+    const auth = await ensureMemberAuthUser(supabase, {
+      memberId: id,
+      email: person.email,
+      firstName: person.first_name,
+      lastName: person.last_name,
+      language: person.preferred_language,
+      redirectTo: `${memberSiteUrl()}/dashboard`,
+    });
+
+    // One token per member, never one per household: a couple is two data subjects, and a
+    // token that could write two people's medical records makes "who supplied this"
+    // unanswerable from the data (ONBOARDING_SPLIT.md option B).
+    const token = await ensureSecondStageToken(supabase, id);
+
+    if (id === memberId) primaryActionLink = auth.actionLink;
+    onboarded.push({ memberId: id, userId: auth.userId, token: token?.token ?? null });
+  }
+
+  console.log(
+    `Onboarded ${onboarded.length} member(s): ` +
+      onboarded
+        .map((o) => `${o.memberId} login=${o.userId ? "yes" : "NO"} link=${o.token ? "yes" : "NO"}`)
+        .join(", "),
+  );
 
   // 5. Auto-allocate EV-07B devices from stock, then move fulfilment_state paid → allocated
   //
@@ -312,7 +373,11 @@ export async function handleSuccessfulPayment(
       try {
         const orderNum = orderData?.order_number || orderId;
         const lang = memberData?.preferred_language || "es";
-        const dashboardUrl = "https://icealarm.es/dashboard";
+        // THE CTA IS THE SIGN-IN LINK. It used to be a bare `/dashboard` URL, which asked
+        // somebody who had never had an account — and, until 4b above, could not have had one
+        // — to log in. One click now signs them in. If the link could not be minted the button
+        // still has to go somewhere, so it falls back to the login page rather than nowhere.
+        const dashboardUrl = primaryActionLink ?? `${memberSiteUrl()}/login`;
 
         const emailHtml = buildMemberWelcomeEmail(
           memberData.first_name,

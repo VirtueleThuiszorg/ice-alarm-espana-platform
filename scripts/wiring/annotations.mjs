@@ -149,10 +149,13 @@ export const ABSENT_ADMIN_EVENTS = [
       a: "ai_runs",
       b: "notification_log|notify-admin",
       window: 4000,
-      scan: ["supabase/functions", "supabase/migrations"],
+      scan: ["supabase/functions", "supabase/migrations", "src"],
       why:
         "the function that records the failure is the natural place to raise the bell, so a " +
-        "notification anywhere in it would make this row false",
+        "notification anywhere in it would make this row false. `src` is scanned too, and that " +
+        "is not decoration: the dashboard surface that READS ai_runs was rewritten an hour " +
+        "after this row was written, and a client-side notifier is exactly the kind of fix " +
+        "somebody would put there",
     },
   },
   {

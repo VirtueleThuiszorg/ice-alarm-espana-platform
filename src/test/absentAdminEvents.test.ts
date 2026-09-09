@@ -16,7 +16,7 @@
 
 import { describe, it, expect } from "vitest";
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync, mkdtempSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync, mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -165,10 +165,28 @@ describe("A4 — Isabella failing tells nobody", () => {
     expect(aiRun).not.toMatch(/notification_log|notify-admin/);
   });
 
-  it("and the item 1 card is a READER, which is a different thing from being told", () => {
-    const card = read("src/components/admin/dashboard/IsabellaHealthCard.tsx");
-    expect(card).toContain("useIsabellaHealth");
-    expect(card).not.toMatch(/notification_log|notify-admin/);
+  it("and the item 1 surface is a READER, which is a different thing from being told", () => {
+    /*
+      FOUND BY THIS TEST GOING RED ON MAIN, one hour after it merged, and it is worth writing
+      down rather than quietly repointing.
+
+      Item 1 shipped `IsabellaHealthCard`; another session then replaced the two dashboard cards
+      with header pills and DELETED the card, so this assertion read a file that no longer
+      existed. The claim it makes was unaffected — the pill reads `useIsabellaHealth` and raises
+      nothing — so A4 still holds. Only the file name was wrong.
+
+      It is resolved by NAME PATTERN rather than by a path: whatever renders Isabella's health on
+      the admin dashboard, that is the surface, and a rename must not redden main. What is still
+      asserted strictly is the property — it reads, and it tells nobody.
+    */
+    const dir = "src/components/admin/dashboard";
+    const surfaces = readdirSync(join(ROOT, dir)).filter((f) => /^IsabellaHealth.*\.tsx$/.test(f));
+    expect(surfaces.length, `no Isabella health surface found in ${dir}`).toBeGreaterThan(0);
+    for (const f of surfaces) {
+      const src = read(`${dir}/${f}`);
+      expect(src, f).toContain("useIsabellaHealth");
+      expect(src, f).not.toMatch(/notification_log|notify-admin/);
+    }
   });
 });
 

@@ -789,6 +789,56 @@ Suggested language:
    - Do not attempt to resolve the issue yourself after escalation
    - Do not second-guess the need for escalation`;
 
+/**
+ * Record a CHAT turn in `ai_runs`.
+ *
+ * WHY THIS EXISTS. The admin dashboard's Isabella pill reads `ai_runs` — it is the
+ * only table that distinguishes "she ran and it worked" from "she ran and it broke".
+ * But the two `ai_runs` writes further down this file are in the AGENT/EVENT branch
+ * (they carry `agent.id` and `trigger_event_id`), and the chat branch returns long
+ * before reaching them — at the streaming Response, or at one of the two
+ * non-streaming returns. So chat, which is the surface the public actually touches,
+ * left no execution record at all.
+ *
+ * The visible symptom was a pill reading "No run has ever completed" while Isabella
+ * was answering questions on the live site. The pill was telling the truth about
+ * `ai_runs`; nothing was writing the row.
+ *
+ * `trigger_event_id` stays null: a chat turn is not an event-driven run, and
+ * `ai_events` is the inbox for those. `input_context` records the shape of the turn
+ * without its content — a chat message can carry anything a member typed, and an
+ * execution log is not a place to copy it.
+ *
+ * Never throws. A health-record write must not be able to break the answer it is
+ * recording; a failure here is logged and swallowed, which is the one case where
+ * swallowing is right.
+ */
+async function recordChatRun(
+  db: ReturnType<typeof createClient>,
+  fields: {
+    agentId: string;
+    status: "completed" | "failed";
+    durationMs: number;
+    tokensUsed: number | null;
+    streamed: boolean;
+    errorMessage?: string;
+  },
+): Promise<void> {
+  try {
+    await db.from("ai_runs").insert({
+      agent_id: fields.agentId,
+      trigger_event_id: null,
+      input_context: { source: "chat_widget", streamed: fields.streamed },
+      status: fields.status,
+      duration_ms: fields.durationMs,
+      tokens_used: fields.tokensUsed,
+      error_message: fields.errorMessage ?? null,
+    });
+  } catch (e) {
+    console.error("ai_runs chat record failed (answer unaffected):", e);
+  }
+}
+
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
@@ -987,6 +1037,8 @@ You are speaking directly with ${member?.first_name || "this member"}. Use their
                 }
               }
               const final = await stream.finalMessage();
+              const streamTokens =
+                (final.usage?.input_tokens ?? 0) + (final.usage?.output_tokens ?? 0);
               console.log(JSON.stringify({
                 event: "ai_run_success",
                 requestId,
@@ -994,12 +1046,30 @@ You are speaking directly with ${member?.first_name || "this member"}. Use their
                 source: "chat_widget",
                 streamed: true,
                 durationMs: Date.now() - startTime,
-                tokenCount: (final.usage?.input_tokens ?? 0) + (final.usage?.output_tokens ?? 0),
+                tokenCount: streamTokens,
               }));
+              // The run record the dashboard pill reads. Awaited before the final
+              // frame so a completed answer and a completed row cannot disagree.
+              await recordChatRun(supabase, {
+                agentId: agent.id,
+                status: "completed",
+                durationMs: Date.now() - startTime,
+                tokensUsed: streamTokens,
+                streamed: true,
+              });
               // Final frame carries the full text so the client can reconcile.
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, response: full })}\n\n`));
             } catch (streamError) {
               console.error("Anthropic stream error (chat):", streamError);
+              await recordChatRun(supabase, {
+                agentId: agent.id,
+                status: "failed",
+                durationMs: Date.now() - startTime,
+                tokensUsed: null,
+                streamed: true,
+                errorMessage:
+                  streamError instanceof Error ? streamError.message : String(streamError),
+              });
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "stream_failed" })}\n\n`));
             } finally {
               controller.close();
@@ -1030,6 +1100,14 @@ You are speaking directly with ${member?.first_name || "this member"}. Use their
         chatTokens = completion.tokensUsed;
       } catch (aiError) {
         console.error("Anthropic API error (chat):", aiError);
+        await recordChatRun(supabase, {
+          agentId: agent.id,
+          status: "failed",
+          durationMs: Date.now() - startTime,
+          tokensUsed: null,
+          streamed: false,
+          errorMessage: aiError instanceof Error ? aiError.message : String(aiError),
+        });
         if (isRateLimitError(aiError)) {
           return new Response(
             JSON.stringify({ error: "Rate limit exceeded, please try again later" }),
@@ -1047,6 +1125,13 @@ You are speaking directly with ${member?.first_name || "this member"}. Use their
         durationMs: Date.now() - startTime,
         tokenCount: chatTokens,
       }));
+      await recordChatRun(supabase, {
+        agentId: agent.id,
+        status: "completed",
+        durationMs: Date.now() - startTime,
+        tokensUsed: chatTokens,
+        streamed: false,
+      });
 
       return new Response(
         JSON.stringify({

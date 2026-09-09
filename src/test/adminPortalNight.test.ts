@@ -117,12 +117,17 @@ describe("admin portal night-audit source contracts", () => {
     expect(src).toMatch(/bg-white text-black/);
   });
 
-  it("SalesCommandStrip renders loading and error states instead of authoritative zeros", () => {
-    const src = read("src/components/admin/dashboard/SalesCommandStrip.tsx");
-    expect(src).toMatch(/const\s*{\s*data:\s*stats\s*,\s*isLoading\s*,\s*isError\s*}/);
+  it("the sales pill renders loading and error states instead of authoritative zeros", () => {
+    // WAS SalesCommandStrip, which became SalesTodayPill in the header when Lee corrected the
+    // dashboard layout (9 Sep). The property is unchanged and is the reason this assertion
+    // moved rather than being deleted: `€0 · 0 orders` is a true and common statement, so it
+    // must not also be what a failed read looks like. Asserted behaviourally as well, in
+    // src/test/dashboardHeaderPills.test.tsx.
+    const src = read("src/components/admin/dashboard/SalesTodayPill.tsx");
+    expect(src).toMatch(/const\s*{\s*data\s*,\s*isLoading\s*,\s*isError\s*}/);
     expect(src).toMatch(/if\s*\(isLoading\)/);
     expect(src).toMatch(/if\s*\(isError\)/);
-    expect(src).toContain("Sales stats failed to load");
+    expect(src).toContain("salesPill.failed");
   });
 
   it("SettingsPage tabs deep-link via a validated ?tab= param", () => {

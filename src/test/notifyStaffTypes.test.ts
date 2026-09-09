@@ -174,7 +174,9 @@ describe("every column the router selects by name exists", () => {
   // `.select("staff_id, token, platform")` is an opaque string to tsc. This is the half that
   // would have caught whatsapp_ev07b_alerts, and it is why the strings are parsed rather than
   // trusted.
-  const fn = read("supabase/functions/notify-staff/index.ts");
+  // The router's reads moved to `_shared/notify-staff-runtime.ts` when notify-admin started
+  // delegating to the same router — one implementation of the I/O, two doors.
+  const fn = read("supabase/functions/_shared/notify-staff-runtime.ts");
   const types = read("src/integrations/supabase/types.ts");
 
   const columnsOf = (table: string) => {

@@ -97,6 +97,40 @@ export const registrationSchema = z.object({
   testMode: z.boolean().optional(),
 });
 
+/**
+ * send-payment-link — a plan, who pays, and NOTHING ELSE.
+ *
+ * THE ABSENCE IS THE FEATURE. `checkoutSchema` below accepts `lineItems` with an `amount` per
+ * line, which is REVIEW_JOIN_PATH.md F7: the browser names the price and the server charges it.
+ * This schema has no amount, no total, no currency, no price id and no redirect URL — every one
+ * of those is derived server-side from `pricing_plans` / `pricing_settings` / `stripe_prices`.
+ * A field added here later is a field a browser can set, so adding one is a decision, not a
+ * convenience.
+ *
+ * `pendantCount` is capped at 2 for the same reason the SQL function caps it: two people, two
+ * pendants, and a quantity typo is money.
+ */
+export const sendPaymentLinkSchema = z.object({
+  memberId: z.string().uuid(),
+  membershipType: z.enum(["single", "couple"]),
+  billingFrequency: z.enum(["monthly", "annual"]),
+  pendantCount: z.number().int().min(0).max(2),
+  payer: z.discriminatedUnion("mode", [
+    // The ordinary case: the member pays for themselves, and `subscriptions.payer_id` stays
+    // NULL, which is what every existing row means (PAYER_MODEL.md §6).
+    z.object({ mode: z.literal("member") }),
+    // The adult child paying for a parent. Their identity is a `payers` row; the member's
+    // record stays theirs.
+    z.object({
+      mode: z.literal("other"),
+      fullName: z.string().trim().min(1).max(200),
+      email,
+      phone: phone.optional(),
+      relationship: z.string().trim().max(50).optional(),
+    }),
+  ]),
+});
+
 export const checkoutSchema = z.object({
   memberId: z.string().uuid(),
   orderId: z.string().uuid(),

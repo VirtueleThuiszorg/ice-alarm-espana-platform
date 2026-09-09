@@ -739,6 +739,26 @@ export const FAMILIES = [
       "this scores on its trigger rather than on a notification.",
   },
   {
+    wires: ["fn:send-payment-link"],
+    control: "Staff send a member a Stripe payment link (CRM → member → Subscription)",
+    promise:
+      "a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are " +
+      "switched on, and always shown on screen to copy",
+    dest:
+      "send-payment-link → create_payment_link_order (pending order + items + subscription + " +
+      "payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms " +
+      "and/or send-email; activation is stripe-webhook's alone",
+    told: "the payer (SMS + email), and activity_logs twice — the order created, and what was sent",
+    proof: "src/test/sendPaymentLink.test.ts",
+    note:
+      "Replaces a `Create Subscription` button that had NO onClick. The browser sends a plan, a " +
+      "billing frequency, a pendant count and who pays — no amounts: every line item names a " +
+      "Stripe Price id created from pricing_plans/pricing_settings, and the request schema has " +
+      "no amount field. Refuses rather than guessing when a Price is unsynced or stale. " +
+      "REQUIRES 20260909110000 in production (the SQL function it calls); until that is applied " +
+      "the button returns a 409 naming the missing function.",
+  },
+  {
     wires: ["fn:admin-subscription-action", "fn:cancel-mollie-subscription"],
     control: "Staff pause / resume / cancel a subscription",
     promise: "billing changes, and the record says who changed it",

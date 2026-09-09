@@ -28,8 +28,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   3  █
 ```
 
-171 distinct wires across 537 call sites and 108 routes.
-183 distinct wires across 628 call sites and 108 routes.
+183 distinct wires across 629 call sites and 108 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
@@ -1577,8 +1576,6 @@ Read-only, so nothing to notify. `get_user_role_info` is on the critical path fo
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /admin
-- **call sites** src/components/admin/dashboard/SalesCommandStrip.tsx
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
 - **call sites** src/hooks/useSalesCommandStats.ts
 
 Read-only, so nothing to notify. `get_user_role_info` is on the critical path for every protected route: if it fails, the guard sees no role.

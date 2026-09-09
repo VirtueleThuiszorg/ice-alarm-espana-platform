@@ -165,10 +165,15 @@ describe("A4 — Isabella failing tells nobody", () => {
     expect(aiRun).not.toMatch(/notification_log|notify-admin/);
   });
 
-  it("and the item 1 card is a READER, which is a different thing from being told", () => {
-    const card = read("src/components/admin/dashboard/IsabellaHealthCard.tsx");
-    expect(card).toContain("useIsabellaHealth");
-    expect(card).not.toMatch(/notification_log|notify-admin/);
+  it("and the item 1 PILL is a READER, which is a different thing from being told", () => {
+    // Was IsabellaHealthCard.tsx. That card became IsabellaHealthPill.tsx when Lee corrected the
+    // dashboard layout (#247), and this assertion and that rename landed in main from two
+    // different branches on the same morning — so the suite went red on a file neither PR was
+    // wrong about. The PROPERTY is untouched: A4 says a failed run tells nobody, and a dashboard
+    // widget that has to be opened is a reader, not a notifier.
+    const pill = read("src/components/admin/dashboard/IsabellaHealthPill.tsx");
+    expect(pill).toContain("useIsabellaHealth");
+    expect(pill).not.toMatch(/notification_log|notify-admin/);
   });
 });
 

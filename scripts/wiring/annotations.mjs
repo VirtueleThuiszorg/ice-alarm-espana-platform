@@ -133,32 +133,6 @@ export const ABSENT_ADMIN_EVENTS = [
     },
   },
   {
-    id: "A4",
-    event: "Isabella cannot complete a run (a failed `ai_runs` row)",
-    audience: "admin",
-    expectation:
-      "somebody is told the assistant is down. On 8 Sep the Anthropic balance hit zero, every run " +
-      "failed all day, and the dashboard said ACTIVE",
-    today:
-      "`ai-run` records the failure in `ai_runs.error_message` and tells nobody. The health card " +
-      "added in item 1 makes it VISIBLE on the admin dashboard — which is a reader, not a " +
-      "notifier: it says so only to somebody who opens that page",
-    owner: "the wiring session",
-    absence: {
-      kind: "absentPair",
-      a: "ai_runs",
-      b: "notification_log|notify-admin",
-      window: 4000,
-      scan: ["supabase/functions", "supabase/migrations", "src"],
-      why:
-        "the function that records the failure is the natural place to raise the bell, so a " +
-        "notification anywhere in it would make this row false. `src` is scanned too, and that " +
-        "is not decoration: the dashboard surface that READS ai_runs was rewritten an hour " +
-        "after this row was written, and a client-side notifier is exactly the kind of fix " +
-        "somebody would put there",
-    },
-  },
-  {
     id: "A5",
     event: "A price was edited without syncing it to Stripe",
     audience: "admin (super_admin)",
@@ -755,6 +729,26 @@ export const FAMILIES = [
     note:
       "The database refuses a `member_action` row without a reason and an actor, which is why " +
       "this scores on its trigger rather than on a notification.",
+  },
+  {
+    wires: ["fn:send-payment-link"],
+    control: "Staff send a member a Stripe payment link (CRM → member → Subscription)",
+    promise:
+      "a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are " +
+      "switched on, and always shown on screen to copy",
+    dest:
+      "send-payment-link → create_payment_link_order (pending order + items + subscription + " +
+      "payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms " +
+      "and/or send-email; activation is stripe-webhook's alone",
+    told: "the payer (SMS + email), and activity_logs twice — the order created, and what was sent",
+    proof: "src/test/sendPaymentLink.test.ts",
+    note:
+      "Replaces a `Create Subscription` button that had NO onClick. The browser sends a plan, a " +
+      "billing frequency, a pendant count and who pays — no amounts: every line item names a " +
+      "Stripe Price id created from pricing_plans/pricing_settings, and the request schema has " +
+      "no amount field. Refuses rather than guessing when a Price is unsynced or stale. " +
+      "REQUIRES 20260909110000 in production (the SQL function it calls); until that is applied " +
+      "the button returns a 409 naming the missing function.",
   },
   {
     wires: ["fn:admin-subscription-action", "fn:cancel-mollie-subscription"],

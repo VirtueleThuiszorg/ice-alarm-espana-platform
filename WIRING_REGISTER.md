@@ -21,6 +21,9 @@ main cannot drift from the code in main. To change a row, change the wire or the
  7 │  12  ████
  6 │  26  ██████████
  5 │  91  ██████████████████████████████████
+ 7 │  10  ████
+ 6 │  25  █████████
+ 5 │  92  ██████████████████████████████████
  4 │  48  ██████████████████
  3 │   0  
  2 │   0  
@@ -29,12 +32,15 @@ main cannot drift from the code in main. To change a row, change the wire or the
 ```
 
 187 distinct wires across 633 call sites and 108 routes.
+185 distinct wires across 631 call sites and 108 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
 | 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 2 | 1% |
 | 7–9 | arrives and proven; notification missing or on a channel not live today | 17 | 9% |
 | 4–6 | arrives; nobody told; nothing proves it | 165 | 88% |
+| 7–9 | arrives and proven; notification missing or on a channel not live today | 15 | 8% |
+| 4–6 | arrives; nobody told; nothing proves it | 165 | 89% |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0% |
 | 0 | dead control | 3 | 2% |
 
@@ -64,10 +70,11 @@ things, and a control with no wire cannot do anything:
 | kind | what it is | call sites |
 |---|---|---:|
 | `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 345 |
+| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 342 |
 | `fn` | `supabase.functions.invoke(f)` — an edge function | 78 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 4 |
 | `channel` | `postgres_changes` — a realtime subscription | 51 |
-| `auth` | `supabase.auth.*` — sign in, sign out, register, password reset | 19 |
+| `auth` | `supabase.auth.*` — sign in, sign out, register, password reset | 20 |
 | `storage` | `supabase.storage.from(b).upload/remove/…` — a file put somewhere | 14 |
 | `link` | `mailto:` / `tel:` / `wa.me` — a hand-off off the platform | 63 |
 | `open` | `window.open` / `window.location` — the SPA being left | 59 |
@@ -106,7 +113,6 @@ fixed item cannot sit here looking broken, and a broken item cannot be quietly d
 | **A1** | Every `ai_events` row — including `sale.paid` | admin / owner — Isabella's Boss & Owner Intelligence switches do what their labels say: a new sale, a cancellation, a failed payment, the daily briefing, the weekly revenue summary, a negative-feedback alert | `ai-dispatch-events` is the only consumer of `ai_events`, and NOTHING INVOKES IT — no client call, no cron schedule, no trigger. `post-payment.ts` writes a `sale.paid` row on every paid order and it is read by nobody; `ai-run` and `ai-execute-action` write more. So all seven owner-intelligence switches in `isabella_settings` can be turned ON and produce nothing at all, which is the same shape of defect as the Isabella status banner reading ACTIVE off a switch (item 1). Worth knowing before it is wired: `supabase/config.toml` sets `verify_jwt = false` on it, so the endpoint is PUBLIC — whoever gives it a caller has to give it auth in the same PR | the wiring session |
 | **A2** | A member's card is declined (`invoice.payment_failed`) | staff (bell + attention queue) — P4, decided: Stripe retries → `past_due` → monitoring CONTINUES → STAFF ARE TOLD. Somebody has to ring the member before the retries run out, or a life-safety subscription lapses quietly | `stripe-webhook` sets `subscriptions.status = 'past_due'` and returns. No bell, no task, no queue, no email. The only place it surfaces is a status badge on a screen somebody would have to already be looking at | the wiring session (the fix is a notifier; the webhook itself is human-gated) |
 | **A3** | A subscription is cancelled at Stripe (`customer.subscription.deleted`) | admin — the `cancellation_alert` switch exists in `isabella_settings` and an owner expects to hear that somebody stopped paying — it is the single most important number in the business | `stripe-webhook` sets `status = 'cancelled'` and returns. Nothing is written anywhere a human is required to look | the wiring session |
-| **A4** | Isabella cannot complete a run (a failed `ai_runs` row) | admin — somebody is told the assistant is down. On 8 Sep the Anthropic balance hit zero, every run failed all day, and the dashboard said ACTIVE | `ai-run` records the failure in `ai_runs.error_message` and tells nobody. The health card added in item 1 makes it VISIBLE on the admin dashboard — which is a reader, not a notifier: it says so only to somebody who opens that page | the wiring session |
 | **A5** | A price was edited without syncing it to Stripe | admin (super_admin) — the person who changed the price is told it is not live yet. Until the sync runs, every screen shows the new figure and Stripe would charge the old one | nothing watches for it. `send-payment-link` REFUSES at the point of use (`PRICE_STALE`, item 4) and the pricing editor shows drift when it is open, but no notification is raised — so the first person to find out is a customer or the staff member trying to send them a link | the wiring session |
 | **A6** | An order sits in `awaiting_payment` — the checkout was abandoned | staff — somebody chases it. The state exists precisely so an unpaid order is distinguishable (F14, `20260908120400`), and a staff-sent payment link (item 4) creates one every time | nothing sweeps the state and nothing is raised when an order stays in it. The fulfilment dispatcher covers the edges FROM `paid` onwards; the edge into `awaiting_payment` has no audience at all | the wiring session |
 
@@ -115,7 +121,6 @@ The checks, verified on every build:
 - **A1** — `ai-dispatch-events` appears nowhere in src, supabase/functions, supabase/migrations, .github/workflows. an invocation anywhere — invoke(), fetch, cron.schedule — would make this row false
 - **A2** — `invoice.payment_failed` and `notification_log|notify-admin|notify_staff` never appear within 900 characters of each other in the same file (supabase/functions, supabase/migrations). a notification raised anywhere near that case would make this row false
 - **A3** — `customer.subscription.deleted` and `notification_log|notify-admin` never appear within 900 characters of each other in the same file (supabase/functions, supabase/migrations). same shape as A2: a bell notification, a task or an admin notifier raised anywhere near that case would make this row false
-- **A4** — `ai_runs` and `notification_log|notify-admin` never appear within 4000 characters of each other in the same file (supabase/functions, supabase/migrations, src). the function that records the failure is the natural place to raise the bell, so a notification anywhere in it would make this row false. `src` is scanned too, and that is not decoration: the dashboard surface that READS ai_runs was rewritten an hour after this row was written, and a client-side notifier is exactly the kind of fix somebody would put there
 - **A5** — `stripe_prices` and `notification_log|notify-admin` never appear within 4000 characters of each other in the same file (supabase/functions, supabase/migrations). a notifier that reads stripe_prices would make this row false
 - **A6** — `awaiting_payment` and `notification_log|notify-admin` never appear within 4000 characters of each other in the same file (supabase/functions, supabase/migrations). a sweep or a trigger raising the bell for this state would make this row false
 
@@ -128,6 +133,7 @@ The checks, verified on every build:
 | **4** | `fn:track-invite-view` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
 | **4** | `fn:twilio-call-me` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
 | **4** | `link:wa.me` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | — | none | 12 |
+| **5** | `auth:setSession` | Accept a staff or partner invite from an emailed link — this link makes your account real | auth.setSession with the tokens in the invite URL, then the *-complete-invite function | self | — | none | 3 |
 | **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
 | **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
@@ -156,6 +162,7 @@ The checks, verified on every build:
 | **4** | `fn:staff-validate-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 1 |
 | **4** | `fn:validate-member-update-token` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | — | none | 1 |
 | **5** | `auth:resetPasswordForEmail` | Forgot password → email link → set a new one — we will email you a link to get back in | resetPasswordForEmail sends via GoTrue's own mailer; the link returns to /reset-password, where updateUser sets the password | email | toast | none | 1 |
+| **5** | `auth:setSession` | Accept a staff or partner invite from an emailed link — this link makes your account real | auth.setSession with the tokens in the invite URL, then the *-complete-invite function | self | — | none | 3 |
 | **5** | `auth:signInWithPassword` | Sign in — /login (member), /staff/login, /partner/login — your password gets you into your account | supabase.auth.signInWithPassword → GoTrue; the session then decides every ProtectedRoute | self | — | none | 3 |
 | **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
 | **5** | `auth:updateUser` | Forgot password → email link → set a new one — we will email you a link to get back in | resetPasswordForEmail sends via GoTrue's own mailer; the link returns to /reset-password, where updateUser sets the password | email | toast | none | 1 |
@@ -174,7 +181,6 @@ The checks, verified on every build:
 | **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
 | **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 9 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
-| **6** | `auth:setSession` | Accept a staff or partner invite from an emailed link — this link makes your account real | auth.setSession with the tokens in the invite URL, then the *-complete-invite function | self | toast | none | 2 |
 
 ### Member dashboard
 
@@ -187,6 +193,7 @@ The checks, verified on every build:
 | **4** | `fn:twilio-call-me` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
 | **4** | `link:wa.me` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | — | none | 12 |
 | **4** | `table:staff` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 11 |
+| **5** | `auth:setSession` | Accept a staff or partner invite from an emailed link — this link makes your account real | auth.setSession with the tokens in the invite URL, then the *-complete-invite function | self | — | none | 3 |
 | **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
 | **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
 | **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
@@ -241,6 +248,7 @@ The checks, verified on every build:
 | **4** | `table:partner_invites` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 3 |
 | **4** | `table:staff` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 11 |
 | **4** | `table:staff_presence` | Write a handover note; go on/off duty — the next shift knows what happened | shift_notes / staff_presence | screen | — | none | 1 |
+| **5** | `auth:setSession` | Accept a staff or partner invite from an emailed link — this link makes your account real | auth.setSession with the tokens in the invite URL, then the *-complete-invite function | self | — | none | 3 |
 | **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
 | **5** | `channel:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 2 |
 | **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
@@ -280,6 +288,7 @@ The checks, verified on every build:
 | **7** | `channel:tasks` | Call-centre dashboard — courtesy-call list auto-refresh — the courtesy-call list stays current while the operator works | supabase.channel('dashboard-courtesy-calls') → fetchCourtesyCalls() | screen | — | `scripts/rls/wiring.sql` | 1 |
 | **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
 | **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
+| **7** | `fn:send-payment-link` | Staff send a member a Stripe payment link (CRM → member → Subscription) — a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are switched on, and always shown on screen to copy | send-payment-link → create_payment_link_order (pending order + items + subscription + payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms and/or send-email; activation is stripe-webhook's alone | the payer (SMS + email), and activity_logs twice — the order created, and what was sent | mutation onError | `src/test/sendPaymentLink.test.ts` | 1 |
 | **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
 | **7** | `table:staff_push_tokens` | "Enable notifications on this phone" — Admin → Settings → Notifications, and Staff preferences — an alert reaches you when this page is closed | staff_push_tokens, one row per device keyed on the FCM registration token; read by the notify-staff router's push transport (_shared/fcm.ts) and pruned by it when Google says a token is dead | push | toast | `src/test/pushClient.test.ts` | 1 |
 | **9** | `fn:notify-fulfilment` | Order state transition fan-out — paid → allocated → programmed → dispatched → delivered → tested — the next person in the chain knows the device is theirs to move | notify-fulfilment → member_notification_log, one row per channel decision | bell | — | `src/test/notifyFulfilmentDispatcher.test.ts` | 1 |
@@ -323,6 +332,7 @@ The checks, verified on every build:
 | **4** | `table:partner_invites` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 3 |
 | **4** | `table:social_posts` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | — | none | 3 |
 | **4** | `table:staff` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 11 |
+| **5** | `auth:setSession` | Accept a staff or partner invite from an emailed link — this link makes your account real | auth.setSession with the tokens in the invite URL, then the *-complete-invite function | self | — | none | 3 |
 | **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
 | **5** | `channel:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 2 |
 | **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
@@ -429,6 +439,7 @@ The checks, verified on every build:
 | **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
 | **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
 | **7** | `fn:notify-staff` | Admin → Settings → Notifications: the event × channel switches, the per-staff matrix beneath, and "send a test notification" — the person who needs to know is told, on a channel that works | notification_routes (company policy) and staff_notification_prefs (the person), both read by the notify-staff router on every send — so a switch changes the next notification, with no redeploy. Each change writes an activity_logs row carrying the old and new value. | screen | mutation onError | `src/test/notificationMatrix.test.ts` | 1 |
+| **7** | `fn:send-payment-link` | Staff send a member a Stripe payment link (CRM → member → Subscription) — a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are switched on, and always shown on screen to copy | send-payment-link → create_payment_link_order (pending order + items + subscription + payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms and/or send-email; activation is stripe-webhook's alone | the payer (SMS + email), and activity_logs twice — the order created, and what was sent | mutation onError | `src/test/sendPaymentLink.test.ts` | 1 |
 | **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
 | **7** | `table:notification_routes` | Admin → Settings → Notifications: the event × channel switches, the per-staff matrix beneath, and "send a test notification" — the person who needs to know is told, on a channel that works | notification_routes (company policy) and staff_notification_prefs (the person), both read by the notify-staff router on every send — so a switch changes the next notification, with no redeploy. Each change writes an activity_logs row carrying the old and new value. | screen | toast | `src/test/notificationMatrix.test.ts` | 1 |
 | **7** | `table:staff_notification_prefs` | Admin → Settings → Notifications: the event × channel switches, the per-staff matrix beneath, and "send a test notification" — the person who needs to know is told, on a channel that works | notification_routes (company policy) and staff_notification_prefs (the person), both read by the notify-staff router on every send — so a switch changes the next notification, with no redeploy. Each change writes an activity_logs row carrying the old and new value. | screen | toast | `src/test/notificationMatrix.test.ts` | 1 |
@@ -449,6 +460,7 @@ The checks, verified on every build:
 | **4** | `link:wa.me` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | — | none | 12 |
 | **4** | `table:partner_invites` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 3 |
 | **4** | `table:social_posts` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | — | none | 3 |
+| **5** | `auth:setSession` | Accept a staff or partner invite from an emailed link — this link makes your account real | auth.setSession with the tokens in the invite URL, then the *-complete-invite function | self | — | none | 3 |
 | **5** | `auth:signInWithPassword` | Sign in — /login (member), /staff/login, /partner/login — your password gets you into your account | supabase.auth.signInWithPassword → GoTrue; the session then decides every ProtectedRoute | self | — | none | 3 |
 | **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
 | **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
@@ -466,7 +478,6 @@ The checks, verified on every build:
 | **5** | `table:partner_post_links` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
 | **5** | `table:partner_presentations` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | toast | none | 1 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
-| **6** | `auth:setSession` | Accept a staff or partner invite from an emailed link — this link makes your account real | auth.setSession with the tokens in the invite URL, then the *-complete-invite function | self | toast | none | 2 |
 | **6** | `storage:partner-presentations` | Upload a website image, a staff document, a post image, a partner presentation, an agent avatar — the file is saved and will show where you put it | Supabase Storage buckets of those names | self | toast | none | 1 |
 | **9** | `fn:partner-register` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | — | `e2e/partnerJourney.spec.ts` | 1 |
 | **9** | `fn:partner-verify` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | — | `e2e/partnerJourney.spec.ts` | 1 |
@@ -1155,6 +1166,19 @@ See channel:shift_notes — the note lands, the live update does not.
 - **call sites** src/pages/auth/ForgotPassword.tsx
 
 THE MOST CONSEQUENTIAL EMAIL IN THE PRODUCT, and the register was not asking about it. If GoTrue's SMTP is unconfigured or its redirect is wrong, the user sees a success message and no email ever arrives — the contact-form failure shape exactly, on the path someone locked out of a life-safety account has to use. `RecoveryRedirect` in App.tsx also has a 10-second fallback that navigates to /reset-password whether or not PASSWORD_RECOVERY fired, so a broken token lands on the form rather than on an error. Cannot be settled from the repo — it is a Supabase Auth setting, and it is in the list for Lee.
+
+### `auth:setSession` — 5/10 (arrives, unproven)
+
+- **control** Accept a staff or partner invite from an emailed link
+- **promised** this link makes your account real
+- **goes to** auth.setSession with the tokens in the invite URL, then the *-complete-invite function
+- **who is told** self
+- **failure shown to user** no
+- **proof** none — capped at 6
+- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **call sites** src/lib/authSessionSync.ts, src/pages/partner/PartnerInvitePage.tsx, src/pages/staff/StaffInvitePage.tsx
+
+Golden rule 3 lives near here: an invite establishes a session, and the ROLE must still come from the trigger/admin path rather than from anything in the link. Nothing here writes a role.
 
 ### `auth:signInWithPassword` — 5/10 (arrives, unproven)
 
@@ -2326,19 +2350,6 @@ Analytics. Present on every route because PageTracker is mounted in App.tsx, not
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
 
-### `auth:setSession` — 6/10 (arrives, unproven)
-
-- **control** Accept a staff or partner invite from an emailed link
-- **promised** this link makes your account real
-- **goes to** auth.setSession with the tokens in the invite URL, then the *-complete-invite function
-- **who is told** self
-- **failure shown to user** toast
-- **proof** none — capped at 6
-- **routes** /partner/invite, /staff/invite
-- **call sites** src/pages/partner/PartnerInvitePage.tsx, src/pages/staff/StaffInvitePage.tsx
-
-Golden rule 3 lives near here: an invite establishes a session, and the ROLE must still come from the trigger/admin path rather than from anything in the link. Nothing here writes a role.
-
 ### `fn:ai-execute-action` — 6/10 (arrives, unproven)
 
 - **control** Isabella executes a tool action
@@ -2767,6 +2778,18 @@ Gateway FIRST, record second, and the half-applied case is said out loud rather 
 - **call sites** src/hooks/useNotificationMatrix.ts
 
 The switches are the fix for the schema this replaces: a boolean COLUMN PER EVENT on notification_settings, which is how `whatsapp_ev07b_alerts` came to be read by notify-admin without any migration ever creating it. THE FOUR ALWAYS-LOUD EVENTS RENDER AS LOCKED, not as switches: the router ignores both tables for them, and a switch that cannot silence the alarm saying the SOS ladder is broken must not look like one. Every dark cell names which of the three gates stopped it, and `wouldReach` is driven against the router's own `planNotifications` across all 19 events × 4 channels × both switches so the screen cannot claim something the router will not do. Scored on the screen only: until the migration is applied the matrix says so rather than rendering an empty grid.
+### `fn:send-payment-link` — 7/10 (proven; nobody told)
+
+- **control** Staff send a member a Stripe payment link (CRM → member → Subscription)
+- **promised** a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are switched on, and always shown on screen to copy
+- **goes to** send-payment-link → create_payment_link_order (pending order + items + subscription + payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms and/or send-email; activation is stripe-webhook's alone
+- **who is told** the payer (SMS + email), and activity_logs twice — the order created, and what was sent
+- **failure shown to user** mutation onError
+- **proof** `src/test/sendPaymentLink.test.ts`
+- **routes** /admin/members/:id, /call-centre/members/:id
+- **call sites** src/hooks/useSendPaymentLink.ts
+
+Replaces a `Create Subscription` button that had NO onClick. The browser sends a plan, a billing frequency, a pendant count and who pays — no amounts: every line item names a Stripe Price id created from pricing_plans/pricing_settings, and the request schema has no amount field. Refuses rather than guessing when a Price is unsynced or stale. REQUIRES 20260909110000 in production (the SQL function it calls); until that is applied the button returns a 409 naming the missing function.
 
 ### `table:activity_logs` — 7/10 (proven; no notification owed)
 

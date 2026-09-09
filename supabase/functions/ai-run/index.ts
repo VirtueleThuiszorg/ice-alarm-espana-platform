@@ -4,6 +4,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { functionKeyForTrigger, isIsabellaFunctionAllowed } from "../_shared/isabella-gate.ts";
 import { decideVerification, applyEscalation, verificationDirective } from "../_shared/verification-gate.ts";
 import { ISABELLA_MODEL, isabellaComplete, isabellaStream, isRateLimitError, toAnthropicTurns } from "../_shared/anthropic.ts";
+import { reportIsabellaDown } from "../_shared/isabella-down.ts";
 
 
 
@@ -813,6 +814,42 @@ Suggested language:
  * recording; a failure here is logged and swallowed, which is the one case where
  * swallowing is right.
  */
+/**
+ * Tell the admins the assistant is failing.
+ *
+ * ONE FUNNEL for both failure paths in this file, so a third one cannot be added silently and
+ * notify nobody — which is precisely the defect this fixes. On 8 September the Anthropic balance
+ * hit zero, every run failed all day, each failure was recorded faithfully in
+ * `ai_runs.error_message`, and the dashboard said ACTIVE.
+ *
+ * Deduplicated to one notification per clock hour by an idempotency key the router enforces with
+ * a unique index — otherwise that day would have produced one WhatsApp per failed run.
+ *
+ * NEVER THROWS, and never changes what the caller returns. The caller is already handling an AI
+ * error; an exception here would turn a degraded assistant into a 500 for the member who was
+ * mid-conversation.
+ */
+async function notifyIsabellaDown(baseUrl: string, serviceKey: string, errorMessage: string): Promise<void> {
+  const outcome = await reportIsabellaDown(errorMessage, {
+    post: async (body) => {
+      const response = await fetch(`${baseUrl}/functions/v1/notify-staff`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${serviceKey}`,
+        },
+        body: JSON.stringify(body),
+      });
+      return { ok: response.ok, status: response.status };
+    },
+  });
+  if (outcome !== "sent") {
+    // Observable, and deliberately not an error the caller sees: the answer already failed, and
+    // the notification failing on top of it is a second fact, not a worse one.
+    console.error("isabella.down notification not delivered:", outcome);
+  }
+}
+
 async function recordChatRun(
   db: ReturnType<typeof createClient>,
   fields: {
@@ -822,6 +859,8 @@ async function recordChatRun(
     tokensUsed: number | null;
     streamed: boolean;
     errorMessage?: string;
+    /** Where notify-staff lives, and the key to reach it with. Absent = record only. */
+    notify?: { baseUrl: string; serviceKey: string };
   },
 ): Promise<void> {
   try {
@@ -836,6 +875,16 @@ async function recordChatRun(
     });
   } catch (e) {
     console.error("ai_runs chat record failed (answer unaffected):", e);
+  }
+
+  // AFTER the row, so the notification and the record cannot disagree, and so a failure to
+  // notify cannot cost the record the health pill reads.
+  if (fields.status === "failed" && fields.notify) {
+    await notifyIsabellaDown(
+      fields.notify.baseUrl,
+      fields.notify.serviceKey,
+      fields.errorMessage ?? "Isabella run failed with no error message",
+    );
   }
 }
 
@@ -1069,6 +1118,7 @@ You are speaking directly with ${member?.first_name || "this member"}. Use their
                 streamed: true,
                 errorMessage:
                   streamError instanceof Error ? streamError.message : String(streamError),
+                notify: { baseUrl: SUPABASE_URL!, serviceKey: SUPABASE_SERVICE_ROLE_KEY! },
               });
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "stream_failed" })}\n\n`));
             } finally {
@@ -1107,6 +1157,7 @@ You are speaking directly with ${member?.first_name || "this member"}. Use their
           tokensUsed: null,
           streamed: false,
           errorMessage: aiError instanceof Error ? aiError.message : String(aiError),
+          notify: { baseUrl: SUPABASE_URL!, serviceKey: SUPABASE_SERVICE_ROLE_KEY! },
         });
         if (isRateLimitError(aiError)) {
           return new Response(
@@ -1523,14 +1574,20 @@ If no action is needed, respond with {"actions": [], "analysis": "your analysis 
       console.error("Anthropic API error (agent):", aiError);
 
       // Update run with error
+      const agentErrorMessage = `Anthropic API error: ${aiError instanceof Error ? aiError.message : "unknown"}`;
       await supabase
         .from("ai_runs")
         .update({
           status: "failed",
-          error_message: `Anthropic API error: ${aiError instanceof Error ? aiError.message : "unknown"}`,
+          error_message: agentErrorMessage,
           duration_ms: Date.now() - startTime,
         })
         .eq("id", runRecord.id);
+
+      // The agent/event branch records failures here rather than through recordChatRun, so the
+      // notification has to be raised here too — the same funnel, one clock-hour key, so a
+      // chat failure and an agent failure in the same hour are one notification, not two.
+      await notifyIsabellaDown(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!, agentErrorMessage);
 
       if (isRateLimitError(aiError)) {
         return new Response(

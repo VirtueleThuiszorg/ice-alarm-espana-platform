@@ -13,6 +13,54 @@
 
 ---
 
+## Sessions — 2026-09-09 · **the idle logout is gone, and the browser decides**
+
+A session now lasts until the browser is closed or the user signs out. Nothing expires it on a
+timer.
+
+**What was wrong.** `useSessionTimeout` signed **everybody** out after 30 minutes without a
+mousemove, with a 5-minute warning dialog. It was the *only* reason anybody ever re-logged-in or
+re-entered a TOTP code: Supabase persists the session and refreshes the access token by itself,
+so nothing else was expiring. And it was worst for the people it mattered most to — the SOS
+ladder's tier 1 is an operator watching an open screen, and an operator who has been reading
+rather than clicking for half an hour is doing their job, not idling.
+
+| # | requirement | state | proof |
+|---|---|---|---|
+| 1 | no idle logout for staff/admin; none for members (Lee's preference) | ✅ | hook and dialog **deleted**; the three `TIMEOUTS.SESSION_*` constants removed so there is no number left to re-tune. `sessionPersistence.test.tsx` drives 31 minutes and 8 hours of fake time and asserts the token is still there |
+| 2 | "Keep me signed in on this device", OFF for staff, ON for members | ✅ | `authStorage.ts` routes tokens to `localStorage` (on) or `sessionStorage` (off), reading the choice on **every** call because the client is built at import time. `KeepSignedInCheckbox` is one component with two defaults |
+| 3 | 2FA challenged only on a NEW session | ✅ | asserted as an **absence**: no file on the navigation path (`AuthContext`, `ProtectedRoute`, `App`, both storage modules) contains `mfa.challenge`/`mfa.verify`, and `ProtectedRoute`'s admin gate checks *enrolment* (`hasVerifiedFactor === false`) rather than issuing a challenge |
+| 4 | explicit Sign Out clears everything | ✅ | `clearAllAuthStorage()` clears **both** stores plus the preference, and only Supabase auth keys — the wizard draft, language and consent survive. The on-duty warning (#246) is unchanged |
+| 5 | tests + STATE.md + WIRING_REGISTER.md | ✅ | 34 tests; **27 mutations, 27 killed, first pass**. Register regenerated |
+
+**The browser-close test is real, not mocked.** Closing a browser clears `sessionStorage` and
+leaves `localStorage` alone — that *is* the difference between the stores. So the test clears
+`sessionStorage` and asks the adapter what it can still see.
+
+**Multi-tab was the one real cost**, and `sessionStorage` is per-tab. A tab opened from the
+address bar or a bookmark starts with nothing while the tab beside it is signed in — for an
+operator opening a member record mid-alert that is unacceptable. `authSessionSync.ts` has tabs
+ask each other over `BroadcastChannel`; a signed-in tab replies with its tokens and the asker
+installs them with `setSession`. Lee offered the alternative — localStorage plus clear-on-last-
+tab-close — and it was rejected deliberately: it keeps the token on the disk of a machine shared
+between shifts, and it depends on an unload handler that does **not** fire on a crash or a
+force-quit, so the "cleared on close" promise fails exactly when somebody pulled the power out.
+
+**One deliberate carry-over.** Everybody signed in today is signed in through `localStorage` with
+no preference recorded. An absent preference read as "ephemeral" would clear every one of those
+tokens on the next page load — including an operator's, mid-shift, which is the exact failure
+this change exists to stop. So `adoptExistingSession()` reads an absent preference beside an
+existing session as "persistent", once, and writes it down. Their next deliberate login sets it
+properly. It runs **before** the client is constructed, and a test asserts that ordering.
+
+🟡 **Not verified in a real browser.** Everything above is jsdom and source assertions. Two
+things only a person at a keyboard can confirm: that a **real** browser close ends a staff
+session (the jsdom test simulates it by clearing `sessionStorage`, which is what a close does,
+but it is not the same as doing it), and that a second tab opened from the address bar picks up
+an ephemeral session inside the 400 ms `BroadcastChannel` window on a slow machine.
+
+---
+
 ## Dashboard notes — 2026-09-09 · **five merged, four held, two findings for Lee**
 
 Lee walked the admin dashboard, the Holidays page, the product catalog, the call-centre

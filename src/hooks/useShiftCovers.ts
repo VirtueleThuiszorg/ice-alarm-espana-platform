@@ -53,6 +53,37 @@ export function useMyPendingCovers(staffId: string | undefined) {
   });
 }
 
+/**
+ * The ACCEPTED covers among a staff member's own upcoming shifts, so "My shifts" can say whose
+ * shift each one is.
+ *
+ * Separate from useMyPendingCovers, which answers a different question — "what am I being asked
+ * to take on?" — and filters to status 'pending'. A seeded rota has no pending covers at all:
+ * every one of the 17 imported rows is already 'accepted', because it describes a shift that was
+ * actually worked. Reusing the pending hook here would have shown an operator no covers ever,
+ * which looks like "nothing to see" rather than "wrong question".
+ */
+export function useMyAcceptedCovers(staffId: string | undefined) {
+  return useQuery<ShiftCover[]>({
+    queryKey: ["my-accepted-covers", staffId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("staff_shift_covers")
+        .select(`
+          *,
+          shift:shift_id(shift_date, shift_type, start_time, end_time),
+          original_staff:original_staff_id(first_name, last_name)
+        `)
+        .eq("cover_staff_id", staffId!)
+        .eq("status", "accepted");
+      if (error) throw error;
+      return (data || []) as unknown as ShiftCover[];
+    },
+    enabled: !!staffId,
+    staleTime: STALE_TIMES.SHORT,
+  });
+}
+
 // Covers for a specific holiday
 export function useCoversForHoliday(holidayId: string | undefined) {
   return useQuery<ShiftCover[]>({

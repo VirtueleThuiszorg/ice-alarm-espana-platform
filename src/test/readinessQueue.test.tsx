@@ -26,28 +26,38 @@ type Result = { data: unknown; error: unknown };
 
 let readinessResult: Result;
 let membersResult: Result;
+/**
+ * Item 8's second axis, with its OWN result.
+ *
+ * It had to be its own: the mock used to route every table that was not the readiness view to
+ * `membersResult`, so the `subscriptions` query added by item 8 was answered with member rows.
+ * Those carry no `member_id`, so the merge dropped them and every existing test passed BY LUCK —
+ * a harness that cannot tell the two queries apart cannot prove anything about either.
+ */
+let pastDueResult: Result;
 const readinessFilters: Record<string, unknown> = {};
+const pastDueFilters: Record<string, unknown> = {};
 
-function builder(result: Result, isReadiness: boolean) {
+function builder(result: Result, record?: Record<string, unknown>) {
   const chain: Record<string, unknown> = {};
   const p = Promise.resolve(result);
   chain.select = (cols?: string) => {
     // Recorded, because "does this screen read the SECOND condition" is otherwise unprovable:
     // a row that happens to carry the column proves nothing about the query that fetched it.
-    if (isReadiness && typeof cols === "string") readinessFilters["select"] = cols;
+    if (record && typeof cols === "string") record["select"] = cols;
     return chain;
   };
   chain.eq = (col: string, val: unknown) => {
-    if (isReadiness) readinessFilters[`eq:${col}`] = val;
+    if (record) record[`eq:${col}`] = val;
     return chain;
   };
   chain.not = (col: string, op: string, val: unknown) => {
-    if (isReadiness) readinessFilters[`not:${col}`] = `${op} ${val}`;
+    if (record) record[`not:${col}`] = `${op} ${val}`;
     return chain;
   };
   chain.in = () => chain;
   chain.order = (col: string, opts?: { ascending?: boolean }) => {
-    if (isReadiness) readinessFilters["order"] = `${col}:${opts?.ascending}`;
+    if (record) record["order"] = `${col}:${opts?.ascending}`;
     return chain;
   };
   chain.then = (res: (v: Result) => unknown, rej?: (e: unknown) => unknown) => p.then(res, rej);
@@ -56,10 +66,11 @@ function builder(result: Result, isReadiness: boolean) {
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    from: (table: string) =>
-      table === "member_monitoring_readiness"
-        ? builder(readinessResult, true)
-        : builder(membersResult, false),
+    from: (table: string) => {
+      if (table === "member_monitoring_readiness") return builder(readinessResult, readinessFilters);
+      if (table === "subscriptions") return builder(pastDueResult, pastDueFilters);
+      return builder(membersResult);
+    },
   },
 }));
 
@@ -104,8 +115,10 @@ const MEMBER = (id: string, over: Record<string, unknown> = {}) => ({
 beforeEach(() => {
   navigate.mockReset();
   for (const k of Object.keys(readinessFilters)) delete readinessFilters[k];
+  for (const k of Object.keys(pastDueFilters)) delete pastDueFilters[k];
   readinessResult = { data: [], error: null };
   membersResult = { data: [], error: null };
+  pastDueResult = { data: [], error: null };
 });
 afterEach(() => cleanup());
 
@@ -201,13 +214,26 @@ describe("readiness queue — D4: two row kinds, both worked by phone", () => {
     expect(screen.getByText(/not a state/i)).toBeTruthy();
   });
 
-  it("no longer claims the queue is only about contacts", async () => {
-    // The title said "Paid — no emergency contacts" and the empty state said every paid member
-    // had one. Both were true of one condition out of two, which makes them false now.
+  it("no longer claims the queue is only about contacts, or only about readiness", async () => {
+    /*
+      TWICE NOW. The title first said "Paid — no emergency contacts" and the empty state said
+      every paid member had one — true of one condition out of two once D4 made readiness two.
+      Item 8 then added a THIRD reason to be on this list, a failed renewal payment, which is
+      not a readiness condition at all — so "not monitoring-ready" became too narrow in its
+      turn.
+
+      Asserted as what the copy must COVER rather than as its exact words, so the next reason
+      added here fails this test for the right reason: an empty state that does not mention it.
+    */
     await renderQueue();
     await screen.findByTestId("readiness-queue-empty");
-    expect(screen.getByText(/not monitoring-ready/i)).toBeTruthy();
-    expect(screen.getByTestId("readiness-queue-empty").textContent).toMatch(/has been tested/i);
+
+    expect(screen.getByText(/needs a call/i)).toBeTruthy();
+
+    const empty = screen.getByTestId("readiness-queue-empty").textContent ?? "";
+    expect(empty, "the empty state must account for contacts").toMatch(/somebody to call/i);
+    expect(empty, "…for the pendant test").toMatch(/has been tested/i);
+    expect(empty, "…and for the payment").toMatch(/payment/i);
   });
 });
 
@@ -398,5 +424,103 @@ describe("readiness queue — structural rules a render cannot prove", () => {
   it("is reachable from the admin sidebar — an unlinked worklist is an unworked worklist", async () => {
     const sidebar = read("src/components/layout/AdminSidebar.tsx");
     expect(sidebar).toContain("/admin/members/readiness-queue");
+  });
+});
+
+/**
+ * ITEM 8 — the second axis. A renewal payment that failed.
+ *
+ * P4 decided it: Stripe retries, monitoring CONTINUES, and staff are told, because somebody has
+ * to ring the member before the retries run out or a life-safety subscription lapses quietly.
+ * Before this the only surface a `past_due` reached was a status badge on a page somebody would
+ * have to already be looking at (WIRING_REGISTER absence row A2).
+ */
+describe("attention queue — a failed payment is a reason to be on it", () => {
+  const READY_ROW = (id: string, over: Record<string, unknown> = {}) => ({
+    member_id: id,
+    monitoring_ready: false,
+    emergency_contact_count: 0,
+    device_tested_at: null,
+    paid_since: iso(3),
+    ...over,
+  });
+
+  it("asks for past_due subscriptions, oldest failed renewal first", async () => {
+    await renderQueue();
+    await waitFor(() => expect(pastDueFilters["select"]).toBeDefined());
+    expect(pastDueFilters["eq:status"]).toBe("past_due");
+    expect(pastDueFilters["select"]).toContain("renewal_date");
+    expect(pastDueFilters["order"]).toBe("renewal_date:true");
+  });
+
+  it("lists a member whose payment failed even though they are monitoring-ready", async () => {
+    // The whole point: readiness and payment are different axes. This member has contacts and a
+    // tested pendant, and would appear on no readiness queue at all.
+    pastDueResult = { data: [{ member_id: "m-p", renewal_date: iso(5) }], error: null };
+    membersResult = { data: [MEMBER("m-p")], error: null };
+
+    await renderQueue();
+    await waitFor(() => expect(screen.queryAllByTestId("readiness-queue-row").length).toBe(1));
+    expect(screen.getByTestId("readiness-gap-payment")).toBeTruthy();
+    expect(screen.getByTestId("readiness-count-payment").textContent).toContain("1");
+    // Not labelled with a readiness gap it does not have.
+    expect(screen.queryByTestId("readiness-gap-contacts")).toBeNull();
+    expect(screen.queryByTestId("readiness-gap-both")).toBeNull();
+  });
+
+  it("says what the call is for, and that the service stays on", async () => {
+    // P4. An operator who suspends a member for an expired card has turned off a life-safety
+    // service over a billing problem.
+    pastDueResult = { data: [{ member_id: "m-p", renewal_date: iso(2) }], error: null };
+    membersResult = { data: [MEMBER("m-p")], error: null };
+
+    await renderQueue();
+    await screen.findByTestId("readiness-gap-payment");
+    expect(screen.getByText(/new card/i)).toBeTruthy();
+    expect(screen.getByText(/do not suspend/i)).toBeTruthy();
+  });
+
+  it("shows a member on BOTH axes once, with both reasons", async () => {
+    // One phone call. Two rows would mean phoning them twice, and the queue's own header says
+    // both kinds are worked by phone for exactly that reason.
+    readinessResult = { data: [READY_ROW("m-x")], error: null };
+    pastDueResult = { data: [{ member_id: "m-x", renewal_date: iso(30) }], error: null };
+    membersResult = { data: [MEMBER("m-x")], error: null };
+
+    await renderQueue();
+    await waitFor(() => expect(screen.queryAllByTestId("readiness-queue-row").length).toBe(1));
+    expect(screen.getByTestId("readiness-gap-both")).toBeTruthy();
+    expect(screen.getByTestId("readiness-gap-payment")).toBeTruthy();
+  });
+
+  it("keeps the LONGER wait when a member is on both, so they do not drop down the list", async () => {
+    readinessResult = { data: [READY_ROW("m-x", { paid_since: iso(2) })], error: null };
+    pastDueResult = { data: [{ member_id: "m-x", renewal_date: iso(40) }], error: null };
+    membersResult = { data: [MEMBER("m-x")], error: null };
+
+    await renderQueue();
+    await screen.findByTestId("readiness-queue-row");
+    // 40 days, not 2: adding the payment axis must not make a long-waiting member look newer.
+    expect(screen.getByTestId("readiness-queue-longest").textContent).toContain("40");
+  });
+
+  it("does NOT list a past_due subscription whose member is not active", async () => {
+    // A suspended member is not this queue's problem, on either axis.
+    pastDueResult = { data: [{ member_id: "m-gone", renewal_date: iso(5) }], error: null };
+    membersResult = { data: [], error: null };
+
+    await renderQueue();
+    expect(await screen.findByTestId("readiness-queue-empty")).toBeTruthy();
+  });
+
+  it("a failed past_due read is an ERROR, not a quietly shorter queue", async () => {
+    // READINESS_MODEL §1-A: a half-read queue rendered as a whole one is a false all-clear —
+    // and this is the worse half, because a missing payment row is a member about to lose cover.
+    pastDueResult = { data: null, error: { message: "subscriptions unreadable" } };
+    readinessResult = { data: [], error: null };
+
+    await renderQueue();
+    expect(await screen.findByTestId("readiness-queue-error")).toBeTruthy();
+    expect(screen.queryByTestId("readiness-queue-empty")).toBeNull();
   });
 });

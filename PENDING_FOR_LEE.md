@@ -573,3 +573,52 @@ because merging #253 deploys the functions.
 > dashboard or a card this environment does not have. Nothing in items 5, 6 or 8 has been run
 > against real Stripe — the proofs are contract tests and mutation testing against the real
 > modules, which is a different and weaker thing than one live payment.
+
+---
+
+## 7. Admin notifications on the phone — the runbook
+
+Everything in this section was built on 9 September and **none of it can reach a phone until
+S29–S32 are done**. Each step says what goes wrong if it is skipped, and the last three are the
+only proofs that matter.
+
+The code is on main (the router, the emitters, the push client, the notifications screen, the
+phone home). The **schema is held** — `20260909120000_notify_staff.sql` and
+`20260909130000_lead_new_router_emit.sql`, in one PR, per the brief.
+
+| # | Do this | Where | Why, and what goes wrong if it is skipped | ✅ |
+|---|---|---|---|---|
+| S29 | **Apply the two notify-staff migrations and record them** — `supabase db push`, then append `20260909120000_notify_staff.sql` and `20260909130000_lead_new_router_emit.sql` to `APPLIED_TO_PROD.txt` and merge that | terminal, then a one-line PR | They create `notification_routes`, `staff_notification_prefs`, `staff_push_tokens`, the three columns that turn `notification_log` into a per-channel decision log, and **76 seeded route rows plus one preference row per staff member per event per channel** — the brief's "every default is a row, not code". Until then the router treats every route as OFF (a missing row reads as off, deliberately), the notifications screen says so instead of rendering an empty grid, and **only the four always-loud safety alerts get through** | ⬜ |
+| S30 | **Create a Firebase project and a Web app in it**, then enable Cloud Messaging | console.firebase.google.com | Push is the channel the brief is actually about: SMS costs money per message and WhatsApp needs the member to write first, but push is free and instant on a phone in a pocket | ⬜ |
+| S31 | **Set the six `VITE_FIREBASE_*` variables in Vercel** (all three environments), then redeploy | Vercel → Settings → Environment Variables | `VITE_FIREBASE_API_KEY`, `AUTH_DOMAIN`, `PROJECT_ID`, `MESSAGING_SENDER_ID`, `APP_ID` are on Firebase → Project settings → **General**. `VITE_FIREBASE_VAPID_KEY` is on **Cloud Messaging → Web Push certificates** — a different page, which is why it is the one people miss. **All six or none:** a partial config throws inside the Firebase SDK naming none of the missing keys, so the client refuses to register and the Notifications card lists exactly which of the six is absent. None of the six is a secret; they ship in the client bundle by design | ⬜ |
+| S32 | **Set the `FIREBASE_SERVICE_ACCOUNT` Edge secret** — the service-account JSON, whole:<br>`supabase secrets set FIREBASE_SERVICE_ACCOUNT="$(cat service-account.json)"` | Supabase → Edge Functions → Secrets, or the CLI | The **only** Firebase value that is a secret, and the server half: `_shared/fcm.ts` signs a JWT with it for FCM **HTTP v1**. There is no legacy server key to paste — Google retired that endpoint in 2024, so any tutorial offering `FCM_SERVER_KEY` is describing something that no longer exists. Escaped `\n` inside `private_key` is un-escaped for you, because both dashboards turn a pasted newline into one and `importKey` then fails with *"invalid keyData"*, which says nothing about why | ⬜ |
+| S33 | **Deploy the functions** — merging anything under `supabase/functions/**` does it; otherwise run the workflow by hand | GitHub → Actions → `deploy-functions.yml` | `notify-staff` is a new function. Until it is deployed, every emitter's POST to it is a 404 that the emitters swallow deliberately (a notification that cannot be sent must not break a sale or an Isabella answer) — so the symptom is silence, not an error | ⬜ |
+| S34 | **Install the app on your phone, and on Martijn's** | the phone | **iPhone/iPad:** Safari → Share → **Add to Home Screen**, then open it from the Home Screen. Apple grants the notification permission **only** to an installed web app (iOS 16.4+); in a Safari tab the request is refused with nothing shown to the user, which is why the card says so before you tap. **Android:** Chrome → ⋮ → **Install app** (or *Add to Home screen*). The manifest is already complete — `display: standalone`, 192/512/maskable icons, `apple-touch-icon` and the `apple-mobile-web-app-*` meta tags — so no code change is needed for this.<br><br>**If Android does not offer "Install app":** Chrome also wants a service worker with a fetch handler. Ours (`firebase-messaging-sw.js`) has none, and one has **not** been added blind — a fetch handler that caches an SPA wrongly is its own class of bug, and this is a thing to check on a real device rather than guess at. If the prompt is missing, that is the fix, and it is three lines | ⬜ |
+| S35 | **Turn the channels on, then send a test** | Admin → Settings → **Notifications** | Four switches at the top (`notify_channel_*`). Push and email credentials live in Edge secrets the browser cannot read, so those two badges read **"unproven"** until you press **"Send a test notification"** — which asks `notify-staff` what it could actually send on and replaces the guesses with its answer. The test goes to **one person**, never the company. Nothing on this screen needs a redeploy: a switch flips a row the router reads on the next send | ⬜ |
+| S36 | **THE PROOF: a test sale should buzz both phones.** Stripe test mode, `/join`, card `4242 4242 4242 4242` | a browser and two phones | `sale.paid` fires from `post-payment` **after activation succeeds** — never before, because a notification about a sale that did not activate is worse than none. Expect: a push on both installed phones, an **email to every staff member** (Lee's rule: all staff get the email for every paid sale), a bell row each, and WhatsApp/SMS if you switched those on. Then check `notification_log`: **one row per recipient per channel, skips included, with the reason in `error`** — that table is the answer to "why did nobody get this", and it is the reason none of this is debugged from Deno logs. A webhook retry must produce **no** second buzz: the idempotency key is `sale.paid:order:<id>` and a unique index enforces it | ⬜ |
+
+### What still cannot send, and why
+
+| channel | state |
+|---|---|
+| **push** | Ready in code, needs S30–S32. Server on FCM HTTP v1; per-device tokens in `staff_push_tokens`; a token FCM calls dead (404 `UNREGISTERED`, 400 `INVALID_ARGUMENT`) is pruned, while a 401/429/500 leaves the device alone — deleting somebody's phone because Google had a bad minute would silently stop their alerts |
+| **email** | Routed through `_shared/email.ts`. **Off until `RESEND_API_KEY` exists** (or the Gmail app password, depending on `email_settings.provider`); the prefs screen says which is missing rather than offering a switch that does nothing |
+| **SMS / WhatsApp** | Twilio, already configured for other paths. Both are gated by `notify_channel_*` first, so they stay off until you turn them on — see §3 |
+| **the bell** | Live now, and the only channel that has never needed a secret. It is how a notification survives a phone being in a drawer |
+
+### Two things found while building this, worth knowing
+
+1. **The EV07B WhatsApp alert has never sent.** `notify-admin` reads
+   `notification_settings.whatsapp_ev07b_alerts` — **a column no migration ever created** — so
+   `undefined` makes `shouldSend` false. Reading a missing column through the Supabase client is
+   not an error; it is `undefined`. That is the defect the routes table replaces, and it is
+   asserted **still absent** from the type layer so the broken read cannot start compiling.
+
+2. **`notify-admin` had no caller check at all.** It is not in `supabase/config.toml`, so
+   `verify_jwt` defaults to true — which stops an anonymous caller and nobody else. Any
+   signed-in user could post `escalation.call_failed` with any text and put it on every admin's
+   WhatsApp, logged as a genuine SOS-ladder failure. Fixed (#261): service role or an admin JWT,
+   nothing else. Worth knowing because it means the **loud safety alerts were forgeable** by
+   anyone with a login, and an admin who learns that stops trusting the one message that must
+   never be ignored.
+

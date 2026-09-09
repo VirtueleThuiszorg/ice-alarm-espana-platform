@@ -316,3 +316,53 @@ describe("the gate is wired into CI the way this module expects", () => {
     expect(failBlock).toContain("process.exit(1)");
   });
 });
+
+// ── two files, one version: the migration that would never have run ────────
+describe("every migration has a version of its own", () => {
+  /*
+    FOUND ON MAIN, 9 SEPTEMBER, and it would have cost one of two migrations entirely.
+
+        20260909120000_notify_staff.sql
+        20260909120000_rota_2026_seed_and_generator.sql
+
+    The Supabase CLI keys applied migrations by the leading numeric prefix, and
+    `supabase_migrations.schema_migrations` has ONE row per version. So of two files sharing a
+    version, at most one ever runs — and the other is RECORDED AS APPLIED without having been.
+    The failure is silent and it is discovered later, by a query against a table that does not
+    exist, which is precisely how the drift gate's own error message says it usually goes.
+
+    Two sessions merging on the same morning picked the same round timestamp. Nothing in CI had
+    an opinion about it: the drift gate lists both names happily, because from its point of view
+    two files are pending and that is all it is asked.
+  */
+  const files = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith(".sql"));
+
+  it("finds the migrations at all", () => {
+    // A glob that matched nothing would make the assertion below vacuous.
+    expect(files.length).toBeGreaterThan(50);
+  });
+
+  it("has no two files sharing a version prefix", () => {
+    const byVersion = new Map<string, string[]>();
+    for (const file of files) {
+      const version = file.match(/^(\d+)/)?.[1];
+      expect(version, `${file} does not start with a version`).toBeTruthy();
+      byVersion.set(version!, [...(byVersion.get(version!) ?? []), file]);
+    }
+
+    const clashes = [...byVersion.entries()].filter(([, names]) => names.length > 1);
+    expect(
+      clashes.map(([version, names]) => `${version}: ${names.join(", ")}`),
+      "two migrations with one version — at most one of them will ever run",
+    ).toEqual([]);
+  });
+
+  it("and every version is the 14 digits the CLI expects", () => {
+    // A 13-digit or 15-digit prefix sorts unpredictably against the rest, so the ORDER
+    // migrations run in stops being the order they were written in.
+    for (const file of files) {
+      expect(file, file).toMatch(/^\d{14}_/);
+    }
+  });
+});
+

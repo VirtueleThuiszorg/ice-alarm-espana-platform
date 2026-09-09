@@ -2604,7 +2604,7 @@ SELECT pg_temp.check(
 
 -- ── the FOUR flags exist and are OFF ──────────────────────────────────────
 -- Was three (20260907100200: sms, email, whatsapp). `notify_channel_push` joins them in
--- 20260909120000 — the transport switch push had been missing, which is why the router's
+-- 20260909121500 — the transport switch push had been missing, which is why the router's
 -- outermost gate had nothing to read for it. Named rather than counted: a count of four also
 -- passes if somebody drops sms and adds a fourth of their own.
 SELECT pg_temp.check(

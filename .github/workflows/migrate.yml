@@ -191,9 +191,33 @@ jobs:
         # recording steps below MUST run so the manifest names them. The job is then failed
         # explicitly by the last step; nothing here reports green on a failed push.
         continue-on-error: true
+        # `--include-all` IS REQUIRED, and run #1 is why. Without it the CLI refuses the whole
+        # push the moment any unapplied migration is OLDER than the newest applied one:
+        #
+        #   LegacyDbPushMissingRemoteError: Found local migration files to be inserted before
+        #   the last migration on remote database.
+        #   Rerun the command with --include-all flag to apply these migrations:
+        #     supabase/migrations/20260909120000_rota_2026_seed_and_generator.sql
+        #
+        # Production was in exactly that state: `20260909121500_notify_staff.sql` had been applied
+        # by hand while `20260909120000_rota…` had not, so the history skipped over the rota. The
+        # first run therefore applied NOTHING and failed — correctly and loudly, which is the
+        # design working, but it could not have got out of that state on its own.
+        #
+        # Reproduced before changing anything: a local Postgres seeded with production's exact 183
+        # versions gives the error above, and `--include-all` then reports it would push exactly
+        # the two genuinely pending files and nothing else.
+        #
+        # THE TRADE-OFF, STATED. `--include-all` will apply an old-timestamped migration that
+        # somebody adds later, rather than refusing. That is the right default here because the
+        # ordering hygiene is enforced earlier and by other means — the version-collision and
+        # version-first guards in `migrationDrift.test.ts` run in this job before the push, and
+        # the drift gate blocks a PR that stacks a migration on an unapplied one. Refusing instead
+        # would mean a pipeline that stops dead until a human runs the CLI by hand, which is the
+        # thing this workflow exists to remove.
         run: |
           set -o pipefail
-          supabase db push --linked --yes 2>&1 | tee /tmp/push.log
+          supabase db push --linked --include-all --yes 2>&1 | tee /tmp/push.log
 
       - name: Remote migration list AFTER
         if: always()

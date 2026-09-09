@@ -173,7 +173,9 @@ describe("what a device is called in a list", () => {
 
 describe("the token is written where the router reads it", () => {
   const hook = stripComments(read("src/hooks/usePushNotifications.ts"));
-  const fn = stripComments(read("supabase/functions/notify-staff/index.ts"));
+  // The router's I/O half; see notify-staff-runtime.ts's header for why it is not in the
+  // function any more.
+  const fn = stripComments(read("supabase/functions/_shared/notify-staff-runtime.ts"));
 
   it("writes staff_push_tokens, not the columns notification_settings has not got", () => {
     expect(hook).toContain('from("staff_push_tokens")');

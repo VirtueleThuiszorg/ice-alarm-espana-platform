@@ -167,7 +167,10 @@ describe("the ingest callers do not ignore the answer", () => {
   });
 
   it("notify-admin actually handles the events the helper sends", () => {
-    const src = read("supabase/functions/notify-admin/index.ts");
+    // The twelve messages moved to `_shared/notify-admin-messages.ts` when notify-admin's
+    // WhatsApp path went onto the one router. Same contract: an event this helper raises and
+    // notify-admin cannot format reaches nobody.
+    const src = read("supabase/functions/_shared/notify-admin-messages.ts");
     for (const event of [
       "escalation.no_emergency_contacts",
       "escalation.contacts_not_notified",

@@ -1,442 +1,127 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 import { identifyNotifyCaller } from "../_shared/admin-caller.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import {
+  legacyResults,
+  linkFor,
+  madridTimestamp,
+  messageFor,
+  splitFormatted,
+  type NotifyPayload,
+} from "../_shared/notify-admin-messages.ts";
+import {
+  SITE_URL,
+  configuredChannels,
+  makeStore,
+  makeTransports,
+  serviceClient,
+} from "../_shared/notify-staff-runtime.ts";
+import { dispatchNotifications, isNotifyEventType } from "../_shared/notify-staff.ts";
 
-
-
-interface NotifyPayload {
-  event_type: "sale.paid" | "partner.joined" | "hot.sales" | "test" | "ev07b.alert" | "shift.no_show" | "shift.no_coverage" | "shift.disconnected" | "system.runner_failure" | "escalation.call_failed" | "escalation.no_emergency_contacts" | "escalation.contacts_not_notified";
-  entity_type?: string;
-  entity_id?: string;
-  payload: {
-    // Runner-failure fields (system.runner_failure)
-    runner?: string;
-    scope?: string;
-    error?: string;
-    last_run_at?: string;
-    age_s?: number | string;
-    sweep_index?: number;
-    // Escalation-call-failed fields (escalation.call_failed)
-    escalation_level?: number;
-    // Contacts-not-notified fields (escalation.contacts_not_notified)
-    notify_outcome?: string;
-    target_type?: string;
-    phone_masked?: string;
-    customer_name?: string;
-    language?: string;
-    amount?: number;
-    products_summary?: string;
-    source?: string;
-    partner_name?: string;
-    order_id?: string;
-    partner_id?: string;
-    contact_name?: string;
-    company_name?: string;
-    // EV-07B alert fields
-    alert_id?: string;
-    alert_type?: string;
-    member_id?: string;
-    member_name?: string;
-    imei?: string;
-    message?: string;
-    lat?: number;
-    lng?: number;
-    // Shift monitoring fields
-    staff_name?: string;
-    shift_type?: string;
-    shift_time?: string;
-  };
-}
-
-function formatSalePaidMessage(payload: NotifyPayload["payload"], timestamp: string): string {
-  const customerName = payload.customer_name || "Unknown";
-  const language = payload.language?.toUpperCase() || "ES";
-  const amount = payload.amount?.toFixed(2) || "0.00";
-  const products = payload.products_summary || "N/A";
-  const source = payload.partner_name 
-    ? `Partner: ${payload.partner_name}` 
-    : "Direct";
-
-  return `🟢 PAID SALE
-👤 ${customerName} (${language})
-💶 €${amount}
-📦 ${products}
-🔗 Source: ${source}
-🕒 ${timestamp}
-➡️ Admin: /admin/orders/${payload.order_id || ""}
-✅ Suggested: Create follow-up task / Welcome message`;
-}
-
-function formatPartnerJoinedMessage(payload: NotifyPayload["payload"], timestamp: string): string {
-  const name = payload.contact_name || payload.company_name || "Unknown Partner";
-  return `🤝 NEW PARTNER JOINED
-👤 ${name}
-🕒 ${timestamp}
-➡️ Admin: /admin/partners
-✅ Suggested: Welcome call / Setup assistance`;
-}
-
-function formatHotSalesMessage(payload: NotifyPayload["payload"], timestamp: string): string {
-  return `🔥 HOT SALES ESCALATION
-📋 Action required for sales opportunity
-🕒 ${timestamp}
-➡️ Admin: /admin/dashboard
-✅ Suggested: Review and take action`;
-}
-
-function formatTestMessage(): string {
-  return `✅ TEST NOTIFICATION
-WhatsApp notifications are working correctly!
-🕒 ${new Date().toLocaleString("es-ES", { timeZone: "Europe/Madrid" })}`;
-}
-
-const ALERT_TYPE_LABELS: Record<string, { emoji: string; label: string }> = {
-  sos_button: { emoji: "🚨", label: "SOS BUTTON PRESSED" },
-  fall_detected: { emoji: "⚠️", label: "FALL DETECTED" },
-  low_battery: { emoji: "🔋", label: "LOW BATTERY" },
-  geo_fence: { emoji: "📍", label: "GEOFENCE BREACH" },
-  device_offline: { emoji: "📡", label: "DEVICE OFFLINE" },
-};
-
-const SHIFT_LABELS: Record<string, string> = {
-  morning: "Morning (07:00-15:00)",
-  afternoon: "Afternoon (15:00-23:00)",
-  night: "Night (23:00-07:00)",
-};
-
-function formatShiftNoShowMessage(payload: NotifyPayload["payload"], timestamp: string): string {
-  const name = payload.staff_name || "Unknown";
-  const shiftLabel = SHIFT_LABELS[payload.shift_type || ""] || payload.shift_type || "Unknown";
-  return `🚫 SHIFT NO-SHOW
-👤 ${name} has not signed in
-📅 ${shiftLabel} shift
-🕒 ${timestamp}
-➡️ Action: Contact staff member or arrange cover immediately`;
-}
-
-function formatShiftNoCoverageMessage(payload: NotifyPayload["payload"], timestamp: string): string {
-  const shiftLabel = SHIFT_LABELS[payload.shift_type || ""] || payload.shift_type || "Unknown";
-  return `🔴 NO COVERAGE
-⚠️ No staff member is currently on duty!
-📅 ${shiftLabel} shift
-🕒 ${timestamp}
-➡️ Action: Immediate action required — assign coverage now`;
-}
-
-function formatShiftDisconnectedMessage(payload: NotifyPayload["payload"], timestamp: string): string {
-  const name = payload.staff_name || "Unknown";
-  const shiftLabel = SHIFT_LABELS[payload.shift_type || ""] || payload.shift_type || "Unknown";
-  return `📡 STAFF DISCONNECTED
-👤 ${name} has lost connection while on duty
-📅 ${shiftLabel} shift
-🕒 ${timestamp}
-➡️ Action: Check staff member's status and ensure coverage`;
-}
-
-function formatRunnerFailureMessage(payload: NotifyPayload["payload"], timestamp: string): string {
-  const runner = payload.runner || "unknown runner";
-  const scope = payload.scope || "failure";
-  const detail = payload.scope === "heartbeat_stale"
-    ? `Last run: ${payload.last_run_at || "never"} (age ${payload.age_s ?? "?"}s)`
-    : `Error: ${payload.error || "unknown"}`;
-  return `🆘 SAFETY RUNNER FAILURE
-⚙️ ${runner} — ${scope}
-${detail}
-🕒 ${timestamp}
-➡️ Escalation/monitoring may be DOWN. Investigate immediately.`;
-}
-
-const ESCALATION_TARGET_LABELS: Record<string, string> = {
-  mobile_call: "staff/supervisor/admin mobile",
-  emergency_contact_call: "emergency contact",
-  browser_alert: "browser alert",
-};
-
-function formatEscalationCallFailedMessage(payload: NotifyPayload["payload"], timestamp: string): string {
-  const level = payload.escalation_level ?? "?";
-  const who = ESCALATION_TARGET_LABELS[payload.target_type || ""] || payload.target_type || "target";
-  const member = payload.member_name || "a member";
-  return `🆘 SOS ESCALATION CALL FAILED
-📞 Level ${level} call did NOT connect — ${who} (${payload.phone_masked || "number hidden"})
-👤 Member: ${member}
-🚨 A rung of the SOS ladder did not reach a human. Check the alert and call manually NOW.
-🕒 ${timestamp}
-➡️ Admin: /admin/alerts/${payload.alert_id || ""}`;
-}
-
-function formatNoEmergencyContactsMessage(payload: NotifyPayload["payload"], timestamp: string): string {
-  const member = payload.member_name || payload.member_id || "a member";
-  const level = payload.escalation_level;
-  return `🆘 NO EMERGENCY CONTACTS
-👤 Member: ${member}
-🚫 This member has NO emergency contacts on file. Nobody can be called for them.${
-    level ? `\n📞 Escalation level ${level} could not be served.` : ""
-  }
-🚨 Handle this alert directly and PHONE THIS MEMBER to get their next of kin.
-🕒 ${timestamp}
-➡️ Admin: /admin/alerts/${payload.alert_id || ""}`;
-}
-
-function formatContactsNotNotifiedMessage(payload: NotifyPayload["payload"], timestamp: string): string {
-  const member = payload.member_name || payload.member_id || "a member";
-  return `🆘 EMERGENCY CONTACTS NOT NOTIFIED
-👤 Member: ${member}
-🚫 Outcome: ${payload.notify_outcome || "unknown"} — no emergency contact was reached.
-🚨 Call the member's contacts MANUALLY now.
-🕒 ${timestamp}
-➡️ Admin: /admin/alerts/${payload.alert_id || ""}`;
-}
-
-function formatEV07BAlertMessage(payload: NotifyPayload["payload"], timestamp: string): string {
-  const alertInfo = ALERT_TYPE_LABELS[payload.alert_type || ""] || { emoji: "🔔", label: "DEVICE ALERT" };
-  const memberName = payload.member_name || "Unknown member";
-  const imei = payload.imei || "Unknown";
-  const message = payload.message || "";
-  const location = (payload.lat && payload.lng)
-    ? `📍 https://www.google.com/maps?q=${payload.lat},${payload.lng}`
-    : "📍 Location unavailable";
-
-  return `${alertInfo.emoji} ${alertInfo.label}
-👤 ${memberName}
-📟 Pendant IMEI: ${imei}
-💬 ${message}
-${location}
-🕒 ${timestamp}
-➡️ Admin: /admin/alerts
-✅ Action: Check member safety immediately`;
-}
+/**
+ * notify-admin — NOW AN ADAPTER OVER THE ONE ROUTER.
+ *
+ * WHAT IT WAS. 250 lines that read `notification_settings` (one row per admin, a boolean COLUMN
+ * PER EVENT), formatted a message, POSTed it to Twilio itself, and wrote a `notification_log`
+ * row by hand. WhatsApp only. Its schema had already failed in the way a column-per-event
+ * schema does: it reads `settings.whatsapp_ev07b_alerts`, a column NO MIGRATION EVER CREATED, so
+ * `undefined` made `shouldSend` false and the EV07B WhatsApp alert has never sent — silently,
+ * since it shipped.
+ *
+ * WHAT IT IS. The same twelve messages, byte for byte, handed to `dispatchNotifications`. So it
+ * gains SMS, push, email, the bell, per-staff preferences, idempotency and a logged reason for
+ * every skip — and loses its own copy of "who gets told".
+ *
+ * WHY IT IS NOT DELETED. Ten internal callers point here (the SOS escalation runner, the two
+ * EV07B functions, the shift monitor, post-payment, partner-register, the emergency-contact
+ * helper) plus two admin screens. Every one keeps working, unchanged, including the response
+ * shape the "send a test" button reads. Retiring the endpoint is a separate change to twelve
+ * call sites; this one is about where the decision is made.
+ *
+ * THE FOUR LOUD EVENTS STILL CANNOT BE SILENCED. `system.runner_failure` and the three
+ * `escalation.*` events were sent here with `shouldSend = true`, deliberately ungated. The
+ * router's `ALWAYS_LOUD` bypasses the routes and preferences tables for exactly those four, so
+ * that is preserved rather than re-implemented.
+ *
+ * NOT ON THE SOS DECISION PATH: this notifies ABOUT alerts and escalations. It cannot change who
+ * is called or in what order.
+ */
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  try {
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    // ── who is calling ───────────────────────────────────────────────────────
-    // THERE WAS NO CHECK HERE AT ALL. This function is not in supabase/config.toml, so
-    // `verify_jwt` defaults to true — which stops an anonymous caller and nobody else. Any
-    // signed-in user, a member on the client surface included, could post
-    // `{ event_type: "escalation.call_failed", payload: { member_name: "…" } }` and Twilio would
-    // put that text on every admin's WhatsApp, logged as a real safety alert. The lasting harm
-    // is the second one: an admin who learns the SOS-ladder alert can be faked stops trusting
-    // the one message that must never be ignored.
-    //
-    // The ten internal callers hold the service-role key; the two browser callers
-    // (NotificationSettings' test button, PaidSalesFeed) are admin screens. Both still pass.
-    const verdict = await identifyNotifyCaller(
-      supabase,
-      req.headers.get("Authorization"),
-      SUPABASE_SERVICE_ROLE_KEY,
-    );
-    if (!verdict.ok) {
-      return new Response(
-        JSON.stringify({ error: verdict.error }),
-        { status: verdict.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    const body: NotifyPayload = await req.json();
-    const { event_type, entity_type, entity_id, payload } = body;
-
-    console.log("notify-admin called:", event_type, entity_type, entity_id);
-
-    // Get Twilio credentials (with settings_ prefix)
-    const { data: twilioSettings } = await supabase
-      .from("system_settings")
-      .select("key, value")
-      .in("key", [
-        "settings_twilio_account_sid", 
-        "settings_twilio_auth_token",
-        "settings_twilio_api_key_sid",
-        "settings_twilio_api_key_secret", 
-        "settings_twilio_whatsapp_number"
-      ]);
-
-    const twilioConfig: Record<string, string> = {};
-    twilioSettings?.forEach((s) => {
-      twilioConfig[s.key] = s.value;
+  const json = (status: number, payload: Record<string, unknown>) =>
+    new Response(JSON.stringify(payload), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
-    // Prefer API Keys, fall back to Auth Token
-    const authUsername = twilioConfig.settings_twilio_api_key_sid || twilioConfig.settings_twilio_account_sid;
-    const authPassword = twilioConfig.settings_twilio_api_key_secret || twilioConfig.settings_twilio_auth_token;
+  try {
+    const { db, serviceRoleKey } = serviceClient();
 
-    if (!twilioConfig.settings_twilio_account_sid || !authPassword || !twilioConfig.settings_twilio_whatsapp_number) {
-      console.error("Twilio not fully configured");
-      return new Response(
-        JSON.stringify({ error: "Twilio not configured", sent: false }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // ── who is calling ───────────────────────────────────────────────────────
+    // There was NO check here. This function is not in supabase/config.toml, so `verify_jwt`
+    // defaults to true — which stops an anonymous caller and nobody else, and any signed-in user
+    // could put text of their choosing on every admin's WhatsApp as a safety alert.
+    const verdict = await identifyNotifyCaller(
+      db,
+      req.headers.get("Authorization"),
+      serviceRoleKey,
+    );
+    if (!verdict.ok) return json(verdict.status, { error: verdict.error });
+
+    const body = (await req.json().catch(() => null)) as NotifyPayload | null;
+    if (!body || typeof body !== "object") {
+      return json(400, { error: "A JSON body is required" });
     }
 
-    // Get all admin notification settings
-    const { data: allSettings } = await supabase
-      .from("notification_settings")
-      .select("*");
+    const { event_type, entity_type, entity_id } = body;
+    const payload = body.payload ?? {};
 
-    if (!allSettings || allSettings.length === 0) {
-      console.log("No notification settings configured");
-      return new Response(
-        JSON.stringify({ message: "No notification settings configured", sent: false }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    const message = messageFor(event_type, payload, madridTimestamp());
+    if (!message || !isNotifyEventType(event_type)) {
+      // The `switch` this replaces had `default: console.log(...); continue`, which skipped the
+      // event once per configured admin and answered `{success: true, results: []}` — a success
+      // for a notification nobody could have received.
+      return json(400, { error: `Unknown event_type: ${event_type}`, code: "UNKNOWN_EVENT_TYPE" });
     }
 
-    const timestamp = new Date().toLocaleString("es-ES", { timeZone: "Europe/Madrid" });
-    const results = [];
+    // First line is the title, the rest is the body, because the router renders `title\nbody` —
+    // so the WhatsApp text is the SAME STRING these formatters have always produced.
+    const { title, body: messageBody } = splitFormatted(message);
 
-    for (const settings of allSettings) {
-      // Check if this event type is enabled for this admin
-      let shouldSend = false;
-      let message = "";
+    const { configured, pushConfigError } = await configuredChannels(db);
 
-      switch (event_type) {
-        case "sale.paid":
-          shouldSend = settings.whatsapp_paid_sales === true;
-          message = formatSalePaidMessage(payload, timestamp);
-          break;
-        case "partner.joined":
-          shouldSend = settings.whatsapp_partner_signup === true;
-          message = formatPartnerJoinedMessage(payload, timestamp);
-          break;
-        case "hot.sales":
-          shouldSend = settings.whatsapp_hot_sales === true;
-          message = formatHotSalesMessage(payload, timestamp);
-          break;
-        case "ev07b.alert":
-          shouldSend = settings.whatsapp_ev07b_alerts === true || settings.whatsapp_paid_sales === true;
-          message = formatEV07BAlertMessage(payload, timestamp);
-          break;
-        case "shift.no_show":
-          shouldSend = settings.whatsapp_shift_alerts === true;
-          message = formatShiftNoShowMessage(payload, timestamp);
-          break;
-        case "shift.no_coverage":
-          shouldSend = settings.whatsapp_shift_alerts === true;
-          message = formatShiftNoCoverageMessage(payload, timestamp);
-          break;
-        case "shift.disconnected":
-          shouldSend = settings.whatsapp_shift_alerts === true;
-          message = formatShiftDisconnectedMessage(payload, timestamp);
-          break;
-        case "system.runner_failure":
-          // Life-safety: a dead escalation/monitor runner is maximally critical — always loud,
-          // not gated by a per-admin toggle.
-          shouldSend = true;
-          message = formatRunnerFailureMessage(payload, timestamp);
-          break;
-        case "escalation.call_failed":
-          // Life-safety: a rung of the SOS ladder failed to reach a human — always loud.
-          shouldSend = true;
-          message = formatEscalationCallFailedMessage(payload, timestamp);
-          break;
-        case "escalation.no_emergency_contacts":
-          // Life-safety: this member has NO emergency contacts, so the terminal rung of the
-          // SOS ladder can never be served for them. Always loud — nothing else watches it.
-          shouldSend = true;
-          message = formatNoEmergencyContactsMessage(payload, timestamp);
-          break;
-        case "escalation.contacts_not_notified":
-          // Life-safety: contacts exist but none was reached, or the result could not be read.
-          shouldSend = true;
-          message = formatContactsNotNotifiedMessage(payload, timestamp);
-          break;
-        case "test":
-          shouldSend = true;
-          message = formatTestMessage();
-          break;
-        default:
-          console.log("Unknown event type:", event_type);
-          continue;
-      }
-
-      if (!shouldSend) {
-        console.log(`Notifications disabled for ${event_type} for admin ${settings.admin_user_id}`);
-        continue;
-      }
-
-      if (!settings.whatsapp_number) {
-        console.log(`No WhatsApp number configured for admin ${settings.admin_user_id}`);
-        continue;
-      }
-
-      // Send WhatsApp via Twilio (using API Keys or Auth Token)
-      const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioConfig.settings_twilio_account_sid}/Messages.json`;
-      const authHeader = btoa(`${authUsername}:${authPassword}`);
-
-      const formData = new URLSearchParams();
-      formData.append("From", `whatsapp:${twilioConfig.settings_twilio_whatsapp_number}`);
-      formData.append("To", `whatsapp:${settings.whatsapp_number}`);
-      formData.append("Body", message);
-
-      let status = "pending";
-      let providerMessageId = null;
-      let error = null;
-
-      try {
-        const twilioResponse = await fetch(twilioUrl, {
-          method: "POST",
-          headers: {
-            Authorization: `Basic ${authHeader}`,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: formData.toString(),
-        });
-
-        const twilioResult = await twilioResponse.json();
-
-        if (twilioResponse.ok) {
-          status = "sent";
-          providerMessageId = twilioResult.sid;
-          console.log("WhatsApp sent successfully:", twilioResult.sid);
-        } else {
-          status = "failed";
-          error = twilioResult.message || "Twilio error";
-          console.error("Twilio error:", twilioResult);
-        }
-      } catch (e) {
-        status = "failed";
-        error = e instanceof Error ? e.message : "Unknown error";
-        console.error("WhatsApp send error:", e);
-      }
-
-      // Log to notification_log
-      await supabase.from("notification_log").insert({
-        admin_user_id: settings.admin_user_id,
-        event_type,
-        entity_type: entity_type || null,
-        entity_id: entity_id || null,
-        message,
-        status,
-        provider_message_id: providerMessageId,
-        error,
-      });
-
-      results.push({
-        admin_user_id: settings.admin_user_id,
-        status,
-        provider_message_id: providerMessageId,
-        error,
-      });
-    }
-
-    return new Response(
-      JSON.stringify({ success: true, results }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    const result = await dispatchNotifications(
+      {
+        type: event_type,
+        title,
+        body: messageBody,
+        // A real path, derived from the payload — not the "➡️ Admin: …" line inside the text,
+        // which is prose. A push notification's tap needs somewhere to go.
+        link: linkFor(event_type, payload),
+        ...(entity_type && entity_id ? { entity: { type: entity_type, id: entity_id } } : {}),
+      },
+      // Every admin, by role. `notification_settings` had one row per admin and a WhatsApp
+      // number on it; the router resolves recipients from `staff` and still prefers that
+      // configured number for WhatsApp, so Lee's number keeps receiving.
+      { roles: ["admin", "super_admin"] },
+      { transports: makeTransports(db, serviceRoleKey), store: makeStore(db), configured, siteUrl: SITE_URL },
     );
 
+    return json(200, {
+      success: true,
+      // The shape NotificationSettings' test button and PaidSalesFeed already read.
+      results: legacyResults(result.outcomes),
+      // ...and the router's full answer beside it, for anything written from now on.
+      dispatch: result,
+      configured,
+      ...(pushConfigError ? { pushConfigError } : {}),
+    });
   } catch (error) {
     console.error("notify-admin error:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json(500, { error: error instanceof Error ? error.message : "Unknown error" });
   }
 });

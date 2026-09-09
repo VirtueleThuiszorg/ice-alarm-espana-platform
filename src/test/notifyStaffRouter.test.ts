@@ -119,7 +119,13 @@ describe("the event types", () => {
   it("every event notify-admin can be asked for is one the router knows", () => {
     // The migration's contract: notify-admin's WhatsApp path moves onto the router, so an event
     // type it accepts and the router refuses would be a 400 where a WhatsApp used to arrive.
-    const legacy = stripComments(read("supabase/functions/notify-admin/index.ts"));
+    /*
+      The twelve messages moved to `_shared/notify-admin-messages.ts` when notify-admin's
+      WhatsApp path went onto the router — so this reads them there. It is the same contract and
+      it now matters MORE than before: notify-admin dispatches through the router, so an event
+      it formats and the router refuses would be a 400 where a WhatsApp used to arrive.
+    */
+    const legacy = stripComments(read("supabase/functions/_shared/notify-admin-messages.ts"));
     const declared = [...legacy.matchAll(/case "([a-z0-9_.]+)":/g)].map((m) => m[1]);
     expect(declared.length).toBeGreaterThan(8);
     for (const t of declared) expect(NOTIFY_EVENTS, `notify-admin sends ${t}`).toContain(t);
@@ -737,6 +743,14 @@ describe("parseNotifyRequest", () => {
 // ── the function's own contract ────────────────────────────────────────────
 describe("the notify-staff function", () => {
   const fn = stripComments(read("supabase/functions/notify-staff/index.ts"));
+  /*
+    THE I/O HALF MOVED, and the reason is worth stating: `notify-admin` now delegates to the
+    same router, so `makeStore`/`makeTransports`/`configuredChannels` live in
+    `_shared/notify-staff-runtime.ts` rather than in this function. Copying them into the second
+    door would have been the SEVENTH copy of "who gets told", which is the thing the router was
+    built to end. These assertions follow the code; the properties they assert are unchanged.
+  */
+  const runtime = stripComments(read("supabase/functions/_shared/notify-staff-runtime.ts"));
 
   it("identifies its caller through the shared guard, and returns the refusal", () => {
     /*
@@ -778,20 +792,20 @@ describe("the notify-staff function", () => {
       mutation deleted the second. The caller half now lives in _shared/admin-caller.ts (its own
       test asserts it), so exactly ONE is left here and it must be the recipient filter.
     */
-    expect(fn.match(/\.eq\("is_active", true\)/g) ?? []).toHaveLength(1);
-    const recipients = fn.slice(fn.indexOf("async recipients("), fn.indexOf("async routes("));
+    expect(runtime.match(/\.eq\("is_active", true\)/g) ?? []).toHaveLength(1);
+    const recipients = runtime.slice(runtime.indexOf("async recipients("), runtime.indexOf("async routes("));
     expect(recipients).toContain('.eq("is_active", true)');
     expect(recipients).toContain('from("staff")');
   });
 
   it("reads all three gates from tables, never from code", () => {
-    expect(fn).toContain('from("notification_routes")');
-    expect(fn).toContain('from("staff_notification_prefs")');
-    expect(fn).toContain("notify_channel_");
+    expect(runtime).toContain('from("notification_routes")');
+    expect(runtime).toContain('from("staff_notification_prefs")');
+    expect(runtime).toContain("notify_channel_");
   });
 
   it("prunes a dead token by deleting the row", () => {
-    expect(fn).toMatch(/from\("staff_push_tokens"\)\s*\.delete\(\)/);
+    expect(runtime).toMatch(/from\("staff_push_tokens"\)\s*\.delete\(\)/);
   });
 
   it("does not touch the SOS decision path", () => {
@@ -802,7 +816,13 @@ describe("the notify-staff function", () => {
   });
 
   it("builds its redirect base server-side, never from the request", () => {
-    expect(fn).toContain("PUBLIC_SITE_URL");
+    expect(runtime).toContain("PUBLIC_SITE_URL");
+    // Neither door may take it from the request: a caller-supplied base turns every link in
+    // every notification into somewhere they chose.
     expect(fn).not.toMatch(/siteUrl:\s*body\./);
+    expect(runtime).not.toMatch(/siteUrl:\s*body\./);
+    expect(stripComments(read("supabase/functions/notify-admin/index.ts"))).not.toMatch(
+      /siteUrl:\s*body\./,
+    );
   });
 });

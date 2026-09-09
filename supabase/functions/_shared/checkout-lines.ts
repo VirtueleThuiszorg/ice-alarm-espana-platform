@@ -11,12 +11,12 @@
  * there is no number left in the request for anyone to tamper with.
  *
  * ONE IMPLEMENTATION, SHARED. The brief says "the SAME price-id logic as create-checkout (share
- * the module, never a second copy)". This is that module, and it is the FIRST of it: today
- * `create-checkout` has no price-id logic at all, only `price_data` from the client. Teaching it
- * to use this is a change to the join→pay path, which carries the human gate (CLAUDE.md) and
- * the join-path brief's standing instruction that PRs touching `create-checkout` stay open — so
- * it is deliberately NOT done here. What this module guarantees is that when that change lands
- * it is an import, not a rewrite: everything below is pure and takes its inputs as arguments.
+ * the module, never a second copy)". This is that module, and BOTH now import it:
+ * `send-payment-link` (staff sending a link) and `create-checkout` (the join wizard's Pay
+ * button). It was written while `create-checkout` still built `price_data` from client amounts,
+ * so it was designed to be adopted by import rather than by rewrite: everything below is pure
+ * and takes its inputs as arguments. The rows those arguments come from are fetched once, in
+ * `_shared/checkout-pricing.ts`, for the same reason.
  *
  * WHAT IT REFUSES, and why refusing is right:
  *

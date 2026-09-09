@@ -18,10 +18,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
 10 │   2  █
  9 │   5  ██
  8 │   0  
- 7 │  12  ████
- 6 │  26  ██████████
- 5 │  91  ██████████████████████████████████
- 7 │  10  ████
+ 7 │  13  █████
  6 │  25  █████████
  5 │  92  ██████████████████████████████████
  4 │  48  ██████████████████
@@ -31,16 +28,13 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   3  █
 ```
 
-187 distinct wires across 633 call sites and 108 routes.
-185 distinct wires across 631 call sites and 108 routes.
+188 distinct wires across 635 call sites and 108 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
 | 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 2 | 1% |
-| 7–9 | arrives and proven; notification missing or on a channel not live today | 17 | 9% |
+| 7–9 | arrives and proven; notification missing or on a channel not live today | 18 | 10% |
 | 4–6 | arrives; nobody told; nothing proves it | 165 | 88% |
-| 7–9 | arrives and proven; notification missing or on a channel not live today | 15 | 8% |
-| 4–6 | arrives; nobody told; nothing proves it | 165 | 89% |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0% |
 | 0 | dead control | 3 | 2% |
 
@@ -70,8 +64,7 @@ things, and a control with no wire cannot do anything:
 | kind | what it is | call sites |
 |---|---|---:|
 | `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 345 |
-| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 342 |
-| `fn` | `supabase.functions.invoke(f)` — an edge function | 78 |
+| `fn` | `supabase.functions.invoke(f)` — an edge function | 79 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 4 |
 | `channel` | `postgres_changes` — a realtime subscription | 51 |
 | `auth` | `supabase.auth.*` — sign in, sign out, register, password reset | 20 |
@@ -2778,6 +2771,7 @@ Gateway FIRST, record second, and the half-applied case is said out loud rather 
 - **call sites** src/hooks/useNotificationMatrix.ts
 
 The switches are the fix for the schema this replaces: a boolean COLUMN PER EVENT on notification_settings, which is how `whatsapp_ev07b_alerts` came to be read by notify-admin without any migration ever creating it. THE FOUR ALWAYS-LOUD EVENTS RENDER AS LOCKED, not as switches: the router ignores both tables for them, and a switch that cannot silence the alarm saying the SOS ladder is broken must not look like one. Every dark cell names which of the three gates stopped it, and `wouldReach` is driven against the router's own `planNotifications` across all 19 events × 4 channels × both switches so the screen cannot claim something the router will not do. Scored on the screen only: until the migration is applied the matrix says so rather than rendering an empty grid.
+
 ### `fn:send-payment-link` — 7/10 (proven; nobody told)
 
 - **control** Staff send a member a Stripe payment link (CRM → member → Subscription)

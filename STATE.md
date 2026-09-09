@@ -31,7 +31,7 @@ rather than clicking for half an hour is doing their job, not idling.
 | 2 | "Keep me signed in on this device", OFF for staff, ON for members | ✅ | `authStorage.ts` routes tokens to `localStorage` (on) or `sessionStorage` (off), reading the choice on **every** call because the client is built at import time. `KeepSignedInCheckbox` is one component with two defaults |
 | 3 | 2FA challenged only on a NEW session | ✅ | asserted as an **absence**: no file on the navigation path (`AuthContext`, `ProtectedRoute`, `App`, both storage modules) contains `mfa.challenge`/`mfa.verify`, and `ProtectedRoute`'s admin gate checks *enrolment* (`hasVerifiedFactor === false`) rather than issuing a challenge |
 | 4 | explicit Sign Out clears everything | ✅ | `clearAllAuthStorage()` clears **both** stores plus the preference, and only Supabase auth keys — the wizard draft, language and consent survive. The on-duty warning (#246) is unchanged |
-| 5 | tests + STATE.md + WIRING_REGISTER.md | ✅ | 34 tests; **27 mutations, 27 killed, first pass**. Register regenerated |
+| 5 | tests + STATE.md + WIRING_REGISTER.md | ✅ | 36 tests; **33 mutations, 33 killed** — 27 first pass, plus 6 after a review found a real hole (below). Register regenerated |
 
 **The browser-close test is real, not mocked.** Closing a browser clears `sessionStorage` and
 leaves `localStorage` alone — that *is* the difference between the stores. So the test clears
@@ -52,6 +52,27 @@ tokens on the next page load — including an operator's, mid-shift, which is th
 this change exists to stop. So `adoptExistingSession()` reads an absent preference beside an
 existing session as "persistent", once, and writes it down. Their next deliberate login sets it
 properly. It runs **before** the client is constructed, and a test asserts that ordering.
+
+**A HOLE THIS WORK'S OWN TESTS MISSED, found by reviewing the adapter afterwards.** `getItem`
+fell back to the other store when the chosen one was empty. So an ephemeral staff session that
+closed the browser found `sessionStorage` empty — as intended — then read `localStorage` and
+picked up a token left by an earlier persistent login: **signed in after a browser close**, the
+exact opposite of what the unticked box promises.
+
+All 34 tests passed regardless, and the reason is the useful part: `setPersistentLogin(false)`
+clears the other store *in the same call*, and every test set the preference immediately before
+reading. On a real browser reopen the preference is **already** recorded, so nothing clears
+anything and the stale token wins. The fallback had no legitimate case at all — every real path
+puts the token in the store the flag names — so it is gone, and two tests now write the
+preference **directly**, bypassing `setPersistentLogin`, to reproduce the state a reopened
+browser is actually in. Three mutations confirm it (`the fallback comes back`, and pinning reads
+to either store).
+
+Second review finding, smaller: the 31-minute test claimed to be the behavioural proof and is
+not — it mounts nothing, so no timer could fire in it either way. It proves the *stores* do not
+self-expire. The behavioural guard is the "no source file arms a timer" assertion, and that one
+is mutation-proven by planting a `setTimeout(() => handleSignOut(), 30 * 60 * 1000)` back into
+`AuthContext`. Both are kept, with the comment now saying which does what.
 
 🟡 **Not verified in a real browser.** Everything above is jsdom and source assertions. Two
 things only a person at a keyboard can confirm: that a **real** browser close ends a staff

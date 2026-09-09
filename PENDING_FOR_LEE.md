@@ -20,28 +20,51 @@ make the manifest lie, and the drift gate (#164) depends on that manifest being 
 |---|---|---|---|
 | 1 | `20260907120000_wp3_wp6_seed_bundle.sql` — **PR held open, not merged** | Rows only, plus one enum value. WP6 G5's canned replies (six shortcuts × three languages), WP3 N7's notification templates (four transitions × three channels × three languages, member-only), and WP7 W7's `resume` on `member_action`. Nothing sends because of it: all three `notify_channel_*` flags are still off, and the second gate (the member's own opt-in) applies after them | Rows yes, by the DELETEs in the file's header. **The enum value no** — Postgres has no `DROP VALUE`; reversing it means recreating the type. Called out in the migration rather than buried |
 
+| 2 | `20260909100000_sales_command_stats_fix.sql` | Not mine — arrived on main with #259 | see the file |
+| 3 | `20260909110000_payment_link_order.sql` | Not mine — arrived on main with #259 | see the file |
+| 4 | `20260909120000_rota_2026_seed_and_generator.sql` — **the rota (#260, merged 9 Sep on Lee's instruction)** | `bank_holidays`, `staff_shift_swaps`, `generate_rota()`, `seed_rota_2026()`, and the 339-shift import of 2026-09-10..12-31. See **S18** — the seed is a documented no-op until the four operator staff rows exist | Yes, block written out in the file's header |
+
+> **`main`'s drift gate is RED until these three are pushed, and that is the alarm working.**
+> There is **no migrate workflow** in this repo: `deploy-functions.yml` deploys edge functions
+> only and says so in its own header — *"schema changes stay manual under the human gate"*.
+> Nothing applies a migration but a human running `supabase db push`.
+> ## 🔴 TWO MIGRATIONS ARE ON `main` AND NOT IN PRODUCTION — this is why CI on main is red
+>
+> Discovered 9 Sep 11:30 while rebasing. `main` (`48e1a16`) **fails the migration drift gate**:
+>
+> | Migration | What it does |
+> |---|---|
+> | `20260909100000_sales_command_stats_fix.sql` | `get_sales_command_stats()` raised `22P02` on every call — it filtered `internal_tickets` on `category = 'sales'`, which is not a `ticket_category` value, aborting the whole function. That is the dashboard's "Failed to load" |
+> | `20260909110000_payment_link_order.sql` | `create_payment_link_order()` — the pending rows behind a staff-sent payment link — plus a guard clause stopping staff typing a member into `active` without a paid subscription |
+>
+> **Both arrived on main inside PRs titled `[HOLD FOR LEE]`** (#243, #246), in a burst of five
+> merges in about 25 minutes. Two consequences worth knowing:
+>
+> 1. `20260909110000` creates the function `send-payment-link` (#248) calls. If that function is
+>    deployed before the migration is applied, it calls something production does not have.
+> 2. Because the drift gate is the FIRST step of that job, **Type check, Build and the wiring
+>    register never ran on main** — they show as `skipped`. So main is *unverified*, not
+>    verified-good. Tests did pass.
+>
+> **The fix is yours:** `supabase db push`, then append both filenames to
+> `APPLIED_TO_PROD.txt` and merge that. I have deliberately NOT written them into the manifest —
+> doing so would silence the gate while production stayed behind, which is the "pin around it"
+> CLAUDE.md forbids.
+>
 > **One is outstanding, and its PR is deliberately NOT merged.** Merging a migration before you
 > can push it turns the drift gate red for *every* pull request behind it (D-3), so it waits in
 > §5 until you can do both together: `supabase db push`, append the filename here, merge.
 >
-> **One is waiting in §5 and deliberately unmerged**: #219, the seed bundle. It is not listed above
-> because it is not in `main` — merging a migration before you can push it turns the drift gate red
-> for every pull request behind it (D-3). Apply it, append the filename here, then merge it.
+> **Order:** `supabase db push` (takes all three) → append all three filenames to
+> `APPLIED_TO_PROD.txt` → merge that. Main goes green on the same commit.
 >
-> `20260905100000_staff_delete_fk_rules.sql` — the one that was held in §5 on 5 September — is
-> **applied and recorded**: you merged #176, pushed it, and #179 appended it to
-> `APPLIED_TO_PROD.txt`. Production is level with the repo, and `main` is green.
+> One consequence worth knowing when you read main's red X: the drift gate runs BEFORE typecheck
+> and build in `ci.yml`, so while drift stands those two report `skipped` and main has no
+> typecheck signal from CI. For #260 they were run locally instead — tsc app 0, tsc node 0,
+> production build clean — because CI never got to them.
 >
-> **The WP2–WP7 schema bundle is also applied.** #180 and its corrections #187 are merged,
-> pushed, and recorded in `APPLIED_TO_PROD.txt` by #185 and #189 — six migrations covering the
-> fulfilment state machine and its D9 trigger, readiness's second condition, WP3's notification
-> consent/templates/log, WP5's circle of care, WP6's messaging columns and WP7's attribution
-> guard. That was the method change D-3 argued for: **one** PR carrying every schema change the
-> rest of the brief needs, so the drift gate is paid once instead of once per increment. It
-> worked — nothing has been blocked on it since.
->
-> Two verification queries are still owed on it, S8 and S9, because the backfill runs at apply
-> time and the RLS harness has no rows to assert against at that moment.
+> **One is still waiting in §5 and deliberately unmerged**: #219, the seed bundle. It is not
+> listed above because it is not in `main`.
 
 ---
 
@@ -67,6 +90,11 @@ make the manifest lie, and the drift gate (#164) depends on that manifest being 
 | S15 | **Set `settings_twilio_whatsapp_number`, or know that WhatsApp does not send** | Supabase → `system_settings` | The outbound WhatsApp path read `settings_twilio_whatsapp_number || "+34900000000"` — a number this company does not own. Every send was addressed FROM it, rejected by Twilio, and reported back as an ordinary API response: it looked configured and delivered nothing. It now refuses with the setting named, which is honest but still means no WhatsApp goes out until the row exists | ⬜ |
 | S16 | **Store the 24-hour number in international form — `+34 950 473 199`** | Supabase → `system_settings.settings_emergency_phone` | Every `wa.me` link on this product is built from that setting, and `wa.me/<digits>` reads the digits as a **full international number**. With `950 473 199` stored, `wa.me/950473199` is not the Spanish number — it is a number somewhere else, or nowhere. Three surfaces were doing it: the public *How it works* page, partner support, and the member's new WhatsApp opt-in. `waNumber()` now returns null for a number with no `+`, so those links render **nothing** rather than going somewhere wrong — the same rule as the emergency number itself. Adding the `+34` turns all three back on and changes nothing else: `tel:` links are unaffected, a national number dials fine | ⬜ |
 | S17 | **Ask Martijn for one HTTP header on `alarm.medconneqt.nl`** — until then the embed shows a refusal panel, not the platform | email to MedConneqt | Item 8 asked whether MedConneqt allows framing. **I could not check**: outbound HTTPS from this environment is refused at the proxy for that host (`403 to CONNECT`, `alarm.medconneqt.nl:443`), so anything I told you about their headers would be a guess. The page now answers it **at runtime in the operator's browser**, which is the only place the answer counts — a browser that refuses the frame parks it on `about:blank`, and the page detects that and says so plainly instead of showing a blank rectangle. What Martijn needs to send, on the pages we frame:<br><br>`Content-Security-Policy: frame-ancestors https://icealarm.es;`<br><br>and **stop sending `X-Frame-Options`** on those pages. There is no way to narrow `X-Frame-Options` to us — its `ALLOW-FROM` form is ignored by every current browser — so `frame-ancestors` is the only header that can grant the exception, and any `X-Frame-Options: DENY`/`SAMEORIGIN` alongside it still refuses us in some browsers. The blocked panel prints the exact line for whichever origin the operator is on, so an operator can copy it into an email without going through you | ⬜ |
+| S18 | **`supabase db push`, then append three filenames to `APPLIED_TO_PROD.txt`** | laptop | There is **no migrate workflow** — `deploy-functions.yml` does functions only. Three migrations are on main and not in production: `20260909100000_sales_command_stats_fix.sql`, `20260909110000_payment_link_order.sql`, `20260909120000_rota_2026_seed_and_generator.sql`. The push takes all three. **Before it, check the four operators exist**, or the rota seed is a no-op and tells you so: `select email from staff where email in ('asoares@icealarm.es','cnicolas@icealarm.es','mbonner@icealarm.es','travis@icealarm.es');` — expect 4 rows. If fewer than 4 but more than 0, the seed **refuses** and names the missing one rather than half-filling the rota. If 0, it skips; create them and run `select public.seed_rota_2026();`. Then confirm: `select count(*) from staff_shifts where shift_date between '2026-09-10' and '2026-12-31';` — expect **339** | ⬜ |
+| S18 | **Decide who may record a manual bank-transfer payment, and how it is attributed** — the CRM records one from the browser today | product decision | Found walking the member record (item 4). `PaymentsTab` inserts a `payments` row with `status: 'completed'`, `payment_method: 'bank_transfer'` and `paid_at: now()` straight from the browser, with **no actor and no reason**. Golden rule 4 is intact — it activates nobody, sets no subscription status and touches no member row — but *"who says this money arrived?"* cannot be answered from the row, and a bank transfer is the one payment method with no gateway to check against. The fix is small and I have deliberately not done it inside item 4: a `record-manual-payment` edge function that writes the row under the service role with `staff_id` and a mandatory reason, exactly like `useMemberAction` does for the five subscription actions. Say the word and it is one PR. Pinned in `src/test/memberCrmControls.test.ts` meanwhile, so it cannot quietly multiply |  |
+| S19 | **`has_pendant` is mirrored onto EVERY subscription a member has ever had** | one-line fix, your call on where | Also from the item 4 walk. `DeviceTab` assigns or unassigns a device and then writes `subscriptions.has_pendant` with `.eq("member_id", memberId)` — no status filter, so a member with an old cancelled subscription has that row's flag rewritten by a device action today. Harmless in the ledger, wrong in the record, and it is the same `.eq("member_id")` shape the **payment webhook** uses when it activates (`stripe-webhook` sets `status: 'active'` on every subscription row for the member — which is a bigger version of the same bug, on the gated file, so I have flagged rather than touched it). Both want the subscription id, not the member id |  |
+| S18 | **Push the rota migration, then check next week's grid against the spreadsheet** | `supabase db push` → append `20260909120000_rota_2026_seed_and_generator.sql` to `APPLIED_TO_PROD.txt` → merge that | Loads 2026-09-10 → 12-31: **339 shifts, 9 holidays, 17 covers, 14 bank holidays**. The seed is a **no-op until the four operator staff rows exist** with emails `asoares@`, `cnicolas@`, `mbonner@`, `travis@icealarm.es` — if they are created after the push, run `SELECT public.seed_rota_2026();` and it will fill in. If only *some* of the four exist it refuses and names the missing one, rather than seeding a rota with a hole in it | ⬜ |
+| S19 | **Decide who maintains `shift_escalation_chain`** — the SOS ladder does **not** read the rota | `sos-escalation-runner/index.ts:289` | **This is the finding from §5 of the rota brief, and it is not what the brief assumed.** `staff-shift-monitor` and `shift-daily-reminders` do read `staff_shifts`; `sos-escalation-runner` reads `shift_escalation_chain`, a **separate hand-populated table** on the same `(shift_date, shift_type)` key whose only writer is an admin filling in a dialog. So seeding the rota does **not** tell the SOS ladder who is on shift, and with no row for the current shift, levels 2 and 3 have nobody to call. Untouched on purpose — SOS path, your gate. `generate_rota` could seed it from the shifts it creates; that is ROTA_MODEL.md Q2 and needs your decision | ⬜ |
 
 ---
 
@@ -509,10 +537,39 @@ the member's own per-channel opt-in. A flag on its own no longer sends anything.
 | ~~**#176**~~ | ✅ **Done.** Merged, pushed, and recorded in `APPLIED_TO_PROD.txt` by #179. Production is level. |
 | ~~**#180**~~, ~~**#187**~~ | ✅ **Done.** Merged and pushed; recorded in `APPLIED_TO_PROD.txt` by #185 and #189. Production is level. The monitoring-ready count is **zero** and that is the first honest number this system has produced — see S8/S9 for the two queries that confirm the backfill |
 | **#219 — the held seed bundle** | **The only unapplied migration, and it must not be merged before it is applied.** Rows plus one enum value: WP6 G5's canned replies (six shortcuts × three languages), WP3 N7's notification templates (four transitions × three channels × three languages, member-only), and WP7 W7's `resume` on `member_action` — **with the button that uses it**, because a client writing an enum value the database does not have fails at the insert. Order: `supabase db push`, append the filename to `APPLIED_TO_PROD.txt`, merge. Nothing sends because of it: the three `notify_channel_*` flags are still off (§3). Merging it before pushing turns the drift gate red for every PR behind it (D-3) |
+| ~~**#260**~~ | ✅ **Merged 9 Sep** on Lee's instruction ("nothing is held any more"). Now migration 4 in §1 — pushing it is **S18** |
 | **#215 — inbound SMS and WhatsApp into the member's conversation** | Green on every check and **not** on the brief's excluded list, so this is my judgement rather than a rule I was handed. Two reasons. It changes what happens to a member's message **during an open alert** — the `alert_communications` write is unchanged but now sits downstream of a signature check that can refuse — and that is the SOS/alert path, where CLAUDE.md's human gate is mandatory. And it is the same failure shape the webhook exception exists to prevent: a broken inbound webhook means no member's message arrives, silently. The fix itself is not in question — today those messages are **dropped** unless an alert happens to be open, while the auto-reply says an operator will review them. What it needs is **S14**: one real text message after it deploys |
 | **#196 — the operator card names the second readiness condition** | The SOS path. Green throughout; queued on you, not on its quality. Retargeted to `main` (its old base is fully merged) and refreshed against it, so the diff you see is only this change |
-| **the `paid → allocated` line in `_shared/post-payment.ts`** — not yet raised | The webhook allocates a pendant and never moves the fulfilment state, so the first rung of the ladder has no writer on the payment path. It is one `.update({ fulfilment_state: "allocated" })` after the device is allocated — but `_shared/post-payment.ts` is imported by **both** `stripe-webhook` and `mollie-webhook`, so per the brief it stays open for you. **The staff allocation path is already fixed and merged** (`DeviceTab.assignDevice` → `linkDeviceToPendantOrder`), so allocation by hand works today; only webhook allocation is affected. S11 finds the rows |
+| ~~**the `paid → allocated` line in `_shared/post-payment.ts`**~~ | ✅ **Raised — it is in #253.** `handleSuccessfulPayment` now moves `awaiting_payment → paid` (with the reason the D9 trigger demands, naming the gateway payment so the claim about money is auditable) and then `→ allocated`, but **only when every pendant on the order really got a device** — claiming `allocated` with stock exhausted would hide the one case that needs a human. Mollie gets it too, from the shared module. S11 still finds the rows already stuck at `paid` |
+| **#253 — item 5: create-checkout + stripe-webhook** | Both gated files. The browser no longer names the price (F7) and the webhook no longer takes Stripe's word for the amount (F9). **Merging it deploys them**: `deploy-functions.yml` pushes edge functions to prod on any merge to main touching `supabase/functions/**`. Needs S20 and S21 done first. Base is `feat/send-payment-link` so the diff is item 5 only — land #248 first and GitHub retargets it |
+| **`item6/second-stage` — item 6: the auth user and the second-stage link** (PR pending, stacks on #253) | Touches `create-checkout` (the success URL gains `session_id={CHECKOUT_SESSION_ID}`), so it is gated for the same reason. It is what makes a paid member reachable: an account they can sign into, and the `member_update_tokens` link that collects the emergency contacts the wizard stopped asking for |
+| ~~**#255 — item 8**~~ | Not gated, and **merges when green**: it touches neither `create-checkout` nor `stripe-webhook`. Blocked only by main being red (see §1) |
 
 > Per the brief: any PR touching `supabase/functions/stripe-webhook` or
 > `supabase/functions/create-checkout` stays open. A broken webhook means no member ever
 > activates, and it fails **silently**.
+
+
+---
+
+## 6. Items 5, 6 and 8 — the runbook, in order
+
+Each step depends on the one before it. **S20 and S21 must happen before #253 is merged**,
+because merging #253 deploys the functions.
+
+| # | Do this | Where | Why, and what goes wrong if it is skipped | ✅ |
+|---|---|---|---|---|
+| S20 | **Apply the two drifted migrations and record them** — `supabase db push`, then append `20260909100000_sales_command_stats_fix.sql` and `20260909110000_payment_link_order.sql` to `APPLIED_TO_PROD.txt` and merge that | terminal, then a one-line PR | §1. Until this is done **main is red and every PR behind it is stuck**, and `send-payment-link` would call a function production does not have | ⬜ |
+| S21 | **Set the Stripe webhook destination's API version to `2024-06-20`, and enable the event `checkout.session.async_payment_succeeded`** | Stripe dashboard → Developers → Webhooks → your endpoint | The version decides the SHAPE of every event body. `invoice.subscription` and `subscription.current_period_end` both MOVED in later versions — on a newer version those reads become `undefined` and fail **silently**: renewals stop advancing and subscriptions stop matching. Item 5b declares the fields it needs and refuses loudly if one is missing, so a wrong version is visible rather than silent — but it should simply be right.<br><br>The async event matters just as much: `checkout.session.completed` does **not** mean paid for **SEPA**, so item 5b refuses to activate on it. That refusal is only safe because the async event is handled — **if it is not enabled, every SEPA customer pays and is never activated** | ⬜ |
+| S22 | **Merge #253 (and #248 before it), which deploys the functions** | GitHub | `deploy-functions.yml` deploys on any merge to main touching `supabase/functions/**`. There is no separate deploy step to remember — the merge *is* the deploy. Watch the Actions run finish before S23 | ⬜ |
+| S23 | **The live test: `/join` in a fresh incognito window, card `4242 4242 4242 4242`**, any future expiry, any CVC | a browser | This is the one pass that proves the whole path. Check, in order:<br>• Stripe shows a **subscription**, not a one-off payment, with the pendant/shipping/fee as one-off items on the first invoice<br>• `orders.status = 'confirmed'` and `fulfilment_state` = `paid` or `allocated`<br>• `members.status = 'active'` **and `members.user_id` is not null**<br>• `subscriptions`: `active`, `stripe_subscription_id` set, `registration_fee_paid = true`<br>• exactly **one** `payments` row `completed` — a second would mean `invoice.paid` double-counted the signup<br>• the confirmation screen shows a **second-stage link**; open it and the form asks for contacts and medical<br>• one `member_update_tokens` row, `issued_via = 'post_payment'`, `created_by` null<br>Then **refund it** | ⬜ |
+| S24 | **The tamper test** — the point of item 5. In devtools, intercept the `create-checkout` request and change something | a browser | There is no amount left in the body to change. Change an id and it is refused: the order must be `pending`, the payment must belong to it, and a `couple` plan must name both members. Nothing should reach Stripe | ⬜ |
+| S25 | **Then swap to live keys** — `settings_stripe_secret_key` and `settings_stripe_webhook_secret` | Supabase → `system_settings` | Do it last, and only after S23 passed on test keys. The webhook secret must be the one for the **live** endpoint — a live endpoint with a test secret fails signature verification on every event, which means no member ever activates and the failure is a 400 nobody is watching | ⬜ |
+| S26 | **Check the invite/magic-link expiry** | Supabase → Authentication → Email templates / URL configuration | Item 6's welcome email CTA is a real sign-in link generated at payment time. If the OTP expiry is short (default is an hour), the CTA in an email somebody opens the next morning is dead. Nothing breaks — the member can still use `/login` — but the one-click promise does not hold | ⬜ |
+| S27 | **Fix or disconnect the duplicate Vercel project** | Vercel → `lee-wakemans-projects/care-conneqt-platform` | `Vercel – care-conneqt-platform` fails on **every** open PR while `Vercel – ice-alarm-espana-platform` succeeds on all of them. It looks like a second project wired to the renamed repo, failing for its own reason. It makes every PR show a red check, which is exactly the condition CLAUDE.md says must stop a merge — so it either gets fixed or gets disconnected, or the rule stops meaning anything | ⬜ |
+| S28 | **See the queue's new half, which has never had a real row** | Supabase → SQL editor, then Admin → Members → Readiness queue | Item 8 puts `past_due` subscriptions on the attention queue. There are none in production yet, so it has never rendered with real data. `update subscriptions set status = 'past_due' where id = '<one>';` → the member appears with a red **Payment failed** badge and a count → set it back. Item 5b is what will start producing these for real, from `invoice.payment_failed` | ⬜ |
+
+> **What I could not verify and am not claiming.** Every item above needs a credential, a
+> dashboard or a card this environment does not have. Nothing in items 5, 6 or 8 has been run
+> against real Stripe — the proofs are contract tests and mutation testing against the real
+> modules, which is a different and weaker thing than one live payment.

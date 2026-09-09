@@ -14,6 +14,7 @@ import {
   Clock,
   CheckCircle,
 } from "lucide-react";
+import { EnablePushCard } from "@/components/notifications/EnablePushCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -332,7 +333,11 @@ export default function StaffPreferencesPage() {
             </CardContent>
           </Card>
 
-          {/* notification preferences card removed — switches were never persisted or consumed; reinstate when wired */}
+          {/* The comment that stood here said "notification preferences card removed — switches
+              were never persisted or consumed; reinstate when wired". This is the wiring: a
+              token registered against this staff member's row in `staff_push_tokens`, which the
+              notify-staff router reads when it sends. Per-event switches follow it. */}
+          <EnablePushCard />
 
           {/* Account Information */}
           <Card>

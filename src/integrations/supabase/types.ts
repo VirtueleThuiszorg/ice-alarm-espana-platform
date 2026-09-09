@@ -660,6 +660,27 @@ export type Database = {
           },
         ]
       }
+      bank_holidays: {
+        Row: {
+          created_at: string
+          holiday_date: string
+          name: string
+          region: string
+        }
+        Insert: {
+          created_at?: string
+          holiday_date: string
+          name: string
+          region?: string
+        }
+        Update: {
+          created_at?: string
+          holiday_date?: string
+          name?: string
+          region?: string
+        }
+        Relationships: []
+      }
       blog_posts: {
         Row: {
           ai_intro: string | null
@@ -3458,41 +3479,82 @@ export type Database = {
       notification_log: {
         Row: {
           admin_user_id: string | null
+          channel: string
           created_at: string | null
           entity_id: string | null
           entity_type: string | null
           error: string | null
           event_type: string
           id: string
+          idempotency_key: string | null
           message: string | null
           provider_message_id: string | null
+          recipient: string | null
           status: string
         }
         Insert: {
           admin_user_id?: string | null
+          channel?: string
           created_at?: string | null
           entity_id?: string | null
           entity_type?: string | null
           error?: string | null
           event_type: string
           id?: string
+          idempotency_key?: string | null
           message?: string | null
           provider_message_id?: string | null
+          recipient?: string | null
           status?: string
         }
         Update: {
           admin_user_id?: string | null
+          channel?: string
           created_at?: string | null
           entity_id?: string | null
           entity_type?: string | null
           error?: string | null
           event_type?: string
           id?: string
+          idempotency_key?: string | null
           message?: string | null
           provider_message_id?: string | null
+          recipient?: string | null
           status?: string
         }
         Relationships: []
+      }
+      notification_routes: {
+        Row: {
+          channel: string
+          enabled: boolean
+          event_type: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          channel: string
+          enabled?: boolean
+          event_type: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          channel?: string
+          enabled?: boolean
+          event_type?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_routes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_settings: {
         Row: {
@@ -6172,6 +6234,58 @@ export type Database = {
           },
         ]
       }
+      staff_notification_prefs: {
+        Row: {
+          channel: string
+          enabled: boolean
+          event_type: string
+          id: string
+          staff_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          channel: string
+          enabled?: boolean
+          event_type: string
+          id?: string
+          staff_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          channel?: string
+          enabled?: boolean
+          event_type?: string
+          id?: string
+          staff_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_notification_prefs_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_notification_prefs_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_notification_prefs_event_type_channel_fkey"
+            columns: ["event_type", "channel"]
+            isOneToOne: false
+            referencedRelation: "notification_routes"
+            referencedColumns: ["event_type", "channel"]
+          },
+        ]
+      }
       staff_presence: {
         Row: {
           created_at: string
@@ -6211,6 +6325,44 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "staff_holiday_balance"
             referencedColumns: ["staff_id"]
+          },
+        ]
+      }
+      staff_push_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          label: string | null
+          last_seen_at: string
+          platform: string
+          staff_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label?: string | null
+          last_seen_at?: string
+          platform?: string
+          staff_id: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string | null
+          last_seen_at?: string
+          platform?: string
+          staff_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_push_tokens_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -6313,6 +6465,90 @@ export type Database = {
           {
             foreignKeyName: "staff_shift_covers_shift_id_fkey"
             columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "staff_shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_shift_swaps: {
+        Row: {
+          accepted_at: string | null
+          applied_at: string | null
+          approved_at: string | null
+          approved_by: string | null
+          counterparty_id: string
+          created_at: string
+          id: string
+          offered_shift_id: string | null
+          reason: string | null
+          requested_by: string
+          requested_shift_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          applied_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          counterparty_id: string
+          created_at?: string
+          id?: string
+          offered_shift_id?: string | null
+          reason?: string | null
+          requested_by: string
+          requested_shift_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          applied_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          counterparty_id?: string
+          created_at?: string
+          id?: string
+          offered_shift_id?: string | null
+          reason?: string | null
+          requested_by?: string
+          requested_shift_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_shift_swaps_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_shift_swaps_counterparty_id_fkey"
+            columns: ["counterparty_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_shift_swaps_offered_shift_id_fkey"
+            columns: ["offered_shift_id"]
+            isOneToOne: false
+            referencedRelation: "staff_shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_shift_swaps_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_shift_swaps_requested_shift_id_fkey"
+            columns: ["requested_shift_id"]
             isOneToOne: false
             referencedRelation: "staff_shifts"
             referencedColumns: ["id"]

@@ -24,9 +24,29 @@ CREATE TEMP TABLE _results (
   detail text
 );
 
+-- A NULL assertion is a FAILED assertion, and this used to be a hole in the detector itself.
+--
+-- Found by mutation, 2026-09-09: a mutation that stopped writing `subscriptions.payer_id`
+-- printed a FAIL row for "the payer is attached to the subscription" — and the suite EXITED 0.
+-- The assertion was `sub.payer_id = '…'`, which against a NULL column is NULL rather than
+-- false; the report renders NULL as FAIL (`CASE WHEN passed THEN 'PASS' ELSE 'FAIL'`), while
+-- the exit code came from `count(*) FILTER (WHERE NOT passed)`, and `NOT NULL` is NULL, so the
+-- row was counted as neither. Every assertion of the form `<nullable column> = <value>` was
+-- therefore un-failable — which is precisely the shape of assertion that matters most here,
+-- because "the column we expected to be written is NULL" is the defect.
+--
+-- COALESCE to false, and say so in the detail: an assertion nobody could evaluate is not a
+-- pass, and the reader needs to know which of the two kinds of red they are looking at.
 CREATE OR REPLACE FUNCTION pg_temp.check(p_name text, p_passed boolean, p_detail text DEFAULT '')
 RETURNS void LANGUAGE sql AS $$
-  INSERT INTO _results (name, passed, detail) VALUES (p_name, p_passed, p_detail);
+  INSERT INTO _results (name, passed, detail)
+  VALUES (
+    p_name,
+    COALESCE(p_passed, false),
+    CASE WHEN p_passed IS NULL
+         THEN btrim(p_detail || ' [assertion evaluated to NULL, not false — a comparison '
+                    || 'against a NULL column. Counted as a failure.]')
+         ELSE p_detail END);
 $$;
 
 -- Run a query as a given user and return the row count. SECURITY INVOKER (the
@@ -4021,6 +4041,377 @@ SELECT pg_temp.check(
     'SELECT public.get_sales_command_stats()') = 1,
   'SECURITY DEFINER with no role check inside: recorded here as what it is, so a future '
   'tightening has a place to land');
+
+
+-- ============================================================
+--  Item 4 — the payment-link order, and who may set a member active
+-- ============================================================
+--
+-- `create_payment_link_order()` records the PENDING order + items + subscription + payment
+-- behind a staff-sent Stripe link. Everything below CALLS it rather than reading it: the same
+-- function next door, `submit_registration_atomic`, passed a static review and then turned out
+-- to be unable to insert a member at all (five missing text→enum casts, 20260908120500). A
+-- 250-line PL/pgSQL body is not verifiable by reading.
+--
+-- The section seeds its OWN member and staff rows. Members A and B already carry ACTIVE
+-- subscriptions from the top of this file, and this function deliberately REFUSES a member who
+-- has one — so reusing them would have made every positive assertion here fail for the right
+-- reason and the wrong one at the same time.
+
+INSERT INTO auth.users (id, email) VALUES
+  ('b1000000-0000-0000-0000-00000000000a', 'link-member@example.com'),
+  ('b1000000-0000-0000-0000-00000000000b', 'link-admin@example.com'),
+  ('b1000000-0000-0000-0000-00000000000c', 'link-operator@example.com');
+
+INSERT INTO public.members
+  (id, user_id, first_name, last_name, email, phone, date_of_birth,
+   address_line_1, address_line_2, city, province, postal_code, status)
+VALUES
+  ('b1e00000-0000-0000-0000-00000000000a', 'b1000000-0000-0000-0000-00000000000a',
+   'Lena', 'Link', 'link-member@example.com', '+34600000009', '1948-03-03',
+   'Calle L 9', 'Piso 2', 'Mojacar', 'Almeria', '04638', 'inactive');
+
+INSERT INTO public.staff (user_id, email, first_name, last_name, role) VALUES
+  ('b1000000-0000-0000-0000-00000000000b', 'link-admin@example.com', 'Ada', 'Admin', 'admin'),
+  ('b1000000-0000-0000-0000-00000000000c', 'link-operator@example.com', 'Ivo', 'Operator', 'call_centre');
+
+INSERT INTO public.payers (id, full_name, email, relationship)
+VALUES ('b1a00000-0000-0000-0000-00000000000a', 'Diana Daughter', 'diana@example.com', 'daughter');
+
+-- A payload the edge function would send: figures already computed by _shared/pricing-calc.ts,
+-- couple plan, two pendants, shipping once (P3), the registration fee at full price.
+CREATE OR REPLACE FUNCTION pg_temp.link_payload(p_over jsonb DEFAULT '{}'::jsonb)
+RETURNS jsonb LANGUAGE sql AS $$
+  SELECT jsonb_build_object(
+    'memberId', 'b1e00000-0000-0000-0000-00000000000a',
+    'membershipType', 'couple',
+    'billingFrequency', 'monthly',
+    'pendantCount', 2,
+    'payerId', 'b1a00000-0000-0000-0000-00000000000a',
+    'paymentMethod', 'stripe',
+    'createdByStaffId', (SELECT id FROM public.staff WHERE email = 'link-admin@example.com'),
+    'amounts', jsonb_build_object(
+      'subscriptionNet', 44.98, 'subscriptionTax', 4.50, 'subscriptionFinal', 49.48,
+      'subscriptionTaxRate', 0.10,
+      'pendantNet', 250.00, 'pendantTax', 52.50, 'pendantFinal', 302.50,
+      'pendantTaxRate', 0.21,
+      'registrationFee', 59.99,
+      'shipping', 14.99,
+      'total', 426.96
+    )
+  ) || p_over
+$$;
+
+-- Call it and hand back the result, or NULL plus the SQLSTATE — so a raise inside the function
+-- is reported as a failed assertion instead of aborting the whole suite with no FAIL row. That
+-- is not hypothetical: the 22P02 section above lost six assertions that way before this pattern
+-- was adopted.
+CREATE OR REPLACE FUNCTION pg_temp.link_order_or_null(p_payload jsonb)
+RETURNS jsonb LANGUAGE plpgsql AS $$
+DECLARE v jsonb;
+BEGIN
+  SELECT public.create_payment_link_order(p_payload) INTO v;
+  RETURN v;
+EXCEPTION WHEN OTHERS THEN
+  RAISE WARNING 'create_payment_link_order raised %: %', SQLSTATE, SQLERRM;
+  RETURN NULL;
+END $$;
+
+-- ── it is service_role only ────────────────────────────────────────────────
+SELECT pg_temp.check(
+  'authenticated cannot EXECUTE create_payment_link_order — it would be F7 one layer down',
+  NOT has_function_privilege('authenticated', 'public.create_payment_link_order(jsonb)', 'execute'),
+  'a staff account calling this from the browser could name its own amounts');
+
+SELECT pg_temp.check(
+  'anon cannot either',
+  NOT has_function_privilege('anon', 'public.create_payment_link_order(jsonb)', 'execute'));
+
+SELECT pg_temp.check(
+  'service_role can — that is the only caller (send-payment-link)',
+  has_function_privilege('service_role', 'public.create_payment_link_order(jsonb)', 'execute'));
+
+SELECT pg_temp.check(
+  'it is SECURITY DEFINER with a pinned search_path',
+  (SELECT prosecdef AND array_to_string(proconfig, ',') LIKE '%search_path=public%'
+     FROM pg_proc WHERE proname = 'create_payment_link_order'),
+  'an unpinned search_path lets a caller shadow `orders` with their own table');
+
+-- ── the happy path, by execution ───────────────────────────────────────────
+DO $$
+DECLARE
+  res jsonb;
+  o public.orders;
+  sub public.subscriptions;
+  pay public.payments;
+  n_items int;
+  member_status_before text;
+  member_status_after text;
+BEGIN
+  SELECT status::text INTO member_status_before
+    FROM public.members WHERE id = 'b1e00000-0000-0000-0000-00000000000a';
+
+  res := pg_temp.link_order_or_null(pg_temp.link_payload());
+
+  PERFORM pg_temp.check(
+    'a real payload returns the four ids the webhook needs in metadata',
+    res IS NOT NULL
+    AND res ? 'orderId' AND res ? 'orderNumber' AND res ? 'paymentId' AND res ? 'subscriptionId',
+    format('got %s', res));
+
+  IF res IS NULL THEN
+    RETURN;   -- nothing below can say anything; the failure above is the report
+  END IF;
+
+  SELECT * INTO o FROM public.orders WHERE id = (res->>'orderId')::uuid;
+  SELECT * INTO sub FROM public.subscriptions WHERE id = (res->>'subscriptionId')::uuid;
+  SELECT * INTO pay FROM public.payments WHERE id = (res->>'paymentId')::uuid;
+  SELECT count(*) INTO n_items FROM public.order_items WHERE order_id = o.id;
+
+  PERFORM pg_temp.check(
+    'the order is PENDING and awaiting payment, not paid',
+    o.status = 'pending' AND o.fulfilment_state = 'awaiting_payment',
+    format('status=%s fulfilment_state=%s', o.status, o.fulfilment_state));
+
+  PERFORM pg_temp.check(
+    'the order number is the readable sequence format, not an epoch hash',
+    o.order_number ~ ('^ICE-' || to_char(now(), 'YYYYMMDD') || '-[0-9]{5}$'),
+    format('got %s', o.order_number));
+
+  PERFORM pg_temp.check(
+    'the total is the total, and the parts are on the order',
+    o.total_amount = 426.96 AND o.shipping_amount = 14.99
+    AND o.subtotal = 44.98 + 250.00 + 59.99,
+    format('total=%s shipping=%s subtotal=%s', o.total_amount, o.shipping_amount, o.subtotal));
+
+  PERFORM pg_temp.check(
+    'it ships to the MEMBER''s address — the payer pays, the member wears the pendant',
+    o.shipping_address_line_1 = 'Calle L 9' AND o.shipping_address_line_2 = 'Piso 2'
+    AND o.shipping_city = 'Mojacar' AND o.shipping_postal_code = '04638',
+    'posting a life-safety device to whoever is paying is a defect, not a convenience');
+
+  PERFORM pg_temp.check(
+    'three order items: the membership, two pendants, the fee',
+    n_items = 3
+    AND (SELECT quantity FROM public.order_items
+          WHERE order_id = o.id AND item_type = 'pendant') = 2,
+    format('%s items', n_items));
+
+  PERFORM pg_temp.check(
+    'the subscription is PENDING — golden rule 4 leaves `active` to the webhook',
+    sub.status = 'pending' AND sub.stripe_subscription_id IS NULL
+    AND sub.stripe_customer_id IS NULL,
+    format('status=%s', sub.status));
+
+  PERFORM pg_temp.check(
+    'the plan is what staff chose, and the pendant is recorded',
+    sub.plan_type = 'couple' AND sub.billing_frequency = 'monthly'
+    AND sub.has_pendant AND NOT sub.registration_fee_paid);
+
+  PERFORM pg_temp.check(
+    'the payer is attached to the subscription (PAYER_MODEL.md), not to the member row',
+    sub.payer_id = 'b1a00000-0000-0000-0000-00000000000a');
+
+  PERFORM pg_temp.check(
+    'the payment is PENDING, for the full total, and points at both the order and the subscription',
+    pay.status = 'pending' AND pay.amount = 426.96
+    AND pay.order_id = o.id AND pay.subscription_id = sub.id
+    AND pay.payment_type = 'order' AND pay.paid_at IS NULL,
+    format('status=%s amount=%s', pay.status, pay.amount));
+
+  SELECT status::text INTO member_status_after
+    FROM public.members WHERE id = 'b1e00000-0000-0000-0000-00000000000a';
+
+  PERFORM pg_temp.check(
+    'THE MEMBER IS NOT ACTIVATED — the whole point of golden rule 4',
+    member_status_after = member_status_before AND member_status_after = 'inactive',
+    format('%s -> %s', member_status_before, member_status_after));
+
+  PERFORM pg_temp.check(
+    'the staff member who pressed the button is named in activity_logs',
+    EXISTS (
+      SELECT 1 FROM public.activity_logs al
+       WHERE al.entity_id = o.id
+         AND al.action = 'payment_link_order_created'
+         AND al.entity_type = 'order'
+         AND al.staff_id = (SELECT id FROM public.staff WHERE email = 'link-admin@example.com')
+         AND al.member_action IS NULL),
+    '"who signed this member up, and when" must be answerable without reading Stripe');
+END $$;
+
+-- ── two calls in ONE statement cannot collide on the order number ──────────
+-- The F17 defect was a one-second epoch hash against a UNIQUE constraint. Both calls here share
+-- a transaction timestamp, which is exactly the case that used to fail; a sequence cannot.
+DO $$
+DECLARE a jsonb; b jsonb;
+BEGIN
+  DELETE FROM public.subscriptions WHERE member_id = 'b1e00000-0000-0000-0000-00000000000a';
+
+  SELECT pg_temp.link_order_or_null(pg_temp.link_payload()),
+         pg_temp.link_order_or_null(pg_temp.link_payload())
+    INTO a, b;
+
+  PERFORM pg_temp.check(
+    'two orders created in the same statement get different numbers',
+    a IS NOT NULL AND b IS NOT NULL AND (a->>'orderNumber') <> (b->>'orderNumber'),
+    format('%s vs %s', a->>'orderNumber', b->>'orderNumber'));
+END $$;
+
+-- ── what it refuses ────────────────────────────────────────────────────────
+SELECT pg_temp.check(
+  'an unknown member is refused',
+  pg_temp.link_order_or_null(pg_temp.link_payload(
+    '{"memberId": "deadbeef-0000-0000-0000-000000000000"}'::jsonb)) IS NULL);
+
+SELECT pg_temp.check(
+  'a plan type that is not single or couple is refused',
+  pg_temp.link_order_or_null(pg_temp.link_payload('{"membershipType": "family"}'::jsonb)) IS NULL);
+
+SELECT pg_temp.check(
+  'a billing frequency that is not monthly or annual is refused',
+  pg_temp.link_order_or_null(pg_temp.link_payload('{"billingFrequency": "weekly"}'::jsonb)) IS NULL);
+
+SELECT pg_temp.check(
+  'three pendants is refused — a quantity typo is money',
+  pg_temp.link_order_or_null(pg_temp.link_payload('{"pendantCount": 3}'::jsonb)) IS NULL);
+
+SELECT pg_temp.check(
+  'a zero total is refused',
+  pg_temp.link_order_or_null(pg_temp.link_payload(
+    jsonb_build_object('amounts', (pg_temp.link_payload()->'amounts') || '{"total": 0}'::jsonb))) IS NULL);
+
+SELECT pg_temp.check(
+  'amounts that do not sum to the total are refused',
+  pg_temp.link_order_or_null(pg_temp.link_payload(
+    jsonb_build_object('amounts', (pg_temp.link_payload()->'amounts') || '{"total": 99.99}'::jsonb))) IS NULL,
+  'a payload assembled wrongly is a customer charged wrongly');
+
+-- ...and it accepts a total that sums, so the assertion above is about the SUM and not about
+-- the number 99.99.
+SELECT pg_temp.check(
+  'CONTROL: a consistent smaller order IS accepted',
+  pg_temp.link_order_or_null(pg_temp.link_payload(
+    jsonb_build_object(
+      'membershipType', 'single', 'pendantCount', 0,
+      'amounts', jsonb_build_object(
+        'subscriptionNet', 24.99, 'subscriptionTax', 2.50, 'subscriptionFinal', 27.49,
+        'subscriptionTaxRate', 0.10,
+        'pendantNet', 0, 'pendantTax', 0, 'pendantFinal', 0, 'pendantTaxRate', 0.21,
+        'registrationFee', 0, 'shipping', 0, 'total', 27.49)))) IS NOT NULL);
+
+-- A member who is already paying must not be signed up twice. The row above left a `pending`
+-- subscription, which is NOT a live one — chasing an unpaid link has to keep working.
+DO $$
+DECLARE live jsonb; pending_ok jsonb;
+BEGIN
+  pending_ok := pg_temp.link_order_or_null(pg_temp.link_payload());
+  PERFORM pg_temp.check(
+    'a member with only PENDING subscriptions can be sent another link — that is the chase',
+    pending_ok IS NOT NULL);
+
+  UPDATE public.subscriptions SET status = 'active'
+   WHERE member_id = 'b1e00000-0000-0000-0000-00000000000a'
+     AND id = (pending_ok->>'subscriptionId')::uuid;
+
+  live := pg_temp.link_order_or_null(pg_temp.link_payload());
+  PERFORM pg_temp.check(
+    'a member with a LIVE subscription is refused — change the plan, do not double-bill',
+    live IS NULL);
+END $$;
+
+-- ── the guard: who may set a member active ────────────────────────────────
+-- 20260904180000 closed the member half of golden rule 4 and left staff unrestricted. That
+-- exception was written for SUSPENDING, and `MemberDetailPage.handleSuspend` writes
+-- `status: member.status === "suspended" ? "active" : "suspended"` from the browser — so one
+-- click on an unpaid member's record granted an active membership. The literal-`status: "active"`
+-- guard in src/test/webhookActivationContract.test.ts never saw it, because that is a ternary.
+
+-- Member L now HAS a live subscription (set active in the block above), so start from a state
+-- where staff activation is legitimate, then remove it.
+SELECT pg_temp.check(
+  'CONTROL: member L has a live subscription right now',
+  (SELECT count(*) FROM public.subscriptions
+    WHERE member_id = 'b1e00000-0000-0000-0000-00000000000a' AND status = 'active') = 1,
+  'if this is 0, the "staff CAN activate a paid member" assertion below is vacuous');
+
+SELECT pg_temp.check(
+  'staff CAN reinstate a member whose subscription is live — the case the exception exists for',
+  pg_temp.exec_as('b1000000-0000-0000-0000-00000000000b',
+    'UPDATE public.members SET status = ''active''
+      WHERE id = ''b1e00000-0000-0000-0000-00000000000a''') = 1);
+
+SELECT pg_temp.check(
+  'staff can still SUSPEND anybody — that half is untouched',
+  pg_temp.exec_as('b1000000-0000-0000-0000-00000000000b',
+    'UPDATE public.members SET status = ''suspended''
+      WHERE id = ''b1e00000-0000-0000-0000-00000000000a''') = 1);
+
+-- Now take the payment away and try the same click again.
+UPDATE public.subscriptions SET status = 'cancelled'
+ WHERE member_id = 'b1e00000-0000-0000-0000-00000000000a';
+
+SELECT pg_temp.check(
+  'staff CANNOT set an UNPAID member active — a free membership by dropdown is refused',
+  pg_temp.raises_as('b1000000-0000-0000-0000-00000000000b',
+    'UPDATE public.members SET status = ''active''
+      WHERE id = ''b1e00000-0000-0000-0000-00000000000a'''),
+  'this is the un-suspend click on a member nobody has paid for');
+
+SELECT pg_temp.check(
+  'nor can a call-centre operator',
+  pg_temp.raises_as('b1000000-0000-0000-0000-00000000000c',
+    'UPDATE public.members SET status = ''active''
+      WHERE id = ''b1e00000-0000-0000-0000-00000000000a'''));
+
+SELECT pg_temp.check(
+  'the member still cannot activate themselves (20260904180000, unchanged)',
+  pg_temp.raises_as('b1000000-0000-0000-0000-00000000000a',
+    'UPDATE public.members SET status = ''active'' WHERE user_id = auth.uid()'));
+
+SELECT pg_temp.check(
+  'CONTROL: the refusals above left the member NOT active',
+  (SELECT status::text FROM public.members
+    WHERE id = 'b1e00000-0000-0000-0000-00000000000a') <> 'active',
+  'a guard that raises and still writes is worse than no guard');
+
+-- past_due counts as paid (P4: monitoring continues while Stripe retries), so a member whose
+-- card failed can still be un-suspended.
+UPDATE public.subscriptions SET status = 'past_due'
+ WHERE member_id = 'b1e00000-0000-0000-0000-00000000000a'
+   AND id = (SELECT id FROM public.subscriptions
+              WHERE member_id = 'b1e00000-0000-0000-0000-00000000000a' LIMIT 1);
+
+SELECT pg_temp.check(
+  'a past_due member can be reinstated — P4 keeps monitoring running through a failed payment',
+  pg_temp.exec_as('b1000000-0000-0000-0000-00000000000b',
+    'UPDATE public.members SET status = ''active''
+      WHERE id = ''b1e00000-0000-0000-0000-00000000000a''') = 1);
+
+-- And the service role — the payment webhook — is unrestricted, which is the one route golden
+-- rule 4 names. No auth.uid(), so the guard returns early.
+UPDATE public.subscriptions SET status = 'cancelled'
+ WHERE member_id = 'b1e00000-0000-0000-0000-00000000000a';
+
+DO $$
+DECLARE n int;
+BEGIN
+  UPDATE public.members SET status = 'inactive'
+   WHERE id = 'b1e00000-0000-0000-0000-00000000000a';
+  UPDATE public.members SET status = 'active'
+   WHERE id = 'b1e00000-0000-0000-0000-00000000000a';
+  GET DIAGNOSTICS n = ROW_COUNT;
+  PERFORM pg_temp.check(
+    'the payment webhook (service role, no auth.uid()) activates an unpaid member freely',
+    n = 1,
+    'the webhook is the ONE route golden rule 4 permits, and it must not be blocked by this');
+END $$;
+
+-- The guard reads the code, not its own comment.
+SELECT pg_temp.check(
+  'the guard names `active` explicitly rather than trusting a status list',
+  (SELECT regexp_replace(prosrc, '--[^' || chr(10) || ']*', '', 'g') LIKE '%past_due%'
+      AND regexp_replace(prosrc, '--[^' || chr(10) || ']*', '', 'g') LIKE '%is_staff%'
+     FROM pg_proc WHERE proname = 'guard_member_status_self_write'));
 
 -- ============================================================
 --  Report

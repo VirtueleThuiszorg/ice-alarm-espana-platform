@@ -4447,10 +4447,32 @@ INSERT INTO public.staff (id, user_id, email, first_name, last_name, role, perso
    'notify-other@example.com', 'Olga', 'Other', 'call_centre', '+34600000103');
 
 -- ── the seed is a set of ROWS, and the right ones ──────────────────────────
+-- The counts below compare against `notification_routes` rather than a literal, so extending
+-- the event list does not redden the suite for a reason nobody can act on. THIS assertion is
+-- what stops that being vacuous: the routes table has to be the real 19 x 4.
 SELECT pg_temp.check(
-  'the AFTER INSERT trigger seeded 32 preference rows for each new staff member',
+  'the routes table carries every event type x every channel — 19 x 4',
+  (SELECT count(*) FROM public.notification_routes) = 76
+  AND (SELECT count(DISTINCT event_type) FROM public.notification_routes) = 19
+  AND (SELECT count(DISTINCT channel) FROM public.notification_routes) = 4,
+  'the eight this router was built for, the eleven notify-admin already sends, and `test`');
+
+SELECT pg_temp.check(
+  'the four that say the SAFETY MACHINERY failed are routed ON, on every channel',
+  (SELECT bool_and(enabled) FROM public.notification_routes
+    WHERE event_type = 'system.runner_failure' OR event_type LIKE 'escalation.%'),
+  'the router ignores this table for them (ALWAYS_LOUD); the rows are true so the data agrees '
+  'with the behaviour rather than showing a switch that does nothing');
+
+SELECT pg_temp.check(
+  'and every staff member is seeded ON for them, not shown as opted out',
+  (SELECT bool_and(enabled) FROM public.staff_notification_prefs
+    WHERE event_type = 'system.runner_failure' OR event_type LIKE 'escalation.%'));
+SELECT pg_temp.check(
+  'the AFTER INSERT trigger seeded a row per event x channel for each new staff member',
   (SELECT count(*) FROM public.staff_notification_prefs
-    WHERE staff_id = 'c1a00000-0000-0000-0000-00000000000b') = 32,
+    WHERE staff_id = 'c1a00000-0000-0000-0000-00000000000b')
+    = (SELECT count(*) FROM public.notification_routes),
   'without the trigger, "every default is a row" means "for whoever existed on 9 September"');
 
 SELECT pg_temp.check(
@@ -4528,9 +4550,10 @@ SELECT pg_temp.check(
 
 -- ── who may read and write a preference ────────────────────────────────────
 SELECT pg_temp.check(
-  'an operator sees their OWN 32 preference rows and nobody else''s',
+  'an operator sees their OWN preference rows and nobody else''s',
   pg_temp.count_as('c1000000-0000-0000-0000-00000000000b',
-    'SELECT id FROM public.staff_notification_prefs') = 32);
+    'SELECT id FROM public.staff_notification_prefs')
+    = (SELECT count(*) FROM public.notification_routes));
 
 SELECT pg_temp.check(
   'an operator CANNOT read a colleague''s preferences',
@@ -4557,7 +4580,8 @@ SELECT pg_temp.check(
   'an admin reads every preference row — the matrix is an admin screen',
   pg_temp.count_as('c1000000-0000-0000-0000-00000000000a',
     'SELECT id FROM public.staff_notification_prefs
-      WHERE staff_id = ''c1a00000-0000-0000-0000-00000000000c''') = 32);
+      WHERE staff_id = ''c1a00000-0000-0000-0000-00000000000c''')
+    = (SELECT count(*) FROM public.notification_routes));
 
 SELECT pg_temp.check(
   'an admin can flip somebody else''s switch',
@@ -4575,7 +4599,8 @@ SELECT pg_temp.check(
 SELECT pg_temp.check(
   'an operator can SEE the company routes — "why was I not texted" deserves an answer',
   pg_temp.count_as('c1000000-0000-0000-0000-00000000000b',
-    'SELECT event_type FROM public.notification_routes') = 32);
+    'SELECT event_type FROM public.notification_routes')
+    = (SELECT count(*) FROM public.notification_routes));
 
 SELECT pg_temp.check(
   'an operator cannot change a route',

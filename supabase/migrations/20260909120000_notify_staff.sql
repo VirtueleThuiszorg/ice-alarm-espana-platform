@@ -59,12 +59,18 @@
 --   what those rows already are.
 
 -- ── the event types, named once ────────────────────────────────────────────
+-- NINETEEN of them: the eight this router was built for, the eleven `notify-admin` already
+-- sends (so its WhatsApp path moves onto the router whole), and `test`. The list is mirrored
+-- in `NOTIFY_EVENTS` in supabase/functions/_shared/notify-staff.ts, and
+-- src/test/notifyStaffRouter.test.ts asserts the two agree — a router that can emit an event
+-- type this CHECK refuses would fail at the log write, after the SMS had gone out.
 -- A CHECK rather than an enum, deliberately: `ALTER TYPE … ADD VALUE` cannot run in the same
 -- transaction as anything that uses the new value, which has already cost this repo a migration
 -- split (20260908120300/120400). A CHECK constraint is replaceable in one statement, and the set
 -- is small and stable enough that the constraint IS the documentation.
 CREATE TABLE public.notification_routes (
   event_type text NOT NULL CHECK (event_type IN (
+    -- the eight the router was built for
     'sale.paid',              -- a member paid; the number the business runs on
     'lead.new',               -- an enquiry arrived and somebody must answer it
     'payment.failed',         -- a card was declined; P4 says monitoring continues AND staff are told
@@ -72,7 +78,27 @@ CREATE TABLE public.notification_routes (
     'sos.opened',             -- an alert was raised
     'sos.unassigned',         -- an alert nobody has picked up
     'device.offline',         -- a pendant stopped checking in
-    'isabella.down'           -- the assistant cannot complete a run
+    'isabella.down',          -- the assistant cannot complete a run
+    -- the eleven `notify-admin` already sends, so its WhatsApp path can move onto the router
+    -- whole rather than living beside it. Its own switch was a boolean column per event, which
+    -- is how `whatsapp_ev07b_alerts` came to be read without ever existing.
+    'partner.joined',
+    'hot.sales',
+    'ev07b.alert',
+    'shift.no_show',
+    'shift.no_coverage',
+    'shift.disconnected',
+    -- THE FOUR NO SWITCH MAY SILENCE. Each says the safety machinery itself has failed, and
+    -- `notify-admin` sends all four with `shouldSend = true` today, deliberately ungated. The
+    -- router honours that: `ALWAYS_LOUD` in _shared/notify-staff.ts bypasses this table and the
+    -- preferences table for these four. The rows still exist so the matrix can SHOW them (as
+    -- always-on, not as a switch that does nothing) and so the preferences FK has a parent.
+    'system.runner_failure',
+    'escalation.call_failed',
+    'escalation.no_emergency_contacts',
+    'escalation.contacts_not_notified',
+    -- the admin "send me a test notification" button
+    'test'
   )),
   channel text NOT NULL CHECK (channel IN ('sms', 'whatsapp', 'push', 'email')),
   enabled boolean NOT NULL DEFAULT false,
@@ -240,14 +266,34 @@ ON CONFLICT (key) DO NOTHING;
 -- admins; `sos.*` push to all staff. Everything else exists as an OFF row, so the admin matrix
 -- has something to toggle and nothing is decided in code.
 INSERT INTO public.notification_routes (event_type, channel, enabled) VALUES
+  -- Lee's policy: a paid sale and a new enquiry reach admins on EVERY channel.
   ('sale.paid', 'sms', true), ('sale.paid', 'whatsapp', true), ('sale.paid', 'push', true), ('sale.paid', 'email', true),
   ('lead.new', 'sms', true), ('lead.new', 'whatsapp', true), ('lead.new', 'push', true), ('lead.new', 'email', true),
   ('payment.failed', 'sms', true), ('payment.failed', 'whatsapp', true), ('payment.failed', 'push', true), ('payment.failed', 'email', true),
   ('isabella.down', 'sms', false), ('isabella.down', 'whatsapp', false), ('isabella.down', 'push', true), ('isabella.down', 'email', true),
   ('subscription.cancelled', 'sms', false), ('subscription.cancelled', 'whatsapp', true), ('subscription.cancelled', 'push', true), ('subscription.cancelled', 'email', true),
+  -- An alert is push. SMS on every SOS would be a per-message bill on the busiest event we have.
   ('sos.opened', 'sms', false), ('sos.opened', 'whatsapp', false), ('sos.opened', 'push', true), ('sos.opened', 'email', false),
   ('sos.unassigned', 'sms', false), ('sos.unassigned', 'whatsapp', false), ('sos.unassigned', 'push', true), ('sos.unassigned', 'email', false),
-  ('device.offline', 'sms', false), ('device.offline', 'whatsapp', false), ('device.offline', 'push', true), ('device.offline', 'email', true)
+  ('device.offline', 'sms', false), ('device.offline', 'whatsapp', false), ('device.offline', 'push', true), ('device.offline', 'email', true),
+  -- The eleven from notify-admin, seeded to the channel it already used (WhatsApp) plus push,
+  -- so migrating its path onto the router changes nothing about who hears what today.
+  ('partner.joined', 'sms', false), ('partner.joined', 'whatsapp', true), ('partner.joined', 'push', true), ('partner.joined', 'email', true),
+  ('hot.sales', 'sms', false), ('hot.sales', 'whatsapp', true), ('hot.sales', 'push', true), ('hot.sales', 'email', false),
+  ('ev07b.alert', 'sms', false), ('ev07b.alert', 'whatsapp', true), ('ev07b.alert', 'push', true), ('ev07b.alert', 'email', true),
+  ('shift.no_show', 'sms', false), ('shift.no_show', 'whatsapp', true), ('shift.no_show', 'push', true), ('shift.no_show', 'email', false),
+  ('shift.no_coverage', 'sms', false), ('shift.no_coverage', 'whatsapp', true), ('shift.no_coverage', 'push', true), ('shift.no_coverage', 'email', false),
+  ('shift.disconnected', 'sms', false), ('shift.disconnected', 'whatsapp', true), ('shift.disconnected', 'push', true), ('shift.disconnected', 'email', false),
+  -- THE FOUR THE ROUTER SENDS REGARDLESS. These rows are true so the data agrees with the
+  -- behaviour — a switch an admin can flip that changes nothing is a false affordance, and the
+  -- notifications screen renders these as always-on rather than as switches.
+  ('system.runner_failure', 'sms', true), ('system.runner_failure', 'whatsapp', true), ('system.runner_failure', 'push', true), ('system.runner_failure', 'email', true),
+  ('escalation.call_failed', 'sms', true), ('escalation.call_failed', 'whatsapp', true), ('escalation.call_failed', 'push', true), ('escalation.call_failed', 'email', true),
+  ('escalation.no_emergency_contacts', 'sms', true), ('escalation.no_emergency_contacts', 'whatsapp', true), ('escalation.no_emergency_contacts', 'push', true), ('escalation.no_emergency_contacts', 'email', true),
+  ('escalation.contacts_not_notified', 'sms', true), ('escalation.contacts_not_notified', 'whatsapp', true), ('escalation.contacts_not_notified', 'push', true), ('escalation.contacts_not_notified', 'email', true),
+  -- The test button must be able to exercise any channel, or it proves nothing about the one
+  -- somebody is trying to debug.
+  ('test', 'sms', true), ('test', 'whatsapp', true), ('test', 'push', true), ('test', 'email', true)
 ON CONFLICT (event_type, channel) DO NOTHING;
 
 /*
@@ -296,6 +342,10 @@ BEGIN
       WHEN r.event_type = 'sale.paid' AND r.channel = 'email' THEN true
       -- An alert is everybody's business, and push is the only channel fast enough to matter.
       WHEN r.event_type LIKE 'sos.%' AND r.channel = 'push' THEN true
+      -- The four that say the safety machinery has failed. The router ignores this table for
+      -- them (ALWAYS_LOUD), and the rows are seeded ON so the matrix does not display an
+      -- operator as opted out of something they will be sent regardless.
+      WHEN r.event_type = 'system.runner_failure' OR r.event_type LIKE 'escalation.%' THEN r.enabled
       ELSE false
     END
   FROM public.notification_routes r

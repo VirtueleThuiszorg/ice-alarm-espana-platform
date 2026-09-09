@@ -639,14 +639,34 @@ describe("nothing in this path activates anybody", () => {
     expect(fn).toContain("Staff access required");
   });
 
-  it("stripe-webhook and create-checkout are NOT modified by this work", () => {
-    // The webhook already handles a subscription-mode checkout.session.completed and reads its
-    // ids from metadata, which is what makes this possible without touching the gated files.
+  it("create-checkout now shares this price-id module — one implementation, not two", () => {
+    // WAS: "stripe-webhook and create-checkout are NOT modified by this work", asserting
+    // `create-checkout` did NOT contain "checkout-lines". That was true and right while this
+    // function was being added on its own: the join path is gated (CLAUDE.md), so item 4 built
+    // the module and deliberately left the customer-facing charge alone. Item 5 is the work
+    // that adopts it, so the assertion inverts — the rule it was protecting ("share the
+    // module, never a second copy") is the same rule, now satisfied in the other direction.
+    const checkout = read("supabase/functions/create-checkout/index.ts");
+    expect(checkout).toContain("_shared/checkout-lines.ts");
+    expect(checkout).toContain("_shared/checkout-pricing.ts");
+
+    // Neither function may re-implement the pricing fetch it shares.
+    for (const source of [fn, checkout]) {
+      expect(source).not.toContain("buildPricingConfig");
+      expect(source).not.toContain('from("pricing_plans")');
+    }
+
+    // The webhook still reads its ids from the session metadata both functions stamp — item 5b
+    // now destructures it once (`const metadata = session.metadata ?? {}`) instead of
+    // repeating `session.metadata?.x` at each use, so the contract is asserted on the fields
+    // rather than on the old spelling.
     const webhook = read("supabase/functions/stripe-webhook/index.ts");
     expect(webhook).toContain("checkout.session.completed");
-    expect(webhook).toContain("session.metadata?.subscription_id");
+    expect(webhook).toMatch(/const metadata = session\.metadata/);
+    for (const key of ["order_id", "payment_id", "member_id", "subscription_id"]) {
+      expect(webhook, key).toMatch(new RegExp(`metadata\\.${key}`));
+    }
     expect(webhook).not.toContain("send-payment-link");
-    expect(read("supabase/functions/create-checkout/index.ts")).not.toContain("checkout-lines");
   });
 
   it("there is ONE price-id module, not a copy per caller", () => {

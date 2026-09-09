@@ -100,12 +100,12 @@ export const registrationSchema = z.object({
 /**
  * send-payment-link — a plan, who pays, and NOTHING ELSE.
  *
- * THE ABSENCE IS THE FEATURE. `checkoutSchema` below accepts `lineItems` with an `amount` per
- * line, which is REVIEW_JOIN_PATH.md F7: the browser names the price and the server charges it.
- * This schema has no amount, no total, no currency, no price id and no redirect URL — every one
- * of those is derived server-side from `pricing_plans` / `pricing_settings` / `stripe_prices`.
- * A field added here later is a field a browser can set, so adding one is a decision, not a
- * convenience.
+ * THE ABSENCE IS THE FEATURE. This schema has no amount, no total, no currency, no price id and
+ * no redirect URL — every one of those is derived server-side from `pricing_plans` /
+ * `pricing_settings` / `stripe_prices`. A field added here later is a field a browser can set,
+ * so adding one is a decision, not a convenience. `checkoutSchema` below now holds the same
+ * line; it did not when this was written, and REVIEW_JOIN_PATH.md F7/F9 is the record of what
+ * that cost.
  *
  * `pendantCount` is capped at 2 for the same reason the SQL function caps it: two people, two
  * pendants, and a quantity typo is money.
@@ -131,26 +131,40 @@ export const sendPaymentLinkSchema = z.object({
   ]),
 });
 
+/**
+ * create-checkout — the ids of an order that already exists, and nothing else.
+ *
+ * WHAT THIS SCHEMA USED TO ACCEPT, and what each field cost:
+ *
+ *   lineItems[{name, amount, quantity}]  REVIEW_JOIN_PATH.md F7. The browser named the price
+ *                                        and the server charged it as `price_data`. Nothing
+ *                                        compared it to the order (F9), so a visitor who edited
+ *                                        the request body paid a cent and was activated as a
+ *                                        full member by the webhook.
+ *   successUrl / cancelUrl               an open redirect on a payment page: whoever crafts the
+ *                                        request chooses where the customer lands after paying.
+ *                                        Both are now built from `PUBLIC_SITE_URL`.
+ *   customerEmail / customerName         the receipt address, taken from the request rather than
+ *                                        from the member being sold to.
+ *   metadata (free-form record)          the webhook TRUSTS metadata to decide which member and
+ *                                        subscription rows to activate. A browser-writable
+ *                                        metadata bag is therefore a browser-writable
+ *                                        activation. It is now built server-side by
+ *                                        `checkoutMetadata()`.
+ *
+ * `_shared/checkout-order.ts` verifies every id below against the rows `submit-registration`
+ * wrote, and `_shared/checkout-lines.ts` builds the charge from synced Stripe Price ids. The
+ * partner fields are optional HERE and mandatory THERE when the subscription says `couple` —
+ * the schema cannot see the plan, and a couple charged for two whose second member never
+ * activates is the failure that rule exists to stop.
+ */
 export const checkoutSchema = z.object({
   memberId: z.string().uuid(),
   orderId: z.string().uuid(),
   paymentId: z.string().uuid(),
   subscriptionId: z.string().uuid(),
-  lineItems: z
-    .array(
-      z.object({
-        name: z.string().min(1).max(200),
-        amount: z.number().int().min(0),
-        quantity: z.number().int().min(1).max(100),
-      })
-    )
-    .min(1)
-    .max(20),
-  customerEmail: email,
-  customerName: z.string().min(1).max(200),
-  successUrl: z.string().url().max(2000),
-  cancelUrl: z.string().url().max(2000),
-  metadata: z.record(z.string().max(500)).optional(),
+  partnerMemberId: z.string().uuid().optional(),
+  partnerSubscriptionId: z.string().uuid().optional(),
 });
 
 export const partnerRegisterSchema = z.object({

@@ -50,8 +50,20 @@ function build(): { code: number; out: string } {
 }
 
 describe("the inventory itself", () => {
-  it("names six events, each with an audience, an expectation and today's behaviour", () => {
-    expect(EVENTS.length).toBe(6);
+  it("names the events still absent, each with an audience, an expectation and today's behaviour", () => {
+    /*
+      WAS SIX, IS NOW FOUR. A2 (a declined card tells nobody) and A3 (a cancellation tells
+      nobody) were both wired by item 5b: `stripe-webhook` now calls `notifyAdmins()` for a
+      failed invoice and for `customer.subscription.deleted`. Their entries are DELETED rather
+      than left sitting here looking broken — `annotations.mjs` carries the reason each was
+      removed, and the wires' own proofs are in `src/test/stripeWebhookContract.test.ts`.
+
+      This count is deliberately exact. A row quietly disappearing is how a real defect gets
+      dropped from the inventory, so shrinking this list has to be a decision somebody makes
+      here, in a diff, with the fix named.
+    */
+    expect(EVENTS.length).toBe(4);
+    expect(EVENTS.map((e) => e.id)).toEqual(["A1", "A4", "A5", "A6"]);
     for (const e of EVENTS) {
       expect(e.id, JSON.stringify(e)).toMatch(/^A\d$/);
       expect(e.event.length).toBeGreaterThan(10);
@@ -129,31 +141,42 @@ describe("A1 — nothing invokes ai-dispatch-events", () => {
   });
 });
 
-describe("A2 / A3 — a failed payment and a cancellation tell nobody", () => {
+describe("A2 / A3 — a failed payment and a cancellation NOW tell somebody", () => {
+  /*
+    THIS DESCRIBE USED TO ASSERT THE OPPOSITE, and the inversion is the point.
+
+    It read: "invoice.payment_failed writes past_due and nothing else" and
+    "customer.subscription.deleted writes cancelled and nothing else", each by slicing the
+    webhook's `case` block and asserting it contained no notifier. Item 5b wired both, so those
+    assertions are now false — and their `caseBlock()` helper stopped working anyway, because the
+    rewritten webhook dispatches to named handlers instead of putting the logic inline between
+    `case` and `break;`.
+
+    Kept rather than deleted, because a fix that can silently un-fix itself is not finished. The
+    wires' real proofs (what is written, to whom, and that monitoring continues) live in
+    `src/test/stripeWebhookContract.test.ts`; these two assert only that the inventory above and
+    the code below still agree about which of the six are done.
+  */
   const webhook = read("supabase/functions/stripe-webhook/index.ts");
-  const caseBlock = (name: string) => {
-    const start = webhook.indexOf(`case "${name}"`);
-    expect(start, name).toBeGreaterThan(-1);
-    return webhook.slice(start, webhook.indexOf("break;", start));
-  };
 
-  it("invoice.payment_failed writes past_due and nothing else", () => {
-    const block = caseBlock("invoice.payment_failed");
-    expect(block).toContain('status: "past_due"');
-    expect(block).not.toMatch(/notification_log|notify-admin|invoke\(/);
+  it("neither is still listed as absent", () => {
+    expect(EVENTS.find((e) => e.id === "A2")).toBeUndefined();
+    expect(EVENTS.find((e) => e.id === "A3")).toBeUndefined();
   });
 
-  it("customer.subscription.deleted writes cancelled and nothing else", () => {
-    const block = caseBlock("customer.subscription.deleted");
-    expect(block).toContain('status: "cancelled"');
-    expect(block).not.toMatch(/notification_log|notify-admin|invoke\(/);
+  it("the webhook raises a notification for the failed invoice, and still does not suspend", () => {
+    const handler = webhook.slice(webhook.indexOf("async function onInvoiceFailed"));
+    expect(handler).toMatch(/status:\s*"past_due"/);
+    expect(handler).toContain("notifyAdmins");
+    // P4, and it is not my opinion — monitoring continues. Somebody whose card expired is still
+    // somebody who may press an SOS button tonight.
+    expect(handler).not.toMatch(/from\("members"\)/);
   });
 
-  it("P4 says staff MUST be told about the failed payment — so A2 is a decision already made", () => {
-    // Not my opinion: it is in the join-path decisions, and the register row cites it.
-    const a2 = EVENTS.find((e) => e.id === "A2")!;
-    expect(a2.expectation).toContain("P4");
-    expect(a2.expectation).toMatch(/monitoring CONTINUES/);
+  it("and for the cancellation", () => {
+    const handler = webhook.slice(webhook.indexOf("async function onSubscriptionChange"));
+    expect(handler).toMatch(/status:\s*"cancelled"|"cancelled"/);
+    expect(handler).toContain("notifyAdmins");
   });
 });
 
@@ -268,28 +291,30 @@ describe("the absence checks bite", () => {
       writeFileSync(
         planted,
         'const tell = () => supabase.from("notification_log").insert({});\n' +
-          'export const handle = (t: string) => (t === "invoice.payment_failed" ? tell() : null);\n',
+          'export const handle = (s: string) => (s === "awaiting_payment" ? tell() : null);\n',
       );
       const result = build();
       expect(result.code).not.toBe(0);
-      expect(result.out).toMatch(/A2 claims nobody is told/);
+      // Repointed from A2 to A6 when item 5b wired A2. The probe has to name a row that is
+      // still absent, or it proves nothing about the window and passes for the wrong reason.
+      expect(result.out).toMatch(/A6 claims nobody is told/);
     } finally {
       execFileSync("rm", ["-f", planted]);
     }
     expect(build().code).toBe(0);
   });
 
-  it("a pair check bites too — a notifier next to the failed-payment case", () => {
+  it("a pair check bites too — a notifier next to the abandoned-order case", () => {
     const planted = join(ROOT, "supabase/functions/_shared/__absence_probe_pair.ts");
     try {
       writeFileSync(
         planted,
         // The two halves within the window: the event, and somebody being told.
-        'const e = "invoice.payment_failed";\nawait supabase.from("notification_log").insert({ event_type: e });\n',
+        'const s = "awaiting_payment";\nawait supabase.from("notification_log").insert({ event_type: s });\n',
       );
       const result = build();
       expect(result.code).not.toBe(0);
-      expect(result.out).toMatch(/A2 claims nobody is told/);
+      expect(result.out).toMatch(/A6 claims nobody is told/);
     } finally {
       execFileSync("rm", ["-f", planted]);
     }

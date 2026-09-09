@@ -18,9 +18,9 @@ main cannot drift from the code in main. To change a row, change the wire or the
 10 │   2  █
  9 │   5  ██
  8 │   0  
- 7 │   8  ███
- 6 │  25  █████████
- 5 │  92  ██████████████████████████████████
+ 7 │   9  ███
+ 6 │  26  ██████████
+ 5 │  91  ██████████████████████████████████
  4 │  48  ██████████████████
  3 │   0  
  2 │   0  
@@ -28,12 +28,12 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   3  █
 ```
 
-183 distinct wires across 629 call sites and 108 routes.
+184 distinct wires across 629 call sites and 108 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
 | 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 2 | 1% |
-| 7–9 | arrives and proven; notification missing or on a channel not live today | 13 | 7% |
+| 7–9 | arrives and proven; notification missing or on a channel not live today | 14 | 8% |
 | 4–6 | arrives; nobody told; nothing proves it | 165 | 90% |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0% |
 | 0 | dead control | 3 | 2% |
@@ -281,6 +281,7 @@ The checks, verified on every build:
 | **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
 | **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
 | **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
+| **7** | `table:staff_push_tokens` | "Enable notifications on this phone" — Admin → Settings → Notifications, and Staff preferences — an alert reaches you when this page is closed | staff_push_tokens, one row per device keyed on the FCM registration token; read by the notify-staff router's push transport (_shared/fcm.ts) and pruned by it when Google says a token is dead | push | toast | `src/test/pushClient.test.ts` | 1 |
 | **9** | `fn:notify-fulfilment` | Order state transition fan-out — paid → allocated → programmed → dispatched → delivered → tested — the next person in the chain knows the device is theirs to move | notify-fulfilment → member_notification_log, one row per channel decision | bell | — | `src/test/notifyFulfilmentDispatcher.test.ts` | 1 |
 | **9** | `table:conversations` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 8 |
 | **9** | `table:messages` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 7 |
@@ -373,7 +374,6 @@ The checks, verified on every build:
 | **5** | `table:member_notes` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 3 |
 | **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 9 |
 | **5** | `table:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 3 |
-| **5** | `table:notification_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | — | none | 2 |
 | **5** | `table:outreach_crm_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 3 |
 | **5** | `table:outreach_queued_tasks` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | mutation onError | none | 1 |
 | **5** | `table:outreach_raw_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 1 |
@@ -415,6 +415,7 @@ The checks, verified on every build:
 | **6** | `table:email_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
 | **6** | `table:email_templates` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
 | **6** | `table:isabella_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
+| **6** | `table:notification_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | mutation onError | none | 1 |
 | **6** | `table:operational_costs` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
 | **6** | `table:payments` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | toast | none | 1 |
 | **6** | `table:pricing_plans` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — the change is saved and takes effect | the named configuration tables | self | toast | none | 1 |
@@ -428,6 +429,7 @@ The checks, verified on every build:
 | **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
 | **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
 | **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
+| **7** | `table:staff_push_tokens` | "Enable notifications on this phone" — Admin → Settings → Notifications, and Staff preferences — an alert reaches you when this page is closed | staff_push_tokens, one row per device keyed on the FCM registration token; read by the notify-staff router's push transport (_shared/fcm.ts) and pruned by it when Google says a token is dead | push | toast | `src/test/pushClient.test.ts` | 1 |
 | **9** | `fn:notify-fulfilment` | Order state transition fan-out — paid → allocated → programmed → dispatched → delivered → tested — the next person in the chain knows the device is theirs to move | notify-fulfilment → member_notification_log, one row per channel decision | bell | — | `src/test/notifyFulfilmentDispatcher.test.ts` | 1 |
 | **9** | `table:conversations` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 8 |
 | **9** | `table:messages` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 7 |
@@ -1931,19 +1933,6 @@ Life-safety data with no notification owed — the member is the actor. What it 
 
 The one notification channel this repo can prove is live: published, no secret required, and RLS verified so a member sees only rows addressed to them. Everything scored `bell` depends on this row being right.
 
-### `table:notification_settings` — 5/10 (arrives, unproven)
-
-- **control** Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs
-- **promised** the change is saved and takes effect
-- **goes to** the named configuration tables
-- **who is told** self
-- **failure shown to user** no
-- **proof** none — capped at 6
-- **routes** /admin
-- **call sites** src/components/admin/dashboard/NotificationSettings.tsx, src/hooks/usePushNotifications.ts
-
-One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
-
 ### `table:outreach_crm_leads` — 5/10 (arrives, unproven)
 
 - **control** AI outreach — build a list, draft, send, suppress, track daily usage
@@ -2568,6 +2557,19 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 
 Life-safety data with no notification owed — the member is the actor. What it DOES need is proof that an operator can read it and a stranger cannot; the RLS harness covers the isolation half, and the end-to-end half is unproven, so 5.
 
+### `table:notification_settings` — 6/10 (arrives, unproven)
+
+- **control** Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs
+- **promised** the change is saved and takes effect
+- **goes to** the named configuration tables
+- **who is told** self
+- **failure shown to user** mutation onError
+- **proof** none — capped at 6
+- **routes** /admin
+- **call sites** src/components/admin/dashboard/NotificationSettings.tsx
+
+One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. These score on failure visibility and proof alone — which is why a screen full of working buttons still sits at 5: nothing would go red if a save silently stopped working.
+
 ### `table:operational_costs` — 6/10 (arrives, unproven)
 
 - **control** Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs
@@ -2762,6 +2764,19 @@ Gateway FIRST, record second, and the half-applied case is said out loud rather 
 - **call sites** src/hooks/useGdprDeletion.ts, src/hooks/useMemberAction.ts, src/lib/auditLog.ts, src/pages/admin/AddMemberWizard.tsx
 
 The database refuses a `member_action` row without a reason and an actor, which is why this scores on its trigger rather than on a notification.
+
+### `table:staff_push_tokens` — 7/10 (proven; nobody told)
+
+- **control** "Enable notifications on this phone" — Admin → Settings → Notifications, and Staff preferences
+- **promised** an alert reaches you when this page is closed
+- **goes to** staff_push_tokens, one row per device keyed on the FCM registration token; read by the notify-staff router's push transport (_shared/fcm.ts) and pruned by it when Google says a token is dead
+- **who is told** push
+- **failure shown to user** toast
+- **proof** `src/test/pushClient.test.ts`
+- **routes** /admin/settings, /call-centre/preferences
+- **call sites** src/hooks/usePushNotifications.ts
+
+REPLACES A WIRE THAT WENT NOWHERE. The previous hook upserted `notification_settings { user_id, push_token, push_enabled }` — three columns that table has never had — through a hand-written `supabase as unknown as` façade whose only effect was to stop TypeScript saying so, and no component called it. Not scored higher than push itself: until FIREBASE_SERVICE_ACCOUNT and the six VITE_FIREBASE_* variables exist, the card says so rather than offering a button that does nothing.
 
 ### `fn:notify-fulfilment` — 9/10 (notified live, failure not shown)
 

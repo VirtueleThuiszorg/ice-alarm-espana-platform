@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import {
+  Bell,
   Building2,
   CreditCard,
   Check,
@@ -27,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { EnablePushCard } from "@/components/notifications/EnablePushCard";
 import { ImagesSettingsTab } from "@/components/admin/settings/ImagesSettingsTab";
 import { DocumentationSettingsTab } from "@/components/admin/settings/DocumentationSettingsTab";
 import { TwoFactorSetup } from "@/components/auth/TwoFactorSetup";
@@ -88,7 +90,7 @@ const KEY = {
 // to when it blocks an admin for having no verified TOTP factor. Without it in this
 // list the param is dropped and the tab falls back to "company" — which is how the
 // gate came to redirect somewhere that did not offer enrolment.
-const SETTINGS_TABS = ["company", "pricing", "payments", "communications", "devices", "images", "documentation", "security"] as const;
+const SETTINGS_TABS = ["company", "pricing", "payments", "communications", "notifications", "devices", "images", "documentation", "security"] as const;
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -479,11 +481,15 @@ export default function SettingsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7">
+        {/* Nine tabs never fitted in `grid-cols-7` — eight already did not, so two were
+            clipped before this added one. Three columns on a phone, five from `sm`, all nine
+            from `lg`. */}
+        <TabsList className="grid h-auto w-full grid-cols-3 sm:grid-cols-5 lg:grid-cols-9">
           <TabsTrigger value="company">{t("adminSettings.company", "Company")}</TabsTrigger>
           <TabsTrigger value="pricing">{t("adminSettings.pricing", "Pricing")}</TabsTrigger>
           <TabsTrigger value="payments">{t("adminSettings.payments", "Payments")}</TabsTrigger>
           <TabsTrigger value="communications">{t("adminSettings.communications", "Communications")}</TabsTrigger>
+          <TabsTrigger value="notifications">{t("adminSettings.notifications", "Notifications")}</TabsTrigger>
           <TabsTrigger value="devices">{t("adminSettings.devices", "Devices")}</TabsTrigger>
           <TabsTrigger value="images">{t("adminSettings.images", "Images")}</TabsTrigger>
           <TabsTrigger value="documentation">{t("adminSettings.documentation", "Docs")}</TabsTrigger>
@@ -987,6 +993,25 @@ export default function SettingsPage() {
             facebookConfigured={getIntegrationStatus([KEY.FB_PAGE_ID, KEY.FB_PAGE_TOKEN])}
             mapsConfigured={!!settingsMap[KEY.GOOGLE_MAPS]}
           />
+        </TabsContent>
+
+        {/* Notifications Tab — where a phone becomes a pager.
+            The per-event, per-channel matrix lands here next; this is the device half, which
+            has to come first because a switch is worth nothing without a registered token. */}
+        <TabsContent value="notifications" className="space-y-6">
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-semibold">
+              <Bell className="h-5 w-5" aria-hidden="true" />
+              {t("adminSettings.notifications", "Notifications")}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {t(
+                "adminSettings.notificationsSubtitle",
+                "Which events reach you, and on which device. Sales and enquiries reach every admin; the four alerts that mean the safety machinery has failed are always sent and cannot be switched off.",
+              )}
+            </p>
+          </div>
+          <EnablePushCard />
         </TabsContent>
 
         {/* Devices Tab */}

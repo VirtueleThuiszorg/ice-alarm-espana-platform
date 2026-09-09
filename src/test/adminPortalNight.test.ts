@@ -137,7 +137,26 @@ describe("admin portal night-audit source contracts", () => {
     expect(src).toMatch(/replace:\s*true/);
     // validated against the TabsList values, falling back to company
     expect(src).toMatch(/SETTINGS_TABS\.includes/);
-    expect(src).toContain('"company", "pricing", "payments", "communications", "devices", "images", "documentation"');
+
+    /*
+      THE PROPERTY, NOT THE LIST. This used to pin the tab names as one string literal, so
+      adding a tab turned it red without anything being wrong — and the real defect it was
+      written for was the opposite shape: `security` was DEEP-LINKED to by StaffLogin's
+      mandatory-2FA gate while missing from SETTINGS_TABS, so the param was dropped and the
+      admin landed on "company" with no way to enrol. That is a mismatch between the two lists,
+      which is what this now asserts, in both directions.
+    */
+    const declared = src
+      .match(/const SETTINGS_TABS = \[([^\]]*)\]/)?.[1]
+      .match(/"([a-z]+)"/g)
+      ?.map((q) => q.replace(/"/g, ""));
+    const rendered = [...src.matchAll(/<TabsTrigger value="([a-z]+)"/g)].map((m) => m[1]);
+
+    expect(declared, "SETTINGS_TABS parsed").toBeTruthy();
+    expect(rendered.length).toBeGreaterThanOrEqual(8);
+    expect([...(declared ?? [])].sort()).toEqual([...rendered].sort());
+    // The gate's destination, named: the one tab a redirect depends on.
+    expect(declared).toContain("security");
   });
 
   it("TicketsPage opens a prefilled create dialog from ?action=create and clears the params", () => {

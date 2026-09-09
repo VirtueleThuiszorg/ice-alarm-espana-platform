@@ -40,7 +40,27 @@ SKIP_MIGRATIONS=(
   "20260301100000_ev07b_offline_cron.sql"                    # pg_cron
   "20260716120000_sos_escalation_cron.sql"                   # pg_cron
   "20260723120000_fix_cron_url_and_auth.sql"                 # pg_cron
+  "20260909130000_lead_new_router_emit.sql"                  # pg_net
 )
+
+# AND THE CLAIM ABOVE IS NOW CHECKED, not just written down.
+#
+# The paragraph above says these files were "verified to contain zero CREATE POLICY, zero ENABLE
+# ROW LEVEL SECURITY and zero CREATE TABLE". That verification was a human reading them once. A
+# sixth file joined the list today, and the next one could carry a table with it — at which point
+# this suite would report 470 passes while silently never having created the thing under test.
+# Cheap to enforce, so it is enforced: a skipped file that contains any of the three is NO
+# VERDICT, not a pass.
+for base in "${SKIP_MIGRATIONS[@]}"; do
+  f="$MIGRATIONS/$base"
+  [[ -f "$f" ]] || continue
+  if grep -qiE '^[[:space:]]*(CREATE[[:space:]]+TABLE|ALTER[[:space:]]+TABLE[^;]*ENABLE[[:space:]]+ROW[[:space:]]+LEVEL|CREATE[[:space:]]+POLICY)' "$f"; then
+    echo "✗ $base is on SKIP_MIGRATIONS but defines a table, a policy or RLS."
+    echo "  Skipping it would make this suite certify isolation it never tested."
+    echo "  Split the pg_net/pg_cron statement into its own migration."
+    exit 3
+  fi
+done
 
 log() { printf '\033[1m→ %s\033[0m\n' "$*"; }
 

@@ -360,6 +360,56 @@ describe("the absence checks bite", () => {
   });
 });
 
+// ── the register is GENERATED, so a hand-merge is a detectable defect ─────
+describe("WIRING_REGISTER.md was generated, not hand-merged", () => {
+  /*
+    THIS FILE WAS BROKEN IN MAIN TWICE ON 9 SEPTEMBER, in the way CLAUDE.md warns about twice:
+    several PRs touched the generated register in a burst, and each merge "resolved" it by
+    KEEPING BOTH SIDES. The first time it landed with four different summary lines —
+
+        183 distinct wires across 630 call sites and 108 routes.
+        183 distinct wires across 629 call sites and 108 routes.
+        184 distinct wires across 630 call sites and 108 routes.
+        184 distinct wires across 629 call sites and 108 routes.
+
+    — and a histogram with bands 7, 6 and 5 printed three times each with different counts. The
+    fix for it merged, and the SAME thing happened again two merges later: 187 and 185 side by
+    side. Twice in one morning is not bad luck; it is what merging a generated file concurrently
+    does.
+
+    `build.mjs --check` catches it, and it is in CI. It was merged past anyway, both times. What
+    a test can still do is say WHICH KIND of wrong it is: "out of date" sends somebody to re-run
+    the generator, where "the same line twice" tells them a merge did it and that a PR's worth of
+    rows may be missing — and the fix for a generated file is ALWAYS regeneration, never editing
+    the conflict.
+  */
+  const register = read("WIRING_REGISTER.md");
+
+  it("states its totals exactly once", () => {
+    const totals = register.match(/^\d+ distinct wires across .+$/gm) ?? [];
+    expect(totals).toHaveLength(1);
+  });
+
+  it("has one histogram row per band, not two", () => {
+    const bands = (register.match(/^\s*(\d+) │/gm) ?? []).map((m) => m.trim().split(" ")[0]);
+    expect(bands.length).toBeGreaterThan(0);
+    expect(new Set(bands).size).toBe(bands.length);
+  });
+
+  it("names each absence claim twice — its table row and its check — and never more", () => {
+    /*
+      The register prints each claim once in the inventory table and once in "the checks,
+      verified on every build", so TWO is correct and three is a merge. Counting to exactly two
+      rather than "at least one" is the point: a duplicated row renders two contradictory claims
+      about the same event, and a reader has no way to tell which is current.
+    */
+    for (const e of EVENTS) {
+      const mentions = register.match(new RegExp(`\\*\\*${e.id}\\*\\*`, "g")) ?? [];
+      expect(mentions, e.id).toHaveLength(2);
+    }
+  });
+});
+
 // ── temporary scratch files must never survive a run ──────────────────────
 describe("the probes clean up after themselves", () => {
   it("no probe file is left in the tree", () => {

@@ -504,6 +504,20 @@ describe("RULE 4 — the migrate job cannot report green without having applied 
     expect(migrateBody()).toMatch(/supabase db push[^\n]*--yes/);
   });
 
+  it("db push uses --include-all, or an out-of-order history stops the pipeline dead", () => {
+    // Run #1 failed on exactly this and applied nothing. Without the flag the CLI refuses the
+    // WHOLE push as soon as any unapplied migration is older than the newest applied one:
+    //
+    //   LegacyDbPushMissingRemoteError: Found local migration files to be inserted before the
+    //   last migration on remote database.
+    //
+    // Production was in that state — 20260909121500 applied by hand, 20260909120000 not — and
+    // the workflow could not have got itself out of it. Reproduced against a local Postgres
+    // seeded with production's exact 183 versions before the flag was added, and again after,
+    // where it reported it would push exactly the two genuinely pending files.
+    expect(migrateBody()).toMatch(/supabase db push[^\n]*--include-all/);
+  });
+
   it("the remote list is captured both before AND after the push", () => {
     const order = names().map((n) => n.toLowerCase());
     expect(order.some((n) => n.includes("before"))).toBe(true);

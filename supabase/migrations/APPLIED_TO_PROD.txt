@@ -207,3 +207,21 @@
 20260908120400_awaiting_payment_wiring.sql
 20260908120500_order_number_sequence.sql
 20260908130000_wiring_held_bundle.sql
+
+# ── RECONCILED 2026-09-09 against production's own migration list ─────────────
+# The three entries below were applied to production by hand and never recorded here, so
+# this file was understating what production has by three migrations. Evidence is the remote
+# list captured by Migrate Production run #1, which named 183 applied versions against this
+# file's 180:
+#   https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34378231827
+#
+# That gap is what broke the first automated push: `20260909121500` was applied while
+# `20260909120000` was not, so an unapplied migration sat BEHIND the newest applied one and
+# `supabase db push` refused the whole push (LegacyDbPushMissingRemoteError). Recording the
+# truth here, and `--include-all` in migrate.yml, are the two halves of the fix.
+#
+# Added on the strength of the database saying it has them — never on the strength of a
+# push having been attempted.
+20260909100000_sales_command_stats_fix.sql
+20260909110000_payment_link_order.sql
+20260909121500_notify_staff.sql

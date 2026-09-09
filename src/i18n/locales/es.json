@@ -6186,6 +6186,8 @@
     "loading": "Cargando MedConneqt…",
     "blockedTitle": "MedConneqt no puede mostrarse dentro del portal",
     "blockedBody": "MedConneqt no permite integrarse en otro sitio web. Ábralo en una pestaña nueva: allí funciona con normalidad.",
+    "blockedHeaderNote": "MedConneqt tendría que enviar esta cabecera para que la vista incrustada funcione aquí:",
+    "blockedHeaderXfo": "También deben dejar de enviar X-Frame-Options en esta página: no admite una lista de permitidos, así que no puede limitarse a nosotros.",
     "retry": "Reintentar",
     "unreachableTitle": "MedConneqt no responde",
     "unreachableBody": "No hemos podido conectar con alarm.medconneqt.nl. Puede que el servicio esté caído o que su conexión lo esté bloqueando. Reinténtelo o ábralo en una pestaña nueva para comprobarlo."

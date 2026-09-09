@@ -6,6 +6,7 @@ import { CallCentreHeader } from "./CallCentreHeader";
 import { SectionErrorBoundary } from "@/components/SectionErrorBoundary";
 import { cn } from "@/lib/utils";
 import { SOSAlertBar } from "@/components/call-centre/sos/SOSAlertBar";
+import { MedConneqtFrameHost } from "@/components/call-centre/MedConneqtFrameHost";
 import { useSOSTakeover } from "@/hooks/useSOSTakeover";
 import { useTwilioDevice } from "@/hooks/useTwilioDevice";
 
@@ -50,6 +51,15 @@ export function CallCentreLayout() {
           <SectionErrorBoundary section="call-centre" homePath="/call-centre">
             <Outlet />
           </SectionErrorBoundary>
+          {/*
+            Mounted here, OUTSIDE the router outlet, so the Medconneqt frame survives navigation:
+            it is hidden on every route but /call-centre/medconneqt rather than unmounted, and
+            unmounting is what used to end the operator's Medconneqt session (item 8). It sits
+            after the outlet so that on its own route it renders directly below that page's
+            chrome, and it is outside the error boundary on purpose — a third party's frame must
+            not be able to take the whole call-centre surface down with it.
+          */}
+          <MedConneqtFrameHost />
         </main>
       </div>
     </div>

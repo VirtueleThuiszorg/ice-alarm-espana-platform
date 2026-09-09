@@ -6186,6 +6186,8 @@
     "loading": "Loading MedConneqt…",
     "blockedTitle": "MedConneqt can't be displayed inside the portal",
     "blockedBody": "MedConneqt does not allow itself to be embedded in another site. Open it in a new tab instead — everything works normally there.",
+    "blockedHeaderNote": "MedConneqt would need to send this header for the embed to work here:",
+    "blockedHeaderXfo": "They must also stop sending X-Frame-Options for this page — it has no allow-list form, so it cannot be narrowed to us.",
     "retry": "Try again",
     "unreachableTitle": "MedConneqt isn't responding",
     "unreachableBody": "We couldn't reach alarm.medconneqt.nl. It may be down, or your connection may be blocking it. Try again, or open it in a new tab to check."

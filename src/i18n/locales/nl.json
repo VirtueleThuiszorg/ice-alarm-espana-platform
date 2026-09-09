@@ -6186,6 +6186,8 @@
     "loading": "MedConneqt laden…",
     "blockedTitle": "MedConneqt kan niet in het portaal worden weergegeven",
     "blockedBody": "MedConneqt staat niet toe dat het in een andere site wordt ingesloten. Open het in een nieuw tabblad — daar werkt alles gewoon.",
+    "blockedHeaderNote": "MedConneqt zou deze header moeten meesturen om de ingebedde weergave hier te laten werken:",
+    "blockedHeaderXfo": "Ze moeten ook stoppen met het meesturen van X-Frame-Options op deze pagina — die kent geen toegestane-lijst, dus kan niet tot ons worden beperkt.",
     "retry": "Opnieuw proberen",
     "unreachableTitle": "MedConneqt reageert niet",
     "unreachableBody": "We konden alarm.medconneqt.nl niet bereiken. Mogelijk is de dienst offline of blokkeert uw verbinding deze. Probeer het opnieuw of open het in een nieuw tabblad om te controleren."

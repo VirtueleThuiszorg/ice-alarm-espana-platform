@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { identifyNotifyCaller } from "../_shared/admin-caller.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 
@@ -217,6 +218,29 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // ── who is calling ───────────────────────────────────────────────────────
+    // THERE WAS NO CHECK HERE AT ALL. This function is not in supabase/config.toml, so
+    // `verify_jwt` defaults to true — which stops an anonymous caller and nobody else. Any
+    // signed-in user, a member on the client surface included, could post
+    // `{ event_type: "escalation.call_failed", payload: { member_name: "…" } }` and Twilio would
+    // put that text on every admin's WhatsApp, logged as a real safety alert. The lasting harm
+    // is the second one: an admin who learns the SOS-ladder alert can be faked stops trusting
+    // the one message that must never be ignored.
+    //
+    // The ten internal callers hold the service-role key; the two browser callers
+    // (NotificationSettings' test button, PaidSalesFeed) are admin screens. Both still pass.
+    const verdict = await identifyNotifyCaller(
+      supabase,
+      req.headers.get("Authorization"),
+      SUPABASE_SERVICE_ROLE_KEY,
+    );
+    if (!verdict.ok) {
+      return new Response(
+        JSON.stringify({ error: verdict.error }),
+        { status: verdict.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     const body: NotifyPayload = await req.json();
     const { event_type, entity_type, entity_id, payload } = body;

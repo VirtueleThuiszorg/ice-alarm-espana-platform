@@ -225,3 +225,5 @@
 20260909100000_sales_command_stats_fix.sql
 20260909110000_payment_link_order.sql
 20260909121500_notify_staff.sql
+20260909120000_rota_2026_seed_and_generator.sql
+20260909130000_lead_new_router_emit.sql

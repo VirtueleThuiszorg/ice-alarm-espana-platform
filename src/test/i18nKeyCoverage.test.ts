@@ -15,6 +15,14 @@
  * Out of scope (deliberately): t("key", "default") / t("key", {...}) calls —
  * a missing key there renders the English default, which is an untranslated-
  * string issue, not a raw-key-on-screen issue (~700 keys, tracked separately).
+ *
+ * SECOND SOURCE, ADDED 2026-09-09: keys reached through a VARIABLE. The nav
+ * sidebars declare `labelKey: "sidebar.x"` in an array and render `t(item.labelKey)`,
+ * so the literal never appears inside a t() call and the extractor above cannot
+ * see it. `sidebar.productCatalog` shipped missing from all three locales for
+ * exactly that reason and rendered as its own dotted key in the admin nav (Lee's
+ * dashboard notes, 9 Sep, item 6). Those keys are collected from the declarations
+ * instead and held to the same rule.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -70,8 +78,53 @@ function collectSourceKeys(): Map<string, string[]> {
   return found;
 }
 
+/**
+ * `labelKey: "sidebar.x"` — a key that reaches t() through a VARIABLE, so no literal t("…")
+ * call exists for the extractor above to find.
+ *
+ * COLLECTED ONLY FROM FILES THAT ACTUALLY RENDER ONE THROUGH t(). A `labelKey` field is not by
+ * itself an i18n key: src/config/partnerTypes.ts declares 30 of them
+ * (`partnerTypes.*`, `regions.*`, `howHeard.*`) that NOTHING passes to t() — every consumer
+ * renders `getPartnerTypeLabel()` (a hardcoded English map) or title-cases the slug instead. A
+ * first version of this scanned all of src/ and reported those 30 as raw-key risks, which they
+ * are not: they are dead metadata, and a real but separate finding.
+ *
+ * So the rule is two-part and per-file: the file must contain a `t(<something>labelKey)` call,
+ * and then its `labelKey:` declarations count. That is exactly the shape of the defect —
+ * declaration and variable render in the same module.
+ */
+const LABEL_KEY_DECL = /labelKey:\s*["'`]([a-zA-Z0-9_.]+)["'`]/g;
+const RENDERS_LABEL_KEY = /\bt\(\s*[A-Za-z0-9_$.]*labelKey\b/;
+
+function collectLabelKeys(): Map<string, string[]> {
+  const found = new Map<string, string[]>();
+  const walk = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      const p = join(dir, name);
+      if (statSync(p).isDirectory()) {
+        if (name === "test") continue;
+        walk(p);
+      } else if (/\.(ts|tsx)$/.test(name)) {
+        const src = readFileSync(p, "utf8");
+        if (!RENDERS_LABEL_KEY.test(src)) continue;
+        for (const m of src.matchAll(LABEL_KEY_DECL)) {
+          const key = m[1];
+          if (!key.includes(".")) continue;
+          const rel = p.replace(ROOT + "/", "");
+          const files = found.get(key) ?? [];
+          if (!files.includes(rel)) files.push(rel);
+          found.set(key, files);
+        }
+      }
+    }
+  };
+  walk(join(ROOT, "src"));
+  return found;
+}
+
 describe("i18n key coverage — no raw dotted keys can render", () => {
   const sourceKeys = collectSourceKeys();
+  const labelKeys = collectLabelKeys();
 
   it("every no-default literal t() key resolves in en, es, and nl (or is pinned to a batch)", () => {
     const unresolved: string[] = [];
@@ -84,6 +137,50 @@ describe("i18n key coverage — no raw dotted keys can render", () => {
       unresolved,
       `these t() keys render as raw dotted text — add them to en/es/nl or pin them to a portal batch:\n${unresolved.join("\n")}`,
     ).toEqual([]);
+  });
+
+  it("every labelKey declaration resolves in en, es, and nl", () => {
+    // The gap that let `sidebar.productCatalog` render as its own name in the admin sidebar: the
+    // key is declared in an array and passed to t() as a variable, so no literal t("…") call
+    // exists for the extractor above to find.
+    const unresolved: string[] = [];
+    for (const [key, files] of labelKeys) {
+      const missingIn = LOCALES.filter(({ table }) => !(key in table)).map(({ locale }) => locale);
+      if (missingIn.length) {
+        unresolved.push(`${key} (missing in ${missingIn.join(",")}; declared in ${files.join(", ")})`);
+      }
+    }
+    expect(
+      unresolved,
+      `these labelKeys render as raw dotted text in the nav — add them to en/es/nl:\n${unresolved.join("\n")}`,
+    ).toEqual([]);
+  });
+
+  it("collects the labelKey declarations at all", () => {
+    // Guards the regex: a rename would otherwise make the assertion above pass against nothing.
+    expect(labelKeys.size).toBeGreaterThan(40);
+    expect([...labelKeys.keys()]).toContain("sidebar.productCatalog");
+  });
+
+  it("no sidebar key is declared in a locale but referenced nowhere", () => {
+    // `sidebar.products` sat unused next to the missing `sidebar.productCatalog`, which is how
+    // the bug reads as "the key is there" to anyone glancing at the locale file. Three known
+    // orphans predate this and are left alone deliberately — they belong to portals whose nav
+    // was reworked, and deleting them is a separate decision from this one.
+    const KNOWN_ORPHANS = new Set([
+      "sidebar.aiOverview",
+      "sidebar.memberDashboard",
+      "sidebar.partnerDashboard",
+    ]);
+    const en = LOCALES.find((l) => l.locale === "en")!.table;
+    const declared = new Set(labelKeys.keys());
+    const referencedElsewhere = (key: string) => sourceKeys.has(key);
+    const orphans = Object.keys(en)
+      .filter((k) => k.startsWith("sidebar."))
+      .filter((k) => !declared.has(k) && !referencedElsewhere(k) && !KNOWN_ORPHANS.has(k));
+    expect(orphans, `unused sidebar keys — delete them or wire them up: ${orphans.join(", ")}`).toEqual(
+      [],
+    );
   });
 
   it("the KNOWN_MISSING pin stays exact — fixed keys must be removed from it", () => {

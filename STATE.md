@@ -21,23 +21,28 @@ now answers that question for **every** control on every page instead of one at 
 where each wire goes, who finds out, on which channel, what the user sees when it fails, and
 what would go red if it broke.
 
-**171 distinct wires · 535 call sites · 108 routes.** Wires are derived from the source, so
+**171 distinct wires · 536 call sites · 108 routes.** Wires are derived from the source, so
 the register cannot fall behind the code — `node scripts/wiring/build.mjs --check` regenerates
 and diffs, and CI runs it.
 
-| band | meaning | before | after |
+| band | meaning | at first measure | in main now |
 |---|---|---:|---:|
-| 10 | arrives · right person told on a live channel · failure shown · proof that goes red | 1 | 2 |
-| 7–9 | arrives and proven; notification missing or on a channel not live today | 8 | 13 |
-| 4–6 | arrives; nobody told; nothing proves it | 155 | 154 |
-| 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0 |
-| 0 | dead control | 7 | 2 |
+| 10 | arrives · right person told on a live channel · failure shown · proof that goes red | 1 | **2** |
+| 7–9 | arrives and proven; notification missing or on a channel not live today | 8 | **13** |
+| 4–6 | arrives; nobody told; nothing proves it | 155 | **154** |
+| 1–3 | fails, fails silently, or lands where nobody looks | 0 | **0** |
+| 0 | dead control | 7 | **2** |
 
-*after* = with this bundle applied. The five dead realtime subscriptions become
-live and gain the only proof any of them has ever had; the lead reaches the bell
-and becomes the second row in the register to reach 10. The two remaining 0s are
-billing reminders and the communication log, both dead code whose revival is
-Lee's decision (W6).
+Both columns are real measurements of main, before and after #234. The five dead
+realtime subscriptions are live and carry the only proof any of them has ever
+had; the lead reaches the bell and is the second row to reach 10. The two
+remaining 0s are billing reminders and the communication log — dead code whose
+revival is a decision, not a fix (W6).
+
+⚠️ **The `20260908130000` migration is in main and NOT yet applied to production.**
+Until it is, the trigger and the five publication additions exist in the repo
+only: in production a new enquiry still tells nobody, and the handover list is
+still not live. The drift gate on main says so out loud.
 
 **Only nine wires have a proof at all**, and each cites one of four suites that
 were READ and confirmed to exercise the wire: `staffMemberActions`,
@@ -49,11 +54,14 @@ from the wire; and three suites were being credited to neighbouring wires they
 do not touch. Four further "proofs" named at first did not exist as files at
 all. The generator now refuses to score on a test file that is absent.
 
-**Two of the six items below were written up as FIXED while the fix was still on a branch, and
-that branch was then closed unmerged.** This file is supposed to tell the truth (GOALS G5), so
-they are back to red with the reason. Nothing here is marked fixed again until it is in main.
+**A note on how this section has behaved, because it is the thing GOALS G5 exists for.** W3 and
+W4 were first written up as FIXED while the fix sat on a branch; that branch was closed
+unmerged, so the file was claiming a fix that did not exist. They were corrected to red, and
+have now genuinely landed in main via #234 — so they are green on evidence this time, not on
+intent. W1 and W2 are code-in-main but **not applied to production**, which is a third state and
+is recorded as such rather than rounded to either end.
 
-**Read the 145 correctly.** Almost every wire on this platform *arrives*. What they lack is a
+**Read the 154 correctly.** Almost every wire on this platform *arrives*. What they lack is a
 proof that would go red if they stopped arriving, and that alone caps a row at 6 — no rounding
 up. A screen of buttons that all work today scores 5 because nothing would tell anyone the day
 one of them stops.
@@ -81,11 +89,11 @@ Fixed / in flight:
 
 | # | Item | Status | Evidence |
 |---|---|---|---|
-| W1 | New enquiry tells nobody | 🟡 **held for Lee** (schema) | **#236** (was #229, closed unmerged, base branch gone) — `AFTER INSERT` trigger on `leads` raises a targeted bell notification per active staff member. Proven by `scripts/rls/wiring.sql` §2, mutation-tested three ways (no trigger → "a lead arrived and NOBODY was notified"; broadcast instead of targeted → caught; inactive staff notified → caught). |
-| W2 | Five dead realtime subscriptions | 🟡 **held for Lee** (schema) | Same bundle, **#236**. Proven by `scripts/rls/wiring.sql` §1, which derives the subscribed-table list from `src/` and checks it against `pg_publication_tables`; mutation-tested by removing the migration (all five named) and by adding a fresh bad subscription (`products` → caught). |
-| W3 | Contact form promises 24 hours | 🔴 **STILL LIVE** | Written up as FIXED when the fix was on a branch; #228 was then closed without merging, so `main`'s `en.json` still says *"respond within 24 hours"* — verified, not assumed. Reopened as **#235**: the copy stops committing to a deadline nobody agreed, and a `lead` notification routes to the enquiry from both surfaces that show one. Not fixed until that merges. |
-| W4 | Nothing surfaces unworked enquiries | 🔴 **STILL TRUE** | Same story as W3 — claimed fixed while on a branch, closed unmerged. A **New enquiries** card on the call-centre dashboard reading `leads` where `status='new'` is in **#235**. |
-| W5 | The register itself | ✅ SHIPPED | `WIRING_REGISTER.md` + `scripts/wiring/*`, gated in CI (`Wiring register`). Gate proven both ways: a tampered score fails; a new wire with no row fails naming the file. It also went red on main for a moved line number and two new test filenames — no wiring change at all — so the checked content is now file-level and the volatile "tests naming it" list is gone (**#233**). |
+| W1 | New enquiry tells nobody | 🟡 **in main, NOT in production** | `20260908130000_wiring_held_bundle.sql` (#234) — `AFTER INSERT` trigger on `leads` raises a targeted bell notification per active staff member. Proven by `scripts/rls/wiring.sql` §2, mutation-tested three ways (no trigger → "a lead arrived and NOBODY was notified"; broadcast instead of targeted → caught; inactive staff notified → caught). |
+| W2 | Five dead realtime subscriptions | 🟡 **in main, NOT in production** | Same migration. Proven by `scripts/rls/wiring.sql` §1, which derives the subscribed-table list from `src/` and checks it against `pg_publication_tables`; mutation-tested by removing the migration (all five named) and by adding a fresh bad subscription (`products` → caught). |
+| W3 | Contact form promised 24 hours | ✅ FIXED IN MAIN | **#234**. `main`'s `en.json` now reads *"We can't promise a response time from this page, so if the matter is urgent please call the number above instead."* — verified by reading main, not by trusting a PR. `src/test/contactEnquiryReachesTeam.test.ts` asserts all three locales no longer name a deadline, and that none of them claims the team "has been notified" while W1 is unapplied. |
+| W4 | Nothing surfaced unworked enquiries | ✅ FIXED IN MAIN | **#234** — a **New enquiries** card on the call-centre dashboard reading `leads` where `status='new'`, plus one notification-routing implementation replacing two that disagreed about where the same notification led. |
+| W5 | The register itself | ✅ SHIPPED | `WIRING_REGISTER.md` + `scripts/wiring/*`, gated in CI (`Wiring register`). Gate proven both ways: a tampered score fails; a new wire with no row fails naming the file. **It then went wrong twice in its first day, both my fault and both fixed in #233:** it reddened main over a moved line number and two new test filenames (no wiring change at all), so the checked content is now file-level and the volatile "tests naming it" list is gone; and because it churned, a merge conflict in the generated file got resolved by keeping both sides — leaving main's register with **six duplicated wire keys** and a `table:leads` row still quoting the 24-hour promise the code had stopped making. That is the 2026-07-23/25 locale failure class, in a generated file. The resolution for a generated file is to regenerate it, never to merge it by hand; #233 does that and removes the churn that invited the conflict. |
 | W6 | Billing reminders, communication log | 🔴 **reported, not fixed** | Both are dead code whose revival is a business decision (chasing members for payment; which events deserve a log row), and `AlertDetailPanel` is on the alert path. Lee's call. |
 
 ## Backend identity — SETTLED 2026-08-11

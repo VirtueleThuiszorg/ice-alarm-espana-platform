@@ -18,10 +18,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
 10 │   2  █
  9 │   5  ██
  8 │   0  
- 7 │  12  ████
- 6 │  26  ██████████
- 5 │  91  ██████████████████████████████████
- 7 │  10  ████
+ 7 │  13  █████
  6 │  25  █████████
  5 │  92  ██████████████████████████████████
  4 │  48  ██████████████████
@@ -31,16 +28,13 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   3  █
 ```
 
-187 distinct wires across 633 call sites and 108 routes.
-185 distinct wires across 631 call sites and 108 routes.
+188 distinct wires across 635 call sites and 108 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
 | 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 2 | 1% |
-| 7–9 | arrives and proven; notification missing or on a channel not live today | 17 | 9% |
+| 7–9 | arrives and proven; notification missing or on a channel not live today | 18 | 10% |
 | 4–6 | arrives; nobody told; nothing proves it | 165 | 88% |
-| 7–9 | arrives and proven; notification missing or on a channel not live today | 15 | 8% |
-| 4–6 | arrives; nobody told; nothing proves it | 165 | 89% |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0% |
 | 0 | dead control | 3 | 2% |
 
@@ -70,8 +64,7 @@ things, and a control with no wire cannot do anything:
 | kind | what it is | call sites |
 |---|---|---:|
 | `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 345 |
-| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 342 |
-| `fn` | `supabase.functions.invoke(f)` — an edge function | 78 |
+| `fn` | `supabase.functions.invoke(f)` — an edge function | 79 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 4 |
 | `channel` | `postgres_changes` — a realtime subscription | 51 |
 | `auth` | `supabase.auth.*` — sign in, sign out, register, password reset | 20 |
@@ -111,18 +104,14 @@ fixed item cannot sit here looking broken, and a broken item cannot be quietly d
 | # | event | who should be told | what happens today | owner |
 |---|---|---|---|---|
 | **A1** | Every `ai_events` row — including `sale.paid` | admin / owner — Isabella's Boss & Owner Intelligence switches do what their labels say: a new sale, a cancellation, a failed payment, the daily briefing, the weekly revenue summary, a negative-feedback alert | `ai-dispatch-events` is the only consumer of `ai_events`, and NOTHING INVOKES IT — no client call, no cron schedule, no trigger. `post-payment.ts` writes a `sale.paid` row on every paid order and it is read by nobody; `ai-run` and `ai-execute-action` write more. So all seven owner-intelligence switches in `isabella_settings` can be turned ON and produce nothing at all, which is the same shape of defect as the Isabella status banner reading ACTIVE off a switch (item 1). Worth knowing before it is wired: `supabase/config.toml` sets `verify_jwt = false` on it, so the endpoint is PUBLIC — whoever gives it a caller has to give it auth in the same PR | the wiring session |
-| **A2** | A member's card is declined (`invoice.payment_failed`) | staff (bell + attention queue) — P4, decided: Stripe retries → `past_due` → monitoring CONTINUES → STAFF ARE TOLD. Somebody has to ring the member before the retries run out, or a life-safety subscription lapses quietly | `stripe-webhook` sets `subscriptions.status = 'past_due'` and returns. No bell, no task, no queue, no email. The only place it surfaces is a status badge on a screen somebody would have to already be looking at | the wiring session (the fix is a notifier; the webhook itself is human-gated) |
-| **A3** | A subscription is cancelled at Stripe (`customer.subscription.deleted`) | admin — the `cancellation_alert` switch exists in `isabella_settings` and an owner expects to hear that somebody stopped paying — it is the single most important number in the business | `stripe-webhook` sets `status = 'cancelled'` and returns. Nothing is written anywhere a human is required to look | the wiring session |
 | **A5** | A price was edited without syncing it to Stripe | admin (super_admin) — the person who changed the price is told it is not live yet. Until the sync runs, every screen shows the new figure and Stripe would charge the old one | nothing watches for it. `send-payment-link` REFUSES at the point of use (`PRICE_STALE`, item 4) and the pricing editor shows drift when it is open, but no notification is raised — so the first person to find out is a customer or the staff member trying to send them a link | the wiring session |
 | **A6** | An order sits in `awaiting_payment` — the checkout was abandoned | staff — somebody chases it. The state exists precisely so an unpaid order is distinguishable (F14, `20260908120400`), and a staff-sent payment link (item 4) creates one every time | nothing sweeps the state and nothing is raised when an order stays in it. The fulfilment dispatcher covers the edges FROM `paid` onwards; the edge into `awaiting_payment` has no audience at all | the wiring session |
 
 The checks, verified on every build:
 
 - **A1** — `ai-dispatch-events` appears nowhere in src, supabase/functions, supabase/migrations, .github/workflows. an invocation anywhere — invoke(), fetch, cron.schedule — would make this row false
-- **A2** — `invoice.payment_failed` and `notification_log|notify-admin|notify_staff` never appear within 900 characters of each other in the same file (supabase/functions, supabase/migrations). a notification raised anywhere near that case would make this row false
-- **A3** — `customer.subscription.deleted` and `notification_log|notify-admin` never appear within 900 characters of each other in the same file (supabase/functions, supabase/migrations). same shape as A2: a bell notification, a task or an admin notifier raised anywhere near that case would make this row false
-- **A5** — `stripe_prices` and `notification_log|notify-admin` never appear within 4000 characters of each other in the same file (supabase/functions, supabase/migrations). a notifier that reads stripe_prices would make this row false
-- **A6** — `awaiting_payment` and `notification_log|notify-admin` never appear within 4000 characters of each other in the same file (supabase/functions, supabase/migrations). a sweep or a trigger raising the bell for this state would make this row false
+- **A5** — `stripe_prices` and `notification_log|notify-admin|notifyAdmins` never appear within 4000 characters of each other in the same file (supabase/functions, supabase/migrations). a notifier that reads stripe_prices would make this row false
+- **A6** — `awaiting_payment` and `notification_log|notify-admin|notifyAdmins` never appear within 4000 characters of each other in the same file (supabase/functions, supabase/migrations). a sweep or a trigger raising the bell for this state would make this row false
 
 ## The register
 
@@ -2778,6 +2767,7 @@ Gateway FIRST, record second, and the half-applied case is said out loud rather 
 - **call sites** src/hooks/useNotificationMatrix.ts
 
 The switches are the fix for the schema this replaces: a boolean COLUMN PER EVENT on notification_settings, which is how `whatsapp_ev07b_alerts` came to be read by notify-admin without any migration ever creating it. THE FOUR ALWAYS-LOUD EVENTS RENDER AS LOCKED, not as switches: the router ignores both tables for them, and a switch that cannot silence the alarm saying the SOS ladder is broken must not look like one. Every dark cell names which of the three gates stopped it, and `wouldReach` is driven against the router's own `planNotifications` across all 19 events × 4 channels × both switches so the screen cannot claim something the router will not do. Scored on the screen only: until the migration is applied the matrix says so rather than rendering an empty grid.
+
 ### `fn:send-payment-link` — 7/10 (proven; nobody told)
 
 - **control** Staff send a member a Stripe payment link (CRM → member → Subscription)

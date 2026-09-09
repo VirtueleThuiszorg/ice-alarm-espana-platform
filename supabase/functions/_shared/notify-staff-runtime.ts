@@ -15,6 +15,7 @@
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { sendEmail } from "./email.ts";
+import { isMissingColumn, isMissingRelation } from "./pg-errors.ts";
 import { parseServiceAccount, sendPush } from "./fcm.ts";
 import {
   NOTIFY_CHANNELS,
@@ -65,6 +66,7 @@ export async function emailConfigured(db: SupabaseClient): Promise<boolean> {
     ? !!Deno.env.get("RESEND_API_KEY")
     : !!Deno.env.get("GMAIL_APP_PASSWORD");
 }
+
 
 export function makeStore(db: SupabaseClient): Store {
   return {
@@ -124,6 +126,13 @@ export function makeStore(db: SupabaseClient): Store {
       const { data, error } = await db
         .from("notification_routes")
         .select("event_type, channel, enabled");
+      if (isMissingRelation(error)) {
+        // Not applied yet. No routes means no route is on — and the four always-loud events
+        // bypass this gate entirely, so the alarms still sound. Said out loud, once, because a
+        // deployment routing nothing anywhere is worth seeing in the logs.
+        console.warn("notify-staff: notification_routes does not exist yet — every route reads as off");
+        return [];
+      }
       if (error) throw error;
       return data ?? [];
     },
@@ -135,6 +144,10 @@ export function makeStore(db: SupabaseClient): Store {
         .select("staff_id, event_type, channel, enabled")
         .eq("event_type", eventType)
         .in("staff_id", staffIds);
+      if (isMissingRelation(error)) {
+        console.warn("notify-staff: staff_notification_prefs does not exist yet — every preference reads as off");
+        return [];
+      }
       if (error) throw error;
       return data ?? [];
     },
@@ -151,20 +164,54 @@ export function makeStore(db: SupabaseClient): Store {
 
     async alreadySent(idempotencyKey: string | null): Promise<Set<string>> {
       if (!idempotencyKey) return new Set();
-      const { data } = await db
+      const { data, error } = await db
         .from("notification_log")
         .select("channel, recipient")
         .eq("idempotency_key", idempotencyKey)
         .eq("status", "sent");
+      // An empty set is the SAFE failure here, and it is the one this returns for any error:
+      // "I cannot tell whether this was already sent" must mean "send it", because a duplicate
+      // notification is an annoyance where a suppressed one is the defect this whole feature
+      // exists to remove. Pre-migration there is no `idempotency_key` column at all.
+      if (error) return new Set();
       return new Set((data ?? []).map((r) => `${r.channel}:${r.recipient}`));
     },
 
     async log(rows: LogRow[]): Promise<void> {
       if (rows.length === 0) return;
       const { error } = await db.from("notification_log").insert(rows);
+      if (!error) return;
+
+      /*
+        THE BELL MUST SURVIVE THE MIGRATION NOT BEING APPLIED.
+
+        `channel`, `recipient` and `idempotency_key` are added by 20260909121500. Until it runs,
+        PostgREST rejects the WHOLE insert for an unknown column — so not one row lands, and the
+        bell (which reads this table, and is the only channel needing no secret) goes silent
+        along with everything else. One retry without the three new columns keeps every row,
+        which is exactly the shape notify-admin wrote before this router existed.
+      */
+      if (isMissingColumn(error)) {
+        const legacy = rows.map(({ channel, recipient, idempotency_key, ...rest }) => {
+          // The channel is not lost, it moves into the text: a reader looking at an old-shaped
+          // row still needs to know whether it was a bell entry or an SMS attempt.
+          void recipient;
+          void idempotency_key;
+          return channel === "bell" ? rest : { ...rest, message: `[${channel}] ${rest.message}` };
+        });
+        const retry = await db.from("notification_log").insert(legacy);
+        console.warn(
+          "notify-staff: notification_log is pre-migration — logged without channel/recipient/idempotency_key",
+        );
+        if (retry.error) {
+          console.error("notify-staff: notification_log insert failed:", retry.error.message);
+        }
+        return;
+      }
+
       // The log is the only evidence any of this happened, so a failure to write it is reported
       // rather than swallowed — but it must not throw away sends that already succeeded.
-      if (error) console.error("notify-staff: notification_log insert failed:", error.message);
+      console.error("notify-staff: notification_log insert failed:", error.message);
     },
 
     async pruneToken(token: string): Promise<void> {

@@ -1548,6 +1548,8 @@ Read-only, so nothing to notify. `get_user_role_info` is on the critical path fo
 - **proof** none — capped at 6
 - **routes** /admin
 - **call sites** src/components/admin/dashboard/SalesCommandStrip.tsx
+- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **call sites** src/hooks/useSalesCommandStats.ts
 
 Read-only, so nothing to notify. `get_user_role_info` is on the critical path for every protected route: if it fails, the guard sees no role.
 

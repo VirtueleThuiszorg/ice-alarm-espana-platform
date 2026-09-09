@@ -21,7 +21,7 @@ import { Link } from "react-router-dom";
 import { formatDate } from "@/lib/formatDate";
 import { updateDailyMetrics } from "@/lib/syncHub";
 import { LeadsWidget } from "@/components/dashboard/LeadsWidget";
-import { SalesCommandStrip } from "@/components/admin/dashboard/SalesCommandStrip";
+import { SalesTodayPill } from "@/components/admin/dashboard/SalesTodayPill";
 import { PaidSalesFeed } from "@/components/admin/dashboard/PaidSalesFeed";
 import { AISalesDesk } from "@/components/admin/dashboard/AISalesDesk";
 import { NotificationSettings } from "@/components/admin/dashboard/NotificationSettings";
@@ -29,7 +29,7 @@ import { NotificationLog } from "@/components/admin/dashboard/NotificationLog";
 import { EV07BStatusWidget } from "@/components/admin/dashboard/EV07BStatusWidget";
 import { useDeviceRealtime } from "@/hooks/useDeviceRealtime";
 import { useAlertsRealtime } from "@/hooks/useAlertsRealtime";
-import { IsabellaHealthCard } from "@/components/admin/dashboard/IsabellaHealthCard";
+import { IsabellaHealthPill } from "@/components/admin/dashboard/IsabellaHealthPill";
 import { useOnShiftNow } from "@/hooks/useStaffShifts";
 import { SHIFT_TYPES } from "@/config/shifts";
 import type { ShiftType } from "@/config/shifts";
@@ -115,29 +115,32 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      {/*
+        Page header — title, then the two status pills, then Add Member, all on one line.
+
+        Lee's correction (9 Sep): these were CARDS in a row of their own between the header and
+        the stat tiles, which cost a screenful of height for two numbers. They are pills now,
+        header-height, sitting immediately left of the primary action, with the detail they used
+        to print inline moved into a popover behind each.
+
+        `flex-wrap` with the title as its own non-shrinking block is what makes the narrow-screen
+        behaviour Lee asked for fall out: on a wide viewport the pills sit on the title line; when
+        there is no room they wrap underneath it, still above the tiles, because they are inside
+        this header block rather than in a row of their own.
+      */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-3xl font-bold tracking-tight">{t('adminDashboard.title')}</h1>
           <p className="text-muted-foreground">
             {t('adminDashboard.welcome')}
           </p>
         </div>
-        <Button asChild>
-          <Link to="/admin/members/new">{t('adminDashboard.addMember')}</Link>
-        </Button>
-      </div>
-
-      {/*
-        Isabella health beside the sales strip, one row, directly under the header — Lee's
-        dashboard notes (9 Sep) items 1 and 2, which are the same layout change asked for from
-        either side. What was here before was a full-width Alert saying ISABELLA ACTIVE off the
-        back of `isabella_settings`; the card is a normal dashboard card reading `ai_runs`.
-      */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <IsabellaHealthCard />
-        <div className="lg:col-span-2">
-          <SalesCommandStrip />
+        <div className="flex flex-wrap items-center gap-2">
+          <IsabellaHealthPill />
+          <SalesTodayPill />
+          <Button asChild>
+            <Link to="/admin/members/new">{t('adminDashboard.addMember')}</Link>
+          </Button>
         </div>
       </div>
 

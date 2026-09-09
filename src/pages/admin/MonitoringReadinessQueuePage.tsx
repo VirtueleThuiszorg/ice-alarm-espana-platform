@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Phone, RefreshCw, ShieldCheck, UserRoundX } from "lucide-react";
+import { AlertTriangle, Banknote, Phone, RefreshCw, ShieldCheck, UserRoundX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -15,14 +15,27 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { READINESS_GAP_STAFF, type ReadinessGap } from "@/lib/readinessGap";
 import {
-  READINESS_GAP_STAFF,
-  readinessGap,
-  type ReadinessGap,
-} from "@/lib/readinessGap";
+  ATTENTION_PAYMENT_STAFF,
+  mergeAttentionRows,
+  type AttentionRow,
+} from "@/lib/attentionQueue";
 
 /**
- * Paid but not monitoring-ready — the preventive control.
+ * The admin attention queue — paid members who need a phone call, on two axes.
+ *
+ * ITEM 8 ADDED THE SECOND AXIS: a subscription whose renewal payment FAILED (`past_due`). P4
+ * decided the behaviour — Stripe retries, monitoring CONTINUES, and staff are told — and the
+ * reason staff must be told is that somebody has to ring the member before the retries run out,
+ * or a life-safety subscription lapses quietly. Until then the only surface a `past_due` reached
+ * was a status badge on a page somebody would have to already be looking at (WIRING_REGISTER
+ * absence row A2). It is the same work, on the same phone, from the same list.
+ *
+ * A member on both axes appears ONCE, because it is one call. The merge is in
+ * `@/lib/attentionQueue` so that rule is testable without a database.
+ *
+ * Paid but not monitoring-ready — the original, preventive half.
  *
  * A member is `active` when the payment webhook clears (golden rule 4). Monitoring readiness is
  * a different axis, and since D4 it is TWO conditions rather than one:
@@ -61,26 +74,12 @@ import {
 /** A wait this long is not a queue any more, it is a member nobody phoned. */
 const URGENT_DAYS = 7;
 
-interface QueueRow {
-  memberId: string;
-  firstName: string | null;
-  lastName: string | null;
-  phone: string | null;
-  email: string | null;
-  city: string | null;
-  preferredLanguage: string | null;
-  paidSince: string | null;
-  daysWaiting: number | null;
-  /** WHICH condition is missing. Never "none" here — the query filters on not-ready. */
-  gap: ReadinessGap;
-}
-
-function daysBetween(iso: string | null): number | null {
-  if (!iso) return null;
-  const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return null;
-  return Math.max(0, Math.floor((Date.now() - then) / 86_400_000));
-}
+/**
+ * The row shape lives in `@/lib/attentionQueue` because the MERGE is the part worth testing
+ * without a database: a member on both axes appears once, the older wait wins, and a member
+ * whose record could not be read is dropped rather than shown as a call with no phone number.
+ */
+type QueueRow = AttentionRow;
 
 export default function MonitoringReadinessQueuePage() {
   const { t } = useTranslation();
@@ -105,10 +104,37 @@ export default function MonitoringReadinessQueuePage() {
 
       if (readinessError) throw readinessError;
 
-      const rows = readiness ?? [];
-      if (rows.length === 0) return [];
+      const readinessRows = readiness ?? [];
 
-      const ids = rows.map((r) => r.member_id).filter((id): id is string => !!id);
+      // ── the second axis: a renewal that failed ────────────────────────────
+      //
+      // P4: a failed charge makes the subscription `past_due`, monitoring CONTINUES, and staff
+      // are told — because somebody has to ring the member before Stripe stops retrying, or a
+      // life-safety subscription lapses quietly. Until item 8 the only surface a `past_due`
+      // reached was a status badge on a page somebody had to already be looking at
+      // (WIRING_REGISTER absence row A2).
+      const { data: pastDue, error: pastDueError } = await supabase
+        .from("subscriptions")
+        .select("member_id, renewal_date")
+        .eq("status", "past_due")
+        .order("renewal_date", { ascending: true });
+
+      // Thrown, not swallowed. A half-read queue rendered as a whole one is the false all-clear
+      // this screen exists to avoid (READINESS_MODEL.md §1-A) — and it would be the worse half,
+      // because a missing payment row is a member about to lose cover.
+      if (pastDueError) throw pastDueError;
+
+      const pastDueRows = pastDue ?? [];
+      if (readinessRows.length === 0 && pastDueRows.length === 0) return [];
+
+      const ids = [
+        ...new Set(
+          [...readinessRows.map((r) => r.member_id), ...pastDueRows.map((r) => r.member_id)].filter(
+            (id): id is string => !!id,
+          ),
+        ),
+      ];
+
       const { data: members, error: membersError } = await supabase
         .from("members")
         .select("id, first_name, last_name, phone, email, city, preferred_language, status")
@@ -117,27 +143,10 @@ export default function MonitoringReadinessQueuePage() {
 
       if (membersError) throw membersError;
 
-      const byId = new Map((members ?? []).map((m) => [m.id, m]));
-
-      // Preserve the view's oldest-first ordering; drop anyone whose member row is not `active`
-      // (readiness is a second axis, so a suspended member is not this queue's problem).
-      return rows
-        .filter((r) => r.member_id && byId.has(r.member_id))
-        .map((r) => {
-          const m = byId.get(r.member_id as string)!;
-          return {
-            memberId: m.id,
-            firstName: m.first_name,
-            lastName: m.last_name,
-            phone: m.phone,
-            email: m.email,
-            city: m.city,
-            preferredLanguage: m.preferred_language,
-            paidSince: r.paid_since,
-            daysWaiting: daysBetween(r.paid_since),
-            gap: readinessGap(r),
-          };
-        });
+      // Anyone whose member row is not `active` is dropped by the query above: readiness is a
+      // second axis, so a suspended member is not this queue's problem — and neither is a
+      // past_due subscription belonging to somebody already suspended.
+      return mergeAttentionRows(readinessRows, pastDueRows, members ?? []);
     },
   });
 
@@ -159,18 +168,30 @@ export default function MonitoringReadinessQueuePage() {
     return counts;
   }, [data]);
 
+  /**
+   * Counted separately, not folded into `countByGap`.
+   *
+   * A payment problem is not a readiness gap — a `past_due` member may be perfectly ready — and
+   * adding it to those buckets would make the readiness numbers wrong. It is also a different
+   * conversation: "take a new card" rather than "record a contact".
+   */
+  const pastDueCount = useMemo(
+    () => (data ?? []).filter((r) => r.paymentPastDue).length,
+    [data],
+  );
+
   return (
     <div className="space-y-4 p-4 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold">
             <UserRoundX className="h-6 w-6 text-destructive" aria-hidden="true" />
-            {t("admin.readinessQueue.title", "Paid — not monitoring-ready")}
+            {t("admin.readinessQueue.title", "Paid — needs a call")}
           </h1>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
             {t(
               "admin.readinessQueue.subtitle",
-              "These members have paid, but one of the two things that make them ready is missing: somebody to call, or a pendant somebody has proved reaches an operator. Both are fixed by phoning them, oldest first.",
+              "These members have paid and need a phone call: somebody to call in an emergency is missing, or a pendant nobody has proved reaches an operator, or a renewal payment has failed. All three are fixed by phoning them, oldest first. Monitoring continues while a payment is chased.",
             )}
           </p>
         </div>
@@ -253,6 +274,12 @@ export default function MonitoringReadinessQueuePage() {
                     </Badge>
                   );
                 })}
+              {!isLoading && pastDueCount > 0 && (
+                <Badge variant="destructive" data-testid="readiness-count-payment">
+                  {t(ATTENTION_PAYMENT_STAFF.key, ATTENTION_PAYMENT_STAFF.fallback)}:{" "}
+                  {pastDueCount}
+                </Badge>
+              )}
               {longestWait >= URGENT_DAYS && (
                 <Badge variant="destructive" data-testid="readiness-queue-longest">
                   {t("admin.readinessQueue.longestWait", "longest {{days}}d", {
@@ -275,7 +302,7 @@ export default function MonitoringReadinessQueuePage() {
                 <ShieldCheck className="h-4 w-4 text-alert-resolved" aria-hidden="true" />
                 {t(
                   "admin.readinessQueue.empty",
-                  "Every paid member has somebody to call and a pendant that has been tested.",
+                  "Every paid member has somebody to call, a pendant that has been tested, and a payment that went through.",
                 )}
               </p>
             ) : (
@@ -288,7 +315,7 @@ export default function MonitoringReadinessQueuePage() {
                       <TableHead>{t("admin.readinessQueue.phone", "Phone")}</TableHead>
                       <TableHead>{t("admin.readinessQueue.city", "City")}</TableHead>
                       <TableHead>{t("admin.readinessQueue.language", "Lang")}</TableHead>
-                      <TableHead>{t("admin.readinessQueue.paidSince", "Paid since")}</TableHead>
+                      <TableHead>{t("admin.readinessQueue.waitingSince", "Waiting since")}</TableHead>
                       <TableHead>{t("admin.readinessQueue.waitingFor", "Waiting")}</TableHead>
                       <TableHead className="text-right">
                         {t("admin.readinessQueue.action", "Action")}
@@ -340,6 +367,29 @@ export default function MonitoringReadinessQueuePage() {
                                 </p>
                               </div>
                             )}
+                            {/*
+                              THE PAYMENT AXIS, alongside the readiness one rather than instead
+                              of it. A member can need both — and it is still one phone call, so
+                              it is still one row. "Do NOT suspend the service" is in the work
+                              text because P4 decided it: monitoring continues while we chase.
+                            */}
+                            {row.paymentPastDue && (
+                              <div className="mt-1 space-y-0.5">
+                                <span
+                                  data-testid="readiness-gap-payment"
+                                  className="flex items-center gap-1 text-sm font-bold text-destructive"
+                                >
+                                  <Banknote className="h-3.5 w-3.5" aria-hidden="true" />
+                                  {t(ATTENTION_PAYMENT_STAFF.key, ATTENTION_PAYMENT_STAFF.fallback)}
+                                </span>
+                                <p className="max-w-xs text-xs text-muted-foreground">
+                                  {t(
+                                    ATTENTION_PAYMENT_STAFF.work.key,
+                                    ATTENTION_PAYMENT_STAFF.work.fallback,
+                                  )}
+                                </p>
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell>
                             {/*
@@ -366,8 +416,8 @@ export default function MonitoringReadinessQueuePage() {
                             {row.preferredLanguage ?? "—"}
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
-                            {row.paidSince
-                              ? new Date(row.paidSince).toLocaleDateString()
+                            {row.waitingSince
+                              ? new Date(row.waitingSince).toLocaleDateString()
                               : "—"}
                           </TableCell>
                           <TableCell>

@@ -259,6 +259,41 @@ describe("the real repo state", () => {
   it("the manifest has no duplicate entries", () => {
     expect(applied.length).toBe(new Set(applied).size);
   });
+
+  // The class of failure #278 fixed one instance of, on 9 Sep: `20260909120000_notify_staff.sql`
+  // and `20260909120000_rota_2026_seed_and_generator.sql` both sat on main. The Supabase CLI keys
+  // applied migrations by the 14-digit VERSION alone — `supabase_migrations.schema_migrations`
+  // has one row per version — so of two files sharing one, at most one ever runs and the other is
+  // recorded as applied without having been. Nothing detected it: the drift gate compares
+  // FILENAMES against the manifest, and two distinct filenames look like two distinct migrations
+  // to it, so it reported both pending and would have reported both applied.
+  //
+  // It was found by eye while renaming one of them. Nothing would have found the next one, which
+  // is what this assertion is for. It is also why the fix is a version check and not a filename
+  // check — the filenames were never the problem.
+  it("no two migrations share a version — the CLI would silently run only one of them", () => {
+    const byVersion = new Map<string, string[]>();
+    for (const file of repoMigrations) {
+      const version = file.slice(0, 14);
+      byVersion.set(version, [...(byVersion.get(version) ?? []), file]);
+    }
+
+    const collisions = [...byVersion.entries()].filter(([, files]) => files.length > 1);
+
+    // Named, not counted: a bare "expected 1 to be 0" tells whoever hits this nothing about
+    // which two files to renumber, and the answer is not derivable from the failure.
+    expect(
+      collisions.map(([version, files]) => `${version}: ${files.join(" + ")}`),
+      "two migration files share one version; renumber the one nothing else cites",
+    ).toEqual([]);
+  });
+
+  // The version check above is worthless if a filename does not start with a version at all —
+  // `slice(0, 14)` on `rota.sql` yields `rota.sql`, and two such files would "collide" for the
+  // wrong reason while a real collision hid behind a malformed name.
+  it("every migration in the repo is named version-first, so the check above means something", () => {
+    for (const file of repoMigrations) expect(file).toMatch(/^\d{14}_.*\.sql$/);
+  });
 });
 
 describe("the gate is wired into CI the way this module expects", () => {

@@ -4,12 +4,12 @@ import { useNavigate } from "react-router-dom";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFirebaseConfig } from "@/hooks/useFirebaseConfig";
 import {
   describeDevice,
   iosNeedsInstall,
   onForegroundMessage,
   platformOf,
-  pushEnv,
   registerForPush,
   unregisterForPush,
   type PushRegistration,
@@ -68,7 +68,14 @@ export function usePushNotifications(): UsePushNotifications {
   const [thisDeviceToken, setThisDeviceToken] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
 
-  const { config, missing } = pushEnv();
+  /*
+    THE CONFIG COMES FROM SETTINGS NOW, with the VITE_FIREBASE_* variables as a fallback — so
+    pasting it into Admin → Settings takes effect on this screen without a redeploy. That is
+    what `missingEnv` reports on: whichever source is in play, it names what is absent.
+  */
+  const firebase = useFirebaseConfig();
+  const config = firebase.config;
+  const missing = firebase.source === "none" ? firebase.missingWeb.map(String) : [];
 
   const supported =
     typeof window !== "undefined" && "Notification" in window && "serviceWorker" in navigator;
@@ -138,7 +145,7 @@ export function usePushNotifications(): UsePushNotifications {
     }
     setIsBusy(true);
     try {
-      const result: PushRegistration = await registerForPush();
+      const result: PushRegistration = await registerForPush(config);
       if (!result.ok) {
         toast.error(
           result.reason === "ios_needs_install"
@@ -180,7 +187,7 @@ export function usePushNotifications(): UsePushNotifications {
     } finally {
       setIsBusy(false);
     }
-  }, [staffId, standalone, refresh]);
+  }, [staffId, standalone, refresh, config]);
 
   const disable = useCallback(async () => {
     if (!thisDeviceToken) return;
@@ -188,7 +195,7 @@ export function usePushNotifications(): UsePushNotifications {
     try {
       // Firebase first: a token revoked there stops being deliverable even if the delete below
       // fails, where the reverse order can leave a live token nobody owns.
-      await unregisterForPush();
+      await unregisterForPush(config);
       const { error } = await supabase
         .from("staff_push_tokens")
         .delete()
@@ -204,13 +211,13 @@ export function usePushNotifications(): UsePushNotifications {
     } finally {
       setIsBusy(false);
     }
-  }, [thisDeviceToken, refresh]);
+  }, [thisDeviceToken, refresh, config]);
 
   // The app is open, so the OS shows nothing — a toast that navigates is the notification.
   useEffect(() => {
     if (!thisDeviceToken) return;
     let cleanup: (() => void) | null = null;
-    void onForegroundMessage(({ title, body, link }) => {
+    void onForegroundMessage(config, ({ title, body, link }) => {
       toast(title, {
         description: body,
         action: link ? { label: "Open", onClick: () => navigate(link) } : undefined,
@@ -219,7 +226,7 @@ export function usePushNotifications(): UsePushNotifications {
       cleanup = unsubscribe;
     });
     return () => cleanup?.();
-  }, [thisDeviceToken, navigate]);
+  }, [thisDeviceToken, navigate, config]);
 
   return { state, missingEnv: missing, devices, isBusy, enable, disable, refresh };
 }

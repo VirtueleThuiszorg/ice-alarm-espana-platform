@@ -871,15 +871,22 @@ export const FAMILIES = [
   },
   {
     wires: ["fn:save-api-keys", "fn:send-test-email", "fn:test-twilio"],
-    control: "Settings — save provider keys, send a test email, test Twilio",
+    control:
+      "Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase " +
+      "values), send a test email, test Twilio, send a test push to this device",
     promise: "your credentials work",
-    dest: "save-api-keys (secrets never reach the client); send-test-email; test-twilio",
+    dest: "save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push",
     told: "self",
-    proof: null,
+    proof: "src/test/firebaseConfig.test.ts",
     note:
-      "These are the only in-app way to find out whether the email and SMS channels are live, " +
-      "which is exactly what this register cannot determine from code. They are the clicks listed " +
-      "for Lee in §Only Lee can verify.",
+      "These are the only in-app way to find out whether the email, SMS and push channels are " +
+      "live, which is exactly what this register cannot determine from code. FIREBASE JOINED " +
+      "THEM: push used to need six VITE_FIREBASE_* build-time variables in Vercel plus a " +
+      "FIREBASE_SERVICE_ACCOUNT Edge secret — seven values, two consoles, and a redeploy before " +
+      "any of them did anything. The three paste fields replace that, and the test push's " +
+      "outcome is a notification_log row whichever way it goes. The service account is stored " +
+      "under a key ending `_key` so the staff read policy excludes it; the six web values are " +
+      "public by design and staff-readable because every operator's phone needs them.",
   },
   {
     wires: ["rpc:get_admin_dashboard_stats", "rpc:get_sales_command_stats", "rpc:get_todays_birthdays", "rpc:get_user_role_info"],

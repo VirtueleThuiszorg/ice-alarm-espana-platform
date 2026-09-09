@@ -18,8 +18,8 @@ main cannot drift from the code in main. To change a row, change the wire or the
 10 │   6  ██
  9 │   6  ██
  8 │   0  
- 7 │  30  ████████████
- 6 │  13  █████
+ 7 │  33  █████████████
+ 6 │  10  ████
  5 │  84  ██████████████████████████████████
  4 │  47  ███████████████████
  3 │   0  
@@ -28,13 +28,13 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   3  █
 ```
 
-189 distinct wires across 637 call sites and 108 routes.
+189 distinct wires across 639 call sites and 108 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
 | 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 6 | 3% |
-| 7–9 | arrives and proven; notification missing or on a channel not live today | 36 | 19% |
-| 4–6 | arrives; nobody told; nothing proves it | 144 | 76% |
+| 7–9 | arrives and proven; notification missing or on a channel not live today | 39 | 21% |
+| 4–6 | arrives; nobody told; nothing proves it | 141 | 75% |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0% |
 | 0 | dead control | 3 | 2% |
 
@@ -64,7 +64,7 @@ things, and a control with no wire cannot do anything:
 | kind | what it is | call sites |
 |---|---|---:|
 | `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 345 |
-| `fn` | `supabase.functions.invoke(f)` — an edge function | 81 |
+| `fn` | `supabase.functions.invoke(f)` — an edge function | 83 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 4 |
 | `channel` | `postgres_changes` — a realtime subscription | 51 |
 | `auth` | `supabase.auth.*` — sign in, sign out, register, password reset | 20 |
@@ -397,9 +397,6 @@ The checks, verified on every build:
 | **5** | `table:video_renders` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
 | **6** | `fn:ai-execute-action` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | mutation onError | none | 1 |
-| **6** | `fn:save-api-keys` | Settings — save provider keys, send a test email, test Twilio — your credentials work | save-api-keys (secrets never reach the client); send-test-email; test-twilio | self | toast | none | 3 |
-| **6** | `fn:send-test-email` | Settings — save provider keys, send a test email, test Twilio — your credentials work | save-api-keys (secrets never reach the client); send-test-email; test-twilio | self | toast | none | 1 |
-| **6** | `fn:test-twilio` | Settings — save provider keys, send a test email, test Twilio — your credentials work | save-api-keys (secrets never reach the client); send-test-email; test-twilio | self | mutation onError | none | 1 |
 | **6** | `storage:social-post-images` | Upload a website image, a staff document, a post image, a partner presentation, an agent avatar — the file is saved and will show where you put it | Supabase Storage buckets of those names | self | toast | none | 1 |
 | **6** | `storage:staff-documents` | Upload a website image, a staff document, a post image, a partner presentation, an agent avatar — the file is saved and will show where you put it | Supabase Storage buckets of those names | self | mutation onError | none | 1 |
 | **6** | `table:ai_actions` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | toast | none | 2 |
@@ -412,8 +409,11 @@ The checks, verified on every build:
 | **7** | `channel:social_posts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
 | **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
 | **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
-| **7** | `fn:notify-staff` | Admin → Settings → Notifications: the event × channel switches, the per-staff matrix beneath, and "send a test notification" — the person who needs to know is told, on a channel that works | notification_routes (company policy) and staff_notification_prefs (the person), both read by the notify-staff router on every send — so a switch changes the next notification, with no redeploy. Each change writes an activity_logs row carrying the old and new value. | screen | mutation onError | `src/test/notificationMatrix.test.ts` | 1 |
+| **7** | `fn:notify-staff` | Admin → Settings → Notifications: the event × channel switches, the per-staff matrix beneath, and "send a test notification" — the person who needs to know is told, on a channel that works | notification_routes (company policy) and staff_notification_prefs (the person), both read by the notify-staff router on every send — so a switch changes the next notification, with no redeploy. Each change writes an activity_logs row carrying the old and new value. | screen | toast | `src/test/notificationMatrix.test.ts` | 2 |
+| **7** | `fn:save-api-keys` | Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device — your credentials work | save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push | self | toast | `src/test/firebaseConfig.test.ts` | 4 |
 | **7** | `fn:send-payment-link` | Staff send a member a Stripe payment link (CRM → member → Subscription) — a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are switched on, and always shown on screen to copy | send-payment-link → create_payment_link_order (pending order + items + subscription + payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms and/or send-email; activation is stripe-webhook's alone | the payer (SMS + email), and activity_logs twice — the order created, and what was sent | mutation onError | `src/test/sendPaymentLink.test.ts` | 1 |
+| **7** | `fn:send-test-email` | Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device — your credentials work | save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push | self | toast | `src/test/firebaseConfig.test.ts` | 1 |
+| **7** | `fn:test-twilio` | Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device — your credentials work | save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push | self | mutation onError | `src/test/firebaseConfig.test.ts` | 1 |
 | **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
 | **7** | `table:admin_ideas` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | mutation onError | `src/test/checkoutPaymentMethods.test.ts` | 1 |
 | **7** | `table:app_daily_metrics` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | — | `src/test/checkoutPaymentMethods.test.ts` | 1 |
@@ -2236,45 +2236,6 @@ Analytics. Present on every route because PageTracker is mounted in App.tsx, not
 
 Golden rule 6: the hard-blocked tools (update_user_role, manage_alert escalate/resolve, admit_resident, discharge_resident, toggle_user_status) are unreachable in code, and `src/test/isabellaGate.test.ts` proves that by executing the real gate — including that it FAILS OPEN on a settings error and is suppressed when no row exists. That is a real and important property, and it is NOT this wire: it proves what she may not do, not that an action she may do is executed and recorded. Cited here at first and withdrawn on reading it. The block is proven; the wire is not.
 
-### `fn:save-api-keys` — 6/10 (arrives, unproven)
-
-- **control** Settings — save provider keys, send a test email, test Twilio
-- **promised** your credentials work
-- **goes to** save-api-keys (secrets never reach the client); send-test-email; test-twilio
-- **who is told** self
-- **failure shown to user** toast
-- **proof** none — capped at 6
-- **routes** /admin/settings
-- **call sites** src/components/admin/settings/CheckoutPaymentMethodsCard.tsx, src/components/admin/settings/SocialMediaSection.tsx, src/pages/admin/SettingsPage.tsx
-
-These are the only in-app way to find out whether the email and SMS channels are live, which is exactly what this register cannot determine from code. They are the clicks listed for Lee in §Only Lee can verify.
-
-### `fn:send-test-email` — 6/10 (arrives, unproven)
-
-- **control** Settings — save provider keys, send a test email, test Twilio
-- **promised** your credentials work
-- **goes to** save-api-keys (secrets never reach the client); send-test-email; test-twilio
-- **who is told** self
-- **failure shown to user** toast
-- **proof** none — capped at 6
-- **routes** /admin/settings
-- **call sites** src/hooks/useEmailSettings.ts
-
-These are the only in-app way to find out whether the email and SMS channels are live, which is exactly what this register cannot determine from code. They are the clicks listed for Lee in §Only Lee can verify.
-
-### `fn:test-twilio` — 6/10 (arrives, unproven)
-
-- **control** Settings — save provider keys, send a test email, test Twilio
-- **promised** your credentials work
-- **goes to** save-api-keys (secrets never reach the client); send-test-email; test-twilio
-- **who is told** self
-- **failure shown to user** mutation onError
-- **proof** none — capped at 6
-- **routes** /admin/settings
-- **call sites** src/pages/admin/SettingsPage.tsx
-
-These are the only in-app way to find out whether the email and SMS channels are live, which is exactly what this register cannot determine from code. They are the clicks listed for Lee in §Only Lee can verify.
-
 ### `storage:partner-presentations` — 6/10 (arrives, unproven)
 
 - **control** Upload a website image, a staff document, a post image, a partner presentation, an agent avatar
@@ -2502,12 +2463,25 @@ Item 6. The screen used to announce 'registration complete' from a query paramet
 - **promised** the person who needs to know is told, on a channel that works
 - **goes to** notification_routes (company policy) and staff_notification_prefs (the person), both read by the notify-staff router on every send — so a switch changes the next notification, with no redeploy. Each change writes an activity_logs row carrying the old and new value.
 - **who is told** screen
-- **failure shown to user** mutation onError
+- **failure shown to user** toast
 - **proof** `src/test/notificationMatrix.test.ts`
 - **routes** /admin/settings
-- **call sites** src/hooks/useNotificationMatrix.ts
+- **call sites** src/components/admin/settings/FirebaseConfigCard.tsx, src/hooks/useNotificationMatrix.ts
 
 The switches are the fix for the schema this replaces: a boolean COLUMN PER EVENT on notification_settings, which is how `whatsapp_ev07b_alerts` came to be read by notify-admin without any migration ever creating it. THE FOUR ALWAYS-LOUD EVENTS RENDER AS LOCKED, not as switches: the router ignores both tables for them, and a switch that cannot silence the alarm saying the SOS ladder is broken must not look like one. Every dark cell names which of the three gates stopped it, and `wouldReach` is driven against the router's own `planNotifications` across all 19 events × 4 channels × both switches so the screen cannot claim something the router will not do. Scored on the screen only: until the migration is applied the matrix says so rather than rendering an empty grid.
+
+### `fn:save-api-keys` — 7/10 (proven; no notification owed)
+
+- **control** Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device
+- **promised** your credentials work
+- **goes to** save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push
+- **who is told** self
+- **failure shown to user** toast
+- **proof** `src/test/firebaseConfig.test.ts`
+- **routes** /admin/settings
+- **call sites** src/components/admin/settings/CheckoutPaymentMethodsCard.tsx, src/components/admin/settings/FirebaseConfigCard.tsx, src/components/admin/settings/SocialMediaSection.tsx, src/pages/admin/SettingsPage.tsx
+
+These are the only in-app way to find out whether the email, SMS and push channels are live, which is exactly what this register cannot determine from code. FIREBASE JOINED THEM: push used to need six VITE_FIREBASE_* build-time variables in Vercel plus a FIREBASE_SERVICE_ACCOUNT Edge secret — seven values, two consoles, and a redeploy before any of them did anything. The three paste fields replace that, and the test push's outcome is a notification_log row whichever way it goes. The service account is stored under a key ending `_key` so the staff read policy excludes it; the six web values are public by design and staff-readable because every operator's phone needs them.
 
 ### `fn:send-payment-link` — 7/10 (proven; nobody told)
 
@@ -2521,6 +2495,32 @@ The switches are the fix for the schema this replaces: a boolean COLUMN PER EVEN
 - **call sites** src/hooks/useSendPaymentLink.ts
 
 Replaces a `Create Subscription` button that had NO onClick. The browser sends a plan, a billing frequency, a pendant count and who pays — no amounts: every line item names a Stripe Price id created from pricing_plans/pricing_settings, and the request schema has no amount field. Refuses rather than guessing when a Price is unsynced or stale. REQUIRES 20260909110000 in production (the SQL function it calls); until that is applied the button returns a 409 naming the missing function.
+
+### `fn:send-test-email` — 7/10 (proven; no notification owed)
+
+- **control** Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device
+- **promised** your credentials work
+- **goes to** save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push
+- **who is told** self
+- **failure shown to user** toast
+- **proof** `src/test/firebaseConfig.test.ts`
+- **routes** /admin/settings
+- **call sites** src/hooks/useEmailSettings.ts
+
+These are the only in-app way to find out whether the email, SMS and push channels are live, which is exactly what this register cannot determine from code. FIREBASE JOINED THEM: push used to need six VITE_FIREBASE_* build-time variables in Vercel plus a FIREBASE_SERVICE_ACCOUNT Edge secret — seven values, two consoles, and a redeploy before any of them did anything. The three paste fields replace that, and the test push's outcome is a notification_log row whichever way it goes. The service account is stored under a key ending `_key` so the staff read policy excludes it; the six web values are public by design and staff-readable because every operator's phone needs them.
+
+### `fn:test-twilio` — 7/10 (proven; no notification owed)
+
+- **control** Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device
+- **promised** your credentials work
+- **goes to** save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push
+- **who is told** self
+- **failure shown to user** mutation onError
+- **proof** `src/test/firebaseConfig.test.ts`
+- **routes** /admin/settings
+- **call sites** src/pages/admin/SettingsPage.tsx
+
+These are the only in-app way to find out whether the email, SMS and push channels are live, which is exactly what this register cannot determine from code. FIREBASE JOINED THEM: push used to need six VITE_FIREBASE_* build-time variables in Vercel plus a FIREBASE_SERVICE_ACCOUNT Edge secret — seven values, two consoles, and a redeploy before any of them did anything. The three paste fields replace that, and the test push's outcome is a notification_log row whichever way it goes. The service account is stored under a key ending `_key` so the staff read policy excludes it; the six web values are public by design and staff-readable because every operator's phone needs them.
 
 ### `table:activity_logs` — 7/10 (proven; no notification owed)
 

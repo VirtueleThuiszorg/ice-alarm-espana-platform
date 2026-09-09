@@ -31,6 +31,7 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { EnablePushCard } from "@/components/notifications/EnablePushCard";
+import { FirebaseConfigCard } from "@/components/admin/settings/FirebaseConfigCard";
 import { NotificationMatrix } from "@/components/admin/settings/NotificationMatrix";
 import { CheckoutPaymentMethodsCard } from "@/components/admin/settings/CheckoutPaymentMethodsCard";
 import { ImagesSettingsTab } from "@/components/admin/settings/ImagesSettingsTab";
@@ -1025,6 +1026,9 @@ export default function SettingsPage() {
             </p>
           </div>
           <EnablePushCard />
+          {/* Firebase before the matrix: a switch for a channel with no credentials behind it is
+              the "unproven" badge nobody can clear. */}
+          {canEditNotifications && <FirebaseConfigCard />}
           <NotificationMatrix canEdit={canEditNotifications} />
         </TabsContent>
 

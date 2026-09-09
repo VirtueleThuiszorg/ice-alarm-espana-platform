@@ -22,6 +22,7 @@
  * and the exact conditions under which a token is pruned — without a Firebase project.
  */
 
+import { FIREBASE_SETTING_KEYS } from "./firebase-config.ts";
 import type { NotifyEvent } from "./notify-staff.ts";
 import type { PushTokenResult } from "./notify-staff.ts";
 
@@ -69,6 +70,65 @@ export function parseServiceAccount(raw: string | undefined | null): ServiceAcco
     // unhandled, importKey fails with "invalid keyData" and the error says nothing about why.
     private_key: (parsed.private_key as string).replace(/\\n/g, "\n"),
   };
+}
+
+/**
+ * The smallest read this needs. Structural, so the resolver below is testable with a plain
+ * object — `notify-staff-runtime.ts` imports the Supabase client from esm.sh, and vitest's ESM
+ * loader cannot resolve that.
+ */
+export interface SettingReader {
+  from(table: string): {
+    select(columns: string): {
+      eq(column: string, value: string): {
+        maybeSingle(): Promise<{ data: { value: string | null } | null; error: unknown }>;
+      };
+    };
+  };
+}
+
+export interface ServiceAccountSource {
+  /** `Deno.env.get("FIREBASE_SERVICE_ACCOUNT")`, or undefined. */
+  env?: string | null;
+  /** Where to look second. Omit to check the environment only. */
+  db?: SettingReader | null;
+}
+
+/**
+ * THE SERVICE ACCOUNT, FROM WHEREVER IT IS — the Edge secret first, then `system_settings`.
+ *
+ * ENVIRONMENT FIRST, and the order is the point. An Edge secret is the stronger place to keep a
+ * credential (it never touches a table, so no RLS mistake can expose it), so a deployment that
+ * has one keeps using it. The settings row exists so that a deployment WITHOUT one still works:
+ * asking somebody to set an Edge secret means the Supabase dashboard or the CLI, which is
+ * exactly the friction this change removes.
+ *
+ * IT NEVER LOGS THE VALUE. Not on success, not on a parse failure, not in the error it throws —
+ * `parseServiceAccount` reports which FIELD is missing and never quotes the JSON. A private key
+ * in a Deno log is a private key in a log aggregator.
+ *
+ * A MALFORMED VALUE STILL THROWS, from either source: absent is a legitimate state ("push is
+ * not configured"), and a typo is not — hiding one behind the other is how a channel comes to be
+ * silently off for months.
+ */
+export async function resolveServiceAccount(
+  source: ServiceAccountSource,
+): Promise<ServiceAccount | null> {
+  const fromEnv = parseServiceAccount(source.env);
+  if (fromEnv) return fromEnv;
+
+  if (!source.db) return null;
+
+  const { data, error } = await source.db
+    .from("system_settings")
+    .select("value")
+    .eq("key", FIREBASE_SETTING_KEYS.serviceAccount)
+    .maybeSingle();
+
+  // A failed read is "not configured", not a crash: the caller reports push as unconfigured and
+  // every other channel still sends. It is also the state before the settings row exists at all.
+  if (error) return null;
+  return parseServiceAccount(data?.value ?? null);
 }
 
 /** The JWT claim set Google's token endpoint expects. Pure, so the test reads it. */

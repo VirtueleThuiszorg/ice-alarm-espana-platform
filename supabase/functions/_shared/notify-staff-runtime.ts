@@ -16,7 +16,7 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 
 import { sendEmail } from "./email.ts";
 import { isMissingColumn, isMissingRelation } from "./pg-errors.ts";
-import { parseServiceAccount, sendPush } from "./fcm.ts";
+import { resolveServiceAccount, sendPush } from "./fcm.ts";
 import {
   NOTIFY_CHANNELS,
   type Audience,
@@ -246,7 +246,13 @@ export function makeTransports(db: SupabaseClient, serviceRoleKey: string): Tran
       return { ok: result.success, error: result.error };
     },
     async push(tokens, event) {
-      const sa = parseServiceAccount(Deno.env.get("FIREBASE_SERVICE_ACCOUNT"));
+      // The Edge secret first, then `system_settings` — see resolveServiceAccount. Read per
+      // dispatch rather than cached at module scope, so pasting the JSON into Admin → Settings
+      // takes effect on the next notification instead of on the next cold start.
+      const sa = await resolveServiceAccount({
+        env: Deno.env.get("FIREBASE_SERVICE_ACCOUNT"),
+        db: db as unknown as Parameters<typeof resolveServiceAccount>[0]["db"],
+      });
       if (!sa) {
         // Reached only if `configured.push` said true, i.e. a bug in this file rather than a
         // missing secret — so it is reported per token instead of silently dropping them.
@@ -254,7 +260,7 @@ export function makeTransports(db: SupabaseClient, serviceRoleKey: string): Tran
           ok: false,
           token,
           invalid: false,
-          error: "FIREBASE_SERVICE_ACCOUNT is not set",
+          error: "no Firebase service account — set the Edge secret or paste it in Admin → Settings",
         }));
       }
       return await sendPush(tokens, event, { serviceAccount: sa, siteUrl: SITE_URL });
@@ -283,9 +289,14 @@ export async function configuredChannels(
   let pushConfigured = false;
   let pushConfigError: string | null = null;
   try {
-    pushConfigured = !!parseServiceAccount(Deno.env.get("FIREBASE_SERVICE_ACCOUNT"));
+    pushConfigured = !!(await resolveServiceAccount({
+      env: Deno.env.get("FIREBASE_SERVICE_ACCOUNT"),
+      db: db as unknown as Parameters<typeof resolveServiceAccount>[0]["db"],
+    }));
   } catch (e) {
-    pushConfigError = e instanceof Error ? e.message : "FIREBASE_SERVICE_ACCOUNT is unusable";
+    // A MALFORMED account is not "not configured": that is a typo in something nobody can read
+    // back, so it is named in the response instead of hidden behind a skip nobody investigates.
+    pushConfigError = e instanceof Error ? e.message : "the Firebase service account is unusable";
   }
   return {
     configured: {

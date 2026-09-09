@@ -13,6 +13,65 @@
 
 ---
 
+## Dashboard notes — 2026-09-09 · **five merged, four held, two findings for Lee**
+
+Lee walked the admin dashboard, the Holidays page, the product catalog, the call-centre
+dashboard and the member CRM record, and sent nine items. This is what came of them, with the
+evidence, and it is written to the same rule as everything else in this file: a ✅ names the
+proof, and a 🟡 says what is missing.
+
+| # | item | state | proof |
+|---|---|---|---|
+| 1 | Isabella card said ACTIVE while every run failed | ✅ **in main** (#244) | `src/test/isabellaHealthCard.test.tsx` — 38 assertions, 25/25 mutations killed |
+| 2 | Sales card "Failed to load" (`22P02`) | 🟡 **held** (#243) — migration written, applied to prod by Lee | `scripts/rls/isolation.sql`, 9 assertions by execution; 7/7 mutations killed |
+| 3 | admin-audience events writing nowhere | ✅ **in main** (#249) — inventory only | `src/test/absentAdminEvents.test.ts` — 21 assertions, 10/10 mutations killed |
+| 4 | "Create Subscription" had no handler | 🟡 **held** (#248 code, #243 schema) | `src/test/sendPaymentLink.test.ts` + `memberCrmControls.test.ts` — 81 assertions, 34/34 mutations killed; 36 harness assertions |
+| 5 | admins on the Holidays page | ✅ **in main** (#241) | `src/test/holidaysExcludeAdmins.test.tsx` |
+| 6 | `sidebar.productCatalog` rendered its own key | ✅ **in main** (#240) | `src/test/i18nKeyCoverage.test.ts` (now collects `labelKey` declarations), `productCatalogAuthority.test.ts` |
+| 7 | Start Shift / on duty | 🟡 **held** (#246) — changes an input to the SOS escalation ladder | `src/test/onDutyDeclaration.test.tsx` (17) + `e2e/onDuty.spec.ts` (2, real browser); 12/12 mutations killed |
+| 8 | MedConneqt framing + session | ✅ **in main** (#245) | `src/test/medconneqtKeepAlive.test.tsx` — frame identity across navigation; 11/11 mutations killed |
+| 9 | sidebar order | ✅ **in main** (#238) | `src/test/callCentreSidebarOrder.test.ts` |
+
+**What the four held PRs are waiting for, and why each is held**
+
+- **#243 (schema)** — `supabase db push`, then the two filenames appended to `APPLIED_TO_PROD.txt`.
+  Nothing in this repo may claim a migration is live; the drift gate depends on that manifest
+  being true.
+- **#248 (Send payment link)** — creates Stripe Checkout Sessions, so the payment human gate
+  applies (CLAUDE.md). It also **depends on #243 being applied**: the SQL function it calls
+  lives there.
+- **#246 (on duty)** — logging out no longer clears `is_on_call`, and `sos-escalation-runner`
+  selects on that column. Anything that changes who a real alert reaches is human-gated.
+- **#242** is the wiring session's, not this run's.
+
+**Two things this run FOUND and deliberately did not fix** (`PENDING_FOR_LEE.md` S18/S19), both
+from the item 4 walk of the member record:
+
+- `PaymentsTab` records a manual bank transfer as `status: 'completed'` **from the browser**,
+  with no actor and no reason. Golden rule 4 is intact — it activates nobody — but *"who says
+  this money arrived?"* is unanswerable from the row.
+- `DeviceTab` mirrors `has_pendant` onto **every** subscription a member has ever had
+  (`.eq("member_id", …)`, no status filter). The same shape, larger, exists on the gated file:
+  `stripe-webhook` sets `status: 'active'` on every subscription row for the member.
+
+**Two defects found in the instruments themselves**, which is worth recording because it is the
+second and third time this has happened:
+
+- `pg_temp.check()` in the RLS harness recorded a **NULL** assertion as neither pass nor fail:
+  the report printed FAIL and the suite **exited 0**. Every assertion of the form
+  `<nullable column> = <value>` was un-failable — precisely the shape that matters, because "the
+  column we expected to be written is NULL" *is* the defect. Found by a mutation that should have
+  died and did not. Now COALESCEd to false and labelled; the clean suite still passes 433/433, so
+  the hole was not hiding a live failure.
+- `functionErrorAdoption`'s leak guard read raw source and flagged a new file for a **comment**
+  explaining the string it guards against — the **ninth** prose-instead-of-code assertion this
+  repo has caught. It strips comments now, and the guard was re-proven by planting a real leak.
+
+**Item 8's one honest gap:** whether `alarm.medconneqt.nl` allows framing could not be checked
+from this environment — outbound HTTPS to that host is refused at the proxy (`403 to CONNECT`).
+The page answers it at runtime in the operator's browser instead, which is the only place the
+answer counts, and `PENDING_FOR_LEE.md` **S17** carries the header Martijn would need to send.
+
 ## Wiring — 2026-09-08 · **register built, distribution measured**
 
 Lee sent a message from the public Contact page and found nothing in Communications,

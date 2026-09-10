@@ -50,11 +50,21 @@ import {
  * change. It knows nothing about members, staff or Supabase — it takes a title, a dirty flag
  * and an onSave.
  */
-export interface EditableCardProps {
+interface EditableCardBase {
   title: ReactNode;
   description?: ReactNode;
   /** Anything that belongs beside the title — a "last updated" line, a badge. */
   headerExtra?: ReactNode;
+  children: ReactNode;
+  testId?: string;
+}
+
+/**
+ * A card whose fields are edited and then saved together. The default, and the one the word
+ * "Edit" ordinarily means.
+ */
+interface EditableCardForm extends EditableCardBase {
+  mode?: "form";
   /**
    * Has anything changed? Drives the unsaved-changes warning. Passing `false` for a form that
    * can in fact change is how the warning quietly stops appearing, so callers wire it to the
@@ -67,24 +77,63 @@ export interface EditableCardProps {
   /** Put the form back as it was. Called on Cancel, and after a confirmed discard. */
   onCancel?: () => void;
   onEditStart?: () => void;
-  children: ReactNode;
-  testId?: string;
+  lockedReason?: never;
 }
 
-export function EditableCard({
-  title,
-  description,
-  headerExtra,
-  isDirty = false,
-  saving = false,
-  onSave,
-  onCancel,
-  onEditStart,
-  children,
-  testId,
-}: EditableCardProps) {
+/**
+ * A card NOBODY MAY EDIT HERE — and the reason is required, not optional.
+ *
+ * WHY THIS MODE EXISTS RATHER THAN AN `Edit` BUTTON THAT UNLOCKS NOTHING. Some cards on a
+ * record hold values no screen may set: a subscription's plan and price are whatever the
+ * payment webhook last said (golden rule 4), and an imported CRM profile is a record of what
+ * the import saw. Putting a working-looking Edit on those would be the dead-button pattern
+ * this codebase keeps finding — a control that occupies the place of a real one.
+ *
+ * Leaving them as bare cards is not right either: with every OTHER card on the record now
+ * showing a padlock until you press Edit, an unlocked-looking card reads as "editable, and the
+ * button is missing".
+ *
+ * So: the same padlock, no Edit, and the reason ON THE SCREEN. `MEMBER_UX_RULES` R7 already
+ * settled this argument for fields — a lock with a reason is fine, a lock without one is the
+ * complaint — and `lockedReason` is required for exactly the reason `LockedIdentityField`'s is.
+ */
+interface EditableCardLocked extends EditableCardBase {
+  mode: "locked";
+  /** Why nobody can edit it here, and where it does change. REQUIRED. */
+  lockedReason: ReactNode;
+  onSave?: never;
+  onCancel?: never;
+  onEditStart?: never;
+  isDirty?: never;
+  saving?: never;
+}
+
+export type EditableCardProps = EditableCardForm | EditableCardLocked;
+
+export function EditableCard(props: EditableCardProps) {
+  const { title, description, headerExtra, children, testId } = props;
+  const locked = props.mode === "locked";
+  const isDirty = locked ? false : (props.isDirty ?? false);
+  const saving = locked ? false : (props.saving ?? false);
   const { t } = useTranslation();
-  const [editing, setEditing] = useState(false);
+  const [wantsEdit, setWantsEdit] = useState(false);
+  /*
+    LOCKED CANNOT BE EDITING, and this line is the only place that says so.
+
+    THERE WERE THREE. This, a `locked ||` on the fieldset, and an early return in
+    `startEditing`. A mutation pass killed neither of the other two: with no Edit button
+    rendered in locked mode nothing can set `wantsEdit`, so each was indistinguishable from its
+    own absence. Both are deleted — a guard nothing can tell apart from nothing is decoration
+    (the same call `memberRequiredFields.ts` made about its contacts length check).
+
+    THIS ONE IS KEPT DELIBERATELY, and a mutation does not kill it either. The rule is "keep
+    one expression of the invariant", not "delete the last one": today it is unreachable by
+    construction, and the day somebody adds a second way into edit mode — a keyboard shortcut,
+    a parent that opens a card — it is the line that stops a locked card becoming editable. The
+    guard that IS observable is the one deciding whether the Edit button exists at all, below,
+    and `lockedCards.test.tsx` asserts a locked card renders no control that could set this.
+  */
+  const editing = !locked && wantsEdit;
   const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   /*
@@ -103,13 +152,13 @@ export function EditableCard({
   }, [editing, isDirty]);
 
   const startEditing = () => {
-    setEditing(true);
-    onEditStart?.();
+    setWantsEdit(true);
+    if (props.mode !== "locked") props.onEditStart?.();
   };
 
   const leaveEditing = () => {
-    setEditing(false);
-    onCancel?.();
+    setWantsEdit(false);
+    if (props.mode !== "locked") props.onCancel?.();
   };
 
   const requestCancel = () => {
@@ -118,11 +167,13 @@ export function EditableCard({
   };
 
   const save = async () => {
-    const result = await onSave();
+    // `onSave` is `never` in locked mode and the Save button is not rendered there, so this
+    // cannot be reached with one absent — the type carries it, not a runtime check.
+    const result = await props.onSave!();
     // `false` means the save did not happen — a validation failure, or a write the database
     // refused. Closing the card on that would throw away what the person typed and tell them
     // it was saved.
-    if (result !== false) setEditing(false);
+    if (result !== false) setWantsEdit(false);
   };
 
   return (
@@ -141,10 +192,22 @@ export function EditableCard({
               )}
             </CardTitle>
             {description ? <CardDescription>{description}</CardDescription> : null}
+            {locked ? (
+              <p
+                className="text-[0.8125rem] text-muted-foreground"
+                data-testid={testId ? `${testId}-locked-reason` : undefined}
+              >
+                {props.lockedReason}
+              </p>
+            ) : null}
             {headerExtra}
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {editing ? (
+            {/*
+              NO EDIT BUTTON AT ALL in locked mode. A disabled one would still be a button
+              somebody presses, twice, wondering what is wrong with it.
+            */}
+            {locked ? null : editing ? (
               <>
                 <Button
                   variant="outline"

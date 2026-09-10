@@ -1459,7 +1459,6 @@
     "updateContacts": "Update Contacts",
     "announcement": "Service Announcement",
     "deviceWorking": "Your pendant is working properly",
-    "contactIceAlarm": "Contact ICE Alarm España",
     "alertsLast30Days": "Alerts (30 days)",
     "batteryLevel": "Battery",
     "deviceStatus": "Device",
@@ -1500,7 +1499,9 @@
     },
     "recentActivity": "Recent activity",
     "noAlerts": "No alerts. Nothing has happened, which is the idea.",
-    "viewAllAlerts": "See your alert history"
+    "viewAllAlerts": "See your alert history",
+    "twentyFourHourLine": "24-hour line",
+    "callTwentyFourHour": "Call our 24-hour line: {{number}}"
   },
   "phoneOnly": {
     "yourCurrentService": "Your Current Service",

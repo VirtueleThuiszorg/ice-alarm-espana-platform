@@ -1,4 +1,4 @@
-import type { Page, Route } from "@playwright/test";
+import type { Page, Request, Route } from "@playwright/test";
 
 /**
  * A stub for Supabase's HTTP surface, installed via Playwright route interception.
@@ -191,6 +191,43 @@ export async function installSupabaseStub(page: Page, initial: StubScenario = {}
     };
   };
 
+  /**
+   * `.single()` WANTS AN OBJECT, AND THE STUB WAS ALWAYS ANSWERING WITH AN ARRAY.
+   *
+   * `.maybeSingle()` is implemented client-side — postgrest-js fetches a list and takes
+   * `data[0]`, or null — so an array answer is correct for it, which is why every existing
+   * scenario worked. `.single()` is implemented SERVER-side: it sends
+   * `Accept: application/vnd.pgrst.object+json` and PostgREST replies with a bare object.
+   * postgrest-js does not unwrap it, so an array answer left `data` as `[{…}]` — and a caller
+   * doing `data as MemberProfile` then read `profile.first_name` off an array and got
+   * `undefined` for every field, with no error anywhere.
+   *
+   * That is not a hypothetical: `useMemberProfile` uses `.single()`, so the whole member portal
+   * rendered em dashes under this stub while looking like a page that had loaded. A helper that
+   * silently answers one of the two shapes wrongly makes every future member spec quietly
+   * meaningless.
+   *
+   * The empty case is PostgREST's own 406, because that is what a caller's error branch is
+   * written against.
+   */
+  const single = (route: Route, request: Request, rows: unknown[]) => {
+    const accept = request.headers()["accept"] ?? "";
+    if (!accept.includes("vnd.pgrst.object+json")) return json(route, rows);
+    if (rows.length === 0) {
+      return json(
+        route,
+        {
+          code: "PGRST116",
+          details: "The result contains 0 rows",
+          hint: null,
+          message: "JSON object requested, multiple (or no) rows returned",
+        },
+        406,
+      );
+    }
+    return json(route, rows[0]);
+  };
+
   const json = (route: Route, body: unknown, status = 200) =>
     route.fulfill({
       status,
@@ -319,14 +356,18 @@ export async function installSupabaseStub(page: Page, initial: StubScenario = {}
       // `.maybeSingle()` on no row: PostgREST returns an empty array, and
       // supabase-js resolves `data: null` WITHOUT an error. That distinction is
       // the whole reason the login's not-found branch exists.
-      return json(route, scenario.partner ? [scenario.partner] : []);
+      //
+      // Through `single` so a `.single()` caller gets an object — see its comment. The
+      // maybeSingle behaviour above is unchanged: without the object Accept header this is
+      // still the array PostgREST sends.
+      return single(route, request, scenario.partner ? [scenario.partner] : []);
     }
 
     // Any other table: the rows this scenario seeded, or an empty result so pages that fan out
     // queries render their empty state instead of hanging. Still recorded in `calls`.
     if (url.pathname.startsWith("/rest/v1/")) {
       const table = url.pathname.slice("/rest/v1/".length);
-      return json(route, scenario.tables?.[table] ?? []);
+      return single(route, request, scenario.tables?.[table] ?? []);
     }
 
     // Deliberately not a silent pass-through: an unrecognised Supabase call is a

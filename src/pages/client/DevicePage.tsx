@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Loader2,
   Smartphone,
@@ -20,23 +21,40 @@ import {
   RefreshCw
 } from "lucide-react";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { canonicalGross } from "@/lib/catalogPriceAuthority";
+import {
+  MEMBER_PENDANT_SUBTITLE,
+  mayOfferPendant,
+  memberPendantView,
+} from "@/lib/memberPendantView";
 import { useDeviceRealtime } from "@/hooks/useDeviceRealtime";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { usePricing } from "@/hooks/usePricing";
-import { formatPrice, getPendantFinalPrice, getShippingCost } from "@/config/pricing";
+import { formatPrice } from "@/config/pricing";
 
 import { telHref, waNumber } from "@/lib/phone";
 import { PageHeader } from "@/components/client/PageHeader";
 import { Link } from "react-router-dom";
 import { Package } from "lucide-react";
-import { FULFILMENT_MEANING } from "@/lib/fulfilmentState";
+
 import { usePendantOrderForMember } from "@/hooks/usePendantOrder";
 import { supportActionPath } from "@/lib/supportActions";
 export default function DevicePage() {
   const { t } = useTranslation();
   const { memberId } = useAuth();
-  usePricing(); // hydrate pricing from DB
+  /*
+    THE PRICE, FROM THE AUTHORITY, NOT FROM A MODULE-LEVEL GLOBAL.
+
+    It was `usePricing()` called for its side effect — hydrating a mutable singleton in
+    `config/pricing` — and then `getPendantFinalPrice(1)` read back out of it. So the figure this
+    page quoted depended on whether some component had already run, and on a cold load it was
+    the seed rather than what an admin had set. `catalogPriceAuthority.canonicalGross` answers
+    the question the page is actually asking — *what is really charged for a pendant* — from the
+    config this hook returns, so a stale read is a late render rather than a wrong price on a
+    page that offers to sell something.
+  */
+  const { config: pricing, isLoading: pricingLoading } = usePricing();
   const navigate = useNavigate();
   const { data: device, isLoading: deviceLoading } = useMemberDevice();
   const { data: subscription, isLoading: subLoading } = useMemberSubscription();
@@ -54,7 +72,6 @@ export default function DevicePage() {
   const whatsappNumber = waNumber(companySettings.emergency_phone);
 
   const isLoading = deviceLoading || subLoading;
-  const hasPendant = subscription?.has_pendant && device;
 
   const formatRelativeTime = (date: Date): string => {
     const now = new Date();
@@ -78,221 +95,260 @@ export default function DevicePage() {
   }
 
   /*
-    THE MEMBER WHO HAS PAID FOR A PENDANT AND IS WAITING FOR IT was shown the SALES PAGE.
+    WHICH MEMBER IS THIS — one derivation, in `memberPendantView.ts`, off the same two columns
+    the fulfilment desk reads.
 
-    `hasPendant` is `subscription?.has_pendant && device` — so between the payment and the device
-    being assigned, a member whose subscription says they bought a pendant fell into the
-    phone-only branch and was shown "What You're Missing" and a "Purchase Pendant" button. They
-    had already purchased it. That is the state WP2 exists to describe, so it gets its own branch
-    and the real fulfilment state.
+    It was three branches keyed on `subscription?.has_pendant && device`, and the branch decided
+    the SUBTITLE. A member with a paid pendant order and no device row yet fell into the branch
+    titled "Phone-Only membership" — told they had chosen a service they had paid to leave, on
+    the screen they open when they are worried about whether their alarm works. WP4 added a
+    fourth branch for the worst of it; the words were still decided by a boolean that cannot
+    tell "never bought one" from "bought one, waiting".
+
+    Six states now, each a genuinely different sentence to somebody waiting: we have not been
+    paid; we are getting it ready; we are waiting on stock; it is in the post; you have it; you
+    have not got one. And `mayOfferPendant` is true for exactly the last of those, so the sales
+    card cannot reappear in front of somebody who has already bought one.
   */
-  const awaitingPendant = subscription?.has_pendant === true && !device;
+  const view = memberPendantView({
+    hasDevice: !!device,
+    subscriptionHasPendant: subscription?.has_pendant,
+    order: pendantOrder,
+  });
+  const subtitle = t(
+    MEMBER_PENDANT_SUBTITLE[view].key,
+    MEMBER_PENDANT_SUBTITLE[view].fallback,
+  );
 
-  if (awaitingPendant) {
+  /**
+   * THE MONITORED LINE — one card, and the same one whether or not a pendant is coming.
+   *
+   * It was two different treatments of the same fact: a 4xl number in a tinted panel on the
+   * phone-only branch, and nothing at all on the waiting branch. The number that reaches an
+   * operator is the thing every member on this page has, so it is one card that both read.
+   *
+   * NOT 4xl. R5 gives the page one 28px title and R10 a 16px body; a 36-40px phone number was
+   * the largest text in the member portal, on a page where it is a useful detail rather than
+   * the subject. It is a normal link — pressable on a phone, selectable on a desktop.
+   *
+   * NOT WHATSAPP GREEN. `bg-[#25D366] hover:bg-[#128C7E] text-white` was the only raw hex left
+   * on the member surface: a third party's brand colour, outside the token system, with a
+   * contrast ratio nobody had checked (white on #25D366 is 2.1:1 — below WCAG AA for text of
+   * any size, so it failed the standard GOALS.md sets while looking deliberate). It is an
+   * outline button with the WhatsApp glyph, which is the same affordance in this product's
+   * colours.
+   *
+   * The whole card is omitted with no number configured rather than rendered empty: a heading
+   * reading EMERGENCY NUMBER over nothing at all is the most alarming empty state in the
+   * portal. WP1b: show nothing, never a fake number.
+   */
+  const monitoredLineCard = phoneHref ? (
+    <Card data-testid="device-monitored-line">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Phone className="h-5 w-5 text-primary" aria-hidden="true" />
+          {t("device.monitoredLine.title", "Your monitored line")}
+        </CardTitle>
+        <CardDescription>
+          {t(
+            "device.monitoredLine.body",
+            "Call this number any hour of the day and a real operator answers. Save it in your phone.",
+          )}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-1">
+          <p className="text-[0.8125rem] font-medium uppercase tracking-wide text-muted-foreground">
+            {t("support.emergencyNumber")}
+          </p>
+          <a
+            href={phoneHref}
+            className="text-lg font-semibold text-foreground underline underline-offset-4"
+            data-testid="device-emergency-number"
+          >
+            {companySettings.emergency_phone}
+          </a>
+        </div>
+        {whatsappNumber && (
+          <Button variant="outline" asChild className="touch-target">
+            <a
+              href={`https://wa.me/${whatsappNumber}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="device-whatsapp"
+            >
+              <MessageCircle className="mr-2 h-5 w-5" aria-hidden="true" />
+              {t("support.whatsApp")}
+            </a>
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  ) : null;
+
+  if (view !== "with_pendant") {
+    /*
+      EVERY WAITING STATE, AND THE ONE WHO HAS NOT GOT A PENDANT, on one shell.
+
+      They were two separate returns with two different layouts for what is very nearly the same
+      page. The only real difference is whether we may offer to sell a pendant, and that is one
+      card.
+    */
+    const offer = mayOfferPendant(view);
     return (
       <div className="space-y-6 animate-fade-in">
         <PageHeader
           title={t("navigation.myPendant")}
-          subtitle={t("device.onItsWay.subtitle", "Your pendant is on its way")}
-        />
-        <Card data-testid="pendant-awaiting">
-          <CardContent className="space-y-4 p-6">
-            <div className="flex items-start gap-3">
-              <Package className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
-              <div className="min-w-0 space-y-1">
-                <p className="text-base font-semibold" data-testid="pendant-awaiting-state">
-                  {pendantOrder
-                    ? t(
-                        FULFILMENT_MEANING[pendantOrder.fulfilmentState].key,
-                        FULFILMENT_MEANING[pendantOrder.fulfilmentState].fallback,
-                      )
-                    : t(
-                        "device.onItsWay.unknownState",
-                        "We are getting your pendant ready. We will call you when it is on its way.",
-                      )}
-                </p>
-                {/*
-                  WHAT HAPPENS NEXT, always — and it is the test call, not the delivery.
-                  Q1 (Lee, 2026-09-07) is operator-confirmed only, so a member cannot mark their
-                  own pendant tested. Saying that here stops them waiting for a button that will
-                  never appear.
-                */}
-                <p className="text-base text-muted-foreground">
-                  {t(
-                    "device.onItsWay.nextStep",
-                    "When it arrives we will phone you and test it together — a real operator answers, so you know it works.",
-                  )}
-                </p>
-              </div>
-            </div>
-            {/* R1: the page's one red button. */}
-            <Button asChild>
-              <Link to={supportActionPath("report_issue")}>
-                {t("device.onItsWay.action", "Ask us where it is")}
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Phone-Only Member View
-  if (!hasPendant) {
-    return (
-      <div className="space-y-6 animate-fade-in">
-        <PageHeader
-          title={t("navigation.myDevice")}
-          subtitle={t("membership.phoneOnlyService")}
+          subtitle={subtitle}
         />
 
-        {/* Phone-Only Service Info */}
-        <Card className="border-primary">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Phone className="h-5 w-5 text-primary" />
-              {t('device.yourCurrentService', 'Your Current Service')}
-            </CardTitle>
-            <CardDescription>
-              {t('device.usingPhoneOnlyMembership', 'You are using our Phone-Only membership')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/*
-              The copy above the number reads "using the number below", so the sentence and the
-              number stand or fall together. With no number configured this whole block is
-              omitted rather than rendered empty: a heading that says EMERGENCY NUMBER over
-              nothing at all is the most alarming empty state on the member's own device page.
-            */}
-            {phoneHref && (
-              <>
-                <p className="text-muted-foreground">
-                  {t('device.contactUsAnytime', 'Contact us anytime using the number below. Save this in your phone for emergencies!')}
-                </p>
-
-                {/* Emergency Number */}
-                <div className="p-6 bg-primary/5 rounded-lg text-center">
-                  <p className="text-sm text-muted-foreground mb-2">{t('support.emergencyNumber')}</p>
-                  <a
-                    href={phoneHref}
-                    className="text-3xl md:text-4xl font-bold text-primary hover:underline block"
-                  >
-                    {companySettings.emergency_phone}
-                  </a>
-                  {whatsappNumber && (
-                    <Button
-                      className="mt-4 bg-[#25D366] hover:bg-[#128C7E] text-white"
-                      size="lg"
-                      asChild
-                    >
-                      <a
-                        href={`https://wa.me/${whatsappNumber}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <MessageCircle className="mr-2 h-5 w-5" />
-                        {t('support.whatsApp')}
-                      </a>
-                    </Button>
-                  )}
+        {/*
+          WHAT HAPPENS NEXT, for a member who is waiting — and it is the test call, not the
+          delivery. Q1 (Lee, 2026-09-07) is operator-confirmed only, so a member cannot mark
+          their own pendant tested. Saying so here stops them waiting for a button that will
+          never appear.
+        */}
+        {!offer && (
+          <Card data-testid="pendant-awaiting">
+            <CardContent className="space-y-4 p-6">
+              <div className="flex items-start gap-3">
+                <Package className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+                <div className="min-w-0 space-y-1">
+                  <p className="text-base font-semibold" data-testid="pendant-awaiting-state">
+                    {subtitle}
+                  </p>
+                  <p className="text-base text-muted-foreground">
+                    {t(
+                      "device.onItsWay.nextStep",
+                      "When it arrives we will phone you and test it together — a real operator answers, so you know it works.",
+                    )}
+                  </p>
                 </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+              </div>
+              {/* R1: the page's one red button. */}
+              <Button asChild className="touch-target">
+                <Link to={supportActionPath("report_issue")}>
+                  {t("device.onItsWay.action", "Ask us where it is")}
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {monitoredLineCard}
 
         {/*
           "WHAT YOU'RE MISSING" IS GONE — WP4 says so, and here is why it needed saying.
 
           It was four rows in `text-destructive`, each with a red ✗, telling a phone-only member
-          that we cannot track their location, that falls are not detected, that they must call us
-          manually, and that there are no boundary alerts. Every line true; the whole card wrong.
-          It opened the page of somebody who CHOSE this plan with four ways they are unprotected,
-          in the colour this product reserves for an emergency (R2), on the screen they are most
-          likely to open when they are worried.
+          that we cannot track their location, that falls are not detected, that they must call
+          us manually, and that there are no boundary alerts. Every line true; the whole card
+          wrong. It opened the page of somebody who CHOSE this plan with four ways they are
+          unprotected, in the colour this product reserves for an emergency (R2), on the screen
+          they are most likely to open when they are worried.
 
-          What replaces it is the same information stated as what they HAVE — a monitored line and
-          a number that reaches a real operator — and one action to add a pendant if they want
-          one. The pendant's features are still listed below, in the offer, where a feature list
-          belongs.
+          What replaces it is the monitored-line card above — the same information stated as what
+          they HAVE — and this one offer. The pendant's features are listed inside the offer,
+          where a feature list belongs.
+
+          AND IT IS RENDERED ONLY WHEN WE MAY SELL. `mayOfferPendant` is true for exactly one of
+          the six states, so a member with a pendant on order never meets it.
         */}
-        {/* Upgrade Section */}
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/30">
-          <CardHeader>
-            <CardTitle>{t('device.addPendantForFullProtection', 'Add a Pendant for Full Protection')}</CardTitle>
-            <CardDescription>
-              {t('device.getCompletePeaceOfMind', 'Get complete peace of mind with our GPS pendant')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="h-20 w-20 bg-primary/20 rounded-lg flex items-center justify-center">
-                <Smartphone className="h-10 w-10 text-primary" />
-              </div>
-              <div>
-                <p className="font-semibold text-lg">{t('device.iceAlarmGpsPendant', 'ICE Alarm España GPS Pendant')}</p>
-                <p className="text-2xl font-bold text-primary">{formatPrice(getPendantFinalPrice(1))}</p>
-                <p className="text-sm text-muted-foreground">+ {formatPrice(getShippingCost())} {t('landing.shipping')}</p>
-              </div>
-            </div>
+        {offer && (
+          <Card data-testid="device-pendant-offer">
+            <CardHeader>
+              <CardTitle className="text-lg">
+                {t("device.addPendantForFullProtection", "Add a Pendant for Full Protection")}
+              </CardTitle>
+              <CardDescription>
+                {t(
+                  "device.getCompletePeaceOfMind",
+                  "Get complete peace of mind with our GPS pendant",
+                )}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                {/*
+                  THE ACTUAL PENDANT, not a phone glyph in a tinted square. `pendant1.webp` is
+                  the product photograph the marketing pages already use; a `<Smartphone/>` icon
+                  standing in for a pendant on the page selling the pendant was the one place
+                  this product illustrated itself with something it does not sell.
+                */}
+                <img
+                  src="/pendant1.webp"
+                  alt={t("device.iceAlarmGpsPendant", "ICE Alarm España GPS Pendant")}
+                  width={96}
+                  height={96}
+                  loading="lazy"
+                  className="h-24 w-24 shrink-0 rounded-lg border object-cover"
+                  data-testid="device-pendant-image"
+                />
+                <div className="min-w-0">
+                  <p className="text-base font-semibold">
+                    {t("device.iceAlarmGpsPendant", "ICE Alarm España GPS Pendant")}
+                  </p>
+                  {/*
+                    THE PRICE, OR NOTHING — and keyed on the LOAD, not on the value.
 
-            <div className="grid gap-2">
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle className="h-4 w-4 text-alert-resolved" />
-                <span>{t('device.gpsLocationTracking', 'GPS Location Tracking')}</span>
+                    `usePricing` returns `DEFAULT_PRICING_CONFIG` (the seed) while the read is in
+                    flight and never undefined, so `pricing ? …` would always be true and would
+                    quote the seed figure to a member for as long as the query took. If an admin
+                    has edited the pendant price, that is the wrong number on the one card that
+                    offers to sell something. GOALS.md's "no fake numbers" applies hardest to
+                    money, so the skeleton holds the space until the real figure lands.
+                  */}
+                  {pricing && !pricingLoading ? (
+                    <>
+                      <p className="text-lg font-bold text-foreground" data-testid="device-pendant-price">
+                        {formatPrice(canonicalGross("pendant", pricing))}
+                      </p>
+                      <p className="text-[0.8125rem] text-muted-foreground">
+                        + {formatPrice(canonicalGross("shipping", pricing))} {t("landing.shipping")}
+                      </p>
+                    </>
+                  ) : (
+                    <Skeleton className="h-6 w-24" data-testid="device-pendant-price-loading" />
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle className="h-4 w-4 text-alert-resolved" />
-                <span>{t('device.automaticFallDetection', 'Automatic Fall Detection')}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle className="h-4 w-4 text-alert-resolved" />
-                <span>{t('device.oneTouchSosButton', 'One-touch SOS Button')}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle className="h-4 w-4 text-alert-resolved" />
-                <span>{t('device.twoWayVoiceCommunication', 'Two-way Voice Communication')}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle className="h-4 w-4 text-alert-resolved" />
-                <span>{t('device.geoFencingAlerts', 'Geo-Fencing Alerts')}</span>
-              </div>
-            </div>
 
-            {/*
-              THE ONLY WAY TO ADD A PENDANT USED TO BE GATED ON WHATSAPP.
+              <ul className="grid gap-2">
+                {[
+                  ["device.gpsLocationTracking", "GPS Location Tracking"],
+                  ["device.automaticFallDetection", "Automatic Fall Detection"],
+                  ["device.oneTouchSosButton", "One-touch SOS Button"],
+                  ["device.twoWayVoiceCommunication", "Two-way Voice Communication"],
+                  ["device.geoFencingAlerts", "Geo-Fencing Alerts"],
+                ].map(([key, fallback]) => (
+                  <li key={key} className="flex items-center gap-2 text-base">
+                    <CheckCircle
+                      className="h-4 w-4 shrink-0 text-alert-resolved"
+                      aria-hidden="true"
+                    />
+                    <span>{t(key, fallback)}</span>
+                  </li>
+                ))}
+              </ul>
 
-              This was a single `whatsappNumber && <Button …wa.me…>`. With
-              `settings_emergency_phone` unset — which is the state WP1b's "show nothing, never a
-              fake number" rule leaves us in until Lee seeds it — a phone-only member had NO route
-              at all to the one thing this page is offering them.
+              {/*
+                ONE PRIMARY BUTTON, AND IT IS NOT GATED ON WHATSAPP.
 
-              So the in-app route is unconditional and is the page's one red button (R1), and
-              WhatsApp is a second, outline option when a number is configured. A member who
-              prefers WhatsApp still gets it; a member with no number configured still gets a way
-              through.
-            */}
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button size="lg" className="touch-target sm:flex-1" asChild>
+                This was a single `whatsappNumber && <Button …wa.me…>`. With
+                `settings_emergency_phone` unset — the state WP1b's "show nothing, never a fake
+                number" rule leaves us in until Lee seeds it — a phone-only member had NO route
+                at all to the one thing this page is offering them. The in-app route is
+                unconditional and is this card's one action; WhatsApp is already offered by the
+                monitored-line card above, so it is not repeated here.
+              */}
+              <Button size="lg" className="touch-target w-full sm:w-auto" asChild>
                 <Link to={supportActionPath("add_pendant")} data-testid="device-add-pendant">
                   {t("subscription.addPendant", "Add a pendant")}
                 </Link>
               </Button>
-              {whatsappNumber && (
-                <Button size="lg" variant="outline" className="touch-target sm:flex-1" asChild>
-                  <a
-                    href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(t('device.pendantWhatsAppMessage', 'Hello, I would like to upgrade my membership to include a GPS pendant. Can you help me?'))}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <MessageCircle className="mr-2 h-5 w-5" />
-                    {t('support.whatsApp')}
-                  </a>
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
     );
   }
@@ -316,10 +372,7 @@ export default function DevicePage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageHeader
-        title={t("navigation.myPendant")}
-        subtitle={t("device.yourIceAlarmPendant", "Your ICE Alarm España GPS Personal Pendant")}
-      />
+      <PageHeader title={t("navigation.myPendant")} subtitle={subtitle} />
 
       {/* Device Status */}
       <Card>

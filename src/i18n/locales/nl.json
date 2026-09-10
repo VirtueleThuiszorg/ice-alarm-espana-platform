@@ -937,11 +937,7 @@
     "returned": "Returned",
     "lastKnownLocation": "Last Known Location",
     "viewOnMap": "View on Google Maps",
-    "pendantWhatsAppMessage": "Hello, I would like to upgrade my membership to include a GPS pendant. Can you help me?",
     "offlineSince": "Offline since",
-    "yourCurrentService": "Your Current Service",
-    "usingPhoneOnlyMembership": "You are using our Phone-Only membership",
-    "contactUsAnytime": "Contact us anytime using the number below. Save this in your phone for emergencies!",
     "addPendantForFullProtection": "Add a Pendant for Full Protection",
     "getCompletePeaceOfMind": "Get complete peace of mind with our GPS pendant",
     "quickProvision": "Quick Provision",
@@ -950,15 +946,25 @@
     "startProvisioning": "Start Provisioning",
     "quickProvisionComplete": "Quick provisioning complete",
     "onItsWay": {
-      "subtitle": "Uw hanger is op weg",
-      "unknownState": "We maken uw hanger klaar. We bellen u zodra hij op weg is.",
       "nextStep": "Als hij aankomt bellen we u en testen we hem samen — een echte operator antwoordt, zodat u weet dat hij werkt.",
       "action": "Vraag ons waar hij is"
     },
     "gpsLocation": "GPS Location",
     "fallDetection": "Fall Detection",
     "sosButton": "SOS Button",
-    "geoFencing": "Geo-Fencing"
+    "geoFencing": "Geo-Fencing",
+    "state": {
+      "withPendant": "Uw hanger, en of deze op dit moment werkt.",
+      "awaitingPayment": "Uw hangerbestelling wacht op betaling voordat wij deze kunnen versturen.",
+      "beingPrepared": "Wij maken uw hanger gereed. Wij bellen u wanneer deze onderweg is.",
+      "awaitingStock": "Uw hanger is betaald en wij wachten op voorraad. Wij bellen u zodra de uwe is gereserveerd.",
+      "shipped": "Uw hanger is verzonden. Wij bellen u om deze samen te testen wanneer hij aankomt.",
+      "noPendant": "Uw lidmaatschap wordt telefonisch beantwoord. U kunt altijd een hanger toevoegen."
+    },
+    "monitoredLine": {
+      "title": "Uw bewaakte lijn",
+      "body": "Bel dit nummer op elk uur van de dag en een echte operator neemt op. Bewaar het in uw telefoon."
+    }
   },
   "alerts": {
     "sosAlert": "SOS Alert",

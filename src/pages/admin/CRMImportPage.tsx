@@ -168,6 +168,9 @@ export default function CRMImportPage() {
             .update({
               import_status: applied.action === "skipped" ? "skipped" : "imported",
               imported_member_id: applied.memberId,
+              // Both, so the audit row points at whatever this run actually made. Recording
+              // only the member id left every CRM contact unlinked to the row that created it.
+              imported_crm_contact_id: applied.crmContactId,
               error_message: applied.problems.length > 0 ? applied.problems.join("; ") : null,
             })
             .eq("batch_id", batchId)

@@ -609,6 +609,8 @@ export interface AppliedResult {
   sourceId: string;
   action: AppliedAction;
   memberId: string | null;
+  /** Set only when this run created the CRM contact, so the audit row can point at it. */
+  crmContactId: string | null;
   contactsCreated: number;
   contactsSkippedAlreadyPresent: number;
   contactMethodsCreated: number;
@@ -632,6 +634,7 @@ export async function applyRowPlan(db: ImportDb, plan: RowPlan): Promise<Applied
     sourceId: plan.sourceId,
     action: "skipped",
     memberId: null,
+    crmContactId: null,
     contactsCreated: 0,
     contactsSkippedAlreadyPresent: 0,
     contactMethodsCreated: 0,
@@ -665,7 +668,7 @@ export async function applyRowPlan(db: ImportDb, plan: RowPlan): Promise<Applied
       result.action = "unchanged";
       return result;
     }
-    await db.insertCrmContact(plan);
+    result.crmContactId = await db.insertCrmContact(plan);
     result.action = "crm_contact";
     return result;
   }

@@ -521,6 +521,7 @@ describe("a row that cannot be a member", () => {
     const db = new FakeDb();
     const result = await applyRowPlan(db, byId("9002"));
     expect(result.action).toBe("crm_contact");
+    expect(result.crmContactId).toBeTruthy();
     expect(db.members).toEqual([]);
     expect(db.crmContacts.length).toBe(1);
   });
@@ -530,6 +531,8 @@ describe("a row that cannot be a member", () => {
     await applyRowPlan(db, byId("9002"));
     const second = await applyRowPlan(db, byId("9002"));
     expect(second.action).toBe("unchanged");
+    // Nothing was created this time, so there is nothing to point at.
+    expect(second.crmContactId).toBeNull();
     expect(db.crmContacts.length).toBe(1);
   });
 

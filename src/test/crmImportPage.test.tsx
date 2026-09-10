@@ -317,6 +317,16 @@ describe("pressing Import", () => {
     expect((contacts[0].payload as { source_id: string }).source_id).toBeTruthy();
   });
 
+  it("links the audit row to the CRM contact it created, not only to members", async () => {
+    await runImport();
+    const linked = writesTo("crm_import_rows", "update").filter(
+      (w) => (w.payload as { imported_crm_contact_id: string | null }).imported_crm_contact_id
+    );
+    // Four rows in the fixture become CRM contacts; an audit row that records nothing it made
+    // cannot answer "what did this batch do to this person".
+    expect(linked.length).toBe(4);
+  });
+
   it("does not lose a CRM contact's other numbers or their emergency contacts", async () => {
     // `crm_contacts` has one phone column and no contacts table of its own. Dropping the rest
     // would make the row look like a person with one number and nobody to call.

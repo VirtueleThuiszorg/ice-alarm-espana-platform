@@ -109,26 +109,45 @@ async function renderProfile() {
     </QueryClientProvider>,
   );
   /*
-    WAIT FOR THE FORM TO HOLD THE PROFILE, not for the page shell to paint.
+    WAIT FOR THE PAGE TO HOLD THE PROFILE, not for the shell to paint.
 
-    `page-header` appears the moment `profileLoading` goes false — but the fields are filled by
-    react-hook-form's `values` option, which applies in an effect on a LATER render. Between the
-    two, every input still reads "". Assertions here that check a stored value immediately after
-    this helper were therefore racing, and won only because the gap was short.
+    `page-header` appears the moment `profileLoading` goes false — but the values arrive on a
+    later render, and assertions that check a stored value immediately after this helper were
+    racing, winning only because the gap was short. It stopped being short once
+    `NotificationPreferences` (WP3 N9) added two more queries to this page.
 
-    It stopped being short: `NotificationPreferences` (WP3 N9) added two more queries to this
-    page, and on a loaded CI runner "shows what is already stored" read `""` and failed. The
-    fix is the wait condition, not the page — `first_name` is "Ana" in every fixture here, so
-    its presence is the signal that `values` has actually been applied.
+    IT IS `findByText`, NOT `findByDisplayValue`, SINCE R6. The page is read-only until a card
+    is unlocked, so "Ana" is now TEXT rather than the contents of an input — and the change of
+    matcher is itself the assertion that the page no longer opens with live inputs.
   */
-  await screen.findByDisplayValue("Ana");
+  await screen.findByText("Ana");
   return view;
 }
 
-const save = async () => {
-  fireEvent.submit(document.querySelector("form")!);
+/**
+ * Unlock ONE card and save it — R6's "Edit per section, then Save".
+ *
+ * There is no page-level submit any more, and `fireEvent.submit(document.querySelector("form"))`
+ * is what these helpers used to do: a single form wrapped every field and one Save wrote all of
+ * them. Each card now owns its own write, so a test has to say which card it is exercising —
+ * which is the point, because the payload it gets back contains that card's columns and nothing
+ * else.
+ */
+const openCard = async (testId: string) => {
+  fireEvent.click(screen.getByTestId(`${testId}-edit`));
+  await waitFor(() => expect(screen.getByTestId(`${testId}-save`)).toBeVisible());
+};
+
+const saveCard = async (testId: string) => {
+  fireEvent.click(screen.getByTestId(`${testId}-save`));
   await waitFor(() => expect(updates.length).toBeGreaterThan(0));
   return updates[0];
+};
+
+/** Unlock, save, and hand back the payload — the common two-step. */
+const editAndSave = async (testId: string) => {
+  await openCard(testId);
+  return saveCard(testId);
 };
 
 beforeEach(() => {
@@ -141,6 +160,7 @@ describe("the structured Spanish address", () => {
   it("renders all four parts", async () => {
     await renderProfile();
     expect(screen.getByTestId("structured-address")).toBeVisible();
+    await openCard("profile-card-address");
     for (const label of [/Urbanización/, /Bloque/, /Portal/, /Escalera/]) {
       expect(screen.getByLabelText(label)).toBeVisible();
     }
@@ -148,9 +168,10 @@ describe("the structured Spanish address", () => {
 
   it("saves what the member types", async () => {
     await renderProfile();
+    await openCard("profile-card-address");
     fireEvent.change(screen.getByLabelText(/Portal/), { target: { value: "B" } });
     fireEvent.change(screen.getByLabelText(/Bloque/), { target: { value: "3" } });
-    const payload = await save();
+    const payload = await saveCard("profile-card-address");
     expect(payload.portal).toBe("B");
     expect(payload.bloque).toBe("3");
   });
@@ -158,15 +179,19 @@ describe("the structured Spanish address", () => {
   it("writes NULL for a part they leave blank, never an empty string", async () => {
     // An empty string in `portal` reads as "the portal is called nothing" to anybody querying it.
     await renderProfile();
-    const payload = await save();
+    const payload = await editAndSave("profile-card-address");
     for (const col of ["urbanizacion", "bloque", "portal", "escalera"]) {
       expect(payload[col], col).toBeNull();
     }
   });
 
-  it("shows what is already stored", async () => {
+  it("shows what is already stored — as text before Edit, in the input after", async () => {
     profileRow = { ...BASE, urbanizacion: "Los Naranjos", escalera: "2" };
     await renderProfile();
+    // R6: locked, a field is its value in plain text. This is the read a member does most.
+    expect(screen.getByTestId("profile-field-urbanizacion")).toHaveTextContent("Los Naranjos");
+    expect(screen.getByTestId("profile-field-escalera")).toHaveTextContent("2");
+    await openCard("profile-card-address");
     expect((screen.getByLabelText(/Urbanización/) as HTMLInputElement).value).toBe("Los Naranjos");
     expect((screen.getByLabelText(/Escalera/) as HTMLInputElement).value).toBe("2");
   });
@@ -174,8 +199,11 @@ describe("the structured Spanish address", () => {
   it("is optional — a member on an ordinary street can save without it", async () => {
     // Requiring a bloque somebody does not have is how a form teaches people to type "n/a".
     await renderProfile();
-    const payload = await save();
-    expect(payload.first_name).toBe("Ana"); // the save went through
+    const payload = await editAndSave("profile-card-address");
+    // The street went through, and `first_name` is NOT in this payload: the address card writes
+    // its own nine columns and nothing else, so a second open card cannot ride along.
+    expect(payload.address_line_1).toBe("Calle Mayor 1");
+    expect(payload).not.toHaveProperty("first_name");
   });
 });
 
@@ -183,6 +211,7 @@ describe("away status", () => {
   it("offers both dates and the pendant question", async () => {
     await renderProfile();
     expect(screen.getByTestId("away-card")).toBeVisible();
+    await openCard("away-card");
     expect(screen.getByTestId("away-from")).toBeVisible();
     expect(screen.getByTestId("away-until")).toBeVisible();
     expect(screen.getByTestId("pendant-with-member")).toBeVisible();
@@ -195,16 +224,17 @@ describe("away status", () => {
       failure would look like "saving is broken", not "that date is empty".
     */
     await renderProfile();
-    const payload = await save();
+    const payload = await editAndSave("away-card");
     expect(payload.away_from).toBeNull();
     expect(payload.away_until).toBeNull();
   });
 
   it("saves the dates a member gives", async () => {
     await renderProfile();
+    await openCard("away-card");
     fireEvent.change(screen.getByTestId("away-from"), { target: { value: "2026-10-01" } });
     fireEvent.change(screen.getByTestId("away-until"), { target: { value: "2026-10-21" } });
-    const payload = await save();
+    const payload = await saveCard("away-card");
     expect(payload.away_from).toBe("2026-10-01");
     expect(payload.away_until).toBe("2026-10-21");
   });
@@ -214,14 +244,14 @@ describe("away status", () => {
     // question only matters while they are away.
     profileRow = { ...BASE, pendant_with_member: null };
     await renderProfile();
-    const payload = await save();
+    const payload = await editAndSave("away-card");
     expect(payload.pendant_with_member).toBe(true);
   });
 
   it("keeps a stored FALSE rather than resetting it on the next save", async () => {
     profileRow = { ...BASE, pendant_with_member: false };
     await renderProfile();
-    const payload = await save();
+    const payload = await editAndSave("away-card");
     expect(payload.pendant_with_member).toBe(false);
   });
 });
@@ -287,14 +317,14 @@ describe("the language a member is allowed to be in", () => {
     // could not be loaded into it at all.
     profileRow = { ...BASE, preferred_language: "nl" };
     await renderProfile();
-    const payload = await save();
+    const payload = await editAndSave("profile-card-preferences");
     expect(payload.preferred_language).toBe("nl");
   });
 
   it("and a member with NO language does not have one silently invented differently", async () => {
     profileRow = { ...BASE, preferred_language: null };
     await renderProfile();
-    const payload = await save();
+    const payload = await editAndSave("profile-card-preferences");
     expect(payload.preferred_language).toBe(DEFAULT_MEMBER_LANGUAGE);
   });
 });

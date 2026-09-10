@@ -25,6 +25,7 @@ import {
 import { logMemberActivity } from "@/lib/auditLog";
 import { dbMessage } from "@/lib/dbMessage";
 import { PartnerAttributionCard } from "./PartnerAttributionCard";
+import { StaffHomeLocationCard } from "./StaffHomeLocationCard";
 
 const profileSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
@@ -410,6 +411,27 @@ export function ProfileTab({ member, onUpdate, editSignal }: ProfileTabProps) {
           </div>
         </Form>
       </EditableCard>
+
+      {/*
+        THE HOME PIN, ON ITS OWN CARD AND OUTSIDE THE FORM.
+
+        Not a field of this form on purpose. The pin saves itself the moment staff press Save in
+        the picker, and `guard_member_home_location()` stamps who set it — folding it into a form
+        whose Save also writes `status` would make one press two unrelated audit events. It is
+        also read-only-until-Edit for the wrong reason: correcting a pin over the phone is a
+        thirty-second job, and burying it behind the profile card's Edit is how staff stop doing
+        it.
+      */}
+      <StaffHomeLocationCard
+        memberId={member.id}
+        address={{
+          line1: member.address_line_1,
+          city: member.city,
+          province: member.province,
+          postalCode: member.postal_code,
+        }}
+        onUpdate={onUpdate}
+      />
     </div>
   );
 }

@@ -29,36 +29,59 @@ ISOLATION="$REPO_ROOT/scripts/rls/isolation.sql"
 WIRING="$REPO_ROOT/scripts/rls/wiring.sql"
 DB_NAME="rls_isolation_$$"
 
-# pg_cron and pg_net cannot be installed on a stock PostgreSQL. The migrations
-# that need them are scheduling only — verified to contain zero CREATE POLICY,
-# zero ENABLE ROW LEVEL SECURITY and zero CREATE TABLE — so skipping them costs
-# this suite nothing. Listed explicitly so the skip is a decision, not a silent
-# swallow, and so a future migration cannot join the list unnoticed.
+# pg_cron cannot be installed on a stock PostgreSQL. The migrations that need it
+# are scheduling only — verified to contain zero CREATE POLICY, zero ENABLE ROW
+# LEVEL SECURITY and zero CREATE TABLE — so skipping them costs this suite
+# nothing. Listed explicitly so the skip is a decision, not a silent swallow,
+# and so a future migration cannot join the list unnoticed.
 SKIP_MIGRATIONS=(
-  "20260122103806_9e986543-163a-4df4-81ce-4c436a58ee48.sql"  # pg_net
   "20260122103824_ff8a9c0f-3584-4c0d-9cf4-24b56beedff3.sql"  # pg_cron
   "20260301100000_ev07b_offline_cron.sql"                    # pg_cron
   "20260716120000_sos_escalation_cron.sql"                   # pg_cron
   "20260723120000_fix_cron_url_and_auth.sql"                 # pg_cron
-  "20260909130000_lead_new_router_emit.sql"                  # pg_net
-  "20260910130100_shift_swap_router_emit.sql"                # pg_net
 )
+
+# ── pg_net IS NO LONGER SKIPPED, and that is the point of this block ────────
+#
+# Three files used to be skipped for pg_net, and the two that mattered were the
+# router emits: `emit_lead_new_to_router` and `emit_shift_swap_to_router`. Being
+# skipped meant NO CI JOB EVER COMPILED THEM. A plpgsql body that only
+# production executes is a 3am failure waiting to happen, and one of them had
+# already shipped a real bug — every swap request announced itself as a request
+# for "cover", because it read `offered_shift_id`, which is NULL until the
+# counterparty answers. It was found by hand on a throwaway database, after it
+# had merged, and CI could not have caught it.
+#
+# The only statement in those files a stock PostgreSQL refuses is
+# `CREATE EXTENSION ... pg_net`. Everything the functions actually CALL —
+# net.http_post, vault.decrypted_secrets — is stubbed by bootstrap.sql, where
+# the stub now RECORDS its arguments into net.sent so the suite can assert what
+# each trigger asked the router to send.
+#
+# So every migration is applied, with that one statement commented out on the
+# way in. No allow-list: a list would go stale the moment somebody adds a fourth
+# pg_net migration, and the failure mode of a stale list here is a silently
+# unapplied file. Detection is by content, and every rewrite is printed.
+NEUTRALISE_PG_NET='s/^[[:space:]]*CREATE[[:space:]]+EXTENSION[^;]*pg_net[^;]*;/-- pg_net neutralised by scripts\/rls\/run.sh — net.http_post is stubbed in bootstrap.sql/I'
 
 # AND THE CLAIM ABOVE IS NOW CHECKED, not just written down.
 #
 # The paragraph above says these files were "verified to contain zero CREATE POLICY, zero ENABLE
-# ROW LEVEL SECURITY and zero CREATE TABLE". That verification was a human reading them once. A
-# sixth file joined the list today, and the next one could carry a table with it — at which point
-# this suite would report 470 passes while silently never having created the thing under test.
-# Cheap to enforce, so it is enforced: a skipped file that contains any of the three is NO
-# VERDICT, not a pass.
+# ROW LEVEL SECURITY and zero CREATE TABLE". That verification was a human reading them once, and
+# the next cron file could carry a table with it — at which point this suite would report hundreds
+# of passes while silently never having created the thing under test. Cheap to enforce, so it is
+# enforced: a skipped file that contains any of the three is NO VERDICT, not a pass.
+#
+# The list is down to four cron files because the pg_net ones are now applied. If a future
+# migration needs pg_cron AND defines a table, split the schedule into its own file rather than
+# widening this list.
 for base in "${SKIP_MIGRATIONS[@]}"; do
   f="$MIGRATIONS/$base"
   [[ -f "$f" ]] || continue
   if grep -qiE '^[[:space:]]*(CREATE[[:space:]]+TABLE|ALTER[[:space:]]+TABLE[^;]*ENABLE[[:space:]]+ROW[[:space:]]+LEVEL|CREATE[[:space:]]+POLICY)' "$f"; then
     echo "✗ $base is on SKIP_MIGRATIONS but defines a table, a policy or RLS."
     echo "  Skipping it would make this suite certify isolation it never tested."
-    echo "  Split the pg_net/pg_cron statement into its own migration."
+    echo "  Split the pg_cron statement into its own migration."
     exit 3
   fi
 done
@@ -164,7 +187,10 @@ PY
   DB_URL="$(target_url)"
   psql_db() { psql "$DB_URL" -v ON_ERROR_STOP=1 -q "$@"; }
   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -c "CREATE DATABASE \"$DB_NAME\";" >/dev/null
-  cleanup() { psql "$DATABASE_URL" -q -c "DROP DATABASE IF EXISTS \"$DB_NAME\";" >/dev/null 2>&1 || true; }
+  cleanup() {
+    psql "$DATABASE_URL" -q -c "DROP DATABASE IF EXISTS \"$DB_NAME\";" >/dev/null 2>&1 || true
+    rm -rf "${PREP_DIR:-}"
+  }
 else
   PGBIN="${PGBIN:-$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -1)}"
   if [[ -z "$PGBIN" || ! -x "$PGBIN/initdb" ]]; then
@@ -190,7 +216,7 @@ else
 
   cleanup() {
     as_pg "$PGBIN/pg_ctl -D $PGDIR/data -m immediate stop" >/dev/null 2>&1 || true
-    rm -rf "$PGDIR"
+    rm -rf "$PGDIR" "${PREP_DIR:-}"
   }
   psql_db() { as_pg "$PGBIN/psql -h $PGDIR -p $PGPORT -U postgres -d $DB_NAME -v ON_ERROR_STOP=1 -q $(printf '%q ' "$@")"; }
   as_pg "$PGBIN/psql -h $PGDIR -p $PGPORT -U postgres -q -c 'CREATE DATABASE \"$DB_NAME\";'" >/dev/null
@@ -205,20 +231,41 @@ psql_db -v "DBNAME=$DB_NAME" -f "$BOOTSTRAP" >/dev/null
 
 # ── the real migration set ─────────────────────────────────────────────────
 log "Applying migrations from supabase/migrations"
-applied=0; skipped=0; failed=0; failed_list=""
+applied=0; skipped=0; failed=0; failed_list=""; netted=0; net_list=""
+
+# Rewritten copies live here, world-readable: when this script runs as root it demotes to
+# `postgres` to talk to the cluster, and that user has to be able to read what psql is given.
+PREP_DIR="$(mktemp -d /tmp/rlsmig.XXXXXX)"
+chmod a+rX "$PREP_DIR"
+
 for f in $(ls "$MIGRATIONS"/*.sql | sort); do
   base="$(basename "$f")"
   if printf '%s\n' "${SKIP_MIGRATIONS[@]}" | grep -qx "$base"; then
     skipped=$((skipped + 1)); continue
   fi
-  if psql_db -f "$f" >/dev/null 2>&1; then
+
+  # Detected by content, never by a list — see NEUTRALISE_PG_NET above.
+  src="$f"
+  if grep -qiE '^[[:space:]]*CREATE[[:space:]]+EXTENSION[^;]*pg_net' "$f"; then
+    sed -E "$NEUTRALISE_PG_NET" "$f" > "$PREP_DIR/$base"
+    chmod a+r "$PREP_DIR/$base"
+    src="$PREP_DIR/$base"
+    netted=$((netted + 1)); net_list="$net_list  $base"
+  fi
+
+  if psql_db -f "$src" >/dev/null 2>&1; then
     applied=$((applied + 1))
   else
     failed=$((failed + 1)); failed_list="$failed_list  $base"
   fi
 done
 
-echo "   applied=$applied  skipped=$skipped (cron/net, no policies)  failed=$failed"
+echo "   applied=$applied  skipped=$skipped (pg_cron, no policies)  failed=$failed"
+if [[ $netted -gt 0 ]]; then
+  # Said out loud every run: these files WERE applied, and one line of each was not.
+  echo "   pg_net neutralised in $netted file(s) — applied against the recording stub:"
+  printf '%s\n' "$net_list" | tr ' ' '\n' | grep -v '^$' | sed 's/^/     /'
+fi
 if [[ $failed -gt 0 ]]; then
   no_verdict "$failed_list"
 fi

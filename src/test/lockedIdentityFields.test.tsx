@@ -98,6 +98,55 @@ async function renderProfile() {
   return view;
 }
 
+/**
+ * EVERY card, and the payload each one sends — ONE TEST PER CARD.
+ *
+ * These assertions used to fire one `submit` at the page's single form and inspect the one
+ * payload it produced. R6 split that into five cards with five writes, so a check that only
+ * looked at the first would stop covering the other four: the address card could start sending
+ * `country` and nothing here would notice.
+ *
+ * WHY PER CARD AND NOT ALL FIVE IN ONE TEST. The first version of this did save all five and
+ * assert over the union. It passed locally and TIMED OUT on CI at the 5s default — five save
+ * cycles is ten `waitFor`s, and a loaded runner is enough slower to cross it. Raising the
+ * timeout would have hidden that a single test was doing five tests' work; a test per card is
+ * five fast tests, and a failure names the card instead of the loop.
+ */
+const EDITABLE_CARDS = [
+  "profile-card-personal",
+  "profile-card-contact",
+  "profile-card-address",
+  "profile-card-preferences",
+  "away-card",
+] as const;
+
+/** Unlock one card, save it, and hand back the single payload it wrote. */
+async function saveCard(card: string): Promise<Record<string, unknown>> {
+  const { fireEvent } = await import("@testing-library/react");
+  fireEvent.click(screen.getByTestId(`${card}-edit`));
+  await waitFor(() => expect(screen.getByTestId(`${card}-save`)).toBeVisible());
+  fireEvent.click(screen.getByTestId(`${card}-save`));
+  await waitFor(() => expect(updatePayloads.length).toBe(1));
+  return updatePayloads[0];
+}
+
+/** Columns no card may ever send, and why each one matters. */
+const NEVER_SENT = [
+  // R7's locked identity fields. The padlock is a label; this is what the page actually does.
+  "date_of_birth",
+  "nie_dni",
+  "email",
+  "country",
+  // Guarded server-side (20260904180000) and would be REFUSED, not ignored — a payload carrying
+  // it would make every profile save fail.
+  "status",
+  // Re-parents the member record.
+  "user_id",
+  // Written by the photo upload alone. A text card carrying it could only clear a photo
+  // somebody had just set.
+  "photo_url",
+] as const;
+
 afterEach(() => {
   cleanup();
   updatePayloads = [];
@@ -180,32 +229,67 @@ describe("every locked field carries a reason", () => {
 });
 
 describe("what the page actually sends — the padlock is not the enforcement", () => {
-  it("the save payload contains none of the locked columns", async () => {
-    await renderProfile();
-    const form = document.querySelector("form")!;
-    const { fireEvent } = await import("@testing-library/react");
-    fireEvent.submit(form);
-    await waitFor(() => expect(updatePayloads.length).toBe(1));
+  for (const card of EDITABLE_CARDS) {
+    it(`${card} sends none of the columns it must never send`, async () => {
+      await renderProfile();
+      const payload = await saveCard(card);
+      const sent = Object.keys(payload);
+      expect(sent.length, "the card wrote nothing at all").toBeGreaterThan(0);
+      for (const column of NEVER_SENT) {
+        expect(sent, `${card} must not send ${column}`).not.toContain(column);
+      }
+    });
+  }
 
-    for (const column of ["date_of_birth", "nie_dni", "email", "country"]) {
-      expect(Object.keys(updatePayloads[0]), `${column} must not be sent`).not.toContain(column);
-    }
-  });
-
-  it("and it sends neither `status` nor `user_id` nor `photo_url`", async () => {
+  it("a card writes ONLY its own columns — a second open card cannot ride along", async () => {
     /*
-      `status` is guarded server-side (20260904180000) and would be REFUSED, not ignored — a
-      payload carrying it would make every profile save fail. `user_id` re-parents the member
-      record. `photo_url` has no upload path yet, so sending it could only clear one.
+      THE DEFECT PER-CARD EDITING WOULD OTHERWISE INTRODUCE. Two cards can be open at once, and
+      a save that posted the whole form would carry the other card's unsaved draft: a member who
+      typed a new address and then saved their language would have silently saved the address.
+      `CARD_COLUMNS` in the page is what prevents it, and this is the assertion that it does.
     */
     await renderProfile();
-    const form = document.querySelector("form")!;
     const { fireEvent } = await import("@testing-library/react");
-    fireEvent.submit(form);
+
+    // Open the address card and type into it, WITHOUT saving.
+    fireEvent.click(screen.getByTestId("profile-card-address-edit"));
+    await waitFor(() => expect(screen.getByTestId("profile-card-address-save")).toBeVisible());
+    fireEvent.change(screen.getByLabelText(/^Address Line 1/i), {
+      target: { value: "Calle Nueva 99" },
+    });
+
+    // Now save a DIFFERENT card.
+    fireEvent.click(screen.getByTestId("profile-card-preferences-edit"));
+    await waitFor(() => expect(screen.getByTestId("profile-card-preferences-save")).toBeVisible());
+    fireEvent.click(screen.getByTestId("profile-card-preferences-save"));
     await waitFor(() => expect(updatePayloads.length).toBe(1));
 
-    for (const column of ["status", "user_id", "photo_url"]) {
-      expect(Object.keys(updatePayloads[0])).not.toContain(column);
+    expect(Object.keys(updatePayloads[0])).toEqual(["preferred_language"]);
+    expect(updatePayloads[0]).not.toHaveProperty("address_line_1");
+  });
+
+  it("a locked identity field stays locked when its card is UNLOCKED", async () => {
+    /*
+      R7's lock is not the card's lock. Pressing Edit on the personal card unlocks the name
+      fields beside the date of birth and the NIE; those two must not become inputs, because
+      the reason they are locked — "we need to verify who you are" — does not stop applying
+      because the member pressed Edit on the card they happen to sit in.
+    */
+    await renderProfile();
+    const { fireEvent } = await import("@testing-library/react");
+    fireEvent.click(screen.getByTestId("profile-card-personal-edit"));
+    await waitFor(() => expect(screen.getByTestId("profile-card-personal-save")).toBeVisible());
+
+    // The name beside them IS an input now — otherwise this test would pass on a card that
+    // never unlocked at all.
+    expect(screen.getByLabelText(/^First Name/i).tagName).toBe("INPUT");
+
+    for (const testId of ["profile-locked-dob", "profile-locked-nie"]) {
+      const field = screen.getByTestId(testId);
+      expect(field.querySelector("input"), `${testId} must not become an input`).toBeNull();
+      expect(field.querySelector("textarea")).toBeNull();
+      // …and the reason is still on the screen, which is the half of R7 that matters.
+      expect(screen.getByTestId(`${testId}-reason`)).toBeVisible();
     }
   });
 

@@ -74,8 +74,8 @@ for their value: `Credit Card Details`, `20 Digit Bank No`.
 | 58 | `Home State` | `member.province` |
 | 59 | `Home County` | `member.county` |
 | 60 | `Home Postal Code` | `member.postal_code` |
-| 61 | `GPS Co-ordinates` | `member.gps_lat`, `member.gps_lng` |
-| 62 | `Google Map Link` | `member.map_link` |
+| 61 | `GPS Co-ordinates` | `member.gps_lat`, `member.gps_lng`, `member.home_lat`, `member.home_lng` |
+| 62 | `Google Map Link` | `member.home_lat`, `member.home_lng`, `member.map_link` |
 | 63 | `Important Medical Info` | `medical.additional_notes`, `member.special_instructions` |
 | 64 | `Membership Type` | `subscription.billing_frequency`, `subscription.legacy_membership_label`, `subscription.plan_type` |
 | 67 | `Critical Info` | `medical.additional_notes`, `member.special_instructions` |

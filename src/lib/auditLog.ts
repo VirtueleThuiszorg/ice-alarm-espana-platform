@@ -39,7 +39,13 @@ type ActionType =
   | "publish_attempted"
   | "publish_success"
   | "publish_failed"
-  | "retry_requested";
+  | "retry_requested"
+  /*
+    A member's home pin was set or corrected. On the record it answers "who moved this, and
+    when" — which is the question an operator asks when the SOS card says the pin is a staff
+    correction rather than the member's own confirmation.
+  */
+  | "home_location_set";
 
 interface AuditLogEntry {
   action: ActionType;

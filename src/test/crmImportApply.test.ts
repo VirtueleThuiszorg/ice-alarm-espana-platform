@@ -319,6 +319,11 @@ function withEmail(plan: RowPlan, email: string): RowPlan {
       address_line_2: null,
       status: "inactive",
       special_instructions: null,
+      // No pin on this fixture row: the CRM cell is empty, so all four stay null together.
+      home_lat: null,
+      home_lng: null,
+      home_location_source: null,
+      home_location_set_at: null,
       nie_dni: null,
       gender: null,
       nationality: null,

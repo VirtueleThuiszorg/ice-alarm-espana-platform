@@ -290,8 +290,15 @@ describe("the table finally has a writer", () => {
       readFileSync(join(process.cwd(), "src/pages/client/ProfilePage.tsx"), "utf8"),
     );
     expect(profile).toContain("<NotificationPreferences");
-    // The saved profile, not the form draft: consent applies to the number we actually hold.
-    expect(profile).toMatch(/contact=\{\{\s*phone:\s*profile\?\.phone/);
+    /*
+      The saved profile, not the form draft: consent applies to the number we actually hold.
+
+      `profile?.` OR `profile.` — the page now returns early on a missing profile, which makes
+      the optional chain dead code. What this pins is the SOURCE of the value, which is the
+      claim: `live.phone` or `form.getValues()` here would mean a member who typed a new number
+      and never saved it had consented to a number we do not hold.
+    */
+    expect(profile).toMatch(/contact=\{\{\s*phone:\s*profile\??\.phone/);
   });
 
   it("every channel the dispatcher can send on can be consented to", () => {

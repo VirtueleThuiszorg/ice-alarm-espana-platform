@@ -51,9 +51,30 @@
 > | Migration | Effect of it not being applied |
 > |---|---|
 > | `20260910120000_holidays_2026_backfill_before_cut.sql` | The 2026 holidays taken **before** 2026-09-10 are missing from every balance. Mary reads 4 days used instead of 18, Carmen 9 instead of 28, Albert 4 instead of 16 — so a supervisor approving November sees roughly 21 days left for Carmen when she has **2**. It also has not set the four entitlements to 30 explicitly. Rehearsed on a local PostgreSQL 16 before merge: 16 ranges imported, 2 entitlements lifted, and the year then reads Albert 16/30, Carmen 28/30, Mary 18/30 — remaining **14 / 2 / 12** |
+> | `20260910130000_shift_swap_apply_and_bell.sql` **(not merged — PR #306)** | The swap/cover flow's schema: `apply_shift_swap`, the bell trigger, the `wants_exchange` column and the three router events. Written and proven (558 RLS assertions on a local PostgreSQL 16), and **not merged**, because the drift gate refuses to stack a second unapplied migration on the one above — see the note under this table |
+> | `20260910130100_shift_swap_router_emit.sql` **(not merged — PR #306)** | The pg_net trigger that queues the swap events to `notify-staff`, so the push leaves the building. Same PR, same reason |
 >
 > `main`'s **drift gate is legitimately RED** until the token is replaced and the run re-run. That
 > is the gate doing its job: production trails `main` by one migration.
+>
+> **AND IT IS NOW HOLDING A SECOND PR SHUT — deliberately.** The gate has two halves: on `main`
+> any pending migration fails it, while on a PR it fails only when the PR STACKS a migration on
+> top of a pending one. **PR #306** (the swap and cover flow, rota brief §3) does exactly that, so
+> its drift gate is red with:
+>
+> ```
+> ✗ MIGRATION STACKING
+> 1 migration(s) are already pending, and this PR adds 2 more on top
+> Merge that first, then this. Stacking a second unapplied migration is how production fell 24 behind.
+> ```
+>
+> Everything else on #306 is green — tests, lint, type check, build, wiring register, security
+> audit — and the RLS harness passes 558 assertions locally. It has **not been merged**, because
+> the one gate that is red is the gate whose entire purpose is to stop this, and both July outages
+> came from pressing merge on a PR whose guard test was already red.
+>
+> **So replacing the token now unblocks two things, in this order:** the holiday balances go
+> right, and #306 becomes mergeable. Nothing else is needed from you for either.
 >
 > **One honest limitation this exposed.** `scripts/ci/require-secrets.mjs` checks a secret is
 > PRESENT, not that it still works — so the run got as far as the CLI before failing. A cheap

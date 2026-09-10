@@ -23,6 +23,7 @@ import { ActivityTab } from "@/components/admin/member-detail/ActivityTab";
 import { AlertsTab } from "@/components/admin/member-detail/AlertsTab";
 import { TasksTab } from "@/components/admin/member-detail/TasksTab";
 import { CRMTab } from "@/components/admin/member-detail/CRMTab";
+import { dbMessage } from "@/lib/dbMessage";
 
 interface Member {
   id: string;
@@ -174,8 +175,7 @@ export default function MemberDetailPage() {
         unpaid member needs to read that sentence; "Failed to update member" sends them to look
         for a bug that is not there.
       */
-      const message = error instanceof Error ? error.message : String(error);
-      toast.error(message || t("adminMemberDetail.failedUpdate", "Failed to update member"));
+      toast.error(dbMessage(error, t("adminMemberDetail.failedUpdate", "Failed to update member")));
     }
   };
 

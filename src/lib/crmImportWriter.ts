@@ -406,3 +406,86 @@ export function plansToCsv(plans: RowPlan[]): string {
   );
   return [header.join(","), ...rows.map((r) => r.join(","))].join("\r\n") + "\r\n";
 }
+
+/* ------------------------------------------------------------------ *
+ * Dedupe and re-run
+ * ------------------------------------------------------------------ */
+
+/**
+ * The three ways a row can turn out to be somebody the platform already has.
+ *
+ * Email alone is not enough. Most of Lee's clients have no email at all (members.email is
+ * UNIQUE NOT NULL, which is its own problem), and the ones who do sometimes share a household
+ * address. Phone alone is not enough either: a couple on one landline are two members. So all
+ * three are tried, and the FIRST match wins in this order — NIE is a government identifier and
+ * the strongest claim, email next, phone last because it is the most shared.
+ */
+export interface DedupeKeys {
+  nie: string | null;
+  email: string | null;
+  phone: string | null;
+}
+
+export function dedupeKeysFor(plan: RowPlan): DedupeKeys {
+  return {
+    nie: normaliseNie(plan.member?.nie_dni ?? null),
+    email: plan.parsedMember.email ? plan.parsedMember.email.trim().toLowerCase() : null,
+    phone: plan.parsedMember.phone ?? null,
+  };
+}
+
+/**
+ * NIE/DNI compared without punctuation or case: "X-1234567-L", "x1234567l" and "X1234567L" are
+ * one person. Matching them as raw strings would let the same client in three times.
+ */
+export function normaliseNie(raw: string | null): string | null {
+  if (!raw) return null;
+  const v = raw.replace(/[^0-9A-Za-z]/g, "").toUpperCase();
+  return v || null;
+}
+
+/**
+ * The patch to apply to a member the import has matched: FILL EMPTY FIELDS ONLY.
+ *
+ * Never overwrite. The platform's own record is the one a human has been maintaining — a staff
+ * member who corrected a misspelled street or a wrong date of birth must not have the CRM's
+ * older value written back over it the next time somebody runs the import. The CRM is a source
+ * of things we are MISSING, not a source of truth about things we already have.
+ *
+ * "Empty" means null, undefined or a blank string. It deliberately does NOT mean the
+ * placeholders the old importer left behind ('N/A', 'TBD', `imported-…@placeholder.local`): if
+ * those exist in production they are real values in the column, and deciding to overwrite them
+ * is a data-cleanup job with a human looking at it, not something an import should do quietly.
+ */
+export function computeEmptyOnlyPatch(
+  existing: Record<string, unknown>,
+  desired: Record<string, unknown>
+): Record<string, unknown> {
+  const patch: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(desired)) {
+    if (value === null || value === undefined || value === "") continue;
+    const current = existing[key];
+    const isEmpty = current === null || current === undefined || current === "";
+    if (isEmpty) patch[key] = value;
+  }
+  return patch;
+}
+
+/**
+ * Columns the import must never touch on an existing member, even when they are empty.
+ *
+ * `status` is golden rule 4: only the payment webhook moves it, so an import that filled an
+ * empty status would be activating somebody. `id` and the timestamps are not the import's
+ * business either.
+ */
+const NEVER_PATCH = new Set(["id", "status", "created_at", "updated_at", "user_id"]);
+
+export function memberPatchFor(
+  existing: Record<string, unknown>,
+  plan: RowPlan
+): Record<string, unknown> {
+  if (!plan.member) return {};
+  const desired: Record<string, unknown> = { ...plan.member };
+  for (const k of NEVER_PATCH) delete desired[k];
+  return computeEmptyOnlyPatch(existing, desired);
+}

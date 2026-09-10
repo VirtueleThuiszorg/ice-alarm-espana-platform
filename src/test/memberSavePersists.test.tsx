@@ -23,6 +23,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { configure, render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 configure({ getElementError: (message) => new Error(message ?? "element not found") });
 
@@ -70,9 +71,23 @@ const field = (name: string) =>
 
 let reReads = 0;
 
-/** Open the card as a fresh visit would: mounted from whatever the row now says. */
+/**
+ * Open the card as a fresh visit would: mounted from whatever the row now says.
+ *
+ * WRAPPED IN A QUERY CLIENT, because ProfileTab carries the home-location card as of #327 and
+ * that card reads the member's pin through react-query. `MemberDetailPage` — the only real
+ * caller — is inside the app's provider, so this is a harness gap and not a product one; this
+ * file and `memberLockedUntilEdit.test.tsx` were the two places rendering the tab bare, and
+ * both threw "No QueryClient set" the moment it gained one. A fresh client per open, retries
+ * off, so a failed read is a failed read rather than three seconds of backoff.
+ */
 function openCard() {
-  render(<ProfileTab member={stored as unknown as Member} onUpdate={() => (reReads += 1)} />);
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={qc}>
+      <ProfileTab member={stored as unknown as Member} onUpdate={() => (reReads += 1)} />
+    </QueryClientProvider>,
+  );
   expect(screen.getByTestId("profile-card-fields")).toBeTruthy();
 }
 

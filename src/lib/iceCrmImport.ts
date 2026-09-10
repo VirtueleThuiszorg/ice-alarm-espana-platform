@@ -417,6 +417,31 @@ export function householdEmail(email: string, tag: string): string {
  * Device identifiers
  * ------------------------------------------------------------------ */
 
+/**
+ * The CRM has no relationship column. It is written into the name, in brackets:
+ * "Susan Smith (Sister in UK)", "Peter Smith (Son)".
+ *
+ * This used to hardcode "Unknown" for every contact, with the note "never invent one" — right
+ * instinct, wrong conclusion. The relationship is not missing, it is just in the same cell as
+ * the name, and an operator reading "Susan Smith — Unknown" beside a phone number is worse off
+ * than one reading "Susan Smith — Sister in UK". Nothing is invented: the bracket contents are
+ * taken verbatim, and "Other" is used only when there are no brackets at all.
+ *
+ * The brackets are stripped from the NAME too. Leaving them made the contact's name
+ * "Susan Smith (Sister in UK)", which is what an operator would then read out loud.
+ */
+export function splitContactName(raw: string): { name: string; relationship: string } {
+  const v = clean(raw);
+  if (!v) return { name: "", relationship: "Other" };
+  const m = v.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+  if (!m) return { name: v, relationship: "Other" };
+  const name = clean(m[1]);
+  const relationship = clean(m[2]);
+  // "(?)" or "()" tells us nothing; do not present it as a relationship.
+  if (!relationship || /^[?-]+$/.test(relationship)) return { name: name || v, relationship: "Other" };
+  return { name: name || v, relationship };
+}
+
 export interface DeviceIds {
   imei: string | null;
   dockingStationMac: string | null;
@@ -743,8 +768,13 @@ export function mapIceRow(row: IceRow): MappedRow {
 
   const gps = parseGps(row.get("GPS Co-ordinates"));
 
-  // House Number precedes the secondary street line: "Apt 12 - 3rd Floor".
-  const line2 = [row.get("House Number"), row.get("Home Street 2")].filter(Boolean).join(", ");
+  /* House Number belongs on LINE 1, in front of the street.
+     It was on line 2 with the note that it holds things like "Apt 12 - 3rd Floor". Lee's
+     measurement of the real file says House Number + Home Street is the first line of the
+     address, and he has read the 431 rows. An ambulance is given line 1; a house number sitting
+     on line 2 is a number the driver may never see. Where the value really is an apartment
+     descriptor, "Apt 12 - 3rd Floor Calle X" still reads correctly as a first line. */
+  const line2 = row.get("Home Street 2");
 
   const medicalInfo = row.get("Important Medical Info");
   const criticalInfo = row.get("Critical Info");
@@ -762,20 +792,19 @@ export function mapIceRow(row: IceRow): MappedRow {
 
   const contacts: MappedContact[] = [];
   for (const n of [1, 2, 3]) {
-    const name = row.get(`Contact ${n} - Name`);
+    const rawName = row.get(`Contact ${n} - Name`);
     const tel = row.get(`Contact ${n} - Tel`);
-    if (!name && !tel) continue;
+    if (!rawName && !tel) continue;
     const phones = splitPhones(tel);
+    const { name, relationship } = splitContactName(rawName);
     contacts.push({
       contactName: name || "(name not recorded)",
       phone: phones.human[0] ?? null,
-      // The CRM has no relationship column; the label often hides in the
-      // member's phone field ("dad - lee"). Never invent one.
-      relationship: "Unknown",
+      relationship,
       priorityOrder: contacts.length + 1,
       contactType: "emergency",
     });
-    if (!name) reviewReasons.push(`Emergency contact ${n} has a number but no name`);
+    if (!rawName) reviewReasons.push(`Emergency contact ${n} has a number but no name`);
   }
   const keyHolderName = row.get("Key Holder 1 - Name");
   const keyHolderTel = row.get("Key Holder 1 - Tel");
@@ -824,7 +853,7 @@ export function mapIceRow(row: IceRow): MappedRow {
     phone: humanPhones[0] ?? null,
     date_of_birth: dob,
     status: status.memberStatus,
-    address_line_1: nz(row.get("Home Street")),
+    address_line_1: nz([row.get("House Number"), row.get("Home Street")].filter(Boolean).join(" ")),
     address_line_2: nz(line2),
     city: nz(row.get("Home City")),
     province: province.province,

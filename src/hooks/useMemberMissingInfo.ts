@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   missingRecommendedFields,
   missingRequiredFields,
+  requestableFields,
   type MemberRecordForRequiredCheck,
   type RequiredField,
 } from "@/lib/memberRequiredFields";
@@ -22,14 +23,39 @@ import {
  * says "6 missing" while a query is in flight is a badge staff learn to ignore.
  */
 
-async function readOne<T>(run: () => PromiseLike<{ data: T | null; error: unknown }>) {
+/**
+ * A read that says whether it ANSWERED, separately from what it found.
+ *
+ * `return error ? null : data` conflated the two, because `maybeSingle()` answers `data: null`
+ * for a row that does not exist — so a member with no `medical_information` row looked exactly
+ * like a member whose medical read had been refused. `missingRequiredFields` skips a group whose
+ * source is null (an unread table is not an empty one), so those six requirements were silently
+ * dropped for precisely the members who had never filled them in.
+ *
+ * `ok: false` is "we did not find out"; `ok: true` with `data: null` is "there is nothing there",
+ * which IS a gap. The batched hook below has always made that distinction; this is
+ * what makes the two agree, as this file's header claims they do.
+ */
+interface Answered<T> {
+  ok: boolean;
+  data: T | null;
+}
+
+async function readOne<T>(
+  run: () => PromiseLike<{ data: T | null; error: unknown }>,
+): Promise<Answered<T>> {
   const { data, error } = await run();
-  return error ? null : data;
+  return error ? { ok: false, data: null } : { ok: true, data };
 }
 
 export interface MemberMissingInfo {
   missing: RequiredField[];
   count: number;
+  /**
+   * The subset of `missing` the MEMBER can supply — what their "Complete my details" badge
+   * counts and what the dialog behind it offers. See the note where it is built.
+   */
+  memberCanFill: RequiredField[];
   /**
    * Things worth having that are NOT part of `count`.
    *
@@ -71,21 +97,45 @@ export function useMemberMissingInfo(memberId: string | null | undefined, enable
         ),
       ]);
 
-      const sub = subscription as { status?: string; has_pendant?: boolean | null } | null;
+      const sub = subscription.data as { status?: string; has_pendant?: boolean | null } | null;
+      /*
+        ANSWERED, THEN EMPTY. Each source falls back to the shape that means "there is nothing
+        there" only when the read actually came back; a read that failed passes the value
+        `missingRequiredFields` skips, so a refused read never invents gaps.
+      */
       const input: MemberRecordForRequiredCheck = {
-        member: member as Record<string, unknown> | null,
-        medical: medical as Record<string, unknown> | null,
-        contacts: contacts as Array<{ phone?: string | null }> | null,
-        device: device as { imei?: string | null } | null,
-        deviceTestedAt:
-          (readiness as { device_tested_at?: string | null } | null)?.device_tested_at ?? null,
-        subscriptionStatus: sub?.status ?? null,
-        hasPendant: sub?.has_pendant ?? null,
+        member: member.ok ? (member.data as Record<string, unknown> | null) : null,
+        medical: medical.ok ? ((medical.data as Record<string, unknown> | null) ?? {}) : null,
+        contacts: contacts.ok
+          ? ((contacts.data as Array<{ phone?: string | null }> | null) ?? [])
+          : null,
+        device: device.ok ? (device.data as { imei?: string | null } | null) : undefined,
+        deviceTestedAt: readiness.ok
+          ? ((readiness.data as { device_tested_at?: string | null } | null)?.device_tested_at ??
+            null)
+          : undefined,
+        subscriptionStatus: subscription.ok ? (sub?.status ?? null) : undefined,
+        hasPendant: subscription.ok ? (sub?.has_pendant ?? null) : undefined,
       };
 
       const missing = missingRequiredFields(input);
-      // NOT added to `count`. That is the whole distinction this field exists to keep.
-      return { missing, count: missing.length, recommended: missingRecommendedFields(input) };
+      return {
+        missing,
+        count: missing.length,
+        /*
+          WHAT A MEMBER CAN ACTUALLY DO SOMETHING ABOUT — the number their own badge shows.
+
+          `count` is the staff number: everything the file is short of, including the three items
+          only we can close (a pendant assigned, a pendant tested, a subscription activated —
+          that last one by the payment webhook alone, golden rule 4). A badge on the member's
+          dashboard counting those opens a dialog with nothing in it, which is the dead control
+          the header was written to remove. `requestableFields` is the same filter the emailed
+          update link has always used, so there is still one definition and not a second.
+        */
+        memberCanFill: requestableFields(missing),
+        // NOT added to `count`. That is the whole distinction this field exists to keep.
+        recommended: missingRecommendedFields(input),
+      };
     },
   });
 }
@@ -138,14 +188,14 @@ export function useMembersMissingCounts(rows: MemberListRow[] | undefined) {
         return map;
       };
 
-      const medicalBy = by(medical as Array<{ member_id?: string }> | null);
-      const contactsBy = by(contacts as Array<{ member_id?: string; phone?: string }> | null);
-      const devicesBy = by(devices as Array<{ member_id?: string; imei?: string }> | null);
+      const medicalBy = by(medical.data as Array<{ member_id?: string }> | null);
+      const contactsBy = by(contacts.data as Array<{ member_id?: string; phone?: string }> | null);
+      const devicesBy = by(devices.data as Array<{ member_id?: string; imei?: string }> | null);
       const readinessBy = by(
-        readiness as Array<{ member_id?: string; device_tested_at?: string | null }> | null,
+        readiness.data as Array<{ member_id?: string; device_tested_at?: string | null }> | null,
       );
       const subsBy = by(
-        subscriptions as Array<{
+        subscriptions.data as Array<{
           member_id?: string;
           status?: string;
           has_pendant?: boolean | null;
@@ -155,26 +205,26 @@ export function useMembersMissingCounts(rows: MemberListRow[] | undefined) {
       /*
         A FAILED BATCH IS "NOT ANSWERED" FOR EVERY MEMBER, not "empty" for every member.
 
-        `.in()` returning null because the read failed must not turn into "nobody has a medical
-        record", which would show a full house of red badges down the whole list. Null is
-        carried through as undefined so the check skips those items entirely.
+        A refused `.in()` must not turn into "nobody has a medical record", which would show a
+        full house of red badges down the whole list. So the answer, not the payload, decides:
+        a read that did not come back passes the value the check skips. An EMPTY answer is a
+        real gap, which is the distinction the single-member hook above now shares.
       */
-      const asNull = <T>(list: unknown, value: T): T | null => (list === null ? null : value);
+      const answered = <T>(read: { ok: boolean }, value: T): T | null => (read.ok ? value : null);
 
       const out: Record<string, number> = {};
       for (const row of rows ?? []) {
         const sub = subsBy.get(row.id)?.[0] ?? null;
         out[row.id] = missingRequiredFields({
           member: row,
-          medical: asNull(medical, medicalBy.get(row.id)?.[0] ?? {}),
-          contacts: asNull(contacts, contactsBy.get(row.id) ?? []),
-          device: asNull(devices, devicesBy.get(row.id)?.[0] ?? null),
-          deviceTestedAt:
-            readiness === null
-              ? undefined
-              : (readinessBy.get(row.id)?.[0]?.device_tested_at ?? null),
-          subscriptionStatus: subscriptions === null ? undefined : (sub?.status ?? null),
-          hasPendant: subscriptions === null ? undefined : (sub?.has_pendant ?? null),
+          medical: answered(medical, medicalBy.get(row.id)?.[0] ?? {}),
+          contacts: answered(contacts, contactsBy.get(row.id) ?? []),
+          device: answered(devices, devicesBy.get(row.id)?.[0] ?? null),
+          deviceTestedAt: readiness.ok
+            ? (readinessBy.get(row.id)?.[0]?.device_tested_at ?? null)
+            : undefined,
+          subscriptionStatus: subscriptions.ok ? (sub?.status ?? null) : undefined,
+          hasPendant: subscriptions.ok ? (sub?.has_pendant ?? null) : undefined,
         }).length;
       }
       return out;

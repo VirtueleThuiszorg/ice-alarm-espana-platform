@@ -187,13 +187,10 @@ const SENSITIVE = new Set<string>(SENSITIVE_PAYMENT_HEADERS);
  * really is unmapped, and the prose says which part is which.
  */
 const NOTABLE: Record<string, string> = {
-  Dob: "a SECOND date-of-birth column beside `Birthday`. If some rows have one and not the other, this is the difference between a member with a date of birth and a member without.",
+  "Wellbeing Appt Date": "if wellbeing appointments are still run, this is the schedule. Lee's ruling of 2026-09-10 left it in raw deliberately, rather than mapping a date nothing reads.",
   Name: "the full name, where the import uses `First Name` + `Last Name`. Only matters for rows where the split columns are empty and this one is not.",
-  Spouse: "who else lives there. Not an emergency contact today, and arguably should be one.",
-  "Wellbeing Appt Date": "if wellbeing appointments are still run, this is the schedule.",
   Company: "appears twice. Empty for a private client; may hold the residence for a partner one.",
   "Lead Recieved": "when the enquiry arrived — the only record of how long somebody waited.",
-  "Contact Friend for Email": "reads like a consent flag about contacting a relative by email. Consent is not something to guess at.",
 };
 
 /** Karma's own layout artefacts: section headings exported as columns. */
@@ -261,6 +258,13 @@ function renderDoc(rows: Row[]): string {
   lines.push("Column names are as `normaliseHeader` sees them: the export carries stray whitespace");
   lines.push("(`Allergies `, `Nationality `, `Contact  1 - Tel` with a double space) and it is collapsed");
   lines.push("once on read, so the table reads the way the column reads.");
+  lines.push("");
+  lines.push("Four columns changed hands on **2026-09-10**, by Lee's ruling on `PENDING_FOR_LEE.md`");
+  lines.push("D-19 item 4: `Dob` became the fallback for `date_of_birth` when `Birthday` is blank (the");
+  lines.push("same DD/MM parser, so an ambiguous value is still refused); `Spouse` became a member note");
+  lines.push("and a couple-plan hint only; `Contact Friend for Email` became the member's email");
+  lines.push("notification consent, written **only** on an unambiguous yes; and `Wellbeing Appt Date`");
+  lines.push("stayed in raw deliberately. The other 43 unmapped columns stayed as they were.");
   lines.push("");
   lines.push("`address_line_1` is `House Number` + `Home Street`, in that order — an ambulance is given");
   lines.push("line 1, and a house number sitting on line 2 is a number the driver may never see.");

@@ -248,6 +248,31 @@ export function createSupabaseImportDb(client: Client): ImportDb {
       if (error) throw error;
     },
 
+    async hasEmailOptIn(memberId: string) {
+      const { data } = await client
+        .from("member_notification_optin")
+        .select("id")
+        .eq("member_id", memberId)
+        .eq("channel", "email")
+        .limit(1);
+      return (data ?? []).length > 0;
+    },
+
+    async insertEmailOptIn(memberId: string) {
+      const { error } = await client.from("member_notification_optin").insert({
+        member_id: memberId,
+        channel: "email",
+        opted_in: true,
+        // The table refuses an opted-in row with no timestamp, and rightly: consent with no
+        // date is a claim nobody can defend. The date is the import's, not the CRM's — we know
+        // when we read the column, not when the member was asked.
+        opted_in_at: new Date().toISOString(),
+        // Not `member_self`. Nobody watched this member say yes; a spreadsheet did.
+        basis: "staff_recorded",
+      });
+      if (error) throw error;
+    },
+
     async hasMedical(memberId: string) {
       const { data } = await client
         .from("medical_information")

@@ -32,8 +32,8 @@ const byId = (id: string) => {
 describe("the fixture produced plans at all", () => {
   it("has one plan per row", () => {
     // Guards every assertion below from passing over an empty list.
-    expect(plans.length).toBe(6);
-    expect(mapped.length).toBe(6);
+    expect(plans.length).toBe(8);
+    expect(mapped.length).toBe(8);
   });
 });
 
@@ -259,8 +259,8 @@ describe("the summary answers 'why is this not a member?' at scale", () => {
   const s = summarisePlans(plans);
 
   it("counts outcomes", () => {
-    expect(s.total).toBe(6);
-    expect(s.members + s.crmContacts + s.skipped).toBe(6);
+    expect(s.total).toBe(8);
+    expect(s.members + s.crmContacts + s.skipped).toBe(8);
   });
 
   it("counts each blocker reason", () => {

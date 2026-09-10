@@ -572,6 +572,19 @@ export function mapMembership(row: IceRow, paymentType: string): MembershipMappi
  * Small normalisers
  * ------------------------------------------------------------------ */
 
+/**
+ * Yes, and nothing that merely resembles yes.
+ *
+ * Used for consent, so the bar is that the whole cell is one of these tokens. "yes if she is in"
+ * is not a yes; nor is "no"; nor is a name. Spanish included because the file is Spanish —
+ * `sí` with the accent and `si` without, since both are typed.
+ */
+const UNAMBIGUOUS_YES = new Set(["yes", "y", "si", "sí", "true", "1"]);
+
+export function parseUnambiguousYes(raw: string): boolean {
+  return UNAMBIGUOUS_YES.has(clean(raw).toLowerCase());
+}
+
 export function mapGender(raw: string): { gender: string | null; review: boolean } {
   const v = clean(raw).toLowerCase();
   if (!v) return { gender: null, review: false };
@@ -723,6 +736,16 @@ export interface MappedRow {
    */
   discardedSensitive: string[];
   notes: string | null;
+  /** `Spouse`, verbatim. A couple-plan hint for a human, not a second member. */
+  spouse: string | null;
+  /**
+   * True only when `Contact Friend for Email` is an unambiguous yes.
+   *
+   * Deliberately a boolean rather than a tri-state: "not yes" and "empty" lead to the same
+   * place — no consent row is written — and a third state would invite somebody to treat
+   * "present but unreadable" as a weaker yes.
+   */
+  emailContactConsent: boolean;
   raw: Record<string, string>;
 }
 
@@ -758,8 +781,16 @@ export function mapIceRow(row: IceRow): MappedRow {
   const humanPhones = dedupe(phoneCells.flatMap((p) => p.human));
   const simPhones = dedupe(phoneCells.flatMap((p) => p.deviceSim));
 
-  const dob = parseIceDate(row.get("Birthday"));
+  /* `Birthday` first, `Dob` as the fallback — Lee's ruling on the second date-of-birth column.
+     Both go through the same parser, so an ambiguous value is still rejected rather than guessed
+     in either column. The fallback is only reached when Birthday is BLANK, never when Birthday
+     holds something the parser refused: a value we could not read is a value to look at, not a
+     reason to quietly prefer the other column. */
+  const dob = parseIceDate(row.get("Birthday")) ?? (row.get("Birthday") ? null : parseIceDate(row.get("Dob")));
   if (row.get("Birthday") && !dob) reviewReasons.push(`Unparseable birthday "${row.get("Birthday")}"`);
+  if (!row.get("Birthday") && row.get("Dob") && !dob) {
+    reviewReasons.push(`Unparseable Dob "${row.get("Dob")}" (Birthday was empty)`);
+  }
 
   const province = mapProvince(row.get("Home State"));
   if (province.review && province.province) reviewReasons.push(`Province "${province.province}" is not a Spanish province`);
@@ -990,6 +1021,15 @@ export function mapIceRow(row: IceRow): MappedRow {
       groups: clean(row.get("Groups")).split(/[;,]+/).map(clean).filter(Boolean),
     },
     notes: nz(row.get("Recent notes") || row.get("Notes")),
+    /* Spouse is a COUPLE-PLAN HINT and nothing more (Lee's ruling): a name in a note, never a
+       second member and never an emergency contact. Inventing a member from it would create a
+       person nobody has spoken to, with no address of their own and no pendant. */
+    spouse: nz(row.get("Spouse")),
+    /* `Contact Friend for Email` set to an unambiguous yes, and only that. Anything else — a
+       name, a note, "maybe", a blank — is NOT consent, and the raw value stays in
+       `crm_import_rows.raw` for a human to read. Consent recorded on a guess is worse than no
+       consent recorded: it is a defence nobody can stand behind later. */
+    emailContactConsent: parseUnambiguousYes(row.get("Contact Friend for Email")),
     discardedSensitive: REDACTED_HEADERS.filter((h) => row.redactedPresent(h)),
     raw: row.raw(),
   };

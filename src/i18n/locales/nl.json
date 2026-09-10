@@ -6111,6 +6111,18 @@
     },
     "secondary": {
       "otherAlerts": "{{count}} other pending alert(s)"
+    },
+    "noRecentFix": "Geen recente locatie van de hanger — de woning wordt weergegeven",
+    "home": {
+      "mapHeader": "Locatie van de woning",
+      "labelMember": "Locatie van de woning (ingesteld door het lid op {{date}})",
+      "labelMemberNoDate": "Locatie van de woning (ingesteld door het lid)",
+      "labelStaff": "Locatie van de woning (ingesteld door ons team op {{date}})",
+      "labelStaffNoDate": "Locatie van de woning (ingesteld door ons team)",
+      "labelUnconfirmed": "Locatie van de woning (uit onze administratie — niet bevestigd door het lid)",
+      "distance": "De hanger is {{value}} {{unit}} van de woning",
+      "map": "Kaart",
+      "directions": "Route"
     }
   },
   "falseAlarm": {
@@ -6503,7 +6515,11 @@
         "east": "Naar het oosten",
         "west": "Naar het westen"
       },
-      "save": "Locatie van mijn woning opslaan"
+      "save": "Locatie van mijn woning opslaan",
+      "purposeStaff": "De plek waar een operator hulp naartoe stuurt als de hanger het niet kan doorgeven. Wordt vastgelegd als een correctie van ons team, niet als een bevestiging door het lid zelf.",
+      "titleStaff": "De woninglocatie van het lid instellen",
+      "saveStaff": "Deze locatie opslaan",
+      "dragHelpStaff": "Zet de speld op de voordeur van het lid. Tik op de kaart of gebruik de pijlen."
     },
     "saved": "Locatie van de woning opgeslagen",
     "saveFailed": "Wij konden de locatie van uw woning niet opslaan."

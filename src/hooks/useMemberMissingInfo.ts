@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  missingRecommendedFields,
   missingRequiredFields,
   type MemberRecordForRequiredCheck,
   type RequiredField,
@@ -29,6 +30,14 @@ async function readOne<T>(run: () => PromiseLike<{ data: T | null; error: unknow
 export interface MemberMissingInfo {
   missing: RequiredField[];
   count: number;
+  /**
+   * Things worth having that are NOT part of `count`.
+   *
+   * Kept as its own field rather than folded in, because the count is what staff triage by: a
+   * badge that says 1 for a member whose record is complete apart from an optional map pin is a
+   * badge people stop reading. See `MEMBER_RECOMMENDED_FIELDS`.
+   */
+  recommended: RequiredField[];
 }
 
 export function useMemberMissingInfo(memberId: string | null | undefined, enabled = true) {
@@ -75,7 +84,8 @@ export function useMemberMissingInfo(memberId: string | null | undefined, enable
       };
 
       const missing = missingRequiredFields(input);
-      return { missing, count: missing.length };
+      // NOT added to `count`. That is the whole distinction this field exists to keep.
+      return { missing, count: missing.length, recommended: missingRecommendedFields(input) };
     },
   });
 }

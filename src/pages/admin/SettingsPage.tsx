@@ -60,9 +60,23 @@ const KEY = {
   SUPPORT_EMAIL: "settings_support_email",
   ADDRESS: "settings_address",
 
-  // Registration fee settings (stored with settings_ prefix)
-  REG_FEE_ENABLED: "settings_registration_fee_enabled",
-  REG_FEE_DISCOUNT: "settings_registration_fee_discount",
+  // ── Registration fee: THE CANONICAL KEYS, unprefixed ─────────────────────
+  //
+  // These were `settings_registration_fee_enabled` / `settings_registration_fee_discount`, and
+  // nothing on the money path has ever read those. The wizard (usePricingSettings.ts), the
+  // server (submit-registration) and the shared quote (_shared/checkout-pricing.ts) all read the
+  // UNPREFIXED pair, so turning the fee off on this screen left the customer paying €59.99.
+  //
+  // Migration 20260908120000 (P5) settled which family wins — it copied any value across to the
+  // unprefixed rows and then DELETED the prefixed ones — and it is in production. Its code half
+  // is this constant, and until now it had not landed, which made the screen worse rather than
+  // better: reading a row that no longer exists, the toggle fell back to its `?? "true"` default
+  // and displayed the fee as ON whatever the canonical row said.
+  //
+  // Pinned by src/test/settingsKeyParity.test.ts: the key this page writes is compared against
+  // the keys the three readers read, from their source, so the two halves cannot drift again.
+  REG_FEE_ENABLED: "registration_fee_enabled",
+  REG_FEE_DISCOUNT: "registration_fee_discount",
   TEST_MODE_ENABLED: "registration_test_mode_enabled",
 
   // Stripe (no settings_ prefix in your current DB usage)
@@ -266,7 +280,7 @@ export default function SettingsPage() {
       // keep facebookTokenInput as-is
     }
 
-    // Registration fee (stored with settings_ prefix)
+    // Registration fee — the canonical unprefixed rows; see KEY above.
     setRegistrationFeeSettings({
       enabled: (settingsMap[KEY.REG_FEE_ENABLED] ?? "true") !== "false",
       discount: parseFloat(settingsMap[KEY.REG_FEE_DISCOUNT] || "0"),

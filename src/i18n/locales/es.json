@@ -6111,6 +6111,18 @@
     },
     "secondary": {
       "otherAlerts": "{{count}} otra(s) alerta(s) pendiente(s)"
+    },
+    "noRecentFix": "Sin ubicación reciente del colgante: se muestra el domicilio",
+    "home": {
+      "mapHeader": "Ubicación del domicilio",
+      "labelMember": "Ubicación del domicilio (marcada por el miembro el {{date}})",
+      "labelMemberNoDate": "Ubicación del domicilio (marcada por el miembro)",
+      "labelStaff": "Ubicación del domicilio (marcada por nuestro equipo el {{date}})",
+      "labelStaffNoDate": "Ubicación del domicilio (marcada por nuestro equipo)",
+      "labelUnconfirmed": "Ubicación del domicilio (de nuestros registros: no confirmada por el miembro)",
+      "distance": "El colgante está a {{value}} {{unit}} del domicilio",
+      "map": "Mapa",
+      "directions": "Indicaciones"
     }
   },
   "falseAlarm": {
@@ -6503,7 +6515,11 @@
         "east": "Mover al este",
         "west": "Mover al oeste"
       },
-      "save": "Guardar la ubicación de mi domicilio"
+      "save": "Guardar la ubicación de mi domicilio",
+      "purposeStaff": "El lugar al que un operador envía ayuda cuando el colgante no puede indicarlo. Se registra como una corrección de nuestro equipo, no como una confirmación del propio miembro.",
+      "titleStaff": "Marcar la ubicación del domicilio del miembro",
+      "saveStaff": "Guardar esta ubicación",
+      "dragHelpStaff": "Mueva la marca hasta la puerta del domicilio del miembro. Toque el mapa o use las flechas."
     },
     "saved": "Ubicación del domicilio guardada",
     "saveFailed": "No hemos podido guardar la ubicación de su domicilio."

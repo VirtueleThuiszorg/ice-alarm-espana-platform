@@ -95,11 +95,23 @@ export function SetHomeLocationDialog({
   const [gps, setGps] = useState<GpsState>({ kind: "idle" });
   const [saving, setSaving] = useState(false);
   /**
-   * The pin came from the browser AND has not been moved since. That is the only state in which
-   * `member_gps` is the truth — one nudge and it is the member's own judgement, which is
-   * `member_pin` with no accuracy figure to claim.
+   * THE ACCEPTED FIX THE PIN IS CURRENTLY STANDING ON, or null.
+   *
+   * It holds the accuracy, not just a boolean, and that is the fix for a real defect. It was
+   * `gpsUntouched: boolean`, with the accuracy read out of the `gps` message state at save time —
+   * so a member who pressed "Use my current location" twice, the second time from a worse spot,
+   * ended up in a state where the message said "refused" while the flag still said "this is a
+   * GPS fix". The save then went out as `member_gps` with a NULL accuracy, which
+   * `save_home_location` and the CHECK constraint both correctly refuse. The member was told
+   * their reading was not accurate enough while looking at a pin that was.
+   *
+   * Found in a Playwright screenshot of exactly that sequence, not by a test — which is why
+   * there is now a test for it.
+   *
+   * Cleared the moment the member moves the pin themselves: one nudge and it is their own
+   * judgement, which is `member_pin` with no accuracy figure to claim.
    */
-  const [gpsUntouched, setGpsUntouched] = useState(false);
+  const [acceptedFix, setAcceptedFix] = useState<{ accuracyM: number } | null>(null);
   const geocodedFor = useRef<string | null>(null);
 
   const addressLine = [address?.line1, address?.postalCode, address?.city, address?.province]
@@ -137,7 +149,7 @@ export function SetHomeLocationDialog({
   useEffect(() => {
     if (open) return;
     setGps({ kind: "idle" });
-    setGpsUntouched(false);
+    setAcceptedFix(null);
     setSaving(false);
     setCoords(existing ?? null);
   }, [open, existing]);
@@ -158,7 +170,7 @@ export function SetHomeLocationDialog({
           return;
         }
         setCoords({ lat: round6(position.coords.latitude), lng: round6(position.coords.longitude) });
-        setGpsUntouched(true);
+        setAcceptedFix({ accuracyM });
         setGps({ kind: "accepted", accuracyM });
       },
       (error) => {
@@ -175,22 +187,27 @@ export function SetHomeLocationDialog({
   const moveTo = useCallback((next: { lat: number; lng: number }) => {
     setCoords(next);
     // The member has taken over from the browser, so this is their pin now.
-    setGpsUntouched(false);
+    setAcceptedFix(null);
   }, []);
 
   const nudge = useCallback(
     (direction: "north" | "south" | "east" | "west") => {
       setCoords((current) => {
         if (!current) return current;
-        setGpsUntouched(false);
+        setAcceptedFix(null);
         return nudgeCoords(current, direction);
       });
     },
     [],
   );
 
+  /*
+    THE SOURCE AND THE ACCURACY COME FROM THE SAME PLACE, so they cannot disagree. Reading the
+    accuracy out of the transient message state is what let a `member_gps` save go out with a
+    null accuracy after a second, worse reading.
+  */
   const source: HomeLocationSource =
-    actor === "staff" ? "staff_pin" : gpsUntouched ? "member_gps" : "member_pin";
+    actor === "staff" ? "staff_pin" : acceptedFix ? "member_gps" : "member_pin";
 
   const save = async () => {
     if (!coords) return;
@@ -209,7 +226,7 @@ export function SetHomeLocationDialog({
             lat: coords.lat,
             lng: coords.lng,
             source,
-            accuracy_m: source === "member_gps" && gps.kind === "accepted" ? gps.accuracyM : null,
+            accuracy_m: source === "member_gps" ? acceptedFix?.accuracyM ?? null : null,
           },
         });
         if (error) throw await functionError(error, t("homeLocation.saveFailed", "We could not save your home location."));
@@ -246,18 +263,33 @@ export function SetHomeLocationDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <MapPin className="h-5 w-5 text-primary" aria-hidden="true" />
-            {t("homeLocation.dialog.title", "Set your home location")}
+            {actor === "member"
+              ? t("homeLocation.dialog.title", "Set your home location")
+              : t("homeLocation.dialog.titleStaff", "Set the member's home location")}
           </DialogTitle>
           <DialogDescription className="text-base">
-            {t(
-              "homeLocation.dialog.purpose",
-              "This is where we send help if your pendant cannot tell us where you are.",
-            )}
+            {actor === "member"
+              ? t(
+                  "homeLocation.dialog.purpose",
+                  "This is where we send help if your pendant cannot tell us where you are.",
+                )
+              : t(
+                  "homeLocation.dialog.purposeStaff",
+                  "Where an operator sends help when the pendant cannot say. Recorded as a correction by our team, not as the member's own confirmation.",
+                )}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* (a) the browser's own fix */}
+          {/*
+            (a) the browser's own fix — THE MEMBER'S ONLY.
+
+            An operator pressing this from the office would place the pin on the office, and the
+            trigger would happily record it as a staff correction of the member's front door,
+            because that is exactly what it would be. So the control does not exist for staff:
+            they place the pin on the map, from what the member is telling them on the phone.
+          */}
+          {actor === "member" && (
           <div className="space-y-2">
             <Button
               type="button"
@@ -321,14 +353,20 @@ export function SetHomeLocationDialog({
               </p>
             )}
           </div>
+          )}
 
           {/* (b) the pin */}
           <div className="space-y-2">
             <p className="text-base">
-              {t(
-                "homeLocation.dialog.dragHelp",
-                "Move the pin onto your front door. Tap the map where your door is, or use the arrows.",
-              )}
+              {actor === "member"
+                ? t(
+                    "homeLocation.dialog.dragHelp",
+                    "Move the pin onto your front door. Tap the map where your door is, or use the arrows.",
+                  )
+                : t(
+                    "homeLocation.dialog.dragHelpStaff",
+                    "Move the pin onto the member's front door. Tap the map, or use the arrows.",
+                  )}
             </p>
 
             {centring && !coords ? (
@@ -411,7 +449,9 @@ export function SetHomeLocationDialog({
             ) : (
               <Save className="mr-2 h-5 w-5" aria-hidden="true" />
             )}
-            {t("homeLocation.dialog.save", "Save my home location")}
+            {actor === "member"
+              ? t("homeLocation.dialog.save", "Save my home location")
+              : t("homeLocation.dialog.saveStaff", "Save this location")}
           </Button>
         </DialogFooter>
       </DialogContent>

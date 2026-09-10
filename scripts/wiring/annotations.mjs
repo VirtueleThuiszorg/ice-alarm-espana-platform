@@ -568,6 +568,34 @@ export const FAMILIES = [
       "card says so rather than offering a button that does nothing.",
   },
   {
+    wires: ["rpc:confirm_legacy_member"],
+    control: "Confirm as legacy member — on the member's record, and as a bulk action on the members list filtered to pending_review",
+    promise:
+      "the member becomes monitored, and WHO decided that is recorded — because there is no " +
+      "payment anywhere to point at",
+    dest:
+      "confirm_legacy_member() sets members.status = active + billing_source = legacy, writes an " +
+      "activity_logs row (action member.legacy_confirmed, the staff id, and the reason typed on " +
+      "the form), and bell_on_legacy_confirm writes targeted notification_log rows to admins and " +
+      "supervisors. Routed as member.legacy_confirmed: push on, SMS/WhatsApp/email off",
+    told: "bell",
+    proof: "src/test/legacyConfirmAction.test.tsx",
+    note:
+      "THE ONE ACTIVATION ON THIS PLATFORM THAT IS NOT A PAYMENT, which is why it is an RPC and " +
+      "not an UPDATE. A plain `UPDATE members SET status = 'active'` is refused by " +
+      "guard_member_status_self_write for an admin as much as for an operator, so the only route " +
+      "in records somebody's name. Permission is NOT checked in the browser: the card renders for " +
+      "anyone who can see the record and the database refuses whoever may not act, because a " +
+      "client-side role check standing in for the real one disagrees with the database on the day " +
+      "the roles change and the disagreement is invisible. The reason field is demanded by the " +
+      "form and not by the function — it takes NULL — because that row is what somebody reads in " +
+      "a year when they ask why a member with no payment record is monitored. 13 assertions in " +
+      "scripts/rls/isolation.sql: who may confirm, that a plain UPDATE by an admin or a " +
+      "supervisor is refused, that confirming one member does not unlock another in the same " +
+      "transaction, and that a second confirmation is refused rather than writing a second audit " +
+      "row claiming a second decision.",
+  },
+  {
     wires: ["table:staff_shift_swaps", "rpc:apply_shift_swap"],
     control: "Ask a colleague to swap or cover a shift; accept or decline; a supervisor approves it",
     promise: "the person being asked finds out, both people find out when it is approved, and the rota actually moves",

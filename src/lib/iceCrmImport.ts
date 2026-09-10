@@ -404,14 +404,32 @@ export function splitEmails(raw: string): { valid: string[]; rejected: string[] 
 }
 
 /**
- * members.email is UNIQUE NOT NULL, and 48 addresses are shared across 106
- * rows (households). Plus-tagging keeps the address reachable by the family
- * while satisfying the constraint.
+ * Whose address is this, when more than one member has it?
+ *
+ * The old answer was plus-tagging: `mary+john@example.com` for the second row to claim a shared
+ * address, invented purely to satisfy `members.email UNIQUE NOT NULL`. It produced addresses
+ * nobody reads, on the column the platform treats as the way to reach the member.
+ *
+ * Since 20260910170000 the column is nullable and the unique index is partial — only an address
+ * the MEMBER owns has to be unique. So a shared address is stored verbatim, once per member,
+ * marked `carer`: one daughter looking after both her parents is TWO members whose contact
+ * address is hers, and that is not a duplicate. It is the normal case in this business.
  */
-export function householdEmail(email: string, tag: string): string {
-  const [local, domain] = email.split("@");
-  const slug = tag.toLowerCase().replace(/[^a-z0-9]+/g, "");
-  return `${local}+${slug}@${domain}`;
+export type EmailOwner = "member" | "carer" | "payer" | "family";
+
+/**
+ * Words in the row's free text that say the address belongs to somebody else.
+ *
+ * Deliberately narrow. The cost of a false positive is small — a member's own address marked
+ * `carer`, which loses them nothing but a login they can be given later — and the cost of a
+ * false NEGATIVE is a carer's address treated as a login credential for a member who has never
+ * seen it.
+ */
+const CARER_EMAIL_HINT =
+  /\b(carer|carers|cuidador|cuidadora|daughter|son|hija|hijo|next of kin|nok|payer|pays|paid by|niece|nephew|sister|brother|hermana|hermano|neighbour|neighbor|vecina|vecino|power of attorney|poa)\b/i;
+
+export function emailOwnerFromText(text: string): EmailOwner | null {
+  return CARER_EMAIL_HINT.test(clean(text)) ? "carer" : null;
 }
 
 /* ------------------------------------------------------------------ *
@@ -659,6 +677,8 @@ export interface MappedRow {
     first_name: string;
     last_name: string;
     email: string | null;
+    /** Whose address that is. Only `member` may become a login. */
+    email_owner: EmailOwner;
     phone: string | null;
     date_of_birth: string | null;
     status: MemberStatus | null;
@@ -956,6 +976,8 @@ export function mapIceRow(row: IceRow): MappedRow {
     first_name: firstName,
     last_name: lastName,
     email: allEmails[0] ?? null,
+    // Default; `resolveSharedEmails` downgrades it once the whole batch is known.
+    email_owner: "member",
     phone: humanPhones[0] ?? null,
     date_of_birth: dob,
     status: status.memberStatus,
@@ -1113,36 +1135,53 @@ export function mapIceRow(row: IceRow): MappedRow {
 
 export function mapIceCsv(text: string): MappedRow[] {
   const { headers, rows } = parseCsv(text);
-  return resolveHouseholdEmails(rows.map((values) => mapIceRow(new IceRow(headers, values))));
+  return resolveSharedEmails(rows.map((values) => mapIceRow(new IceRow(headers, values))));
 }
 
 /**
- * members.email is UNIQUE NOT NULL and households share addresses — 48
- * addresses across 106 rows in the real export. Resolved here rather than in
- * the writer because it needs the whole batch: the first row to claim an
- * address keeps it, later rows get a plus-tag derived from their own name so
- * the mail still reaches the household.
+ * MARK a shared address rather than MANGLE it.
  *
- * Deterministic on input order, so a re-run produces the same addresses and
- * the crm_source_id unique index does the rest.
+ * Needs the whole batch, which is why it is here and not in the mapper: "does anybody else in
+ * this file have this address" is not a question one row can answer. Every row holding an
+ * address that appears more than once is marked `carer` — INCLUDING THE FIRST. The first row to
+ * appear is not more entitled to it; if two members share an address, it is nobody's login.
+ *
+ * A row whose own free text names a carer, a daughter, a payer is marked `carer` too, even when
+ * the address is unique in the file. `emailOwnerFromText` is the rule.
+ *
+ * Nothing is ever blocked by this. An address that cannot be a login is still an address to
+ * write to, and the member is still a member — which is the whole of Lee's ruling on item 3.
  */
-export function resolveHouseholdEmails(mapped: MappedRow[]): MappedRow[] {
-  const claimed = new Set<string>();
+export function resolveSharedEmails(mapped: MappedRow[]): MappedRow[] {
+  const seen = new Map<string, number>();
   for (const row of mapped) {
     const email = row.member.email;
-    if (!email || row.target !== "member") continue;
-    if (!claimed.has(email)) {
-      claimed.add(email);
-      continue;
-    }
-    const tag = row.member.first_name || row.sourceId;
-    let candidate = householdEmail(email, tag);
-    if (claimed.has(candidate)) candidate = householdEmail(email, `${tag}${row.sourceId}`);
-    row.member.email = candidate;
-    claimed.add(candidate);
-    row.warnings.push(
-      `Shared household email ${email} — this record uses ${candidate} to satisfy the unique constraint`
+    if (!email) continue;
+    const key = email.toLowerCase();
+    seen.set(key, (seen.get(key) ?? 0) + 1);
+  }
+
+  for (const row of mapped) {
+    const email = row.member.email;
+    if (!email) continue;
+    const shared = (seen.get(email.toLowerCase()) ?? 0) > 1;
+    /* The row's own words, checked against the notes and the raw email cells — "daughter's
+       email", "pays for mum". `notes` is where Karma's free text lands. */
+    const fromText = emailOwnerFromText(
+      [row.notes ?? "", row.member.special_instructions ?? ""].join(" ")
     );
+
+    if (shared) {
+      row.member.email_owner = "carer";
+      row.warnings.push(
+        `Email ${email} appears on more than one row — stored as a carer address, not a login`
+      );
+    } else if (fromText) {
+      row.member.email_owner = fromText;
+      row.warnings.push(
+        `Email ${email} is described as somebody else's in this row's notes — stored as a carer address, not a login`
+      );
+    }
   }
   return mapped;
 }

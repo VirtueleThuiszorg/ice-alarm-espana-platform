@@ -52,7 +52,9 @@ interface MemberData {
   id: string;
   first_name: string;
   last_name: string;
-  email: string;
+  /* Nullable since 20260910170000. The link this modal sends is how an address is COLLECTED, so
+     a member with none is exactly who it is for — see the guard on the send below. */
+  email: string | null;
   phone: string;
   nie_dni: string | null;
   address_line_2: string | null;
@@ -89,7 +91,11 @@ export function MemberUpdateRequestModal({
   const [sending, setSending] = useState(false);
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
-  const [recipientEmail, setRecipientEmail] = useState(member.email);
+  /* `?? ""`, because members.email is nullable since 20260910170000. An empty string is the
+     honest starting point: the guard on send already refuses it, so a member with no address of
+     their own cannot send to nowhere — they must pick a contact's, which is exactly how an
+     address gets collected for somebody who has none. */
+  const [recipientEmail, setRecipientEmail] = useState(member.email ?? "");
   const [result, setResult] = useState<UpdateRequestResult | null>(null);
 
   const { data, isLoading } = useMemberMissingInfo(member.id, open && !preselectedFields);
@@ -242,9 +248,13 @@ export function MemberUpdateRequestModal({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={member.email}>
-                    {member.email} ({t("common.primary", "Primary")})
-                  </SelectItem>
+                  {/* Offered only when there IS one. A SelectItem with an empty value is an
+                      option that looks selectable and sends nowhere. */}
+                  {member.email && (
+                    <SelectItem value={member.email}>
+                      {member.email} ({t("common.primary", "Primary")})
+                    </SelectItem>
+                  )}
                   {contacts
                     .filter((c) => c.email)
                     .map((contact) => (

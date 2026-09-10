@@ -36,7 +36,7 @@ interface Member {
   id: string;
   first_name: string;
   last_name: string;
-  email: string;
+  email: string | null;
   phone: string;
   status: string | null;
   preferred_language: string | null;
@@ -97,7 +97,10 @@ export default function MembersPage() {
     const matchesSearch = 
       member.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       member.last_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      // `?? ""`, not `!`: a member with no email must still be findable by name and phone.
+      // Left as `member.email.toLowerCase()` this threw on the first legacy member imported and
+      // the whole roster went blank.
+      (member.email ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       member.phone.includes(searchQuery);
     
     const matchesStatus = statusFilter === "all" || member.status === statusFilter;

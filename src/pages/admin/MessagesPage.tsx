@@ -58,7 +58,7 @@ interface Conversation {
     id: string;
     first_name: string;
     last_name: string;
-    email: string;
+    email: string | null;
     phone: string;
     preferred_language: string | null;
   } | null;
@@ -100,7 +100,7 @@ interface Member {
   id: string;
   first_name: string;
   last_name: string;
-  email: string;
+  email: string | null;
   phone: string;
 }
 

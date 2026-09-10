@@ -311,6 +311,7 @@ function withEmail(plan: RowPlan, email: string): RowPlan {
       first_name: plan.parsedMember.first_name,
       last_name: plan.parsedMember.last_name,
       email,
+      email_owner: "member",
       phone: plan.parsedMember.phone ?? "+34600000000",
       date_of_birth: plan.parsedMember.date_of_birth ?? "1940-01-01",
       address_line_1: plan.parsedMember.address_line_1 ?? "1 Calle Test",
@@ -522,6 +523,7 @@ describe("an existing member the platform already holds", () => {
       nationality: "British",
       crm_source: "karmacrm",
       crm_source_id: "9006",
+      email_owner: "member",
       address_line_2: "-",
       special_instructions: "-",
       passport_number: "-",
@@ -539,7 +541,7 @@ describe("an existing member the platform already holds", () => {
 describe("a row that cannot be a member", () => {
   it("becomes a CRM contact when the platform has never heard of them", async () => {
     const db = new FakeDb();
-    const result = await applyRowPlan(db, byId("9002"));
+    const result = await applyRowPlan(db, byId("9008"));
     expect(result.action).toBe("crm_contact");
     expect(result.crmContactId).toBeTruthy();
     expect(db.members).toEqual([]);
@@ -548,8 +550,8 @@ describe("a row that cannot be a member", () => {
 
   it("is not inserted a second time on a re-run", async () => {
     const db = new FakeDb();
-    await applyRowPlan(db, byId("9002"));
-    const second = await applyRowPlan(db, byId("9002"));
+    await applyRowPlan(db, byId("9008"));
+    const second = await applyRowPlan(db, byId("9008"));
     expect(second.action).toBe("unchanged");
     // Nothing was created this time, so there is nothing to point at.
     expect(second.crmContactId).toBeNull();
@@ -565,12 +567,12 @@ describe("a row that cannot be a member", () => {
       email: "old.address@example.com",
       first_name: "Margaret",
       last_name: "Wilson",
-      phone: "+34952383121", // the phone on row 9002
+      phone: "+34677888999", // the phone on row 9008
       address_line_1: "",
       city: "",
       status: "active",
     });
-    const result = await applyRowPlan(db, byId("9002"));
+    const result = await applyRowPlan(db, byId("9008"));
     expect(result.action).toBe("updated");
     expect(db.crmContacts).toEqual([]);
     expect(db.members.length).toBe(1);
@@ -579,8 +581,9 @@ describe("a row that cannot be a member", () => {
 
   it("reports 'unchanged' when the matched member needs nothing", async () => {
     const db = new FakeDb();
-    const p = byId("9002");
+    const p = byId("9008");
     db.seedMember({
+      email_owner: "member",
       email: "held@example.com",
       first_name: p.parsedMember.first_name,
       last_name: p.parsedMember.last_name,

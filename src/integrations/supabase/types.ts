@@ -3261,7 +3261,8 @@ export type Database = {
           user_id: string | null
           first_name: string
           last_name: string
-          email: string
+          email: string | null
+          email_owner: string
           phone: string
           date_of_birth: string
           nie_dni: string | null
@@ -3324,7 +3325,8 @@ export type Database = {
           user_id?: string | null
           first_name: string
           last_name: string
-          email: string
+          email?: string | null
+          email_owner?: string
           phone: string
           date_of_birth: string
           nie_dni?: string | null
@@ -3387,7 +3389,8 @@ export type Database = {
           user_id?: string | null
           first_name?: string
           last_name?: string
-          email?: string
+          email?: string | null
+          email_owner?: string
           phone?: string
           date_of_birth?: string
           nie_dni?: string | null

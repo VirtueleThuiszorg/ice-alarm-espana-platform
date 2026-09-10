@@ -210,49 +210,11 @@ jobs:
       # path runs #1-#6 used, and the fallback stops being exercised. It is a fallback, not a
       # replacement — AND IT SHOUTS, because a fallback that quietly rescues a broken credential
       # is how a broken credential stays broken. Green here does not mean the token is fine.
+      # ONE IMPLEMENTATION, shared with ci.yml's manifest check — see the script's header for
+      # why link is tried first, why the fallback exists, and the rules the password obeys.
       - name: Reach production
         id: conn
-        run: |
-          set -uo pipefail
-
-          if supabase link --project-ref "$SUPABASE_PROJECT_REF" 2>/tmp/link.err; then
-            echo "reached production through the Management API (supabase link)"
-            echo "mode=linked" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "supabase link was refused:" >&2
-          sed 's/^/  /' /tmp/link.err >&2
-
-          ENC="$(python3 -c 'import os,urllib.parse; print(urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"], safe=""))')"
-          echo "::add-mask::$ENC"
-
-          mkdir -p supabase/.temp
-          printf '%s' "$SUPABASE_PROJECT_REF" > supabase/.temp/project-ref
-
-          # `eu-west-1` is this project's region (docs/archive/AUDIT_REPORT_2026-06.md section 5,
-          # indexed by PROJECT_REFS.md). Both regional endpoints resolve, and which one serves a
-          # given project is not derivable, so each is PROBED with a READ-ONLY `migration list`.
-          # Nothing is written to production until a connection is known to work.
-          for HOST in aws-0-eu-west-1.pooler.supabase.com aws-1-eu-west-1.pooler.supabase.com; do
-            umask 077
-            printf 'postgresql://postgres.%s:%s@%s:5432/postgres' \
-              "$SUPABASE_PROJECT_REF" "$ENC" "$HOST" > supabase/.temp/pooler-url
-            chmod 600 supabase/.temp/pooler-url
-            echo "probing $HOST (read-only)..."
-            if supabase migration list --linked > /tmp/probe.txt 2>/tmp/probe.err; then
-              echo "connected through $HOST"
-              echo "mode=pooler" >> "$GITHUB_OUTPUT"
-              echo "host=$HOST" >> "$GITHUB_OUTPUT"
-              echo "::warning title=Migrated WITHOUT the Management API::supabase link was refused, so this run reached the database directly through $HOST. The access token still lacks the privilege link needs - see PENDING_FOR_LEE section 1. This is a fallback, not a fix."
-              exit 0
-            fi
-            sed 's/^/  /' /tmp/probe.err >&2
-          done
-
-          rm -f supabase/.temp/pooler-url
-          echo "::error title=Cannot reach production at all::supabase link was refused AND no pooler candidate authenticated. Nothing has been applied. Fix SUPABASE_ACCESS_TOKEN (PENDING_FOR_LEE section 1), or the database password if that is what the probe rejected."
-          exit 1
+        run: scripts/ci/reach-production.sh "apply migrations"
 
       # Captured to a file rather than parsed inline: the same text is the input to the recorder
       # AFTER the push, and the two captures are the only evidence of what this run actually

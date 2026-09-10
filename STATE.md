@@ -130,9 +130,14 @@ are IPv4) and carries on with every later step unchanged (#313). It shouts a `::
 whenever that fallback runs, and it ran for both of these migrations.
 
 **Still owed, and it is Lee's**: the Management API itself. `link` was still being refused a
-minute after run #8, so "Manifest matches production" stays red on main until a token with that
-privilege replaces the current one — PENDING_FOR_LEE §1, route A. Migrations flow; the API does
-not.
+minute after run #8 — PENDING_FOR_LEE §1, route A. Migrations flow; the API does not.
+
+**"Manifest matches production" no longer sits red waiting for that (#337).** It had its own
+`supabase link` step, so it could not pass while `link` was refused — on any commit, for any
+reason — and a required gate that cannot pass teaches everybody to merge past a red X. Both
+workflows now reach production through one shared script, `scripts/ci/reach-production.sh`, which
+tries `link` first and falls back to the pooler with the same secrecy rules. **From #337 onwards,
+red on that job means something real.**
 
 Worth keeping from the wrong version, because it is a real trap: Migrate Production runs #4, #5
 and #6 are all green and migrated **nothing** — their Apply-migrations job was *skipped*, because
@@ -184,8 +189,10 @@ from `20260910130000` to `20260910140000` because `20260910130000_shift_swap_app
 landed on the same version in the meantime — two migrations sharing a version is the case
 `migrationDrift.test.ts` fails on, and it fails on it because the CLI runs at most one of them and
 records the other as applied without it having been.
-`supabase link` is **still** refused; the fallback shouts every time it runs, and the main-only
-"Manifest matches production" job stays red. That is `PENDING_FOR_LEE.md` §1, not this feature.
+`supabase link` is **still** refused and the fallback shouts every time it runs. The main-only
+"Manifest matches production" job stayed red for that reason until #337 gave it the same fallback;
+it is green now, so red there is no longer expected. Either way it is `PENDING_FOR_LEE.md` §1,
+not this feature.
 
 Proof: `scripts/rls/isolation.sql` +25 checks (551 total) — member A cannot READ
 or OVERWRITE member B's pin; a member cannot record their guess as a staff correction; staff

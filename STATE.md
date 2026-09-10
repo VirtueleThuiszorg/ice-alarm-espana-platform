@@ -33,6 +33,130 @@ What did **not** change: golden rules 1–10 in `CLAUDE.md`, and **never merge r
 moved; the standard for what may merge did not. Green is now the only gate, which is why the CI
 gates were split one-per-job the same day (below).
 
+## Member portal — 2026-09-10 · **all six concerns on main; three defects found by screenshot after**
+
+Lee's brief: *"Locked-until-Edit cards, profile photo, 'Complete my details' and 'Review my
+details' pop-ups from the dashboard header, a professional My Device page, Alert History hidden.
+One concern per PR onto main, merge when green."* Nine PRs. Every claim below names what presses
+it. Nothing in this brief touched the SOS/alert path, `stripe-webhook` or `create-checkout`.
+
+### What is now true
+
+- ✅ **Read-only until Edit, per card** (#311). Every FIELD on Profile and Medical was a live input
+  from the moment it loaded, inside one form with one Save — on the page holding the address an
+  ambulance is sent to. Now five cards on Profile and six on Medical, each with its own Edit /
+  Save / Cancel and its own unsaved-changes guard. `CARD_COLUMNS` is what makes that safe: each
+  save reads the RECORD for every column outside its own card, so a second open card's draft
+  cannot ride along on somebody else's Save, and validation is scoped per card so a missing
+  province cannot block a corrected phone number. **One shell with the staff record**, not two —
+  `src/components/EditableCard.tsx` (#310's location, yielded to deliberately), extended by props
+  rather than forked. Proven by `editableCard.test.tsx` (21), `lockedIdentityFields`,
+  `medicalInfoFields`, `awayAndAddress`. No column became writable that was not:
+  `member_status_not_self_writable` and `clientWriteSweep` stayed green.
+- ✅ **A member's own photograph, in a PRIVATE bucket** (#343, migration `20260910180000`
+  applied). `members.photo_url` had existed since the first migration and nothing had ever written
+  it; the page showed initials and, under them, the sentence R6 explicitly bans — "contact support
+  to change" — above a column no support call could have filled either. Bucket `member-avatars`,
+  `public = false`, 512 KB and `image/jpeg|image/webp` enforced by storage itself. Four member
+  policies compare `(storage.foldername(name))[1]` against the caller's own `members.id`; the
+  UPDATE policy carries BOTH `USING` and `WITH CHECK`, without which a member could MOVE their own
+  object into somebody else's folder. Staff get SELECT and nothing else. **Proven against real
+  PostgreSQL**: 11 checks in `scripts/rls/isolation.sql` — member A cannot read, list, upload into,
+  move into or delete from member B's folder, member B's object survives every attempt, staff can
+  read every avatar and cannot delete one. Client-side resize to ≤512px / ≤300 KB is pure
+  functions in `memberAvatar.ts` with 34 tests, because jsdom has neither canvas nor
+  `createImageBitmap`.
+  **The brief named `members.avatar_url`; the real column is `members.photo_url`** (`avatar_url`
+  is on `staff` and `ai_agents`). The real column was used.
+- ✅ **The two questions no page owned** (#347). A member's record spans Profile, Medical and
+  Contacts, and neither *"what do you still need from me?"* nor *"what do you hold about me?"*
+  belonged to any of them. Two controls in the dashboard header, text AND icon, `touch-target` on
+  both. Complete-my-details is hidden entirely when nothing is missing (a small tick instead) and
+  shows no badge while the count is still being read. Both read ONE definition,
+  `memberRequiredFields.ts`, and the CONTROLS come from `memberUpdateForm.ts` — the module the
+  emailed update link already uses — so a member answering from their dashboard gets the same list
+  as one answering from an email. Review-my-details reads nothing until it is opened, lists only
+  fields with values, and prints through `window.print()`. On success, `member.details_completed`,
+  with the member identity resolved SERVER-side from the caller's own `user_id`.
+- ✅ **My pendant, on the shell, and nobody is called "phone-only"** (#324). The page had a
+  hard-coded `#25D366` WhatsApp button, a 4xl red telephone number and a gradient upsell card, all
+  off-shell — and its title branch was `subscription?.has_pendant && device`, so every member
+  between paying for a pendant and the device being assigned was told they had chosen a service
+  they had paid to leave. `memberPendantView.ts` derives six states from the fulfilment state (20
+  tests); the offer card appears only for `no_pendant`, price via `catalogPriceAuthority`, one
+  primary button. Screenshots at 390px and 1280px in `e2e/memberPortalShell.spec.ts`.
+- ✅ **Alert History is off by default** (#330, migration `20260910190000` applied).
+  `member_alert_history_enabled`, seeded `false`, on the public settings whitelist. No sidebar
+  item, no dashboard tile or recent-alerts list, `/dashboard/alerts` redirects — and the alert
+  READS are disabled with the display, so a hidden page is not still fetching. The route guard
+  waits for the setting to settle (`settled`, true on error too) where the display does not: a
+  redirect fired on an unread setting bounces a member off a page they are allowed to see.
+  Switch in Admin → Settings → Members. **Member display only** — alert creation, operator and
+  staff views are untouched. Both states tested (24).
+- ✅ **The portal nav walked** (#345), and the result is mostly a LIST — `MEMBER_UX_AUDIT.md` —
+  because the brief asked for remaining deviations to be recorded rather than restyled silently.
+  Three were fixed instead, each with its reason. **The biggest was not a styling miss**: the
+  sidebar's full-width "Contact ICE Alarm España" button, in the SOS colour, on every page of the
+  portal, had no `onClick`, no `href` and no `asChild` — a member who pressed the biggest, reddest
+  control on their own alarm account got nothing at all. It is now an `<a href="tel:…">` in Ink
+  showing the 24-hour number, omitted when `settings_emergency_phone` is unset. The active nav
+  item was brand red on every page (D12, R2) and is now the sidebar's own dark fill; the staff
+  sidebars deliberately keep theirs, asserted.
+
+### 🔴 Two defects this brief SHIPPED, and how they were found
+
+All three were found by taking a Playwright screenshot of the finished dialog and looking at it — not
+by the tests, which were green, and not by re-reading the source, which had already been reviewed.
+Recorded because "the tests passed" was not enough twice in one brief.
+
+- 🔴→✅ **The badge counted what the member cannot supply** (#349). `missingInfo.count` includes
+  the three items with `memberCanSupply: false` — a pendant assigned, a pendant tested, an active
+  subscription — while the dialog behind it correctly offers none of them. A member on a pendant
+  plan whose pendant had not yet been assigned saw "Complete my details 2" and opened a dialog
+  with nothing in it: the dead-control pattern the header was written to remove, reintroduced by
+  the badge sitting on top of it. And a member cannot activate their own subscription at all
+  (golden rule 4). The badge and the dialog now read one list, `memberCanFill` =
+  `requestableFields(missing)`; `count` is unchanged and stays the STAFF number.
+- 🔴→✅ **A member with no medical row was never asked for one** (#349). `readOne` returned `null`
+  BOTH when a read failed AND when `maybeSingle()` found no row, and those mean opposite things:
+  `missingRequiredFields` skips a group whose source is null, so all six medical requirements were
+  silently dropped for exactly the members who had never filled them in. The two hooks in that one
+  file therefore disagreed about the same member — the batched list hook has always treated an
+  absent row as an empty one — while the file's own header promises they cannot. They said **1**
+  and **7**. `readOne` now answers `{ ok, data }`: `ok: false` is "we did not find out", `ok: true`
+  with `data: null` is "there is nothing there", which IS a gap.
+- 🔴→✅ **The contact gap was asked twice, once as a text box** (#350). `updateFormFields` answers
+  for the emailed update PAGE, which has a real repeated-block contact editor; the dialog has no
+  such arm, so the field fell through to a generic `<Input>` — "At least one emergency contact" as
+  a line, above the link, under a duplicated heading. Worse than a duplicate: it accepted text,
+  which enabled Save, and `buildUpdateSubmission` then correctly ignored it, so a member who typed
+  their daughter's name into it was told they had typed nothing. The existing test asserted the
+  link WAS there and never that the input was not, which is how it got through.
+- 🔴→✅ **The walk's own R6 claim was wider than the work** (#351). It said Profile is locked until
+  Edit; two cards on it are not (three live consent switches, and three action buttons). Neither
+  should change — a consent switch behind an Edit button is two clicks and a Save to stop a text
+  message — so the claim was corrected rather than the code.
+
+### Still owed
+
+- ⬜ `SupportPage.tsx` keeps `#25D366` (2.1:1 white-on-green, below AA). Not fixed here: 951 lines,
+  four tabs, and the WhatsApp block sits inside the section deciding what a member is offered when
+  they need help. Pinned as the ONLY permitted raw hex on the member surface, exact in both
+  directions.
+- ⬜ R9 (*usted*) is not machine-checked for strings that predate this brief. Needs a human to read
+  the hits — "tu" is a substring of ordinary Spanish words, and a naive rule would be red for ever
+  and then pinned around.
+- ⬜ The nav still takes two clicks to reach most pages: a group is in the DOM only once a route
+  inside it is active. Not a rule violation, the single biggest friction in the portal, and a
+  product decision rather than a code one.
+- ⬜ `save-api-keys` silently renames an unprefixed key (`${service}_${key}` unless already
+  prefixed), so the admin checkout payment-methods and registration test-mode switches write keys
+  nothing reads. Found while adding the member-portal settings card, which declares its service
+  explicitly to avoid it. Payments-adjacent and outside this brief's six concerns; #331 addressed
+  part of the class.
+- ⬜ Both Vercel checks are red on every PR in this repo today: the account hit its free-tier
+  100-deploys-per-day cap. Not caused by this work, and not one of the repo's listed quality gates.
+
 ## Rota, shifts and holidays — 2026-09-10 · **all six items on main and in production**
 
 Lee's brief: *"Staff see and manage their own shifts; supervisors control everyone's; holiday

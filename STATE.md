@@ -272,6 +272,77 @@ names what is missing. Proven by `src/test/ciJobIsolation.test.ts` (23 assertion
 killed — including a duplicate gate re-added inside the shared job, which the first version of the
 test missed).
 
+## KarmaCRM import, Lee's four rulings — 2026-09-10 · **all four built; two migrations applied**
+
+Five PRs (#334, #339, #342, #344, #346) answering `PENDING_FOR_LEE.md` D-19. The section below
+describes the import as it was when the rulings were asked for; this is what changed.
+
+### ✅ Who becomes a member, and the rule
+Before: a member needed **nine** columns, including an email — and most of Lee's clients have
+none, so they became CRM contacts. Now the rule is **name, phone, date of birth, and an address
+(line 1, city, province, postal code)**. On the 10-row fixture that moved 3 members → **7**; the
+three that remain contacts are blocked on a date of birth the parser refused, not on an email.
+**Lee runs the real file** — the count on the 431 is his to see, and it is the preview screen's
+job to show it before anything is written.
+
+### ✅ Imported members are `pending_review` + `billing_source = 'legacy'` (#342, #344)
+Not `inactive`, which was honest about the payment and wrong about the person. `active` +
+`legacy` is monitored; only `stripe` means there is a subscription here to renew or dun. There
+are now exactly **three** routes to `active` — the payment webhook, a staff reinstatement of a
+member who already has a paid subscription, and `confirm_legacy_member()` (admin/supervisor,
+`pending_review` only, `activity_logs` row with their name and reason, bell to admins and
+supervisors). The guard trigger refuses everything else **including the import**.
+Proof: 13 assertions in `scripts/rls/isolation.sql` — who may confirm, a plain UPDATE refused for
+an admin AND a supervisor, confirming one member not unlocking another in the same transaction, a
+second confirmation refused. Plus `legacyMemberState.test.ts` (18) and
+`legacyConfirmAction.test.tsx` (11).
+
+### ✅ Email is optional, and has an owner (#346)
+`members.email` NULLABLE; `members_email_key` replaced by a **partial, case-insensitive** unique
+index on `lower(email) WHERE email IS NOT NULL AND email_owner = 'member'`. A carer's address may
+be shared — one daughter looking after both her parents is two members — and **is never a dedupe
+key**, because keyed on email the second parent would have been patched onto the first's record.
+Proof: 7 assertions executed against real PostgreSQL 16, including the same own address in
+different case, which the old constraint let straight through.
+
+### ✅ The three legacy membership facts have columns (#339)
+`crm_profiles.legacy_membership_type / legacy_payment_type / legacy_date_joined`, with a backfill
+that lifts them out of the notes already written and **keeps a value a human has corrected**.
+Exercised against a real cluster, twice, with the second run writing 0 rows.
+
+### ✅ The four unmapped columns (#334)
+`Dob` is a fallback for `Birthday` **only when Birthday is blank** — never when it holds something
+the parser refused, because a value we could not read is a value to look at. `Spouse` is a note.
+`Contact Friend for Email` becomes an email consent row on an unambiguous yes only, stamped
+`staff_recorded`, and never overwrites a refusal staff have since recorded. `Wellbeing Appt Date`
+stays in raw.
+
+### 🔴 Three defects found, two of them mine and already merged
+1. **Every member note the import wrote was refused by Postgres.** `member_notes.note_type` is
+   CHECK-constrained and the import wrote `'crm_import'`. Because `insertNote` throws, the whole
+   row was then recorded as `failed` even though the member had been created. Invisible to every
+   test in #316 — a fake database has no CHECK constraints. Found by running a backfill for real.
+2. **`billing_source` was missing from `NEVER_PATCH`**, so a re-import could have flipped a
+   Stripe-paying member to `legacy` and quietly stopped the platform chasing money it is owed.
+3. **`supabase.rpc` returns a plain object, not an `Error`**, so the confirm dialog showed a
+   generic "could not confirm" instead of the database's "admin or supervisor only" — the
+   difference between fetching a supervisor and pressing the button again.
+
+### 🔴 And two of my own migration tests were reading the comment, not the code
+Two mutants survived on #346 — dropping the owner predicate and making the unique index
+case-sensitive — because the migration's header comment quotes the intended index and the
+assertions matched that. Fixed by stripping SQL comments before matching, and by asserting the
+index as one statement (the three-match version also missed the case mutant, because there are
+two indexes on `lower(email)` in that file).
+
+### 🟡 Still not proved against production data
+No legacy member has been confirmed on production, and the real 431-row export has never been run
+through this code — it holds 431 living people's medical and address data and does not belong in
+the repo. The first real run should be the one-row David Evans test, then the preview CSV read in
+a spreadsheet, then the file.
+
+---
+
 ## KarmaCRM import — 2026-09-10 · **works on the real 431-row export; nothing sensitive is stored**
 
 Five PRs (#302, #307, #308, #316, #318). The brief: *"today it turns Lee's clients into incomplete

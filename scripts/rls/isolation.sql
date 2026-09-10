@@ -5824,6 +5824,242 @@ SELECT pg_temp.check(
   'golden rule 2');
 
 -- ============================================================
+--  members home location — the front door, and who may claim it
+-- ============================================================
+--
+-- The pin is the fallback an operator is sent to when a pendant indoors has no fix, so two
+-- things have to hold and both are asserted by execution here:
+--   1. member A cannot read member B's pin. It is where a vulnerable person sleeps.
+--   2. the PROVENANCE cannot be forged. "36.83, -2.46" is worthless unless the card can say
+--      whether the member stood at their own door and pressed Save. guard_member_home_location()
+--      is what makes the label true, so every way of lying about it is tried below.
+
+-- Seed: B has a member-confirmed pin, A has none. The asymmetry is what makes the read
+-- assertions mean something — "A sees no pins" would pass vacuously if nobody had one.
+UPDATE public.members
+   SET home_lat = 37.388000, home_lng = -2.148000,
+       home_location_source = 'member_pin',
+       home_location_set_at = now() - interval '10 days',
+       home_location_set_by = '22222222-2222-2222-2222-222222222222'
+ WHERE id = 'bbbbbbbb-0000-0000-0000-000000000002';
+
+SELECT pg_temp.check(
+  'CONTROL: member B really has a home pin (else every read check below is vacuous)',
+  (SELECT count(*) FROM public.members
+    WHERE id = 'bbbbbbbb-0000-0000-0000-000000000002' AND home_lat IS NOT NULL) = 1);
+
+SELECT pg_temp.check(
+  'MEMBER A CANNOT READ MEMBER B''S HOME PIN',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT home_lat FROM public.members
+      WHERE id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 0,
+  'where a vulnerable person sleeps, in the row of somebody they have never met');
+
+SELECT pg_temp.check(
+  'member A sees NO home pins at all — not even unattributed coordinates',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT home_lat FROM public.members WHERE home_lat IS NOT NULL') = 0,
+  'A has no pin of their own at this point, so any row returned here is B''s');
+
+SELECT pg_temp.check(
+  'member A cannot OVERWRITE member B''s home pin',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_lat = 0.1, home_lng = 0.1,
+       home_location_source = ''member_pin''
+      WHERE id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 0);
+
+SELECT pg_temp.check(
+  'a partner sees no home pins',
+  pg_temp.count_as('33333333-3333-3333-3333-333333333333',
+    'SELECT home_lat FROM public.members WHERE home_lat IS NOT NULL') = 0);
+
+SELECT pg_temp.check(
+  'a signed-in user with no member/partner/staff row sees no home pins',
+  pg_temp.count_as('66666666-6666-6666-6666-666666666666',
+    'SELECT home_lat FROM public.members WHERE home_lat IS NOT NULL') = 0);
+
+-- The call-centre operator used from here on is `asoares` (c0000001), seeded with the rota
+-- fixtures. NOT the suite's original callcentre@example.com (55555555): the staff-delete-FK
+-- block earlier in this file DELETEs that staff row, so by this point is_staff() is false for
+-- it and every staff assertion below would fail for a reason that has nothing to do with the
+-- policies. Asserted rather than assumed, so a future edit that removes this operator too
+-- fails loudly here instead of turning three checks vacuous.
+SELECT pg_temp.check(
+  'CONTROL: the operator used below really is active staff at this point in the suite',
+  public.is_staff('c0000001-0000-0000-0000-000000000001'),
+  'if this fails the three staff checks that follow are meaningless, not passing');
+
+SELECT pg_temp.check(
+  'CALL CENTRE STAFF CAN READ IT — the whole point of storing it',
+  pg_temp.count_as('c0000001-0000-0000-0000-000000000001',
+    'SELECT home_lat FROM public.members
+      WHERE id = ''bbbbbbbb-0000-0000-0000-000000000002''
+        AND home_lat IS NOT NULL') = 1,
+  'an operator with no access to the fallback location is the feature not existing');
+
+-- ── the member's own write ─────────────────────────────────────────────────
+SELECT pg_temp.check(
+  'a member CAN set their own home pin as member_pin',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members
+        SET home_lat = 37.390000, home_lng = -2.150000,
+            home_location_source = ''member_pin''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111''') = 1,
+  'if this fails the guard is too wide and the feature is dead');
+
+SELECT pg_temp.check(
+  'set_by is STAMPED with the writer''s own id, not accepted from the write',
+  (SELECT home_location_set_by FROM public.members
+    WHERE id = 'aaaaaaaa-0000-0000-0000-000000000001')
+    = '11111111-1111-1111-1111-111111111111'::uuid);
+
+SELECT pg_temp.check(
+  'set_at is STAMPED with now(), so a fresh guess cannot pose as a long-standing confirmation',
+  (SELECT home_location_set_at FROM public.members
+    WHERE id = 'aaaaaaaa-0000-0000-0000-000000000001') > now() - interval '1 minute');
+
+-- A member submitting a backdated timestamp and somebody else's id gets neither.
+--
+-- THE WRITE AND THE READ ARE SEPARATE STATEMENTS, and that is not style. Written as
+-- `exec_as(...) = 1 AND (SELECT ...) = x` the planner is free to evaluate the sublink as an
+-- InitPlan BEFORE the volatile function that does the write, so the assertion reads the row as
+-- it was beforehand. Measured here: it made a genuinely passing staff check report FAIL. Any
+-- assertion in this file that writes and then reads its own effect must be split like this.
+SELECT pg_temp.check(
+  'a member''s write is accepted even when it carries a backdated timestamp and a borrowed id',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members
+        SET home_lat = 37.391000, home_lng = -2.151000,
+            home_location_source = ''member_pin'',
+            home_location_set_at = ''2020-01-01T00:00:00Z'',
+            home_location_set_by = ''22222222-2222-2222-2222-222222222222''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111''') = 1,
+  'refusing it would break an honest client that sends the fields back unchanged');
+
+SELECT pg_temp.check(
+  'and the LIE IS DISCARDED — neither the backdate nor the borrowed id survives',
+  (SELECT home_location_set_at FROM public.members
+    WHERE id = 'aaaaaaaa-0000-0000-0000-000000000001') > now() - interval '1 minute'
+  AND (SELECT home_location_set_by FROM public.members
+        WHERE id = 'aaaaaaaa-0000-0000-0000-000000000001')
+      = '11111111-1111-1111-1111-111111111111'::uuid,
+  'a three-year-old import must not be able to describe itself as confirmed this morning');
+
+SELECT pg_temp.check(
+  'A MEMBER CANNOT RECORD THEIR OWN PIN AS A STAFF CORRECTION',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members
+        SET home_lat = 37.392000, home_lng = -2.152000,
+            home_location_source = ''staff_pin''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''),
+  'the SOS card labels a staff_pin differently; a member who could claim it could lie to an operator');
+
+SELECT pg_temp.check(
+  'a member cannot claim geocoded or imported either',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_lat = 37.3, home_lng = -2.1,
+       home_location_source = ''geocoded''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111''')
+  AND pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_lat = 37.3, home_lng = -2.1,
+       home_location_source = ''imported''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''));
+
+-- ── the provenance-only rewrite ────────────────────────────────────────────
+-- The subtle one: leave the coordinates alone and rewrite only WHEN and BY WHOM. That turns a
+-- three-year-old import into "confirmed by the member this morning" without moving the pin.
+SELECT pg_temp.check(
+  'set_at / set_by are NOT independently writable — history cannot be rewritten in place',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_location_set_at = now()
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111''')
+  AND pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_location_set_by = ''22222222-2222-2222-2222-222222222222''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''));
+
+SELECT pg_temp.check(
+  'an ordinary profile update is untouched by the guard',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET phone = ''+34600007777''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111''') = 1,
+  'the guard must cost an unrelated save nothing — the same property asserted for the status guard');
+
+-- ── the staff write ────────────────────────────────────────────────────────
+SELECT pg_temp.check(
+  'STAFF CANNOT CLAIM A CORRECTION WAS THE MEMBER STANDING AT THEIR DOOR',
+  pg_temp.raises_as('c0000001-0000-0000-0000-000000000001',
+    'UPDATE public.members SET home_lat = 37.4, home_lng = -2.2,
+       home_location_source = ''member_pin''
+      WHERE id = ''bbbbbbbb-0000-0000-0000-000000000002'''),
+  'the label "set by member" must mean a member set it');
+
+-- Split for the same reason as the backdate pair above.
+SELECT pg_temp.check(
+  'staff CAN correct a pin as staff_pin',
+  pg_temp.exec_as('c0000001-0000-0000-0000-000000000001',
+    'UPDATE public.members SET home_lat = 37.401000, home_lng = -2.201000,
+       home_location_source = ''staff_pin''
+      WHERE id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 1);
+
+SELECT pg_temp.check(
+  'and the correction is attributed to the OPERATOR who made it, not to the member',
+  (SELECT home_location_set_by FROM public.members
+    WHERE id = 'bbbbbbbb-0000-0000-0000-000000000002')
+    = 'c0000001-0000-0000-0000-000000000001'::uuid,
+  'the member record has to be able to answer "who moved this pin, and when"');
+
+-- ── the shape of a stored location ─────────────────────────────────────────
+SELECT pg_temp.check(
+  'half a coordinate is refused — a latitude with no longitude is not a place',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_lat = 37.5, home_lng = NULL,
+       home_location_source = ''member_pin''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''));
+
+SELECT pg_temp.check(
+  'coordinates with no source are refused — an unlabelled pin cannot be shown honestly',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_lat = 37.5, home_lng = -2.3,
+       home_location_source = NULL
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''));
+
+SELECT pg_temp.check(
+  'an out-of-range coordinate is refused',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_lat = 137.5, home_lng = -2.3,
+       home_location_source = ''member_pin''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''));
+
+SELECT pg_temp.check(
+  'A member_gps FIX WORSE THAN 100 m IS REFUSED BY THE DATABASE, not just by the dialog',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_lat = 37.5, home_lng = -2.3,
+       home_location_source = ''member_gps'', home_location_accuracy_m = 800
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''),
+  'a wifi-grade fix is a fix on the wrong street; a confident pin there is worse than no pin');
+
+SELECT pg_temp.check(
+  'a member_gps fix with NO accuracy figure at all is refused',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_lat = 37.5, home_lng = -2.3,
+       home_location_source = ''member_gps'', home_location_accuracy_m = NULL
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''));
+
+SELECT pg_temp.check(
+  'a member_gps fix of 100 m or better is accepted — the limit is inclusive',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_lat = 37.393000, home_lng = -2.153000,
+       home_location_source = ''member_gps'', home_location_accuracy_m = 100
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111''') = 1);
+
+SELECT pg_temp.check(
+  'the members.status guard still holds with the location guard beside it',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET status = ''active''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''),
+  'two BEFORE UPDATE triggers on one table — this fails if either stops running');
+
+-- ============================================================
 --  Report
 -- ============================================================
 

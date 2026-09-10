@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { MemberActionsCard } from "@/components/admin/member-detail/MemberActionsCard";
+import { EditableCard } from "@/components/EditableCard";
 import { SendPaymentLinkDialog } from "@/components/admin/member-detail/SendPaymentLinkDialog";
 
 interface Subscription {
@@ -180,21 +181,29 @@ export function SubscriptionTab({ memberId, memberName }: SubscriptionTabProps) 
 
   return (
     <div className="space-y-6">
-      {/* Current Plan */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Current Plan
-              </CardTitle>
-              <CardDescription>Subscription details and billing information</CardDescription>
-            </div>
-            {getStatusBadge(subscription.status)}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
+      {/*
+        LOCKED, WITH THE REASON ON THE SCREEN — not an Edit button that unlocks nothing.
+
+        Every other card on this record now shows a padlock until somebody presses Edit, so a
+        card with no padlock and no button reads as "editable, and the control is missing". The
+        truth is narrower and worth saying: plan, price, billing period and dates are whatever
+        the payment webhook last recorded (golden rule 4), and the way to change them is the
+        actions card below, which drives the gateway first and lets the server mirror it.
+      */}
+      <EditableCard
+        testId="subscription-card"
+        mode="locked"
+        title={
+          <span className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Current Plan
+          </span>
+        }
+        description="Subscription details and billing information"
+        lockedReason="Set by the payment path — plan, price and dates change when Stripe or Mollie says they have. Use the actions below to change a subscription."
+        headerExtra={<div className="pt-1">{getStatusBadge(subscription.status)}</div>}
+      >
+        <div className="space-y-6">
           {/* Plan Details */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="p-4 bg-muted/30 rounded-lg text-center">
@@ -273,8 +282,8 @@ export function SubscriptionTab({ memberId, memberName }: SubscriptionTabProps) 
             — whichever a staff member reaches for first is the one that decides what the member
             pays.
           */}
-        </CardContent>
-      </Card>
+        </div>
+      </EditableCard>
 
       <MemberActionsCard
         memberId={memberId}

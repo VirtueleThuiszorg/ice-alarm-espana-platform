@@ -608,7 +608,8 @@
     "change": "Cambiar",
     "hide": "Ocultar",
     "show": "Mostrar",
-    "remove": "Quitar"
+    "remove": "Quitar",
+    "notAdded": "Sin añadir"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -1138,7 +1139,6 @@
     "additionalNotes": "Notas Adicionales",
     "notesPlaceholder": "Cualquier otra información médica importante...",
     "noneRecorded": "Ninguna registrada",
-    "notAdded": "Sin añadir",
     "chooseBloodType": "Elija",
     "section": {
       "conditions": "Enfermedades y medicación",
@@ -6106,6 +6106,18 @@
     },
     "secondary": {
       "otherAlerts": "{{count}} otra(s) alerta(s) pendiente(s)"
+    },
+    "noRecentFix": "Sin ubicación reciente del colgante: se muestra el domicilio",
+    "home": {
+      "mapHeader": "Ubicación del domicilio",
+      "labelMember": "Ubicación del domicilio (marcada por el miembro el {{date}})",
+      "labelMemberNoDate": "Ubicación del domicilio (marcada por el miembro)",
+      "labelStaff": "Ubicación del domicilio (marcada por nuestro equipo el {{date}})",
+      "labelStaffNoDate": "Ubicación del domicilio (marcada por nuestro equipo)",
+      "labelUnconfirmed": "Ubicación del domicilio (de nuestros registros: no confirmada por el miembro)",
+      "distance": "El colgante está a {{value}} {{unit}} del domicilio",
+      "map": "Mapa",
+      "directions": "Indicaciones"
     }
   },
   "falseAlarm": {
@@ -6370,6 +6382,7 @@
     "tabUpcoming": "Próximos",
     "tabPast": "Anteriores",
     "tabHolidays": "Vacaciones",
+    "tabRequests": "Peticiones",
     "tabBankHolidays": "Festivos",
     "nextWeeks": "Próximas {{count}} semanas",
     "noUpcoming": "Sin turnos programados en las próximas {{count}} semanas",
@@ -6408,5 +6421,102 @@
     "nobodyNext": "nadie en el cuadrante",
     "unaccountedFor": "{{count}} con turno y sin fichar — el monitor de turnos avisa de ausencia por esto",
     "openRota": "Abrir el cuadrante"
+  },
+  "swaps": {
+    "title": "Cambios y coberturas",
+    "pageNote": "Las peticiones que has hecho y las que te han hecho. Nada cambia en el cuadrante hasta que un supervisor lo aprueba.",
+    "askShort": "Cambiar o cubrir",
+    "askAbout": "Pedir a alguien que cubra tu {{shift}}",
+    "dialogTitle": "Pedir a alguien que haga este turno",
+    "whatAreYouAsking": "¿Qué estás pidiendo?",
+    "modeCover": "Cobertura",
+    "modeCoverHelp": "Hacen este turno. No recibes nada a cambio.",
+    "modeSwap": "Cambio",
+    "modeSwapHelp": "Hacen este turno y eligen uno de los suyos para ti. Ellos eligen cuál: no puedes ver su cuadrante.",
+    "whoAreYouAsking": "¿A quién?",
+    "pickPerson": "Elige a alguien",
+    "reasonLabel": "Algo que deban saber (opcional)",
+    "reasonPlaceholder": "Dentista esa mañana",
+    "approvalNote": "El cuadrante no cambia todavía. Primero responden y después lo aprueba un supervisor; se os avisará a los dos.",
+    "send": "Enviar petición",
+    "aSwap": "un cambio",
+    "cover": "una cobertura",
+    "theyAskedYou": "{{name}} te ha pedido {{what}}",
+    "youAsked": "Has pedido {{what}} a {{name}}",
+    "betweenTwo": "{{a}} ha pedido {{what}} a {{b}}",
+    "theShift": "El turno",
+    "inExchangeFor": "A cambio",
+    "giveBack": "Uno de los tuyos a cambio (opcional)",
+    "pickYourShift": "Elige un turno",
+    "accept": "Aceptar",
+    "decline": "Rechazar",
+    "withdraw": "Retirar",
+    "waitingThem": "Esperando la respuesta de {{name}}",
+    "waitingSupervisor": "Aceptado: esperando la aprobación de un supervisor",
+    "approve": "Aprobar y cambiar el cuadrante",
+    "approveFor": "Aprobar el cambio entre {{a}} y {{b}}",
+    "approveMoves": "Los dos están de acuerdo. Al aprobarlo se cambia el cuadrante y se les avisa.",
+    "approveCoverOnly": "Se pidió un cambio y no se ha ofrecido ningún turno a cambio: al aprobarlo se mueve un solo turno, como cobertura.",
+    "awaitingApproval": "Cambios pendientes de aprobación",
+    "noneMine": "No hay peticiones de cambio ni de cobertura",
+    "noneToApprove": "Nada pendiente de aprobación",
+    "status": {
+      "requested": "esperando respuesta",
+      "accepted": "esperando aprobación",
+      "declined": "rechazado",
+      "approved": "aprobado",
+      "applied": "hecho",
+      "cancelled": "retirado"
+    },
+    "toasts": {
+      "requestSent": "Petición enviada",
+      "requestFailed": "No se ha podido enviar la petición",
+      "accepted": "Aceptado: lo tiene que aprobar un supervisor",
+      "declined": "Rechazado",
+      "responseFailed": "No se ha podido guardar",
+      "cancelled": "Retirado",
+      "cancelFailed": "No se ha podido retirar",
+      "approved": "Aprobado: {{count}} turno(s) movido(s)",
+      "alreadyApplied": "Ya estaba aprobado: no se ha movido nada",
+      "approveFailed": "No se ha podido aprobar"
+    }
+  },
+  "homeLocation": {
+    "row": {
+      "title": "Ubicación de su domicilio",
+      "purpose": "El lugar al que enviamos ayuda si su colgante no puede indicarnos dónde está.",
+      "setButton": "Marcar la ubicación de mi domicilio",
+      "openInMaps": "Abrir en Maps",
+      "change": "Cambiar",
+      "setOn": "Marcada el {{date}}",
+      "setDateUnknown": "No tenemos fecha para esta marca.",
+      "mapLabel": "Mapa con la ubicación guardada de su domicilio"
+    },
+    "dialog": {
+      "title": "Marque la ubicación de su domicilio",
+      "purpose": "Este es el lugar al que enviamos ayuda si su colgante no puede indicarnos dónde está.",
+      "useCurrent": "Usar mi ubicación actual",
+      "accuracyOk": "Precisión de unos {{metres}} metros.",
+      "accuracyTooLow": "Su teléfono solo ha podido situarle con unos {{metres}} metros de precisión, y no es suficiente: colóquese en la puerta de su casa e inténtelo de nuevo.",
+      "permissionDenied": "Su dispositivo no nos ha permitido leer su ubicación. Puede colocar la marca en el mapa de abajo.",
+      "gpsError": "No hemos podido leer su ubicación. Puede colocar la marca en el mapa de abajo.",
+      "dragHelp": "Mueva la marca hasta la puerta de su casa. Toque el mapa donde está su puerta o use las flechas.",
+      "mapLabel": "Mapa con la marca de la ubicación de su domicilio",
+      "noStartingPoint": "No hemos encontrado su dirección en el mapa. Use el botón de arriba mientras está en la puerta de su casa.",
+      "nudgeGroup": "Mover la marca en pasos pequeños",
+      "nudge": {
+        "north": "Mover al norte",
+        "south": "Mover al sur",
+        "east": "Mover al este",
+        "west": "Mover al oeste"
+      },
+      "save": "Guardar la ubicación de mi domicilio",
+      "purposeStaff": "El lugar al que un operador envía ayuda cuando el colgante no puede indicarlo. Se registra como una corrección de nuestro equipo, no como una confirmación del propio miembro.",
+      "titleStaff": "Marcar la ubicación del domicilio del miembro",
+      "saveStaff": "Guardar esta ubicación",
+      "dragHelpStaff": "Mueva la marca hasta la puerta del domicilio del miembro. Toque el mapa o use las flechas."
+    },
+    "saved": "Ubicación del domicilio guardada",
+    "saveFailed": "No hemos podido guardar la ubicación de su domicilio."
   }
 }

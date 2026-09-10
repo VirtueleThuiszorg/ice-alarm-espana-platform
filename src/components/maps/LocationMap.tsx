@@ -114,30 +114,6 @@ export function LocationMap({
   );
 }
 
-// Reverse geocoding utility
-export async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
-  try {
-    // Use OpenStreetMap Nominatim for reverse geocoding (free, no API key)
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
-      {
-        headers: {
-          "Accept-Language": "es,en",
-          "User-Agent": "ICE-Alarm-Espana-App"
-        }
-      }
-    );
-    
-    if (!response.ok) return null;
-    
-    const data = await response.json();
-    return data.display_name || null;
-  } catch (error) {
-    console.error("Reverse geocoding error:", error);
-    return null;
-  }
-}
-
 // Location history component
 interface LocationHistoryProps {
   locations: Array<{

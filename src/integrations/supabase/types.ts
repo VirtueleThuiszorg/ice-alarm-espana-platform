@@ -1419,6 +1419,9 @@ export type Database = {
           department: string | null
           groups: string[] | null
           industry: string | null
+          legacy_date_joined: string | null
+          legacy_membership_type: string | null
+          legacy_payment_type: string | null
           member_id: string
           referral_source: string | null
           stage: string | null
@@ -1431,6 +1434,9 @@ export type Database = {
           department?: string | null
           groups?: string[] | null
           industry?: string | null
+          legacy_date_joined?: string | null
+          legacy_membership_type?: string | null
+          legacy_payment_type?: string | null
           member_id: string
           referral_source?: string | null
           stage?: string | null
@@ -1443,6 +1449,9 @@ export type Database = {
           department?: string | null
           groups?: string[] | null
           industry?: string | null
+          legacy_date_joined?: string | null
+          legacy_membership_type?: string | null
+          legacy_payment_type?: string | null
           member_id?: string
           referral_source?: string | null
           stage?: string | null
@@ -3300,6 +3309,14 @@ export type Database = {
           bloque: string | null
           portal: string | null
           escalera: string | null
+          home_lat: number | null
+          home_lng: number | null
+          home_location_accuracy_m: number | null
+          home_location_source:
+            | Database["public"]["Enums"]["home_location_source"]
+            | null
+          home_location_set_at: string | null
+          home_location_set_by: string | null
         }
         Insert: {
           id?: string
@@ -3354,6 +3371,14 @@ export type Database = {
           bloque?: string | null
           portal?: string | null
           escalera?: string | null
+          home_lat?: number | null
+          home_lng?: number | null
+          home_location_accuracy_m?: number | null
+          home_location_source?:
+            | Database["public"]["Enums"]["home_location_source"]
+            | null
+          home_location_set_at?: string | null
+          home_location_set_by?: string | null
         }
         Update: {
           id?: string
@@ -3408,6 +3433,14 @@ export type Database = {
           bloque?: string | null
           portal?: string | null
           escalera?: string | null
+          home_lat?: number | null
+          home_lng?: number | null
+          home_location_accuracy_m?: number | null
+          home_location_source?:
+            | Database["public"]["Enums"]["home_location_source"]
+            | null
+          home_location_set_at?: string | null
+          home_location_set_by?: string | null
         }
         Relationships: [
           {
@@ -6486,6 +6519,7 @@ export type Database = {
           requested_shift_id: string
           status: string
           updated_at: string
+          wants_exchange: boolean
         }
         Insert: {
           accepted_at?: string | null
@@ -6501,6 +6535,7 @@ export type Database = {
           requested_shift_id: string
           status?: string
           updated_at?: string
+          wants_exchange?: boolean
         }
         Update: {
           accepted_at?: string | null
@@ -6516,6 +6551,7 @@ export type Database = {
           requested_shift_id?: string
           status?: string
           updated_at?: string
+          wants_exchange?: boolean
         }
         Relationships: [
           {
@@ -7597,6 +7633,14 @@ export type Database = {
       }
     }
     Functions: {
+      apply_shift_swap: {
+        Args: { p_swap_id: string }
+        Returns: {
+          covers_written: number
+          moved_shifts: number
+          outcome: string
+        }[]
+      }
       check_shift_coverage: {
         Args: { p_end: string; p_start: string }
         Returns: {
@@ -7715,6 +7759,12 @@ export type Database = {
         | "browser_alert"
         | "mobile_call"
         | "emergency_contact_call"
+      home_location_source:
+        | "member_pin"
+        | "member_gps"
+        | "staff_pin"
+        | "geocoded"
+        | "imported"
       import_batch_status:
         | "uploaded"
         | "parsed"
@@ -7979,6 +8029,13 @@ export const Constants = {
         "browser_alert",
         "mobile_call",
         "emergency_contact_call",
+      ],
+      home_location_source: [
+        "member_pin",
+        "member_gps",
+        "staff_pin",
+        "geocoded",
+        "imported",
       ],
       import_batch_status: [
         "uploaded",

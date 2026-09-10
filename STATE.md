@@ -33,6 +33,224 @@ What did **not** change: golden rules 1–10 in `CLAUDE.md`, and **never merge r
 moved; the standard for what may merge did not. Green is now the only gate, which is why the CI
 gates were split one-per-job the same day (below).
 
+## Rota, shifts and holidays — 2026-09-10 · **all six items on main and in production**
+
+Lee's brief: *"Staff see and manage their own shifts; supervisors control everyone's; holiday
+balances correct and Spanish-law compliant."* Nine PRs, one concern each. Every claim below names
+what presses it.
+
+### What is now true
+
+- ✅ **"My shifts" exists for every staff role** (#289, `/call-centre/my-shifts`). Four tabs then
+  five: Upcoming (8 weeks, hours from `SHIFT_BOUNDS`, cover labels), Past (month picker back to
+  the rota's first day, `is_confirmed` + `shift_notes` as evidence), Holidays (own rows +
+  balance), Bank holidays and Requests (#306). Proven by `myShiftsPage.test.tsx`,
+  `shiftSummary.test.ts` and `e2e/myShifts.spec.ts`.
+  **The Past tab never says a shift was "worked"** — the platform holds no attendance record
+  (`staff_presence` is one upserted row describing now; `staff_activity_log` is admin-only), so a
+  shift with neither confirmation nor notes is shown as exactly that. Overstating it would put a
+  number nobody can support in front of a payroll conversation.
+- ✅ **A supervisor can reach the rota** (#288). `/call-centre/rota` mounts the SAME
+  `pages/admin/RotaPage` component — a role gate and `return <AdminRotaPage />`, not a copy — with
+  every editing control live. RLS had said for months that a `call_centre_supervisor` runs the
+  rota; the only rota screen was admin-only, so Mary could not reach what the database already
+  granted her. `rotaAccess.test.tsx` (24 cases) drives the gate from the constant and asserts
+  "same page, not a copy".
+- ✅ **The SOS escalation chain stayed admin-only** (#288). It is not the rota: it is the ladder
+  `sos-escalation-runner` reads to decide who is telephoned when an alert goes unanswered.
+  Widening who may edit it is a change to the SOS path and was not what "give Mary the rota"
+  asked for, so the row and its dialog are hidden AND the query is not run for a supervisor.
+- ✅ **A supervisor sees personnel** (#298, #300). Rota filter by person — which deliberately does
+  NOT filter the coverage banner, because a false "uncovered" caused by somebody's own filter is
+  the fastest way to teach people to ignore the one banner that means a shift has nobody on it.
+  A "who is on now / next" strip on the supervisor dashboard, built on the escalation ladder's own
+  `staff_on_shift_now` + `staff_presence` reads rather than a fork, showing SCHEDULED, ON DUTY and
+  PRESENT as three separate statements — a single green tick would read as covered at the moment
+  `staff-shift-monitor` is raising a no-show. Holiday approvals link each uncovered shift to the
+  cover picker.
+- ✅ **Swaps and cover exist** (#306, rota brief §3 — merged, and in production). The table, six
+  statuses and RLS had been there since the rota landed; there was no UI and no apply step, so an
+  operator wanting Thursday off asked Mary and Mary moved the shift by hand. Now: ask from the
+  shift itself, answer in My shifts → Requests (with the count of what is waiting on you on the
+  tab), approve in a queue on the rota. `apply_shift_swap` moves both shifts and writes the cover
+  rows and the audit row in ONE transaction — a half-applied swap puts two people on one slot and
+  nobody on another, and `staff_on_shift_now`, which the shift monitor reads, agrees with it. It
+  refuses a non-supervisor, an unaccepted swap, a rota that changed underneath, and a swap
+  offering a third person's shift; a second click moves nothing. The bell is written by a database
+  trigger, because an operator cannot call `notify-staff` at all and a browser-raised notification
+  dies with the tab.
+  `wants_exchange` carries which question was asked, and exists because of who can see what: the
+  requester cannot name the shift they would take, since RLS gives an operator its own shift rows
+  only. Only the counterparty can, when they accept.
+  Proven by 558 RLS assertions, 18 client tests asserted on the recorded write rather than a
+  toast, and 10/10 UI mutants killed. **Two bugs found by execution, not by reading**: an assertion
+  written as `apply_as(...) = X AND (SELECT staff_id …) = Y`, where SQL read the shift's owner
+  BEFORE the apply ran (there is no left-to-right guarantee for `AND`), and a bell that called
+  every swap request "cover" because both triggers read `offered_shift_id`, which is NULL until
+  somebody answers.
+- ✅ **Holiday entitlement is 30 días naturales** (ET art. 38.1), and the legal rules are
+  SETTINGS, not code (#295): pro-rata only for a start date inside the year, festivos-inside-a-
+  range default OFF with "confirm with convenio" on the screen, a warning on approving inside two
+  months (art. 38.3 — 59 days warns, 60 does not), carry-over off with the sickness exception as
+  a note. **No pay-out control anywhere**, and a test forbids the phrase outside comments: art.
+  38.1 makes vacaciones non-substitutable by money.
+
+### ✅ LIVE — the balances, and how they got there
+
+The **2026 holiday backfill** (`20260910120000`, #292) was applied to production by
+[Migrate Production run #8](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34488553431)
+on 2026-09-10 at 14:22 UTC. One migration applied, none left pending, manifest recorded on main
+by the bot as `ca51ab9`, and the verdict step read `db push: success · record: success`.
+
+**What the database says, read back by the run itself** — not what the migration claimed:
+
+```
+Albert Soares:  16 used, 0 pending, 14 left of 30
+Carmen Nicolas: 28 used, 0 pending,  2 left of 30
+Mary Bonner:    18 used, 0 pending, 12 left of 30
+Travis Nelison:  0 used, 0 pending, 30 left of 30
+```
+
+That is the sheet's 18 / 28 / 16 used and 12 / 2 / 14 remaining. Carmen's **2** is the number a
+supervisor approving November would previously have seen as roughly 21.
+
+The swap flow's two migrations followed on the merge of #306
+([run #9](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34489927779),
+schema first and functions after it). `check-migration-drift --main` now reports
+**repo: 188 · manifest: 188 · production is level with the repo**, so the drift gate is green on
+main for the first time since the 10th.
+
+**HOW IT GOT UNBLOCKED, because the earlier version of this section was wrong twice.**
+`supabase link` was refused, and I first wrote that off as an expired token. It was not: the same
+token and project ref deployed every edge function 46 minutes later. Only the privilege `link`
+needs was missing — and applying a migration never needed the Management API at all. `migrate.yml`
+now tries `link` first and, when refused, writes the two files `link` would have written (the
+project ref and the IPv4 **pooler** URL, since `db.<ref>.supabase.co` has no A record and runners
+are IPv4) and carries on with every later step unchanged (#313). It shouts a `::warning::`
+whenever that fallback runs, and it ran for both of these migrations.
+
+**Still owed, and it is Lee's**: the Management API itself. `link` was still being refused a
+minute after run #8 — PENDING_FOR_LEE §1, route A. Migrations flow; the API does not.
+
+**"Manifest matches production" no longer sits red waiting for that (#337).** It had its own
+`supabase link` step, so it could not pass while `link` was refused — on any commit, for any
+reason — and a required gate that cannot pass teaches everybody to merge past a red X. Both
+workflows now reach production through one shared script, `scripts/ci/reach-production.sh`, which
+tries `link` first and falls back to the pooler with the same secrecy rules. **From #337 onwards,
+red on that job means something real.**
+
+Worth keeping from the wrong version, because it is a real trap: Migrate Production runs #4, #5
+and #6 are all green and migrated **nothing** — their Apply-migrations job was *skipped*, because
+those pushes touched no migration file. **A green Migrate Production run is not evidence that
+migrating works.**
+
+### Follow-ups, recorded rather than done
+
+- **The RLS harness skips pg_net migrations**, so `20260909130000` (lead emit) and
+  `20260910130100` (swap emit) are never applied by any gate. Applying them with only the
+  `CREATE EXTENSION` line stripped works — bootstrap.sql already stubs `net.http_post` and
+  `vault.decrypted_secrets` — and doing it by hand is how a real bug in the swap emit was found
+  (it titled every swap request "cover"). Making the harness do that would have caught it in CI.
+- `hire_date` is missing for the four operators, so pro-rata cannot be computed for anybody who
+  started mid-year (PENDING_FOR_LEE D-16).
+- The two convenio questions — do festivos inside a holiday range count against vacaciones, and
+  is carry-over allowed — are settings with defaults and notes, awaiting Lee's answer.
+
+---
+
+## Member home location — 2026-09-10 · **the member's front door, and who is allowed to claim it**
+
+Five PRs — #312, #315, #323, #327 and the import one. What is claimed here is what a test presses;
+what is not done is named as not done at the bottom.
+
+### ✅ The rule for which location the SOS card leads with (#312)
+`src/lib/homeLocation.ts` — five outcomes from three inputs (a fix or not, fresh or not, a pin or
+not), and it returns which block is PRIMARY rather than "the location". Two of the five are the
+ones worth arguing about and both are recorded in the module: a stale fix stays on screen when
+home takes over (it is where the pendant *was*), and a stale fix with NO pin stays primary
+(replacing the only location we have with nothing is worse). Threshold 30 minutes.
+Proof: `homeLocation.test.ts` (31), negative-first — home is not primary while the fix is fresh,
+and the card does not claim to be showing home when there is no home.
+
+### ✅ The schema, IN PRODUCTION (#315)
+Six columns on `members` (`home_lat`, `home_lng`, `home_location_accuracy_m`,
+`home_location_source`, `home_location_set_at`, `home_location_set_by`), the
+`home_location_source` enum, three CHECK constraints and `guard_member_home_location()`.
+Applied by
+[Migrate Production run #10](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34502495922)
+and recorded: repo 189, manifest 189, `20260910140000_member_home_location.sql` on the list.
+
+**Written up here because the blockage was real for two hours and the reason it cleared matters.**
+This PR was opened with the drift gate legitimately red: `Migrate Production` could not
+`supabase link` at all, so `20260910120000_holidays_2026_backfill_before_cut.sql` was stranded and
+the stacking gate held every schema PR in the repo. #313 (another session) reached production
+through the IPv4 pooler instead, which cleared the backlog. The migration was then renumbered
+from `20260910130000` to `20260910140000` because `20260910130000_shift_swap_apply_and_bell.sql`
+landed on the same version in the meantime — two migrations sharing a version is the case
+`migrationDrift.test.ts` fails on, and it fails on it because the CLI runs at most one of them and
+records the other as applied without it having been.
+`supabase link` is **still** refused and the fallback shouts every time it runs. The main-only
+"Manifest matches production" job stayed red for that reason until #337 gave it the same fallback;
+it is green now, so red there is no longer expected. Either way it is `PENDING_FOR_LEE.md` §1,
+not this feature.
+
+Proof: `scripts/rls/isolation.sql` +25 checks (551 total) — member A cannot READ
+or OVERWRITE member B's pin; a member cannot record their guess as a staff correction; staff
+cannot claim the member confirmed it; a backdated timestamp and a borrowed id are discarded; a
+provenance-only rewrite raises; a >100 m `member_gps` fix raises and exactly 100 m is accepted;
+`members.status` guard still holds beside the new trigger. Plus
+`memberHomeLocationWrite.test.ts` (24) holding the three copies of the 100 m rule in step.
+
+### ✅ The member marks their own front door (#323)
+"Home location" row on `/dashboard/profile`; a dialog with the browser's own fix or a draggable
+pin; the date it was set on screen, because that is what the operator sees too. A fix worse than
+100 m is REFUSED and the pin does not move to it. Leaflet + OpenStreetMap for the picker and the
+preview — `LocationMap` is a Google **iframe** and an iframe cannot carry a draggable pin;
+the Google links are unchanged. Code-split, so Leaflet is not on the first paint.
+Proof: `memberHomeLocation.test.tsx` (29) and `e2e/memberHomeLocation.spec.ts` (2, real Chromium,
+real Geolocation API): a 20 m fix saves as `member_gps` through `member-self-service` and the
+member sees it on their next visit; a 640 m fix is refused with **nothing sent**.
+
+### ✅ The SOS card, display only
+`SOSSituationPanel` and `AlertDetailPanel` gained a READ and a labelled block. The home pin is
+never merged with the pendant's fix and never shown in its place: whenever a usable fix exists
+the map is the fix, however old. When there is no recent one the card says
+*"No recent pendant location — showing home"* in words, and the distance between the two is on
+screen when both exist — the one line that answers "do I send help to the house?" on its own.
+The label is derived from the provenance, in ONE component, so the two cards cannot disagree:
+`geocoded` and `imported` read *"from our records — not confirmed by the member"*.
+Proof: `sosHomeLocation.test.tsx` (20) and `e2e/sosHomeLocation.spec.ts` (3). The existing SOS
+suites were re-run unchanged and are green (159 assertions across sosDrill, sosEscalation,
+escalationLoop, escalationOutcome, alertOwnership, alertResolution, operatorQueue,
+operatorCardNoContacts).
+
+### ✅ The imported pin, and "recommended" meaning something
+`parseGps` is exported and reused for the `Google Map Link` column — 90 rows have a link and no
+coordinates. Anything written to `home_lat`/`home_lng` must pass a Spain bounding box, because
+"the first decimal pair in a URL" occasionally finds a zoom level. Source is always `imported`
+and the date is always NULL: the import knows when IT ran, not when anybody stood at that door.
+`MEMBER_RECOMMENDED_FIELDS` is a SEPARATE list from `MEMBER_REQUIRED_FIELDS` — a member without a
+pin is not an incomplete record, the missing count does not move, and it cannot travel on the
+member's update link, which needs no login.
+Proof: `memberHomeLocationRecommended.test.ts`.
+
+### What is NOT done, named as undone
+- **No member or staff member has actually set a pin on production.** The columns are there and
+  every path is proven against a real PostgreSQL and a real browser, but the first live one will
+  be the first live one. The honest first test is one member record, set from the staff card
+  during a courtesy call, then read back on a test alert.
+- **No screenshot of the LIVE app.** Every Playwright run here is against the production BUNDLE
+  with Supabase's HTTP surface stubbed. That is what those specs claim and no more: they cannot
+  prove a policy, a constraint or a trigger, which is why the RLS harness exists beside them.
+- `home_location_source = 'geocoded'` is in the enum and **nothing writes it**. Deliberate: the
+  forward geocoder centres the pin picker and its answer is never saved on its own, because a
+  geocoded rooftop in rural Almería is routinely a hundred metres from the gate. The value exists
+  so a future backfill has an honest label to use.
+- The imported pin is **create-only**. A re-import fills it on a member being created and never
+  on one the platform already holds — the guard trigger refuses a staff-authenticated write
+  claiming `imported`, and filling an empty pin from a three-year-old spreadsheet on a live
+  record is the wrong direction anyway. Backfilling those is a deliberate service-role job.
+
 ## CI — 2026-09-09 · **one gate per job; a missing secret fails**
 
 Four gates shared one job — drift, wiring register, typecheck, build, in that order. A failing step
@@ -53,6 +271,232 @@ promise is that main and production run the same code. `scripts/ci/require-secre
 names what is missing. Proven by `src/test/ciJobIsolation.test.ts` (23 assertions, 12 mutations
 killed — including a duplicate gate re-added inside the shared job, which the first version of the
 test missed).
+
+## KarmaCRM import — 2026-09-10 · **works on the real 431-row export; nothing sensitive is stored**
+
+Five PRs (#302, #307, #308, #316, #318). The brief: *"today it turns Lee's clients into incomplete
+CRM contacts with garbled phones and no address, contacts or device."* What is claimed here is what
+a test presses.
+
+### 🔴 THE FINDING THAT REFRAMED THE GOAL: the good mapper existed and nothing imported it
+`src/lib/iceCrmImport.ts` — 910 lines written against the real 147-column export, with 57 tests —
+was imported by **its own test file and nothing else**. The page ran `src/lib/crmImport.ts`, a
+parser written against KarmaCRM's *default* contact export. So the brief's item 1 ("write the
+mapping") was already done and unreachable. Closing the gaps in the existing mapper and wiring the
+page to it beat rebuilding it elsewhere; `crmImport.ts` is now deleted (#316).
+
+### ✅ Nothing sensitive reaches any table (#302)
+`Credit Card Details`, `20 Digit Bank No`, `Private Medical Details`, `Death Funeral Wishes` are
+refused **at the accessor**: `IceRow.get()` returns `""` for them and `IceRow.raw()` omits the keys,
+so `crm_import_rows.raw` has no copy either. Only the *count* of rows that held each is recorded, so
+"94 rows had card data, discarded" is a statement somebody can check. The free-of-charge signal is
+recovered as a **boolean** from the payment columns, never as a value.
+Proof: `crmImportRedaction.test.ts` (21) sweeps the serialised output for the fixture's fake card
+number at any depth; `crmImportPage.test.tsx` sweeps every recorded write.
+**Two regressions this caused were caught by the existing tests, not by review:** `detectFreeOfCharge`
+and `hasSensitivePaymentData` both read the card cell through `get()`, so redaction silently turned
+`is_free_of_charge` false for members who pay nothing. And the first `REDACTED_SET` lowercased its
+keys while `normaliseHeader` does not — the set never matched and **every redaction did nothing**
+while the code read as guarded.
+
+### ✅ A row that cannot be represented honestly does not become a member (#307, #316)
+The old writer invented data to satisfy NOT NULL columns: `imported-…@placeholder.local`, `'N/A'`
+for phone and address, `'TBD'` for a pendant's SIM, `status: 'active'` for all 431 rows, and `'N/A'`
+as the phone of an emergency contact the CRM had named without a number — **a number an operator
+would have been handed mid-SOS**. Now: nine required columns really present or it is a CRM contact
+with the reason attached; no device row without a real SIM (the IMEI becomes a note); no contact
+without a dialable number (the name becomes a note); `status: 'inactive'`, never `active` (golden
+rule 4, D-19).
+Proof: `crmImportWriter.test.ts` (33), `crmImportApply.test.ts` (26).
+
+### ✅ Re-running the import changes nothing (#308, #316)
+Matched on NIE (punctuation- and case-insensitive), then email (lower-cased), then phone — in that
+order, because NIE is a government identifier and a phone is the most shared. Existing members are
+patched **empty fields only**: a street a human corrected is never overwritten, and `status` is
+never patched even when empty. The whole database, snapshotted after run one, is byte-identical
+after run two. Lee's one-row test then the full file leaves **one** David Evans.
+Proof: `crmImportDedupe.test.ts` (20), `crmImportApply.test.ts` (26).
+
+### ✅ The screen shows the plan before anything is written (#316)
+Per row: member / CRM contact / skipped and **why**, with the parsed date of birth, phones,
+emergency contacts and IMEI beside it — shown for the *blocked* rows above all, because "no email"
+must not look like "no data". Reasons totalled across the file. Discarded sensitive columns counted
+per column. Preview exportable as CSV. **The batch row is created when Import is pressed, not on
+file drop.**
+Proof: `crmImportPage.test.tsx` (26), every assertion on the recorded write rather than a toast.
+
+### ✅ Where all 147 columns go, derived rather than asserted (#318)
+`ICE_IMPORT_COLUMN_MAP.md` — 92 mapped, 4 read only as a fallback, 47 kept in raw only, 4 discarded.
+Generated by probing each column **by index** (three columns are called `Membership Type`) and
+diffing the mapped output against a realistic baseline row; the committed document is asserted to
+match, so it cannot go stale without CI saying so.
+Proof: `iceImportColumnMap.test.ts` (7).
+
+### 🟡 Not proved against production data
+Every number in the brief (431 rows, 317 with an address, 338 multi-phone cells, 267 birthdays, 135
+IMEIs) is Lee's measurement of the real file. The fixture is 6 rows carrying one of each shape; the
+real export has never been run through this code, because it holds 431 living people's medical and
+address data and does not belong in the repo. **The first real import should be the one-row David
+Evans test, then the preview CSV read in a spreadsheet, then the file.**
+
+### ⬜ Four decisions recorded rather than taken
+`PENDING_FOR_LEE.md` D-19: three `crm_profiles` columns that do not exist, the absent `legacy`
+member status, `members.email` being `UNIQUE NOT NULL`, and the 47 unmapped columns.
+
+---
+
+## Member CRM record — 2026-09-10 · **read-only by default, and it says what is missing**
+
+Sixteen PRs on the member record (#290, #291, #293, #296, #297, #299, #301, #303, #304, #310,
+#314, #317, #319, #326, #328, #329), plus the #305 and #322 corrections to this section and
+the #333 repair below. What is claimed here is what a test presses; where something is left
+undone it is named as undone.
+
+### ✅ ONE definition of "required" (#290)
+`src/lib/memberRequiredFields.ts` — **21 items**, each carrying WHY it is required (SOS
+response / billing / legal), the sentence a member or a staff member reads, and which source
+asserts it. It replaces **five** disagreeing answers: `readinessGap.ts`, `protectionChecklist.ts`,
+the registration schema, `medicalFields.ts` (which marks nothing required) and an inline list
+inside `MemberUpdateRequestModal` that was written nowhere else. The two real disagreements are
+recorded in the file rather than resolved quietly — NIE/DNI is optional AT SIGN-UP and required
+ON FILE; ONE emergency contact, not two, because the readiness view, the queue and the operator
+card all say one. **Lee's to check:** the list itself, in that file's `MEMBER_REQUIRED_FIELDS`.
+Proof: `memberRequiredFields.test.ts` (26).
+
+### ✅ Locked until Edit — the WHOLE record (#301, #304, #310, #314, #317, #319)
+`EditableCard` — one shell, and the lock is a single `<fieldset disabled>` rather than a
+`disabled` prop on forty inputs, because the forty-first is the one somebody forgets and the
+forgetting is invisible. A refused save keeps the card open with what was typed in it; unsaved
+changes are warned about in-app and by the browser. MedicalTab now writes an audit row (it wrote
+to `medical_information` and left none).
+
+**Every card on the record, in one of three modes:**
+
+| mode | cards | behaviour |
+| --- | --- | --- |
+| `form` | Profile, Medical, Courtesy calls | Edit → Save / Cancel, unsaved-change warning |
+| `manage` | Contacts, Notes, Tasks, Device ×3 | Edit → Done; each row commits itself |
+| `locked` | Subscription details, CRM profile, CRM import | padlock, no Edit, reason on screen |
+
+**CORRECTION to what this section said on 2026-09-10.** It read *"Contacts / Notes / Tasks /
+Device / Subscription needed no change — every field on them already sits inside a dialog"*.
+That was true about FIELDS and missed the point: Add, Edit, Delete, Unassign and Mark Faulty
+were all live the moment those tabs opened. Deleting a member's only emergency contact by a
+stray click on a screen being read down the phone is a life-safety event, not a typo. They are
+now `manage` cards, where Edit arms those controls and Done disarms them — there is no Save,
+because each row already wrote itself and a Save that saves nothing is the same lie as an Edit
+that unlocks nothing.
+
+Three cards hold values NO screen may set (a subscription's plan and price are the payment
+webhook's; an imported CRM profile is what the import saw). They are `locked` with a REQUIRED
+reason — `MEMBER_UX_RULES` R7's rule for fields, applied at card level.
+
+**What stays usable while locked is asserted as hard as what does not:** ringing or WhatsApping
+a contact, searching the notes (moved into the card header so a locked card is still
+searchable), the device links, View Batch. A lock that stops people reading is a lock they turn
+off and leave off.
+
+`EditableCard` moved to `src/components/EditableCard.tsx` (#310) because the member-portal work
+needs the same behaviour; a guard fails the suite if a second implementation appears anywhere
+under `src`. The header's Edit button opens the Profile card rather than landing on a locked one
+(#319) — and that `editSignal` is what finally made the `!locked && wantsEdit` invariant
+killable by a mutation, which it had not been.
+
+Proof: `memberLockedUntilEdit.test.tsx` (14), `courtesyCallsLocked.test.tsx` (5),
+`lockedCards.test.tsx` (6), `manageModeCards.test.tsx` (7).
+
+### ✅ Leaving a half-typed edit is warned about, not silently discarded (#326)
+The tab row and the browser go through one registry. `UnsavedChangesProvider` holds the set of
+dirty card ids in a **ref and nothing else** — an earlier version kept a version counter in
+state, and because each card's effect depended on the context object, one keystroke
+unregistered-and-reregistered itself into an infinite render loop. That loop pegged the event
+loop hard enough that vitest could not fire its own timeout: the runner hung rather than
+failing, which is the worse of the two. The ref version has no state to loop on.
+Proof: `unsavedRegistry.test.tsx`, `unsavedTabChange.test.tsx`.
+
+### ✅ Read mode looks like reading (#328)
+`<fieldset disabled>` stops the typing and changes nothing about the look: a disabled input is
+still a bordered box with a placeholder and a chevron, so a locked record read as a form
+somebody had switched off. One rule in `index.css` scoped to `.editable-card-fields:disabled`
+strips the chrome and keeps **full-contrast** text — WCAG 1.4.3 exempts disabled controls, and
+that exemption is for things you cannot use, not for the primary way of reading a medical record
+down the phone. Placeholders are hidden with it, because "e.g. Penicillin, Shellfish" looks
+exactly like a recorded allergy once the box around it is gone. jsdom applies no stylesheet, so
+the test pins both halves separately — the class on the element, and the rule in `index.css`
+itself; either half alone passes while the feature is broken. Proof: `readModePlainText.test.tsx`
+(7).
+
+### ✅ "After Save the value persists on reload" is a test now (#329)
+It was the one line of the brief still resting on a click-through. Six tests over `ProfileTab`
+against a fake that **holds and mutates a row** rather than swallowing the write: the value is on
+the card after Save, still there on a fresh mount, untouched fields are not blanked, `onUpdate`
+fires so the page re-reads, no discard prompt follows a save, and a cancelled edit puts the old
+value back **on the screen** while writing nothing. Proof: `memberSavePersists.test.tsx` (6).
+
+### 🔴 It broke main for eleven minutes, and the way it broke is worth keeping (#333)
+#327 put `StaffHomeLocationCard` — a react-query consumer — on the Profile tab. #329 renders
+`ProfileTab` bare. Both were green on their own branch, and neither CI run could have seen the
+other's change: #327 ran before #329's test file existed. On the merged result the tab threw
+`No QueryClient set` before the form under test ever mounted, and all six assertions went down.
+
+**They touch no file in common.** The merging rule in CLAUDE.md keys on that — "when more than
+one open PR touches the same large file, merge them serially" — and this pair would have passed
+that check on the way in. The signal that was actually available was cheaper: #327 changed what
+`ProfileTab` renders, and #329 renders `ProfileTab`. A PR that adds a component to a shared page
+is a PR that can break any test which mounts that page, whatever files it lists.
+
+Fixed by wrapping the render in a `QueryClientProvider` (`retry: false`, a fresh client per
+open), **not** by stubbing the one card — stubbing buys a week, and the next react-query card on
+this tab breaks it again the same way. `memberLockedUntilEdit` had the same gap and was fixed
+inside #327. Two sessions diagnosed this independently and wrote the same patch; #333 is the one
+that merged, #335 was closed as a duplicate.
+
+### ✅ Overview and Missing-info pop-ups (#293, #299)
+Overview shows only what we HAVE, in eight groups, empty fields omitted rather than rendered as
+"—", with Copy-as-text and a Print document of its own. Missing-info carries the count as a badge
+read on mount (a number nobody sees until they click is not a warning), every item with its
+reason, requestable items pre-ticked, and what only WE can do shown but not tickable. The count is
+on the members list too — five batched reads per page, and `…` rather than `0` while it is unknown.
+Proof: `memberOverview.test.ts` (16), `memberOverviewDialog.test.tsx` (7),
+`memberMissingInfo.test.tsx` (12).
+
+### ✅ The member's link asks for everything, and can only write what it should (#296, #297)
+`send-member-update-request` used to THROW when the email bounced — the token existed, the link
+worked, and the staff member was told it had failed. It now returns the link with a named outcome
+per channel (SMS when `notify_channel_sms` is on, to the number on the member's own row), and the
+dialog shows the link with a Copy button whatever the transports did.
+`MemberUpdatePage` understood **nine** tokens while the list names **eighteen** a member can
+supply, so a ticked "date of birth" produced a token that asked for it and a page that did not
+mention it. It is now driven from the list, with a ratchet that fails the suite if a requestable
+field has no control. Old tokens (`contacts_count`, `contacts_email`) still work for their 7 days.
+**Security:** `submit-member-update` spread the request body into a `service_role`
+`.update({...member})` — the interface named three fields and the runtime accepted every column on
+`members`, from an anonymous link holder, with RLS not behind it. Whitelisted now, refused keys
+logged and audited. Proof: `memberUpdateRequest.test.ts` (18), `memberUpdateForm.test.ts` (18),
+`memberUpdatePage.test.tsx` (6), `memberUpdateRequestModal.test.tsx` (6).
+
+### ✅ Four controls that were toasts (#303)
+The Messages tab's SMS, WhatsApp, Email and Log Call were each
+`onClick={() => toast.info("… coming soon")}`. All four are wired: `twilio-sms`, `send-email`, a
+`wa.me` handoff that deliberately does NOT claim delivery, and one `member_interactions` row
+carrying the operator's note. That last one revives a dead reader: `communicationLogger.ts`
+exported ten log functions imported by NOTHING while `ActivityTab` and the call-centre alert panel
+both read `member_interactions`. Two register rows moved off DEAD; the still-dead halves
+(billing reminders, the alert/payment/device helpers) still say so. A control walk covers 32
+controls across the twelve tabs, the header and the ⋯ menu, with a sweep that fails on
+"coming soon" or a no-op handler anywhere on the record. Proof: `memberQuickContact.test.tsx` (9),
+`memberCrmControls.test.ts` (57).
+
+### 🟡 Not done, and not claimed
+- **The 12 tabs are brand-red cards** (#291) with a page-scoped token set and a ≥4.5:1 assertion,
+  but active-vs-base is only 1.58, which is why the active tab also carries a ring and an
+  underline. Nobody has looked at it on a real screen.
+- **`dbMessage()`** was added because `error instanceof Error` is FALSE for a PostgrestError, so
+  every `error instanceof Error ? error.message : String(error)` on the record rendered
+  "[object Object]" — including the guard trigger's *"activation is the payment webhook's job"*.
+  Two call sites are fixed. **The same pattern is elsewhere in the app and was not swept.**
+- **`member_interactions` still has no test proving a row reaches `ActivityTab`** end to end; the
+  writer and the reader are each proven alone.
 
 ## Sessions — 2026-09-09 · **the idle logout is gone, and the browser decides**
 

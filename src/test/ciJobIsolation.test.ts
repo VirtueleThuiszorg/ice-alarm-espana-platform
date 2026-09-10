@@ -20,7 +20,16 @@
 // with all four gates back in one job, which is the exact thing it is supposed to prevent.
 
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 
@@ -349,9 +358,60 @@ describe("RULE 2 — a missing secret fails the job, in every workflow", () => {
   it("the DB PASSWORD is never a command-line argument, only env", () => {
     // A password on a command line reaches the process list and any `set -x` log line. The CLI
     // reads it from the environment, so `--password` is never needed.
-    const migrateRaw = stripComments(readFileSync(join(WORKFLOW_DIR, "migrate.yml"), "utf8"));
-    expect(migrateRaw).not.toMatch(/--password/);
-    expect(migrateRaw).not.toMatch(/echo[^\n]*SUPABASE_DB_PASSWORD/);
+    //
+    // EVERY FILE THAT COULD TOUCH IT, not just the workflow. The fallback started life inline in
+    // migrate.yml and moved into scripts/ci/reach-production.sh so ci.yml could share it — and
+    // an assertion that reads only the workflow would have gone green through that move while
+    // covering nothing, because the lines it was written to police had left the file. A guard
+    // that follows the code is the whole difference between this test and decoration.
+    for (const file of [
+      ".github/workflows/migrate.yml",
+      ".github/workflows/ci.yml",
+      "scripts/ci/reach-production.sh",
+    ]) {
+      const raw = stripComments(readFileSync(join(ROOT, file), "utf8"));
+      expect(raw, `${file} passes a password on a command line`).not.toMatch(/--password/);
+      // `printf` leaks exactly as `echo` does and was not covered — a gap found while adding the
+      // pooler fallback, which uses printf to write a 0600 file. Writing a derived, masked value
+      // into a file is fine; EXPANDING the password into anything that prints is not, whichever
+      // command does the printing.
+      expect(raw, `${file} expands the password into something that prints`)
+        .not.toMatch(/(echo|printf)[^\n]*\$\{?SUPABASE_DB_PASSWORD/);
+    }
+  });
+
+  it("ONE implementation of reaching production, used by both workflows", () => {
+    // The reason this PR exists: the manifest check linked its own way, so when link began being
+    // refused the migrate job carried on through the fallback and this gate stayed red on every
+    // push to main. Neither workflow may grow its own `supabase link` again.
+    const script = "scripts/ci/reach-production.sh";
+    expect(existsSync(join(ROOT, script)), "the shared script is gone").toBe(true);
+
+    for (const wf of ["migrate.yml", "ci.yml"]) {
+      const raw = stripComments(readFileSync(join(WORKFLOW_DIR, wf), "utf8"));
+      expect(raw, `${wf} does not use ${script}`).toContain(script);
+      expect(raw, `${wf} still calls supabase link directly — use the shared script`)
+        .not.toMatch(/supabase\s+link/);
+    }
+  });
+
+  it("the shared script tries the Management API FIRST, and shouts when it falls back", () => {
+    // Order matters: restoring the token privilege has to put every caller back on the supported
+    // path with nothing to remember. And a silent fallback would let a degraded path become the
+    // permanent one without anybody deciding that.
+    // ORDER IS ASSERTED BY EXECUTION, in the driven suite below, not here. This was first
+    // written as "the text `supabase link` appears above `pooler.supabase.com` in the file",
+    // and a mutant walked straight through it: `if false && supabase link ...` leaves the text
+    // exactly where it was while never attempting the Management API at all. Text order is not
+    // execution order.
+    const raw = readFileSync(join(ROOT, "scripts/ci/reach-production.sh"), "utf8");
+    expect(raw, "the script never links").toContain("supabase link --project-ref");
+    expect(raw, "the script has no fallback").toContain("pooler.supabase.com");
+    expect(raw).toContain("::warning title=Reached production WITHOUT the Management API");
+    // The URL file carries the password: 0600, and removed when no host authenticated.
+    expect(raw).toContain("chmod 600 supabase/.temp/pooler-url");
+    expect(raw).toContain("rm -f supabase/.temp/pooler-url");
+    expect(raw).toContain("::add-mask::");
   });
 });
 
@@ -635,5 +695,107 @@ describe("RULE 5 — the manifest is checked against production itself, on main 
   it("the drift gate still runs everywhere, so PRs keep their file-based check", () => {
     // The two halves are complementary: this one is unconditional, the truth check is main-only.
     expect(stripComments(ciJobs.get("migration-drift")!)).not.toMatch(/^\s+if:/m);
+  });
+});
+
+// ── and the same script DRIVEN, because reading it proved too little ────────────────────────
+//
+// This script now gates two workflows, so what matters is what it DOES: which path it takes,
+// what it writes, and what it leaves behind when it cannot connect. A stubbed `supabase` on PATH
+// makes all three observable without touching production — the same "driven, not read" shape as
+// the require-secrets suite above, and the reason it exists is a mutant that survived the
+// source-reading version of the order assertion.
+describe("reach-production.sh, driven with a stubbed CLI", () => {
+  const SCRIPT = join(ROOT, "scripts/ci/reach-production.sh");
+
+  /**
+   * Run the real script in a throwaway directory with a fake `supabase` first on PATH.
+   * `linkOk` decides whether the Management API answers; `poolerHost` is the one host whose
+   * `migration list` authenticates (undefined = none of them do).
+   */
+  const drive = (opts: { linkOk: boolean; poolerHost?: string }) => {
+    const dir = mkdtempSync(join(tmpdir(), "reachprod-"));
+    const bin = join(dir, "bin");
+    mkdirSync(bin);
+    const stub = opts.linkOk
+      ? `#!/usr/bin/env bash\n[ "$1" = "link" ] && { echo "Finished supabase link."; exit 0; }\necho "unexpected: $*" >&2; exit 9\n`
+      : `#!/usr/bin/env bash\n` +
+        `[ "$1" = "link" ] && { echo "Authorization failed for the access token and project ref pair" >&2; exit 1; }\n` +
+        `if [ "$1" = "migration" ] && [ "$2" = "list" ]; then\n` +
+        `  grep -q "${opts.poolerHost ?? "__none__"}" supabase/.temp/pooler-url 2>/dev/null || { echo "auth failed on this host" >&2; exit 1; }\n` +
+        `  echo "20260101000000 | 20260101000000 | applied"; exit 0\n` +
+        `fi\n` +
+        `echo "unexpected: $*" >&2; exit 9\n`;
+    writeFileSync(join(bin, "supabase"), stub, { mode: 0o755 });
+
+    const outFile = join(dir, "gh_output");
+    writeFileSync(outFile, "");
+    let status = 0;
+    let output = "";
+    try {
+      output = execFileSync("bash", [SCRIPT, "check the manifest"], {
+        cwd: dir,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        env: {
+          PATH: `${bin}:${process.env.PATH ?? ""}`,
+          SUPABASE_PROJECT_REF: "testref",
+          SUPABASE_DB_PASSWORD: "p@ss/word:with#specials",
+          GITHUB_OUTPUT: outFile,
+        },
+      });
+    } catch (e) {
+      const err = e as { status?: number; stdout?: string; stderr?: string };
+      status = err.status ?? 1;
+      output = `${err.stdout ?? ""}${err.stderr ?? ""}`;
+    }
+    return {
+      status,
+      output,
+      outputs: readFileSync(outFile, "utf8"),
+      urlPath: join(dir, "supabase/.temp/pooler-url"),
+    };
+  };
+
+  it("uses the Management API when it works, and never touches the pooler", () => {
+    const r = drive({ linkOk: true });
+    expect(r.status).toBe(0);
+    expect(r.outputs).toContain("mode=linked");
+    // THE MUTANT THAT GOT THROUGH THE SOURCE-READING VERSION: link must be ATTEMPTED FIRST, so
+    // restoring the token privilege silently returns every caller to the supported path.
+    expect(r.output).not.toContain("probing");
+    expect(existsSync(r.urlPath), "wrote a pooler URL despite link succeeding").toBe(false);
+  });
+
+  it("falls back past a host that refuses, and says so loudly", () => {
+    const r = drive({ linkOk: false, poolerHost: "aws-1-eu-west-1" });
+    expect(r.status).toBe(0);
+    expect(r.outputs).toContain("mode=pooler");
+    expect(r.outputs).toContain("host=aws-1-eu-west-1.pooler.supabase.com");
+    // Probed in order and kept the one that answered — which host serves a project is not
+    // derivable, so guessing one would be a coin flip.
+    expect(r.output).toContain("probing aws-0-eu-west-1");
+    expect(r.output).toContain("probing aws-1-eu-west-1");
+    expect(r.output).toContain("::warning title=Reached production WITHOUT the Management API");
+  });
+
+  it("writes the URL 0600, percent-encoded, and never the raw password", () => {
+    const r = drive({ linkOk: false, poolerHost: "aws-1-eu-west-1" });
+    expect(statSync(r.urlPath).mode & 0o777).toBe(0o600);
+    const url = readFileSync(r.urlPath, "utf8");
+    expect(url, "the RAW password reached the file").not.toContain("p@ss/word:with#specials");
+    expect(url).toContain("p%40ss%2Fword%3Awith%23specials");
+    // And the encoded form is masked before it is used, so it cannot surface in a log line.
+    expect(r.output).toContain("::add-mask::p%40ss%2Fword%3Awith%23specials");
+  });
+
+  it("when nothing authenticates: fails, removes the URL, and names what it could not do", () => {
+    const r = drive({ linkOk: false });
+    expect(r.status).toBe(1);
+    expect(existsSync(r.urlPath), "left a password file behind after failing").toBe(false);
+    expect(r.output).toContain("Cannot reach production at all");
+    // The caller's own words, so the error says which job stopped and why.
+    expect(r.output).toContain("cannot check the manifest");
+    expect(r.outputs, "claimed a mode it never reached").not.toContain("mode=");
   });
 });

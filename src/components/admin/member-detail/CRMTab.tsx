@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { FileText, Tag, Users, ExternalLink, Loader2, Send } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { CourtesyCallsCard } from "./CourtesyCallsCard";
+import { EditableCard } from "@/components/EditableCard";
 import { MemberUpdateRequestModal } from "./MemberUpdateRequestModal";
 
 interface CRMProfile {
@@ -21,6 +22,9 @@ interface CRMProfile {
   groups: string[] | null;
   updated_at: string;
   assigned_to_staff_id: string | null;
+  legacy_membership_type: string | null;
+  legacy_payment_type: string | null;
+  legacy_date_joined: string | null;
 }
 
 interface ImportRow {
@@ -209,29 +213,38 @@ export function CRMTab({ memberId }: CRMTabProps) {
 
       {/* CRM Profile */}
       {profile && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+        /*
+          LOCKED, WITH ITS REASON. This is what the CRM export said about them; typing over it
+          here would change nothing at the source and would leave two records disagreeing with
+          no way to tell which was edited.
+        */
+        <EditableCard
+          testId="crm-profile-card"
+          mode="locked"
+          title={
+            <span className="flex items-center gap-2">
               <Users className="h-5 w-5" />
               CRM Profile
-            </CardTitle>
-            <CardDescription>
-              Last updated: {new Date(profile.updated_at).toLocaleDateString()}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </span>
+          }
+          description={`Last updated: ${new Date(profile.updated_at).toLocaleDateString()}`}
+          lockedReason="Comes from the CRM import. Changing it here would not change the source it came from — edit the member's own fields on the other tabs instead."
+        >
+          <div className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Stage</p>
-                <p className="font-medium">
+                {/* A <div>, not a <p>: Badge renders a div, and a div inside a p is invalid
+                    HTML that React warns about and browsers silently reparent. */}
+                <div className="font-medium">
                   {profile.stage ? <Badge variant="secondary">{profile.stage}</Badge> : "-"}
-                </p>
+                </div>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Status</p>
-                <p className="font-medium">
+                <div className="font-medium">
                   {profile.status ? <Badge variant="outline">{profile.status}</Badge> : "-"}
-                </p>
+                </div>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Referral Source</p>
@@ -250,6 +263,44 @@ export function CRMTab({ memberId }: CRMTabProps) {
                 </div>
               )}
             </div>
+
+            {/* What KARMA billed them, which is not what this platform charges. Shown as its own
+                block with that said on it, because a membership type beside a stage reads like a
+                plan this system owns — and acting on it as one is how somebody gets treated as
+                paying for a subscription that does not exist here. Rendered only when there is
+                something to show: an empty "Legacy billing" heading on 300 records is noise. */}
+            {(profile.legacy_membership_type ||
+              profile.legacy_payment_type ||
+              profile.legacy_date_joined) && (
+              <>
+                <Separator />
+                <div data-testid="crm-legacy-membership">
+                  <p className="text-sm font-medium mb-1">From KarmaCRM</p>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    What Karma recorded, verbatim. Not a subscription this platform charges — see
+                    Payments for that.
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Membership type</p>
+                      <p className="font-medium">{profile.legacy_membership_type || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Payment type</p>
+                      <p className="font-medium">{profile.legacy_payment_type || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Joined</p>
+                      <p className="font-medium">
+                        {profile.legacy_date_joined
+                          ? new Date(profile.legacy_date_joined).toLocaleDateString()
+                          : "-"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
 
             {profile.tags && profile.tags.length > 0 && (
               <>
@@ -285,42 +336,50 @@ export function CRMTab({ memberId }: CRMTabProps) {
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </EditableCard>
       )}
 
       {/* Import Information */}
       {importRow && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+        <EditableCard
+          testId="crm-import-card"
+          mode="locked"
+          title={
+            <span className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
               Import Information
-            </CardTitle>
-            <CardDescription>
-              This member was imported from a CRM export
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </span>
+          }
+          description="This member was imported from a CRM export"
+          lockedReason="A record of what the import saw on the day it ran. It is history — it does not change, and nothing here writes back to the batch."
+          headerExtra={
+            /*
+              OUTSIDE THE FIELDSET on purpose: a disabled fieldset makes every button inside it
+              inert, and this one only navigates. Locking a card must not lock the way out of
+              it.
+            */
+            importBatch ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={() => navigate("/admin/crm-import/batches")}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View Batch
+              </Button>
+            ) : null
+          }
+        >
+          <div className="space-y-4">
             {importBatch && (
               <div className="bg-muted rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{importBatch.filename}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Source: {importBatch.source} · Imported:{" "}
-                      {new Date(importBatch.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate("/admin/crm-import/batches")}
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    View Batch
-                  </Button>
-                </div>
+                <p className="font-medium">{importBatch.filename}</p>
+                <p className="text-sm text-muted-foreground">
+                  Source: {importBatch.source} · Imported:{" "}
+                  {new Date(importBatch.created_at).toLocaleDateString()}
+                </p>
               </div>
             )}
 
@@ -347,8 +406,8 @@ export function CRMTab({ memberId }: CRMTabProps) {
                 {JSON.stringify(importRow.raw, null, 2)}
               </pre>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </EditableCard>
       )}
 
       {/* Modal */}

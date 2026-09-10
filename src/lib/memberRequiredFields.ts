@@ -504,6 +504,69 @@ export function missingRequiredCount(input: MemberRecordForRequiredCheck): numbe
   return missingRequiredFields(input).length;
 }
 
+/**
+ * RECOMMENDED, WHICH IS NOT THE SAME AS REQUIRED — and the difference is enforced, not
+ * described.
+ *
+ * A member without a home-location pin is NOT an incomplete record. `missingRequiredFields()`
+ * does not look at this list, `missingRequiredCount()` does not count it, and the badge on the
+ * members list does not move because of it. What it does do is appear in the Missing-info dialog
+ * as a suggestion, and travel on the member's own update link if somebody ticks it.
+ *
+ * WHY IT IS NOT REQUIRED, given the SOS card leans on it. Because making it required would put a
+ * red count on 431 imported records for something only the member can supply, on a screen staff
+ * read to decide what to chase today — and a count that is permanently non-zero is a count
+ * people learn to ignore. The address is already required; the pin is the address made precise.
+ *
+ * WHY IT IS NOT MERELY OPTIONAL EITHER. An EV07B indoors usually has no fix, and the typed
+ * address in rural Almería is regularly a property a driver cannot find at night. Somebody has
+ * to be prompted to ask, and the Missing-info dialog is where staff look.
+ *
+ * SEPARATE LIST, NOT A FLAG ON THE ONE ABOVE. `MEMBER_REQUIRED_FIELDS` is pinned by its own
+ * tests and read by the update-link vocabulary; a `recommended: true` member of it would have
+ * to be filtered out at every one of those call sites, and the one that forgot would silently
+ * make it required. A list that is never passed to the required check cannot become required by
+ * accident.
+ */
+export const MEMBER_RECOMMENDED_FIELDS: readonly RequiredField[] = [
+  {
+    key: "home_location",
+    group: "address",
+    label: { key: "required.field.homeLocation", fallback: "Home location (map pin)" },
+    why: "sos",
+    because: {
+      key: "required.why.homeLocation",
+      fallback:
+        "A pendant indoors usually has no GPS fix, and indoors is where falls happen. A pin the member has confirmed on their own front door is where we send help when the pendant cannot say.",
+    },
+    memberCanSupply: true,
+    derivedFrom: "members.home_lat/home_lng (20260910130000); SOS card fallback, RECOMMENDED not required",
+  },
+];
+
+/**
+ * Which recommended items this member has not got.
+ *
+ * Deliberately a DIFFERENT function from `missingRequiredFields`, taking the same input, so a
+ * caller has to ask for suggestions on purpose. A null member row is not a gap, for the same
+ * reason as above: a badge that reads "1 suggestion" while the query is in flight is a badge
+ * staff learn to ignore.
+ */
+export function missingRecommendedFields(
+  input: MemberRecordForRequiredCheck,
+): RequiredField[] {
+  if (!input.member) return [];
+  const m = input.member;
+  /*
+    A PIN IS BOTH COORDINATES AND A SOURCE. Coordinates with no `home_location_source` are
+    refused by the database (`members_home_location_complete`) and would be refused by the SOS
+    card too — it cannot label an unattributed pin honestly — so "has a pin" means all three.
+  */
+  const hasPin =
+    present(m.home_lat) && present(m.home_lng) && present(m.home_location_source);
+  return hasPin ? [] : [...MEMBER_RECOMMENDED_FIELDS];
+}
+
 /** Grouped for the dialog, in `REQUIRED_GROUPS` order, empty groups omitted. */
 export function groupRequiredFields(
   fields: readonly RequiredField[],

@@ -26,6 +26,7 @@ import {
   mapProvince,
   mapGender,
   normaliseHeader,
+  splitContactName,
   summarise,
   type MappedRow,
 } from "@/lib/iceCrmImport";
@@ -85,7 +86,11 @@ describe("duplicate headers do not destroy data", () => {
 describe("the member address is the HOME address", () => {
   it("never uses the 'Postal Address (If Different)' block for the member", () => {
     const row = byId("900001");
-    expect(row.member.address_line_1).toBe("Calle Ficticia 1");
+    // "Apt 3 - 2nd Floor" is the House Number column, now joined onto LINE 1 ahead of the
+    // street. It used to sit on line 2; Lee's measurement of the real file puts it on line 1,
+    // and an ambulance is given line 1. The point of THIS test is unchanged and still holds:
+    // the address comes from the Home* block, not from "Postal Address (If Different)".
+    expect(row.member.address_line_1).toBe("Apt 3 - 2nd Floor Calle Ficticia 1");
     expect(row.member.city).toBe("Almeria");
     expect(row.member.postal_code).toBe("04001");
     // Albox is the postal address. Sending an ambulance there is the bug.
@@ -102,8 +107,11 @@ describe("the member address is the HOME address", () => {
     });
   });
 
-  it("puts the house number ahead of the second street line", () => {
-    expect(byId("900001").member.address_line_2).toBe("Apt 3 - 2nd Floor, Bloque B");
+  it("leaves line 2 to the second street line, house number having moved to line 1", () => {
+    // Rewritten rather than deleted: this asserted the previous design, where House Number led
+    // line 2. It now leads line 1 (see above), so line 2 is just "Home Street 2".
+    expect(byId("900001").member.address_line_2).toBe("Bloque B");
+    expect(byId("900001").member.address_line_1).toContain("Apt 3 - 2nd Floor");
   });
 });
 
@@ -286,8 +294,31 @@ describe("contacts and access", () => {
     expect(keyHolder?.contactName).toBe("Neighbour Nine");
   });
 
-  it("never invents a relationship the CRM does not have", () => {
-    expect(byId("900001").contacts[0].relationship).toBe("Unknown");
+  it("takes the relationship out of the brackets, and says Other when there are none", () => {
+    // This asserted "Unknown" for every contact, reasoning that the CRM has no relationship
+    // column and one should never be invented. The instinct was right and the conclusion wrong:
+    // the relationship is not missing, it is in the same cell as the name — "Susan Smith
+    // (Sister in UK)". Nothing is invented here; the bracket contents are taken verbatim and
+    // "Other" is used only when there are no brackets at all.
+    //
+    // An operator reading "Susan Smith - Unknown" beside a number is worse off than one
+    // reading "Susan Smith - Sister in UK", and the brackets were being read out as part of
+    // the name.
+    expect(splitContactName("Susan Smith (Sister in UK)")).toEqual({
+      name: "Susan Smith",
+      relationship: "Sister in UK",
+    });
+    expect(splitContactName("Peter Smith")).toEqual({
+      name: "Peter Smith",
+      relationship: "Other",
+    });
+    // "(?)" tells us nothing and must not be presented as a relationship.
+    expect(splitContactName("Someone (?)")).toEqual({
+      name: "Someone",
+      relationship: "Other",
+    });
+    // The fixture's own contact has no brackets.
+    expect(byId("900001").contacts[0].relationship).toBe("Other");
   });
 
   it("flags a contact number with no name instead of discarding it", () => {
@@ -313,9 +344,26 @@ describe("billing: FOC survives, card data does not", () => {
     expect(row.warnings.join(" ")).toMatch(/card\/bank data/);
   });
 
-  it("keeps the raw row available for admin review", () => {
-    // crm_import_rows.raw is the audited home for anything we refuse to map.
-    expect(JSON.stringify(byId("900002").raw)).toContain("4111");
+  it("does NOT keep the card number in the raw row — the policy reversed", () => {
+    // This assertion used to be the opposite: "crm_import_rows.raw is the audited home for
+    // anything we refuse to map". That was the wrong call and Lee reversed it. `raw` is a jsonb
+    // column staff can read, 94 rows of the real export carry card details, and "audited home"
+    // described a place the platform had no business storing them at all.
+    //
+    // Rewritten rather than deleted, so the change of policy is visible in the history of the
+    // test that asserted the old one.
+    const raw = JSON.stringify(byId("900002").raw);
+    expect(raw).not.toContain("4111");
+    expect(Object.keys(byId("900002").raw)).not.toContain("Credit Card Details");
+    // The rest of the row is still archived — this is a redaction, not an amputation.
+    expect(raw).toContain("Bruno");
+  });
+
+  it("still WARNS that the row carried card data, and says it was discarded", () => {
+    const row = byId("900002");
+    expect(row.warnings.join(" ")).toMatch(/card\/bank data/);
+    expect(row.warnings.join(" ")).toMatch(/DISCARDED/);
+    expect(row.discardedSensitive).toContain("Credit Card Details");
   });
 
   it("reads the join date and billing metadata", () => {
@@ -361,6 +409,13 @@ describe("fields the old importer never mapped at all", () => {
     const m = byId("900001").member;
     expect(m.gps_lat).toBeCloseTo(36.8341, 4);
     expect(m.gps_lng).toBeCloseTo(-2.4638, 4);
+    /*
+      AND THE SAME POINT BECOMES THE HOME PIN. `gps_lat`/`gps_lng` are the verbatim CRM value;
+      `home_lat`/`home_lng` are what the SOS card falls back to, and they are only written when
+      the pair parses to somewhere plausibly in Spain. Both, from one parse.
+    */
+    expect(m.home_lat).toBeCloseTo(36.8341, 4);
+    expect(m.home_lng).toBeCloseTo(-2.4638, 4);
     expect(m.map_link).toMatch(/^https:/);
   });
 
@@ -393,6 +448,15 @@ describe("batch summary", () => {
       excluded: 1,
       deceased: 1,
       needingReview: 4,
+      // New: what the import threw away, by column, so the report can say so out loud.
+      // Measured from the fixture, not assumed — my first guess was one card row and it is two,
+      // plus a bank number, a private-medical cell and a funeral-wishes cell.
+      discardedSensitive: {
+        "Credit Card Details": 2,
+        "20 Digit Bank No": 1,
+        "Private Medical Details": 1,
+        "Death Funeral Wishes": 1,
+      },
     });
   });
 });

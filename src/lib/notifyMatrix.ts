@@ -63,6 +63,9 @@ export const EVENT_SPECS: readonly EventSpec[] = [
   { event: "shift.no_show", group: "shifts", label: "Somebody has not signed in for their shift", detail: "Their shift started and they are not on duty." },
   { event: "shift.no_coverage", group: "shifts", label: "Nobody is on duty", detail: "No operator is signed in. Immediate cover is needed." },
   { event: "shift.disconnected", group: "shifts", label: "An operator lost connection mid-shift", detail: "They were on duty and their heartbeat stopped." },
+  { event: "shift.swap_requested", group: "shifts", label: "Somebody asked you to swap or cover a shift", detail: "Goes to the person being asked. Their answer is what the requester is waiting on." },
+  { event: "shift.swap_accepted", group: "shifts", label: "A swap was accepted and needs approving", detail: "Goes to the person who asked, and to everyone who can approve it. Nothing has moved on the rota yet." },
+  { event: "shift.swap_approved", group: "shifts", label: "A shift swap was approved", detail: "Goes to both people. The rota they turn up to has changed." },
 
   // ── the safety machinery itself ───────────────────────────────────────────
   { event: "system.runner_failure", group: "safety", label: "A safety runner has failed", detail: "The escalation or monitoring runner is not running. The SOS ladder may be down." },

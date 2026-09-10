@@ -608,7 +608,8 @@
     "change": "Wijzigen",
     "hide": "Verbergen",
     "show": "Tonen",
-    "remove": "Verwijderen"
+    "remove": "Verwijderen",
+    "notAdded": "Niet toegevoegd"
   },
   "auth": {
     "login": "Inloggen",
@@ -1138,7 +1139,6 @@
     "additionalNotes": "Additional Notes",
     "notesPlaceholder": "Any other important medical information...",
     "noneRecorded": "None recorded",
-    "notAdded": "Niet toegevoegd",
     "chooseBloodType": "Kies",
     "section": {
       "conditions": "Aandoeningen en medicatie",
@@ -6106,6 +6106,18 @@
     },
     "secondary": {
       "otherAlerts": "{{count}} other pending alert(s)"
+    },
+    "noRecentFix": "Geen recente locatie van de hanger — de woning wordt weergegeven",
+    "home": {
+      "mapHeader": "Locatie van de woning",
+      "labelMember": "Locatie van de woning (ingesteld door het lid op {{date}})",
+      "labelMemberNoDate": "Locatie van de woning (ingesteld door het lid)",
+      "labelStaff": "Locatie van de woning (ingesteld door ons team op {{date}})",
+      "labelStaffNoDate": "Locatie van de woning (ingesteld door ons team)",
+      "labelUnconfirmed": "Locatie van de woning (uit onze administratie — niet bevestigd door het lid)",
+      "distance": "De hanger is {{value}} {{unit}} van de woning",
+      "map": "Kaart",
+      "directions": "Route"
     }
   },
   "falseAlarm": {
@@ -6370,6 +6382,7 @@
     "tabUpcoming": "Aankomend",
     "tabPast": "Afgelopen",
     "tabHolidays": "Vakantie",
+    "tabRequests": "Verzoeken",
     "tabBankHolidays": "Feestdagen",
     "nextWeeks": "Komende {{count}} weken",
     "noUpcoming": "Geen diensten ingepland in de komende {{count}} weken",
@@ -6408,5 +6421,102 @@
     "nobodyNext": "niemand op het rooster",
     "unaccountedFor": "{{count}} ingepland en niet ingeklokt — de dienstmonitor meldt hiervoor een no-show",
     "openRota": "Open het rooster"
+  },
+  "swaps": {
+    "title": "Ruilen en waarnemen",
+    "pageNote": "Verzoeken die je hebt gedaan en verzoeken aan jou. Er verandert niets in het rooster totdat een supervisor het goedkeurt.",
+    "askShort": "Ruilen of waarnemen",
+    "askAbout": "Iemand vragen jouw {{shift}} over te nemen",
+    "dialogTitle": "Iemand vragen deze dienst over te nemen",
+    "whatAreYouAsking": "Waar vraag je om?",
+    "modeCover": "Waarnemen",
+    "modeCoverHelp": "Zij nemen deze dienst over. Je krijgt er niets voor terug.",
+    "modeSwap": "Ruilen",
+    "modeSwapHelp": "Zij nemen deze dienst over en kiezen een van hun diensten voor jou. Zij kiezen welke — jij kunt hun rooster niet zien.",
+    "whoAreYouAsking": "Wie?",
+    "pickPerson": "Kies iemand",
+    "reasonLabel": "Iets wat ze moeten weten (optioneel)",
+    "reasonPlaceholder": "Die ochtend naar de tandarts",
+    "approvalNote": "Het rooster verandert nog niet. Zij antwoorden eerst en daarna keurt een supervisor het goed — jullie krijgen er beiden bericht van.",
+    "send": "Verzoek versturen",
+    "aSwap": "een ruil",
+    "cover": "waarnemen",
+    "theyAskedYou": "{{name}} heeft je om {{what}} gevraagd",
+    "youAsked": "Je hebt {{name}} om {{what}} gevraagd",
+    "betweenTwo": "{{a}} heeft {{b}} om {{what}} gevraagd",
+    "theShift": "De dienst",
+    "inExchangeFor": "In ruil",
+    "giveBack": "Een van jouw diensten in ruil (optioneel)",
+    "pickYourShift": "Kies een dienst",
+    "accept": "Accepteren",
+    "decline": "Afwijzen",
+    "withdraw": "Intrekken",
+    "waitingThem": "Wachten op antwoord van {{name}}",
+    "waitingSupervisor": "Geaccepteerd — wachten op goedkeuring van een supervisor",
+    "approve": "Goedkeuren en het rooster aanpassen",
+    "approveFor": "De ruil tussen {{a}} en {{b}} goedkeuren",
+    "approveMoves": "Beiden zijn het eens. Goedkeuren past het rooster aan en laat het hen weten.",
+    "approveCoverOnly": "Er is om een ruil gevraagd en er is geen dienst terug aangeboden — goedkeuren verplaatst één dienst, als waarneming.",
+    "awaitingApproval": "Ruilverzoeken die op goedkeuring wachten",
+    "noneMine": "Geen ruil- of waarneemverzoeken",
+    "noneToApprove": "Niets dat op goedkeuring wacht",
+    "status": {
+      "requested": "wacht op antwoord",
+      "accepted": "wacht op goedkeuring",
+      "declined": "afgewezen",
+      "approved": "goedgekeurd",
+      "applied": "klaar",
+      "cancelled": "ingetrokken"
+    },
+    "toasts": {
+      "requestSent": "Verzoek verstuurd",
+      "requestFailed": "Kon dat verzoek niet versturen",
+      "accepted": "Geaccepteerd — een supervisor moet het goedkeuren",
+      "declined": "Afgewezen",
+      "responseFailed": "Kon dat niet opslaan",
+      "cancelled": "Ingetrokken",
+      "cancelFailed": "Kon het niet intrekken",
+      "approved": "Goedgekeurd — {{count}} dienst(en) verplaatst",
+      "alreadyApplied": "Was al goedgekeurd — er is niets verplaatst",
+      "approveFailed": "Kon het niet goedkeuren"
+    }
+  },
+  "homeLocation": {
+    "row": {
+      "title": "Locatie van uw woning",
+      "purpose": "Hier sturen wij hulp naartoe als uw hanger niet kan doorgeven waar u bent.",
+      "setButton": "Locatie van mijn woning instellen",
+      "openInMaps": "Openen in Maps",
+      "change": "Wijzigen",
+      "setOn": "Ingesteld op {{date}}",
+      "setDateUnknown": "Wij hebben geen datum voor deze speld.",
+      "mapLabel": "Kaart met de opgeslagen locatie van uw woning"
+    },
+    "dialog": {
+      "title": "Stel de locatie van uw woning in",
+      "purpose": "Hier sturen wij hulp naartoe als uw hanger niet kan doorgeven waar u bent.",
+      "useCurrent": "Mijn huidige locatie gebruiken",
+      "accuracyOk": "Nauwkeurig tot ongeveer {{metres}} meter.",
+      "accuracyTooLow": "Uw telefoon kon u slechts tot ongeveer {{metres}} meter nauwkeurig bepalen, en dat is niet nauwkeurig genoeg — gaat u bij uw voordeur staan en probeert u het opnieuw.",
+      "permissionDenied": "Uw apparaat heeft ons niet toegestaan uw locatie te lezen. U kunt de speld hieronder zelf op de kaart zetten.",
+      "gpsError": "Wij konden uw locatie niet lezen. U kunt de speld hieronder zelf op de kaart zetten.",
+      "dragHelp": "Zet de speld op uw voordeur. Tik op de kaart waar uw deur is, of gebruik de pijlen.",
+      "mapLabel": "Kaart met de speld voor de locatie van uw woning",
+      "noStartingPoint": "Wij konden uw adres niet op de kaart vinden. Gebruikt u de knop hierboven terwijl u bij uw voordeur staat.",
+      "nudgeGroup": "De speld in kleine stappen verplaatsen",
+      "nudge": {
+        "north": "Naar het noorden",
+        "south": "Naar het zuiden",
+        "east": "Naar het oosten",
+        "west": "Naar het westen"
+      },
+      "save": "Locatie van mijn woning opslaan",
+      "purposeStaff": "De plek waar een operator hulp naartoe stuurt als de hanger het niet kan doorgeven. Wordt vastgelegd als een correctie van ons team, niet als een bevestiging door het lid zelf.",
+      "titleStaff": "De woninglocatie van het lid instellen",
+      "saveStaff": "Deze locatie opslaan",
+      "dragHelpStaff": "Zet de speld op de voordeur van het lid. Tik op de kaart of gebruik de pijlen."
+    },
+    "saved": "Locatie van de woning opgeslagen",
+    "saveFailed": "Wij konden de locatie van uw woning niet opslaan."
   }
 }

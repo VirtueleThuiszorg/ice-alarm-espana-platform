@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Check, Loader2, Send } from "lucide-react";
+import { AlertTriangle, Check, Lightbulb, Loader2, MapPin, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -66,6 +66,14 @@ export function MemberMissingInfoDialog({ member }: MemberMissingInfoDialogProps
   useMemberMissingInfoRealtime(member.id);
   const missing = data?.missing ?? [];
   const count = data?.count ?? 0;
+  /*
+    SUGGESTIONS, NOT GAPS. `recommended` is deliberately NOT part of `count` — see
+    MEMBER_RECOMMENDED_FIELDS. It is also NOT pre-ticked and NOT sendable: the one item on it is
+    the home-location pin, and the member sets that from their own dashboard, signed in. Putting
+    a map picker behind an anonymous update-link token would let whoever holds that link decide
+    where an ambulance is sent, which is a different conversation from a postal address.
+  */
+  const recommended = data?.recommended ?? [];
   const askable = missing.filter((f) => f.memberCanSupply);
 
   useEffect(() => {
@@ -116,7 +124,7 @@ export function MemberMissingInfoDialog({ member }: MemberMissingInfoDialogProps
             <div className="flex items-center justify-center py-10">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          ) : count === 0 ? (
+          ) : count === 0 && recommended.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-center">
               <Check className="h-12 w-12 text-alert-resolved mb-4" />
               <p className="font-medium">
@@ -126,6 +134,14 @@ export function MemberMissingInfoDialog({ member }: MemberMissingInfoDialogProps
           ) : (
             <ScrollArea className="max-h-[55vh] pr-4">
               <div className="space-y-5">
+                {count === 0 && (
+                  <div className="flex items-center gap-3 rounded-md border p-3">
+                    <Check className="h-5 w-5 shrink-0 text-alert-resolved" />
+                    <p className="text-sm font-medium">
+                      {t("adminMemberDetail.missing.none", "Nothing required is missing")}
+                    </p>
+                  </div>
+                )}
                 {groupRequiredFields(missing).map(({ group, fields }) => (
                   <section key={group} data-testid={`member-missing-group-${group}`}>
                     <h3 className="mb-2 border-b pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -174,6 +190,51 @@ export function MemberMissingInfoDialog({ member }: MemberMissingInfoDialogProps
                     </div>
                   </section>
                 ))}
+
+                {recommended.length > 0 && (
+                  <section data-testid="member-recommended">
+                    <h3 className="mb-2 flex items-center gap-1.5 border-b pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      <Lightbulb className="h-3.5 w-3.5" aria-hidden="true" />
+                      {t("adminMemberDetail.missing.suggested", "Worth having (not required)")}
+                    </h3>
+                    <div className="space-y-3">
+                      {recommended.map((field) => (
+                        <div
+                          key={field.key}
+                          className="flex gap-3"
+                          data-testid={`member-recommended-${field.key}`}
+                        >
+                          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                          <div className="flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-sm font-medium">
+                                {t(field.label.key, field.label.fallback)}
+                              </span>
+                              <Badge variant="secondary" className="text-xs">
+                                {t(
+                                  REQUIRED_REASON_LABELS[field.why].key,
+                                  REQUIRED_REASON_LABELS[field.why].fallback,
+                                )}
+                              </Badge>
+                              {/*
+                                NO CHECKBOX, and the badge says where it happens instead. This
+                                cannot travel on the update link: that link needs no login, and a
+                                map picker behind it would let whoever holds it decide where an
+                                ambulance is sent.
+                              */}
+                              <Badge variant="outline" className="text-xs">
+                                {t("adminMemberDetail.missing.onDashboard", "They set this on their own dashboard")}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {t(field.because.key, field.because.fallback)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
               </div>
             </ScrollArea>
           )}

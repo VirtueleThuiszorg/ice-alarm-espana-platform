@@ -5,6 +5,9 @@ import { LocationMap } from "@/components/maps/LocationMap";
 import { SOSIsabellaFeed } from "./SOSIsabellaFeed";
 import { SOSTimeline } from "./SOSTimeline";
 import { supabase } from "@/integrations/supabase/client";
+import { useMemberHomeLocation } from "@/hooks/useMemberHomeLocation";
+import { resolveSosLocation } from "@/lib/homeLocation";
+import { HomeLocationBlock } from "./HomeLocationBlock";
 
 interface SOSSituationPanelProps {
   alertId: string;
@@ -76,19 +79,56 @@ export function SOSSituationPanel({
     fetchAddress();
   }, [memberId, locationLat, locationLng]);
 
-  const lat = locationLat ?? null;
-  const lng = locationLng ?? null;
-  const address = locationAddress || memberAddress;
+  /*
+    THE HOME PIN — DISPLAY ONLY.
+
+    Nothing below changes escalation, timers, or who gets called. What it changes is what an
+    operator can SEE: an EV07B indoors usually has no fix, and until now the card fell back to a
+    typed postal address, which in rural Almería is regularly a property a driver cannot find at
+    night. The member's own confirmed front door is a better fallback and a DIFFERENT KIND OF
+    FACT, so it is rendered in its own labelled block and never merged with the pendant's fix.
+
+    The alert's `received_at` is the age of the fix: the coordinates arrive with the SOS.
+  */
+  const { data: home } = useMemberHomeLocation(memberId);
+  const view = resolveSosLocation({
+    live: { lat: locationLat, lng: locationLng, at: receivedAt, address: locationAddress },
+    home,
+  });
+
+  /*
+    WHAT THE MAP SHOWS. The live fix whenever there is one — a home pin must never be shown IN
+    PLACE OF a pendant fix, however old that fix is. Home takes the map only when there is no
+    usable fix at all, and then the banner below says so in words.
+  */
+  const lat = view.live ? view.live.lat : view.home?.lat ?? null;
+  const lng = view.live ? view.live.lng : view.home?.lng ?? null;
+  const showingHomeOnMap = !view.live && !!view.home;
+  const address = view.live ? locationAddress || memberAddress : memberAddress;
 
   return (
     <div className="h-full flex flex-col gap-2">
-      {/* Map — top third */}
-      <div className="shrink-0" style={{ height: "33%" }}>
-        <div className="h-full bg-zinc-800/50 rounded-lg border border-zinc-700/50 overflow-hidden flex flex-col">
+      {/*
+        LOCATION — top third, and it is a COLUMN rather than a single card.
+
+        It was one card at `height: 33%` with `overflow-hidden`, and the map inside it does not
+        shrink (LocationMap sets its own 100% height plus a footer). So the two things added
+        below it — the no-recent-fix sentence and the home block — were rendered, asserted, and
+        CLIPPED OUT OF SIGHT. The Playwright screenshots caught that; `toHaveText` did not,
+        because a clipped element still has its text. The specs now assert `toBeVisible()`.
+
+        As a column, the map card is `flex-1 min-h-0` and yields its space to the two `shrink-0`
+        blocks beside it. With no home pin nothing extra renders and the layout is exactly what
+        it was.
+      */}
+      <div className="shrink-0 flex flex-col gap-1.5" style={{ height: "33%" }}>
+        <div className="flex-1 min-h-0 bg-zinc-800/50 rounded-lg border border-zinc-700/50 overflow-hidden flex flex-col">
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800/30 border-b border-zinc-700/50">
             <MapPin className="h-3.5 w-3.5 text-red-400" />
-            <span className="text-xs font-medium text-zinc-400">
-              {t("sos.situation.lastKnownLocation", "Last Known Location")}
+            <span className="text-xs font-medium text-zinc-400" data-testid="sos-map-label">
+              {showingHomeOnMap
+                ? t("sos.home.mapHeader", "Home location")
+                : t("sos.situation.lastKnownLocation", "Last Known Location")}
             </span>
             {lat && lng && (
               <div className="flex items-center gap-1 ml-auto">
@@ -133,7 +173,34 @@ export function SOSSituationPanel({
               {address}
             </p>
           )}
+
+          {/*
+            IN WORDS, NOT BY IMPLICATION. When there is no fix from the last half hour, the card
+            says so — an operator must never have to infer the age of a coordinate from its
+            absence. `resolveSosLocation` decides; this only renders the sentence.
+          */}
         </div>
+
+        {view.announceNoRecentFix && (
+          <p
+            className="shrink-0 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-300"
+            data-testid="sos-no-recent-fix"
+          >
+            {t("sos.noRecentFix", "No recent pendant location — showing home")}
+          </p>
+        )}
+
+        {/* The home pin: always its own block, always labelled with whose pin it is and when. */}
+        {view.home && (
+          <div className="shrink-0">
+            <HomeLocationBlock
+              home={view.home}
+              isPrimary={view.primary === "home"}
+              distanceMetres={view.distanceMetres}
+              tone="dark"
+            />
+          </div>
+        )}
       </div>
 
       {/* Isabella Feed — middle third */}

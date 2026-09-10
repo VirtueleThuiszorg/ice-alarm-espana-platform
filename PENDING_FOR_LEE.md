@@ -24,7 +24,63 @@
 
 ## 1. Migrations merged but NOT in production
 
-> ### 🔴 BLOCKED 2026-09-10 — `migrate.yml` can no longer log in to Supabase, and ONE migration is stranded
+*This is the **A1** row of the go-live gap review.*
+
+> ### ✅ RESOLVED 2026-09-10 14:35 — everything is in production; ONE thing is still yours
+>
+> **Nothing is stranded any more.** `check-migration-drift --main` reports **repo: 188 ·
+> manifest: 188 · production is level with the repo**. The holiday backfill went in on
+> [run #8](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34488553431)
+> and the two swap migrations on
+> [run #9](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34489927779).
+> The balances the run read back out of `staff_holiday_balance`:
+>
+> ```
+> Albert Soares:  16 used, 0 pending, 14 left of 30
+> Carmen Nicolas: 28 used, 0 pending,  2 left of 30
+> Mary Bonner:    18 used, 0 pending, 12 left of 30
+> Travis Nelison:  0 used, 0 pending, 30 left of 30
+> ```
+>
+> **WHAT IS STILL YOURS: route A below.** `supabase link` is still refused — it failed again on
+> main a minute after run #8, and again on every run since — until a token with that privilege
+> replaces the current one. Migrations flow through the pooler fallback (#313), which shouts a
+> warning every time it is used, and it was used for all three of these. The Management API is not
+> restored, and nothing else in this repo can restore it.
+>
+> ("Manifest matches production" stayed red on main for that same reason until #337, which is the
+> paragraph below. It is green now.)
+>
+> #### Read the colours honestly — A1 in one paragraph
+>
+> **A1 is closed as "everything merged is in production", and it is NOT closed as "the supported
+> path works".** Those are two different facts and the review's single tick hid the second one.
+> Say it in full so nobody has to reconstruct it:
+>
+> * **Migrations flow via the FALLBACK.** Every schema change since 10 Sep reached production
+>   through the pooler, not the Management API. It works, it is recorded in `APPLIED_TO_PROD.txt`
+>   like any other run, and every single run posts a
+>   `⚠ Reached production WITHOUT the Management API` warning. **A green Migrate Production run
+>   does not mean the token is fixed.** If those warnings ever stop appearing, that is the good
+>   news — it means `link` started working again.
+> * **"Manifest matches production" was RED on main, and that red was NORMAL — until #337.**
+>   The job linked its own way, so it could not pass while `link` was refused, on any commit, for
+>   any reason. It is now the same shared script `migrate.yml` uses
+>   (`scripts/ci/reach-production.sh`), so it reaches production by the same fallback and passes.
+>   **From #337 onwards, red on that job means something real.** Do not wave it through. Its first
+>   run on main
+>   ([#762](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34506988777))
+>   is what that looks like: `link` refused with the same privilege error, `aws-0-eu-west-1`
+>   probed and connected, the warning posted, then **production: 189 applied · manifest: 189
+>   recorded**.
+> * **What is still yours is unchanged: route A.** A token that may call the Management API. The
+>   fallback is a fallback — it needs `SUPABASE_DB_PASSWORD` to keep working and it cannot deploy
+>   functions, so the day that password rotates without the token being fixed, schema stops
+>   flowing altogether.
+>
+> The original diagnosis, kept because it was wrong and the correction is the useful part:
+
+> ### 🔴 (superseded) 2026-09-10 — `migrate.yml` can no longer log in to Supabase, and ONE migration is stranded
 >
 > [Migrate Production run #3](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34474797455)
 > failed on its second real outing, at the very first step that talks to Supabase:
@@ -36,24 +92,84 @@
 > ```
 >
 > **Nothing was applied** — `db push` was skipped, the manifest was not touched, and the job went
-> red, which is what it is supposed to do. Run #2 (9 Sep) linked and pushed fine with the same
-> workflow, so this is the CREDENTIAL, not the code: `SUPABASE_ACCESS_TOKEN` has expired, been
-> revoked, or belongs to an account that no longer has access to `crpsuhoixfdhjugprbuc`.
+> red, which is what it is supposed to do.
 >
-> **THE FIX, and only you can do it.** Create a new personal access token at
-> <https://supabase.com/dashboard/account/tokens> from an account with access to that project,
-> then replace the repository secret `SUPABASE_ACCESS_TOKEN` (Settings → Secrets and variables →
-> Actions). Check `SUPABASE_PROJECT_REF` is `crpsuhoixfdhjugprbuc` while you are there. Then
-> re-run the failed run from the Actions tab — it is idempotent, so re-running is safe.
+> ### ⚠️ CORRECTED 2026-09-10, 13:55 — the token is NOT dead, and the earlier diagnosis was wrong
+>
+> This section first said `SUPABASE_ACCESS_TOKEN` had "expired, been revoked, or belongs to an
+> account that no longer has access to `crpsuhoixfdhjugprbuc`". **The evidence contradicts that**,
+> and it was there to be read at the time:
+>
+> | run | time | step | secret used | result |
+> |---|---|---|---|---|
+> | #3 | 12:06 | `supabase link --project-ref "$SUPABASE_PROJECT_REF"` | `SUPABASE_ACCESS_TOKEN` | **failed** — "Authorization failed for the access token and project ref pair" |
+> | #6 | 12:52 | `supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"` | the **same** `SUPABASE_ACCESS_TOKEN`, the **same** `SUPABASE_PROJECT_REF` | **succeeded** — every edge function deployed to that project |
+>
+> Forty-six minutes apart, one token, one project ref: one endpoint refused it and the other
+> accepted it and wrote to production. So the token is live and the account does reach the
+> project. What is refused is specific to the endpoint `supabase link` calls — a scope or an
+> organisation-level privilege that `functions deploy` does not need.
+>
+> (Runs #4, #5 and #6 all show "success" for the same reason and it means less than it looks:
+> their **Apply migrations** job was *skipped* because those pushes touched no migration file.
+> A green Migrate Production run is not evidence that migrating works.)
+>
+> ### THE FIX — two routes, and the choice is yours
+>
+> **A. A token with the missing privilege.** Create a new personal access token at
+> <https://supabase.com/dashboard/account/tokens> from an account that owns the project's
+> organisation, and replace the secret (Settings → Secrets and variables → Actions). Then re-run
+> run #3 from the Actions tab — it is idempotent, so re-running is safe.
+>
+> **B. BUILT — the workflow no longer depends on that endpoint.** `migrate.yml` now tries
+> `supabase link` first and, when it is refused, writes the two files `link` would have written
+> (the project ref and the IPv4 **pooler** connection string) into the gitignored
+> `supabase/.temp/`, probes the pooler READ-ONLY, and then runs the rest of the job exactly as
+> before — still `--linked`, still reading the password from the environment, never on a command
+> line. It emits a loud `::warning::` whenever the fallback is used, because a fallback that
+> quietly rescues a broken credential is how a broken credential stays broken.
+>
+> Established rather than assumed, since the first version of this note was a guess:
+> `db.crpsuhoixfdhjugprbuc.supabase.co` has **no A record** (direct connections are IPv6-only and
+> GitHub runners are IPv4), which is exactly why `link` is what fetches the pooler URL; both
+> `aws-0-` and `aws-1-eu-west-1.pooler.supabase.com` resolve, so the workflow probes each rather
+> than betting on one; and `SUPABASE_DB_URL` is **not** read from the environment by the CLI, so
+> the connection genuinely has to come from either the API or those files.
+>
+> **A is still wanted.** B gets migrations flowing again; it does not restore the Management API,
+> which `supabase link` and anything else API-shaped still needs. Please do A when you can.
+>
+> Either way, check `SUPABASE_PROJECT_REF` is `crpsuhoixfdhjugprbuc` while you are in there.
 >
 > **What is stranded, and what it means until then:**
 >
 > | Migration | Effect of it not being applied |
 > |---|---|
 > | `20260910120000_holidays_2026_backfill_before_cut.sql` | The 2026 holidays taken **before** 2026-09-10 are missing from every balance. Mary reads 4 days used instead of 18, Carmen 9 instead of 28, Albert 4 instead of 16 — so a supervisor approving November sees roughly 21 days left for Carmen when she has **2**. It also has not set the four entitlements to 30 explicitly. Rehearsed on a local PostgreSQL 16 before merge: 16 ranges imported, 2 entitlements lifted, and the year then reads Albert 16/30, Carmen 28/30, Mary 18/30 — remaining **14 / 2 / 12** |
+> | `20260910130000_shift_swap_apply_and_bell.sql` **(not merged — PR #306)** | The swap/cover flow's schema: `apply_shift_swap`, the bell trigger, the `wants_exchange` column and the three router events. Written and proven (558 RLS assertions on a local PostgreSQL 16), and **not merged**, because the drift gate refuses to stack a second unapplied migration on the one above — see the note under this table |
+> | `20260910130100_shift_swap_router_emit.sql` **(not merged — PR #306)** | The pg_net trigger that queues the swap events to `notify-staff`, so the push leaves the building. Same PR, same reason |
 >
 > `main`'s **drift gate is legitimately RED** until the token is replaced and the run re-run. That
 > is the gate doing its job: production trails `main` by one migration.
+>
+> **AND IT IS NOW HOLDING A SECOND PR SHUT — deliberately.** The gate has two halves: on `main`
+> any pending migration fails it, while on a PR it fails only when the PR STACKS a migration on
+> top of a pending one. **PR #306** (the swap and cover flow, rota brief §3) does exactly that, so
+> its drift gate is red with:
+>
+> ```
+> ✗ MIGRATION STACKING
+> 1 migration(s) are already pending, and this PR adds 2 more on top
+> Merge that first, then this. Stacking a second unapplied migration is how production fell 24 behind.
+> ```
+>
+> Everything else on #306 is green — tests, lint, type check, build, wiring register, security
+> audit — and the RLS harness passes 558 assertions locally. It has **not been merged**, because
+> the one gate that is red is the gate whose entire purpose is to stop this, and both July outages
+> came from pressing merge on a PR whose guard test was already red.
+>
+> **So replacing the token now unblocks two things, in this order:** the holiday balances go
+> right, and #306 becomes mergeable. Nothing else is needed from you for either.
 >
 > **One honest limitation this exposed.** `scripts/ci/require-secrets.mjs` checks a secret is
 > PRESENT, not that it still works — so the run got as far as the CLI before failing. A cheap
@@ -634,6 +750,101 @@ today. Worth doing on its own branch, with the SEPA activation question (S20) be
 The holiday card avoids the trap by passing `service: "holiday"` against keys that all start
 `holiday_`; the reason is written out in that file so the next person does not copy the broken
 call.
+
+### D-18 — the 21 fields the platform now treats as REQUIRED on a member's file (2026-09-10)
+
+**This one is a list to read, not a defect.** Five parts of the codebase had five different
+answers to "what is missing from this member's record", and the member-record work needed one. It
+is now `src/lib/memberRequiredFields.ts`, and everything reads it: the header badge, the
+Missing-info dialog, the members-list column, and the link the member fills in.
+
+**The list, by group** — each entry in the file also carries WHY, in the sentence a member sees:
+
+- **Identity** — first name, last name, date of birth, NIE/DNI
+- **Address** — address line 1, town or city, province, postal code
+- **Contact** — phone, email
+- **Medical** — blood group, allergies, medication, doctor, doctor's phone, preferred hospital
+- **Emergency contacts** — at least one contact, and a phone number for every contact
+- **Device** — a pendant assigned (IMEI), pendant tested with an operator *(ours, not theirs)*
+- **Membership** — an active subscription *(ours, not theirs — golden rule 4)*
+
+**The two places the old sources disagreed, resolved in the open rather than quietly:**
+
+1. **NIE/DNI** — the registration schema has it OPTIONAL (REVIEW_JOIN_PATH F1 is the record of
+   what asking too much at the wizard cost), while the old inline list chased it. Both are right
+   about their own moment, so the list means *"required on file"*, not *"required to sign up"*.
+2. **ONE emergency contact, not two.** The old inline list chased a second. `readinessGap.ts`,
+   `protectionChecklist.ts` and the readiness view all make ONE the condition, and making two
+   required here would put the badge in disagreement with the readiness queue, the member header
+   notice and the operator card. A second contact is better practice; it is not counted as
+   missing.
+
+**What to do with it:** read the fourteen medical/identity items and say whether any is wrong.
+Adding one is a line in that file plus a control on the member's page (the ratchet in
+`memberUpdateForm.ts` fails the build until the control exists, so it cannot be half-done).
+Removing one is a line. The three marked *ours* cannot be asked of a member and are shown on the
+staff dialog as "Ours to do" — a pendant nobody has tested is a phone call we owe them, not a form
+field.
+
+**Nothing is blocked on this.** It shipped; changing it is a one-line decision whenever you have
+read the list.
+
+---
+
+### D-19 — the KarmaCRM import has three homeless facts and one invented status (2026-09-10)
+
+Found while making the import work on the real 431-row export (#302, #307, #308, #316, #318).
+Four decisions, none of them urgent, all of them yours.
+
+**1. `crm_profiles` has no column for membership type, payment type or date joined.**
+
+The brief said these three go to "CRM profile fields". There are no such fields: `crm_profiles`
+holds `stage`, `status`, `referral_source`, `assigned_to_staff_id`, `department`, `industry`,
+`tags` and `groups`, and that is all. A key with no column fails the **whole** insert, and
+PostgREST reports that as the row failing rather than the key being wrong — so the first version
+would have looked like bad data in your export.
+
+They are written verbatim as one member note instead (`Karma CRM membership: membership type X;
+payment type Y; joined Z`), with a stable prefix so a re-run recognises it rather than adding a
+second copy, and `crm_import_rows` keeps them in `parsed_membership_type` and in `raw` besides.
+**Nothing is lost; it is simply not a column.** Three columns and a migration is the fix, and it
+is a five-line migration — say the word.
+
+**2. Imported members are `inactive`, and there is no "legacy" state to be.**
+
+The brief asked for "the fulfilment model's legacy-member state". There isn't one: `member_status`
+is `('active','inactive','suspended')` and `fulfilment_state` describes a pendant order, not a
+person.
+
+`active` is not available — golden rule 4, a member is activated by the payment webhook and by
+nothing else, and this platform has never seen any of these 431 people pay it. Writing `active`
+would be the import asserting a payment it has no evidence for. `suspended` means a live member on
+hold, which is wrong in the other direction. So: **`inactive`, with the verbatim Karma status on
+the CRM profile**, so a human sees "Active Member in Karma" beside "inactive here" and nothing is
+lost. They become active when a payment arrives.
+
+The better answer is a fourth value, `legacy`, so these are visibly neither new nor cancelled.
+That is a migration and an enum change, and it is your call whether it is worth one.
+
+**3. `members.email` is `UNIQUE NOT NULL`, and that is why your clients land as CRM contacts.**
+
+This is the single biggest reason a row cannot become a member: most of your clients have no
+email. Households that share one get a plus-tag (`name+tag@…`) so the mail still reaches them, but
+a client with none cannot be a member at all today. It is surfaced on the import preview rather
+than worked around, because making `email` nullable is a decision about what a member *is* — a
+person we can reach, or a person we hold a record for — and it changes the login flow.
+
+**4. Forty-seven of the 147 columns are read by nothing.**
+
+`ICE_IMPORT_COLUMN_MAP.md` lists every one. Nothing is lost — the whole row (minus the four
+discarded columns) is kept in `crm_import_rows.raw`, so any of them can be mapped later **without
+re-exporting from Karma**. The four I would ask about: **`Dob`** (a second date-of-birth column
+beside `Birthday` — the difference between a member and a CRM contact for any row that has one and
+not the other), **`Spouse`**, **`Wellbeing Appt Date`**, and **`Contact Friend for Email`**, which
+reads like a consent flag and consent is not something to guess at.
+
+**Nothing is blocked on any of these four.** The import works, and each is a decision you can take
+whenever you have read the table.
 
 ---
 

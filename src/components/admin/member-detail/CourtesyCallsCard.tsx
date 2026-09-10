@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { Phone, Calendar, Clock, Loader2 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { EditableCard } from "@/components/EditableCard";
+import { logMemberActivity } from "@/lib/auditLog";
+import { dbMessage } from "@/lib/dbMessage";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +60,17 @@ export function CourtesyCallsCard({ memberId }: CourtesyCallsCardProps) {
   const [completedCalls, setCompletedCalls] = useState<CompletedCall[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  /*
+    THE LAST TWO CONTROLS ON THE RECORD THAT WROTE ON TOUCH.
+
+    The switch and the frequency select each ran their own UPDATE the instant they moved — no
+    Edit, no Save, no undo. Brushing the switch on a shared screen silently stopped a member's
+    scheduled check-in calls, and nothing on the card said it had happened beyond a toast that
+    was gone in three seconds. They are now a draft the operator commits, like every other
+    field on this record.
+  */
+  const [draftEnabled, setDraftEnabled] = useState(true);
+  const [draftFrequency, setDraftFrequency] = useState<string>("monthly");
 
   useEffect(() => {
     fetchData();
@@ -75,6 +89,8 @@ export function CourtesyCallsCard({ memberId }: CourtesyCallsCardProps) {
 
       setIsEnabled(member?.courtesy_calls_enabled ?? true);
       setFrequency(member?.courtesy_call_frequency || "monthly");
+      setDraftEnabled(member?.courtesy_calls_enabled ?? true);
+      setDraftFrequency(member?.courtesy_call_frequency || "monthly");
       setNextCallDate(member?.next_courtesy_call_date || null);
 
       // Calculate next call date if not set
@@ -103,47 +119,50 @@ export function CourtesyCallsCard({ memberId }: CourtesyCallsCardProps) {
     }
   };
 
-  const handleToggle = async (enabled: boolean) => {
+  const save = async (): Promise<boolean> => {
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from("members")
-        .update({ courtesy_calls_enabled: enabled })
-        .eq("id", memberId);
+      /*
+        ONE WRITE, BOTH FIELDS. Two separate updates meant a member could be left with calls
+        enabled at the old frequency if the second one failed — and the next call date, which
+        is what actually generates the task, belonged to neither of them.
+      */
+      const nextDate =
+        draftEnabled && (draftFrequency !== frequency || !nextCallDate)
+          ? calculateNextCallDate(draftFrequency).toISOString().split("T")[0]
+          : nextCallDate;
 
-      if (error) throw error;
-
-      setIsEnabled(enabled);
-      toast.success(enabled ? "Courtesy calls enabled" : "Courtesy calls disabled");
-    } catch (error) {
-      console.error("Error updating courtesy call setting:", error);
-      toast.error("Failed to update setting");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleFrequencyChange = async (newFrequency: string) => {
-    setIsSaving(true);
-    try {
-      const newNextDate = calculateNextCallDate(newFrequency);
-      
       const { error } = await supabase
         .from("members")
         .update({
-          courtesy_call_frequency: newFrequency,
-          next_courtesy_call_date: newNextDate.toISOString().split("T")[0]
+          courtesy_calls_enabled: draftEnabled,
+          courtesy_call_frequency: draftFrequency,
+          next_courtesy_call_date: draftEnabled ? nextDate : null,
         })
         .eq("id", memberId);
 
       if (error) throw error;
 
-      setFrequency(newFrequency);
-      setNextCallDate(newNextDate.toISOString().split("T")[0]);
-      toast.success(`Courtesy call frequency set to ${getFrequencyLabel(newFrequency).toLowerCase()}`);
+      await logMemberActivity(
+        "update",
+        memberId,
+        { courtesy_calls_enabled: isEnabled, courtesy_call_frequency: frequency },
+        { courtesy_calls_enabled: draftEnabled, courtesy_call_frequency: draftFrequency },
+      );
+
+      setIsEnabled(draftEnabled);
+      setFrequency(draftFrequency);
+      setNextCallDate(draftEnabled ? nextDate : null);
+      toast.success(
+        draftEnabled
+          ? `Courtesy calls ${getFrequencyLabel(draftFrequency).toLowerCase()}`
+          : "Courtesy calls turned off",
+      );
+      return true;
     } catch (error) {
-      console.error("Error updating courtesy call frequency:", error);
-      toast.error("Failed to update frequency");
+      console.error("Error updating courtesy calls:", error);
+      toast.error(dbMessage(error, "Failed to update courtesy calls"));
+      return false;
     } finally {
       setIsSaving(false);
     }
@@ -160,17 +179,24 @@ export function CourtesyCallsCard({ memberId }: CourtesyCallsCardProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    <EditableCard
+      testId="courtesy-card"
+      title={
+        <span className="flex items-center gap-2">
           <Phone className="h-5 w-5" />
           Courtesy Calls
-        </CardTitle>
-        <CardDescription>
-          Scheduled check-in calls based on your selected frequency
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        </span>
+      }
+      description="Scheduled check-in calls. Read-only until you press Edit."
+      isDirty={draftEnabled !== isEnabled || draftFrequency !== frequency}
+      saving={isSaving}
+      onSave={save}
+      onCancel={() => {
+        setDraftEnabled(isEnabled);
+        setDraftFrequency(frequency);
+      }}
+    >
+      <div className="space-y-4">
         {/* Toggle */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
@@ -183,23 +209,18 @@ export function CourtesyCallsCard({ memberId }: CourtesyCallsCardProps) {
           </div>
           <Switch
             id="courtesy-calls-toggle"
-            checked={isEnabled}
-            onCheckedChange={handleToggle}
-            disabled={isSaving}
+            checked={draftEnabled}
+            onCheckedChange={setDraftEnabled}
           />
         </div>
 
         {/* Frequency Selector */}
-        {isEnabled && (
+        {draftEnabled && (
           <>
             <Separator />
             <div className="space-y-2">
               <Label htmlFor="frequency-select">Call Frequency</Label>
-              <Select
-                value={frequency}
-                onValueChange={handleFrequencyChange}
-                disabled={isSaving}
-              >
+              <Select value={draftFrequency} onValueChange={setDraftFrequency}>
                 <SelectTrigger id="frequency-select" className="w-full">
                   <SelectValue placeholder="Select frequency" />
                 </SelectTrigger>
@@ -263,7 +284,7 @@ export function CourtesyCallsCard({ memberId }: CourtesyCallsCardProps) {
             No courtesy calls completed yet
           </p>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </EditableCard>
   );
 }

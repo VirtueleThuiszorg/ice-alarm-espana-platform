@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EditableCard } from "@/components/EditableCard";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog,
@@ -288,12 +288,17 @@ export function TasksTab({ memberId }: TasksTabProps) {
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>{t("tasks.title")}</CardTitle>
-          <CardDescription>{t("tasks.subtitle")}</CardDescription>
-        </div>
+    <EditableCard
+      testId="tasks-card"
+      mode="manage"
+      title={t("tasks.title")}
+      description={t("tasks.subtitle")}
+      manageHint={t(
+        "tasks.manageHint",
+        "Press Edit to add a task, mark one done or delete one. Reading the list works either way.",
+      )}
+    >
+      <div className="space-y-4">
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={openAddDialog}>
@@ -408,8 +413,7 @@ export function TasksTab({ memberId }: TasksTabProps) {
             </Form>
           </DialogContent>
         </Dialog>
-      </CardHeader>
-      <CardContent className="space-y-4">
+
         {/* Pending Tasks */}
         {pendingTasks.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
@@ -512,7 +516,7 @@ export function TasksTab({ memberId }: TasksTabProps) {
             </CollapsibleContent>
           </Collapsible>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </EditableCard>
   );
 }

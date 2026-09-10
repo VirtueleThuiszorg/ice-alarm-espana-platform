@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  ArrowLeftRight,
   ChevronLeft,
   ChevronRight,
   Copy,
@@ -36,6 +37,9 @@ import { useStaffShifts, useOnShiftNow, useShiftMutations } from "@/hooks/useSta
 import type { StaffShift } from "@/hooks/useStaffShifts";
 import { useCurrentStaff } from "@/hooks/useCurrentStaff";
 import { useEscalationChains, useEscalationChainMutations } from "@/hooks/useEscalationChain";
+import { useRotaStaff } from "@/hooks/useRotaStaff";
+import { useSwapsAwaitingApproval } from "@/hooks/useShiftSwaps";
+import { SwapRequestList } from "@/components/call-centre/SwapRequestList";
 import { useAuth } from "@/contexts/AuthContext";
 import { ESCALATION_EDITOR_ROLES } from "@/lib/staffNotify";
 import { SHIFT_TYPES, SHIFT_TYPE_OPTIONS } from "@/config/shifts";
@@ -124,21 +128,8 @@ export default function RotaPage() {
   const { data: shifts = [], isLoading: shiftsLoading } = useStaffShifts(weekStartStr, weekEndStr);
   const { data: onShiftNow = [] } = useOnShiftNow();
 
-  // Active call centre staff
-  const { data: staffList = [] } = useQuery({
-    queryKey: ["active-cc-staff"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("staff")
-        .select("id, first_name, last_name, role")
-        .in("role", ["call_centre", "call_centre_supervisor"])
-        .eq("status", "active")
-        .order("first_name");
-      if (error) throw error;
-      return data || [];
-    },
-    staleTime: STALE_TIMES.LONG,
-  });
+  // Active call centre staff — the same list the swap picker offers, from one hook (useRotaStaff).
+  const { data: staffList = [] } = useRotaStaff();
 
   /**
    * FILTER BY PERSON — one operator's week, without reading across four rows.
@@ -169,6 +160,14 @@ export default function RotaPage() {
   const { staffRole } = useAuth();
   const canEditEscalation =
     !!staffRole && (ESCALATION_EDITOR_ROLES as readonly string[]).includes(staffRole);
+
+  /**
+   * THE APPROVAL QUEUE. Two people have agreed a swap and it is waiting on whoever runs the rota
+   * — which is this page, for both the admin and the supervisor mounted at /call-centre/rota.
+   * Not gated on a role beyond reaching the page: RLS grants manage-all on swaps to exactly the
+   * roles that can open it, and `apply_shift_swap` refuses anybody else by name.
+   */
+  const { data: pendingSwaps = [] } = useSwapsAwaitingApproval();
 
   // Escalation chains for this week
   const { data: escalationChains = [] } = useEscalationChains(
@@ -438,6 +437,26 @@ export default function RotaPage() {
                 </Badge>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Swap and cover requests waiting on a supervisor */}
+      {pendingSwaps.length > 0 && (
+        <Card className="border-primary/30" data-testid="swap-approvals-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <ArrowLeftRight className="h-4 w-4 text-primary" aria-hidden="true" />
+              {t("swaps.awaitingApproval", "Swaps waiting for approval")}
+              <Badge variant="secondary">{pendingSwaps.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pb-3">
+            <SwapRequestList
+              swaps={pendingSwaps}
+              staffId={currentStaff?.id}
+              mode="approvals"
+            />
           </CardContent>
         </Card>
       )}

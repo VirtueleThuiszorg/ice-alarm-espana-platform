@@ -1,0 +1,474 @@
+import { useEffect, useId, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import { Check, Loader2, Lock, Pencil, Plus, Save, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useUnsavedChanges } from "@/components/UnsavedChanges";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { EditableCardContext } from "@/components/editableCardContext";
+
+/**
+ * LOCKED UNTIL EDIT — one shell, not twelve copies of the same three buttons.
+ *
+ * WHAT WAS WRONG. Every field of a member's record was a live input the moment the tab opened.
+ * A staff member reading a record to somebody on the phone was one stray keypress from
+ * changing their address; a tab left open on a shared screen was an edit waiting to happen;
+ * and there was no moment at which anybody decided "I am changing this now". For a
+ * life-safety record — the address an ambulance is sent to, the allergies read out to a crew —
+ * read-by-default is not a nicety.
+ *
+ * WHY A `fieldset`, AND WHY THAT MATTERS. The lock is one `<fieldset disabled>` around the
+ * body, not a `disabled` prop threaded through forty inputs. A per-field flag is a flag
+ * somebody forgets on the forty-first, and the forgetting is invisible — the field looks the
+ * same and simply stays editable. The fieldset cannot be forgotten: it is the container, it is
+ * native, and assistive technology announces the whole group as disabled without any ARIA of
+ * ours. The header actions sit OUTSIDE it, so Edit and Save are never disabled by the lock
+ * they control.
+ *
+ * WHAT IT DOES NOT DO. It is not a permission. Anyone who can open this page can press Edit;
+ * the lock is against accident, not against intent. What may actually be written is RLS's job
+ * and the guard triggers', and neither of them can see this component.
+ *
+ * WHY IT LIVES AT THE TOP OF `src/components` rather than under `admin/member-detail`, where it
+ * was written: the member's own pages need the same behaviour, for the same reason. A member
+ * reading their medical record to a relative should not be one keypress from rewriting it
+ * either. Leaving it in an admin folder would have meant a second copy on the client surface,
+ * and the two would have disagreed within a month about what Cancel does with an unsaved
+ * change. It knows nothing about members, staff or Supabase — it takes a title, a dirty flag
+ * and an onSave.
+ */
+interface EditableCardBase {
+  title: ReactNode;
+  /**
+   * OPEN THIS CARD FROM OUTSIDE. Bump the number to put it into edit mode — the member
+   * header's Edit button does exactly that, having switched to the tab first.
+   *
+   * A LOCKED CARD IGNORES IT, and that is not incidental: it is the only thing that can reach
+   * the `!locked && wantsEdit` invariant from outside, which is why the invariant is now
+   * testable rather than merely argued for.
+   */
+  editSignal?: number;
+  description?: ReactNode;
+  /** Anything that belongs beside the title — a "last updated" line, a badge. */
+  headerExtra?: ReactNode;
+  /**
+   * Wrap the body in a disabled `<fieldset>` while locked. TRUE by default, which is the staff
+   * record's way of locking and the one every existing caller wants.
+   *
+   * FALSE for a card whose FIELDS lock themselves — `FieldControl`, which renders a value as
+   * plain text until the card is unlocked, per MEMBER_UX_RULES R6. Those cards do not want the
+   * fieldset: a disabled group wrapped around plain text is announced as unavailable for
+   * nothing, and there is no input inside it to disable.
+   *
+   * The two are not a compromise to split. R11 makes the same argument about type size: the
+   * correct presentation for an operator scanning a dense screen is the wrong presentation for
+   * a 78-year-old reading their own alarm account.
+   */
+  disableFieldsWhenLocked?: boolean;
+  children: ReactNode;
+  testId?: string;
+}
+
+/**
+ * A card whose fields are edited and then saved together. The default, and the one the word
+ * "Edit" ordinarily means.
+ */
+interface EditableCardForm extends EditableCardBase {
+  mode?: "form";
+  /**
+   * Has anything changed? Drives the unsaved-changes warning. Passing `false` for a form that
+   * can in fact change is how the warning quietly stops appearing, so callers wire it to the
+   * form's own dirty state rather than to a hand-kept boolean.
+   */
+  isDirty?: boolean;
+  saving?: boolean;
+  /** Return false to keep the card in edit mode (a validation failure, a refused write). */
+  onSave: () => void | boolean | Promise<void | boolean>;
+  /** Put the form back as it was. Called on Cancel, and after a confirmed discard. */
+  onCancel?: () => void;
+  onEditStart?: () => void;
+  /**
+   * "Add" rather than "Edit" on the button, for a card that holds nothing yet.
+   *
+   * The same action either way — but a member with no medical information on file is not
+   * editing it, and "Edit" over five "Not added"s reads as a mistake in the page rather than as
+   * an invitation. `MedicalInfoPage` already made this distinction with its own button before
+   * the cards owned it.
+   */
+  emptyState?: boolean;
+  lockedReason?: never;
+}
+
+/**
+ * A card NOBODY MAY EDIT HERE — and the reason is required, not optional.
+ *
+ * WHY THIS MODE EXISTS RATHER THAN AN `Edit` BUTTON THAT UNLOCKS NOTHING. Some cards on a
+ * record hold values no screen may set: a subscription's plan and price are whatever the
+ * payment webhook last said (golden rule 4), and an imported CRM profile is a record of what
+ * the import saw. Putting a working-looking Edit on those would be the dead-button pattern
+ * this codebase keeps finding — a control that occupies the place of a real one.
+ *
+ * Leaving them as bare cards is not right either: with every OTHER card on the record now
+ * showing a padlock until you press Edit, an unlocked-looking card reads as "editable, and the
+ * button is missing".
+ *
+ * So: the same padlock, no Edit, and the reason ON THE SCREEN. `MEMBER_UX_RULES` R7 already
+ * settled this argument for fields — a lock with a reason is fine, a lock without one is the
+ * complaint — and `lockedReason` is required for exactly the reason `LockedIdentityField`'s is.
+ */
+interface EditableCardLocked extends EditableCardBase {
+  mode: "locked";
+  /** Why nobody can edit it here, and where it does change. REQUIRED. */
+  lockedReason: ReactNode;
+  onSave?: never;
+  onCancel?: never;
+  onEditStart?: never;
+  isDirty?: never;
+  saving?: never;
+}
+
+/**
+ * A card whose ROWS commit themselves — a list, not a form.
+ *
+ * Contacts, notes, tasks and devices are edited one row at a time, each through its own dialog
+ * or its own button, and each write lands the moment it is made. There is nothing to batch and
+ * nothing to cancel, so a `Save` here would be a button that saves nothing — the same lie as an
+ * `Edit` that unlocks nothing.
+ *
+ * WHAT THE LOCK IS FOR HERE is not batching a write. It is that "Add contact", "Delete note"
+ * and "Unassign pendant" are one stray click away on a screen somebody is reading down the
+ * phone, and deleting a member's only emergency contact by accident is a life-safety event
+ * rather than a typo. Edit ARMS those controls; Done disarms them.
+ */
+interface EditableCardManage extends EditableCardBase {
+  mode: "manage";
+  /** Named so the reader knows what pressing Edit is for. Shown while locked. */
+  manageHint?: ReactNode;
+  onEditStart?: () => void;
+  /** Called when the operator presses Done. Nothing is pending, so this is a refresh hook. */
+  onDone?: () => void;
+  onSave?: never;
+  onCancel?: never;
+  isDirty?: never;
+  saving?: never;
+  lockedReason?: never;
+}
+
+export type EditableCardProps = EditableCardForm | EditableCardLocked | EditableCardManage;
+
+export function EditableCard(props: EditableCardProps) {
+  const {
+    title,
+    description,
+    headerExtra,
+    children,
+    testId,
+    editSignal,
+    disableFieldsWhenLocked = true,
+  } = props;
+  const locked = props.mode === "locked";
+  const manage = props.mode === "manage";
+  // A managed list has nothing pending: every row wrote itself when it was changed.
+  const isDirty = props.mode === "form" || props.mode === undefined ? (props.isDirty ?? false) : false;
+  const saving = props.mode === "form" || props.mode === undefined ? (props.saving ?? false) : false;
+  const { t } = useTranslation();
+  const [wantsEdit, setWantsEdit] = useState(false);
+  /*
+    LOCKED CANNOT BE EDITING, and this line is the only place that says so.
+
+    THERE WERE THREE. This, a `locked ||` on the fieldset, and an early return in
+    `startEditing`. A mutation pass killed neither of the other two: with no Edit button
+    rendered in locked mode nothing can set `wantsEdit`, so each was indistinguishable from its
+    own absence. Both are deleted — a guard nothing can tell apart from nothing is decoration
+    (the same call `memberRequiredFields.ts` made about its contacts length check).
+
+    THIS ONE IS KEPT, AND IT IS NOW KILLABLE. When it was written no mutation could reach it:
+    with no Edit button rendered in locked mode, nothing outside could set `wantsEdit`, and the
+    note here said so and argued for keeping it anyway ("the rule is keep one expression of the
+    invariant, not delete the last one"). `editSignal` — the member header opening the profile
+    card from outside — is precisely the second way in that was predicted, so a locked card
+    refusing it is now a property a test can press. Flip the `!locked &&` and
+    `lockedCards.test.tsx` fails.
+  */
+  const editing = !locked && wantsEdit;
+  // "Add" rather than "Edit" only where the mode has a form to fill in.
+  const emptyState =
+    (props.mode === "form" || props.mode === undefined) && (props.emptyState ?? false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+
+  /*
+    AND THE ONE THE BROWSER CANNOT SEE: a tab change. Radix unmounts the inactive panel, so
+    clicking "Medical" half-way through editing the address destroyed the edit silently. The
+    card cannot guard a control that lives somewhere else on the page, so it registers itself
+    and whatever owns the navigation asks. Null outside a provider — a card on a page with no
+    tabs needs no registration.
+  */
+  const unsaved = useUnsavedChanges();
+  const cardId = useId();
+  /*
+    DEPEND ON `setDirty`, NEVER ON THE CONTEXT OBJECT. `setDirty` is stable; a dependency on
+    the context VALUE would re-run this effect whenever the registry changed, and its cleanup
+    unregisters while its body re-registers. Together with a provider that re-rendered on every
+    change, that locked the event loop on the first keystroke — see UnsavedChanges.tsx for the
+    other half of that story.
+  */
+  const setDirty = unsaved?.setDirty;
+  useEffect(() => {
+    if (!setDirty) return;
+    setDirty(cardId, editing && isDirty);
+    // Unmounting IS the loss this guards against, so the registration must go with it —
+    // otherwise a card that has been navigated away from keeps the page permanently "dirty".
+    return () => setDirty(cardId, false);
+  }, [setDirty, cardId, editing, isDirty]);
+
+  /*
+    THE BROWSER'S OWN WARNING, for the ways out this component cannot see: the back button, a
+    closed tab, a link to another page. The in-app Cancel is guarded below; this covers
+    everything else, and it is removed the moment the card is clean so a reader never meets it.
+  */
+  useEffect(() => {
+    if (!editing || !isDirty) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [editing, isDirty]);
+
+  /*
+    An outside request to edit. Runs on a CHANGE of the signal rather than on its value, so a
+    card the operator has deliberately closed does not spring open again on the next render.
+  */
+  useEffect(() => {
+    if (editSignal === undefined || editSignal === 0) return;
+    setWantsEdit(true);
+  }, [editSignal]);
+
+  const startEditing = () => {
+    setWantsEdit(true);
+    if (props.mode !== "locked") props.onEditStart?.();
+  };
+
+  const leaveEditing = () => {
+    setWantsEdit(false);
+    if (props.mode === "manage") props.onDone?.();
+    else if (props.mode !== "locked") props.onCancel?.();
+  };
+
+  const requestCancel = () => {
+    if (isDirty) setConfirmDiscard(true);
+    else leaveEditing();
+  };
+
+  const save = async () => {
+    // `onSave` is `never` in locked mode and the Save button is not rendered there, so this
+    // cannot be reached with one absent — the type carries it, not a runtime check.
+    const result = await props.onSave!();
+    // `false` means the save did not happen — a validation failure, or a write the database
+    // refused. Closing the card on that would throw away what the person typed and tell them
+    // it was saved.
+    if (result !== false) setWantsEdit(false);
+  };
+
+  return (
+    <>
+      <Card data-testid={testId}>
+        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+          <div className="space-y-1.5">
+            <CardTitle className="flex items-center gap-2">
+              {title}
+              {editing ? null : (
+                <Lock
+                  className="h-3.5 w-3.5 text-muted-foreground"
+                  aria-hidden="true"
+                  data-testid={testId ? `${testId}-lock` : undefined}
+                />
+              )}
+            </CardTitle>
+            {description ? <CardDescription>{description}</CardDescription> : null}
+            {locked ? (
+              <p
+                className="text-[0.8125rem] text-muted-foreground"
+                data-testid={testId ? `${testId}-locked-reason` : undefined}
+              >
+                {props.lockedReason}
+              </p>
+            ) : null}
+            {manage && !editing && props.manageHint ? (
+              <p
+                className="text-[0.8125rem] text-muted-foreground"
+                data-testid={testId ? `${testId}-manage-hint` : undefined}
+              >
+                {props.manageHint}
+              </p>
+            ) : null}
+            {headerExtra}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {/*
+              NO EDIT BUTTON AT ALL in locked mode. A disabled one would still be a button
+              somebody presses, twice, wondering what is wrong with it.
+            */}
+            {locked ? null : editing && manage ? (
+              /*
+                ONE BUTTON, AND IT SAYS DONE. There is nothing to save (each row already wrote
+                itself) and nothing to cancel, so a Save/Cancel pair here would be two controls
+                that do not do what they say.
+              */
+              <Button
+                variant="ink"
+                size="sm"
+                onClick={leaveEditing}
+                data-testid={testId ? `${testId}-done` : undefined}
+              >
+                <Check className="mr-2 h-4 w-4" />
+                {t("common.done", "Done")}
+              </Button>
+            ) : editing ? (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={requestCancel}
+                  disabled={saving}
+                  data-testid={testId ? `${testId}-cancel` : undefined}
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  {t("common.cancel", "Cancel")}
+                </Button>
+                {/*
+                  SAVE IS INK, NOT RED — MEMBER_UX_RULES R1: *"One red button per page,
+                  maximum."*
+
+                  A card's Save cannot be a page's one red action, because these cards come in
+                  sixes: the member's Medical page has six and any number can be open at once,
+                  so red here means six red buttons on one screen. Ink is what R1 names for
+                  everything that is solid but not THE action. It is a real button variant
+                  rather than a hand-rolled `bg-foreground` className, which is what lets
+                  `memberRedButtons.test.tsx` tell "deliberately not red" from "forgot to say".
+                */}
+                <Button
+                  variant="ink"
+                  size="sm"
+                  onClick={save}
+                  disabled={saving}
+                  data-testid={testId ? `${testId}-save` : undefined}
+                >
+                  {saving ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-4 w-4" />
+                  )}
+                  {t("common.save", "Save")}
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={startEditing}
+                data-testid={testId ? `${testId}-edit` : undefined}
+              >
+                {emptyState ? (
+                  <Plus className="mr-2 h-4 w-4" />
+                ) : (
+                  <Pencil className="mr-2 h-4 w-4" />
+                )}
+                {emptyState ? t("common.add", "Add") : t("common.edit", "Edit")}
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {/*
+            ONE fieldset, not a disabled prop per input. `min-w-0` because a disabled fieldset
+            establishes a new layout context that otherwise refuses to shrink inside a grid.
+
+            `editable-card-fields` is what turns READ MODE INTO PLAIN TEXT (#328). A disabled
+            input is still an input: it has a border, a box, a placeholder and a chevron, so a
+            locked card still reads as a form somebody has switched off rather than as a
+            record. The rule lives in index.css because it must reach every descendant of the
+            fieldset — and because doing it there means twelve tabs get it at once, instead of
+            twelve hand-written read views that drift.
+
+            THE CONTEXT IS THE OTHER HALF, and it is what CSS cannot do. R6 asks for two things:
+            *"Fields as label / value"* — which the rule above delivers — and *"Empty = 'Not
+            added' + inline Add"*, which is a different STRING and a BUTTON, neither of which a
+            stylesheet can invent. `FieldControl` reads this context to supply them, and
+            `MedicalFieldRow` reads it to render a stored phone number as a real `tel:` link
+            rather than a flattened input. A context and not a prop for the same reason the
+            fieldset is one container: a per-field flag is a flag somebody forgets on the
+            forty-first field, and the forgetting is invisible.
+
+            `disableFieldsWhenLocked={false}` is for a card whose every field renders its own
+            read view (the member's Medical page): there is no input left to disable, and a
+            disabled group wrapped around plain text is announced as unavailable for nothing.
+          */}
+          <EditableCardContext.Provider value={{ editing, startEditing }}>
+            {disableFieldsWhenLocked ? (
+              <fieldset
+                disabled={!editing}
+                className="editable-card-fields min-w-0 disabled:opacity-100"
+                data-testid={testId ? `${testId}-fields` : undefined}
+                data-editing={editing ? "true" : "false"}
+              >
+                {children}
+              </fieldset>
+            ) : (
+              <div
+                className="min-w-0"
+                data-testid={testId ? `${testId}-fields` : undefined}
+                data-editing={editing ? "true" : "false"}
+              >
+                {children}
+              </div>
+            )}
+          </EditableCardContext.Provider>
+        </CardContent>
+      </Card>
+
+      <AlertDialog open={confirmDiscard} onOpenChange={setConfirmDiscard}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("adminMemberDetail.edit.discardTitle", "Discard your changes?")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t(
+                "adminMemberDetail.edit.discardBody",
+                "You have changed this card and not saved it. Closing now leaves the record as it was.",
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              {t("adminMemberDetail.edit.keepEditing", "Keep editing")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={leaveEditing}
+              data-testid={testId ? `${testId}-discard` : undefined}
+            >
+              {t("adminMemberDetail.edit.discard", "Discard")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}

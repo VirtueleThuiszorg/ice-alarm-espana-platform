@@ -457,9 +457,9 @@ export const FAMILIES = [
   },
   {
     wires: ["channel:messages", "channel:conversations", "fn:member-self-service"],
-    control: "Live arrival of a message on either Messages screen; the member-side notify and mark-read calls",
+    control: "Live arrival of a message on either Messages screen; the member-side notify, mark-read and home-location calls",
     promise: "a new message appears, and the team is told",
-    dest: "postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read",
+    dest: "postgres_changes on messages / conversations (both published); member-self-service for notify_staff, mark_read, save_medical_info and save_home_location",
     told: "bell",
     proof: null,
     note:
@@ -467,7 +467,15 @@ export const FAMILIES = [
       "SMS becomes a message row; it does not exercise these subscriptions, and it does not cover " +
       "member-self-service's `notify_staff` leg — the one that actually rings the bell. Claiming " +
       "it for all five wires was the register scoring a neighbour's test, which is the habit it " +
-      "exists to break.",
+      "exists to break.\n\n" +
+      "`save_home_location` (2026-09-10) is on this wire too and does NOT ring the bell, " +
+      "deliberately: a member marking their own front door is not news anybody has to act on " +
+      "tonight, and it is on the record where it matters — the member row, the SOS card, and an " +
+      "activity_logs row naming who set it and whether it replaced an earlier pin. What is " +
+      "PROVEN of it is the write and the refusals (src/test/memberHomeLocationWrite.test.ts, " +
+      "scripts/rls/isolation.sql); what is not is the click-through, until the Playwright spec " +
+      "runs against a seeded member. So this row still scores as unproven, which is the honest " +
+      "answer.",
   },
   {
     wires: ["table:conversation_messages"],
@@ -560,6 +568,33 @@ export const FAMILIES = [
       "card says so rather than offering a button that does nothing.",
   },
   {
+    wires: ["table:staff_shift_swaps", "rpc:apply_shift_swap"],
+    control: "Ask a colleague to swap or cover a shift; accept or decline; a supervisor approves it",
+    promise: "the person being asked finds out, both people find out when it is approved, and the rota actually moves",
+    dest:
+      "staff_shift_swaps → bell_on_shift_swap writes targeted notification_log rows; " +
+      "emit_shift_swap_to_router queues shift.swap_requested/_accepted/_approved to notify-staff " +
+      "(push on, SMS/WhatsApp/email off); approval calls apply_shift_swap, which moves " +
+      "staff_shifts and writes staff_shift_covers + activity_logs in one transaction",
+    told: "bell",
+    // The client leg: src/test/shiftSwaps.test.tsx renders the screens against a fake PostgREST
+    // and asserts the RECORDED WRITE for each of the three answers, plus that the approve control
+    // is absent for the two people who are not allowed to press it. The database leg is
+    // scripts/rls/isolation.sql, named in the note below — a browser cannot see RLS at all.
+    proof: "src/test/shiftSwaps.test.tsx",
+    note:
+      "THE BELL IS WRITTEN BY THE DATABASE HERE, not by the client, and that is the difference " +
+      "from the cover flow above. An operator cannot call notify-staff at all " +
+      "(NOTIFY_CALLER_ROLES admits admins and the service role), and a notification raised by the " +
+      "browser is lost when the tab closes mid-request — so a trigger does it, which also covers " +
+      "a supervisor fixing a swap by hand in the SQL editor. The move is a single transaction " +
+      "because a half-applied swap puts two people on one slot and nobody on another, and " +
+      "staff_on_shift_now — which the shift monitor reads — would agree with it. 32 assertions in " +
+      "scripts/rls/isolation.sql exercise the refusals (an operator cannot apply; a swap not yet " +
+      "accepted cannot be applied; a rota that changed underneath is refused whole), the bell rows " +
+      "per transition, and the idempotent second click.",
+  },
+  {
     wires: ["table:staff_holidays", "table:staff_shift_covers", "table:staff_shifts", "table:shift_escalation_chain"],
     control: "Request holiday, approve/decline, offer and accept shift cover, edit the rota",
     promise: "the person who has to act finds out",
@@ -631,7 +666,7 @@ export const FAMILIES = [
   },
   {
     wires: ["table:members", "channel:members", "table:member_notes", "table:member_contact_methods", "table:payers", "table:subscriptions", "table:payments"],
-    control: "Staff edit a member record, notes, contact methods, payer, subscription, payment",
+    control: "Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin",
     promise: "the record reflects what was agreed",
     dest: "the named tables",
     told: "self",
@@ -639,7 +674,12 @@ export const FAMILIES = [
     note:
       "`subscriptions` deserves its own warning: golden rule 4 reserves activation for the " +
       "payment webhook, and `useMemberAction` honours that by calling the gateway first and only " +
-      "recording afterwards. Nothing here writes status='active' from the browser.",
+      "recording afterwards. Nothing here writes status='active' from the browser.\n\n" +
+      "The home-location pin (2026-09-10) is a direct staff write to `members`, and what stops " +
+      "it lying is not this component: `guard_member_home_location()` forces a staff write to be " +
+      "source='staff_pin', stamps set_at/set_by, and refuses a provenance-only edit. The SOS " +
+      "card labels a staff_pin differently from a member confirmation, so the trigger is what " +
+      "makes that label true. Proven by execution in scripts/rls/isolation.sql.",
   },
   {
     wires: ["fn:submit-member-update", "fn:validate-member-update-token", "fn:send-member-update-request"],

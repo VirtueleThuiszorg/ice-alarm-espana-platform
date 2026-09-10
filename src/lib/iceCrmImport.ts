@@ -1,7 +1,8 @@
 /**
  * ICE Alarm (KarmaCRM) CSV import — parsing and mapping.
  *
- * Replaces src/lib/crmImport.ts, which was written against KarmaCRM's *default*
+ * Replaced src/lib/crmImport.ts (deleted once the import page was wired to this
+ * module), which was written against KarmaCRM's *default*
  * contact export and silently mangled the real ICE export (431 rows, 147
  * columns). See ICE_FIELD_MAPPING_SPEC_2026-09-02.md for the full field map;
  * the failures this module exists to fix, in the order they bite:
@@ -34,6 +35,48 @@ export const SENSITIVE_PAYMENT_HEADERS = [
   "Credit Card Details",
   "20 Digit Bank No",
 ] as const;
+
+/**
+ * Columns whose VALUES must never leave this module — not into a mapped field, not into
+ * `crm_import_rows.raw`, not into a preview, not into a log line.
+ *
+ * This overrides what the header of this file used to say. The original decision was that card
+ * and bank columns "stay in crm_import_rows.raw for admin review, exactly as before — that
+ * behaviour was correct". It was not. `raw` is a jsonb column on a table staff can read: 94 rows
+ * carry card details and 85 carry a 20-digit bank number, and putting them there means the
+ * platform stores card data it has no reason to hold, cannot protect to PCI standard, and would
+ * have to disclose in a breach. Lee's instruction is to strip them, and stripping is right.
+ *
+ * Two of these four were previously MAPPED, and losing them is a real cost, recorded rather
+ * than glossed:
+ *   Private Medical Details  ->  medical_information.private_insurer is now always null from an
+ *                                import. The insurer's name goes with the policy number it sat
+ *                                beside; if Lee wants the insurer he needs a column that holds
+ *                                only the insurer.
+ *   Death Funeral Wishes     ->  end-of-life wishes are no longer imported at all. `funeral_plan`
+ *                                and its policy number still are; the free-text wishes are not.
+ *
+ * ENFORCEMENT IS AT THE ACCESSOR, not at each call site. `IceRow.get()` returns "" for these
+ * headers, so a future mapping cannot pick one up by adding a line — the same reasoning as
+ * golden rule 6, where Isabella's forbidden tools are unreachable in code rather than discouraged
+ * in a prompt. Only PRESENCE is observable, via `redactedPresent()`.
+ */
+export const REDACTED_HEADERS = [
+  "Credit Card Details",
+  "20 Digit Bank No",
+  "Private Medical Details",
+  "Death Funeral Wishes",
+] as const;
+
+/**
+ * Normalised for the accessor check, built once.
+ *
+ * Uses `normaliseHeader` rather than its own normalisation, and that is not tidiness. The first
+ * version lowercased here while `normaliseHeader` does not, so the set never matched and every
+ * redaction silently did nothing — the card number came through untouched and the code read as
+ * if it were guarded. Two normalisers for one comparison is one too many.
+ */
+const REDACTED_SET: ReadonlySet<string> = new Set(REDACTED_HEADERS.map(normaliseHeader));
 
 /* ------------------------------------------------------------------ *
  * RFC 4180 CSV parser
@@ -145,11 +188,49 @@ export class IceRow {
     });
   }
 
-  /** Value at a named column. `occurrence` disambiguates duplicate headers. */
+  /**
+   * Value at a named column. `occurrence` disambiguates duplicate headers.
+   *
+   * Returns "" for a REDACTED_HEADERS column, whatever the file contains. That is the whole
+   * enforcement: a mapping cannot leak card data by reading it, because reading it is not
+   * possible through this accessor.
+   */
   get(header: string, occurrence = 0): string {
-    const positions = this.index.get(normaliseHeader(header));
+    const normalised = normaliseHeader(header);
+    if (REDACTED_SET.has(normalised)) return "";
+    const positions = this.index.get(normalised);
     if (!positions || positions[occurrence] === undefined) return "";
     return clean(this.values[positions[occurrence]] ?? "");
+  }
+
+  /**
+   * Whether a redacted column held anything — PRESENCE ONLY, never the value.
+   *
+   * This is what lets the batch summary say "94 rows had card data — discarded" without the
+   * count itself becoming a way to read the number back.
+   */
+  redactedPresent(header: (typeof REDACTED_HEADERS)[number]): boolean {
+    const positions = this.index.get(normaliseHeader(header)) ?? [];
+    return positions.some((p) => clean(this.values[p] ?? "") !== "");
+  }
+
+  /**
+   * Whether a payment column begins with the free-of-charge marker. BOOLEAN ONLY.
+   *
+   * Real business data hides in a column we refuse to read: where a member pays nothing, the
+   * card cell says "FOC" instead of a card number. Redacting the column removed the card data
+   * and the FOC signal together, which the existing suite caught — `is_free_of_charge` went
+   * false for a member who pays nothing, and billing them would have been the consequence.
+   *
+   * So the signal is recovered WITHOUT the value: this returns a boolean, matches only at the
+   * start of the cell, and cannot be asked about any other token. A yes/no derived from a
+   * redacted cell is not the redacted data; the cell's contents still never leave this class.
+   */
+  hasFreeOfChargeMarker(): boolean {
+    return SENSITIVE_PAYMENT_HEADERS.some((h) => {
+      const positions = this.index.get(normaliseHeader(h)) ?? [];
+      return positions.some((p) => /^foc\b/i.test(clean(this.values[p] ?? "")));
+    });
   }
 
   /** Every value under a repeated header, in column order, blanks dropped. */
@@ -173,10 +254,19 @@ export class IceRow {
     return out;
   }
 
+  /**
+   * The archived row for `crm_import_rows.raw`.
+   *
+   * Lossless EXCEPT for REDACTED_HEADERS, which are omitted entirely rather than blanked. An
+   * empty string would still say "this person gave us their card number", and a key that is
+   * present but empty is the kind of thing a later "restore the raw row" feature would happily
+   * fill back in.
+   */
   raw(): Record<string, string> {
     const out: Record<string, string> = {};
     this.headers.forEach((h, i) => {
-      // Duplicate headers get a suffix so the archived raw row is lossless.
+      if (REDACTED_SET.has(normaliseHeader(h))) return;
+      // Duplicate headers get a suffix so the archived raw row stays lossless.
       const key = out[h] === undefined ? h : `${h} (${i})`;
       out[key] = this.values[i] ?? "";
     });
@@ -328,6 +418,31 @@ export function householdEmail(email: string, tag: string): string {
  * Device identifiers
  * ------------------------------------------------------------------ */
 
+/**
+ * The CRM has no relationship column. It is written into the name, in brackets:
+ * "Susan Smith (Sister in UK)", "Peter Smith (Son)".
+ *
+ * This used to hardcode "Unknown" for every contact, with the note "never invent one" — right
+ * instinct, wrong conclusion. The relationship is not missing, it is just in the same cell as
+ * the name, and an operator reading "Susan Smith — Unknown" beside a phone number is worse off
+ * than one reading "Susan Smith — Sister in UK". Nothing is invented: the bracket contents are
+ * taken verbatim, and "Other" is used only when there are no brackets at all.
+ *
+ * The brackets are stripped from the NAME too. Leaving them made the contact's name
+ * "Susan Smith (Sister in UK)", which is what an operator would then read out loud.
+ */
+export function splitContactName(raw: string): { name: string; relationship: string } {
+  const v = clean(raw);
+  if (!v) return { name: "", relationship: "Other" };
+  const m = v.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+  if (!m) return { name: v, relationship: "Other" };
+  const name = clean(m[1]);
+  const relationship = clean(m[2]);
+  // "(?)" or "()" tells us nothing; do not present it as a relationship.
+  if (!relationship || /^[?-]+$/.test(relationship)) return { name: name || v, relationship: "Other" };
+  return { name: name || v, relationship };
+}
+
 export interface DeviceIds {
   imei: string | null;
   dockingStationMac: string | null;
@@ -457,6 +572,19 @@ export function mapMembership(row: IceRow, paymentType: string): MembershipMappi
  * Small normalisers
  * ------------------------------------------------------------------ */
 
+/**
+ * Yes, and nothing that merely resembles yes.
+ *
+ * Used for consent, so the bar is that the whole cell is one of these tokens. "yes if she is in"
+ * is not a yes; nor is "no"; nor is a name. Spanish included because the file is Spanish —
+ * `sí` with the accent and `si` without, since both are typed.
+ */
+const UNAMBIGUOUS_YES = new Set(["yes", "y", "si", "sí", "true", "1"]);
+
+export function parseUnambiguousYes(raw: string): boolean {
+  return UNAMBIGUOUS_YES.has(clean(raw).toLowerCase());
+}
+
 export function mapGender(raw: string): { gender: string | null; review: boolean } {
   const v = clean(raw).toLowerCase();
   if (!v) return { gender: null, review: false };
@@ -486,14 +614,21 @@ export function mapProvince(raw: string): { province: string | null; review: boo
 
 /** 'FOC' hides inside the two payment columns we otherwise discard. */
 export function detectFreeOfCharge(row: IceRow): boolean {
-  return SENSITIVE_PAYMENT_HEADERS.some((h) => /^foc\b/i.test(row.get(h)));
+  // Was `row.get(h)`, which now returns "" because those columns are redacted. See
+  // IceRow.hasFreeOfChargeMarker for why a boolean is safe where the value is not.
+  return row.hasFreeOfChargeMarker();
 }
 
 export function hasSensitivePaymentData(row: IceRow): boolean {
-  return SENSITIVE_PAYMENT_HEADERS.some((h) => {
-    const v = row.get(h);
-    return Boolean(v) && !/^foc\b/i.test(v);
-  });
+  // Also had to move off `row.get()` when those columns became redacted — it silently returned
+  // "" and the warning stopped firing, so a row carrying a card number reported nothing. The
+  // existing suite caught it. Presence and the FOC marker are both booleans, which is all this
+  // needs; "FOC" is a payment arrangement, not card data, so it does not count as sensitive.
+  return (
+    SENSITIVE_PAYMENT_HEADERS.some((h) =>
+      row.redactedPresent(h as (typeof REDACTED_HEADERS)[number])
+    ) && !row.hasFreeOfChargeMarker()
+  );
 }
 
 function dedupe(list: string[]): string[] {
@@ -537,6 +672,9 @@ export interface MappedRow {
     gps_lat: number | null;
     gps_lng: number | null;
     map_link: string | null;
+    /** The home pin, from GPS or the map link. See mapIceRow. `null` when neither parses. */
+    home_lat: number | null;
+    home_lng: number | null;
     title: string | null;
     nickname: string | null;
     gender: string | null;
@@ -591,19 +729,65 @@ export interface MappedRow {
   access: { key_safe_location: string | null; key_safe_code: string | null } | null;
   endOfLife: { funeral_plan: string | null; policy_number: string | null; wishes: string | null } | null;
   crmProfile: { stage: string | null; status: string | null; referral_source: string | null; assigned_label: string | null; tags: string[]; groups: string[] };
+  /**
+   * Which redacted columns this row HELD — names only, never values (REDACTED_HEADERS).
+   *
+   * Recorded so the batch summary can tell Lee "94 rows had card data — discarded" and he can
+   * believe it. A silent strip and a column that was simply empty look identical afterwards,
+   * and the difference matters: one means the data was thrown away on purpose, the other means
+   * it was never there.
+   */
+  discardedSensitive: string[];
   notes: string | null;
+  /** `Spouse`, verbatim. A couple-plan hint for a human, not a second member. */
+  spouse: string | null;
+  /**
+   * True only when `Contact Friend for Email` is an unambiguous yes.
+   *
+   * Deliberately a boolean rather than a tri-state: "not yes" and "empty" lead to the same
+   * place — no consent row is written — and a third state would invite somebody to treat
+   * "present but unreadable" as a weaker yes.
+   */
+  emailContactConsent: boolean;
   raw: Record<string, string>;
 }
 
 const nz = (v: string): string | null => (v ? v : null);
 
-function parseGps(raw: string): { lat: number | null; lng: number | null } {
+/**
+ * THE ONE COORDINATE PARSER, exported because a second one is how two importers come to
+ * disagree about the same cell.
+ *
+ * It takes the first pair of decimal numbers it can find, which is what makes it work on both
+ * of the shapes the KarmaCRM export actually holds:
+ *   "37.3886, -2.1487"                         the GPS Co-ordinates column (108 rows)
+ *   "https://maps.google.com/…@37.3886,-2.1487,17z"   the Google Map Link column (90 rows)
+ */
+export function parseGps(raw: string): { lat: number | null; lng: number | null } {
   const m = clean(raw).match(/(-?\d{1,3}\.\d+)[,;\s]+(-?\d{1,3}\.\d+)/);
   if (!m) return { lat: null, lng: null };
   const lat = Number(m[1]);
   const lng = Number(m[2]);
   if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return { lat: null, lng: null };
   return { lat, lng };
+}
+
+/**
+ * IS THIS PAIR PLAUSIBLY IN SPAIN?
+ *
+ * The box is generous on purpose — the Canaries are 1,800 km from Girona, and this business
+ * sells on the Costa del Sol and in Almería. Its job is not geography but ARITHMETIC SANITY: a
+ * Google Maps URL is full of numbers, and "the first decimal pair" occasionally finds a zoom
+ * level, a place id fragment or a timestamp. A pair from a URL that lands in the Atlantic is a
+ * parse accident, and storing it as somebody's front door would put a confident pin on the SOS
+ * card for a house that is not there.
+ *
+ * Applied ONLY to what becomes `home_lat`/`home_lng`. `gps_lat`/`gps_lng` keep the verbatim
+ * value they have always had — narrowing a column somebody may already be reading is a separate
+ * decision from what this feature writes.
+ */
+export function isPlausiblySpain(lat: number, lng: number): boolean {
+  return lat >= 27 && lat <= 44.5 && lng >= -19 && lng <= 5;
 }
 
 export function mapIceRow(row: IceRow): MappedRow {
@@ -627,8 +811,16 @@ export function mapIceRow(row: IceRow): MappedRow {
   const humanPhones = dedupe(phoneCells.flatMap((p) => p.human));
   const simPhones = dedupe(phoneCells.flatMap((p) => p.deviceSim));
 
-  const dob = parseIceDate(row.get("Birthday"));
+  /* `Birthday` first, `Dob` as the fallback — Lee's ruling on the second date-of-birth column.
+     Both go through the same parser, so an ambiguous value is still rejected rather than guessed
+     in either column. The fallback is only reached when Birthday is BLANK, never when Birthday
+     holds something the parser refused: a value we could not read is a value to look at, not a
+     reason to quietly prefer the other column. */
+  const dob = parseIceDate(row.get("Birthday")) ?? (row.get("Birthday") ? null : parseIceDate(row.get("Dob")));
   if (row.get("Birthday") && !dob) reviewReasons.push(`Unparseable birthday "${row.get("Birthday")}"`);
+  if (!row.get("Birthday") && row.get("Dob") && !dob) {
+    reviewReasons.push(`Unparseable Dob "${row.get("Dob")}" (Birthday was empty)`);
+  }
 
   const province = mapProvince(row.get("Home State"));
   if (province.review && province.province) reviewReasons.push(`Province "${province.province}" is not a Spanish province`);
@@ -638,8 +830,57 @@ export function mapIceRow(row: IceRow): MappedRow {
 
   const gps = parseGps(row.get("GPS Co-ordinates"));
 
-  // House Number precedes the secondary street line: "Apt 12 - 3rd Floor".
-  const line2 = [row.get("House Number"), row.get("Home Street 2")].filter(Boolean).join(", ");
+  /*
+    THE HOME PIN, from whichever of the two columns can produce one.
+    `GPS Co-ordinates` first — it is the authored value. Then `Google Map Link`, through the SAME
+    parser: 90 rows have a link and no coordinates, and a link that names a point is the same
+    fact written differently.
+
+    SOURCE IS 'imported', NEVER 'member_pin'. Nobody asked the member, so the SOS card must say
+    "from our records — not confirmed by the member". `home_location_set_at` stays NULL for the
+    same reason: the import knows when IT ran, which is not when anybody stood at that door.
+  */
+  let homeLat: number | null = null;
+  let homeLng: number | null = null;
+  if (gps.lat !== null && gps.lng !== null && isPlausiblySpain(gps.lat, gps.lng)) {
+    homeLat = gps.lat;
+    homeLng = gps.lng;
+  } else {
+    /*
+      DECODED FIRST, because the value is a URL and not a coordinate cell. `?q=37.3886%2C-2.1487`
+      is a perfectly ordinary Google Maps link and the parser looks for a real separator between
+      the two numbers, so without this it reads as no coordinate at all. Decoding is applied
+      HERE and not inside `parseGps`: the GPS Co-ordinates column is not a URL, and widening a
+      parser two goals share is not something to do as a side effect.
+    */
+    const link = row.get("Google Map Link");
+    let decoded = link;
+    try {
+      decoded = decodeURIComponent(link);
+    } catch {
+      // A stray % in a hand-typed cell throws. The raw value is still worth a try.
+      decoded = link;
+    }
+    const fromLink = parseGps(decoded);
+    if (fromLink.lat !== null && fromLink.lng !== null && isPlausiblySpain(fromLink.lat, fromLink.lng)) {
+      homeLat = fromLink.lat;
+      homeLng = fromLink.lng;
+      warnings.push("Home location taken from the Google Map Link — no GPS co-ordinates on this row");
+    }
+  }
+  if (gps.lat !== null && gps.lng !== null && homeLat === null) {
+    warnings.push(
+      `GPS co-ordinates ${gps.lat}, ${gps.lng} are outside Spain — kept verbatim, NOT used as a home location`,
+    );
+  }
+
+  /* House Number belongs on LINE 1, in front of the street.
+     It was on line 2 with the note that it holds things like "Apt 12 - 3rd Floor". Lee's
+     measurement of the real file says House Number + Home Street is the first line of the
+     address, and he has read the 431 rows. An ambulance is given line 1; a house number sitting
+     on line 2 is a number the driver may never see. Where the value really is an apartment
+     descriptor, "Apt 12 - 3rd Floor Calle X" still reads correctly as a first line. */
+  const line2 = row.get("Home Street 2");
 
   const medicalInfo = row.get("Important Medical Info");
   const criticalInfo = row.get("Critical Info");
@@ -657,20 +898,19 @@ export function mapIceRow(row: IceRow): MappedRow {
 
   const contacts: MappedContact[] = [];
   for (const n of [1, 2, 3]) {
-    const name = row.get(`Contact ${n} - Name`);
+    const rawName = row.get(`Contact ${n} - Name`);
     const tel = row.get(`Contact ${n} - Tel`);
-    if (!name && !tel) continue;
+    if (!rawName && !tel) continue;
     const phones = splitPhones(tel);
+    const { name, relationship } = splitContactName(rawName);
     contacts.push({
       contactName: name || "(name not recorded)",
       phone: phones.human[0] ?? null,
-      // The CRM has no relationship column; the label often hides in the
-      // member's phone field ("dad - lee"). Never invent one.
-      relationship: "Unknown",
+      relationship,
       priorityOrder: contacts.length + 1,
       contactType: "emergency",
     });
-    if (!name) reviewReasons.push(`Emergency contact ${n} has a number but no name`);
+    if (!rawName) reviewReasons.push(`Emergency contact ${n} has a number but no name`);
   }
   const keyHolderName = row.get("Key Holder 1 - Name");
   const keyHolderTel = row.get("Key Holder 1 - Tel");
@@ -695,13 +935,19 @@ export function mapIceRow(row: IceRow): MappedRow {
   const monthlyFee = row.get("Monthly Fee").replace(/[^0-9.]/g, "");
 
   if (hasSensitivePaymentData(row)) {
-    warnings.push("Row carries card/bank data — retained only in crm_import_rows.raw");
+    // The message used to say "retained only in crm_import_rows.raw". That is no longer true and
+    // a warning that misdescribes what happened is worse than none: an admin reading it would
+    // go looking for the data.
+    warnings.push("Row carried card/bank data — DISCARDED, not stored anywhere");
   }
 
   const keySafe = row.get("Key Safe");
   const funeralPlan = row.get("Funeral Plan");
   const funeralPolicy = row.get("Policy Number", 1);
-  const wishes = row.get("Death Funeral Wishes");
+  // "Death Funeral Wishes" is in REDACTED_HEADERS, so it is not read. Kept as an explicit null
+  // rather than a get() that silently returns "": a call that looks like it works is how a
+  // redaction quietly stops being one.
+  const wishes = "";
 
   const postalStreet = row.get("Street");
   const hasPostal = Boolean(postalStreet || row.get("City/Town") || row.get("Postal Code"));
@@ -713,7 +959,7 @@ export function mapIceRow(row: IceRow): MappedRow {
     phone: humanPhones[0] ?? null,
     date_of_birth: dob,
     status: status.memberStatus,
-    address_line_1: nz(row.get("Home Street")),
+    address_line_1: nz([row.get("House Number"), row.get("Home Street")].filter(Boolean).join(" ")),
     address_line_2: nz(line2),
     city: nz(row.get("Home City")),
     province: province.province,
@@ -723,6 +969,8 @@ export function mapIceRow(row: IceRow): MappedRow {
     gps_lat: gps.lat,
     gps_lng: gps.lng,
     map_link: nz(row.get("Google Map Link")),
+    home_lat: homeLat,
+    home_lng: homeLng,
     title: nz(row.get("Title")),
     nickname: nz(row.get("Nickname")),
     gender: gender.gender,
@@ -790,7 +1038,9 @@ export function mapIceRow(row: IceRow): MappedRow {
           vision_notes: nz(row.get("Glasses")),
           meds_location: nz(row.get("Meds Location")),
           meds_notes: nz(row.get("Meds Notes")),
-          private_insurer: nz(row.get("Private Medical Details")),
+          // "Private Medical Details" is redacted (see REDACTED_HEADERS), so the insurer's name
+          // is no longer imported. Its policy number below still is — they were separate columns.
+          private_insurer: null,
           private_policy_number: nz(row.get("Policy Number", 0)),
           additional_notes: nz(specialInstructions),
         }
@@ -847,6 +1097,16 @@ export function mapIceRow(row: IceRow): MappedRow {
       groups: clean(row.get("Groups")).split(/[;,]+/).map(clean).filter(Boolean),
     },
     notes: nz(row.get("Recent notes") || row.get("Notes")),
+    /* Spouse is a COUPLE-PLAN HINT and nothing more (Lee's ruling): a name in a note, never a
+       second member and never an emergency contact. Inventing a member from it would create a
+       person nobody has spoken to, with no address of their own and no pendant. */
+    spouse: nz(row.get("Spouse")),
+    /* `Contact Friend for Email` set to an unambiguous yes, and only that. Anything else — a
+       name, a note, "maybe", a blank — is NOT consent, and the raw value stays in
+       `crm_import_rows.raw` for a human to read. Consent recorded on a guess is worse than no
+       consent recorded: it is a defence nobody can stand behind later. */
+    emailContactConsent: parseUnambiguousYes(row.get("Contact Friend for Email")),
+    discardedSensitive: REDACTED_HEADERS.filter((h) => row.redactedPresent(h)),
     raw: row.raw(),
   };
 }
@@ -895,6 +1155,11 @@ export interface ImportSummary {
   excluded: number;
   deceased: number;
   needingReview: number;
+  /**
+   * Rows that held each redacted column, by column name. Counts only — the values are
+   * unreachable by the time a MappedRow exists.
+   */
+  discardedSensitive: Record<string, number>;
 }
 
 export function summarise(mapped: MappedRow[]): ImportSummary {
@@ -906,5 +1171,10 @@ export function summarise(mapped: MappedRow[]): ImportSummary {
     excluded: mapped.filter((m) => m.target === "exclude").length,
     deceased: mapped.filter((m) => m.member.deceased_at !== null).length,
     needingReview: mapped.filter((m) => m.reviewReasons.length > 0).length,
+    discardedSensitive: Object.fromEntries(
+      REDACTED_HEADERS.map((h) => [h, mapped.filter((m) => m.discardedSensitive.includes(h)).length])
+        // A column no row carried is not news; only report what was actually discarded.
+        .filter(([, n]) => (n as number) > 0)
+    ),
   };
 }

@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { MemberOverviewDialog } from "@/components/admin/member-detail/MemberOverviewDialog";
 
 interface MemberHeaderProps {
   member: {
@@ -89,6 +90,14 @@ export function MemberHeader({
 
             {/* Actions */}
             <div className="flex items-center gap-2">
+              {/*
+                Overview before Edit: the commonest thing somebody does on this page is read it,
+                and until now reading it meant clicking through twelve tabs.
+              */}
+              <MemberOverviewDialog
+                memberId={member.id}
+                memberName={`${member.first_name} ${member.last_name}`}
+              />
               <Button variant="outline" onClick={onEdit}>
                 <Edit className="mr-2 h-4 w-4" />
                 Edit

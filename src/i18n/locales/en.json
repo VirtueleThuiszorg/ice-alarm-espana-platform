@@ -6100,6 +6100,18 @@
     },
     "secondary": {
       "otherAlerts": "{{count}} other pending alert(s)"
+    },
+    "noRecentFix": "No recent pendant location — showing home",
+    "home": {
+      "mapHeader": "Home location",
+      "labelMember": "Home location (set by member on {{date}})",
+      "labelMemberNoDate": "Home location (set by member)",
+      "labelStaff": "Home location (set by our team on {{date}})",
+      "labelStaffNoDate": "Home location (set by our team)",
+      "labelUnconfirmed": "Home location (from our records — not confirmed by the member)",
+      "distance": "Pendant is {{value}} {{unit}} from home",
+      "map": "Map",
+      "directions": "Directions"
     }
   },
   "falseAlarm": {
@@ -6492,7 +6504,11 @@
         "east": "Move east",
         "west": "Move west"
       },
-      "save": "Save my home location"
+      "save": "Save my home location",
+      "purposeStaff": "Where an operator sends help when the pendant cannot say. Recorded as a correction by our team, not as the member's own confirmation.",
+      "titleStaff": "Set the member's home location",
+      "saveStaff": "Save this location",
+      "dragHelpStaff": "Move the pin onto the member's front door. Tap the map, or use the arrows."
     },
     "saved": "Home location saved",
     "saveFailed": "We could not save your home location."

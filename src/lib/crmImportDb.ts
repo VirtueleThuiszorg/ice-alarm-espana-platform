@@ -291,9 +291,27 @@ export function createSupabaseImportDb(client: Client): ImportDb {
     },
 
     async insertNote(memberId: string, content: string) {
-      const { error } = await client
-        .from("member_notes")
-        .insert({ member_id: memberId, content, note_type: "crm_import" });
+      const { error } = await client.from("member_notes").insert({
+        member_id: memberId,
+        content,
+        /*
+         * 'general', NOT 'crm_import'.
+         *
+         * `member_notes.note_type` carries a CHECK constraint from the base migration —
+         * ('general','medical','payment','support','followup','complaint') — and 'crm_import'
+         * is not in it. So EVERY note this import tried to write was refused by Postgres, and
+         * because `insertNote` throws, the whole row was then recorded as `failed` even though
+         * the member had already been created. On Lee's file that is the IMEI-without-SIM notes,
+         * the contacts-with-no-number notes and the Spouse hints — the notes that exist
+         * precisely because the data could not be represented anywhere else.
+         *
+         * Caught by running the migration's backfill against a real PostgreSQL 16: the seeded
+         * notes would not insert either, with the same constraint name. `crmImportNoteType`
+         * now reads the allowed list out of the migration and asserts this value is in it, so
+         * the next invented value fails a test rather than production.
+         */
+        note_type: "general",
+      });
       if (error) throw error;
     },
 

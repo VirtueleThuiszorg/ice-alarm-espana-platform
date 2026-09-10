@@ -296,27 +296,14 @@ export function planRowWrites(row: MappedRow): RowPlan {
     }
   }
 
-  /* Membership type, payment type and date joined.
-     The goal asks for these as CRM profile fields, and `crm_profiles` has no column for any of
-     them — it holds stage, status, referral_source, assigned_to_staff_id, department, industry,
-     tags and groups, and that is all. Three new columns is a migration, and three migrations are
-     already unapplied: the drift gate refuses a fourth stacked on top.
-     So they are written where they fit today — one note, verbatim, with a stable prefix so a
-     re-run recognises it rather than adding a second copy — and `crm_import_rows` keeps them in
-     `parsed_membership_type` and in `raw` besides. Nothing is lost; it is simply not yet a
-     column. Recorded for Lee rather than forced. */
-  const membershipFacts = [
-    row.subscription?.legacy_membership_label
-      ? `membership type ${row.subscription.legacy_membership_label}`
-      : null,
-    row.subscription?.payment_arrangement
-      ? `payment type ${row.subscription.payment_arrangement}`
-      : null,
-    row.subscription?.start_date ? `joined ${row.subscription.start_date}` : null,
-  ].filter(Boolean);
-  if (membershipFacts.length > 0) {
-    notes.push(`Karma CRM membership: ${membershipFacts.join("; ")}`);
-  }
+  /* Membership type, payment type and date joined USED TO BE A NOTE, because `crm_profiles` had
+     no column for any of them. They have columns now (Lee's ruling, D-19 item 1), so the note is
+     no longer written.
+     THE NOTE IS NOT DELETED for rows already imported: the migration's backfill lifts the values
+     out of it into the new columns and leaves the note where it is. It is the only copy if a
+     backfill pattern turned out to be wrong, and it is what a human reads on the record. So the
+     import stops ADDING notes rather than starting to remove them — an import that deletes is an
+     import nobody can run twice with confidence. */
 
   if (row.notes) notes.push(row.notes);
 
@@ -391,6 +378,15 @@ export function planRowWrites(row: MappedRow): RowPlan {
       referral_source: row.crmProfile.referral_source,
       tags: row.crmProfile.tags,
       groups: row.crmProfile.groups,
+      /* The three legacy membership facts, in their own columns since
+         20260910150000_crm_profile_legacy_membership. Verbatim on purpose: this is what KARMA
+         said, not what this platform has ever charged. They are on `crm_profiles` and not on
+         `subscriptions` because a subscriptions row means a billing relationship this system
+         owns, and golden rule 4 exists because that distinction decides whether somebody is
+         treated as paying. */
+      legacy_membership_type: row.subscription?.legacy_membership_label ?? null,
+      legacy_payment_type: row.subscription?.payment_arrangement ?? null,
+      legacy_date_joined: row.subscription?.start_date ?? null,
     },
   };
 }

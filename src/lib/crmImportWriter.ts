@@ -480,12 +480,177 @@ export function computeEmptyOnlyPatch(
  */
 const NEVER_PATCH = new Set(["id", "status", "created_at", "updated_at", "user_id"]);
 
+/**
+ * The patch source is `member` when the row can be one, and `parsedMember` when it cannot.
+ *
+ * The `if (!plan.member) return {}` version of this function made `applyRowPlan`'s "patch the
+ * matched member rather than shadowing them with a CRM contact" branch a no-op: a crm_contact
+ * plan has no MemberInsert by construction, so the branch always reported `unchanged` and threw
+ * away every field it had just parsed. That is the case it exists for — a client the platform
+ * already holds whose Karma row has lost its email. The row cannot CREATE a member, which is a
+ * different question from whether it can fill in a gap on one that already exists.
+ *
+ * `parsedMember` is safe to patch from for the same reason `member` is: its values have been
+ * through the same parsers (E.164 phone, unambiguous ISO date, Home* address block). It is
+ * merely incomplete, and empty-only patching does not care.
+ */
 export function memberPatchFor(
   existing: Record<string, unknown>,
   plan: RowPlan
 ): Record<string, unknown> {
-  if (!plan.member) return {};
-  const desired: Record<string, unknown> = { ...plan.member };
+  const desired: Record<string, unknown> = { ...(plan.member ?? plan.parsedMember) };
   for (const k of NEVER_PATCH) delete desired[k];
   return computeEmptyOnlyPatch(existing, desired);
+}
+
+/* ------------------------------------------------------------------ *
+ * Applying a plan
+ * ------------------------------------------------------------------ */
+
+/**
+ * The database, as narrowly as this module needs it.
+ *
+ * A seam rather than the supabase client itself, so every decision in `applyRowPlan` — did we
+ * match, do we insert or patch, do we skip a contact we already have — is testable against a
+ * fake that records what it was asked to do. Mocking the real client's chained builder proves
+ * that the chain was called, which is not the same as proving the right rows were written.
+ */
+export interface ImportDb {
+  findMemberByKeys(keys: DedupeKeys): Promise<{ id: string; row: Record<string, unknown> } | null>;
+  insertMember(row: MemberInsert): Promise<string>;
+  patchMember(id: string, patch: Record<string, unknown>): Promise<void>;
+  /** Phones already on this member's contact list, normalised, so a re-run adds none twice. */
+  existingContactPhones(memberId: string): Promise<string[]>;
+  insertContact(memberId: string, contact: ContactInsert): Promise<void>;
+  hasMedical(memberId: string): Promise<boolean>;
+  insertMedical(memberId: string, medical: Record<string, unknown>): Promise<void>;
+  deviceExists(imei: string): Promise<boolean>;
+  insertDevice(memberId: string, device: DeviceInsert): Promise<void>;
+  noteExists(memberId: string, content: string): Promise<boolean>;
+  insertNote(memberId: string, content: string): Promise<void>;
+  upsertCrmProfile(memberId: string, profile: Record<string, unknown>): Promise<void>;
+  insertCrmContact(plan: RowPlan): Promise<string>;
+  crmContactExists(keys: DedupeKeys): Promise<boolean>;
+}
+
+export type AppliedAction = "created" | "updated" | "unchanged" | "crm_contact" | "skipped";
+
+export interface AppliedResult {
+  sourceId: string;
+  action: AppliedAction;
+  memberId: string | null;
+  contactsCreated: number;
+  contactsSkippedAlreadyPresent: number;
+  deviceCreated: boolean;
+  medicalCreated: boolean;
+  notesCreated: number;
+  /** Non-fatal problems. A row that half-wrote says so rather than reporting success. */
+  problems: string[];
+}
+
+/**
+ * Write one planned row.
+ *
+ * Everything here is guarded so a SECOND RUN OF THE SAME FILE CHANGES NOTHING — the requirement
+ * that makes Lee's one-row test safe. The guards are on the data, not on a "have I run this
+ * batch before" flag: a flag is wrong the moment somebody re-exports the file with one row
+ * edited, which is exactly how this will actually be used.
+ */
+export async function applyRowPlan(db: ImportDb, plan: RowPlan): Promise<AppliedResult> {
+  const result: AppliedResult = {
+    sourceId: plan.sourceId,
+    action: "skipped",
+    memberId: null,
+    contactsCreated: 0,
+    contactsSkippedAlreadyPresent: 0,
+    deviceCreated: false,
+    medicalCreated: false,
+    notesCreated: 0,
+    problems: [],
+  };
+
+  if (plan.outcome === "skip") return result;
+
+  const keys = dedupeKeysFor(plan);
+  const existing = await db.findMemberByKeys(keys);
+
+  if (plan.outcome === "crm_contact") {
+    // A row that cannot be a member may still be somebody we already hold as a member — a
+    // client whose CRM row has lost its email, say. Patching what we can is better than
+    // creating a CRM contact that shadows a real member record.
+    if (existing) {
+      const patch = memberPatchFor(existing.row, plan);
+      if (Object.keys(patch).length > 0) {
+        await db.patchMember(existing.id, patch);
+        result.action = "updated";
+      } else {
+        result.action = "unchanged";
+      }
+      result.memberId = existing.id;
+      return result;
+    }
+    if (await db.crmContactExists(keys)) {
+      result.action = "unchanged";
+      return result;
+    }
+    await db.insertCrmContact(plan);
+    result.action = "crm_contact";
+    return result;
+  }
+
+  /* ---- a member ---- */
+  let memberId: string;
+  if (existing) {
+    memberId = existing.id;
+    const patch = memberPatchFor(existing.row, plan);
+    if (Object.keys(patch).length > 0) {
+      await db.patchMember(memberId, patch);
+      result.action = "updated";
+    } else {
+      result.action = "unchanged";
+    }
+  } else {
+    memberId = await db.insertMember(plan.member as MemberInsert);
+    result.action = "created";
+  }
+  result.memberId = memberId;
+
+  /* Contacts, matched by phone. Comparing by NAME would add a second row every time somebody
+     fixed a spelling in the CRM; the phone is the part an operator actually uses. */
+  const already = new Set(await db.existingContactPhones(memberId));
+  for (const c of plan.contacts) {
+    if (already.has(c.phone)) {
+      result.contactsSkippedAlreadyPresent += 1;
+      continue;
+    }
+    await db.insertContact(memberId, c);
+    already.add(c.phone);
+    result.contactsCreated += 1;
+  }
+
+  if (plan.medical && !(await db.hasMedical(memberId))) {
+    await db.insertMedical(memberId, plan.medical);
+    result.medicalCreated = true;
+  }
+
+  if (plan.device) {
+    // devices.imei is UNIQUE, so a second insert would throw rather than duplicate. Checking
+    // first turns that into a skip, which is what a re-run should be.
+    if (await db.deviceExists(plan.device.imei)) {
+      result.problems.push(`device ${plan.device.imei} already exists — left as it is`);
+    } else {
+      await db.insertDevice(memberId, plan.device);
+      result.deviceCreated = true;
+    }
+  }
+
+  for (const note of plan.notes) {
+    if (await db.noteExists(memberId, note)) continue;
+    await db.insertNote(memberId, note);
+    result.notesCreated += 1;
+  }
+
+  await db.upsertCrmProfile(memberId, plan.crmProfile);
+
+  return result;
 }

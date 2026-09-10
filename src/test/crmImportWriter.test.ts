@@ -150,7 +150,7 @@ describe("the device", () => {
   it("keeps the docking-station MAC as a note rather than in the IMEI", () => {
     const all = JSON.stringify(p);
     expect(all).toContain("E7:E9:C4:86:52:10");
-    if (p.device) expect(p.device.imei).toBe("865513075018479");
+    expect(all).not.toContain("865513075018479 DOCKING");
   });
 
   it("is never planned 'active' — an import has witnessed no test call", () => {
@@ -180,10 +180,11 @@ describe("the device", () => {
   });
 
   it("creates no device row when the CRM has no SIM number, and says so", () => {
-    if (!p.device) {
-      expect(p.warnings.join(" ")).toMatch(/no SIM number/);
-      expect(p.notes.join(" ")).toContain("865513075018479");
-    }
+    // Unconditional: the `if (!p.device)` version would have passed silently had a device been
+    // planned with an invented SIM, which is the exact bug it is meant to catch.
+    expect(p.device).toBeNull();
+    expect(p.warnings.join(" ")).toMatch(/no SIM number/);
+    expect(p.notes.join(" ")).toContain("865513075018479");
   });
 });
 

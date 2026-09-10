@@ -128,6 +128,25 @@ describe("an existing member has empty fields filled, and nothing else", () => {
   });
 });
 
+describe("a row that cannot become a member can still fill a gap on one", () => {
+  it("patches from the parsed fields when there is no MemberInsert", () => {
+    // 9002 has no email, so it is a crm_contact and `plan.member` is null. If it matches a
+    // member the platform already holds — by phone or NIE — the fields it DID parse are still
+    // worth filling in. Returning {} here made applyRowPlan's "patch rather than shadow" branch
+    // a silent no-op.
+    const plan = byId("9002");
+    expect(plan.member).toBeNull();
+    const patch = memberPatchFor({ city: null, postal_code: null, phone: "+34952383121" }, plan);
+    expect(Object.keys(patch).length).toBeGreaterThan(0);
+    expect(patch.city).toBe(plan.parsedMember.city);
+  });
+
+  it("still refuses to patch status from a parsed row", () => {
+    const patch = memberPatchFor({ status: null }, byId("9002"));
+    expect(Object.keys(patch)).not.toContain("status");
+  });
+});
+
 describe("re-running the import changes nothing", () => {
   it("produces an empty patch when the member already has everything", () => {
     // The second run of the same file. This is the whole requirement, stated once.

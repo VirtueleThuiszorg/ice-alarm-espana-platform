@@ -10,22 +10,25 @@
  *     from stale props rather than from what came back;
  *   · a save that appears to work and is gone the next time anybody opens the record.
  *
- * So the fake here is not a stub that records calls: it holds a row, applies the update to it,
- * and serves the updated row to the next read. That is the minimum needed for "persists" to
- * mean anything.
+ * THE FAKE IS NOT A STUB THAT RECORDS CALLS. It holds a row, applies the update to it, and
+ * serves the updated row to the next read — the minimum needed for "persists" to mean
+ * anything. The "reload" is a real unmount, then a fresh mount fed from that row, exactly as
+ * `MemberDetailPage` feeds this tab from its own fetch.
+ *
+ * AT THE TAB, NOT THE WHOLE PAGE. An earlier version rendered `MemberDetailPage` four times
+ * over. That is a large DOM for a claim about one card, and a big DOM is what turns a failed
+ * query into a multi-second `prettyDOM` dump — the thing that made an earlier suite in this
+ * series stall the runner instead of failing. What the page adds is one assertion (that it
+ * re-reads after a save), and that is kept below by watching `onUpdate`.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { ReactNode } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { configure, render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 
 configure({ getElementError: (message) => new Error(message ?? "element not found") });
 
-/** THE ROW, which survives between renders exactly as a database row would. */
+/** THE ROW, which survives between mounts exactly as a database row would. */
 let stored: Record<string, unknown>;
 let updates = 0;
-/** Reads of the member row, so "the page re-reads after saving" is a countable claim. */
-let reads = 0;
 
 vi.mock("@/integrations/supabase/client", () => {
   const chain = (table: string) => {
@@ -33,13 +36,6 @@ vi.mock("@/integrations/supabase/client", () => {
     const self = () => q;
     q.select = self;
     q.eq = self;
-    q.order = self;
-    q.limit = self;
-    q.single = async () => {
-      if (table === "members") reads += 1;
-      return { data: table === "members" ? { ...stored } : null, error: null };
-    };
-    q.maybeSingle = async () => ({ data: null, error: null });
     q.update = (payload: Record<string, unknown>) => ({
       eq: async () => {
         if (table === "members") {
@@ -50,69 +46,39 @@ vi.mock("@/integrations/supabase/client", () => {
         return { error: null };
       },
     });
-    q.then = (r: (v: unknown) => unknown) => r({ data: [], error: null });
     return q;
   };
-  return {
-    supabase: {
-      from: (t: string) => chain(t),
-      auth: { getSession: async () => ({ data: { session: null }, error: null }) },
-    },
-  };
+  return { supabase: { from: (t: string) => chain(t) } };
 });
 
-vi.mock("react-router-dom", () => ({
-  useParams: () => ({ id: "m1" }),
-  useNavigate: () => () => {},
-  useLocation: () => ({ pathname: "/admin/members/m1" }),
-  useSearchParams: () => [new URLSearchParams("")],
-}));
-
+vi.mock("@/lib/auditLog", () => ({ logMemberActivity: async () => {} }));
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string, def?: unknown) => (typeof def === "string" ? def : key) }),
 }));
-
 vi.mock("sonner", () => ({ toast: { error: () => {}, success: () => {} } }));
-vi.mock("@/lib/auditLog", () => ({ logMemberActivity: async () => {} }));
-
-vi.mock("@/components/admin/member-detail/MedicalTab", () => ({ MedicalTab: () => <div /> }));
-vi.mock("@/components/admin/member-detail/ContactsTab", () => ({ ContactsTab: () => <div /> }));
-vi.mock("@/components/admin/member-detail/DeviceTab", () => ({ DeviceTab: () => <div /> }));
-vi.mock("@/components/admin/member-detail/SubscriptionTab", () => ({ SubscriptionTab: () => <div /> }));
-vi.mock("@/components/admin/member-detail/PaymentsTab", () => ({ PaymentsTab: () => <div /> }));
-vi.mock("@/components/admin/member-detail/MessagesTab", () => ({ MessagesTab: () => <div /> }));
-vi.mock("@/components/admin/member-detail/NotesTab", () => ({ NotesTab: () => <div /> }));
-vi.mock("@/components/admin/member-detail/ActivityTab", () => ({ ActivityTab: () => <div /> }));
-vi.mock("@/components/admin/member-detail/AlertsTab", () => ({ AlertsTab: () => <div /> }));
-vi.mock("@/components/admin/member-detail/TasksTab", () => ({ TasksTab: () => <div /> }));
-vi.mock("@/components/admin/member-detail/CRMTab", () => ({ CRMTab: () => <div /> }));
-vi.mock("@/components/admin/member-detail/MemberHeader", () => ({
-  MemberHeader: () => <div data-testid="stub-header" />,
-}));
 vi.mock("@/components/admin/member-detail/PartnerAttributionCard", () => ({
   PartnerAttributionCard: () => null,
 }));
 
-import MemberDetailPage from "@/pages/admin/MemberDetailPage";
+import { ProfileTab } from "@/components/admin/member-detail/ProfileTab";
 
-function wrapper({ children }: { children: ReactNode }) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-}
+type Member = Parameters<typeof ProfileTab>[0]["member"];
 
 const fields = () => screen.getByTestId("profile-card-fields") as HTMLFieldSetElement;
 const field = (name: string) =>
   fields().querySelector(`input[name="${name}"]`) as HTMLInputElement;
 
-/** Open the record as a fresh visit would — a new mount, reading whatever the row now says. */
-async function openRecord() {
-  render(<MemberDetailPage />, { wrapper });
-  await waitFor(() => expect(screen.getByTestId("profile-card-fields")).toBeTruthy());
+let reReads = 0;
+
+/** Open the card as a fresh visit would: mounted from whatever the row now says. */
+function openCard() {
+  render(<ProfileTab member={stored as unknown as Member} onUpdate={() => (reReads += 1)} />);
+  expect(screen.getByTestId("profile-card-fields")).toBeTruthy();
 }
 
 beforeEach(() => {
   updates = 0;
-  reads = 0;
+  reReads = 0;
   stored = {
     id: "m1",
     first_name: "Mary",
@@ -120,7 +86,6 @@ beforeEach(() => {
     email: "mary@example.com",
     phone: "600111222",
     status: "active",
-    photo_url: null,
     address_line_1: "Calle Mayor 1",
     address_line_2: null,
     city: "Marbella",
@@ -137,63 +102,60 @@ afterEach(cleanup);
 
 describe("a saved value survives", () => {
   it("is on the card after Save, not the value it had before", async () => {
-    await openRecord();
+    openCard();
     fireEvent.click(screen.getByTestId("profile-card-edit"));
     fireEvent.change(field("city"), { target: { value: "Estepona" } });
     fireEvent.click(screen.getByTestId("profile-card-save"));
 
-    // Re-locked, and showing what was saved — not what the props said a moment ago.
     await waitFor(() => expect(fields().disabled).toBe(true));
     expect(field("city").value).toBe("Estepona");
     expect(stored.city).toBe("Estepona");
   });
 
   it("is still there when the record is opened again — the reload", async () => {
-    await openRecord();
+    openCard();
     fireEvent.click(screen.getByTestId("profile-card-edit"));
     fireEvent.change(field("city"), { target: { value: "Estepona" } });
     fireEvent.change(field("nie_dni"), { target: { value: "X1234567A" } });
     fireEvent.click(screen.getByTestId("profile-card-save"));
     await waitFor(() => expect(fields().disabled).toBe(true));
 
-    // A fresh mount, reading the row back: this is the claim the brief actually makes.
     cleanup();
-    await openRecord();
+    openCard();
     expect(field("city").value).toBe("Estepona");
     expect(field("nie_dni").value).toBe("X1234567A");
     expect(fields().disabled).toBe(true);
   });
 
   it("writes the whole card, so a field nobody touched is not blanked", async () => {
-    await openRecord();
+    openCard();
     fireEvent.click(screen.getByTestId("profile-card-edit"));
     fireEvent.change(field("city"), { target: { value: "Estepona" } });
     fireEvent.click(screen.getByTestId("profile-card-save"));
     await waitFor(() => expect(fields().disabled).toBe(true));
 
     cleanup();
-    await openRecord();
-    // The failure this catches: a save that sends only the dirty field and a form that
-    // rebuilt itself from an empty default for everything else.
+    openCard();
+    // The failure this catches: a save that sends only the dirty field, and a record that
+    // loses everything the form did not name.
     expect(field("first_name").value).toBe("Mary");
     expect(field("postal_code").value).toBe("29601");
     expect(field("address_line_1").value).toBe("Calle Mayor 1");
   });
 
-  it("the page re-reads the record after a save, so the rest of it is not stale", async () => {
+  it("tells the page to re-read, so the rest of it is not stale", async () => {
     /*
-      The card shows the form's own state, so it looks right whether or not anything re-read.
-      Everything ELSE on the page — the name in the header, the badges, the missing-info count
-      — is built from the fetched row, and without the re-read they keep showing the record as
+      The card shows its own form state, so it looks right whether or not anything re-read.
+      Everything ELSE on the record — the name in the header, the badges, the missing-info
+      count — is built from the page's fetch, and without this they keep showing the record as
       it was before the save until somebody reloads.
     */
-    await openRecord();
-    const before = reads;
+    openCard();
     fireEvent.click(screen.getByTestId("profile-card-edit"));
     fireEvent.change(field("city"), { target: { value: "Estepona" } });
     fireEvent.click(screen.getByTestId("profile-card-save"));
 
-    await waitFor(() => expect(reads).toBeGreaterThan(before));
+    await waitFor(() => expect(reReads).toBe(1));
   });
 
   it("does not ask about discarding when there is nothing left to discard", async () => {
@@ -202,7 +164,7 @@ describe("a saved value survives", () => {
       very next Edit → Cancel throws up "Discard your changes?" over an edit the operator
       already saved — and a warning that cries wolf is a warning people click through.
     */
-    await openRecord();
+    openCard();
     fireEvent.click(screen.getByTestId("profile-card-edit"));
     fireEvent.change(field("city"), { target: { value: "Estepona" } });
     fireEvent.click(screen.getByTestId("profile-card-save"));
@@ -215,7 +177,7 @@ describe("a saved value survives", () => {
   });
 
   it("a discarded edit changes nothing, and nothing is written", async () => {
-    await openRecord();
+    openCard();
     fireEvent.click(screen.getByTestId("profile-card-edit"));
     fireEvent.change(field("city"), { target: { value: "Estepona" } });
     fireEvent.click(screen.getByTestId("profile-card-cancel"));
@@ -223,11 +185,17 @@ describe("a saved value survives", () => {
     fireEvent.click(screen.getByTestId("profile-card-discard"));
     await waitFor(() => expect(fields().disabled).toBe(true));
 
+    /*
+      PUT BACK ON THE SCREEN, not merely absent from the database. Without this the card sits
+      there showing "Estepona" over a record that says Marbella — read out loud, that is the
+      wrong address, and no remount is coming to correct it.
+    */
+    expect(field("city").value).toBe("Marbella");
     expect(updates).toBe(0);
     expect(stored.city).toBe("Marbella");
 
     cleanup();
-    await openRecord();
+    openCard();
     expect(field("city").value).toBe("Marbella");
   });
 });

@@ -7,6 +7,7 @@
  * eyeballed on a screen. See ROTA_MODEL.md.
  */
 import type { ShiftType } from "@/config/shifts";
+import { shiftHours } from "@/lib/shiftSummary";
 
 export interface RotaShift {
   shift_date: string;
@@ -42,7 +43,14 @@ export interface LongDay {
   hours: number;
 }
 
-const HOURS_PER_SHIFT = 8;
+/**
+ * How long the shifts of a long day actually are, from `SHIFT_BOUNDS` via `shiftHours` rather
+ * than from a local `= 8`. Same numbers today; one place to change if a shift window ever moves,
+ * and no second opinion about it living on the client.
+ */
+function hoursOf(types: Iterable<ShiftType>): number {
+  return [...types].reduce((sum, t) => sum + shiftHours(t), 0);
+}
 
 /**
  * Every (date, person) in `shifts` that carries more than one shift, classified.
@@ -64,7 +72,7 @@ export function findLongDays(shifts: RotaShift[]): LongDay[] {
   for (const [key, types] of byDayAndPerson) {
     if (types.size < 2) continue;
     const [date, staffId] = key.split("|");
-    const hours = types.size * HOURS_PER_SHIFT;
+    const hours = hoursOf(types);
 
     let shape: LongDayShape;
     if (types.size === 3) {

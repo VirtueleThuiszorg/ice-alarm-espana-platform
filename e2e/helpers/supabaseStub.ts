@@ -74,6 +74,17 @@ export interface StubScenario {
   verifyResponse?: { status: number; body: unknown };
   /** Fail the password grant, as GoTrue does on bad credentials. */
   signInError?: { status: number; body: unknown };
+  /**
+   * Rows for any other PostgREST table, keyed by table name — `{ staff_shifts: [...] }`.
+   *
+   * Generic rather than a field per table: a journey that needs a rota, a holiday and a festivo
+   * would otherwise add three more named options to this file, and the next journey three more.
+   * Filters are NOT applied — the stub answers a `select` with the whole array — so a spec seeds
+   * only rows it wants the page to show, and the FILTERS themselves are asserted in the vitest
+   * suites (src/test/myShiftsPage.test.tsx records every `.eq`/`.gte`/`.lte`). What a browser
+   * test can prove that they cannot is that the page renders and routes for real.
+   */
+  tables?: Record<string, unknown[]>;
 }
 
 interface RoleInfo {
@@ -284,10 +295,11 @@ export async function installSupabaseStub(page: Page, initial: StubScenario = {}
       return json(route, scenario.partner ? [scenario.partner] : []);
     }
 
-    // Any other table: an empty result, so pages that fan out queries render
-    // their empty state instead of hanging. Still recorded in `calls`.
+    // Any other table: the rows this scenario seeded, or an empty result so pages that fan out
+    // queries render their empty state instead of hanging. Still recorded in `calls`.
     if (url.pathname.startsWith("/rest/v1/")) {
-      return json(route, []);
+      const table = url.pathname.slice("/rest/v1/".length);
+      return json(route, scenario.tables?.[table] ?? []);
     }
 
     // Deliberately not a silent pass-through: an unrecognised Supabase call is a

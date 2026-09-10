@@ -72,6 +72,78 @@ export function useMyShifts(staffId: string | undefined, days = 14) {
   });
 }
 
+/**
+ * A staff member's OWN shifts between two dates.
+ *
+ * `useMyShifts` above answers "the next N days" and is what the dashboard widget wants. The
+ * My-shifts page needs a named range in both directions — eight weeks ahead on one tab, a chosen
+ * month behind on another — and a `days` count cannot express a past month at all. Same table,
+ * same `staff_id` filter, so RLS ("Staff view own shifts") is doing the same work in both.
+ */
+export function useMyShiftRange(
+  staffId: string | undefined,
+  startDate: string,
+  endDate: string,
+) {
+  return useQuery<StaffShift[]>({
+    queryKey: ["my-shift-range", staffId, startDate, endDate],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("staff_shifts")
+        .select("*")
+        .eq("staff_id", staffId!)
+        .gte("shift_date", startDate)
+        .lte("shift_date", endDate)
+        .order("shift_date")
+        .order("start_time");
+      if (error) throw error;
+      return (data || []) as StaffShift[];
+    },
+    enabled: !!staffId && !!startDate && !!endDate,
+    staleTime: STALE_TIMES.SHORT,
+  });
+}
+
+/**
+ * WHAT A PAST SHIFT LEFT BEHIND — the handover notes this person wrote, with their timestamps.
+ *
+ * The Past tab must not tell an operator they "worked" a shift on the platform's word alone. Two
+ * things can actually be shown:
+ *
+ *   1. `staff_shifts.is_confirmed` — they confirmed the shift.
+ *   2. Work recorded during it. `shift_notes` is the one such table an operator may READ under
+ *      RLS ("Staff can view shift notes"); `staff_activity_log` and `shift_alert_log` are both
+ *      admin-only, and `staff_presence` holds ONE upserted row per person — current presence,
+ *      with no history — so neither can evidence a shift that has already happened.
+ *
+ * Notes carry `created_at` and no shift key, so they are attributed with
+ * `shiftKeyOfTimestamp` — `getShiftContext`, the same shift maths the escalation runners use.
+ * A wide date window is fetched and bucketed on the client because a note at 01:00 belongs to the
+ * previous day's night shift, and a `shift_date`-shaped filter cannot see that.
+ */
+export function useMyShiftEvidence(
+  staffId: string | undefined,
+  fromDate: string,
+  toDate: string,
+) {
+  return useQuery<Array<{ id: string; created_at: string | null }>>({
+    queryKey: ["my-shift-evidence", staffId, fromDate, toDate],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("shift_notes")
+        .select("id, created_at")
+        .eq("staff_id", staffId!)
+        // A day either side, so a night shift's small hours are inside the window.
+        .gte("created_at", `${fromDate}T00:00:00Z`)
+        .lte("created_at", `${toDate}T23:59:59Z`);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!staffId && !!fromDate && !!toDate,
+    staleTime: STALE_TIMES.MEDIUM,
+  });
+}
+
 // Who is on shift right now
 export function useOnShiftNow() {
   return useQuery<OnShiftNow[]>({

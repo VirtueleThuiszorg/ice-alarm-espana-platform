@@ -46,8 +46,12 @@ interface MenuItem {
 
 /**
  * ORDER IS THE POINT OF THIS LIST, and it is Lee's (dashboard notes, 9 Sep): Dashboard,
- * MedConneqt, Members, Leads, Alerts, Messages, then the rest. Members moves to third and Alerts
- * takes the slot Members had.
+ * MedConneqt, Members, Leads, Alerts, Messages, My shifts, then the rest. Members moves to third
+ * and Alerts takes the slot Members had.
+ *
+ * "My shifts" (10 Sep) is IN this array rather than spliced below because every staff role gets
+ * it — an operator's own rota is theirs by definition. The two spliced entries are the ones only
+ * a supervisor or admin sees.
  *
  * Alerts moving DOWN is not a demotion of the alert path. An operator reaches a live alert from
  * the dashboard, from the badge on this item, and from the alert itself arriving — never by
@@ -61,6 +65,7 @@ const menuItems: MenuItem[] = [
   { icon: UserPlus, labelKey: "sidebar.leads", path: "/call-centre/leads" },
   { icon: AlertTriangle, labelKey: "sidebar.alerts", path: "/call-centre/alerts", badgeKey: "alerts" },
   { icon: MessageSquare, labelKey: "sidebar.messages", path: "/call-centre/messages", badgeKey: "messages" },
+  { icon: CalendarDays, labelKey: "sidebar.myShifts", path: "/call-centre/my-shifts" },
   { icon: CheckSquare, labelKey: "sidebar.tasks", path: "/call-centre/tasks" },
   { icon: Ticket, labelKey: "sidebar.staffTickets", path: "/call-centre/tickets" },
   { icon: FileText, labelKey: "sidebar.shiftNotes", path: "/call-centre/shift-notes" },

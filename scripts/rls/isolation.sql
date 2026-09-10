@@ -4513,13 +4513,28 @@ INSERT INTO public.staff (id, user_id, email, first_name, last_name, role, perso
 -- ── the seed is a set of ROWS, and the right ones ──────────────────────────
 -- The counts below compare against `notification_routes` rather than a literal, so extending
 -- the event list does not redden the suite for a reason nobody can act on. THIS assertion is
--- what stops that being vacuous: the routes table has to be the real 19 x 4.
+-- what stops that being vacuous: the routes table has to be the real 22 x 4.
 SELECT pg_temp.check(
-  'the routes table carries every event type x every channel — 19 x 4',
-  (SELECT count(*) FROM public.notification_routes) = 76
-  AND (SELECT count(DISTINCT event_type) FROM public.notification_routes) = 19
+  'the routes table carries every event type x every channel — 22 x 4',
+  (SELECT count(*) FROM public.notification_routes) = 88
+  AND (SELECT count(DISTINCT event_type) FROM public.notification_routes) = 22
   AND (SELECT count(DISTINCT channel) FROM public.notification_routes) = 4,
-  'the eight this router was built for, the eleven notify-admin already sends, and `test`');
+  'the eight this router was built for, the eleven notify-admin already sends, the three swap '
+  'events, and `test`');
+
+-- A ROW PER CHANNEL FOR THE SWAP EVENTS, not a hole. The count above would be satisfied by 22
+-- distinct events and 88 rows even if one event were missing a channel and another had it twice,
+-- so the three new ones are named — a missing row means the router falls through to its default
+-- for that channel rather than to Lee's ruling.
+SELECT pg_temp.check(
+  'ROTA SWAP: the three swap events are routed on all four channels — push on, the rest off',
+  (SELECT count(*) FROM public.notification_routes WHERE event_type LIKE 'shift.swap_%') = 12
+  AND (SELECT bool_and(enabled) FROM public.notification_routes
+        WHERE event_type LIKE 'shift.swap_%' AND channel = 'push')
+  AND NOT (SELECT bool_or(enabled) FROM public.notification_routes
+        WHERE event_type LIKE 'shift.swap_%' AND channel <> 'push'),
+  'a swap is not worth a per-message bill (Lee) — bell and push only, and the bell is not a row '
+  'here because the trigger writes it unconditionally');
 
 SELECT pg_temp.check(
   'the four that say the SAFETY MACHINERY failed are routed ON, on every channel',
@@ -5312,6 +5327,474 @@ SELECT pg_temp.check(
     'SELECT id FROM public.staff_presence') = 1,
   'without the first half the who-is-on strip cannot tell scheduled-and-online from '
   'scheduled-and-absent, which is the only reason it exists');
+
+-- ── APPLYING a swap: the step that moves the rota ───────────────────────────────────────────
+--
+-- Everything above this line is about who may CHANGE THE ROW. This is about who may make the
+-- row TRUE — `apply_shift_swap`, which moves `staff_shifts`, writes the cover rows and the audit
+-- log, and only then marks the swap applied. It is SECURITY DEFINER, so RLS is not what stops
+-- an operator using it: the role check inside it is, and a role check nobody exercises as a real
+-- role is not a check. Hence every assertion below goes through `apply_as` / `raises_as`, which
+-- drop to `authenticated` with that person's claim.
+--
+-- The fixtures are shifts in MARCH 2027, deliberately outside the 2026 rota this file counts
+-- rows of above (339) and outside the August window `generate_rota` is exercised on, so applying
+-- a swap here cannot move a number another assertion depends on.
+
+CREATE OR REPLACE FUNCTION pg_temp.apply_as(p_user uuid, p_swap uuid)
+RETURNS text LANGUAGE plpgsql AS $$
+DECLARE r RECORD; v_out text;
+BEGIN
+  PERFORM set_config('request.jwt.claims',
+    json_build_object('sub', p_user, 'role', 'authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  SELECT * INTO r FROM public.apply_shift_swap(p_swap);
+  v_out := format('moved=%s covers=%s', r.moved_shifts, r.covers_written);
+  RESET ROLE;
+  RETURN v_out;
+END $$;
+
+INSERT INTO public.staff_shifts (id, staff_id, shift_date, shift_type, start_time, end_time)
+VALUES
+  ('e1000000-0000-0000-0000-000000000001',
+   (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+   '2027-03-01', 'morning', '07:00', '15:00'),
+  ('e1000000-0000-0000-0000-000000000002',
+   (SELECT id FROM public.staff WHERE email = 'asoares@icealarm.es'),
+   '2027-03-02', 'afternoon', '15:00', '23:00'),
+  ('e1000000-0000-0000-0000-000000000003',
+   (SELECT id FROM public.staff WHERE email = 'cnicolas@icealarm.es'),
+   '2027-03-03', 'morning', '07:00', '15:00'),
+  ('e1000000-0000-0000-0000-000000000005',
+   (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+   '2027-03-05', 'morning', '07:00', '15:00'),
+  ('e1000000-0000-0000-0000-000000000006',
+   (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+   '2027-03-06', 'morning', '07:00', '15:00');
+
+-- Opened and accepted THROUGH THE POLICIES, not inserted at status 'accepted' as the superuser:
+-- the bell assertions below are about what the trigger writes on each real transition, and an
+-- accepted row that appeared out of nowhere would only prove the INSERT branch.
+INSERT INTO public.staff_shift_swaps (id, requested_shift_id, offered_shift_id, requested_by,
+                                      counterparty_id, reason)
+VALUES ('dddddddd-0000-0000-0000-00000000000b',
+        'e1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000002',
+        (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+        (SELECT id FROM public.staff WHERE email = 'asoares@icealarm.es'),
+        'dentist'),
+       ('dddddddd-0000-0000-0000-00000000000c',
+        'e1000000-0000-0000-0000-000000000003', NULL,
+        (SELECT id FROM public.staff WHERE email = 'cnicolas@icealarm.es'),
+        (SELECT id FROM public.staff WHERE email = 'travis@icealarm.es'),
+        'asked Travis to cover'),
+       ('dddddddd-0000-0000-0000-00000000000d',
+        'e1000000-0000-0000-0000-000000000005', NULL,
+        (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+        (SELECT id FROM public.staff WHERE email = 'asoares@icealarm.es'),
+        'nobody has answered this one yet'),
+       ('dddddddd-0000-0000-0000-00000000000e',
+        'e1000000-0000-0000-0000-000000000006', NULL,
+        (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+        (SELECT id FROM public.staff WHERE email = 'asoares@icealarm.es'),
+        'the rota will move under this one');
+
+SELECT pg_temp.check(
+  'CONTROL: the four apply fixtures exist, and the shifts belong to the people who offered them',
+  (SELECT count(*) FROM public.staff_shift_swaps
+    WHERE id::text LIKE 'dddddddd-0000-0000-0000-00000000000%'
+      AND id <> 'dddddddd-0000-0000-0000-00000000000a') = 4
+  AND (SELECT staff_id FROM public.staff_shifts WHERE id = 'e1000000-0000-0000-0000-000000000001')
+      = (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es')
+  AND (SELECT staff_id FROM public.staff_shifts WHERE id = 'e1000000-0000-0000-0000-000000000002')
+      = (SELECT id FROM public.staff WHERE email = 'asoares@icealarm.es'),
+  'every apply assertion below is vacuous without this');
+
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: the bell told the COUNTERPARTY they were asked, and nobody else',
+  (SELECT count(*) FROM public.notification_log
+    WHERE entity_id = 'dddddddd-0000-0000-0000-00000000000b'
+      AND event_type = 'shift.swap_requested') = 1
+  AND (SELECT admin_user_id FROM public.notification_log
+        WHERE entity_id = 'dddddddd-0000-0000-0000-00000000000b'
+          AND event_type = 'shift.swap_requested')
+      = 'c0000001-0000-0000-0000-000000000001',
+  'a request is a question between two people — the supervisor hears about it on accept, not now');
+
+-- The counterparty accepts, through their own policy.
+SELECT pg_temp.check(
+  'CONTROL: Albert accepts the two-sided swap',
+  pg_temp.exec_as('c0000001-0000-0000-0000-000000000001',
+    'UPDATE public.staff_shift_swaps SET status = ''accepted'', accepted_at = now()
+      WHERE id = ''dddddddd-0000-0000-0000-00000000000b''') = 1);
+
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: on accept the bell reaches the REQUESTER and the people who can approve it',
+  (SELECT count(*) FROM public.notification_log
+    WHERE entity_id = 'dddddddd-0000-0000-0000-00000000000b'
+      AND event_type = 'shift.swap_accepted'
+      AND admin_user_id = 'c0000003-0000-0000-0000-000000000003') = 1
+  AND (SELECT count(*) FROM public.notification_log
+        WHERE entity_id = 'dddddddd-0000-0000-0000-00000000000b'
+          AND event_type = 'shift.swap_accepted'
+          AND admin_user_id = 'c0000006-0000-0000-0000-000000000006') = 1
+  AND (SELECT count(*) FROM public.notification_log
+        WHERE entity_id = 'dddddddd-0000-0000-0000-00000000000b'
+          AND event_type = 'shift.swap_accepted'
+          AND admin_user_id = 'c0000001-0000-0000-0000-000000000001') = 0,
+  'the requester because they are waiting on an answer, the supervisor because it is now hers '
+  'to approve, and NOT the person who just accepted it');
+
+-- ── who may apply it ────────────────────────────────────────────────────────
+-- Three refusals first, all on a swap that is genuinely ready to apply, so none of them can pass
+-- because the swap was in the wrong state.
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: the counterparty cannot apply it themselves',
+  pg_temp.raises_as('c0000001-0000-0000-0000-000000000001',
+    'SELECT * FROM public.apply_shift_swap(''dddddddd-0000-0000-0000-00000000000b'')'));
+
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: the requester cannot apply their own swap',
+  pg_temp.raises_as('c0000003-0000-0000-0000-000000000003',
+    'SELECT * FROM public.apply_shift_swap(''dddddddd-0000-0000-0000-00000000000b'')'));
+
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: an unrelated operator cannot apply somebody else''s swap',
+  pg_temp.raises_as('c0000004-0000-0000-0000-000000000004',
+    'SELECT * FROM public.apply_shift_swap(''dddddddd-0000-0000-0000-00000000000b'')'));
+
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: a member cannot apply a shift swap',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'SELECT * FROM public.apply_shift_swap(''dddddddd-0000-0000-0000-00000000000b'')'));
+
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: and the refusals are not a missing GRANT — authenticated may execute it, '
+  'PUBLIC may not',
+  has_function_privilege('authenticated', 'public.apply_shift_swap(uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('anon', 'public.apply_shift_swap(uuid)', 'EXECUTE'),
+  'without this the four negatives above could all be permission-denied rather than the role '
+  'check inside the function');
+
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: nothing moved while it was being refused',
+  (SELECT staff_id FROM public.staff_shifts WHERE id = 'e1000000-0000-0000-0000-000000000001')
+    = (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es')
+  AND (SELECT status FROM public.staff_shift_swaps
+        WHERE id = 'dddddddd-0000-0000-0000-00000000000b') = 'accepted',
+  'a refusal that half-applied the swap would be worse than one that raised');
+
+-- ── the supervisor applies it ───────────────────────────────────────────────
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: a SUPERVISOR applies a two-sided swap — two shifts moved, two covers written',
+  pg_temp.apply_as('c0000006-0000-0000-0000-000000000006',
+    'dddddddd-0000-0000-0000-00000000000b') = 'moved=2 covers=2');
+
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: and the two shifts really did change hands',
+  (SELECT staff_id FROM public.staff_shifts WHERE id = 'e1000000-0000-0000-0000-000000000001')
+    = (SELECT id FROM public.staff WHERE email = 'asoares@icealarm.es')
+  AND (SELECT staff_id FROM public.staff_shifts WHERE id = 'e1000000-0000-0000-0000-000000000002')
+    = (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+  'the whole point — the rota the two of them turn up to');
+
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: a cover row per moved shift, holiday_id NULL',
+  (SELECT count(*) FROM public.staff_shift_covers
+    WHERE shift_id IN ('e1000000-0000-0000-0000-000000000001',
+                       'e1000000-0000-0000-0000-000000000002')) = 2
+  AND (SELECT bool_and(holiday_id IS NULL AND status = 'accepted')
+        FROM public.staff_shift_covers
+        WHERE shift_id IN ('e1000000-0000-0000-0000-000000000001',
+                           'e1000000-0000-0000-0000-000000000002'))
+  AND (SELECT original_staff_id FROM public.staff_shift_covers
+        WHERE shift_id = 'e1000000-0000-0000-0000-000000000001')
+      = (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+  'NULL is load-bearing: a shift you swapped off is not evidence you were absent, and without '
+  'the row My shifts cannot label it "covering Mary"');
+
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: the audit says who approved it and what moved',
+  (SELECT count(*) FROM public.activity_logs
+    WHERE entity_id = 'dddddddd-0000-0000-0000-00000000000b'
+      AND action = 'shift_swap_applied'
+      AND entity_type = 'staff_shift_swap'
+      AND staff_id = (SELECT id FROM public.staff WHERE email = 'rota-super@icealarm.es')
+      AND (new_values->>'shifts_moved')::int = 2
+      AND (new_values->>'two_sided')::boolean) = 1,
+  'the first question after a swap anybody disputes');
+
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: status is applied, and stamped with the approver — never before the move',
+  (SELECT status = 'applied' AND applied_at IS NOT NULL AND approved_at IS NOT NULL
+          AND approved_by = (SELECT id FROM public.staff WHERE email = 'rota-super@icealarm.es')
+     FROM public.staff_shift_swaps WHERE id = 'dddddddd-0000-0000-0000-00000000000b'));
+
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: once applied, BOTH people are told — the rota they turn up to changed',
+  (SELECT count(*) FROM public.notification_log
+    WHERE entity_id = 'dddddddd-0000-0000-0000-00000000000b'
+      AND event_type = 'shift.swap_approved') = 2
+  AND (SELECT count(*) FROM public.notification_log
+        WHERE entity_id = 'dddddddd-0000-0000-0000-00000000000b'
+          AND event_type = 'shift.swap_approved'
+          AND admin_user_id IN ('c0000003-0000-0000-0000-000000000003',
+                                'c0000001-0000-0000-0000-000000000001')) = 2,
+  'targeted rows, not a broadcast: one person marking a shared row read would clear it for the '
+  'other');
+
+-- ── a second click is a no-op, not a second move ────────────────────────────
+-- The failure this prevents is specific: applying twice would swap the two shifts BACK, so the
+-- rota would silently return to what it was and the swap would still read "applied".
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: applying an applied swap again moves nothing',
+  pg_temp.apply_as('c0000006-0000-0000-0000-000000000006',
+    'dddddddd-0000-0000-0000-00000000000b') = 'moved=0 covers=0'
+  AND (SELECT staff_id FROM public.staff_shifts WHERE id = 'e1000000-0000-0000-0000-000000000001')
+      = (SELECT id FROM public.staff WHERE email = 'asoares@icealarm.es'),
+  'two supervisors on the same queue, or one double-click — the shifts stay where the first '
+  'call put them');
+
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: and the second call wrote no second audit row and no second cover',
+  (SELECT count(*) FROM public.activity_logs
+    WHERE entity_id = 'dddddddd-0000-0000-0000-00000000000b'
+      AND action = 'shift_swap_applied') = 1
+  AND (SELECT count(*) FROM public.staff_shift_covers
+        WHERE shift_id IN ('e1000000-0000-0000-0000-000000000001',
+                           'e1000000-0000-0000-0000-000000000002')) = 2);
+
+-- ── one-sided: asking somebody to COVER, with nothing offered back ──────────
+SELECT pg_temp.check(
+  'CONTROL: Travis accepts a one-sided cover request',
+  pg_temp.exec_as('c0000004-0000-0000-0000-000000000004',
+    'UPDATE public.staff_shift_swaps SET status = ''accepted'', accepted_at = now()
+      WHERE id = ''dddddddd-0000-0000-0000-00000000000c''') = 1);
+
+-- Captured once, into a table, rather than called inside the assertion — and this is not a style
+-- choice. Written as `apply_as(...) = 'moved=1 covers=1' AND (SELECT staff_id ...) = Travis`,
+-- this assertion FAILED: SQL does not promise left-to-right evaluation of AND, so the two
+-- SELECTs read the shift's owner BEFORE the apply had run. An assertion whose own operands race
+-- each other is worse than no assertion. Do the write, then read it back.
+CREATE TEMP TABLE _apply_cover AS
+SELECT pg_temp.apply_as('c0000005-0000-0000-0000-000000000005',
+                        'dddddddd-0000-0000-0000-00000000000c') AS result;
+
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: a cover moves ONE shift and writes ONE cover row',
+  (SELECT result FROM _apply_cover) = 'moved=1 covers=1'
+  AND (SELECT staff_id FROM public.staff_shifts WHERE id = 'e1000000-0000-0000-0000-000000000003')
+      = (SELECT id FROM public.staff WHERE email = 'travis@icealarm.es')
+  AND (SELECT count(*) FROM public.staff_shift_covers
+        WHERE shift_id = 'e1000000-0000-0000-0000-000000000003'
+          AND original_staff_id = (SELECT id FROM public.staff WHERE email = 'cnicolas@icealarm.es')
+          AND cover_staff_id = (SELECT id FROM public.staff WHERE email = 'travis@icealarm.es')
+          AND holiday_id IS NULL) = 1,
+  'applied by the ADMIN here, so both roles in the gate are exercised and not just the '
+  'supervisor — returned ' || (SELECT result FROM _apply_cover)
+  || ', shift now belongs to '
+  || COALESCE((SELECT first_name FROM public.staff WHERE id =
+       (SELECT staff_id FROM public.staff_shifts
+         WHERE id = 'e1000000-0000-0000-0000-000000000003')), 'nobody')
+  || ', cover rows ' || (SELECT count(*)::text FROM public.staff_shift_covers
+       WHERE shift_id = 'e1000000-0000-0000-0000-000000000003'));
+
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: a one-sided cover is audited as one-sided',
+  (SELECT NOT (new_values->>'two_sided')::boolean
+     AND (new_values->>'shifts_moved')::int = 1
+     AND new_values->>'offered_shift_id' IS NULL
+   FROM public.activity_logs
+   WHERE entity_id = 'dddddddd-0000-0000-0000-00000000000c'
+     AND action = 'shift_swap_applied'));
+
+-- ── the two states it must refuse ───────────────────────────────────────────
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: a swap nobody has accepted yet cannot be applied, even by a supervisor',
+  pg_temp.raises_as('c0000006-0000-0000-0000-000000000006',
+    'SELECT * FROM public.apply_shift_swap(''dddddddd-0000-0000-0000-00000000000d'')')
+  AND (SELECT staff_id FROM public.staff_shifts WHERE id = 'e1000000-0000-0000-0000-000000000005')
+      = (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+  'approving a shift onto somebody who never agreed to it is how a slot ends up with nobody on '
+  'it at three in the morning');
+
+-- Declining is the other end of that request, and the requester must hear it: a request that
+-- vanishes with no answer is the failure this whole flow exists to remove.
+SELECT pg_temp.check(
+  'CONTROL: Albert declines it',
+  pg_temp.exec_as('c0000001-0000-0000-0000-000000000001',
+    'UPDATE public.staff_shift_swaps SET status = ''declined''
+      WHERE id = ''dddddddd-0000-0000-0000-00000000000d''') = 1);
+
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: a decline tells the requester, and only the requester',
+  (SELECT count(*) FROM public.notification_log
+    WHERE entity_id = 'dddddddd-0000-0000-0000-00000000000d') = 2
+  AND (SELECT count(DISTINCT admin_user_id) FROM public.notification_log
+        WHERE entity_id = 'dddddddd-0000-0000-0000-00000000000d') = 2,
+  'two rows for this swap: the ask (to Albert) and the answer (to Mary)');
+
+-- THE RACE. A supervisor reassigns the shift by hand while the swap sits in the queue. Applying
+-- it now would take a shift off somebody who never agreed to give it up.
+SELECT pg_temp.check(
+  'CONTROL: the swap is accepted, then the rota moves underneath it',
+  pg_temp.exec_as('c0000001-0000-0000-0000-000000000001',
+    'UPDATE public.staff_shift_swaps SET status = ''accepted'', accepted_at = now()
+      WHERE id = ''dddddddd-0000-0000-0000-00000000000e''') = 1
+  AND pg_temp.exec_as('c0000006-0000-0000-0000-000000000006',
+    'UPDATE public.staff_shifts
+        SET staff_id = (SELECT id FROM public.staff WHERE email = ''cnicolas@icealarm.es'')
+      WHERE id = ''e1000000-0000-0000-0000-000000000006''') = 1);
+
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: it REFUSES a swap whose shift has changed hands since it was requested',
+  pg_temp.raises_as('c0000006-0000-0000-0000-000000000006',
+    'SELECT * FROM public.apply_shift_swap(''dddddddd-0000-0000-0000-00000000000e'')')
+  AND (SELECT staff_id FROM public.staff_shifts WHERE id = 'e1000000-0000-0000-0000-000000000006')
+      = (SELECT id FROM public.staff WHERE email = 'cnicolas@icealarm.es')
+  AND (SELECT status FROM public.staff_shift_swaps
+        WHERE id = 'dddddddd-0000-0000-0000-00000000000e') = 'accepted',
+  'Carmen is on that shift now and was never asked — the swap stays accepted so a human can '
+  'look at it, rather than being marked applied over a rota that no longer matches it');
+
+-- ── the two-sided swap, opened the only way an operator CAN open one ────────
+--
+-- The requester cannot name the shift they would take in exchange, because they cannot see it:
+-- `call_centre` reads its own rows only, asserted above by Mary failing to see Albert's shift.
+-- So a swap becomes two-sided when the COUNTERPARTY nominates one of their OWN shifts while
+-- accepting — which is a write their policy has always allowed (it constrains the status, not the
+-- other columns) and which nothing until now exercised. `wants_exchange` is what carries the
+-- question that far.
+INSERT INTO public.staff_shifts (id, staff_id, shift_date, shift_type, start_time, end_time)
+VALUES
+  ('e1000000-0000-0000-0000-000000000009',
+   (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+   '2027-03-09', 'morning', '07:00', '15:00'),
+  ('e1000000-0000-0000-0000-00000000000a',
+   (SELECT id FROM public.staff WHERE email = 'asoares@icealarm.es'),
+   '2027-03-10', 'afternoon', '15:00', '23:00');
+
+SELECT pg_temp.check(
+  'ROTA SWAP: an operator can open a swap asking for an exchange, and cannot name the shift back',
+  pg_temp.exec_as('c0000003-0000-0000-0000-000000000003',
+    'INSERT INTO public.staff_shift_swaps
+       (id, requested_shift_id, requested_by, counterparty_id, wants_exchange, reason)
+     VALUES (''dddddddd-0000-0000-0000-000000000010'',
+             ''e1000000-0000-0000-0000-000000000009'',
+             (SELECT id FROM public.staff WHERE email = ''mbonner@icealarm.es''),
+             (SELECT id FROM public.staff WHERE email = ''asoares@icealarm.es''),
+             true, ''swap please'')') = 1
+  AND pg_temp.count_as('c0000003-0000-0000-0000-000000000003',
+    'SELECT id FROM public.staff_shifts
+      WHERE id = ''e1000000-0000-0000-0000-00000000000a''') = 0,
+  'the second half is the reason the first half cannot carry an offered shift: Mary cannot see '
+  'the shift she would be taking');
+
+SELECT pg_temp.check(
+  'ROTA SWAP: the COUNTERPARTY nominates one of their own shifts when they accept',
+  pg_temp.exec_as('c0000001-0000-0000-0000-000000000001',
+    'UPDATE public.staff_shift_swaps
+        SET status = ''accepted'', accepted_at = now(),
+            offered_shift_id = ''e1000000-0000-0000-0000-00000000000a''
+      WHERE id = ''dddddddd-0000-0000-0000-000000000010''') = 1,
+  'their policy constrains the STATUS, not the other columns — and the shift they are giving up '
+  'is their own, so there is nobody else to protect here');
+
+CREATE TEMP TABLE _apply_exchange AS
+SELECT pg_temp.apply_as('c0000006-0000-0000-0000-000000000006',
+                        'dddddddd-0000-0000-0000-000000000010') AS result;
+
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: the exchange the counterparty nominated is what moves',
+  (SELECT result FROM _apply_exchange) = 'moved=2 covers=2'
+  AND (SELECT staff_id FROM public.staff_shifts WHERE id = 'e1000000-0000-0000-0000-000000000009')
+      = (SELECT id FROM public.staff WHERE email = 'asoares@icealarm.es')
+  AND (SELECT staff_id FROM public.staff_shifts WHERE id = 'e1000000-0000-0000-0000-00000000000a')
+      = (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+  'returned ' || (SELECT result FROM _apply_exchange));
+
+-- And the shift offered must really be the counterparty's. Without this check a nominated shift
+-- belonging to a THIRD person would be handed to the requester, taking a shift off somebody who
+-- was never part of the conversation — and the counterparty can write that column, so this is
+-- reachable, not theoretical.
+INSERT INTO public.staff_shifts (id, staff_id, shift_date, shift_type, start_time, end_time)
+VALUES
+  ('e1000000-0000-0000-0000-00000000000b',
+   (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+   '2027-03-11', 'morning', '07:00', '15:00'),
+  ('e1000000-0000-0000-0000-00000000000c',
+   (SELECT id FROM public.staff WHERE email = 'travis@icealarm.es'),
+   '2027-03-12', 'night', '23:00', '07:00');
+
+INSERT INTO public.staff_shift_swaps (id, requested_shift_id, offered_shift_id, requested_by,
+                                      counterparty_id, status, accepted_at, wants_exchange)
+VALUES ('dddddddd-0000-0000-0000-000000000011',
+        'e1000000-0000-0000-0000-00000000000b', 'e1000000-0000-0000-0000-00000000000c',
+        (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+        (SELECT id FROM public.staff WHERE email = 'cnicolas@icealarm.es'),
+        'accepted', now(), true);
+
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: it REFUSES a swap offering a shift that belongs to a third person',
+  pg_temp.raises_as('c0000006-0000-0000-0000-000000000006',
+    'SELECT * FROM public.apply_shift_swap(''dddddddd-0000-0000-0000-000000000011'')')
+  AND (SELECT staff_id FROM public.staff_shifts WHERE id = 'e1000000-0000-0000-0000-00000000000c')
+      = (SELECT id FROM public.staff WHERE email = 'travis@icealarm.es')
+  AND (SELECT staff_id FROM public.staff_shifts WHERE id = 'e1000000-0000-0000-0000-00000000000b')
+      = (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+  'Travis is not in this swap — and the second half proves the REQUESTED shift did not move '
+  'either, so the refusal is the whole transaction and not just the offered half');
+
+-- ── the cover rows are counted, not assumed ─────────────────────────────────
+--
+-- Both cover inserts are `INSERT … SELECT … WHERE NOT EXISTS`, so on a shift that already has
+-- its cover row they insert NOTHING. Two things could go wrong there and neither is visible from
+-- the happy path: a second cover row for the same shift (which would read as two people covering
+-- it), and a returned count that includes a row nobody wrote — the count being what the
+-- supervisor is shown. This is the only assertion in the file that can see either.
+--
+-- The scenario is real, not contrived for the test: the supervisor arranged this one verbally
+-- and recorded the cover herself, and only then approved the swap. One side's cover row already
+-- exists; the other side's does not. So the truthful answer is two shifts moved and ONE new
+-- cover row — and it is the only assertion in the file that can tell 1 from 2 here.
+INSERT INTO public.staff_shifts (id, staff_id, shift_date, shift_type, start_time, end_time)
+VALUES
+  ('e1000000-0000-0000-0000-000000000007',
+   (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+   '2027-03-07', 'morning', '07:00', '15:00'),
+  ('e1000000-0000-0000-0000-000000000008',
+   (SELECT id FROM public.staff WHERE email = 'cnicolas@icealarm.es'),
+   '2027-03-08', 'afternoon', '15:00', '23:00');
+
+INSERT INTO public.staff_shift_swaps (id, requested_shift_id, offered_shift_id, requested_by,
+                                      counterparty_id, status, accepted_at, reason)
+VALUES ('dddddddd-0000-0000-0000-00000000000f',
+        'e1000000-0000-0000-0000-000000000007', 'e1000000-0000-0000-0000-000000000008',
+        (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+        (SELECT id FROM public.staff WHERE email = 'cnicolas@icealarm.es'),
+        'accepted', now(), 'arranged in the office, written up afterwards');
+
+-- The half the supervisor had already recorded by hand.
+INSERT INTO public.staff_shift_covers
+  (shift_id, holiday_id, original_staff_id, cover_staff_id, status, requested_by)
+VALUES ('e1000000-0000-0000-0000-000000000007', NULL,
+        (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+        (SELECT id FROM public.staff WHERE email = 'cnicolas@icealarm.es'),
+        'accepted',
+        (SELECT id FROM public.staff WHERE email = 'rota-super@icealarm.es'));
+
+CREATE TEMP TABLE _apply_partial AS
+SELECT pg_temp.apply_as('c0000006-0000-0000-0000-000000000006',
+                        'dddddddd-0000-0000-0000-00000000000f') AS result;
+
+SELECT pg_temp.check(
+  'ROTA SWAP APPLY: a cover row that already exists is not written twice, and not counted',
+  (SELECT result FROM _apply_partial) = 'moved=2 covers=1'
+  AND (SELECT count(*) FROM public.staff_shift_covers
+        WHERE shift_id = 'e1000000-0000-0000-0000-000000000007') = 1
+  AND (SELECT count(*) FROM public.staff_shift_covers
+        WHERE shift_id = 'e1000000-0000-0000-0000-000000000008') = 1,
+  'returned ' || (SELECT result FROM _apply_partial)
+  || ' — covers=2 would mean the count includes a row the NOT EXISTS guard refused to write');
 
 SELECT pg_temp.check(
   'ROTA: RLS is enabled on both new tables',

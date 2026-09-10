@@ -57,6 +57,10 @@ export const NOTIFY_EVENTS = [
   "shift.no_show",
   "shift.no_coverage",
   "shift.disconnected",
+  // ── the swap flow (rota brief §3). Who answers an alert at three in the morning changes ──
+  "shift.swap_requested",
+  "shift.swap_accepted",
+  "shift.swap_approved",
   "system.runner_failure",
   "escalation.call_failed",
   "escalation.no_emergency_contacts",

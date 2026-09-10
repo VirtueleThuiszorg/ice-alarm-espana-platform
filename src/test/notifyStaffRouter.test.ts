@@ -17,7 +17,7 @@
 // record what they were asked to send. Nothing here needs Twilio, Firebase or a database.
 
 import { describe, it, expect, vi } from "vitest";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import {
@@ -131,22 +131,64 @@ describe("the event types", () => {
     for (const t of declared) expect(NOTIFY_EVENTS, `notify-admin sends ${t}`).toContain(t);
   });
 
-  it("MATCHES the SQL CHECK list, when the migration is in this branch", () => {
+  it("MATCHES the SQL CHECK list as the migration set finally leaves it", () => {
     /*
-      A mirror, asserted where both halves exist. The migration is in a HELD PR (schema goes to
-      one held PR by instruction) while the router merges now, so this guards on the file rather
-      than reading a path from another branch — a test that read one would simply be red on main.
-      The moment the migration lands, this becomes a strict comparison.
+      A mirror between this list and the constraint the database ends up with.
+
+      NOT ONE FILE. This read `20260909121500_notify_staff.sql` — the migration that created the
+      table — and that was right for exactly as long as nothing replaced the constraint. A CHECK
+      cannot be added to, so every new event REPLACES it in a later migration (the swap flow did,
+      in 20260910130000). Pinned to the creating file, this test would compare against a list the
+      database no longer has: green while the router emits an event the live constraint refuses,
+      or red because the newest migration is correct. So it finds the LAST migration that defines
+      the constraint and reads that one, which is what `supabase db push` leaves behind.
     */
-    const migration = "supabase/migrations/20260909121500_notify_staff.sql";
-    if (!existsSync(join(ROOT, migration))) {
-      expect(existsSync(join(ROOT, migration))).toBe(false);
-      return;
+    const files = readdirSync(join(ROOT, "supabase/migrations"))
+      .filter((f) => f.endsWith(".sql"))
+      .sort();
+    const defining = files.filter((f) => {
+      const sql = stripComments(read(join("supabase/migrations", f)));
+      return /notification_routes/.test(sql) && /event_type\s+IN\s*\(/i.test(sql);
+    });
+    expect(defining.length, "no migration defines the notification_routes event list").toBeGreaterThan(0);
+
+    const latest = defining[defining.length - 1];
+    const sql = stripComments(read(join("supabase/migrations", latest)));
+
+    // From the LAST `event_type IN (` in that file to its matching close paren. Counted rather
+    // than regexed: the list contains no parens of its own today, and a balanced walk cannot be
+    // fooled by one that does.
+    const matches = [...sql.matchAll(/event_type\s+IN\s*\(/gi)];
+    expect(matches.length, `no event list found in ${latest}`).toBeGreaterThan(0);
+    const last = matches[matches.length - 1];
+    const open = last.index! + last[0].length - 1;
+    let depth = 0;
+    let close = -1;
+    for (let i = open; i < sql.length; i++) {
+      if (sql[i] === "(") depth++;
+      else if (sql[i] === ")") {
+        depth--;
+        if (depth === 0) {
+          close = i;
+          break;
+        }
+      }
     }
-    const sql = read(migration);
-    const block = sql.slice(sql.indexOf("event_type text NOT NULL CHECK"), sql.indexOf("channel text NOT NULL CHECK"));
-    const inSql = [...block.matchAll(/'([a-z0-9_.]+)'/g)].map((m) => m[1]);
-    expect([...inSql].sort()).toEqual([...NOTIFY_EVENTS].sort());
+    expect(close, `unbalanced parens in ${latest}`).toBeGreaterThan(open);
+
+    const inSql = [...sql.slice(open, close).matchAll(/'([a-z0-9_.]+)'/g)].map((m) => m[1]);
+    expect([...inSql].sort(), `constraint defined in ${latest}`).toEqual([...NOTIFY_EVENTS].sort());
+  });
+
+  it("and the SWAP events are in that list, named — not merely counted", () => {
+    /*
+      The mirror above is symmetric: deleting an event from BOTH sides keeps it green. These three
+      are the ones this branch adds, and the flow they carry is the only way an operator learns
+      somebody wants to swap with them, so they are pinned by name.
+    */
+    for (const e of ["shift.swap_requested", "shift.swap_accepted", "shift.swap_approved"]) {
+      expect(NOTIFY_EVENTS, `the router must know ${e}`).toContain(e);
+    }
   });
 });
 

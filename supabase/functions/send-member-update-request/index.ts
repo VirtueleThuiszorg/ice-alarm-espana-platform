@@ -2,19 +2,48 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { sendEmail } from "../_shared/email.ts";
+import { planChannels, type DeliveryOutcome } from "../_shared/delivery.ts";
+import {
+  buildUpdateLink,
+  memberUpdateEmail,
+  memberUpdateSms,
+  updateLanguage,
+  updateTokenExpiry,
+} from "../_shared/member-update-request.ts";
 
-
+const FN = "send-member-update-request";
 
 interface RequestPayload {
   memberId: string;
-  recipientEmail: string;
+  /** Who staff chose to write to — the member, or one of their contacts. */
+  recipientEmail?: string | null;
   requestedFields: string[];
-  memberName: string;
-  preferredLanguage: string;
+  memberName?: string;
+  preferredLanguage?: string;
 }
 
+interface DeliveryReport {
+  channel: string;
+  to: string | null;
+  outcome: DeliveryOutcome;
+  detail?: string;
+}
+
+/**
+ * WHAT THIS RETURNS IS THE LINK. Delivery is reported beside it, never instead of it.
+ *
+ * Before: a failed email threw, so the staff member was told the request had failed while an
+ * unexpired token sat in the table — and on success the URL was never returned at all, so
+ * there was nothing to read out to a member who does not use email. Both are the same mistake:
+ * treating the transport as the outcome.
+ */
 const handler = async (req: Request): Promise<Response> => {
   const corsHeaders = getCorsHeaders(req);
+  const json = (status: number, body: unknown) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -25,171 +54,187 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!authHeader) return json(401, { error: "Unauthorized" });
 
-    // Verify the user is staff
-    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
+    const admin = createClient(supabaseUrl, supabaseServiceKey);
     const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: { user }, error: userError } = await userClient.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const {
+      data: { user },
+      error: userError,
+    } = await userClient.auth.getUser();
+    if (userError || !user) return json(401, { error: "Unauthorized" });
 
-    // Check if user is staff
-    const { data: staffData } = await supabaseClient
+    const { data: staffData } = await admin
       .from("staff")
       .select("id")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .maybeSingle();
 
-    if (!staffData) {
-      return new Response(JSON.stringify({ error: "Not authorized - staff only" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!staffData) return json(403, { error: "Not authorized - staff only" });
 
     const payload: RequestPayload = await req.json();
-    const { memberId, recipientEmail, requestedFields, memberName, preferredLanguage } = payload;
+    const { memberId, requestedFields } = payload;
 
-    if (!memberId || !recipientEmail) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!memberId) return json(400, { error: "Missing memberId" });
+    if (!Array.isArray(requestedFields) || requestedFields.length === 0) {
+      // A token that asks for nothing produces a page with no fields on it.
+      return json(400, { error: "No fields requested" });
     }
+
+    /*
+      THE MEMBER'S OWN DETAILS ARE READ HERE, not taken from the payload.
+
+      The phone number the SMS goes to decides who receives a link that writes to this member's
+      record. A client-supplied number would make that a client-writable destination, which is
+      golden rule 3's reasoning applied to delivery. The EMAIL may still be chosen by staff —
+      picking a daughter's address is the point of that control — but it is only ever used as
+      an address, never as authority.
+    */
+    const { data: member } = await admin
+      .from("members")
+      .select("first_name, last_name, email, phone, preferred_language")
+      .eq("id", memberId)
+      .maybeSingle();
+
+    if (!member) return json(404, { error: "Member not found" });
+
+    const memberName =
+      payload.memberName?.trim() || `${member.first_name ?? ""} ${member.last_name ?? ""}`.trim();
+    const language = updateLanguage(payload.preferredLanguage ?? member.preferred_language);
+    const recipientEmail = payload.recipientEmail?.trim() || member.email || null;
 
     // Generate secure token (32 bytes = 64 hex characters)
     const tokenBytes = new Uint8Array(32);
     crypto.getRandomValues(tokenBytes);
-    const token = Array.from(tokenBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    const token = Array.from(tokenBytes)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    const expiresAt = updateTokenExpiry(new Date());
 
-    // Set expiry to 7 days from now
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    const { error: insertError } = await admin.from("member_update_tokens").insert({
+      member_id: memberId,
+      token,
+      requested_fields: requestedFields,
+      expires_at: expiresAt.toISOString(),
+      created_by: staffData.id,
+    });
 
-    // Store token in database
-    const { error: insertError } = await supabaseClient
-      .from("member_update_tokens")
-      .insert({
-        member_id: memberId,
-        token,
-        requested_fields: requestedFields,
-        expires_at: expiresAt.toISOString(),
-        created_by: staffData.id,
-      });
-
+    // THIS is the failure that fails the request: with no token there is no link, and there is
+    // nothing for a staff member to do with the answer.
     if (insertError) {
-      console.error("Error inserting token:", insertError);
-      throw new Error("Failed to create update token");
+      console.error(
+        JSON.stringify({ fn: FN, event: "token_insert_failed", error: insertError.message }),
+      );
+      return json(500, { error: "Failed to create update link" });
     }
 
-    // Build the update link
     const baseUrl = Deno.env.get("SITE_URL") || "https://icealarm.es";
-    const updateLink = `${baseUrl}/member-update?token=${token}`;
+    const updateLink = buildUpdateLink(baseUrl, token);
+    const message = { memberName, url: updateLink, language };
 
-    // Send bilingual email via Gmail SMTP
-    const isSpanish = preferredLanguage === "es";
+    const [{ data: smsFlag }, { data: emailProvider }] = await Promise.all([
+      admin.from("system_settings").select("value").eq("key", "notify_channel_sms").maybeSingle(),
+      admin
+        .from("system_settings")
+        .select("value")
+        .eq("key", "settings_email_provider")
+        .maybeSingle(),
+    ]);
 
-    const emailSubject = isSpanish 
-      ? "Por favor actualice su información - ICE Alarm España"
-      : "Please Update Your Information - ICE Alarm España";
+    const decisions = planChannels({
+      smsChannelOn: smsFlag?.value === "true",
+      emailConfigured: Boolean(emailProvider?.value),
+      phone: member.phone,
+      email: recipientEmail,
+    });
 
-    const emailHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: #C8102E; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-    .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
-    .button { display: inline-block; background: #C8102E; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
-    .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; }
-    .divider { border-top: 1px dashed #d1d5db; margin: 20px 0; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1 style="margin: 0;">ICE Alarm España</h1>
-  </div>
-  <div class="content">
-    <h2>${isSpanish ? "Hola" : "Hello"} ${memberName},</h2>
-    
-    <p><strong>${isSpanish ? "Español:" : "English:"}</strong></p>
-    <p>${isSpanish 
-      ? "Necesitamos información adicional para poder asistirle mejor en caso de emergencia. Por favor haga clic en el botón de abajo para actualizar su información."
-      : "We need some additional information to ensure we can best assist you in an emergency. Please click the button below to update your profile."}</p>
-    
-    <div style="text-align: center;">
-      <a href="${updateLink}" class="button">
-        ${isSpanish ? "Actualizar Mi Información" : "Update My Information"}
-      </a>
-    </div>
-    
-    <p style="font-size: 14px; color: #6b7280;">
-      ${isSpanish 
-        ? "Este enlace caduca en 7 días."
-        : "This link expires in 7 days."}
-    </p>
-    
-    <div class="divider"></div>
-    
-    <p><strong>${isSpanish ? "English:" : "Español:"}</strong></p>
-    <p>${isSpanish 
-      ? "We need some additional information to ensure we can best assist you in an emergency. Please click the button above to update your profile."
-      : "Necesitamos información adicional para poder asistirle mejor en caso de emergencia. Por favor haga clic en el botón de arriba para actualizar su información."}</p>
-    
-    <div class="footer">
-      <p>ICE Alarm España - ${isSpanish ? "Protegiendo a nuestros mayores" : "Protecting our elderly"}</p>
-      <p>${isSpanish 
-        ? "Si no solicitó esta actualización, por favor ignore este correo."
-        : "If you did not request this update, please ignore this email."}</p>
-    </div>
-  </div>
-</body>
-</html>`;
+    const delivery: DeliveryReport[] = [];
+    for (const decision of decisions) {
+      if (!decision.attempt) {
+        delivery.push({ channel: decision.channel, to: decision.to, outcome: decision.outcome! });
+        continue;
+      }
 
-    const emailResult = await sendEmail(recipientEmail, emailSubject, emailHtml);
+      if (decision.channel === "sms") {
+        try {
+          const { error } = await admin.functions.invoke("twilio-sms", {
+            body: { to: decision.to, message: memberUpdateSms(message), recipientType: "member" },
+            headers: { Authorization: authHeader },
+          });
+          delivery.push({
+            channel: "sms",
+            to: decision.to,
+            outcome: error ? "failed" : "sent",
+            detail: error?.message,
+          });
+        } catch (e) {
+          delivery.push({
+            channel: "sms",
+            to: decision.to,
+            outcome: "failed",
+            detail: e instanceof Error ? e.message : "unknown",
+          });
+        }
+        continue;
+      }
 
-    if (!emailResult.success) {
-      throw new Error(`Email sending failed: ${emailResult.error}`);
+      const mail = memberUpdateEmail(message);
+      const result = await sendEmail(decision.to!, mail.subject, mail.html);
+      delivery.push({
+        channel: "email",
+        to: decision.to,
+        outcome: result.success ? "sent" : "failed",
+        detail: result.error,
+      });
     }
 
-    console.log("Email sent successfully to:", recipientEmail);
-
-    // Log activity
-    await supabaseClient.from("activity_logs").insert({
+    // What was asked for AND what actually left the building. A row saying "a request was sent"
+    // without saying whether it reached anybody is the shape of failure this whole change is
+    // about.
+    await admin.from("activity_logs").insert({
       entity_type: "member",
       entity_id: memberId,
       action: "member_update_request_sent",
       staff_id: staffData.id,
-      new_values: { recipient_email: recipientEmail, requested_fields: requestedFields },
+      new_values: {
+        requested_fields: requestedFields,
+        expires_at: expiresAt.toISOString(),
+        delivery,
+      },
     });
 
-    return new Response(
-      JSON.stringify({ success: true, message: "Update request sent" }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    // No address, no name, no token in the log line — the outcomes are what an operator needs
+    // and the rest is PII in a place nobody controls the retention of.
+    console.log(
+      JSON.stringify({
+        fn: FN,
+        event: "update_request_created",
+        member_id: memberId,
+        fields: requestedFields.length,
+        delivery: delivery.map((d) => `${d.channel}:${d.outcome}`),
+      }),
     );
+
+    return json(200, {
+      success: true,
+      updateLink,
+      expiresAt: expiresAt.toISOString(),
+      requestedFields,
+      delivery,
+    });
   } catch (error) {
-    console.error("Error in send-member-update-request:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    console.error(
+      JSON.stringify({
+        fn: FN,
+        event: "unhandled_error",
+        error: error instanceof Error ? error.message : "unknown",
+      }),
     );
+    return json(500, { error: error instanceof Error ? error.message : "Internal server error" });
   }
 };
 

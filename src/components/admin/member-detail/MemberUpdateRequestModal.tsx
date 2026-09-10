@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Send, Loader2, Check, AlertCircle } from "lucide-react";
+import { Send, Loader2, Check, AlertCircle, Copy, Link2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { functionError } from "@/lib/functionError";
@@ -43,6 +44,28 @@ interface MemberUpdateRequestModalProps {
   member: MemberData;
 }
 
+/**
+ * WHAT CAME BACK — the link above all.
+ *
+ * `send-member-update-request` used to throw when the email bounced, so a staff member was told
+ * the request had failed while an unexpired token sat in the table. It now returns the URL and
+ * a named outcome per channel, and this panel shows both: the link is what the person on the
+ * phone actually needs, whether or not anything was delivered.
+ */
+interface RequestResult {
+  updateLink: string;
+  expiresAt?: string;
+  delivery?: Array<{ channel: string; to: string | null; outcome: string; detail?: string }>;
+}
+
+const DELIVERY_TEXT: Record<string, string> = {
+  sent: "sent",
+  failed: "could not be sent",
+  skipped_channel_off: "channel switched off",
+  skipped_not_configured: "not set up yet",
+  skipped_no_address: "nowhere to send it",
+};
+
 interface MissingField {
   key: string;
   label: string;
@@ -58,6 +81,8 @@ export function MemberUpdateRequestModal({ open, onOpenChange, member }: MemberU
   const [missingFields, setMissingFields] = useState<MissingField[]>([]);
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [recipientEmail, setRecipientEmail] = useState(member.email);
+  const [result, setResult] = useState<RequestResult | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -120,7 +145,7 @@ export function MemberUpdateRequestModal({ open, onOpenChange, member }: MemberU
 
     setSending(true);
     try {
-      const { error } = await supabase.functions.invoke("send-member-update-request", {
+      const { data, error } = await supabase.functions.invoke("send-member-update-request", {
         body: {
           memberId: member.id,
           recipientEmail,
@@ -132,14 +157,33 @@ export function MemberUpdateRequestModal({ open, onOpenChange, member }: MemberU
 
       if (error) throw await functionError(error);
 
-      toast.success(t("crm.updateRequestSent", "Update request sent successfully"));
-      onOpenChange(false);
+      // The dialog deliberately STAYS OPEN. Closing it on success would throw away the link,
+      // which is the one thing a staff member ringing the member actually needs.
+      setResult(data as RequestResult);
+      toast.success(t("crm.updateRequestSent", "Update link created"));
     } catch (error) {
       console.error("Error sending update request:", error);
       toast.error(t("crm.updateRequestFailed", "Failed to send update request"));
     } finally {
       setSending(false);
     }
+  };
+
+  const copyLink = async () => {
+    if (!result) return;
+    try {
+      await navigator.clipboard.writeText(result.updateLink);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // A clipboard refusal must not read as a failure to create the link.
+      toast.error(t("crm.copyFailed", "Could not copy — select the link and copy it"));
+    }
+  };
+
+  const close = (next: boolean) => {
+    if (!next) setResult(null);
+    onOpenChange(next);
   };
 
   const toggleField = (fieldKey: string) => {
@@ -160,7 +204,7 @@ export function MemberUpdateRequestModal({ open, onOpenChange, member }: MemberU
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={close}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -172,7 +216,48 @@ export function MemberUpdateRequestModal({ open, onOpenChange, member }: MemberU
           </DialogDescription>
         </DialogHeader>
 
-        {loading ? (
+        {result ? (
+          <div className="space-y-4" data-testid="update-request-result">
+            <div className="rounded-lg border p-3 space-y-2">
+              <Label className="flex items-center gap-2 text-sm font-medium">
+                <Link2 className="h-4 w-4" />
+                {t("crm.updateLink", "The member's link")}
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  readOnly
+                  value={result.updateLink}
+                  onFocus={(e) => e.currentTarget.select()}
+                  data-testid="update-request-link"
+                />
+                <Button variant="outline" size="icon" onClick={copyLink} aria-label={t("common.copy", "Copy")}>
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {t(
+                  "crm.updateLinkHint",
+                  "Works once, for 7 days. Read it out or send it yourself if nothing below was delivered.",
+                )}
+              </p>
+            </div>
+            <div className="space-y-1">
+              {(result.delivery ?? []).map((d) => (
+                <p key={d.channel} className="text-sm">
+                  <span className="capitalize">{d.channel}</span>:{" "}
+                  <span
+                    className={
+                      d.outcome === "sent" ? "text-alert-resolved" : "text-muted-foreground"
+                    }
+                  >
+                    {DELIVERY_TEXT[d.outcome] ?? d.outcome}
+                  </span>
+                  {d.to ? <span className="text-muted-foreground"> → {d.to}</span> : null}
+                </p>
+              ))}
+            </div>
+          </div>
+        ) : loading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
@@ -242,7 +327,11 @@ export function MemberUpdateRequestModal({ open, onOpenChange, member }: MemberU
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          {result ? (
+            <Button onClick={() => close(false)}>{t("common.done", "Done")}</Button>
+          ) : (
+            <>
+          <Button variant="outline" onClick={() => close(false)}>
             {t("common.cancel", "Cancel")}
           </Button>
           <Button 
@@ -261,6 +350,8 @@ export function MemberUpdateRequestModal({ open, onOpenChange, member }: MemberU
               </>
             )}
           </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

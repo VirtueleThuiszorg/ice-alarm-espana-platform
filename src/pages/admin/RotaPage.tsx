@@ -62,15 +62,23 @@ function ShiftBadge({
   type,
   staffName,
   onClick,
+  label,
 }: {
   type: ShiftType;
   staffName?: string;
   onClick?: () => void;
+  /**
+   * The accessible name. Without it this button announces as "button" and nothing else — the
+   * letter inside it is an M, an A or an N, which is not a name — and a browser test can only
+   * reach it by position. Both problems have the same fix.
+   */
+  label?: string;
 }) {
   const config = SHIFT_TYPES[type];
   return (
     <button
       onClick={onClick}
+      aria-label={label}
       className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ${config.bgClass} ${config.textClass} hover:opacity-80 transition-opacity`}
     >
       <span className="font-bold">{config.badgeLetter}</span>
@@ -517,10 +525,19 @@ export default function RotaPage() {
                               key={shift.id}
                               type={shift.shift_type}
                               onClick={() => openEditDialog(shift)}
+                              label={t("rota.editShiftFor", "Edit {{name}}'s {{shift}} shift on {{date}}", {
+                                name: `${staff.first_name} ${staff.last_name}`,
+                                shift: t(SHIFT_TYPES[shift.shift_type].labelKey, SHIFT_TYPES[shift.shift_type].label),
+                                date: format(day, "d MMM"),
+                              })}
                             />
                           ))}
                           <button
                             onClick={() => openAddDialog(dk, staff.id)}
+                            aria-label={t("rota.addShiftFor", "Add a shift for {{name}} on {{date}}", {
+                              name: `${staff.first_name} ${staff.last_name}`,
+                              date: format(day, "d MMM"),
+                            })}
                             className="inline-flex items-center justify-center w-6 h-6 rounded border border-dashed border-muted-foreground/30 text-muted-foreground/50 hover:border-primary hover:text-primary transition-colors"
                           >
                             <Plus className="h-3 w-3" />

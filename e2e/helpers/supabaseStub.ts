@@ -272,12 +272,39 @@ export async function installSupabaseStub(page: Page, initial: StubScenario = {}
       return json(route, roleInfoFor());
     }
 
-    // ── staff (stateful) ──────────────────────────────────────────────────
+    // ── staff (stateful, and optionally a whole team) ─────────────────────
+    //
+    // A PATCH always mutates the SIGNED-IN row, which is what makes "on duty survives a reload"
+    // a real assertion. A read returns the whole team when `tables.staff` names one — a rota
+    // screen has a row per person and would otherwise show only the person looking at it, which
+    // is how the first version of e2e/supervisorRota.spec.ts failed. The signed-in row is
+    // substituted into that list by id, so statefulness survives the team.
     if (url.pathname === "/rest/v1/staff") {
       if (method === "PATCH") {
         const patch = (body ?? {}) as Partial<StaffRow>;
         if (scenario.staff) scenario.staff = { ...scenario.staff, ...patch };
         return json(route, scenario.staff ? [scenario.staff] : []);
+      }
+      const team = scenario.tables?.staff as Array<Record<string, unknown>> | undefined;
+      if (team) {
+        const live = scenario.staff;
+        const rows = live
+          ? team.map((row) => (row.id === live.id ? { ...row, ...live } : row))
+          : team;
+        // IDENTITY FILTERS ARE HONOURED, and they have to be: the login and the header look
+        // themselves up with `.eq("user_id", …).maybeSingle()`, and handing four rows to
+        // `maybeSingle` is an error — which is exactly how this failed first, with every test
+        // stuck on the login screen. Only the three identity columns are filtered; everything
+        // else is still answered in full, because a rota screen wants the team.
+        const identity = ["id", "user_id", "email"] as const;
+        const wanted = identity
+          .map((column) => [column, url.searchParams.get(column)] as const)
+          .filter((pair): pair is readonly [(typeof identity)[number], string] => !!pair[1])
+          .map(([column, value]) => [column, value.replace(/^eq\./, "")] as const);
+        const filtered = wanted.length
+          ? rows.filter((row) => wanted.every(([column, value]) => String(row[column]) === value))
+          : rows;
+        return json(route, filtered);
       }
       return json(route, scenario.staff ? [scenario.staff] : []);
     }

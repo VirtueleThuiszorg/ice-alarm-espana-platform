@@ -35,6 +35,48 @@ export const SENSITIVE_PAYMENT_HEADERS = [
   "20 Digit Bank No",
 ] as const;
 
+/**
+ * Columns whose VALUES must never leave this module — not into a mapped field, not into
+ * `crm_import_rows.raw`, not into a preview, not into a log line.
+ *
+ * This overrides what the header of this file used to say. The original decision was that card
+ * and bank columns "stay in crm_import_rows.raw for admin review, exactly as before — that
+ * behaviour was correct". It was not. `raw` is a jsonb column on a table staff can read: 94 rows
+ * carry card details and 85 carry a 20-digit bank number, and putting them there means the
+ * platform stores card data it has no reason to hold, cannot protect to PCI standard, and would
+ * have to disclose in a breach. Lee's instruction is to strip them, and stripping is right.
+ *
+ * Two of these four were previously MAPPED, and losing them is a real cost, recorded rather
+ * than glossed:
+ *   Private Medical Details  ->  medical_information.private_insurer is now always null from an
+ *                                import. The insurer's name goes with the policy number it sat
+ *                                beside; if Lee wants the insurer he needs a column that holds
+ *                                only the insurer.
+ *   Death Funeral Wishes     ->  end-of-life wishes are no longer imported at all. `funeral_plan`
+ *                                and its policy number still are; the free-text wishes are not.
+ *
+ * ENFORCEMENT IS AT THE ACCESSOR, not at each call site. `IceRow.get()` returns "" for these
+ * headers, so a future mapping cannot pick one up by adding a line — the same reasoning as
+ * golden rule 6, where Isabella's forbidden tools are unreachable in code rather than discouraged
+ * in a prompt. Only PRESENCE is observable, via `redactedPresent()`.
+ */
+export const REDACTED_HEADERS = [
+  "Credit Card Details",
+  "20 Digit Bank No",
+  "Private Medical Details",
+  "Death Funeral Wishes",
+] as const;
+
+/**
+ * Normalised for the accessor check, built once.
+ *
+ * Uses `normaliseHeader` rather than its own normalisation, and that is not tidiness. The first
+ * version lowercased here while `normaliseHeader` does not, so the set never matched and every
+ * redaction silently did nothing — the card number came through untouched and the code read as
+ * if it were guarded. Two normalisers for one comparison is one too many.
+ */
+const REDACTED_SET: ReadonlySet<string> = new Set(REDACTED_HEADERS.map(normaliseHeader));
+
 /* ------------------------------------------------------------------ *
  * RFC 4180 CSV parser
  * ------------------------------------------------------------------ */
@@ -145,11 +187,49 @@ export class IceRow {
     });
   }
 
-  /** Value at a named column. `occurrence` disambiguates duplicate headers. */
+  /**
+   * Value at a named column. `occurrence` disambiguates duplicate headers.
+   *
+   * Returns "" for a REDACTED_HEADERS column, whatever the file contains. That is the whole
+   * enforcement: a mapping cannot leak card data by reading it, because reading it is not
+   * possible through this accessor.
+   */
   get(header: string, occurrence = 0): string {
-    const positions = this.index.get(normaliseHeader(header));
+    const normalised = normaliseHeader(header);
+    if (REDACTED_SET.has(normalised)) return "";
+    const positions = this.index.get(normalised);
     if (!positions || positions[occurrence] === undefined) return "";
     return clean(this.values[positions[occurrence]] ?? "");
+  }
+
+  /**
+   * Whether a redacted column held anything — PRESENCE ONLY, never the value.
+   *
+   * This is what lets the batch summary say "94 rows had card data — discarded" without the
+   * count itself becoming a way to read the number back.
+   */
+  redactedPresent(header: (typeof REDACTED_HEADERS)[number]): boolean {
+    const positions = this.index.get(normaliseHeader(header)) ?? [];
+    return positions.some((p) => clean(this.values[p] ?? "") !== "");
+  }
+
+  /**
+   * Whether a payment column begins with the free-of-charge marker. BOOLEAN ONLY.
+   *
+   * Real business data hides in a column we refuse to read: where a member pays nothing, the
+   * card cell says "FOC" instead of a card number. Redacting the column removed the card data
+   * and the FOC signal together, which the existing suite caught — `is_free_of_charge` went
+   * false for a member who pays nothing, and billing them would have been the consequence.
+   *
+   * So the signal is recovered WITHOUT the value: this returns a boolean, matches only at the
+   * start of the cell, and cannot be asked about any other token. A yes/no derived from a
+   * redacted cell is not the redacted data; the cell's contents still never leave this class.
+   */
+  hasFreeOfChargeMarker(): boolean {
+    return SENSITIVE_PAYMENT_HEADERS.some((h) => {
+      const positions = this.index.get(normaliseHeader(h)) ?? [];
+      return positions.some((p) => /^foc\b/i.test(clean(this.values[p] ?? "")));
+    });
   }
 
   /** Every value under a repeated header, in column order, blanks dropped. */
@@ -173,10 +253,19 @@ export class IceRow {
     return out;
   }
 
+  /**
+   * The archived row for `crm_import_rows.raw`.
+   *
+   * Lossless EXCEPT for REDACTED_HEADERS, which are omitted entirely rather than blanked. An
+   * empty string would still say "this person gave us their card number", and a key that is
+   * present but empty is the kind of thing a later "restore the raw row" feature would happily
+   * fill back in.
+   */
   raw(): Record<string, string> {
     const out: Record<string, string> = {};
     this.headers.forEach((h, i) => {
-      // Duplicate headers get a suffix so the archived raw row is lossless.
+      if (REDACTED_SET.has(normaliseHeader(h))) return;
+      // Duplicate headers get a suffix so the archived raw row stays lossless.
       const key = out[h] === undefined ? h : `${h} (${i})`;
       out[key] = this.values[i] ?? "";
     });
@@ -486,14 +575,21 @@ export function mapProvince(raw: string): { province: string | null; review: boo
 
 /** 'FOC' hides inside the two payment columns we otherwise discard. */
 export function detectFreeOfCharge(row: IceRow): boolean {
-  return SENSITIVE_PAYMENT_HEADERS.some((h) => /^foc\b/i.test(row.get(h)));
+  // Was `row.get(h)`, which now returns "" because those columns are redacted. See
+  // IceRow.hasFreeOfChargeMarker for why a boolean is safe where the value is not.
+  return row.hasFreeOfChargeMarker();
 }
 
 export function hasSensitivePaymentData(row: IceRow): boolean {
-  return SENSITIVE_PAYMENT_HEADERS.some((h) => {
-    const v = row.get(h);
-    return Boolean(v) && !/^foc\b/i.test(v);
-  });
+  // Also had to move off `row.get()` when those columns became redacted — it silently returned
+  // "" and the warning stopped firing, so a row carrying a card number reported nothing. The
+  // existing suite caught it. Presence and the FOC marker are both booleans, which is all this
+  // needs; "FOC" is a payment arrangement, not card data, so it does not count as sensitive.
+  return (
+    SENSITIVE_PAYMENT_HEADERS.some((h) =>
+      row.redactedPresent(h as (typeof REDACTED_HEADERS)[number])
+    ) && !row.hasFreeOfChargeMarker()
+  );
 }
 
 function dedupe(list: string[]): string[] {
@@ -591,6 +687,15 @@ export interface MappedRow {
   access: { key_safe_location: string | null; key_safe_code: string | null } | null;
   endOfLife: { funeral_plan: string | null; policy_number: string | null; wishes: string | null } | null;
   crmProfile: { stage: string | null; status: string | null; referral_source: string | null; assigned_label: string | null; tags: string[]; groups: string[] };
+  /**
+   * Which redacted columns this row HELD — names only, never values (REDACTED_HEADERS).
+   *
+   * Recorded so the batch summary can tell Lee "94 rows had card data — discarded" and he can
+   * believe it. A silent strip and a column that was simply empty look identical afterwards,
+   * and the difference matters: one means the data was thrown away on purpose, the other means
+   * it was never there.
+   */
+  discardedSensitive: string[];
   notes: string | null;
   raw: Record<string, string>;
 }
@@ -695,13 +800,19 @@ export function mapIceRow(row: IceRow): MappedRow {
   const monthlyFee = row.get("Monthly Fee").replace(/[^0-9.]/g, "");
 
   if (hasSensitivePaymentData(row)) {
-    warnings.push("Row carries card/bank data — retained only in crm_import_rows.raw");
+    // The message used to say "retained only in crm_import_rows.raw". That is no longer true and
+    // a warning that misdescribes what happened is worse than none: an admin reading it would
+    // go looking for the data.
+    warnings.push("Row carried card/bank data — DISCARDED, not stored anywhere");
   }
 
   const keySafe = row.get("Key Safe");
   const funeralPlan = row.get("Funeral Plan");
   const funeralPolicy = row.get("Policy Number", 1);
-  const wishes = row.get("Death Funeral Wishes");
+  // "Death Funeral Wishes" is in REDACTED_HEADERS, so it is not read. Kept as an explicit null
+  // rather than a get() that silently returns "": a call that looks like it works is how a
+  // redaction quietly stops being one.
+  const wishes = "";
 
   const postalStreet = row.get("Street");
   const hasPostal = Boolean(postalStreet || row.get("City/Town") || row.get("Postal Code"));
@@ -790,7 +901,9 @@ export function mapIceRow(row: IceRow): MappedRow {
           vision_notes: nz(row.get("Glasses")),
           meds_location: nz(row.get("Meds Location")),
           meds_notes: nz(row.get("Meds Notes")),
-          private_insurer: nz(row.get("Private Medical Details")),
+          // "Private Medical Details" is redacted (see REDACTED_HEADERS), so the insurer's name
+          // is no longer imported. Its policy number below still is — they were separate columns.
+          private_insurer: null,
           private_policy_number: nz(row.get("Policy Number", 0)),
           additional_notes: nz(specialInstructions),
         }
@@ -847,6 +960,7 @@ export function mapIceRow(row: IceRow): MappedRow {
       groups: clean(row.get("Groups")).split(/[;,]+/).map(clean).filter(Boolean),
     },
     notes: nz(row.get("Recent notes") || row.get("Notes")),
+    discardedSensitive: REDACTED_HEADERS.filter((h) => row.redactedPresent(h)),
     raw: row.raw(),
   };
 }
@@ -895,6 +1009,11 @@ export interface ImportSummary {
   excluded: number;
   deceased: number;
   needingReview: number;
+  /**
+   * Rows that held each redacted column, by column name. Counts only — the values are
+   * unreachable by the time a MappedRow exists.
+   */
+  discardedSensitive: Record<string, number>;
 }
 
 export function summarise(mapped: MappedRow[]): ImportSummary {
@@ -906,5 +1025,10 @@ export function summarise(mapped: MappedRow[]): ImportSummary {
     excluded: mapped.filter((m) => m.target === "exclude").length,
     deceased: mapped.filter((m) => m.member.deceased_at !== null).length,
     needingReview: mapped.filter((m) => m.reviewReasons.length > 0).length,
+    discardedSensitive: Object.fromEntries(
+      REDACTED_HEADERS.map((h) => [h, mapped.filter((m) => m.discardedSensitive.includes(h)).length])
+        // A column no row carried is not news; only report what was actually discarded.
+        .filter(([, n]) => (n as number) > 0)
+    ),
   };
 }

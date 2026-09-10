@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MemberOverviewDialog } from "@/components/admin/member-detail/MemberOverviewDialog";
+import { MemberMissingInfoDialog } from "@/components/admin/member-detail/MemberMissingInfoDialog";
 
 interface MemberHeaderProps {
   member: {
@@ -20,9 +21,12 @@ interface MemberHeaderProps {
     phone: string;
     photo_url?: string | null;
     address_line_1: string;
+    address_line_2: string | null;
     city: string;
     province: string | null;
     status: string;
+    nie_dni: string | null;
+    preferred_language: string | null;
   };
   subscription?: {
     plan_type: string;
@@ -98,6 +102,11 @@ export function MemberHeader({
                 memberId={member.id}
                 memberName={`${member.first_name} ${member.last_name}`}
               />
+              {/*
+                The count next to it, always visible. Eleven gaps and none of them look like
+                anything from the outside — every tab renders either way.
+              */}
+              <MemberMissingInfoDialog member={member} />
               <Button variant="outline" onClick={onEdit}>
                 <Edit className="mr-2 h-4 w-4" />
                 Edit

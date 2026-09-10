@@ -59,6 +59,18 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
+/*
+  The header also carries the Missing-info badge, which reads on mount ON PURPOSE — a count
+  nobody can see until they click is not a warning. It is faked at the hook boundary here so
+  the "queries nothing until it is opened" assertion below is about the OVERVIEW and not about
+  the badge beside it. The badge's own reads are covered in memberMissingInfo.test.tsx.
+*/
+vi.mock("@/hooks/useMemberMissingInfo", () => ({
+  useMemberMissingInfo: () => ({ data: { missing: [], count: 0 }, isLoading: false }),
+  useMembersMissingCounts: () => ({ data: {}, isLoading: false }),
+  useMemberMissingInfoRealtime: () => {},
+}));
+
 const toastError = vi.fn();
 vi.mock("sonner", () => ({ toast: { error: (m: string) => toastError(m) } }));
 
@@ -71,9 +83,12 @@ const MEMBER = {
   email: "mary@example.com",
   phone: "600111222",
   address_line_1: "Calle Mayor 1",
+  address_line_2: null,
   city: "Marbella",
   province: "Málaga",
   status: "active",
+  nie_dni: null,
+  preferred_language: "en",
 };
 
 function wrapper({ children }: { children: ReactNode }) {

@@ -25,6 +25,7 @@
 // this record actually had.
 
 import { describe, it, expect } from "vitest";
+import { dbMessage } from "@/lib/dbMessage";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
@@ -239,9 +240,22 @@ describe("what the record writes to a money table from the browser", () => {
       "src/components/admin/member-detail/ProfileTab.tsx",
       "src/pages/admin/MemberDetailPage.tsx",
     ]);
+    /*
+      THE OLD ASSERTION WAS `/error\.message/` — a substring, and the code it was passing on
+      read `error instanceof Error ? error.message : String(error)`. That is FALSE for a
+      PostgrestError, which supabase-js returns as a plain object: both surfaces rendered
+      "[object Object]" and the guard could not tell. Both now go through `dbMessage`, and the
+      property is asserted by EXECUTION on the shape supabase actually returns.
+    */
     for (const file of writers) {
-      expect(code(file), file).toMatch(/error\.message|err\.message|e\.message/);
+      expect(code(file), file).toMatch(/dbMessage\(\s*error/);
     }
+    expect(dbMessage({ message: "activation is the payment webhook's job" }, "Failed")).toContain(
+      "payment webhook",
+    );
+    expect(dbMessage(new Error("boom"), "Failed")).toBe("boom");
+    expect(dbMessage({}, "Failed")).toBe("Failed");
+    expect(dbMessage(null, "Failed")).toBe("Failed");
   });
 });
 
@@ -276,5 +290,104 @@ describe("every tab of the record is still mounted", () => {
     const panels = [...page.matchAll(/<TabsContent value="(\w+)"/g)].map((m) => m[1]).sort();
     expect(triggers).toEqual(panels);
     expect(triggers).toEqual(TABS.map(([v]) => v).sort());
+  });
+});
+
+/**
+ * THE CONTROL WALK — every button on the record, and what happens when it is pressed.
+ *
+ * A tab that mounts is not a tab that works. The suite above proves each of the twelve panels
+ * renders a component; this one walks the controls INSIDE them and asserts each one reaches a
+ * wire — a table, an edge function, a navigation, or a dialog that owns one.
+ *
+ * IT EXISTS BECAUSE FOUR OF THEM DID NOT. The Messages tab carried
+ * `onClick={() => toast.info("SMS integration coming soon")}` four times over: SMS, WhatsApp,
+ * Email and Log Call. A control that announces its own absence is worse than no control — it
+ * occupies the place a working one would, so nobody adds the working one, and an operator
+ * discovers it at the moment they need it. The sweep at the bottom is what stops a fifth.
+ */
+describe("the control walk — nothing on the record is decoration", () => {
+  /** tab → the controls a staff member can press there, and the wire each must reach. */
+  const WALK: Array<{ tab: string; file: string; control: string; wire: RegExp }> = [
+    { tab: "header", file: `${DIR}/MemberHeader.tsx`, control: "Overview", wire: /MemberOverviewDialog/ },
+    { tab: "header", file: `${DIR}/MemberHeader.tsx`, control: "Missing info", wire: /MemberMissingInfoDialog/ },
+    { tab: "header", file: `${DIR}/MemberHeader.tsx`, control: "Edit", wire: /onEdit/ },
+    { tab: "header", file: `${DIR}/MemberHeader.tsx`, control: "⋯ Suspend / Reactivate", wire: /onSuspend/ },
+    { tab: "header", file: `${DIR}/MemberHeader.tsx`, control: "⋯ Delete", wire: /onDelete/ },
+    { tab: "header", file: PAGE, control: "⋯ Suspend writes the member row", wire: /from\("members"\)[\s\S]{0,200}update/ },
+    { tab: "header", file: PAGE, control: "⋯ Delete removes the member row", wire: /from\("members"\)[\s\S]{0,120}delete\(\)/ },
+
+    { tab: "profile", file: `${DIR}/ProfileTab.tsx`, control: "Edit / Save", wire: /EditableCard[\s\S]*from\("members"\)/ },
+    { tab: "medical", file: `${DIR}/MedicalTab.tsx`, control: "Edit / Save", wire: /EditableCard[\s\S]*from\("medical_information"\)/ },
+    { tab: "medical", file: `${DIR}/MedicalTab.tsx`, control: "Add / remove a condition, medication or allergy", wire: /addItem\(|removeItem\(/ },
+
+    { tab: "contacts", file: `${DIR}/ContactsTab.tsx`, control: "Add contact", wire: /openAddDialog/ },
+    { tab: "contacts", file: `${DIR}/ContactsTab.tsx`, control: "Edit contact", wire: /openEditDialog/ },
+    { tab: "contacts", file: `${DIR}/ContactsTab.tsx`, control: "Delete contact", wire: /deleteContact/ },
+
+    { tab: "device", file: `${DIR}/DeviceTab.tsx`, control: "Assign / unassign a pendant", wire: /assignDevice|unassignDevice/ },
+    { tab: "device", file: `${DIR}/DeviceTab.tsx`, control: "Mark collected / live / faulty", wire: /markCollected|markLive|markFaulty/ },
+    { tab: "device", file: `${DIR}/PendantFulfilmentCard.tsx`, control: "Fulfilment steps", wire: /useFulfilmentState|from\("orders"\)|refetch\(\)/ },
+
+    { tab: "subscription", file: `${DIR}/SubscriptionTab.tsx`, control: "Send payment link", wire: /SendPaymentLinkDialog/ },
+    { tab: "subscription", file: `${DIR}/SendPaymentLinkDialog.tsx`, control: "…which calls the server", wire: /useSendPaymentLink/ },
+    { tab: "subscription", file: `${DIR}/MemberActionsCard.tsx`, control: "Member actions", wire: /useMemberAction|functions\.invoke/ },
+
+    { tab: "payments", file: `${DIR}/PaymentsTab.tsx`, control: "Record a manual payment", wire: /recordManualPayment/ },
+
+    { tab: "messages", file: `${DIR}/MessagesTab.tsx`, control: "New conversation / reply", wire: /from\("messages"\)[\s\S]{0,200}insert/ },
+    { tab: "messages", file: `${DIR}/MemberQuickContact.tsx`, control: "SMS", wire: /functions\.invoke\("twilio-sms"/ },
+    { tab: "messages", file: `${DIR}/MemberQuickContact.tsx`, control: "Email", wire: /functions\.invoke\("send-email"/ },
+    { tab: "messages", file: `${DIR}/MemberQuickContact.tsx`, control: "WhatsApp", wire: /wa\.me/ },
+    { tab: "messages", file: `${DIR}/MemberQuickContact.tsx`, control: "Log Call", wire: /logInteraction\(/ },
+
+    { tab: "notes", file: `${DIR}/NotesTab.tsx`, control: "Add / edit / pin / delete a note", wire: /from\("member_notes"\)/ },
+    { tab: "activity", file: `${DIR}/ActivityTab.tsx`, control: "Filter and export the history", wire: /exportCSV/ },
+    { tab: "alerts", file: `${DIR}/AlertsTab.tsx`, control: "Open an alert", wire: /openAlertDetail/ },
+    { tab: "tasks", file: `${DIR}/TasksTab.tsx`, control: "Add / complete / delete a task", wire: /from\("tasks"\)/ },
+    { tab: "crm", file: `${DIR}/CRMTab.tsx`, control: "Request an update from the member", wire: /MemberUpdateRequestModal/ },
+    { tab: "crm", file: `${DIR}/CRMTab.tsx`, control: "Open the import batch", wire: /navigate\("\/admin\/crm-import\/batches"\)/ },
+    { tab: "crm", file: `${DIR}/CourtesyCallsCard.tsx`, control: "Courtesy call schedule", wire: /from\("(members|tasks)"\)/ },
+  ];
+
+  it.each(WALK.map((w) => [w.tab, w.control, w] as const))(
+    "%s: %s reaches something",
+    (_tab, _control, entry) => {
+      expect(code(entry.file), `${entry.file}: ${entry.control}`).toMatch(entry.wire);
+    },
+  );
+
+  it("the walk covers every tab, plus the header", () => {
+    const walked = [...new Set(WALK.map((w) => w.tab))].sort();
+    const tabs = [...code(PAGE).matchAll(/<TabsTrigger value="(\w+)"/g)].map((m) => m[1]);
+    for (const tab of tabs) {
+      expect(walked, `no control walked on the ${tab} tab`).toContain(tab);
+    }
+    expect(walked).toContain("header");
+  });
+
+  it("no control on the record announces its own absence", () => {
+    /*
+      The four this suite was written for. "Coming soon" on a control an operator needs is not
+      a roadmap, it is a dead end discovered at the worst moment — and a no-op handler is the
+      same thing without the apology.
+    */
+    const offenders: string[] = [];
+    for (const file of [...RECORD_FILES, `${DIR}/MemberQuickContact.tsx`]) {
+      const src = code(file);
+      if (/coming soon/i.test(src)) offenders.push(`${file}: "coming soon"`);
+      if (/onClick=\{\s*\(\s*\)\s*=>\s*\{\s*\}\s*\}/.test(src)) offenders.push(`${file}: no-op onClick`);
+      if (/onClick=\{\s*undefined\s*\}/.test(src)) offenders.push(`${file}: undefined onClick`);
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("the WhatsApp control does not claim a delivery it cannot see", () => {
+    // It opens the operator's own WhatsApp with the text ready. What happens in that window is
+    // not something this app can observe, so neither the toast nor the log row says "sent".
+    const src = code(`${DIR}/MemberQuickContact.tsx`);
+    expect(src).toMatch(/window\.open\(/);
+    expect(src).toMatch(/whatsappOpened/);
+    expect(src).not.toMatch(/whatsappSent/);
   });
 });

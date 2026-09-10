@@ -291,12 +291,16 @@ describe("pressing Import", () => {
     expect(everything).not.toMatch(/\d{16}/);
   });
 
-  it("writes members with status 'inactive' and never 'active'", async () => {
+  it("writes members with status 'pending_review' + legacy billing, never 'active'", async () => {
     await runImport();
     const members = writesTo("members", "insert");
     expect(members.length).toBeGreaterThan(0);
     for (const m of members) {
-      expect((m.payload as { status: string }).status).toBe("inactive");
+      const p = m.payload as { status: string; billing_source: string };
+      expect(p.status).toBe("pending_review");
+      // The pair is the point: pending_review says a human has not looked yet, legacy says the
+      // money never came through this platform. Either alone would be a half-truth.
+      expect(p.billing_source).toBe("legacy");
     }
     expect(JSON.stringify(writes)).not.toContain('"status":"active"');
   });

@@ -3297,6 +3297,7 @@ export type Database = {
           away_until: string | null
           pendant_with_member: boolean | null
           urbanizacion: string | null
+          billing_source: string
           bloque: string | null
           portal: string | null
           escalera: string | null
@@ -3359,6 +3360,7 @@ export type Database = {
           away_until?: string | null
           pendant_with_member?: boolean | null
           urbanizacion?: string | null
+          billing_source?: string
           bloque?: string | null
           portal?: string | null
           escalera?: string | null
@@ -3421,6 +3423,7 @@ export type Database = {
           away_until?: string | null
           pendant_with_member?: boolean | null
           urbanizacion?: string | null
+          billing_source?: string
           bloque?: string | null
           portal?: string | null
           escalera?: string | null
@@ -7779,7 +7782,7 @@ export type Database = {
         | "triage_decision"
         | "handover_briefing"
         | "flag"
-      member_status: "active" | "inactive" | "suspended"
+      member_status: "active" | "inactive" | "pending_review" | "suspended"
       order_item_type:
         | "pendant"
         | "registration_fee"
@@ -8054,7 +8057,7 @@ export const Constants = {
         "handover_briefing",
         "flag",
       ],
-      member_status: ["active", "inactive", "suspended"],
+      member_status: ["active", "inactive", "pending_review", "suspended"],
       order_item_type: [
         "pendant",
         "registration_fee",

@@ -45,6 +45,18 @@ export type SubscriptionStatus = Database["public"]["Enums"]["subscription_statu
 export type MembershipCondition =
   /** An active subscription. The page renders the record. */
   | "active"
+  /**
+   * `members.status = 'active'` with `billing_source = 'legacy'` — monitored, and billed
+   * outside Stripe.
+   *
+   * A separate condition and not a flavour of `active`, because the two differ in exactly the
+   * place this module exists to get right: an operator IS watching, and there is no subscription
+   * row to render, no renewal date to show and no payment for the member to fix. Folding it into
+   * `active` would send the page looking for a plan name that does not exist; folding it into
+   * `never_joined` would show the plans to somebody who has been a member since 2014 and tell
+   * them nobody is watching.
+   */
+  | "legacy_billing"
   /** No subscription row at all. The only condition that shows the plans. */
   | "never_joined"
   /** `pending` — a subscription exists, the payment has not been confirmed. */
@@ -103,6 +115,28 @@ export interface MembershipConditionSpec {
 }
 
 export const MEMBERSHIP_CONDITIONS = [
+  {
+    condition: "legacy_billing",
+    // Monitored. This is the whole point of the state: they wear the pendant tonight.
+    monitored: true,
+    // No plans. They have a membership; showing prices invites a second payment.
+    showsPlans: false,
+    /* A route to a human, unlike `active`. `active` offers none because the page renders the
+       record — the plan, the renewal date, the payment method. A legacy member has NO
+       subscription row, so there is nothing to render and a billing question has nowhere to go.
+       `update_payment` is the nearest true thing: it opens a prefilled support request, and a
+       human answers it. */
+    action: "update_payment",
+    title: {
+      key: "subscription.condition.legacyTitle",
+      fallback: "Your membership is active",
+    },
+    body: {
+      key: "subscription.condition.legacyBody",
+      fallback:
+        "An operator answers your alarm, day and night. Your payments are handled directly with our office rather than online.",
+    },
+  },
   {
     condition: "active",
     monitored: true,
@@ -225,6 +259,12 @@ export interface MembershipSubscriptionRow {
   status: SubscriptionStatus | null;
 }
 
+/** The two member columns that decide whether somebody is monitored without paying us online. */
+export interface LegacyBillingMember {
+  status: Database["public"]["Enums"]["member_status"] | null;
+  billing_source: string | null;
+}
+
 /**
  * The condition, from the member's most recent subscription of ANY status.
  *
@@ -235,11 +275,31 @@ export interface MembershipSubscriptionRow {
  */
 export function membershipCondition(
   latest: MembershipSubscriptionRow | null | undefined,
+  member?: LegacyBillingMember | null,
 ): MembershipCondition {
+  /* LEGACY IS CHECKED FIRST, and before the loading case.
+     A legacy member has NO subscription row, so every branch below would answer either
+     `never_joined` (the plans, and "nobody is watching") or `unknown` — for somebody who is
+     monitored right now. The member row is the authority on whether an operator is watching;
+     the subscription is the authority on billing, and these people have no billing here. */
+  if (member && member.billing_source === "legacy" && member.status === "active") {
+    return "legacy_billing";
+  }
   if (latest === undefined) return "unknown";
   if (latest === null) return "never_joined";
   if (latest.status === null) return "unknown";
   return STATUS_CONDITION[latest.status] ?? "unknown";
+}
+
+/**
+ * Whether renewal, dunning or a payment-failed notice may fire for this member.
+ *
+ * `false` for a legacy member, and that is the reason `billing_source` exists rather than a
+ * status value: a legacy member IS active, so anything keyed on status alone would start
+ * chasing them for a card this platform has never held.
+ */
+export function hasPlatformBilling(member: LegacyBillingMember | null | undefined): boolean {
+  return member?.billing_source === "stripe";
 }
 
 export function membershipConditionSpec(condition: MembershipCondition): MembershipConditionSpec {

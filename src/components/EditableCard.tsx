@@ -347,10 +347,17 @@ export function EditableCard(props: EditableCardProps) {
           {/*
             ONE fieldset, not a disabled prop per input. `min-w-0` because a disabled fieldset
             establishes a new layout context that otherwise refuses to shrink inside a grid.
+
+            `editable-card-fields` is what turns READ MODE INTO PLAIN TEXT. A disabled input is
+            still an input: it has a border, a box, a placeholder and a chevron, so a locked
+            card still reads as a form somebody has switched off rather than as a record. The
+            rule lives in index.css because it must reach every descendant of the fieldset —
+            and because doing it there means twelve tabs get it at once, instead of twelve
+            hand-written read views that drift.
           */}
           <fieldset
             disabled={!editing}
-            className="min-w-0 disabled:opacity-100"
+            className="editable-card-fields min-w-0 disabled:opacity-100"
             data-testid={testId ? `${testId}-fields` : undefined}
             data-editing={editing ? "true" : "false"}
           >

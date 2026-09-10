@@ -529,6 +529,38 @@ appears or a pinned one slides. That records the debt without blessing it.
 **PR is held for the human gate** — CLAUDE.md gates the SOS/alert path, and a fall-badge colour
 is alert-path presentation.
 
+### D-16 — pro-rata holiday needs a start date, and the column is not the one you named (2026-09-10)
+
+Your ruling was that pro-rata applies **only** to somebody whose start date falls inside the
+year, read off `staff.start_date`, and to flag it if Travis's is missing. **There is no
+`staff.start_date`.** The column that means this is **`staff.hire_date`** (nullable, added
+2026-03-01), and there is also a `termination_date` beside it. It IS editable — the admin staff
+form writes it (`StaffFormPanel`) and both the staff list and the overview tab display it — so
+this is a data-entry gap rather than a missing feature.
+
+I cannot see production from here, so I cannot tell you whether the four operators' `hire_date`
+values are set or NULL. **Please check the four (Mary, Carmen, Albert, Travis) in Admin → Staff
+and fill in any that are blank.**
+
+Pro-rata is deliberately **not built yet**, for one reason: a rule that reads a column which may
+be NULL computes a wrong balance confidently, and it would compute it for a payroll-adjacent
+number. It is also not needed for 2026 — all four are on `contratos indefinidos` predating the
+year, which is why the backfill asserts a flat 30 days for each of them.
+
+**One thing to confirm** when you fill the dates in: that a pro-rata rule should read `hire_date`
+and nothing else — no separate "contract start" field, no per-convenio accrual table.
+
+**Also for the convenio, and both defaulted OFF pending your answer** (they are settings, not
+code, so they flip without a deploy):
+
+- **`festivos` inside a holiday range** — whether a bank holiday falling inside `vacaciones`
+  counts against the 30 days. Default **off** (it does not count). This is a convenio question;
+  the Estatuto does not settle it.
+- **carry-over into the next year** — default **off**. The one exception that is statute rather
+  than convenio is sickness or maternity/paternity overlapping booked leave (ET art. 38.3), where
+  the days are not lost. That is recorded as a note, not automated: it needs a human to say which
+  absence caused it.
+
 ---
 
 ## 3. Per-channel flags (D7) — turn on only when proven

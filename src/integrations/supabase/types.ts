@@ -3261,7 +3261,8 @@ export type Database = {
           user_id: string | null
           first_name: string
           last_name: string
-          email: string
+          email: string | null
+          email_owner: string
           phone: string
           date_of_birth: string
           nie_dni: string | null
@@ -3324,7 +3325,8 @@ export type Database = {
           user_id?: string | null
           first_name: string
           last_name: string
-          email: string
+          email?: string | null
+          email_owner?: string
           phone: string
           date_of_birth: string
           nie_dni?: string | null
@@ -3387,7 +3389,8 @@ export type Database = {
           user_id?: string | null
           first_name?: string
           last_name?: string
-          email?: string
+          email?: string | null
+          email_owner?: string
           phone?: string
           date_of_birth?: string
           nie_dni?: string | null
@@ -7651,6 +7654,14 @@ export type Database = {
           check_shift_type: string
           is_covered: boolean
           staff_name: string
+        }[]
+      }
+      confirm_legacy_member: {
+        Args: { _member_id: string; _reason?: string }
+        Returns: {
+          billing_source: string
+          member_id: string
+          status: string
         }[]
       }
       expire_pending_covers: { Args: never; Returns: number }

@@ -30,7 +30,7 @@
  * The rule here is the opposite: a row that cannot be represented honestly does not become a
  * member. It becomes a CRM contact with the reason attached, which is a thing a human can fix.
  */
-import type { MappedRow } from "./iceCrmImport";
+import type { EmailOwner, MappedRow } from "./iceCrmImport";
 
 /* ------------------------------------------------------------------ *
  * The plan
@@ -41,7 +41,10 @@ export type RowOutcome = "member" | "crm_contact" | "skip";
 export interface MemberInsert {
   first_name: string;
   last_name: string;
-  email: string;
+  /** Nullable since 20260910170000. Most legacy clients have no address at all. */
+  email: string | null;
+  /** Whose address it is. Only `member` is unique-constrained, and only `member` can log in. */
+  email_owner: EmailOwner;
   phone: string;
   date_of_birth: string;
   address_line_1: string;
@@ -125,6 +128,8 @@ export interface RowPlan {
     first_name: string;
     last_name: string;
     email: string | null;
+    /** Whose address it is — the dedupe reads this, not just the address. */
+    email_owner: EmailOwner;
     phone: string | null;
     date_of_birth: string | null;
     address_line_1: string | null;
@@ -152,11 +157,23 @@ export interface RowPlan {
   emailContactConsent: boolean;
 }
 
-/** The nine columns `members` will not accept as null. */
+/**
+ * The columns `members` will not accept as null.
+ *
+ * EMAIL LEFT THIS LIST ON 2026-09-10, and it is the single biggest change to what the import
+ * produces. `members.email` was `UNIQUE NOT NULL`, so "no email" was the commonest reason one of
+ * Lee's clients became a CRM contact instead of a member — and most of them have no email. Since
+ * 20260910170000 the column is nullable, so the absence of an address is no longer the absence
+ * of a member.
+ *
+ * It is still REQUIRED in `memberRequiredFields.ts`, deliberately. That list is what the
+ * Missing-info badge and the member-update link read, and an email is still something the
+ * platform wants — a member without one has no login. The difference is that wanting it no
+ * longer means refusing to hold the person's record until it arrives.
+ */
 const REQUIRED_MEMBER_FIELDS: { key: string; label: string }[] = [
   { key: "first_name", label: "first name" },
   { key: "last_name", label: "last name" },
-  { key: "email", label: "email" },
   { key: "phone", label: "phone" },
   { key: "date_of_birth", label: "date of birth" },
   { key: "address_line_1", label: "address" },
@@ -206,6 +223,7 @@ export function planRowWrites(row: MappedRow): RowPlan {
         first_name: row.member.first_name,
         last_name: row.member.last_name,
         email: row.member.email,
+        email_owner: row.member.email_owner,
         phone: row.member.phone,
         date_of_birth: row.member.date_of_birth,
         address_line_1: row.member.address_line_1,
@@ -230,7 +248,6 @@ export function planRowWrites(row: MappedRow): RowPlan {
   const candidate: Record<string, unknown> = {
     first_name: m.first_name,
     last_name: m.last_name,
-    email: m.email,
     phone: m.phone,
     date_of_birth: m.date_of_birth,
     address_line_1: m.address_line_1,
@@ -333,7 +350,8 @@ export function planRowWrites(row: MappedRow): RowPlan {
         ? {
             first_name: m.first_name,
             last_name: m.last_name,
-            email: m.email as string,
+            email: m.email,
+            email_owner: m.email_owner,
             phone: m.phone as string,
             date_of_birth: m.date_of_birth as string,
             address_line_1: m.address_line_1 as string,
@@ -363,6 +381,7 @@ export function planRowWrites(row: MappedRow): RowPlan {
       first_name: m.first_name,
       last_name: m.last_name,
       email: m.email,
+      email_owner: m.email_owner,
       phone: m.phone,
       date_of_birth: m.date_of_birth,
       address_line_1: m.address_line_1,
@@ -521,7 +540,24 @@ export interface DedupeKeys {
 export function dedupeKeysFor(plan: RowPlan): DedupeKeys {
   return {
     nie: normaliseNie(plan.member?.nie_dni ?? null),
-    email: plan.parsedMember.email ? plan.parsedMember.email.trim().toLowerCase() : null,
+    /*
+     * A CARER'S ADDRESS IS NOT A DEDUPE KEY, and this is the one line that stops the worst
+     * outcome of item 3.
+     *
+     * One daughter looking after both her parents gives the same address on both rows. Keyed on
+     * email, the second row would MATCH THE FIRST and the import would patch her father's
+     * details onto her mother's record — one member where there are two, with one set of
+     * emergency contacts and one pendant between them. An SOS from the other pendant then
+     * resolves to a person it is not.
+     *
+     * `resolveSharedEmails` has already marked every address that appears more than once in the
+     * file, so by the time a plan exists the question is answered. Only an address the MEMBER
+     * owns is a key.
+     */
+    email:
+      plan.parsedMember.email && plan.parsedMember.email_owner === "member"
+        ? plan.parsedMember.email.trim().toLowerCase()
+        : null,
     phone: plan.parsedMember.phone ?? null,
   };
 }

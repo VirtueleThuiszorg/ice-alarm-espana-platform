@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { MemberActionsCard } from "@/components/admin/member-detail/MemberActionsCard";
+import { ConfirmLegacyMemberCard } from "@/components/admin/member-detail/ConfirmLegacyMemberCard";
 import { EditableCard } from "@/components/EditableCard";
 import { SendPaymentLinkDialog } from "@/components/admin/member-detail/SendPaymentLinkDialog";
 
@@ -30,6 +31,14 @@ interface SubscriptionTabProps {
   memberId: string;
   /** For the payment-link dialog's copy — it writes to whoever pays, who may not be the member. */
   memberName?: string;
+  /**
+   * The MEMBER's status and billing source, not the subscription's. A legacy member has no
+   * subscription row at all, so this tab cannot tell from its own query whether it is looking at
+   * somebody who has never joined or somebody imported from Karma who is waiting to be
+   * confirmed — and those two need opposite screens.
+   */
+  memberStatus?: string | null;
+  billingSource?: string | null;
 }
 
 /**
@@ -38,7 +47,12 @@ interface SubscriptionTabProps {
  */
 const LIVE_STATUSES = ["active", "past_due"];
 
-export function SubscriptionTab({ memberId, memberName }: SubscriptionTabProps) {
+export function SubscriptionTab({
+  memberId,
+  memberName,
+  memberStatus,
+  billingSource,
+}: SubscriptionTabProps) {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -129,10 +143,40 @@ export function SubscriptionTab({ memberId, memberName }: SubscriptionTabProps) 
     Stripe Checkout Session — and by golden rule 4, that is as far as any screen may go: the
     member becomes active when the webhook sees the money.
   */
+  const isLegacyActive = memberStatus === "active" && billingSource === "legacy";
+
   if (!isLive) {
     const pending = subscription?.status === "pending";
     return (
       <div className="space-y-6">
+        {/* FIRST, and above the "no subscription" card. A legacy member genuinely has no
+            subscription — that card is telling the truth — but read on its own it says "this
+            person is not a member", which for somebody wearing a pendant since 2014 is the
+            wrong story. The confirm card renders only for pending_review + legacy, so it is
+            absent for everybody else and this costs them nothing. */}
+        <ConfirmLegacyMemberCard
+          memberId={memberId}
+          memberName={memberName ?? "this member"}
+          status={memberStatus ?? null}
+          billingSource={billingSource ?? null}
+        />
+
+        {isLegacyActive && (
+          <Card data-testid="legacy-billing-notice">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                Legacy billing
+                <Badge variant="outline">Monitored</Badge>
+              </CardTitle>
+              <CardDescription>
+                Confirmed as a legacy member: an operator answers their alarm, and their payments
+                are handled directly with the office. There is no subscription here to renew, and
+                renewal or payment-failed reminders will never fire for them.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <div className="flex items-start justify-between gap-3">

@@ -4680,6 +4680,102 @@ BEGIN
     'the GUC carries the member id rather than a boolean, and this is why');
 END $leak$;
 
+-- ============================================================
+--  members.email: optional, and owned by somebody
+-- ============================================================
+--
+-- `email TEXT NOT NULL UNIQUE` was the biggest single reason one of Lee's clients became a CRM
+-- contact rather than a member. Since 20260910170000 the column is nullable and the uniqueness is
+-- PARTIAL: only an address the MEMBER owns has to be unique.
+--
+-- These six run the rules rather than reading them. The text of the migration is pinned in
+-- src/test/memberEmailOptional.test.ts — but a partial, case-insensitive unique index is exactly
+-- the kind of thing that reads correctly and behaves otherwise, so it is executed here.
+
+DO $email_rules$
+DECLARE
+  v_ok boolean;
+BEGIN
+  -- 1. two members with no address at all
+  BEGIN
+    INSERT INTO public.members (first_name,last_name,phone,date_of_birth,address_line_1,city,province,postal_code)
+    VALUES ('No','Email','+34600400001','1930-01-01','1 C','M','M','29001'),
+           ('Also','None','+34600400002','1931-01-01','2 C','M','M','29001');
+    v_ok := true;
+  EXCEPTION WHEN OTHERS THEN v_ok := false;
+  END;
+  PERFORM pg_temp.check(
+    'TWO members may have NO email — the constraint that made most of Lee''s clients CRM contacts',
+    v_ok);
+
+  -- 2. two members sharing a carer's address
+  BEGIN
+    INSERT INTO public.members (first_name,last_name,email,email_owner,phone,date_of_birth,address_line_1,city,province,postal_code)
+    VALUES ('Mum','Ashcombe','daughter@example.com','carer','+34600400003','1932-01-01','3 C','M','M','29001'),
+           ('Dad','Ashcombe','daughter@example.com','carer','+34600400004','1933-01-01','3 C','M','M','29001');
+    v_ok := true;
+  EXCEPTION WHEN OTHERS THEN v_ok := false;
+  END;
+  PERFORM pg_temp.check(
+    'TWO members may share a CARER address — one daughter looking after both her parents',
+    v_ok,
+    'this is the normal case in this business, not a duplicate');
+
+  -- 3. two members claiming the same address as their OWN
+  INSERT INTO public.members (first_name,last_name,email,email_owner,phone,date_of_birth,address_line_1,city,province,postal_code)
+  VALUES ('First','Claimant','shared-own@example.com','member','+34600400005','1934-01-01','4 C','M','M','29001');
+  BEGIN
+    INSERT INTO public.members (first_name,last_name,email,email_owner,phone,date_of_birth,address_line_1,city,province,postal_code)
+    VALUES ('Second','Claimant','shared-own@example.com','member','+34600400006','1935-01-01','5 C','M','M','29001');
+    v_ok := false;
+  EXCEPTION WHEN unique_violation THEN v_ok := true;
+  END;
+  PERFORM pg_temp.check(
+    'but NOT two members claiming the same address as their OWN — only that one can be a login',
+    v_ok);
+
+  -- 4. the same address in a different case
+  BEGIN
+    INSERT INTO public.members (first_name,last_name,email,email_owner,phone,date_of_birth,address_line_1,city,province,postal_code)
+    VALUES ('Third','Claimant','Shared-Own@Example.COM','member','+34600400007','1936-01-01','6 C','M','M','29001');
+    v_ok := false;
+  EXCEPTION WHEN unique_violation THEN v_ok := true;
+  END;
+  PERFORM pg_temp.check(
+    'nor the same own address in a DIFFERENT CASE — which the old constraint let straight through',
+    v_ok,
+    'members_email_key was case-SENSITIVE, so the uniqueness it promised was never what anybody assumed');
+
+  -- 5. a carer address that duplicates somebody's own
+  BEGIN
+    INSERT INTO public.members (first_name,last_name,email,email_owner,phone,date_of_birth,address_line_1,city,province,postal_code)
+    VALUES ('Carer','Shares','shared-own@example.com','carer','+34600400008','1937-01-01','7 C','M','M','29001');
+    v_ok := true;
+  EXCEPTION WHEN OTHERS THEN v_ok := false;
+  END;
+  PERFORM pg_temp.check(
+    'a CARER address may duplicate somebody''s OWN address — a different question',
+    v_ok);
+
+  -- 6. an owner nobody named
+  BEGIN
+    INSERT INTO public.members (first_name,last_name,email,email_owner,phone,date_of_birth,address_line_1,city,province,postal_code)
+    VALUES ('Bad','Owner','landlord@example.com','landlord','+34600400009','1938-01-01','8 C','M','M','29001');
+    v_ok := false;
+  EXCEPTION WHEN check_violation THEN v_ok := true;
+  END;
+  PERFORM pg_temp.check(
+    'and an INVENTED owner is refused — member, carer, payer, family and nothing else',
+    v_ok);
+END $email_rules$;
+
+SELECT pg_temp.check(
+  'a member created without an email_owner is their own, so nothing is exempted by accident',
+  (SELECT email_owner FROM public.members WHERE email = 'shared-own@example.com'
+    AND first_name = 'First') = 'member',
+  'a default of carer would quietly exempt real addresses from the unique index');
+
+
 SELECT pg_temp.check(
   'the guard still names the paid-subscription route, which this migration must not have lost',
   (SELECT regexp_replace(prosrc, '--[^' || chr(10) || ']*', '', 'g') LIKE '%past_due%'

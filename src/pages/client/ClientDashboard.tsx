@@ -297,9 +297,20 @@ export default function ClientDashboard() {
             </Button>
           )}
           {whatsappNumber && (
+            /*
+              THE LAST RAW HEX ON THE DASHBOARD. `bg-[#25D366] hover:bg-[#128C7E] text-white`
+              is WhatsApp's brand green, outside the token system — and white on #25D366 is
+              2.1:1, below WCAG AA for text of any size, so it failed the bar GOALS.md sets
+              while looking deliberate. `DevicePage` lost the same two in #324; this is the
+              other place they were.
+
+              Outline, like every other icon control in this header. The WhatsApp glyph is what
+              identifies it, not the colour.
+            */
             <Button
               size="icon"
-              className="h-10 w-10 bg-[#25D366] hover:bg-[#128C7E] text-white"
+              variant="outline"
+              className="h-10 w-10"
               title={t("dashboard.whatsappUs")}
               asChild
             >

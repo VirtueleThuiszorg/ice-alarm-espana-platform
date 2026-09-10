@@ -938,11 +938,7 @@
     "returned": "Returned",
     "lastKnownLocation": "Last Known Location",
     "viewOnMap": "View on Google Maps",
-    "pendantWhatsAppMessage": "Hello, I would like to upgrade my membership to include a GPS pendant. Can you help me?",
     "offlineSince": "Offline since",
-    "yourCurrentService": "Your Current Service",
-    "usingPhoneOnlyMembership": "You are using our Phone-Only membership",
-    "contactUsAnytime": "Contact us anytime using the number below. Save this in your phone for emergencies!",
     "addPendantForFullProtection": "Add a Pendant for Full Protection",
     "getCompletePeaceOfMind": "Get complete peace of mind with our GPS pendant",
     "quickProvision": "Quick Provision",
@@ -951,15 +947,25 @@
     "startProvisioning": "Start Provisioning",
     "quickProvisionComplete": "Quick provisioning complete",
     "onItsWay": {
-      "subtitle": "Your pendant is on its way",
-      "unknownState": "We are getting your pendant ready. We will call you when it is on its way.",
       "nextStep": "When it arrives we will phone you and test it together — a real operator answers, so you know it works.",
       "action": "Ask us where it is"
     },
     "gpsLocation": "GPS Location",
     "fallDetection": "Fall Detection",
     "sosButton": "SOS Button",
-    "geoFencing": "Geo-Fencing"
+    "geoFencing": "Geo-Fencing",
+    "state": {
+      "withPendant": "Your pendant, and whether it is working right now.",
+      "awaitingPayment": "Your pendant order is waiting for payment before we can send it.",
+      "beingPrepared": "We are getting your pendant ready. We will call you when it is on its way.",
+      "awaitingStock": "Your pendant is paid for and we are waiting on stock. We will call you as soon as yours is reserved.",
+      "shipped": "Your pendant is in the post. We will phone you to test it together when it lands.",
+      "noPendant": "Your membership is answered by phone. You can add a pendant whenever you like."
+    },
+    "monitoredLine": {
+      "title": "Your monitored line",
+      "body": "Call this number any hour of the day and a real operator answers. Save it in your phone."
+    }
   },
   "alerts": {
     "sosAlert": "SOS Alert",
@@ -1453,7 +1459,6 @@
     "updateContacts": "Update Contacts",
     "announcement": "Service Announcement",
     "deviceWorking": "Your pendant is working properly",
-    "contactIceAlarm": "Contact ICE Alarm España",
     "alertsLast30Days": "Alerts (30 days)",
     "batteryLevel": "Battery",
     "deviceStatus": "Device",
@@ -1494,7 +1499,9 @@
     },
     "recentActivity": "Recent activity",
     "noAlerts": "No alerts. Nothing has happened, which is the idea.",
-    "viewAllAlerts": "See your alert history"
+    "viewAllAlerts": "See your alert history",
+    "twentyFourHourLine": "24-hour line",
+    "callTwentyFourHour": "Call our 24-hour line: {{number}}"
   },
   "phoneOnly": {
     "yourCurrentService": "Your Current Service",

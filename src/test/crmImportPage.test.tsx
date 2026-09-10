@@ -142,19 +142,22 @@ describe("reading the file", () => {
     await loadFixture();
     // 9001 has an email and every required column; 9002 has no email.
     expect(within(screen.getByTestId("preview-row-9001")).getByText("member")).toBeTruthy();
-    expect(within(screen.getByTestId("preview-row-9002")).getByText("CRM contact")).toBeTruthy();
+    // 9008, not 9002: since email became optional the only row that cannot be a member is the
+    // one whose Birthday is unreadable.
+    expect(within(screen.getByTestId("preview-row-9008")).getByText("CRM contact")).toBeTruthy();
   });
 
   it("shows WHY a row is not a member", async () => {
     await loadFixture();
-    expect(within(screen.getByTestId("preview-row-9002")).getByText(/no email/)).toBeTruthy();
+    expect(within(screen.getByTestId("preview-row-9008")).getByText(/no date of birth/)).toBeTruthy();
   });
 
   it("shows the parsed date of birth for a row it cannot import", async () => {
     // The point of showing the parse for a blocked row: "no email" must not look like "no data".
     await loadFixture();
     // 9002's Birthday cell is 31/03/1938. Day 31 leaves no room for a month, so this is the
-    // assertion that the column is read DD/MM/YYYY and not the American way round.
+    // assertion that the column is read DD/MM/YYYY and not the American way round. (It is a
+    // member now rather than a blocked row — the parse is what is under test either way.)
     expect(within(screen.getByTestId("preview-row-9002")).getByText("1938-03-31")).toBeTruthy();
   });
 
@@ -186,14 +189,14 @@ describe("reading the file", () => {
 
   it("changes the preview when the mode changes, rather than only the write", async () => {
     await loadFixture();
-    expect(screen.getByTestId("summary-crm-contacts").textContent).toBe("5");
+    expect(screen.getByTestId("summary-crm-contacts").textContent).toBe("1");
     expect(screen.getByTestId("summary-skipped").textContent).toBe("0");
 
     fireEvent.click(screen.getByLabelText(/Import complete members only/));
-    await waitFor(() => expect(screen.getByTestId("summary-skipped").textContent).toBe("5"));
+    await waitFor(() => expect(screen.getByTestId("summary-skipped").textContent).toBe("1"));
     expect(screen.getByTestId("summary-crm-contacts").textContent).toBe("0");
     // And the row itself now says skipped, with the mode as the reason.
-    expect(within(screen.getByTestId("preview-row-9002")).getByText("skipped")).toBeTruthy();
+    expect(within(screen.getByTestId("preview-row-9008")).getByText("skipped")).toBeTruthy();
   });
 
   it("offers no Import at all for a file with a header and no rows", async () => {
@@ -238,8 +241,8 @@ describe("exporting the preview", () => {
       expect(created.length).toBe(1);
       expect(blobText).toContain("source_id,outcome,why_not_member");
       // One line per row plus the header.
-      expect(blobText.trimEnd().split("\r\n").length).toBe(9);
-      expect(blobText).toContain("no email");
+      expect(blobText.trimEnd().split("\r\n").length).toBe(11);
+      expect(blobText).toContain("no date of birth");
       expect(blobText).toContain("865513075018479");
       expect(blobText).not.toContain(FAKE_CARD);
     } finally {
@@ -316,8 +319,8 @@ describe("pressing Import", () => {
   it("creates a CRM contact carrying the reason it is not a member", async () => {
     await runImport();
     const contacts = writesTo("crm_contacts", "insert");
-    expect(contacts.length).toBe(5);
-    expect((contacts[0].payload as { notes: string }).notes).toContain("no email");
+    expect(contacts.length).toBe(1);
+    expect((contacts[0].payload as { notes: string }).notes).toContain("no date of birth");
     expect((contacts[0].payload as { source_id: string }).source_id).toBeTruthy();
   });
 
@@ -326,9 +329,9 @@ describe("pressing Import", () => {
     const linked = writesTo("crm_import_rows", "update").filter(
       (w) => (w.payload as { imported_crm_contact_id: string | null }).imported_crm_contact_id
     );
-    // Five rows in the fixture become CRM contacts; an audit row that records nothing it made
+    // One row in the fixture becomes a CRM contact; an audit row that records nothing it made
     // cannot answer "what did this batch do to this person".
-    expect(linked.length).toBe(5);
+    expect(linked.length).toBe(1);
   });
 
   it("does not lose a CRM contact's other numbers or their emergency contacts", async () => {
@@ -339,14 +342,18 @@ describe("pressing Import", () => {
       writesTo("crm_contacts", "insert").find(
         (w) => (w.payload as { source_id: string }).source_id === id
       );
-    expect((byId("9002")?.payload as { notes: string }).notes).toContain("+34600123456");
-    expect((byId("9004")?.payload as { notes: string }).notes).toContain("Susan Smith");
+    // 9008 is the only CRM contact now, and it carries no extra numbers — so the assertion
+    // moves to what it DOES carry, and the multi-number case is covered on the member path by
+    // "keeps the member's other numbers" above. Asserting against a row that no longer exists
+    // is how a test starts passing for the wrong reason.
+    expect(byId("9008")).toBeTruthy();
+    expect((byId("9008")?.payload as { notes: string }).notes).toContain("no date of birth");
   });
 
   it("reports what happened per outcome", async () => {
     await runImport();
-    expect(screen.getByTestId("result-created").textContent).toBe("3");
-    expect(screen.getByTestId("result-crm_contact").textContent).toBe("5");
+    expect(screen.getByTestId("result-created").textContent).toBe("9");
+    expect(screen.getByTestId("result-crm_contact").textContent).toBe("1");
     expect(screen.getByTestId("result-failed").textContent).toBe("0");
   });
 
@@ -365,7 +372,7 @@ describe("pressing Import", () => {
     await loadFixture();
     fireEvent.click(screen.getByTestId("start-import"));
     await waitFor(() => expect(screen.queryByTestId("result-failed")).toBeTruthy(), { timeout: 5000 });
-    expect(screen.getByTestId("result-failed").textContent).toBe("3");
+    expect(screen.getByTestId("result-failed").textContent).toBe("9");
     const failed = writesTo("crm_import_batches", "update").at(-1);
     expect((failed?.payload as { status: string }).status).toBe("failed");
   });
@@ -379,19 +386,19 @@ describe("pressing Import", () => {
     const failures = rowUpdates.filter(
       (w) => (w.payload as { import_status: string }).import_status === "failed"
     );
-    expect(failures.length).toBe(3);
+    expect(failures.length).toBe(9);
     expect((failures[0].payload as { error_message: string }).error_message).toBeTruthy();
   });
 
   it("writes no member at all in members-only mode for a row it showed as skipped", async () => {
     await loadFixture();
     fireEvent.click(screen.getByLabelText(/Import complete members only/));
-    await waitFor(() => expect(screen.getByTestId("summary-skipped").textContent).toBe("5"));
+    await waitFor(() => expect(screen.getByTestId("summary-skipped").textContent).toBe("1"));
     fireEvent.click(screen.getByTestId("start-import"));
     await waitFor(() => expect(screen.queryByTestId("result-skipped")).toBeTruthy(), { timeout: 5000 });
-    expect(screen.getByTestId("result-skipped").textContent).toBe("5");
+    expect(screen.getByTestId("result-skipped").textContent).toBe("1");
     expect(writesTo("crm_contacts", "insert").length).toBe(0);
-    expect(writesTo("members", "insert").length).toBe(3);
+    expect(writesTo("members", "insert").length).toBe(9);
   });
 
   it("keeps the member's other numbers, which the escalation ladder tries next", async () => {

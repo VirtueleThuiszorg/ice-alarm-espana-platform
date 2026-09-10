@@ -608,7 +608,8 @@
     "change": "Wijzigen",
     "hide": "Verbergen",
     "show": "Tonen",
-    "remove": "Verwijderen"
+    "remove": "Verwijderen",
+    "notAdded": "Niet toegevoegd"
   },
   "auth": {
     "login": "Inloggen",
@@ -1132,7 +1133,6 @@
     "additionalNotes": "Additional Notes",
     "notesPlaceholder": "Any other important medical information...",
     "noneRecorded": "None recorded",
-    "notAdded": "Niet toegevoegd",
     "chooseBloodType": "Kies",
     "section": {
       "conditions": "Aandoeningen en medicatie",
@@ -6100,6 +6100,18 @@
     },
     "secondary": {
       "otherAlerts": "{{count}} other pending alert(s)"
+    },
+    "noRecentFix": "Geen recente locatie van de hanger — de woning wordt weergegeven",
+    "home": {
+      "mapHeader": "Locatie van de woning",
+      "labelMember": "Locatie van de woning (ingesteld door het lid op {{date}})",
+      "labelMemberNoDate": "Locatie van de woning (ingesteld door het lid)",
+      "labelStaff": "Locatie van de woning (ingesteld door ons team op {{date}})",
+      "labelStaffNoDate": "Locatie van de woning (ingesteld door ons team)",
+      "labelUnconfirmed": "Locatie van de woning (uit onze administratie — niet bevestigd door het lid)",
+      "distance": "De hanger is {{value}} {{unit}} van de woning",
+      "map": "Kaart",
+      "directions": "Route"
     }
   },
   "falseAlarm": {
@@ -6462,5 +6474,43 @@
       "alreadyApplied": "Was al goedgekeurd — er is niets verplaatst",
       "approveFailed": "Kon het niet goedkeuren"
     }
+  },
+  "homeLocation": {
+    "row": {
+      "title": "Locatie van uw woning",
+      "purpose": "Hier sturen wij hulp naartoe als uw hanger niet kan doorgeven waar u bent.",
+      "setButton": "Locatie van mijn woning instellen",
+      "openInMaps": "Openen in Maps",
+      "change": "Wijzigen",
+      "setOn": "Ingesteld op {{date}}",
+      "setDateUnknown": "Wij hebben geen datum voor deze speld.",
+      "mapLabel": "Kaart met de opgeslagen locatie van uw woning"
+    },
+    "dialog": {
+      "title": "Stel de locatie van uw woning in",
+      "purpose": "Hier sturen wij hulp naartoe als uw hanger niet kan doorgeven waar u bent.",
+      "useCurrent": "Mijn huidige locatie gebruiken",
+      "accuracyOk": "Nauwkeurig tot ongeveer {{metres}} meter.",
+      "accuracyTooLow": "Uw telefoon kon u slechts tot ongeveer {{metres}} meter nauwkeurig bepalen, en dat is niet nauwkeurig genoeg — gaat u bij uw voordeur staan en probeert u het opnieuw.",
+      "permissionDenied": "Uw apparaat heeft ons niet toegestaan uw locatie te lezen. U kunt de speld hieronder zelf op de kaart zetten.",
+      "gpsError": "Wij konden uw locatie niet lezen. U kunt de speld hieronder zelf op de kaart zetten.",
+      "dragHelp": "Zet de speld op uw voordeur. Tik op de kaart waar uw deur is, of gebruik de pijlen.",
+      "mapLabel": "Kaart met de speld voor de locatie van uw woning",
+      "noStartingPoint": "Wij konden uw adres niet op de kaart vinden. Gebruikt u de knop hierboven terwijl u bij uw voordeur staat.",
+      "nudgeGroup": "De speld in kleine stappen verplaatsen",
+      "nudge": {
+        "north": "Naar het noorden",
+        "south": "Naar het zuiden",
+        "east": "Naar het oosten",
+        "west": "Naar het westen"
+      },
+      "save": "Locatie van mijn woning opslaan",
+      "purposeStaff": "De plek waar een operator hulp naartoe stuurt als de hanger het niet kan doorgeven. Wordt vastgelegd als een correctie van ons team, niet als een bevestiging door het lid zelf.",
+      "titleStaff": "De woninglocatie van het lid instellen",
+      "saveStaff": "Deze locatie opslaan",
+      "dragHelpStaff": "Zet de speld op de voordeur van het lid. Tik op de kaart of gebruik de pijlen."
+    },
+    "saved": "Locatie van de woning opgeslagen",
+    "saveFailed": "Wij konden de locatie van uw woning niet opslaan."
   }
 }

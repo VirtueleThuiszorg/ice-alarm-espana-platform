@@ -3309,6 +3309,14 @@ export type Database = {
           bloque: string | null
           portal: string | null
           escalera: string | null
+          home_lat: number | null
+          home_lng: number | null
+          home_location_accuracy_m: number | null
+          home_location_source:
+            | Database["public"]["Enums"]["home_location_source"]
+            | null
+          home_location_set_at: string | null
+          home_location_set_by: string | null
         }
         Insert: {
           id?: string
@@ -3363,6 +3371,14 @@ export type Database = {
           bloque?: string | null
           portal?: string | null
           escalera?: string | null
+          home_lat?: number | null
+          home_lng?: number | null
+          home_location_accuracy_m?: number | null
+          home_location_source?:
+            | Database["public"]["Enums"]["home_location_source"]
+            | null
+          home_location_set_at?: string | null
+          home_location_set_by?: string | null
         }
         Update: {
           id?: string
@@ -3417,6 +3433,14 @@ export type Database = {
           bloque?: string | null
           portal?: string | null
           escalera?: string | null
+          home_lat?: number | null
+          home_lng?: number | null
+          home_location_accuracy_m?: number | null
+          home_location_source?:
+            | Database["public"]["Enums"]["home_location_source"]
+            | null
+          home_location_set_at?: string | null
+          home_location_set_by?: string | null
         }
         Relationships: [
           {
@@ -7735,6 +7759,12 @@ export type Database = {
         | "browser_alert"
         | "mobile_call"
         | "emergency_contact_call"
+      home_location_source:
+        | "member_pin"
+        | "member_gps"
+        | "staff_pin"
+        | "geocoded"
+        | "imported"
       import_batch_status:
         | "uploaded"
         | "parsed"
@@ -7999,6 +8029,13 @@ export const Constants = {
         "browser_alert",
         "mobile_call",
         "emergency_contact_call",
+      ],
+      home_location_source: [
+        "member_pin",
+        "member_gps",
+        "staff_pin",
+        "geocoded",
+        "imported",
       ],
       import_batch_status: [
         "uploaded",

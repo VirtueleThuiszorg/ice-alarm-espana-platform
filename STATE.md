@@ -153,6 +153,97 @@ migrating works.**
 
 ---
 
+## Member home location — 2026-09-10 · **the member's front door, and who is allowed to claim it**
+
+Five PRs — #312, #315, #323, #327 and the import one. What is claimed here is what a test presses;
+what is not done is named as not done at the bottom.
+
+### ✅ The rule for which location the SOS card leads with (#312)
+`src/lib/homeLocation.ts` — five outcomes from three inputs (a fix or not, fresh or not, a pin or
+not), and it returns which block is PRIMARY rather than "the location". Two of the five are the
+ones worth arguing about and both are recorded in the module: a stale fix stays on screen when
+home takes over (it is where the pendant *was*), and a stale fix with NO pin stays primary
+(replacing the only location we have with nothing is worse). Threshold 30 minutes.
+Proof: `homeLocation.test.ts` (31), negative-first — home is not primary while the fix is fresh,
+and the card does not claim to be showing home when there is no home.
+
+### ✅ The schema, IN PRODUCTION (#315)
+Six columns on `members` (`home_lat`, `home_lng`, `home_location_accuracy_m`,
+`home_location_source`, `home_location_set_at`, `home_location_set_by`), the
+`home_location_source` enum, three CHECK constraints and `guard_member_home_location()`.
+Applied by
+[Migrate Production run #10](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34502495922)
+and recorded: repo 189, manifest 189, `20260910140000_member_home_location.sql` on the list.
+
+**Written up here because the blockage was real for two hours and the reason it cleared matters.**
+This PR was opened with the drift gate legitimately red: `Migrate Production` could not
+`supabase link` at all, so `20260910120000_holidays_2026_backfill_before_cut.sql` was stranded and
+the stacking gate held every schema PR in the repo. #313 (another session) reached production
+through the IPv4 pooler instead, which cleared the backlog. The migration was then renumbered
+from `20260910130000` to `20260910140000` because `20260910130000_shift_swap_apply_and_bell.sql`
+landed on the same version in the meantime — two migrations sharing a version is the case
+`migrationDrift.test.ts` fails on, and it fails on it because the CLI runs at most one of them and
+records the other as applied without it having been.
+`supabase link` is **still** refused; the fallback shouts every time it runs, and the main-only
+"Manifest matches production" job stays red. That is `PENDING_FOR_LEE.md` §1, not this feature.
+
+Proof: `scripts/rls/isolation.sql` +25 checks (551 total) — member A cannot READ
+or OVERWRITE member B's pin; a member cannot record their guess as a staff correction; staff
+cannot claim the member confirmed it; a backdated timestamp and a borrowed id are discarded; a
+provenance-only rewrite raises; a >100 m `member_gps` fix raises and exactly 100 m is accepted;
+`members.status` guard still holds beside the new trigger. Plus
+`memberHomeLocationWrite.test.ts` (24) holding the three copies of the 100 m rule in step.
+
+### ✅ The member marks their own front door (#323)
+"Home location" row on `/dashboard/profile`; a dialog with the browser's own fix or a draggable
+pin; the date it was set on screen, because that is what the operator sees too. A fix worse than
+100 m is REFUSED and the pin does not move to it. Leaflet + OpenStreetMap for the picker and the
+preview — `LocationMap` is a Google **iframe** and an iframe cannot carry a draggable pin;
+the Google links are unchanged. Code-split, so Leaflet is not on the first paint.
+Proof: `memberHomeLocation.test.tsx` (29) and `e2e/memberHomeLocation.spec.ts` (2, real Chromium,
+real Geolocation API): a 20 m fix saves as `member_gps` through `member-self-service` and the
+member sees it on their next visit; a 640 m fix is refused with **nothing sent**.
+
+### ✅ The SOS card, display only
+`SOSSituationPanel` and `AlertDetailPanel` gained a READ and a labelled block. The home pin is
+never merged with the pendant's fix and never shown in its place: whenever a usable fix exists
+the map is the fix, however old. When there is no recent one the card says
+*"No recent pendant location — showing home"* in words, and the distance between the two is on
+screen when both exist — the one line that answers "do I send help to the house?" on its own.
+The label is derived from the provenance, in ONE component, so the two cards cannot disagree:
+`geocoded` and `imported` read *"from our records — not confirmed by the member"*.
+Proof: `sosHomeLocation.test.tsx` (20) and `e2e/sosHomeLocation.spec.ts` (3). The existing SOS
+suites were re-run unchanged and are green (159 assertions across sosDrill, sosEscalation,
+escalationLoop, escalationOutcome, alertOwnership, alertResolution, operatorQueue,
+operatorCardNoContacts).
+
+### ✅ The imported pin, and "recommended" meaning something
+`parseGps` is exported and reused for the `Google Map Link` column — 90 rows have a link and no
+coordinates. Anything written to `home_lat`/`home_lng` must pass a Spain bounding box, because
+"the first decimal pair in a URL" occasionally finds a zoom level. Source is always `imported`
+and the date is always NULL: the import knows when IT ran, not when anybody stood at that door.
+`MEMBER_RECOMMENDED_FIELDS` is a SEPARATE list from `MEMBER_REQUIRED_FIELDS` — a member without a
+pin is not an incomplete record, the missing count does not move, and it cannot travel on the
+member's update link, which needs no login.
+Proof: `memberHomeLocationRecommended.test.ts`.
+
+### What is NOT done, named as undone
+- **No member or staff member has actually set a pin on production.** The columns are there and
+  every path is proven against a real PostgreSQL and a real browser, but the first live one will
+  be the first live one. The honest first test is one member record, set from the staff card
+  during a courtesy call, then read back on a test alert.
+- **No screenshot of the LIVE app.** Every Playwright run here is against the production BUNDLE
+  with Supabase's HTTP surface stubbed. That is what those specs claim and no more: they cannot
+  prove a policy, a constraint or a trigger, which is why the RLS harness exists beside them.
+- `home_location_source = 'geocoded'` is in the enum and **nothing writes it**. Deliberate: the
+  forward geocoder centres the pin picker and its answer is never saved on its own, because a
+  geocoded rooftop in rural Almería is routinely a hundred metres from the gate. The value exists
+  so a future backfill has an honest label to use.
+- The imported pin is **create-only**. A re-import fills it on a member being created and never
+  on one the platform already holds — the guard trigger refuses a staff-authenticated write
+  claiming `imported`, and filling an empty pin from a three-year-old spreadsheet on a live
+  record is the wrong direction anyway. Backfilling those is a deliberate service-role job.
+
 ## CI — 2026-09-09 · **one gate per job; a missing secret fails**
 
 Four gates shared one job — drift, wiring register, typecheck, build, in that order. A failing step
@@ -249,8 +340,10 @@ member status, `members.email` being `UNIQUE NOT NULL`, and the 47 unmapped colu
 
 ## Member CRM record — 2026-09-10 · **read-only by default, and it says what is missing**
 
-Seven PRs on the member record (#290, #291, #293, #296, #297, #299, #301, #303, #304). What is
-claimed here is what a test presses; where something is left undone it is named as undone.
+Sixteen PRs on the member record (#290, #291, #293, #296, #297, #299, #301, #303, #304, #310,
+#314, #317, #319, #326, #328, #329), plus the #305 and #322 corrections to this section and
+the #333 repair below. What is claimed here is what a test presses; where something is left
+undone it is named as undone.
 
 ### ✅ ONE definition of "required" (#290)
 `src/lib/memberRequiredFields.ts` — **21 items**, each carrying WHY it is required (SOS
@@ -304,6 +397,52 @@ killable by a mutation, which it had not been.
 
 Proof: `memberLockedUntilEdit.test.tsx` (14), `courtesyCallsLocked.test.tsx` (5),
 `lockedCards.test.tsx` (6), `manageModeCards.test.tsx` (7).
+
+### ✅ Leaving a half-typed edit is warned about, not silently discarded (#326)
+The tab row and the browser go through one registry. `UnsavedChangesProvider` holds the set of
+dirty card ids in a **ref and nothing else** — an earlier version kept a version counter in
+state, and because each card's effect depended on the context object, one keystroke
+unregistered-and-reregistered itself into an infinite render loop. That loop pegged the event
+loop hard enough that vitest could not fire its own timeout: the runner hung rather than
+failing, which is the worse of the two. The ref version has no state to loop on.
+Proof: `unsavedRegistry.test.tsx`, `unsavedTabChange.test.tsx`.
+
+### ✅ Read mode looks like reading (#328)
+`<fieldset disabled>` stops the typing and changes nothing about the look: a disabled input is
+still a bordered box with a placeholder and a chevron, so a locked record read as a form
+somebody had switched off. One rule in `index.css` scoped to `.editable-card-fields:disabled`
+strips the chrome and keeps **full-contrast** text — WCAG 1.4.3 exempts disabled controls, and
+that exemption is for things you cannot use, not for the primary way of reading a medical record
+down the phone. Placeholders are hidden with it, because "e.g. Penicillin, Shellfish" looks
+exactly like a recorded allergy once the box around it is gone. jsdom applies no stylesheet, so
+the test pins both halves separately — the class on the element, and the rule in `index.css`
+itself; either half alone passes while the feature is broken. Proof: `readModePlainText.test.tsx`
+(7).
+
+### ✅ "After Save the value persists on reload" is a test now (#329)
+It was the one line of the brief still resting on a click-through. Six tests over `ProfileTab`
+against a fake that **holds and mutates a row** rather than swallowing the write: the value is on
+the card after Save, still there on a fresh mount, untouched fields are not blanked, `onUpdate`
+fires so the page re-reads, no discard prompt follows a save, and a cancelled edit puts the old
+value back **on the screen** while writing nothing. Proof: `memberSavePersists.test.tsx` (6).
+
+### 🔴 It broke main for eleven minutes, and the way it broke is worth keeping (#333)
+#327 put `StaffHomeLocationCard` — a react-query consumer — on the Profile tab. #329 renders
+`ProfileTab` bare. Both were green on their own branch, and neither CI run could have seen the
+other's change: #327 ran before #329's test file existed. On the merged result the tab threw
+`No QueryClient set` before the form under test ever mounted, and all six assertions went down.
+
+**They touch no file in common.** The merging rule in CLAUDE.md keys on that — "when more than
+one open PR touches the same large file, merge them serially" — and this pair would have passed
+that check on the way in. The signal that was actually available was cheaper: #327 changed what
+`ProfileTab` renders, and #329 renders `ProfileTab`. A PR that adds a component to a shared page
+is a PR that can break any test which mounts that page, whatever files it lists.
+
+Fixed by wrapping the render in a `QueryClientProvider` (`retry: false`, a fresh client per
+open), **not** by stubbing the one card — stubbing buys a week, and the next react-query card on
+this tab breaks it again the same way. `memberLockedUntilEdit` had the same gap and was fixed
+inside #327. Two sessions diagnosed this independently and wrote the same patch; #333 is the one
+that merged, #335 was closed as a duplicate.
 
 ### ✅ Overview and Missing-info pop-ups (#293, #299)
 Overview shows only what we HAVE, in eight groups, empty fields omitted rather than rendered as

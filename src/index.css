@@ -552,6 +552,61 @@
   .focus-ring {
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
   }
+
+  /*
+    ── READ MODE LOOKS LIKE READING ─────────────────────────────────────────────────────────
+    `EditableCard` locks a card with one <fieldset disabled>. That stops the typing; it does
+    nothing about the LOOK. A disabled input is still an input — a border, a box, a
+    placeholder, a chevron — so a locked member record read as a form somebody had switched
+    off rather than as a record, and the brief asks for plain text with no input chrome.
+
+    Done here rather than per field, for the same reason the lock itself is one fieldset: a
+    read view written by hand on each of twelve tabs is twelve things to forget, and the
+    forgetting is invisible. One rule, every card, including cards nobody has written yet.
+
+    WHAT IS DELIBERATE, not cosmetic:
+      · full-contrast text. A browser greys a disabled control, and this is a medical record
+        being read aloud from — WCAG 1.4.3 does exempt disabled controls, and that exemption
+        is for things you cannot use, not for the primary way of reading a record.
+      · placeholders hidden. "e.g. Penicillin, Shellfish" looks exactly like a recorded
+        allergy when the box around it is gone. An empty field reads as absent, which is what
+        it is (the same rule the Overview sheet follows).
+      · the select chevron and the date picker's icon hidden — both promise a control that is
+        not there.
+    Edit mode is untouched: every one of these reverts the moment the fieldset is enabled.
+  */
+  .editable-card-fields:disabled input,
+  .editable-card-fields:disabled textarea,
+  .editable-card-fields:disabled [role="combobox"],
+  .editable-card-fields:disabled [data-slot="select-trigger"] {
+    border-color: transparent;
+    background-color: transparent;
+    box-shadow: none;
+    padding-left: 0;
+    padding-right: 0;
+    height: auto;
+    min-height: 1.5rem;
+    cursor: default;
+    color: hsl(var(--foreground));
+    -webkit-text-fill-color: hsl(var(--foreground));
+    opacity: 1;
+  }
+
+  .editable-card-fields:disabled textarea {
+    resize: none;
+  }
+
+  /* A placeholder in read mode reads as a value. */
+  .editable-card-fields:disabled input::placeholder,
+  .editable-card-fields:disabled textarea::placeholder {
+    color: transparent;
+  }
+
+  /* Controls that are not there: the select chevron, the date picker's icon. */
+  .editable-card-fields:disabled [role="combobox"] svg,
+  .editable-card-fields:disabled input::-webkit-calendar-picker-indicator {
+    display: none;
+  }
 }
 
 @layer utilities {
@@ -568,5 +623,26 @@
   /* Smooth transitions */
   .transition-smooth {
     @apply transition-all duration-300 ease-in-out;
+  }
+
+  /*
+    THE HOME-LOCATION PIN — drawn in CSS, on purpose.
+
+    Leaflet's default marker resolves its icon relative to the stylesheet, which every bundler
+    breaks in its own way; the classic symptom is a map with no marker at all. A divIcon has no
+    asset to lose. It is also DELIBERATELY BIGGER than Leaflet's 25x41 default, with a white ring
+    and a shadow so it survives a satellite-grey roof: a 78-year-old looking for their own front
+    door should not have to hunt for the dot.
+
+    Sized in rem so the A/A text-size control scales it with everything else.
+  */
+  .home-location-pin__dot {
+    display: block;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 9999px;
+    background-color: hsl(var(--primary));
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.35), 0 2px 6px hsl(var(--foreground) / 0.45);
   }
 }

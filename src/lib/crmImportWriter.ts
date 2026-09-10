@@ -58,6 +58,18 @@ export interface MemberInsert {
   passport_number: string | null;
   crm_source: string;
   crm_source_id: string;
+  /**
+   * The home pin, when the CRM row held one that parses to a point in Spain.
+   *
+   * ALL FOUR TRAVEL TOGETHER or none does: `members_home_location_complete` refuses coordinates
+   * with no source, and the SOS card cannot label an unattributed pin honestly. `source` is
+   * always `imported` — nobody asked the member — and `set_at` is always NULL, because the
+   * import knows when IT ran and that is not when anybody stood at the door.
+   */
+  home_lat: number | null;
+  home_lng: number | null;
+  home_location_source: "imported" | null;
+  home_location_set_at: null;
 }
 
 export interface ContactInsert {
@@ -324,6 +336,12 @@ export function planRowWrites(row: MappedRow): RowPlan {
             passport_number: m.passport_number,
             crm_source: m.crm_source,
             crm_source_id: m.crm_source_id,
+            home_lat: m.home_lat,
+            home_lng: m.home_lng,
+            // Never a source without a coordinate: the CHECK constraint refuses it, and a
+            // "location" that is only a provenance is a claim about nothing.
+            home_location_source: m.home_lat !== null && m.home_lng !== null ? "imported" : null,
+            home_location_set_at: null,
           }
         : null,
     parsedMember: {
@@ -536,7 +554,33 @@ export function computeEmptyOnlyPatch(
  * empty status would be activating somebody. `id` and the timestamps are not the import's
  * business either.
  */
-const NEVER_PATCH = new Set(["id", "status", "created_at", "updated_at", "user_id"]);
+const NEVER_PATCH = new Set([
+  "id",
+  "status",
+  "created_at",
+  "updated_at",
+  "user_id",
+  /*
+    THE HOME PIN IS CREATE-ONLY, and this is not caution for its own sake — the database refuses
+    the alternative.
+    `guard_member_home_location()` (20260910140000) constrains the source by ACTOR: a write with
+    an `auth.uid()` that is staff may claim `staff_pin` or `geocoded` and nothing else. This
+    import runs in the browser as the signed-in admin, so a patch carrying
+    `home_location_source = 'imported'` RAISES. Measured against the real trigger in the RLS
+    harness, not guessed.
+    And the rule the trigger is expressing is the right one for this path anyway. Filling an
+    empty pin on a member the platform ALREADY HOLDS, from a spreadsheet, is putting an
+    unconfirmed coordinate on a record an operator will be sent to — while
+    `computeEmptyOnlyPatch` cannot see that the member has since confirmed a different door and
+    the CRM row is three years stale. A new member's row carries the imported pin because there
+    is nothing better; an existing member's is left alone. Backfilling those is a deliberate
+    service-role job with somebody watching, not a side effect of a re-run.
+  */
+  "home_lat",
+  "home_lng",
+  "home_location_source",
+  "home_location_set_at",
+]);
 
 /**
  * The patch source is `member` when the row can be one, and `parsedMember` when it cannot.

@@ -26,6 +26,7 @@ import {
   mapProvince,
   mapGender,
   normaliseHeader,
+  splitContactName,
   summarise,
   type MappedRow,
 } from "@/lib/iceCrmImport";
@@ -85,7 +86,11 @@ describe("duplicate headers do not destroy data", () => {
 describe("the member address is the HOME address", () => {
   it("never uses the 'Postal Address (If Different)' block for the member", () => {
     const row = byId("900001");
-    expect(row.member.address_line_1).toBe("Calle Ficticia 1");
+    // "Apt 3 - 2nd Floor" is the House Number column, now joined onto LINE 1 ahead of the
+    // street. It used to sit on line 2; Lee's measurement of the real file puts it on line 1,
+    // and an ambulance is given line 1. The point of THIS test is unchanged and still holds:
+    // the address comes from the Home* block, not from "Postal Address (If Different)".
+    expect(row.member.address_line_1).toBe("Apt 3 - 2nd Floor Calle Ficticia 1");
     expect(row.member.city).toBe("Almeria");
     expect(row.member.postal_code).toBe("04001");
     // Albox is the postal address. Sending an ambulance there is the bug.
@@ -102,8 +107,11 @@ describe("the member address is the HOME address", () => {
     });
   });
 
-  it("puts the house number ahead of the second street line", () => {
-    expect(byId("900001").member.address_line_2).toBe("Apt 3 - 2nd Floor, Bloque B");
+  it("leaves line 2 to the second street line, house number having moved to line 1", () => {
+    // Rewritten rather than deleted: this asserted the previous design, where House Number led
+    // line 2. It now leads line 1 (see above), so line 2 is just "Home Street 2".
+    expect(byId("900001").member.address_line_2).toBe("Bloque B");
+    expect(byId("900001").member.address_line_1).toContain("Apt 3 - 2nd Floor");
   });
 });
 
@@ -286,8 +294,31 @@ describe("contacts and access", () => {
     expect(keyHolder?.contactName).toBe("Neighbour Nine");
   });
 
-  it("never invents a relationship the CRM does not have", () => {
-    expect(byId("900001").contacts[0].relationship).toBe("Unknown");
+  it("takes the relationship out of the brackets, and says Other when there are none", () => {
+    // This asserted "Unknown" for every contact, reasoning that the CRM has no relationship
+    // column and one should never be invented. The instinct was right and the conclusion wrong:
+    // the relationship is not missing, it is in the same cell as the name — "Susan Smith
+    // (Sister in UK)". Nothing is invented here; the bracket contents are taken verbatim and
+    // "Other" is used only when there are no brackets at all.
+    //
+    // An operator reading "Susan Smith - Unknown" beside a number is worse off than one
+    // reading "Susan Smith - Sister in UK", and the brackets were being read out as part of
+    // the name.
+    expect(splitContactName("Susan Smith (Sister in UK)")).toEqual({
+      name: "Susan Smith",
+      relationship: "Sister in UK",
+    });
+    expect(splitContactName("Peter Smith")).toEqual({
+      name: "Peter Smith",
+      relationship: "Other",
+    });
+    // "(?)" tells us nothing and must not be presented as a relationship.
+    expect(splitContactName("Someone (?)")).toEqual({
+      name: "Someone",
+      relationship: "Other",
+    });
+    // The fixture's own contact has no brackets.
+    expect(byId("900001").contacts[0].relationship).toBe("Other");
   });
 
   it("flags a contact number with no name instead of discarding it", () => {

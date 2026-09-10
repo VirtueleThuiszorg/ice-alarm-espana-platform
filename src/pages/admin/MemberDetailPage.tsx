@@ -24,6 +24,20 @@ import { AlertsTab } from "@/components/admin/member-detail/AlertsTab";
 import { TasksTab } from "@/components/admin/member-detail/TasksTab";
 import { CRMTab } from "@/components/admin/member-detail/CRMTab";
 import { dbMessage } from "@/lib/dbMessage";
+import {
+  UnsavedChangesProvider,
+  useUnsavedChanges,
+} from "@/components/UnsavedChanges";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Member {
   id: string;
@@ -72,7 +86,20 @@ const TAB_VALUES = [
   "crm",
 ] as const;
 
+/**
+ * THE PROVIDER SITS OUTSIDE THE PAGE, not inside it: the cards register from within the tabs,
+ * and the guard reads the registry when a trigger is clicked. Both need the same context, and
+ * the trigger is rendered by this page.
+ */
 export default function MemberDetailPage() {
+  return (
+    <UnsavedChangesProvider>
+      <MemberRecord />
+    </UnsavedChangesProvider>
+  );
+}
+
+function MemberRecord() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -87,6 +114,17 @@ export default function MemberDetailPage() {
     left the operator looking at a locked card, having pressed a button that says Edit.
   */
   const [profileEditSignal, setProfileEditSignal] = useState(0);
+  /*
+    A tab click while a card is mid-edit. Radix unmounts the panel, so switching IS the data
+    loss — the confirm is the only thing between a half-typed address and nothing.
+  */
+  const unsaved = useUnsavedChanges();
+  const [pendingTab, setPendingTab] = useState<string | null>(null);
+
+  const requestTab = (next: string) => {
+    if (unsaved?.hasUnsaved()) setPendingTab(next);
+    else setActiveTab(next);
+  };
   // Honour deep links like ?tab=messages (e.g. MembersPage "Send message"),
   // read once on mount; invalid values fall back to the profile tab.
   const [activeTab, setActiveTab] = useState<string>(() => {
@@ -244,7 +282,7 @@ export default function MemberDetailPage() {
       />
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+      <Tabs value={activeTab} onValueChange={requestTab} className="space-y-4">
         {/* The red variant, scoped to this page — see memberRecordTabs.ts for why the global
             <Tabs> component is not touched and why `bg-primary` is not the answer on
             .theme-admin. */}
@@ -314,6 +352,36 @@ export default function MemberDetailPage() {
           <CRMTab memberId={member.id} />
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={pendingTab !== null} onOpenChange={(open) => !open && setPendingTab(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("adminMemberDetail.leaveTabTitle", "Leave this tab without saving?")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t(
+                "adminMemberDetail.leaveTabBody",
+                "You are part-way through editing a card here. Moving to another tab closes it and loses what you have typed.",
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              {t("adminMemberDetail.edit.keepEditing", "Keep editing")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              data-testid="leave-tab-confirm"
+              onClick={() => {
+                if (pendingTab) setActiveTab(pendingTab);
+                setPendingTab(null);
+              }}
+            >
+              {t("adminMemberDetail.leaveTab", "Leave and discard")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

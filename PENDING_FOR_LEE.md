@@ -791,6 +791,38 @@ read the list.
 
 ---
 
+### D-19 — ✅ RESOLVED 2026-09-10. Lee ruled on all four; all four are built.
+
+Left below as the record of what was asked and why. What happened to each:
+
+| | ruling | where |
+|---|---|---|
+| 1 | `crm_profiles` gets the three legacy columns | #339, migration `20260910150000`, **applied** |
+| 2 | legacy members get `pending_review` + `billing_source` | #342 (schema) + #344 (the button), `20260910160000`, **applied** |
+| 3 | email becomes optional, with an owner | #346, `20260910170000` |
+| 4 | `Dob` fallback, `Spouse` note, consent flag, `Wellbeing Appt Date` stays raw | #334 |
+
+**One place where the ruling was not followed literally, and it is flagged rather than
+buried.** Item 2 said `active` should be reachable "only via stripe-webhook OR this confirm
+action". Taken literally that deletes a rule written three migrations earlier: `20260909110000`
+lets staff reinstate a member who ALREADY HAS an active or past_due subscription — un-suspending
+somebody who pays every month. That route is the Stripe route one step removed (it needs a
+subscription to point at, and the webhook wrote it), so it was kept and named in the migration.
+**If Lee means it should go, it is one clause.**
+
+**What a legacy member carries, before and after confirmation:**
+
+```
+imported by the CRM import      status = 'pending_review'   billing_source = 'legacy'
+confirmed by a supervisor       status = 'active'           billing_source = 'legacy'
+(a Stripe member, for contrast) status = 'active'           billing_source = 'stripe'
+```
+
+`pending_review` is NOT monitored. `active` + `legacy` IS monitored, with the badge "Legacy
+billing" instead of a plan name, and renewal/payment-failed logic never fires for it.
+
+---
+
 ### D-19 — the KarmaCRM import has three homeless facts and one invented status (2026-09-10)
 
 Found while making the import work on the real 431-row export (#302, #307, #308, #316, #318).

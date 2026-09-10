@@ -316,6 +316,65 @@ describe("the dialog", () => {
     expect(invoked[0].body.lat as number).toBeGreaterThan(37.3882);
   });
 
+  /*
+    THE SEQUENCE A SCREENSHOT FOUND. Press "use my current location", get a good fix, press it
+    again from a worse spot. The refusal message is correct and the pin correctly stays on the
+    GOOD fix — but the save used to go out as `member_gps` with a NULL accuracy, which
+    save_home_location and the CHECK constraint both refuse. The member was told their reading
+    was not accurate enough while looking at a pin that was.
+  */
+  it("a SECOND, WORSE reading does not make the good pin unsavable", async () => {
+    const first = installGeolocation(20);
+    await renderDialog();
+    fireEvent.click(screen.getByTestId("home-location-use-current"));
+    await waitFor(() => expect(screen.getByTestId("home-location-accuracy")).toBeInTheDocument());
+    expect(first.getCurrentPosition).toHaveBeenCalledTimes(1);
+
+    // Same place, a much worse reading — a phone that has lost the satellites.
+    installGeolocation(700);
+    fireEvent.click(screen.getByTestId("home-location-use-current"));
+    await screen.findByTestId("home-location-accuracy-refused");
+
+    // The pin is still the 20 m fix.
+    expect(screen.getByTestId("home-location-coords")).toHaveTextContent("37.388200, -2.147800");
+
+    fireEvent.click(screen.getByTestId("home-location-save"));
+    await waitFor(() => expect(invoked).toHaveLength(1));
+
+    // And it saves as what it IS: a 20 m GPS fix, not a member_gps row with no accuracy.
+    expect(invoked[0].body).toMatchObject({
+      source: "member_gps",
+      accuracy_m: 20,
+      lat: 37.3882,
+      lng: -2.1478,
+    });
+  });
+
+  it("but a refusal on its OWN still leaves nothing to claim", async () => {
+    installGeolocation(700);
+    await renderDialog();
+    fireEvent.click(screen.getByTestId("home-location-use-current"));
+    await screen.findByTestId("home-location-accuracy-refused");
+
+    fireEvent.click(screen.getByTestId("home-location-save"));
+    await waitFor(() => expect(invoked).toHaveLength(1));
+    expect(invoked[0].body.source).toBe("member_pin");
+    expect(invoked[0].body.accuracy_m).toBeNull();
+  });
+
+  it("and nudging after an accepted fix still hands the pin back to the member", async () => {
+    installGeolocation(20);
+    await renderDialog();
+    fireEvent.click(screen.getByTestId("home-location-use-current"));
+    await waitFor(() => expect(screen.getByTestId("home-location-accuracy")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId("home-location-nudge-east"));
+    fireEvent.click(screen.getByTestId("home-location-save"));
+    await waitFor(() => expect(invoked).toHaveLength(1));
+    expect(invoked[0].body.source).toBe("member_pin");
+    expect(invoked[0].body.accuracy_m).toBeNull();
+  });
+
   it("offers all four nudge directions, as a labelled group a keyboard can reach", async () => {
     await renderDialog();
     await waitFor(() => expect(screen.getByTestId("home-location-nudge")).toBeInTheDocument());

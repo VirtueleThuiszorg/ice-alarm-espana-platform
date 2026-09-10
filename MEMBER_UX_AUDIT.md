@@ -105,6 +105,21 @@ would be red for ever and then pinned around.
 One for the loaded state and one for the empty one. Both go through the shell, so R5 holds
 literally; the empty one has no subtitle, which is why it was written separately. Worth
 collapsing into one call with a conditional subtitle, but it changes nothing a member sees.
+### G. Two cards on Profile are NOT locked until Edit — and one of them should stay that way
+
+The locked-until-Edit walk (#311) covered the **field** cards. Two cards on the same page are not
+field cards and were left alone, which the "What holds" note below originally over-claimed:
+
+- **Notifications** — three consent switches (`NotificationPreferences`), live on load, each
+  saving itself. That is deliberate and worth keeping: a consent switch behind an Edit button is
+  two clicks and a Save to turn off a text message, and a member who has decided to stop being
+  messaged should not have to find a Save. The switches carry no destructive power — R7's own
+  argument for locking DOB does not apply to "email me about my pendant".
+- **Privacy & Data** — Download / Manage cookies / Delete account. Actions, not fields, so
+  "read-only until Edit" has nothing to lock; Delete goes through its own confirmation.
+
+Listed rather than changed because changing the first would make the portal worse, and the
+second has nothing to change. What was wrong was the **claim**, which is corrected below.
 
 ---
 
@@ -112,9 +127,11 @@ collapsing into one call with a conditional subtitle, but it changes nothing a m
 
 - **R5, one page shell** — all nine pages compose from `PageHeader`, and none hand-rolls an
   `<h1>`. Asserted.
-- **R6, read-only by default** — Profile, Medical and the whole staff record are locked until
-  Edit (#311, #301). Contacts, Notes, Tasks, Device and Subscription arm their controls behind
-  Edit rather than leaving Add and Delete one stray click away.
+- **R6, read-only by default** — every **field** card on Profile, Medical and the staff record is
+  locked until Edit (#311, #301). Contacts, Notes, Tasks, Device and Subscription arm their
+  controls behind Edit rather than leaving Add and Delete one stray click away. The two cards on
+  Profile that are not field cards are the exception, and G says why one of them should remain
+  one.
 - **R7, the photo and what stays locked** — a member uploads their own photograph into a private
   bucket (#343), and DOB / NIE / email / country stay locked **with a reason**, including while
   their card is unlocked.

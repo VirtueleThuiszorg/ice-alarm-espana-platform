@@ -352,6 +352,11 @@ describe("RULE 2 — a missing secret fails the job, in every workflow", () => {
     const migrateRaw = stripComments(readFileSync(join(WORKFLOW_DIR, "migrate.yml"), "utf8"));
     expect(migrateRaw).not.toMatch(/--password/);
     expect(migrateRaw).not.toMatch(/echo[^\n]*SUPABASE_DB_PASSWORD/);
+    // `printf` leaks exactly as `echo` does and was not covered — a gap found while adding the
+    // pooler fallback, which uses printf to write a 0600 file. Writing a derived, masked value
+    // into a file is fine; EXPANDING the password into anything that prints is not, whichever
+    // command does the printing.
+    expect(migrateRaw).not.toMatch(/(echo|printf)[^\n]*\$\{?SUPABASE_DB_PASSWORD/);
   });
 });
 

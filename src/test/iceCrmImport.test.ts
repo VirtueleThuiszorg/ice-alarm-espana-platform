@@ -409,6 +409,13 @@ describe("fields the old importer never mapped at all", () => {
     const m = byId("900001").member;
     expect(m.gps_lat).toBeCloseTo(36.8341, 4);
     expect(m.gps_lng).toBeCloseTo(-2.4638, 4);
+    /*
+      AND THE SAME POINT BECOMES THE HOME PIN. `gps_lat`/`gps_lng` are the verbatim CRM value;
+      `home_lat`/`home_lng` are what the SOS card falls back to, and they are only written when
+      the pair parses to somewhere plausibly in Spain. Both, from one parse.
+    */
+    expect(m.home_lat).toBeCloseTo(36.8341, 4);
+    expect(m.home_lng).toBeCloseTo(-2.4638, 4);
     expect(m.map_link).toMatch(/^https:/);
   });
 

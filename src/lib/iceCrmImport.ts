@@ -659,6 +659,9 @@ export interface MappedRow {
     gps_lat: number | null;
     gps_lng: number | null;
     map_link: string | null;
+    /** The home pin, from GPS or the map link. See mapIceRow. `null` when neither parses. */
+    home_lat: number | null;
+    home_lng: number | null;
     title: string | null;
     nickname: string | null;
     gender: string | null;
@@ -728,13 +731,40 @@ export interface MappedRow {
 
 const nz = (v: string): string | null => (v ? v : null);
 
-function parseGps(raw: string): { lat: number | null; lng: number | null } {
+/**
+ * THE ONE COORDINATE PARSER, exported because a second one is how two importers come to
+ * disagree about the same cell.
+ *
+ * It takes the first pair of decimal numbers it can find, which is what makes it work on both
+ * of the shapes the KarmaCRM export actually holds:
+ *   "37.3886, -2.1487"                         the GPS Co-ordinates column (108 rows)
+ *   "https://maps.google.com/…@37.3886,-2.1487,17z"   the Google Map Link column (90 rows)
+ */
+export function parseGps(raw: string): { lat: number | null; lng: number | null } {
   const m = clean(raw).match(/(-?\d{1,3}\.\d+)[,;\s]+(-?\d{1,3}\.\d+)/);
   if (!m) return { lat: null, lng: null };
   const lat = Number(m[1]);
   const lng = Number(m[2]);
   if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return { lat: null, lng: null };
   return { lat, lng };
+}
+
+/**
+ * IS THIS PAIR PLAUSIBLY IN SPAIN?
+ *
+ * The box is generous on purpose — the Canaries are 1,800 km from Girona, and this business
+ * sells on the Costa del Sol and in Almería. Its job is not geography but ARITHMETIC SANITY: a
+ * Google Maps URL is full of numbers, and "the first decimal pair" occasionally finds a zoom
+ * level, a place id fragment or a timestamp. A pair from a URL that lands in the Atlantic is a
+ * parse accident, and storing it as somebody's front door would put a confident pin on the SOS
+ * card for a house that is not there.
+ *
+ * Applied ONLY to what becomes `home_lat`/`home_lng`. `gps_lat`/`gps_lng` keep the verbatim
+ * value they have always had — narrowing a column somebody may already be reading is a separate
+ * decision from what this feature writes.
+ */
+export function isPlausiblySpain(lat: number, lng: number): boolean {
+  return lat >= 27 && lat <= 44.5 && lng >= -19 && lng <= 5;
 }
 
 export function mapIceRow(row: IceRow): MappedRow {
@@ -768,6 +798,50 @@ export function mapIceRow(row: IceRow): MappedRow {
   if (gender.review) reviewReasons.push(`Gender value needs review: "${row.get("Gender")}"`);
 
   const gps = parseGps(row.get("GPS Co-ordinates"));
+
+  /*
+    THE HOME PIN, from whichever of the two columns can produce one.
+    `GPS Co-ordinates` first — it is the authored value. Then `Google Map Link`, through the SAME
+    parser: 90 rows have a link and no coordinates, and a link that names a point is the same
+    fact written differently.
+
+    SOURCE IS 'imported', NEVER 'member_pin'. Nobody asked the member, so the SOS card must say
+    "from our records — not confirmed by the member". `home_location_set_at` stays NULL for the
+    same reason: the import knows when IT ran, which is not when anybody stood at that door.
+  */
+  let homeLat: number | null = null;
+  let homeLng: number | null = null;
+  if (gps.lat !== null && gps.lng !== null && isPlausiblySpain(gps.lat, gps.lng)) {
+    homeLat = gps.lat;
+    homeLng = gps.lng;
+  } else {
+    /*
+      DECODED FIRST, because the value is a URL and not a coordinate cell. `?q=37.3886%2C-2.1487`
+      is a perfectly ordinary Google Maps link and the parser looks for a real separator between
+      the two numbers, so without this it reads as no coordinate at all. Decoding is applied
+      HERE and not inside `parseGps`: the GPS Co-ordinates column is not a URL, and widening a
+      parser two goals share is not something to do as a side effect.
+    */
+    const link = row.get("Google Map Link");
+    let decoded = link;
+    try {
+      decoded = decodeURIComponent(link);
+    } catch {
+      // A stray % in a hand-typed cell throws. The raw value is still worth a try.
+      decoded = link;
+    }
+    const fromLink = parseGps(decoded);
+    if (fromLink.lat !== null && fromLink.lng !== null && isPlausiblySpain(fromLink.lat, fromLink.lng)) {
+      homeLat = fromLink.lat;
+      homeLng = fromLink.lng;
+      warnings.push("Home location taken from the Google Map Link — no GPS co-ordinates on this row");
+    }
+  }
+  if (gps.lat !== null && gps.lng !== null && homeLat === null) {
+    warnings.push(
+      `GPS co-ordinates ${gps.lat}, ${gps.lng} are outside Spain — kept verbatim, NOT used as a home location`,
+    );
+  }
 
   /* House Number belongs on LINE 1, in front of the street.
      It was on line 2 with the note that it holds things like "Apt 12 - 3rd Floor". Lee's
@@ -864,6 +938,8 @@ export function mapIceRow(row: IceRow): MappedRow {
     gps_lat: gps.lat,
     gps_lng: gps.lng,
     map_link: nz(row.get("Google Map Link")),
+    home_lat: homeLat,
+    home_lng: homeLng,
     title: nz(row.get("Title")),
     nickname: nz(row.get("Nickname")),
     gender: gender.gender,

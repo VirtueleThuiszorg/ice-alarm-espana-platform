@@ -5804,6 +5804,9 @@
     "annual": "Jaarlijks"
   },
   "rota": {
+    "filterByPerson": "Toon",
+    "everyone": "Iedereen",
+    "filterNote": "De rijen van één persoon. De dekkingsmelding hierboven telt nog steeds ieders diensten.",
     "title": "Staff Rota",
     "subtitle": "Manage weekly shift schedules for the call centre.",
     "addShift": "Add Shift",
@@ -5833,6 +5836,7 @@
     "escalationHelp": "If no chain is configured, the escalation runner falls back to on-call staff sorted by escalation priority."
   },
   "holidays": {
+    "assignCover": "{{count}} diensten hebben vervanging nodig",
     "perPerson": "Per persoon, {{year}}",
     "downloadCsv": "CSV downloaden",
     "entitlement": "Recht",
@@ -6383,5 +6387,18 @@
     "bankHolidayNote": "Het meldkamerteam werkt op een feestdag als op elke andere dag. Ze staan hier zodat je ziet welke van jouw diensten erop vallen.",
     "noBankHolidays": "Geen feestdagen geregistreerd voor {{year}}",
     "youAreOnShift": "Je hebt dienst"
+  },
+  "whoIsOn": {
+    "onNow": "Nu dienst",
+    "onNext": "Volgende dienst",
+    "until": "tot {{time}}",
+    "onDuty": "in dienst",
+    "notOnDuty": "niet ingeklokt",
+    "present": "browser actief",
+    "notPresent": "geen recent signaal",
+    "nobodyScheduled": "Er staat niemand op het rooster voor deze dienst",
+    "nobodyNext": "niemand op het rooster",
+    "unaccountedFor": "{{count}} ingepland en niet ingeklokt — de dienstmonitor meldt hiervoor een no-show",
+    "openRota": "Open het rooster"
   }
 }

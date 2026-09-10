@@ -22,6 +22,8 @@ const NEWSTARTER = "staff-nuria";
 
 let rows: Record<string, unknown[]> = {};
 const csvCalls: Array<{ filename: string; rows: unknown[] }> = [];
+/** Every write the page attempted, so "opens the picker without approving" is checkable. */
+const writes: Array<{ table: string; op: string; values: unknown }> = [];
 
 /**
  * A fake PostgREST that APPLIES the filters it is given.
@@ -58,6 +60,15 @@ vi.mock("@/integrations/supabase/client", () => {
       (rows[table] ?? []).filter((row) =>
         filters.every((f) => f(row as Record<string, unknown>)),
       );
+    self.update = (values: unknown) => {
+      writes.push({ table, op: "update", values });
+      return self;
+    };
+    self.insert = (values: unknown) => {
+      writes.push({ table, op: "insert", values });
+      return self;
+    };
+    self.single = async () => ({ data: result()[0] ?? null, error: null });
     self.maybeSingle = async () => ({ data: result()[0] ?? null, error: null });
     self.then = (resolve: (v: unknown) => unknown) => resolve({ data: result(), error: null });
     return self;
@@ -145,6 +156,7 @@ beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.setSystemTime(new Date("2026-09-10T07:00:00Z"));
   csvCalls.length = 0;
+  writes.length = 0;
   rows = {
     // `role` and `status` are on these rows because the fake APPLIES filters, and both queries
     // that read `staff` here filter on them (`role in HOLIDAY_ROLES`, `status = 'active'`).
@@ -322,5 +334,68 @@ describe("the policy card", () => {
     await screen.findByText("Holiday policy");
     expect(document.body.textContent).not.toMatch(/pay[- ]?out control|buy back|compensation in/i);
     expect(screen.queryByRole("switch", { name: /pay/i })).not.toBeInTheDocument();
+  });
+});
+
+describe("the cover picker, before the decision rather than after it", () => {
+  beforeEach(() => {
+    // Nuria's pending request covers 22–25 September. She is on the rota for three of those
+    // days; one of them already has an ACCEPTED cover, one has a merely PENDING one.
+    rows.staff_shifts = [
+      { id: "sh-22", staff_id: NEWSTARTER, shift_date: "2026-09-22", shift_type: "morning", start_time: "07:00:00", end_time: "15:00:00", is_confirmed: false, notes: null, created_by: null, created_at: "x", updated_at: "x" },
+      { id: "sh-23", staff_id: NEWSTARTER, shift_date: "2026-09-23", shift_type: "morning", start_time: "07:00:00", end_time: "15:00:00", is_confirmed: false, notes: null, created_by: null, created_at: "x", updated_at: "x" },
+      { id: "sh-24", staff_id: NEWSTARTER, shift_date: "2026-09-24", shift_type: "night", start_time: "23:00:00", end_time: "07:00:00", is_confirmed: false, notes: null, created_by: null, created_at: "x", updated_at: "x" },
+      // Outside the range, and somebody else's — neither should be counted.
+      { id: "sh-30", staff_id: NEWSTARTER, shift_date: "2026-09-30", shift_type: "morning", start_time: "07:00:00", end_time: "15:00:00", is_confirmed: false, notes: null, created_by: null, created_at: "x", updated_at: "x" },
+      { id: "sh-mary", staff_id: MARY, shift_date: "2026-09-23", shift_type: "afternoon", start_time: "15:00:00", end_time: "23:00:00", is_confirmed: false, notes: null, created_by: null, created_at: "x", updated_at: "x" },
+    ];
+    rows.staff_shift_covers = [
+      { id: "c-1", shift_id: "sh-22", status: "accepted", cover_staff_id: MARY, original_staff_id: NEWSTARTER, holiday_id: "h-3" },
+      // Pending is NOT cover: the person asked has not said yes.
+      { id: "c-2", shift_id: "sh-23", status: "pending", cover_staff_id: MARY, original_staff_id: NEWSTARTER, holiday_id: "h-3" },
+    ];
+  });
+
+  it("counts the shifts a pending request would leave uncovered", async () => {
+    renderPage();
+    const button = await screen.findByTestId("assign-cover");
+    // sh-23 (pending cover only) and sh-24 (none). Not sh-22, not the 30th, not Mary's.
+    expect(button).toHaveTextContent("2 shifts need cover");
+    expect(button.dataset.holidayId).toBe("h-3");
+  });
+
+  it("opens the picker WITHOUT approving anything, listing only what needs cover", async () => {
+    renderPage();
+    const button = await screen.findByTestId("assign-cover");
+    fireEvent.click(button);
+    const dialog = await screen.findByRole("dialog");
+
+    // The two that need cover, and NOT the one already covered. Approving instead would open the
+    // same dialog with all three in it — which is the difference between "assign the cover that
+    // is missing" and "reassign work that is already arranged".
+    expect(dialog).toHaveTextContent("Wed 23 Sep");
+    expect(dialog).toHaveTextContent("Thu 24 Sep");
+    expect(dialog).not.toHaveTextContent("Tue 22 Sep");
+
+    // And the request is still pending: nothing was written to staff_holidays.
+    expect(writes.filter((w) => w.table === "staff_holidays")).toHaveLength(0);
+  });
+
+  it("offers no button when every affected shift already has cover", async () => {
+    rows.staff_shift_covers = [
+      { id: "c-1", shift_id: "sh-22", status: "accepted", cover_staff_id: MARY, original_staff_id: NEWSTARTER, holiday_id: "h-3" },
+      { id: "c-2", shift_id: "sh-23", status: "accepted", cover_staff_id: MARY, original_staff_id: NEWSTARTER, holiday_id: "h-3" },
+      { id: "c-3", shift_id: "sh-24", status: "accepted", cover_staff_id: MARY, original_staff_id: NEWSTARTER, holiday_id: "h-3" },
+    ];
+    renderPage();
+    await waitFor(() => expect(screen.getAllByTestId("per-person-row").length).toBe(4));
+    expect(screen.queryByTestId("assign-cover")).not.toBeInTheDocument();
+  });
+
+  it("offers no button when the request touches no shift at all", async () => {
+    rows.staff_shifts = [];
+    renderPage();
+    await waitFor(() => expect(screen.getAllByTestId("per-person-row").length).toBe(4));
+    expect(screen.queryByTestId("assign-cover")).not.toBeInTheDocument();
   });
 });

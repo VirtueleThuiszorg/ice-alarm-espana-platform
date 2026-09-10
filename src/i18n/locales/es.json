@@ -5804,6 +5804,9 @@
     "annual": "Anual"
   },
   "rota": {
+    "filterByPerson": "Ver",
+    "everyone": "Todos",
+    "filterNote": "Las filas de una sola persona. El aviso de cobertura de arriba sigue contando los turnos de todos.",
     "title": "Turnos del Personal",
     "subtitle": "Gestiona los horarios semanales de turnos del centro de llamadas.",
     "addShift": "Añadir Turno",
@@ -5833,6 +5836,7 @@
     "escalationHelp": "Si no se configura una cadena, el sistema de escalamiento recurre al personal de guardia ordenado por prioridad."
   },
   "holidays": {
+    "assignCover": "{{count}} turnos necesitan cobertura",
     "perPerson": "Por persona, {{year}}",
     "downloadCsv": "Descargar CSV",
     "entitlement": "Derecho",
@@ -6383,5 +6387,18 @@
     "bankHolidayNote": "El centro de atención funciona un festivo como cualquier otro día. Se marcan aquí para que veas qué turnos tuyos caen en uno.",
     "noBankHolidays": "Sin festivos registrados para {{year}}",
     "youAreOnShift": "Estás de turno"
+  },
+  "whoIsOn": {
+    "onNow": "De turno ahora",
+    "onNext": "Turno siguiente",
+    "until": "hasta las {{time}}",
+    "onDuty": "de servicio",
+    "notOnDuty": "sin fichar",
+    "present": "navegador activo",
+    "notPresent": "sin señal reciente",
+    "nobodyScheduled": "No hay nadie en el cuadrante para este turno",
+    "nobodyNext": "nadie en el cuadrante",
+    "unaccountedFor": "{{count}} con turno y sin fichar — el monitor de turnos avisa de ausencia por esto",
+    "openRota": "Abrir el cuadrante"
   }
 }

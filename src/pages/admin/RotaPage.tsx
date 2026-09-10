@@ -133,6 +133,20 @@ export default function RotaPage() {
   });
 
   /**
+   * FILTER BY PERSON — one operator's week, without reading across four rows.
+   *
+   * It filters the ROWS and nothing else. `coverage` and `hasUncoveredSlots` below stay computed
+   * from every shift in the week on purpose: an uncovered-slot warning that disappeared because
+   * somebody filtered to one person would be the filter reporting on itself, and the banner it
+   * feeds is the one that says a shift has nobody on it.
+   */
+  const [personFilter, setPersonFilter] = useState<string>("all");
+  const visibleStaff = useMemo(
+    () => (personFilter === "all" ? staffList : staffList.filter((s) => s.id === personFilter)),
+    [staffList, personFilter],
+  );
+
+  /**
    * THE SOS ESCALATION CHAIN IS ADMIN-ONLY, and that is the one thing a supervisor does not get
    * with the rota.
    *
@@ -422,6 +436,41 @@ export default function RotaPage() {
 
       {/* Weekly Grid */}
       <Card>
+        <CardHeader className="pb-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle className="text-sm">{t("rota.thisWeek", "This Week")}</CardTitle>
+            <div className="flex items-center gap-2">
+              <label htmlFor="rota-person-filter" className="text-xs text-muted-foreground">
+                {t("rota.filterByPerson", "Show")}
+              </label>
+              <Select value={personFilter} onValueChange={setPersonFilter}>
+                <SelectTrigger
+                  id="rota-person-filter"
+                  className="h-8 w-[11rem]"
+                  aria-label={t("rota.filterByPerson", "Show")}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("rota.everyone", "Everyone")}</SelectItem>
+                  {staffList.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.first_name} {s.last_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {personFilter !== "all" && (
+            <p className="text-xs text-muted-foreground" data-testid="rota-filter-note">
+              {t(
+                "rota.filterNote",
+                "One person's rows. The coverage banner above still counts everybody's shifts.",
+              )}
+            </p>
+          )}
+        </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -443,7 +492,7 @@ export default function RotaPage() {
               </tr>
             </thead>
             <tbody>
-              {staffList.map((staff) => (
+              {visibleStaff.map((staff) => (
                 <tr key={staff.id} className="border-b hover:bg-muted/30">
                   <td className="px-3 py-2 font-medium sticky left-0 bg-background z-10">
                     <div className="flex items-center gap-2">

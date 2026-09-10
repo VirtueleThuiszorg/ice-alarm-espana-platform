@@ -5804,6 +5804,9 @@
     "annual": "Annual"
   },
   "rota": {
+    "filterByPerson": "Show",
+    "everyone": "Everyone",
+    "filterNote": "One person's rows. The coverage banner above still counts everybody's shifts.",
     "title": "Staff Rota",
     "subtitle": "Manage weekly shift schedules for the call centre.",
     "addShift": "Add Shift",
@@ -5833,6 +5836,7 @@
     "escalationHelp": "If no chain is configured, the escalation runner falls back to on-call staff sorted by escalation priority."
   },
   "holidays": {
+    "assignCover": "{{count}} shifts need cover",
     "perPerson": "Per person, {{year}}",
     "downloadCsv": "Download CSV",
     "entitlement": "Entitlement",
@@ -6383,5 +6387,18 @@
     "bankHolidayNote": "The call centre runs on a festivo like any other day. These are marked so you can see which of your shifts fall on one.",
     "noBankHolidays": "No bank holidays recorded for {{year}}",
     "youAreOnShift": "You are on shift"
+  },
+  "whoIsOn": {
+    "onNow": "On now",
+    "onNext": "On next",
+    "until": "until {{time}}",
+    "onDuty": "on duty",
+    "notOnDuty": "not on duty",
+    "present": "browser active",
+    "notPresent": "no recent ping",
+    "nobodyScheduled": "Nobody is on the rota for this shift",
+    "nobodyNext": "nobody on the rota",
+    "unaccountedFor": "{{count}} scheduled and not signed in — the shift monitor raises a no-show for this",
+    "openRota": "Open the rota"
   }
 }

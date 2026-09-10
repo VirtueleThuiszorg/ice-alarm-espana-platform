@@ -150,7 +150,7 @@ describe("the device", () => {
   it("keeps the docking-station MAC as a note rather than in the IMEI", () => {
     const all = JSON.stringify(p);
     expect(all).toContain("E7:E9:C4:86:52:10");
-    if (p.device) expect(p.device.imei).toBe("865513075018479");
+    expect(all).not.toContain("865513075018479 DOCKING");
   });
 
   it("is never planned 'active' — an import has witnessed no test call", () => {
@@ -180,10 +180,37 @@ describe("the device", () => {
   });
 
   it("creates no device row when the CRM has no SIM number, and says so", () => {
-    if (!p.device) {
-      expect(p.warnings.join(" ")).toMatch(/no SIM number/);
-      expect(p.notes.join(" ")).toContain("865513075018479");
+    // Unconditional: the `if (!p.device)` version would have passed silently had a device been
+    // planned with an invented SIM, which is the exact bug it is meant to catch.
+    expect(p.device).toBeNull();
+    expect(p.warnings.join(" ")).toMatch(/no SIM number/);
+    expect(p.notes.join(" ")).toContain("865513075018479");
+  });
+});
+
+describe("the CRM profile", () => {
+  it("carries only columns crm_profiles actually has", () => {
+    // A key with no column fails the WHOLE insert, and PostgREST reports it as the row failing
+    // rather than as the key being wrong — so this would have looked like bad data.
+    // crm_profiles: member_id, stage, status, referral_source, tags, groups,
+    //               assigned_to_staff_id, department, industry, updated_at.
+    const allowed = new Set([
+      "stage", "status", "referral_source", "tags", "groups",
+      "assigned_to_staff_id", "department", "industry",
+    ]);
+    for (const p of plans) {
+      for (const key of Object.keys(p.crmProfile)) {
+        expect(allowed.has(key), `crm_profiles has no column "${key}"`).toBe(true);
+      }
     }
+  });
+
+  it("keeps membership type, payment type and date joined as a note instead", () => {
+    // The goal asks for these as CRM profile fields and there are no such columns. They are kept
+    // verbatim rather than dropped, and the gap is recorded for Lee rather than forced through a
+    // fourth stacked migration.
+    const p = byId("9005"); // the duplicate-header row, whose first Membership Type is real
+    expect(p.notes.join(" ")).toContain("membership type FIRST-OCCURRENCE");
   });
 });
 

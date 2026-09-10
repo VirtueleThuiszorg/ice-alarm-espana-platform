@@ -1,7 +1,31 @@
-import { useState, useCallback } from "react";
+/**
+ * The KarmaCRM import screen.
+ *
+ * WHAT AN ADMIN SEES BEFORE PRESSING IMPORT, AND WHY IT IS THE POINT
+ *
+ * This page used to parse a file, write a batch row immediately, and then show eight columns of
+ * the parsed CSV. Nothing on it said what the import would DO — and what it did was invent data
+ * to satisfy NOT NULL columns: a placeholder email, 'N/A' for the phone and the address, 'TBD'
+ * for a pendant's SIM, `status: 'active'` for all 431 rows, and 'N/A' as the phone of an
+ * emergency contact the CRM had named without a number. That last one is a number an operator
+ * would have been handed mid-SOS.
+ *
+ * So the screen now shows the PLAN: per row, whether it becomes a member, a CRM contact or
+ * nothing, and the reason — with the parsed phones, contacts and IMEI beside it. The plan is the
+ * same value the writer applies (`planRowWrites` → `applyRowPlan`), so the preview and the
+ * import cannot disagree; and it is exportable as CSV, because 431 rows are read in a
+ * spreadsheet, not in a browser table.
+ *
+ * NOTHING IS WRITTEN UNTIL IMPORT IS PRESSED. The batch row is created inside `startImport`,
+ * not on file drop, so dropping a file to look at it leaves no trace.
+ */
+import { useState, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Upload, FileText, AlertCircle, CheckCircle2, Users, UserX, Loader2, ArrowLeft } from "lucide-react";
+import {
+  Upload, FileText, AlertCircle, CheckCircle2, Users, UserX, Loader2, ArrowLeft,
+  Download, ShieldOff,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,391 +36,207 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "react-i18next";
-import { parseCSV, parseCSVRow, getImportStats, type ParsedCRMRow } from "@/lib/crmImport";
+import { mapIceCsv, summarise, type MappedRow } from "@/lib/iceCrmImport";
+import {
+  planRowWrites, applyMode, summarisePlans, plansToCsv, applyRowPlan,
+  type ImportMode, type RowPlan, type AppliedAction,
+} from "@/lib/crmImportWriter";
+import { createSupabaseImportDb, importRowPayload } from "@/lib/crmImportDb";
 
-type ImportMode = 'members_only' | 'members_and_contacts';
+const PREVIEW_ROWS = 50;
+
+type Results = Record<AppliedAction, number> & { failed: number };
+
+const emptyResults = (): Results => ({
+  created: 0, updated: 0, unchanged: 0, crm_contact: 0, skipped: 0, failed: 0,
+});
 
 export default function CRMImportPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
-  const [parsedRows, setParsedRows] = useState<ParsedCRMRow[]>([]);
+  const [mapped, setMapped] = useState<MappedRow[]>([]);
   const [importing, setImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
-  const [importMode, setImportMode] = useState<ImportMode>('members_and_contacts');
-  const [batchId, setBatchId] = useState<string | null>(null);
+  const [importMode, setImportMode] = useState<ImportMode>("members_and_contacts");
   const [importComplete, setImportComplete] = useState(false);
-  const [importResults, setImportResults] = useState<{
-    imported: number;
-    failed: number;
-    skipped: number;
-  } | null>(null);
+  const [results, setResults] = useState<Results | null>(null);
 
-  const handleFileDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && droppedFile.name.endsWith('.csv')) {
-      processFile(droppedFile);
-    } else {
-      toast.error("Please upload a CSV file");
-    }
-  }, []);
+  /* The plan is derived, never stored. Storing it alongside the mode is how a screen ends up
+     showing the plan for the mode the admin selected two clicks ago. */
+  const plans: RowPlan[] = useMemo(
+    () => mapped.map(planRowWrites).map((p) => applyMode(p, importMode)),
+    [mapped, importMode]
+  );
+  const planSummary = useMemo(() => (plans.length > 0 ? summarisePlans(plans) : null), [plans]);
+  const rowSummary = useMemo(() => (mapped.length > 0 ? summarise(mapped) : null), [mapped]);
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      processFile(selectedFile);
-    }
-  }, []);
-
-  const processFile = async (selectedFile: File) => {
+  const processFile = useCallback(async (selectedFile: File) => {
     setFile(selectedFile);
     setImportComplete(false);
-    setImportResults(null);
-    
+    setResults(null);
     try {
       const text = await selectedFile.text();
-      const rows = parseCSV(text);
-      
-      const parsed = rows.map(parseCSVRow);
-      setParsedRows(parsed);
-      
-      // Create batch record
-      const { data: batch, error } = await supabase
-        .from('crm_import_batches')
-        .insert({
-          filename: selectedFile.name,
-          total_rows: rows.length,
-          status: 'parsed',
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      setBatchId(batch.id);
-      
-      toast.success(`Loaded ${rows.length} rows from CSV`);
+      const rows = mapIceCsv(text);
+      if (rows.length === 0) {
+        setMapped([]);
+        toast.error("That CSV has a header but no rows");
+        return;
+      }
+      setMapped(rows);
+      toast.success(`Read ${rows.length} rows. Nothing has been written yet.`);
     } catch (error) {
-      console.error('Error processing file:', error);
-      toast.error("Failed to process CSV file");
+      // No PII: the filename and the parser's own message, never a row's contents.
+      console.error("CRM import: could not read the file", error);
+      setMapped([]);
+      toast.error("Could not read that CSV file");
     }
+  }, []);
+
+  const handleFileDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const droppedFile = e.dataTransfer.files[0];
+      if (droppedFile && droppedFile.name.toLowerCase().endsWith(".csv")) {
+        void processFile(droppedFile);
+      } else {
+        toast.error("Please upload a CSV file");
+      }
+    },
+    [processFile]
+  );
+
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const selectedFile = e.target.files?.[0];
+      if (selectedFile) void processFile(selectedFile);
+    },
+    [processFile]
+  );
+
+  const exportPreview = useCallback(() => {
+    const blob = new Blob([plansToCsv(plans)], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `crm-import-preview-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [plans]);
+
+  const reset = () => {
+    setFile(null);
+    setMapped([]);
+    setImportComplete(false);
+    setResults(null);
+    setImportProgress(0);
   };
 
   const startImport = async () => {
-    if (!batchId || parsedRows.length === 0) return;
-    
+    if (plans.length === 0 || !file) return;
     setImporting(true);
     setImportProgress(0);
-    
-    let imported = 0;
-    let failed = 0;
-    let skipped = 0;
-    
+    const tally = emptyResults();
+    const db = createSupabaseImportDb(supabase);
+
     try {
-      // Update batch status
-      await supabase
-        .from('crm_import_batches')
-        .update({ status: 'importing' })
-        .eq('id', batchId);
-      
-      // Insert raw rows first
-      const rawRowsToInsert = parsedRows.map((row, index) => ({
-        batch_id: batchId,
-        row_index: index,
-        raw: row.raw,
-        dedupe_key: row.dedupeKey,
-        parsed_first_name: row.firstName,
-        parsed_last_name: row.lastName,
-        parsed_full_name: row.fullName,
-        parsed_email_primary: row.emailPrimary,
-        parsed_phone_primary: row.phonePrimary,
-        parsed_status: row.status,
-        parsed_stage: row.stage,
-        parsed_referral_source: row.referralSource,
-        parsed_city: row.city,
-        parsed_postal_code: row.postalCode,
-        parsed_country: row.country,
-        parsed_membership_type: row.membershipType,
-        parsed_device_imei: row.deviceImei,
-        parsed_notes: row.notes,
-        import_target: row.importTarget,
-        import_status: 'pending' as const,
-      }));
-      
-      // Insert in chunks
-      const chunkSize = 100;
-      for (let i = 0; i < rawRowsToInsert.length; i += chunkSize) {
-        const chunk = rawRowsToInsert.slice(i, i + chunkSize);
-        await supabase.from('crm_import_rows').insert(chunk);
-        setImportProgress(Math.min(20, (i / rawRowsToInsert.length) * 20));
+      const { data: batch, error: batchError } = await supabase
+        .from("crm_import_batches")
+        .insert({ filename: file.name, total_rows: plans.length, status: "importing", source: "karmacrm" })
+        .select("id")
+        .single();
+      if (batchError) throw batchError;
+      const batchId = batch.id;
+
+      /* The audit trail first, so a row that fails to write is still a row somebody can look at.
+         `raw` here omits the redacted columns — see importRowPayload. */
+      const payloads = plans.map((plan, i) => importRowPayload(batchId, i, mapped[i], plan));
+      for (let i = 0; i < payloads.length; i += 100) {
+        const { error } = await supabase.from("crm_import_rows").insert(payloads.slice(i, i + 100));
+        if (error) throw error;
+        setImportProgress(Math.min(20, ((i + 100) / payloads.length) * 20));
       }
-      
-      // Process each row for actual import
-      for (let i = 0; i < parsedRows.length; i++) {
-        const row = parsedRows[i];
-        const progress = 20 + ((i / parsedRows.length) * 80);
-        setImportProgress(progress);
-        
+
+      for (let i = 0; i < plans.length; i++) {
+        setImportProgress(20 + (i / plans.length) * 80);
         try {
-          if (row.importTarget === 'skip') {
-            skipped++;
-            await updateImportRow(batchId, i, 'skipped', null, null, 'Empty or invalid row');
-            continue;
-          }
-          
-          if (row.importTarget === 'member' || (importMode === 'members_only' && row.canBeMember)) {
-            // Try to create member
-            if (row.canBeMember) {
-              const memberId = await createMember(row);
-              if (memberId) {
-                await updateImportRow(batchId, i, 'imported', memberId, null, null);
-                imported++;
-              } else {
-                throw new Error('Failed to create member');
-              }
-            } else if (importMode === 'members_only') {
-              skipped++;
-              await updateImportRow(batchId, i, 'skipped', null, null, 'Missing required fields for member');
-            } else {
-              // Fall back to CRM contact
-              const contactId = await createCrmContact(row);
-              await updateImportRow(batchId, i, 'imported', null, contactId, null);
-              imported++;
-            }
-          } else if (row.importTarget === 'crm_contact' && importMode === 'members_and_contacts') {
-            // Create CRM contact
-            const contactId = await createCrmContact(row);
-            await updateImportRow(batchId, i, 'imported', null, contactId, null);
-            imported++;
-          } else {
-            skipped++;
-            await updateImportRow(batchId, i, 'skipped', null, null, 'Import mode excludes this row');
-          }
+          const applied = await applyRowPlan(db, plans[i]);
+          tally[applied.action] += 1;
+          await supabase
+            .from("crm_import_rows")
+            .update({
+              import_status: applied.action === "skipped" ? "skipped" : "imported",
+              imported_member_id: applied.memberId,
+              // Both, so the audit row points at whatever this run actually made. Recording
+              // only the member id left every CRM contact unlinked to the row that created it.
+              imported_crm_contact_id: applied.crmContactId,
+              error_message: applied.problems.length > 0 ? applied.problems.join("; ") : null,
+            })
+            .eq("batch_id", batchId)
+            .eq("row_index", i);
         } catch (error) {
-          console.error(`Error importing row ${i}:`, error);
-          failed++;
-          await updateImportRow(batchId, i, 'failed', null, null, error instanceof Error ? error.message : 'Unknown error');
+          tally.failed += 1;
+          console.error(`CRM import: row ${i} failed`, error);
+          await supabase
+            .from("crm_import_rows")
+            .update({
+              import_status: "failed",
+              error_message: error instanceof Error ? error.message : "Unknown error",
+            })
+            .eq("batch_id", batchId)
+            .eq("row_index", i);
         }
       }
-      
-      // Update batch with final counts
+
       await supabase
-        .from('crm_import_batches')
+        .from("crm_import_batches")
         .update({
-          status: 'completed',
-          imported_rows: imported,
-          failed_rows: failed,
-          skipped_rows: skipped,
+          // The enum has no 'completed_with_errors': a batch with failures is 'failed', and the
+          // per-row error_message says which rows. Reporting it 'completed' would hide them.
+          status: tally.failed > 0 ? "failed" : "completed",
+          imported_rows: tally.created + tally.updated + tally.crm_contact,
+          failed_rows: tally.failed,
+          skipped_rows: tally.skipped + tally.unchanged,
         })
-        .eq('id', batchId);
-      
-      setImportResults({ imported, failed, skipped });
+        .eq("id", batchId);
+
+      setResults(tally);
       setImportComplete(true);
 
-      // The import writes members, contacts, devices and CRM profiles straight
-      // through the Supabase client, so nothing tells React Query its cached
-      // lists are out of date. Without this, "View Members" renders the roster
-      // cached before the import and only a hard reload shows the new rows.
-      // Invalidating here keeps the roster correct regardless of whether a
-      // realtime subscription is also listening on the table.
+      // The import writes members, contacts, devices and CRM profiles straight through the
+      // Supabase client, so nothing tells React Query its cached lists are out of date.
       queryClient.invalidateQueries({ queryKey: ["admin-members"] });
       queryClient.invalidateQueries({ queryKey: ["admin-dashboard-stats"] });
 
-      toast.success(`Import complete: ${imported} imported, ${failed} failed, ${skipped} skipped`);
-
+      toast.success(
+        `Import finished: ${tally.created} created, ${tally.updated} updated, ${tally.crm_contact} CRM contacts`
+      );
     } catch (error) {
-      console.error('Import error:', error);
-      toast.error("Import failed");
-      
-      await supabase
-        .from('crm_import_batches')
-        .update({ status: 'failed' })
-        .eq('id', batchId);
+      console.error("CRM import failed", error);
+      toast.error("Import failed before it finished — see the batch record");
     } finally {
       setImporting(false);
       setImportProgress(100);
     }
   };
 
-  const updateImportRow = async (
-    batchId: string,
-    rowIndex: number,
-    status: 'imported' | 'failed' | 'skipped',
-    memberId: string | null,
-    contactId: string | null,
-    errorMessage: string | null
-  ) => {
-    await supabase
-      .from('crm_import_rows')
-      .update({
-        import_status: status,
-        imported_member_id: memberId,
-        imported_crm_contact_id: contactId,
-        error_message: errorMessage,
-      })
-      .eq('batch_id', batchId)
-      .eq('row_index', rowIndex);
-  };
-
-  const createMember = async (row: ParsedCRMRow): Promise<string | null> => {
-    // Parse date of birth
-    let dob: string | null = null;
-    if (row.dateOfBirth) {
-      const parsed = new Date(row.dateOfBirth);
-      if (!isNaN(parsed.getTime())) {
-        dob = parsed.toISOString().split('T')[0];
-      }
-    }
-    
-    if (!dob) return null;
-
-    // Create member
-    const { data: member, error } = await supabase
-      .from('members')
-      .insert({
-        first_name: row.firstName,
-        last_name: row.lastName,
-        email: row.emailPrimary || `imported-${Date.now()}@placeholder.local`,
-        phone: row.phonePrimary || 'N/A',
-        date_of_birth: dob,
-        address_line_1: row.addressLine1 || 'N/A',
-        address_line_2: row.addressLine2 || null,
-        city: row.city || 'N/A',
-        province: row.province || 'N/A',
-        postal_code: row.postalCode || 'N/A',
-        country: row.country || 'Spain',
-        special_instructions: row.notes || null,
-        status: 'active',
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-    if (!member) return null;
-
-    // Create CRM profile
-    await supabase.from('crm_profiles').insert({
-      member_id: member.id,
-      stage: row.stage || null,
-      status: row.status || null,
-      referral_source: row.referralSource || null,
-    });
-
-    // Create extra contact methods
-    for (const email of row.extraEmails) {
-      await supabase.from('member_contact_methods').insert({
-        member_id: member.id,
-        type: 'email',
-        label: email.label,
-        value: email.value,
-      });
-    }
-    for (const phone of row.extraPhones) {
-      await supabase.from('member_contact_methods').insert({
-        member_id: member.id,
-        type: 'phone',
-        label: phone.label,
-        value: phone.value,
-      });
-    }
-
-    // Create member note if notes exist
-    if (row.notes) {
-      await supabase.from('member_notes').insert({
-        member_id: member.id,
-        content: row.notes,
-        note_type: 'general',
-      });
-    }
-
-    // Create medical info if any
-    if (row.medicalConditions || row.medications || row.allergies || row.bloodType) {
-      await supabase.from('medical_information').insert({
-        member_id: member.id,
-        medical_conditions: row.medicalConditions ? [row.medicalConditions] : [],
-        medications: row.medications ? [row.medications] : [],
-        allergies: row.allergies ? [row.allergies] : [],
-        blood_type: row.bloodType || null,
-        doctor_name: row.doctorName || null,
-        doctor_phone: row.doctorPhone || null,
-        hospital_preference: row.hospitalPreference || null,
-      });
-    }
-
-    // Create emergency contacts
-    const emergencyContacts = [row.emergencyContact1, row.emergencyContact2, row.emergencyContact3].filter(Boolean);
-    for (let i = 0; i < emergencyContacts.length; i++) {
-      const ec = emergencyContacts[i];
-      if (ec) {
-        await supabase.from('emergency_contacts').insert({
-          member_id: member.id,
-          contact_name: ec.name,
-          phone: ec.phone || 'N/A',
-          relationship: ec.relationship,
-          priority_order: i + 1,
-          is_primary: i === 0,
-        });
-      }
-    }
-
-    // Create device if IMEI exists
-    if (row.deviceImei) {
-      await supabase.from('devices').insert([{
-        imei: row.deviceImei,
-        sim_phone_number: 'TBD',
-        member_id: member.id,
-        status: 'active' as const,
-      }]);
-    }
-
-    return member.id;
-  };
-
-  const createCrmContact = async (row: ParsedCRMRow): Promise<string> => {
-    const { data, error } = await supabase
-      .from('crm_contacts')
-      .insert({
-        first_name: row.firstName || null,
-        last_name: row.lastName || null,
-        full_name: row.fullName || null,
-        email_primary: row.emailPrimary || null,
-        phone_primary: row.phonePrimary || null,
-        status: row.status || null,
-        stage: row.stage || null,
-        referral_source: row.referralSource || null,
-        address_line_1: row.addressLine1 || null,
-        address_line_2: row.addressLine2 || null,
-        city: row.city || null,
-        province: row.province || null,
-        postal_code: row.postalCode || null,
-        country: row.country || null,
-        notes: row.notes || null,
-        source: 'karmacrm',
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data.id;
-  };
-
-  const stats = parsedRows.length > 0 ? getImportStats(parsedRows) : null;
+  const previewRows = plans.slice(0, PREVIEW_ROWS);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/admin')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} aria-label="Back to admin">
           <ArrowLeft className="h-5 w-5" />
         </Button>
-         <div>
-           <h1 className="text-2xl font-bold">{t("adminCRMImport.title", "CRM Import")}</h1>
-           <p className="text-muted-foreground">{t("adminCRMImport.subtitle", "Import contacts from KarmaCRM CSV exports")}</p>
-         </div>
+        <div>
+          <h1 className="text-2xl font-bold">{t("adminCRMImport.title", "CRM Import")}</h1>
+          <p className="text-muted-foreground">
+            {t("adminCRMImport.subtitle", "Import contacts from KarmaCRM CSV exports")}
+          </p>
+        </div>
       </div>
 
-      {/* Upload Area */}
       {!file && (
         <Card>
           <CardContent className="pt-6">
@@ -404,26 +244,21 @@ export default function CRMImportPage() {
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleFileDrop}
               className="border-2 border-dashed rounded-lg p-12 text-center hover:border-primary transition-colors cursor-pointer"
-              onClick={() => document.getElementById('file-input')?.click()}
+              onClick={() => document.getElementById("file-input")?.click()}
             >
               <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">Drop CSV file here</h3>
-              <p className="text-muted-foreground mb-4">or click to browse</p>
-              <input
-                id="file-input"
-                type="file"
-                accept=".csv"
-                className="hidden"
-                onChange={handleFileSelect}
-              />
+              <p className="text-muted-foreground mb-4">
+                or click to browse. Nothing is written until you press Import.
+              </p>
+              <input id="file-input" type="file" accept=".csv" className="hidden" onChange={handleFileSelect} />
               <Button variant="outline">Select File</Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* File Info & Stats */}
-      {file && stats && (
+      {file && planSummary && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="pt-6">
@@ -432,6 +267,7 @@ export default function CRMImportPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">File</p>
                   <p className="font-medium truncate max-w-[150px]">{file.name}</p>
+                  <p className="text-xs text-muted-foreground">{planSummary.total} rows</p>
                 </div>
               </div>
             </CardContent>
@@ -441,8 +277,9 @@ export default function CRMImportPage() {
               <div className="flex items-center gap-3">
                 <Users className="h-8 w-8 text-green-600" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Can be Members</p>
-                  <p className="text-2xl font-bold">{stats.members}</p>
+                  <p className="text-sm text-muted-foreground">Become members</p>
+                  <p className="text-2xl font-bold" data-testid="summary-members">{planSummary.members}</p>
+                  <p className="text-xs text-muted-foreground">status inactive until a payment arrives</p>
                 </div>
               </div>
             </CardContent>
@@ -452,8 +289,9 @@ export default function CRMImportPage() {
               <div className="flex items-center gap-3">
                 <AlertCircle className="h-8 w-8 text-yellow-600" />
                 <div>
-                  <p className="text-sm text-muted-foreground">CRM Contacts Only</p>
-                  <p className="text-2xl font-bold">{stats.crmContacts}</p>
+                  <p className="text-sm text-muted-foreground">CRM contacts</p>
+                  <p className="text-2xl font-bold" data-testid="summary-crm-contacts">{planSummary.crmContacts}</p>
+                  <p className="text-xs text-muted-foreground">a gap somebody can fill</p>
                 </div>
               </div>
             </CardContent>
@@ -463,8 +301,8 @@ export default function CRMImportPage() {
               <div className="flex items-center gap-3">
                 <UserX className="h-8 w-8 text-muted-foreground" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Will Skip</p>
-                  <p className="text-2xl font-bold">{stats.skipped}</p>
+                  <p className="text-sm text-muted-foreground">Not imported</p>
+                  <p className="text-2xl font-bold" data-testid="summary-skipped">{planSummary.skipped}</p>
                 </div>
               </div>
             </CardContent>
@@ -472,12 +310,40 @@ export default function CRMImportPage() {
         </div>
       )}
 
-      {/* Import Mode Selection */}
-      {file && stats && !importing && !importComplete && (
+      {/* What the import will NOT be carrying. Counted, so a deliberate strip and a column that
+          was simply empty are distinguishable. */}
+      {rowSummary && Object.keys(rowSummary.discardedSensitive).length > 0 && (
+        <Card data-testid="discarded-sensitive">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ShieldOff className="h-4 w-4" />
+              Discarded before anything was stored
+            </CardTitle>
+            <CardDescription>
+              These columns never reach the platform — not the member record, and not the import's
+              own copy of the row.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="text-sm space-y-1">
+              {Object.entries(rowSummary.discardedSensitive).map(([column, count]) => (
+                <li key={column}>
+                  <span className="font-medium">{column}</span> — held by {count} row{count === 1 ? "" : "s"}, discarded
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {file && planSummary && !importing && !importComplete && (
         <Card>
           <CardHeader>
-            <CardTitle>Import Mode</CardTitle>
-            <CardDescription>Choose how to handle incomplete records</CardDescription>
+            <CardTitle>What to do with rows that cannot be members</CardTitle>
+            <CardDescription>
+              A row becomes a member only when all nine required columns are really present. The
+              rest are a record of what is missing.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <RadioGroup value={importMode} onValueChange={(v) => setImportMode(v as ImportMode)}>
@@ -485,10 +351,10 @@ export default function CRMImportPage() {
                 <RadioGroupItem value="members_and_contacts" id="mode-both" />
                 <div>
                   <Label htmlFor="mode-both" className="font-medium cursor-pointer">
-                    Import Members + Create CRM Contacts
+                    Keep them as CRM contacts (recommended)
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    Complete records become members. Incomplete records are stored as CRM contacts for later follow-up.
+                    Each one carries the reason it is not a member, so it can be finished later.
                   </p>
                 </div>
               </div>
@@ -496,10 +362,10 @@ export default function CRMImportPage() {
                 <RadioGroupItem value="members_only" id="mode-members" />
                 <div>
                   <Label htmlFor="mode-members" className="font-medium cursor-pointer">
-                    Import Complete Members Only
+                    Import complete members only
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    Only import rows that have all required member fields. Skip incomplete records.
+                    The rest are left out entirely. Nothing records why.
                   </p>
                 </div>
               </div>
@@ -508,14 +374,13 @@ export default function CRMImportPage() {
         </Card>
       )}
 
-      {/* Progress */}
       {importing && (
         <Card>
           <CardContent className="pt-6">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Importing...</span>
+                <span>Importing…</span>
               </div>
               <Progress value={importProgress} />
               <p className="text-sm text-muted-foreground">{Math.round(importProgress)}% complete</p>
@@ -524,109 +389,149 @@ export default function CRMImportPage() {
         </Card>
       )}
 
-      {/* Import Results */}
-      {importComplete && importResults && (
+      {importComplete && results && (
         <Card className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3 mb-4">
               <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
-              <h3 className="text-lg font-medium text-green-800 dark:text-green-200">Import Complete</h3>
+              <h3 className="text-lg font-medium text-green-800 dark:text-green-200">Import complete</h3>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-card border rounded-lg">
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{importResults.imported}</p>
-                <p className="text-sm text-muted-foreground">Imported</p>
-              </div>
-              <div className="text-center p-4 bg-card border rounded-lg">
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{importResults.failed}</p>
-                <p className="text-sm text-muted-foreground">Failed</p>
-              </div>
-              <div className="text-center p-4 bg-card border rounded-lg">
-                <p className="text-2xl font-bold text-muted-foreground">{importResults.skipped}</p>
-                <p className="text-sm text-muted-foreground">Skipped</p>
-              </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+              {([
+                ["created", "Members created"],
+                ["updated", "Members filled in"],
+                ["unchanged", "Already up to date"],
+                ["crm_contact", "CRM contacts"],
+                ["skipped", "Not imported"],
+                ["failed", "Failed"],
+              ] as const).map(([key, label]) => (
+                <div key={key} className="text-center p-4 bg-card border rounded-lg">
+                  <p className="text-2xl font-bold" data-testid={`result-${key}`}>{results[key]}</p>
+                  <p className="text-sm text-muted-foreground">{label}</p>
+                </div>
+              ))}
             </div>
             <div className="mt-4 flex gap-2">
-              <Button onClick={() => navigate('/admin/members')}>View Members</Button>
-              <Button variant="outline" onClick={() => {
-                setFile(null);
-                setParsedRows([]);
-                setBatchId(null);
-                setImportComplete(false);
-                setImportResults(null);
-              }}>Import Another File</Button>
+              <Button onClick={() => navigate("/admin/members")}>View Members</Button>
+              <Button variant="outline" onClick={reset}>Import another file</Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Preview Table */}
-      {parsedRows.length > 0 && !importing && !importComplete && (
+      {plans.length > 0 && !importing && !importComplete && (
         <Card>
-          <CardHeader>
-            <CardTitle>Preview (First 25 Rows)</CardTitle>
-            <CardDescription>Review the parsed data before importing</CardDescription>
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
+            <div>
+              <CardTitle>What this import will do</CardTitle>
+              <CardDescription>
+                Row by row, before anything is written
+                {plans.length > PREVIEW_ROWS
+                  ? ` — first ${PREVIEW_ROWS} of ${plans.length} shown; export for all of them`
+                  : ""}
+              </CardDescription>
+            </div>
+            <Button variant="outline" onClick={exportPreview} data-testid="export-preview">
+              <Download className="h-4 w-4 mr-2" />
+              Export preview (CSV)
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Target</TableHead>
+                    <TableHead>Outcome</TableHead>
                     <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Stage</TableHead>
-                    <TableHead>City</TableHead>
-                    <TableHead>Membership</TableHead>
+                    <TableHead>Why not a member</TableHead>
+                    <TableHead>Date of birth</TableHead>
+                    <TableHead>Phones</TableHead>
+                    <TableHead>Address</TableHead>
+                    <TableHead>Emergency contacts</TableHead>
+                    <TableHead>Pendant IMEI</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {parsedRows.slice(0, 25).map((row, i) => (
-                    <TableRow key={i}>
+                  {previewRows.map((p) => (
+                    <TableRow key={p.sourceId} data-testid={`preview-row-${p.sourceId}`}>
                       <TableCell>
-                        <Badge variant={
-                          row.importTarget === 'member' ? 'default' :
-                          row.importTarget === 'crm_contact' ? 'secondary' :
-                          'outline'
-                        }>
-                          {row.importTarget}
+                        <Badge
+                          variant={
+                            p.outcome === "member" ? "default" : p.outcome === "crm_contact" ? "secondary" : "outline"
+                          }
+                        >
+                          {p.outcome === "member" ? "member" : p.outcome === "crm_contact" ? "CRM contact" : "skipped"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-medium">{row.fullName || '-'}</TableCell>
-                      <TableCell>{row.emailPrimary || '-'}</TableCell>
-                      <TableCell>{row.phonePrimary || '-'}</TableCell>
-                      <TableCell>{row.status || '-'}</TableCell>
-                      <TableCell>{row.stage || '-'}</TableCell>
-                      <TableCell>{row.city || '-'}</TableCell>
-                      <TableCell>{row.membershipType || '-'}</TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">
+                        {[p.parsedMember.first_name, p.parsedMember.last_name].filter(Boolean).join(" ") || "—"}
+                      </TableCell>
+                      <TableCell className="text-sm max-w-[220px]">
+                        {p.blockers.length > 0 ? p.blockers.join(", ") : "—"}
+                        {p.warnings.length > 0 && (
+                          <p className="text-xs text-yellow-700 dark:text-yellow-500 mt-1">
+                            {p.warnings.join(" · ")}
+                          </p>
+                        )}
+                      </TableCell>
+                      <TableCell>{p.parsedMember.date_of_birth ?? "—"}</TableCell>
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {p.parsedMember.phone ?? "—"}
+                        {p.extraPhones.length > 0 && (
+                          <p className="text-xs text-muted-foreground">+ {p.extraPhones.join(", ")}</p>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm max-w-[200px]">
+                        {[p.parsedMember.address_line_1, p.parsedMember.city, p.parsedMember.postal_code]
+                          .filter(Boolean)
+                          .join(", ") || "—"}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {p.contacts.length === 0 && p.contactsWithoutPhone.length === 0 && "—"}
+                        {p.contacts.map((c) => (
+                          <p key={`${c.contact_name}-${c.phone}`} className="whitespace-nowrap">
+                            {c.contact_name} ({c.relationship}) {c.phone}
+                          </p>
+                        ))}
+                        {p.contactsWithoutPhone.map((c) => (
+                          <p key={c} className="text-xs text-yellow-700 dark:text-yellow-500">
+                            {c} — no number, kept as a note
+                          </p>
+                        ))}
+                      </TableCell>
+                      <TableCell className="text-sm">{p.device?.imei ?? "—"}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </div>
-            {parsedRows.length > 25 && (
-              <p className="text-sm text-muted-foreground mt-4 text-center">
-                Showing 25 of {parsedRows.length} rows
-              </p>
+            {planSummary && Object.keys(planSummary.blockerCounts).length > 0 && (
+              <div className="mt-6">
+                <p className="text-sm font-medium mb-2">Why rows are not members, across the whole file</p>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  {Object.entries(planSummary.blockerCounts)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([reason, count]) => (
+                      <li key={reason}>
+                        {count} × {reason}
+                      </li>
+                    ))}
+                </ul>
+              </div>
             )}
           </CardContent>
         </Card>
       )}
 
-      {/* Import Button */}
-      {file && stats && !importing && !importComplete && (
+      {file && planSummary && !importing && !importComplete && (
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => {
-            setFile(null);
-            setParsedRows([]);
-            setBatchId(null);
-          }}>
-            Cancel
-          </Button>
-          <Button onClick={startImport} disabled={stats.members + stats.crmContacts === 0}>
-            Start Import
+          <Button variant="outline" onClick={reset}>Cancel</Button>
+          <Button
+            onClick={startImport}
+            disabled={planSummary.members + planSummary.crmContacts === 0}
+            data-testid="start-import"
+          >
+            Import {planSummary.members + planSummary.crmContacts} rows
           </Button>
         </div>
       )}

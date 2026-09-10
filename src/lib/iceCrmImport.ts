@@ -1,7 +1,8 @@
 /**
  * ICE Alarm (KarmaCRM) CSV import — parsing and mapping.
  *
- * Replaces src/lib/crmImport.ts, which was written against KarmaCRM's *default*
+ * Replaced src/lib/crmImport.ts (deleted once the import page was wired to this
+ * module), which was written against KarmaCRM's *default*
  * contact export and silently mangled the real ICE export (431 rows, 147
  * columns). See ICE_FIELD_MAPPING_SPEC_2026-09-02.md for the full field map;
  * the failures this module exists to fix, in the order they bite:

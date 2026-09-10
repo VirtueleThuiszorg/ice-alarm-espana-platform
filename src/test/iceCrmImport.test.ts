@@ -313,9 +313,26 @@ describe("billing: FOC survives, card data does not", () => {
     expect(row.warnings.join(" ")).toMatch(/card\/bank data/);
   });
 
-  it("keeps the raw row available for admin review", () => {
-    // crm_import_rows.raw is the audited home for anything we refuse to map.
-    expect(JSON.stringify(byId("900002").raw)).toContain("4111");
+  it("does NOT keep the card number in the raw row — the policy reversed", () => {
+    // This assertion used to be the opposite: "crm_import_rows.raw is the audited home for
+    // anything we refuse to map". That was the wrong call and Lee reversed it. `raw` is a jsonb
+    // column staff can read, 94 rows of the real export carry card details, and "audited home"
+    // described a place the platform had no business storing them at all.
+    //
+    // Rewritten rather than deleted, so the change of policy is visible in the history of the
+    // test that asserted the old one.
+    const raw = JSON.stringify(byId("900002").raw);
+    expect(raw).not.toContain("4111");
+    expect(Object.keys(byId("900002").raw)).not.toContain("Credit Card Details");
+    // The rest of the row is still archived — this is a redaction, not an amputation.
+    expect(raw).toContain("Bruno");
+  });
+
+  it("still WARNS that the row carried card data, and says it was discarded", () => {
+    const row = byId("900002");
+    expect(row.warnings.join(" ")).toMatch(/card\/bank data/);
+    expect(row.warnings.join(" ")).toMatch(/DISCARDED/);
+    expect(row.discardedSensitive).toContain("Credit Card Details");
   });
 
   it("reads the join date and billing metadata", () => {
@@ -393,6 +410,15 @@ describe("batch summary", () => {
       excluded: 1,
       deceased: 1,
       needingReview: 4,
+      // New: what the import threw away, by column, so the report can say so out loud.
+      // Measured from the fixture, not assumed — my first guess was one card row and it is two,
+      // plus a bank number, a private-medical cell and a funeral-wishes cell.
+      discardedSensitive: {
+        "Credit Card Details": 2,
+        "20 Digit Bank No": 1,
+        "Private Medical Details": 1,
+        "Death Funeral Wishes": 1,
+      },
     });
   });
 });

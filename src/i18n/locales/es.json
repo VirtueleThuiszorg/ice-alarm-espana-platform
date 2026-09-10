@@ -608,7 +608,8 @@
     "change": "Cambiar",
     "hide": "Ocultar",
     "show": "Mostrar",
-    "remove": "Quitar"
+    "remove": "Quitar",
+    "notAdded": "Sin añadir"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -1132,7 +1133,6 @@
     "additionalNotes": "Notas Adicionales",
     "notesPlaceholder": "Cualquier otra información médica importante...",
     "noneRecorded": "Ninguna registrada",
-    "notAdded": "Sin añadir",
     "chooseBloodType": "Elija",
     "section": {
       "conditions": "Enfermedades y medicación",

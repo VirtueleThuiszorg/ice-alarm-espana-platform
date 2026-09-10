@@ -249,13 +249,20 @@ describe("the page renders all of them", () => {
   });
 
   it("sends EVERY field on save, with empties as null", async () => {
-    // Omitting an empty field would make "I cleared this" indistinguishable from "I did not
-    // touch it", and the member who stops taking a medication needs it gone from what the
-    // operator reads.
+    /*
+      Omitting an empty field would make "I cleared this" indistinguishable from "I did not
+      touch it", and the member who stops taking a medication needs it gone from what the
+      operator reads.
+
+      SAVED FROM ONE CARD, and it still sends all sixteen. R6 split the page into six cards
+      (`medical-section-<key>`), each with its own Edit and Save — but the write is an upsert of
+      the whole row, so every column has to be on every payload. What changes per card is where
+      each VALUE comes from, which the next test pins.
+    */
     medicalRow = { id: "mi1", member_id: "m1", doctor_name: "Dr Ruiz" };
     await renderPage();
-    fireEvent.click(await screen.findByTestId("medical-edit"));
-    fireEvent.click(await screen.findByTestId("medical-save"));
+    fireEvent.click(await screen.findByTestId("medical-section-doctor-edit"));
+    fireEvent.click(await screen.findByTestId("medical-section-doctor-save"));
     await waitFor(() => expect(invoked.length).toBe(1));
 
     const body = invoked[0].body;
@@ -268,6 +275,53 @@ describe("the page renders all of them", () => {
     expect(body.doctor_name).toBe("Dr Ruiz");
     expect(body.mobility).toBeNull();
     expect(body.medical_conditions).toBeNull();
+  });
+
+  it("each card is its own Edit and its own Save — one button no longer opens all sixteen", async () => {
+    /*
+      R6: *"Edit per section, then Save."* It was one page-level button, so a member correcting
+      a typo in their doctor's phone number had their allergies, blood group and mobility live
+      at the same time.
+    */
+    await renderPage();
+    for (const section of ["conditions", "allergies", "senses", "doctor", "insurance", "other"]) {
+      expect(
+        await screen.findByTestId(`medical-section-${section}-edit`),
+        `${section} needs its own Edit`,
+      ).toBeVisible();
+      // Locked, so it carries the padlock and no Save.
+      expect(screen.getByTestId(`medical-section-${section}-lock`)).toBeTruthy();
+      expect(screen.queryByTestId(`medical-section-${section}-save`)).toBeNull();
+    }
+    // And unlocking one leaves the other five locked.
+    fireEvent.click(screen.getByTestId("medical-section-doctor-edit"));
+    await waitFor(() => expect(screen.getByTestId("medical-section-doctor-save")).toBeVisible());
+    expect(screen.queryByTestId("medical-section-allergies-save")).toBeNull();
+  });
+
+  it("saving one card does NOT carry another open card's unsaved draft", async () => {
+    /*
+      THE DEFECT PER-CARD EDITING WOULD OTHERWISE INTRODUCE, and the reason `saveSection` reads
+      the RECORD for every column outside its own section. The write sends all sixteen columns,
+      so without that a member who typed a new allergy and then saved their doctor would have
+      silently saved the allergy too — on the page an operator reads out to an ambulance crew.
+    */
+    medicalRow = { id: "mi1", member_id: "m1", doctor_name: "Dr Ruiz" };
+    await renderPage();
+
+    // Type a hospital into the doctor card, and leave it open and unsaved.
+    fireEvent.click(await screen.findByTestId("medical-section-doctor-edit"));
+    const hospital = await screen.findByTestId("medical-field-hospital_preference");
+    fireEvent.change(hospital.querySelector("input")!, { target: { value: "Torrecárdenas" } });
+
+    // Save a DIFFERENT card.
+    fireEvent.click(screen.getByTestId("medical-section-insurance-edit"));
+    fireEvent.click(await screen.findByTestId("medical-section-insurance-save"));
+    await waitFor(() => expect(invoked.length).toBe(1));
+
+    // The doctor card's draft did not ride along; the record's value went instead.
+    expect(invoked[0].body.hospital_preference).toBeNull();
+    expect(invoked[0].body.doctor_name).toBe("Dr Ruiz");
   });
 });
 

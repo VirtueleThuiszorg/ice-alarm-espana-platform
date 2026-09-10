@@ -13,6 +13,20 @@ const buttonVariants = cva(
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        /*
+          INK — MEMBER_UX_RULES R1: *"One red button per page, MAXIMUM. Everything else Ink
+          #14181F or outline."*
+
+          It existed already, hand-rolled as `className="bg-foreground text-background"` wherever
+          somebody needed a solid button that was not the page's one red action. A variant rather
+          than a className because `memberRedButtons.test.ts` counts any `<Button>` with no
+          variant as red, and correctly: a solid button with no variant IS `bg-primary`. Ink
+          being nameable is what lets that guard tell "deliberately not red" from "forgot".
+
+          D12 is the other caller: *"the red 'Contact' button becomes an Ink block showing the
+          24-hour number."*
+        */
+        ink: "bg-foreground text-background hover:bg-foreground/90",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },

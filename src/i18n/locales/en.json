@@ -608,7 +608,8 @@
     "change": "Change",
     "hide": "Hide",
     "show": "Show",
-    "remove": "Remove"
+    "remove": "Remove",
+    "notAdded": "Not added"
   },
   "auth": {
     "login": "Login",
@@ -1132,7 +1133,6 @@
     "additionalNotes": "Additional Notes",
     "notesPlaceholder": "Any other important medical information...",
     "noneRecorded": "None recorded",
-    "notAdded": "Not added",
     "chooseBloodType": "Choose",
     "section": {
       "conditions": "Conditions & medication",

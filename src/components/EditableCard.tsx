@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, Loader2, Lock, Pencil, Save, X } from "lucide-react";
+import { Check, Loader2, Lock, Pencil, Plus, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { EditableCardContext } from "@/components/editableCardContext";
 
 /**
  * LOCKED UNTIL EDIT — one shell, not twelve copies of the same three buttons.
@@ -64,6 +65,20 @@ interface EditableCardBase {
   description?: ReactNode;
   /** Anything that belongs beside the title — a "last updated" line, a badge. */
   headerExtra?: ReactNode;
+  /**
+   * Wrap the body in a disabled `<fieldset>` while locked. TRUE by default, which is the staff
+   * record's way of locking and the one every existing caller wants.
+   *
+   * FALSE for a card whose FIELDS lock themselves — `FieldControl`, which renders a value as
+   * plain text until the card is unlocked, per MEMBER_UX_RULES R6. Those cards do not want the
+   * fieldset: a disabled group wrapped around plain text is announced as unavailable for
+   * nothing, and there is no input inside it to disable.
+   *
+   * The two are not a compromise to split. R11 makes the same argument about type size: the
+   * correct presentation for an operator scanning a dense screen is the wrong presentation for
+   * a 78-year-old reading their own alarm account.
+   */
+  disableFieldsWhenLocked?: boolean;
   children: ReactNode;
   testId?: string;
 }
@@ -86,6 +101,15 @@ interface EditableCardForm extends EditableCardBase {
   /** Put the form back as it was. Called on Cancel, and after a confirmed discard. */
   onCancel?: () => void;
   onEditStart?: () => void;
+  /**
+   * "Add" rather than "Edit" on the button, for a card that holds nothing yet.
+   *
+   * The same action either way — but a member with no medical information on file is not
+   * editing it, and "Edit" over five "Not added"s reads as a mistake in the page rather than as
+   * an invitation. `MedicalInfoPage` already made this distinction with its own button before
+   * the cards owned it.
+   */
+  emptyState?: boolean;
   lockedReason?: never;
 }
 
@@ -147,7 +171,15 @@ interface EditableCardManage extends EditableCardBase {
 export type EditableCardProps = EditableCardForm | EditableCardLocked | EditableCardManage;
 
 export function EditableCard(props: EditableCardProps) {
-  const { title, description, headerExtra, children, testId, editSignal } = props;
+  const {
+    title,
+    description,
+    headerExtra,
+    children,
+    testId,
+    editSignal,
+    disableFieldsWhenLocked = true,
+  } = props;
   const locked = props.mode === "locked";
   const manage = props.mode === "manage";
   // A managed list has nothing pending: every row wrote itself when it was changed.
@@ -173,6 +205,9 @@ export function EditableCard(props: EditableCardProps) {
     `lockedCards.test.tsx` fails.
   */
   const editing = !locked && wantsEdit;
+  // "Add" rather than "Edit" only where the mode has a form to fill in.
+  const emptyState =
+    (props.mode === "form" || props.mode === undefined) && (props.emptyState ?? false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   /*
@@ -271,6 +306,7 @@ export function EditableCard(props: EditableCardProps) {
                 that do not do what they say.
               */
               <Button
+                variant="ink"
                 size="sm"
                 onClick={leaveEditing}
                 data-testid={testId ? `${testId}-done` : undefined}
@@ -290,7 +326,19 @@ export function EditableCard(props: EditableCardProps) {
                   <X className="mr-2 h-4 w-4" />
                   {t("common.cancel", "Cancel")}
                 </Button>
+                {/*
+                  SAVE IS INK, NOT RED — MEMBER_UX_RULES R1: *"One red button per page,
+                  maximum."*
+
+                  A card's Save cannot be a page's one red action, because these cards come in
+                  sixes: the member's Medical page has six and any number can be open at once,
+                  so red here means six red buttons on one screen. Ink is what R1 names for
+                  everything that is solid but not THE action. It is a real button variant
+                  rather than a hand-rolled `bg-foreground` className, which is what lets
+                  `memberRedButtons.test.tsx` tell "deliberately not red" from "forgot to say".
+                */}
                 <Button
+                  variant="ink"
                   size="sm"
                   onClick={save}
                   disabled={saving}
@@ -311,25 +359,53 @@ export function EditableCard(props: EditableCardProps) {
                 onClick={startEditing}
                 data-testid={testId ? `${testId}-edit` : undefined}
               >
-                <Pencil className="mr-2 h-4 w-4" />
-                {t("common.edit", "Edit")}
+                {emptyState ? (
+                  <Plus className="mr-2 h-4 w-4" />
+                ) : (
+                  <Pencil className="mr-2 h-4 w-4" />
+                )}
+                {emptyState ? t("common.add", "Add") : t("common.edit", "Edit")}
               </Button>
             )}
           </div>
         </CardHeader>
         <CardContent>
           {/*
-            ONE fieldset, not a disabled prop per input. `min-w-0` because a disabled fieldset
-            establishes a new layout context that otherwise refuses to shrink inside a grid.
+            THE BODY, AND THE LOCK IT IS UNDER.
+
+            The state goes out through a context as well, so a FIELD can render itself as text
+            while locked (`FieldControl`, MEMBER_UX_RULES R6) rather than as a greyed input. It
+            is a context and not a prop for the reason the fieldset exists at all: a per-field
+            flag is a flag somebody forgets on the forty-first field, and the forgetting is
+            invisible — the field looks the same and simply stays as it was.
+
+            `startEditing` is exposed too, for R6's inline Add beside an empty value.
           */}
-          <fieldset
-            disabled={!editing}
-            className="min-w-0 disabled:opacity-100"
-            data-testid={testId ? `${testId}-fields` : undefined}
-            data-editing={editing ? "true" : "false"}
-          >
-            {children}
-          </fieldset>
+          <EditableCardContext.Provider value={{ editing, startEditing }}>
+            {disableFieldsWhenLocked ? (
+              /*
+                ONE fieldset, not a disabled prop per input. `min-w-0` because a disabled
+                fieldset establishes a new layout context that otherwise refuses to shrink
+                inside a grid.
+              */
+              <fieldset
+                disabled={!editing}
+                className="min-w-0 disabled:opacity-100"
+                data-testid={testId ? `${testId}-fields` : undefined}
+                data-editing={editing ? "true" : "false"}
+              >
+                {children}
+              </fieldset>
+            ) : (
+              <div
+                className="min-w-0"
+                data-testid={testId ? `${testId}-fields` : undefined}
+                data-editing={editing ? "true" : "false"}
+              >
+                {children}
+              </div>
+            )}
+          </EditableCardContext.Provider>
         </CardContent>
       </Card>
 

@@ -55,17 +55,13 @@ const RED_BUTTONS: Record<string, string[]> = {
     "the empty state's 'add your first contact' — R8, and mutually exclusive with the header one",
     "the add/edit dialog's Submit. A dialog is its own surface with its own single action",
   ],
-  "src/pages/client/MedicalInfoPage.tsx": [
-    "Save, shown only while editing",
-    "Edit, shown only while NOT editing — the same slot, never both",
-  ],
+
   "src/pages/client/MessagesPage.tsx": [
     "Send, in the thread view, which is a separate return and a separate surface",
     "the header 'new message' trigger, rendered only when there are conversations",
     "the new-message dialog's Send. A dialog is its own surface",
     "the empty state's 'send your first message' — R8, and mutually exclusive with the header one",
   ],
-  "src/pages/client/ProfilePage.tsx": ["Save, the page's one action"],
   "src/pages/client/SubscriptionPage.tsx": [
     "'switch to annual', the page's one action; add-a-pendant and change-to-couple are outline",
   ],
@@ -80,6 +76,19 @@ const RED_BUTTONS: Record<string, string[]> = {
     "the empty state's single action, and the only red button on the Membership page's empty branch",
   ],
 };
+
+/**
+ * WHY `ProfilePage` AND `MedicalInfoPage` ARE NOT IN THAT LIST ANY MORE.
+ *
+ * Both had a red Save. R6 replaced the page-level Save with per-card Edit/Save/Cancel in the
+ * shared `EditableCard`, and that Save is deliberately `variant="ink"` — because these cards
+ * come in sixes. The member's Medical page has six, any number can be open at once, and a red
+ * Save on each would be six red buttons on one screen. So neither page has a red button left,
+ * and the pin is exact in both directions: they are ABSENT here rather than listed as zero.
+ *
+ * The shared card is asserted directly below rather than through this inventory, because it
+ * lives in `src/components/ui` and is not part of the member-surface scan.
+ */
 
 /**
  * Comments removed, because the parser must read CODE.
@@ -131,6 +140,25 @@ describe("R1 — the inventory of red buttons on the member surface", () => {
     const n = redButtonsIn(readFileSync(path.join(ROOT, file), "utf8")).length;
     if (n > 0) counted.set(file, n);
   }
+
+  it("the shared EditableCard's Save is Ink, not red — six open cards, six red buttons", () => {
+    /*
+      The scan below only walks `src/pages/client` and `src/components/client`, and this card
+      lives in `src/components/ui` because the staff record mounts it too. So it gets its own
+      assertion: without one, moving a red button into a shared component would be a way to
+      leave the inventory without changing the screen.
+    */
+    const card = stripComments(
+      readFileSync(path.join(ROOT, "src/components/EditableCard.tsx"), "utf8"),
+    );
+    expect(redButtonsIn(card), "no red button in the shared card").toEqual([]);
+    expect(card, "Save is Ink").toMatch(/variant="ink"[\s\S]{0,80}onClick=\{save\}/);
+    // …and `ink` is a real variant rather than a className somebody hand-rolled, so the parser
+    // above can tell "deliberately not red" from "forgot to say".
+    expect(readFileSync(path.join(ROOT, "src/components/ui/button.tsx"), "utf8")).toMatch(
+      /ink: "bg-foreground/,
+    );
+  });
 
   it("finds red buttons at all — a floor, so a broken parser cannot pass everything", () => {
     // Without this, a regex that matched nothing would make every assertion below vacuous.

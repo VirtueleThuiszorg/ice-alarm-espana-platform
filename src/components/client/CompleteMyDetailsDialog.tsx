@@ -86,9 +86,23 @@ export function CompleteMyDetailsDialog({
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  /** The missing items that are actually fields, with their controls and target tables. */
+  /**
+   * The missing items that are actually fields on THIS dialog — which excludes the contact
+   * editor, and that exclusion is load-bearing.
+   *
+   * `updateFormFields` answers for the emailed update PAGE, which has a real repeated-block
+   * contact editor and renders `control: "contacts"` with it. This dialog does not: contacts are
+   * a link to the page that already edits them, because a contact is a name, a relationship, a
+   * phone and a priority — not a line. Without the filter the same gap was asked TWICE, and the
+   * first ask was a plain text box, because a switch over `control` that has no "contacts" arm
+   * falls through to one.
+   *
+   * That text box was worse than a duplicate. It accepted text, which enabled Save, and
+   * `buildUpdateSubmission` then correctly ignored it (a contacts field has no column) — so a
+   * member who typed their daughter's name into it was told they had typed nothing.
+   */
   const fields = useMemo(
-    () => updateFormFields(missing.map((f) => f.key)),
+    () => updateFormFields(missing.map((f) => f.key)).filter((f) => f.target !== "contacts"),
     [missing],
   );
   const groups = useMemo(() => groupUpdateFormFields(fields), [fields]);

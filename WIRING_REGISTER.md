@@ -15,7 +15,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
 ## Score distribution
 
 ```
-10 │   6  ██
+10 │   8  ███
  9 │   6  ██
  8 │   0  
  7 │  33  █████████████
@@ -28,13 +28,13 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   1  
 ```
 
-189 distinct wires across 642 call sites and 110 routes.
+191 distinct wires across 646 call sites and 110 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
-| 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 6 | 3% |
-| 7–9 | arrives and proven; notification missing or on a channel not live today | 39 | 21% |
-| 4–6 | arrives; nobody told; nothing proves it | 143 | 76% |
+| 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 8 | 4% |
+| 7–9 | arrives and proven; notification missing or on a channel not live today | 39 | 20% |
+| 4–6 | arrives; nobody told; nothing proves it | 143 | 75% |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0% |
 | 0 | dead control | 1 | 1% |
 
@@ -63,9 +63,9 @@ things, and a control with no wire cannot do anything:
 
 | kind | what it is | call sites |
 |---|---|---:|
-| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 343 |
+| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 346 |
 | `fn` | `supabase.functions.invoke(f)` — an edge function | 86 |
-| `rpc` | `supabase.rpc(f)` — a SQL function | 4 |
+| `rpc` | `supabase.rpc(f)` — a SQL function | 5 |
 | `channel` | `postgres_changes` — a realtime subscription | 51 |
 | `auth` | `supabase.auth.*` — sign in, sign out, register, password reset | 20 |
 | `storage` | `supabase.storage.from(b).upload/remove/…` — a file put somewhere | 14 |
@@ -288,7 +288,9 @@ The checks, verified on every build:
 | **9** | `fn:notify-fulfilment` | Order state transition fan-out — paid → allocated → programmed → dispatched → delivered → tested — the next person in the chain knows the device is theirs to move | notify-fulfilment → member_notification_log, one row per channel decision | bell | — | `src/test/notifyFulfilmentDispatcher.test.ts` | 1 |
 | **9** | `table:conversations` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 8 |
 | **9** | `table:messages` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 7 |
+| **10** | `rpc:apply_shift_swap` | Ask a colleague to swap or cover a shift; accept or decline; a supervisor approves it — the person being asked finds out, both people find out when it is approved, and the rota actually moves | staff_shift_swaps → bell_on_shift_swap writes targeted notification_log rows; emit_shift_swap_to_router queues shift.swap_requested/_accepted/_approved to notify-staff (push on, SMS/WhatsApp/email off); approval calls apply_shift_swap, which moves staff_shifts and writes staff_shift_covers + activity_logs in one transaction | bell | toast | `src/test/shiftSwaps.test.tsx` | 1 |
 | **10** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | bell | inline | `scripts/rls/wiring.sql` | 4 |
+| **10** | `table:staff_shift_swaps` | Ask a colleague to swap or cover a shift; accept or decline; a supervisor approves it — the person being asked finds out, both people find out when it is approved, and the rota actually moves | staff_shift_swaps → bell_on_shift_swap writes targeted notification_log rows; emit_shift_swap_to_router queues shift.swap_requested/_accepted/_approved to notify-staff (push on, SMS/WhatsApp/email off); approval calls apply_shift_swap, which moves staff_shifts and writes staff_shift_covers + activity_logs in one transaction | bell | toast | `src/test/shiftSwaps.test.tsx` | 1 |
 
 ### Admin
 
@@ -443,8 +445,10 @@ The checks, verified on every build:
 | **9** | `fn:notify-fulfilment` | Order state transition fan-out — paid → allocated → programmed → dispatched → delivered → tested — the next person in the chain knows the device is theirs to move | notify-fulfilment → member_notification_log, one row per channel decision | bell | — | `src/test/notifyFulfilmentDispatcher.test.ts` | 1 |
 | **9** | `table:conversations` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 8 |
 | **9** | `table:messages` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 7 |
+| **10** | `rpc:apply_shift_swap` | Ask a colleague to swap or cover a shift; accept or decline; a supervisor approves it — the person being asked finds out, both people find out when it is approved, and the rota actually moves | staff_shift_swaps → bell_on_shift_swap writes targeted notification_log rows; emit_shift_swap_to_router queues shift.swap_requested/_accepted/_approved to notify-staff (push on, SMS/WhatsApp/email off); approval calls apply_shift_swap, which moves staff_shifts and writes staff_shift_covers + activity_logs in one transaction | bell | toast | `src/test/shiftSwaps.test.tsx` | 1 |
 | **10** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | bell | inline | `scripts/rls/wiring.sql` | 4 |
 | **10** | `table:partners` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | toast | `e2e/partnerJourney.spec.ts` | 5 |
+| **10** | `table:staff_shift_swaps` | Ask a colleague to swap or cover a shift; accept or decline; a supervisor approves it — the person being asked finds out, both people find out when it is approved, and the rota actually moves | staff_shift_swaps → bell_on_shift_swap writes targeted notification_log rows; emit_shift_swap_to_router queues shift.swap_requested/_accepted/_approved to notify-staff (push on, SMS/WhatsApp/email off); approval calls apply_shift_swap, which moves staff_shifts and writes staff_shift_covers + activity_logs in one transaction | bell | toast | `src/test/shiftSwaps.test.tsx` | 1 |
 
 ### Partner
 
@@ -2922,6 +2926,19 @@ OWNED HERE AS OF ITEM 5 — this entry previously read 'out of scope by instruct
 
 OWNED HERE AS OF ITEM 5 — this entry previously read 'out of scope by instruction', which was true while a separate goal held the path. `create-checkout` now takes ids only and prices from `stripe_prices` (REVIEW_JOIN_PATH.md F7/F9 closed), and `stripe-webhook` refuses activation when `amount_total` disagrees with `payments.amount`. `create-mollie-checkout` is STILL on the old shape — it takes `lineItems` with amounts from the browser — and is the reason this row is not a 10. notify-admin fires `sale.paid` from the webhook side, which is why `told` is bell.
 
+### `rpc:apply_shift_swap` — 10/10 (fully wired)
+
+- **control** Ask a colleague to swap or cover a shift; accept or decline; a supervisor approves it
+- **promised** the person being asked finds out, both people find out when it is approved, and the rota actually moves
+- **goes to** staff_shift_swaps → bell_on_shift_swap writes targeted notification_log rows; emit_shift_swap_to_router queues shift.swap_requested/_accepted/_approved to notify-staff (push on, SMS/WhatsApp/email off); approval calls apply_shift_swap, which moves staff_shifts and writes staff_shift_covers + activity_logs in one transaction
+- **who is told** bell
+- **failure shown to user** toast
+- **proof** `src/test/shiftSwaps.test.tsx`
+- **routes** /admin/rota, /call-centre/my-shifts, /call-centre/rota
+- **call sites** src/hooks/useShiftSwaps.ts
+
+THE BELL IS WRITTEN BY THE DATABASE HERE, not by the client, and that is the difference from the cover flow above. An operator cannot call notify-staff at all (NOTIFY_CALLER_ROLES admits admins and the service role), and a notification raised by the browser is lost when the tab closes mid-request — so a trigger does it, which also covers a supervisor fixing a swap by hand in the SQL editor. The move is a single transaction because a half-applied swap puts two people on one slot and nobody on another, and staff_on_shift_now — which the shift monitor reads — would agree with it. 32 assertions in scripts/rls/isolation.sql exercise the refusals (an operator cannot apply; a swap not yet accepted cannot be applied; a rota that changed underneath is refused whole), the bell rows per transition, and the idempotent second click.
+
 ### `table:leads` — 10/10 (fully wired)
 
 - **control** Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens
@@ -2951,6 +2968,19 @@ PROVEN by `scripts/rls/wiring.sql` §2 against a real PostgreSQL — one targete
 - **call sites** src/components/admin/partner/PartnerOrganizationTab.tsx, src/components/partner/AgreementRequiredModal.tsx, src/pages/admin/PartnerDetailPage.tsx, src/pages/admin/PartnersPage.tsx +1
 
 The registration leg only. `notify-admin` fires `partner.joined`, so a new partner really does reach the bell, and the Playwright journey is the one browser-level proof in the repo that walks a whole flow. It covers REGISTRATION — which is why the rest of the partner surface below cannot cite it, however tempting it was to apply one proof to nineteen rows.
+
+### `table:staff_shift_swaps` — 10/10 (fully wired)
+
+- **control** Ask a colleague to swap or cover a shift; accept or decline; a supervisor approves it
+- **promised** the person being asked finds out, both people find out when it is approved, and the rota actually moves
+- **goes to** staff_shift_swaps → bell_on_shift_swap writes targeted notification_log rows; emit_shift_swap_to_router queues shift.swap_requested/_accepted/_approved to notify-staff (push on, SMS/WhatsApp/email off); approval calls apply_shift_swap, which moves staff_shifts and writes staff_shift_covers + activity_logs in one transaction
+- **who is told** bell
+- **failure shown to user** toast
+- **proof** `src/test/shiftSwaps.test.tsx`
+- **routes** /admin/rota, /call-centre/my-shifts, /call-centre/rota
+- **call sites** src/hooks/useShiftSwaps.ts
+
+THE BELL IS WRITTEN BY THE DATABASE HERE, not by the client, and that is the difference from the cover flow above. An operator cannot call notify-staff at all (NOTIFY_CALLER_ROLES admits admins and the service role), and a notification raised by the browser is lost when the tab closes mid-request — so a trigger does it, which also covers a supervisor fixing a swap by hand in the SQL editor. The move is a single transaction because a half-applied swap puts two people on one slot and nobody on another, and staff_on_shift_now — which the shift monitor reads — would agree with it. 32 assertions in scripts/rls/isolation.sql exercise the refusals (an operator cannot apply; a swap not yet accepted cannot be applied; a rota that changed underneath is refused whole), the bell rows per transition, and the idempotent second click.
 
 ---
 

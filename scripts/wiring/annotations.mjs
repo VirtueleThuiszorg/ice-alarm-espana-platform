@@ -560,6 +560,33 @@ export const FAMILIES = [
       "card says so rather than offering a button that does nothing.",
   },
   {
+    wires: ["table:staff_shift_swaps", "rpc:apply_shift_swap"],
+    control: "Ask a colleague to swap or cover a shift; accept or decline; a supervisor approves it",
+    promise: "the person being asked finds out, both people find out when it is approved, and the rota actually moves",
+    dest:
+      "staff_shift_swaps → bell_on_shift_swap writes targeted notification_log rows; " +
+      "emit_shift_swap_to_router queues shift.swap_requested/_accepted/_approved to notify-staff " +
+      "(push on, SMS/WhatsApp/email off); approval calls apply_shift_swap, which moves " +
+      "staff_shifts and writes staff_shift_covers + activity_logs in one transaction",
+    told: "bell",
+    // The client leg: src/test/shiftSwaps.test.tsx renders the screens against a fake PostgREST
+    // and asserts the RECORDED WRITE for each of the three answers, plus that the approve control
+    // is absent for the two people who are not allowed to press it. The database leg is
+    // scripts/rls/isolation.sql, named in the note below — a browser cannot see RLS at all.
+    proof: "src/test/shiftSwaps.test.tsx",
+    note:
+      "THE BELL IS WRITTEN BY THE DATABASE HERE, not by the client, and that is the difference " +
+      "from the cover flow above. An operator cannot call notify-staff at all " +
+      "(NOTIFY_CALLER_ROLES admits admins and the service role), and a notification raised by the " +
+      "browser is lost when the tab closes mid-request — so a trigger does it, which also covers " +
+      "a supervisor fixing a swap by hand in the SQL editor. The move is a single transaction " +
+      "because a half-applied swap puts two people on one slot and nobody on another, and " +
+      "staff_on_shift_now — which the shift monitor reads — would agree with it. 32 assertions in " +
+      "scripts/rls/isolation.sql exercise the refusals (an operator cannot apply; a swap not yet " +
+      "accepted cannot be applied; a rota that changed underneath is refused whole), the bell rows " +
+      "per transition, and the idempotent second click.",
+  },
+  {
     wires: ["table:staff_holidays", "table:staff_shift_covers", "table:staff_shifts", "table:shift_escalation_chain"],
     control: "Request holiday, approve/decline, offer and accept shift cover, edit the rota",
     promise: "the person who has to act finds out",

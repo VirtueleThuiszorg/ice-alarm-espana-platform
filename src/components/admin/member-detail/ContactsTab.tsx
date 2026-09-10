@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { EditableCard } from "@/components/EditableCard";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { 
@@ -13,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -201,12 +201,20 @@ export function ContactsTab({ memberId }: ContactsTabProps) {
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Emergency Contacts</CardTitle>
-          <CardDescription>Up to 3 emergency contacts can be added.</CardDescription>
-        </div>
+    <EditableCard
+      testId="contacts-card"
+      mode="manage"
+      title="Emergency Contacts"
+      description="Up to 3 emergency contacts can be added."
+      manageHint="Press Edit to add, change or remove a contact. Calling and messaging them works either way."
+    >
+      <div className="space-y-4">
+        {/*
+          ADD / EDIT / DELETE LIVE INSIDE THE FIELDSET, so they are inert until somebody presses
+          Edit. Deleting a member's only emergency contact by a stray click on a screen being
+          read down the phone is a life-safety event, not a typo. The dialog's own fields are
+          portalled out of the fieldset, so they work normally once it is open.
+        */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={openAddDialog} disabled={contacts.length >= 3}>
@@ -332,8 +340,7 @@ export function ContactsTab({ memberId }: ContactsTabProps) {
             </Form>
           </DialogContent>
         </Dialog>
-      </CardHeader>
-      <CardContent>
+
         {contacts.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <User className="mx-auto h-12 w-12 mb-2 opacity-50" />
@@ -418,7 +425,7 @@ export function ContactsTab({ memberId }: ContactsTabProps) {
             ))}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </EditableCard>
   );
 }

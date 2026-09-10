@@ -36,15 +36,43 @@
 > ```
 >
 > **Nothing was applied** — `db push` was skipped, the manifest was not touched, and the job went
-> red, which is what it is supposed to do. Run #2 (9 Sep) linked and pushed fine with the same
-> workflow, so this is the CREDENTIAL, not the code: `SUPABASE_ACCESS_TOKEN` has expired, been
-> revoked, or belongs to an account that no longer has access to `crpsuhoixfdhjugprbuc`.
+> red, which is what it is supposed to do.
 >
-> **THE FIX, and only you can do it.** Create a new personal access token at
-> <https://supabase.com/dashboard/account/tokens> from an account with access to that project,
-> then replace the repository secret `SUPABASE_ACCESS_TOKEN` (Settings → Secrets and variables →
-> Actions). Check `SUPABASE_PROJECT_REF` is `crpsuhoixfdhjugprbuc` while you are there. Then
-> re-run the failed run from the Actions tab — it is idempotent, so re-running is safe.
+> ### ⚠️ CORRECTED 2026-09-10, 13:55 — the token is NOT dead, and the earlier diagnosis was wrong
+>
+> This section first said `SUPABASE_ACCESS_TOKEN` had "expired, been revoked, or belongs to an
+> account that no longer has access to `crpsuhoixfdhjugprbuc`". **The evidence contradicts that**,
+> and it was there to be read at the time:
+>
+> | run | time | step | secret used | result |
+> |---|---|---|---|---|
+> | #3 | 12:06 | `supabase link --project-ref "$SUPABASE_PROJECT_REF"` | `SUPABASE_ACCESS_TOKEN` | **failed** — "Authorization failed for the access token and project ref pair" |
+> | #6 | 12:52 | `supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"` | the **same** `SUPABASE_ACCESS_TOKEN`, the **same** `SUPABASE_PROJECT_REF` | **succeeded** — every edge function deployed to that project |
+>
+> Forty-six minutes apart, one token, one project ref: one endpoint refused it and the other
+> accepted it and wrote to production. So the token is live and the account does reach the
+> project. What is refused is specific to the endpoint `supabase link` calls — a scope or an
+> organisation-level privilege that `functions deploy` does not need.
+>
+> (Runs #4, #5 and #6 all show "success" for the same reason and it means less than it looks:
+> their **Apply migrations** job was *skipped* because those pushes touched no migration file.
+> A green Migrate Production run is not evidence that migrating works.)
+>
+> ### THE FIX — two routes, and the choice is yours
+>
+> **A. A token with the missing privilege.** Create a new personal access token at
+> <https://supabase.com/dashboard/account/tokens> from an account that owns the project's
+> organisation, and replace the secret (Settings → Secrets and variables → Actions). Then re-run
+> run #3 from the Actions tab — it is idempotent, so re-running is safe.
+>
+> **B. Stop using `supabase link` at all.** The push step runs `db push --linked`, which is why
+> the link is needed. `SUPABASE_DB_PASSWORD` is already a secret in that job and is already
+> passed through `env`, so the same push can go straight at the database and skip the endpoint
+> that is refusing. That is a change to `.github/workflows/migrate.yml` — the production
+> migration path — so it is offered here rather than made: say the word and it is a small PR with
+> the same gates on it.
+>
+> Either way, check `SUPABASE_PROJECT_REF` is `crpsuhoixfdhjugprbuc` while you are in there.
 >
 > **What is stranded, and what it means until then:**
 >

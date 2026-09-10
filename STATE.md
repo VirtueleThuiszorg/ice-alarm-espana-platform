@@ -104,9 +104,16 @@ and carries a runtime assertion that fails the migration if the resulting counts
 `docs/rota/rota_2026_clean.csv` by `holidayBackfill2026.test.ts`, so the numbers in the migration
 cannot drift from the sheet.
 
-It is blocked on **one credential**: `SUPABASE_ACCESS_TOKEN` is rejected by
-`supabase link` ("Authorization failed for the access token and project ref pair"), which is
-PENDING_FOR_LEE §1.
+It is blocked on **one endpoint, not a dead credential** — and the first version of this
+paragraph got that wrong. `SUPABASE_ACCESS_TOKEN` is rejected by `supabase link`
+("Authorization failed for the access token and project ref pair"), while the SAME token and the
+SAME project ref deployed every edge function to production 46 minutes later in run #6. So the
+token is live and the account reaches the project; what is refused is the privilege
+`supabase link` needs. Corrected diagnosis and the two candidate fixes: PENDING_FOR_LEE §1.
+
+Worth knowing when reading that workflow's history: runs #4, #5 and #6 are all green and none of
+them migrated anything — their Apply-migrations job was *skipped*, because those pushes touched
+no migration file. **A green Migrate Production run is not evidence that migrating works.**
 
 The same credential is why **two CI jobs are red on `main`**: the migration drift gate (any
 pending migration fails it there — production legitimately trails `main`) and "Manifest matches

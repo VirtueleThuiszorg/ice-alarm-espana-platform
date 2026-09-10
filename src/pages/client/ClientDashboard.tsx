@@ -204,7 +204,13 @@ export default function ClientDashboard() {
   const { data: missingInfo, isLoading: missingLoading } = useMemberMissingInfo(
     isTemplatePreview ? null : effectiveMemberId,
   );
-  const missingCount = missingInfo?.count ?? 0;
+  /*
+    THE MEMBER'S OWN NUMBER, not the staff one. `count` includes the three items only we can
+    close — a pendant assigned, a pendant tested, a subscription activated by the webhook — and a
+    badge counting those opens a dialog with nothing in it. `memberCanFill` is that list minus
+    ours, from the same `requestableFields` the emailed update link uses.
+  */
+  const missingCount = missingInfo?.memberCanFill.length ?? 0;
 
   // One definition of "unread", shared with the nav badge. It was inline here, so nothing else
   // could reach it — which is why the nav had no badge to put a count on.
@@ -652,11 +658,12 @@ export default function ClientDashboard() {
       */}
       {!isTemplatePreview && (
         <>
+          {/* The badge's list, so what it counts and what the dialog offers cannot differ. */}
           <CompleteMyDetailsDialog
             open={completeOpen}
             onOpenChange={setCompleteOpen}
             memberId={effectiveMemberId}
-            missing={missingInfo?.missing ?? []}
+            missing={missingInfo?.memberCanFill ?? []}
           />
           <ReviewMyDetailsDialog
             open={reviewOpen}

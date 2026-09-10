@@ -33,19 +33,18 @@ What did **not** change: golden rules 1–10 in `CLAUDE.md`, and **never merge r
 moved; the standard for what may merge did not. Green is now the only gate, which is why the CI
 gates were split one-per-job the same day (below).
 
-## Rota, shifts and holidays — 2026-09-10 · **five items on main, the sixth built and held by a gate**
+## Rota, shifts and holidays — 2026-09-10 · **all six items on main and in production**
 
 Lee's brief: *"Staff see and manage their own shifts; supervisors control everyone's; holiday
-balances correct and Spanish-law compliant."* Seven PRs merged, one open (#306), one per
-concern. Every claim below names what presses it.
+balances correct and Spanish-law compliant."* Nine PRs, one concern each. Every claim below names
+what presses it.
 
 ### What is now true
 
 - ✅ **"My shifts" exists for every staff role** (#289, `/call-centre/my-shifts`). Four tabs then
   five: Upcoming (8 weeks, hours from `SHIFT_BOUNDS`, cover labels), Past (month picker back to
   the rota's first day, `is_confirmed` + `shift_notes` as evidence), Holidays (own rows +
-  balance) and Bank holidays — the fifth, Requests, arrives with #306. Proven by
-  `myShiftsPage.test.tsx`,
+  balance), Bank holidays and Requests (#306). Proven by `myShiftsPage.test.tsx`,
   `shiftSummary.test.ts` and `e2e/myShifts.spec.ts`.
   **The Past tab never says a shift was "worked"** — the platform holds no attendance record
   (`staff_presence` is one upserted row describing now; `staff_activity_log` is admin-only), so a
@@ -69,22 +68,26 @@ concern. Every claim below names what presses it.
   PRESENT as three separate statements — a single green tick would read as covered at the moment
   `staff-shift-monitor` is raising a no-show. Holiday approvals link each uncovered shift to the
   cover picker.
-- ⬜ **Swaps and cover — BUILT, PROVEN, NOT MERGED** (PR #306, rota brief §3, open). This is the
-  one item not on `main`, and it is held by a gate rather than by a defect. `staff_shift_swaps`
-  had a table, six statuses and RLS since the rota landed, and no UI and no apply step. The PR
-  adds: ask from the shift itself, answer in My shifts → Requests, approve on the rota;
-  `apply_shift_swap` moving both shifts and writing the cover rows and the audit row in ONE
-  transaction (a half-applied swap puts two people on one slot and nobody on another, and the
-  shift monitor agrees with it); the bell written by a database trigger, because an operator
-  cannot call `notify-staff` at all.
-  Green: tests, lint, type check, build, wiring register, security audit, and 558 RLS assertions
-  locally. Red: the **migration drift gate**, which refuses to stack its two migrations on top of
-  the unapplied backfill — *"Merge that first, then this."* That is the gate working, so the PR
-  waits. See PENDING_FOR_LEE §1.
-  Two bugs worth keeping on the record, both found by execution rather than reading: an assertion
-  written as `apply_as(...) = X AND (SELECT staff_id ...) = Y` evaluated its reads BEFORE the
-  apply (SQL does not promise left-to-right AND), and the bell called every swap request "cover"
-  because both triggers read `offered_shift_id`, which is NULL until the counterparty answers.
+- ✅ **Swaps and cover exist** (#306, rota brief §3 — merged, and in production). The table, six
+  statuses and RLS had been there since the rota landed; there was no UI and no apply step, so an
+  operator wanting Thursday off asked Mary and Mary moved the shift by hand. Now: ask from the
+  shift itself, answer in My shifts → Requests (with the count of what is waiting on you on the
+  tab), approve in a queue on the rota. `apply_shift_swap` moves both shifts and writes the cover
+  rows and the audit row in ONE transaction — a half-applied swap puts two people on one slot and
+  nobody on another, and `staff_on_shift_now`, which the shift monitor reads, agrees with it. It
+  refuses a non-supervisor, an unaccepted swap, a rota that changed underneath, and a swap
+  offering a third person's shift; a second click moves nothing. The bell is written by a database
+  trigger, because an operator cannot call `notify-staff` at all and a browser-raised notification
+  dies with the tab.
+  `wants_exchange` carries which question was asked, and exists because of who can see what: the
+  requester cannot name the shift they would take, since RLS gives an operator its own shift rows
+  only. Only the counterparty can, when they accept.
+  Proven by 558 RLS assertions, 18 client tests asserted on the recorded write rather than a
+  toast, and 10/10 UI mutants killed. **Two bugs found by execution, not by reading**: an assertion
+  written as `apply_as(...) = X AND (SELECT staff_id …) = Y`, where SQL read the shift's owner
+  BEFORE the apply ran (there is no left-to-right guarantee for `AND`), and a bell that called
+  every swap request "cover" because both triggers read `offered_shift_id`, which is NULL until
+  somebody answers.
 - ✅ **Holiday entitlement is 30 días naturales** (ET art. 38.1), and the legal rules are
   SETTINGS, not code (#295): pro-rata only for a start date inside the year, festivos-inside-a-
   range default OFF with "confirm with convenio" on the screen, a warning on approving inside two
@@ -92,39 +95,49 @@ concern. Every claim below names what presses it.
   a note. **No pay-out control anywhere**, and a test forbids the phrase outside comments: art.
   38.1 makes vacaciones non-substitutable by money.
 
-### ⬜ NOT live, and why — the one honest gap
+### ✅ LIVE — the balances, and how they got there
 
-The **2026 holiday backfill** (`20260910120000`, #292) has never been applied. The rota seed
-imported holidays only from 2026-09-10, so production still shows Mary 4 / Carmen 9 / Albert 4
-days used where the sheet says 18 / 28 / 16.
+The **2026 holiday backfill** (`20260910120000`, #292) was applied to production by
+[Migrate Production run #8](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34488553431)
+on 2026-09-10 at 14:22 UTC. One migration applied, none left pending, manifest recorded on main
+by the bot as `ca51ab9`, and the verdict step read `db push: success · record: success`.
 
-The migration is written, idempotent, rehearsed against a real PostgreSQL 16 in four scenarios,
-and carries a runtime assertion that fails the migration if the resulting counts are not
-`asoares=12, cnicolas=19, mbonner=14` pre-cut. Every range is re-derived from
-`docs/rota/rota_2026_clean.csv` by `holidayBackfill2026.test.ts`, so the numbers in the migration
-cannot drift from the sheet.
+**What the database says, read back by the run itself** — not what the migration claimed:
 
-It is blocked on **one endpoint, not a dead credential** — and the first version of this
-paragraph got that wrong. `SUPABASE_ACCESS_TOKEN` is rejected by `supabase link`
-("Authorization failed for the access token and project ref pair"), while the SAME token and the
-SAME project ref deployed every edge function to production 46 minutes later in run #6. So the
-token is live and the account reaches the project; what is refused is the privilege
-`supabase link` needs. Corrected diagnosis and the two candidate fixes: PENDING_FOR_LEE §1.
+```
+Albert Soares:  16 used, 0 pending, 14 left of 30
+Carmen Nicolas: 28 used, 0 pending,  2 left of 30
+Mary Bonner:    18 used, 0 pending, 12 left of 30
+Travis Nelison:  0 used, 0 pending, 30 left of 30
+```
 
-Worth knowing when reading that workflow's history: runs #4, #5 and #6 are all green and none of
-them migrated anything — their Apply-migrations job was *skipped*, because those pushes touched
-no migration file. **A green Migrate Production run is not evidence that migrating works.**
+That is the sheet's 18 / 28 / 16 used and 12 / 2 / 14 remaining. Carmen's **2** is the number a
+supervisor approving November would previously have seen as roughly 21.
 
-The same credential is why **two CI jobs are red on `main`**: the migration drift gate (any
-pending migration fails it there — production legitimately trails `main`) and "Manifest matches
-production", whose link step is the thing that cannot authenticate. Neither can go green from
-inside a session. On a PR the two behave differently and it is worth knowing which: "Manifest
-matches production" does not run at all, and the drift gate passes with a warning **unless** the
-PR adds a migration of its own — which is what is holding #306.
+The swap flow's two migrations followed on the merge of #306
+([run #9](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34489927779),
+schema first and functions after it). `check-migration-drift --main` now reports
+**repo: 188 · manifest: 188 · production is level with the repo**, so the drift gate is green on
+main for the first time since the 10th.
 
-**So the balances are rehearsed, not live.** They become live on the first successful
-`Migrate Production` run after the token is replaced, and the migration's own assertion is what
-will confirm it rather than a person reading a screen.
+**HOW IT GOT UNBLOCKED, because the earlier version of this section was wrong twice.**
+`supabase link` was refused, and I first wrote that off as an expired token. It was not: the same
+token and project ref deployed every edge function 46 minutes later. Only the privilege `link`
+needs was missing — and applying a migration never needed the Management API at all. `migrate.yml`
+now tries `link` first and, when refused, writes the two files `link` would have written (the
+project ref and the IPv4 **pooler** URL, since `db.<ref>.supabase.co` has no A record and runners
+are IPv4) and carries on with every later step unchanged (#313). It shouts a `::warning::`
+whenever that fallback runs, and it ran for both of these migrations.
+
+**Still owed, and it is Lee's**: the Management API itself. `link` was still being refused a
+minute after run #8, so "Manifest matches production" stays red on main until a token with that
+privilege replaces the current one — PENDING_FOR_LEE §1, route A. Migrations flow; the API does
+not.
+
+Worth keeping from the wrong version, because it is a real trap: Migrate Production runs #4, #5
+and #6 are all green and migrated **nothing** — their Apply-migrations job was *skipped*, because
+those pushes touched no migration file. **A green Migrate Production run is not evidence that
+migrating works.**
 
 ### Follow-ups, recorded rather than done
 

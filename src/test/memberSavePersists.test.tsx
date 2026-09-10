@@ -23,6 +23,8 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { configure, render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactElement } from "react";
 
 configure({ getElementError: (message) => new Error(message ?? "element not found") });
 
@@ -70,9 +72,25 @@ const field = (name: string) =>
 
 let reReads = 0;
 
+/**
+ * THE TAB IS RENDERED WHOLE, inside a QueryClientProvider, rather than with its other cards
+ * stubbed out one by one. #327 added `StaffHomeLocationCard` — a react-query consumer — beside
+ * the profile form, and this file went red on main while both PRs were green apart: a bare
+ * `render` of the tab throws "No QueryClient set" before the form it is testing ever mounts.
+ * Stubbing that one card would have bought a week; the provider costs the same three lines and
+ * holds for the next card somebody puts on this tab.
+ *
+ * `retry: false` so a card whose read the fake cannot answer fails once and renders, instead of
+ * backing off three times and dragging the test out with it.
+ */
+function withQuery(ui: ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return <QueryClientProvider client={client}>{ui}</QueryClientProvider>;
+}
+
 /** Open the card as a fresh visit would: mounted from whatever the row now says. */
 function openCard() {
-  render(<ProfileTab member={stored as unknown as Member} onUpdate={() => (reReads += 1)} />);
+  render(withQuery(<ProfileTab member={stored as unknown as Member} onUpdate={() => (reReads += 1)} />));
   expect(screen.getByTestId("profile-card-fields")).toBeTruthy();
 }
 

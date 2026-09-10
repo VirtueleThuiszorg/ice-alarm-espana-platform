@@ -1,24 +1,14 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useConfirmLegacyMember } from "@/hooks/useConfirmLegacyMember";
 import { useMembersRealtime } from "@/hooks/useMembersRealtime";
 import type { Tables } from "@/integrations/supabase/types";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { 
-  Search, 
-  Plus, 
-  Download, 
-  MoreHorizontal,
-  Eye,
-  Edit,
-  Trash2,
-  ChevronLeft,
-  ChevronRight,
-  Upload,
-  Contact
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Contact, Download, Edit, Eye, Loader2, MoreHorizontal, Plus, Search, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -77,6 +67,10 @@ export default function MembersPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [legacyTypeFilter, setLegacyTypeFilter] = useState<string>("all");
+  /* Only ever populated while the status filter is `pending_review`. Cleared when the filter
+     moves, because a selection carried across a filter change is a bulk action performed on rows
+     the person can no longer see. */
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [memberToDelete, setMemberToDelete] = useState<{ id: string; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -165,6 +159,40 @@ export default function MembersPage() {
       return { members: filteredMembers, totalCount: count || 0 };
     },
   });
+
+  /* ── the bulk confirm ────────────────────────────────────────────────────────
+     Offered ONLY while the list is filtered to `pending_review`, which is the queue the CRM
+     import creates. Outside that filter a "confirm these" button would be offering to activate
+     rows whose state nobody has looked at.
+
+     ONE RPC PER MEMBER, sequentially, and the count of what actually happened is reported. Not
+     one call with an array: `confirm_legacy_member` refuses a member who is not pending_review,
+     and a single call would have to choose between aborting the whole batch on the first refusal
+     or swallowing them all. Per member, the refusals are counted and named, and the ones that
+     worked are already done. Sequential rather than parallel because 431 concurrent RPCs is a
+     way to find out what the connection pool does. */
+  const confirmLegacy = useConfirmLegacyMember();
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const canBulkConfirm = statusFilter === "pending_review" && selectedIds.length > 0;
+
+  const runBulkConfirm = async () => {
+    setBulkBusy(true);
+    let confirmed = 0;
+    const refused: string[] = [];
+    for (const id of selectedIds) {
+      try {
+        await confirmLegacy.mutateAsync({ memberId: id, reason: "Bulk confirmed from the members list" });
+        confirmed += 1;
+      } catch (e) {
+        refused.push(e instanceof Error ? e.message : "unknown error");
+      }
+    }
+    setBulkBusy(false);
+    setSelectedIds([]);
+    if (confirmed > 0) toast.success(`${confirmed} member(s) confirmed as legacy`);
+    // Named, not counted: "3 failed" tells nobody whether to fetch a supervisor or reload.
+    if (refused.length > 0) toast.error(`${refused.length} refused — ${refused[0]}`);
+  };
 
   /* The values Karma actually used, for the filter. One read, cached, and independent of the
      page — a filter offering only what happens to be on page one is a filter that lies. */
@@ -309,7 +337,10 @@ export default function MembersPage() {
                 className="pl-10"
               />
             </div>
-            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+            <Select
+              value={statusFilter}
+              onValueChange={(v) => { setStatusFilter(v); setPage(1); setSelectedIds([]); }}
+            >
               <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder={t("common.status")} />
               </SelectTrigger>
@@ -357,12 +388,58 @@ export default function MembersPage() {
         </CardContent>
       </Card>
 
+      {/* THE BULK BAR, and it renders only while the list is filtered to pending_review.
+          Anywhere else it would be offering to activate rows nobody has looked at. */}
+      {statusFilter === "pending_review" && (
+        <Card data-testid="bulk-confirm-bar">
+          <CardContent className="py-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium">
+                {selectedIds.length === 0
+                  ? "Waiting to be confirmed"
+                  : `${selectedIds.length} selected`}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Imported from KarmaCRM and not yet counted as monitored. Confirming says they are
+                real clients who pay outside Stripe — it creates no subscription and takes no
+                payment.
+              </p>
+            </div>
+            <Button
+              variant="ink"
+              disabled={!canBulkConfirm || bulkBusy}
+              onClick={runBulkConfirm}
+              data-testid="bulk-confirm-submit"
+            >
+              {bulkBusy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Confirm {selectedIds.length > 0 ? selectedIds.length : ""} as legacy member
+              {selectedIds.length === 1 ? "" : "s"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Members Table */}
       <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
+                {statusFilter === "pending_review" && (
+                  <TableHead className="w-[40px]">
+                    <Checkbox
+                      aria-label="Select every member on this page"
+                      data-testid="bulk-select-all"
+                      checked={
+                        (data?.members?.length ?? 0) > 0 &&
+                        selectedIds.length === (data?.members?.length ?? 0)
+                      }
+                      onCheckedChange={(v) =>
+                        setSelectedIds(v === true ? (data?.members ?? []).map((m) => m.id) : [])
+                      }
+                    />
+                  </TableHead>
+                )}
                 <TableHead>{t("admin.table.name")}</TableHead>
                 <TableHead>{t("admin.table.email")}</TableHead>
                 <TableHead>{t("admin.table.phone")}</TableHead>
@@ -392,6 +469,25 @@ export default function MembersPage() {
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => navigate(`/admin/members/${member.id}`)}
                   >
+                    {statusFilter === "pending_review" && (
+                      /* stopPropagation, because the row navigates. Without it, ticking a box
+                         opens the member's record and the tick is lost — the control would be
+                         unusable and would look like the list was broken. */
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          aria-label={`Select ${member.first_name} ${member.last_name}`}
+                          data-testid={`bulk-select-${member.id}`}
+                          checked={selectedIds.includes(member.id)}
+                          onCheckedChange={(v) =>
+                            setSelectedIds((prev) =>
+                              v === true
+                                ? [...prev, member.id]
+                                : prev.filter((x) => x !== member.id)
+                            )
+                          }
+                        />
+                      </TableCell>
+                    )}
                     <TableCell className="font-medium">
                       {member.first_name} {member.last_name}
                     </TableCell>

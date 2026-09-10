@@ -15,13 +15,15 @@ import {
   Menu,
   UserPlus,
   BookOpen,
-  Pill
+  Pill,
+  CalendarDays
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { ROTA_MANAGER_ROLES } from "@/lib/staffNotify";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Tooltip,
@@ -88,12 +90,34 @@ export function CallCentreSidebar({ onCollapsedChange }: CallCentreSidebarProps 
   // Supervisor is the PRIMARY holiday-approvals owner; admins keep oversight.
   const canApproveHolidays =
     staffRole === "call_centre_supervisor" || staffRole === "admin" || staffRole === "super_admin";
-  const visibleMenuItems = canApproveHolidays
-    ? [
-        ...menuItems,
-        { icon: Palmtree, labelKey: "sidebar.holidayApprovals", path: "/call-centre/holiday-approvals" },
-      ]
-    : menuItems;
+  /**
+   * The rota is the supervisor's, and the database already said so — RLS grants
+   * `call_centre_supervisor` manage-all on shifts/holidays/swaps and `generate_rota()` checks for
+   * the role by name. Only the screen was missing, because it lived under an admin-only route.
+   *
+   * Spliced in at render time rather than added to `menuItems` because that array is the PINNED
+   * ORDER every operator's hand learns (see the comment on it, and
+   * src/test/callCentreSidebarOrder.test.ts). A role-conditional entry is not part of that order:
+   * it appears for two people and would otherwise shift the list under everybody else.
+   */
+  const canManageRota =
+    !!staffRole && (ROTA_MANAGER_ROLES as readonly string[]).includes(staffRole);
+
+  const visibleMenuItems = [
+    ...menuItems,
+    ...(canManageRota
+      ? [{ icon: CalendarDays, labelKey: "sidebar.rota", path: "/call-centre/rota" }]
+      : []),
+    ...(canApproveHolidays
+      ? [
+          {
+            icon: Palmtree,
+            labelKey: "sidebar.holidayApprovals",
+            path: "/call-centre/holiday-approvals",
+          },
+        ]
+      : []),
+  ];
 
   // Fetch badge counts
   useEffect(() => {

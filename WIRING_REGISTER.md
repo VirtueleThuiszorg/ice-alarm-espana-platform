@@ -28,7 +28,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   3  █
 ```
 
-189 distinct wires across 639 call sites and 108 routes.
+189 distinct wires across 639 call sites and 109 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
@@ -259,6 +259,7 @@ The checks, verified on every build:
 | **5** | `table:member_notes` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 3 |
 | **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 9 |
 | **5** | `table:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 3 |
+| **5** | `table:shift_escalation_chain` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
 | **5** | `table:shift_notes` | Write a handover note; go on/off duty — the next shift knows what happened | shift_notes / staff_presence | screen | toast | none | 1 |
 | **5** | `table:staff_holidays` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
 | **5** | `table:staff_shift_covers` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
@@ -535,7 +536,7 @@ The one path golden rule 8 forbids mocking. Published and subscribed, and the op
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /admin, /admin/devices, /admin/ev07b, /call-centre, /call-centre/alerts, /call-centre/documents +13
+- **routes** /admin, /admin/devices, /admin/ev07b, /call-centre, /call-centre/alerts, /call-centre/documents +14
 - **call sites** src/components/call-centre/DeviceOfflineAlertsCard.tsx, src/components/layout/CallCentreSidebar.tsx, src/hooks/useAlerts.ts, src/hooks/useAlertsRealtime.ts +3
 
 The one path golden rule 8 forbids mocking. Published and subscribed, and the operator is by definition watching the queue, so `screen` is the right audience here rather than a notification. Score is capped below 10 by this register's own rule that a proof must be named and end-to-end; see the proof column and §Proofs.
@@ -613,7 +614,7 @@ Tickets and comments ARE published, so they arrive live on an open Tickets scree
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /call-centre, /call-centre/alerts, /call-centre/documents, /call-centre/holiday-approvals, /call-centre/holidays, /call-centre/leads +10
+- **routes** /call-centre, /call-centre/alerts, /call-centre/documents, /call-centre/holiday-approvals, /call-centre/holidays, /call-centre/leads +11
 - **call sites** src/components/call-centre/sos/SOSAlertBar.tsx, src/hooks/useSOSConference.ts
 
 The one path golden rule 8 forbids mocking. Published and subscribed, and the operator is by definition watching the queue, so `screen` is the right audience here rather than a notification. Score is capped below 10 by this register's own rule that a proof must be named and end-to-end; see the proof column and §Proofs.
@@ -639,7 +640,7 @@ This subscription WORKS — leads is published and the refetch fires. It is also
 - **who is told** bell
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /admin/members/:id, /admin/messages, /call-centre, /call-centre/alerts, /call-centre/documents, /call-centre/holiday-approvals +14
+- **routes** /admin/members/:id, /admin/messages, /call-centre, /call-centre/alerts, /call-centre/documents, /call-centre/holiday-approvals +15
 - **call sites** src/components/admin/member-detail/MessagesTab.tsx, src/components/call-centre/MessagesPanel.tsx, src/components/layout/CallCentreSidebar.tsx, src/pages/admin/MessagesPage.tsx +4
 
 Split from the tables above, which cite `inboundMessages`. That suite proves an INBOUND SMS becomes a message row; it does not exercise these subscriptions, and it does not cover member-self-service's `notify_staff` leg — the one that actually rings the bell. Claiming it for all five wires was the register scoring a neighbour's test, which is the habit it exists to break.
@@ -795,7 +796,7 @@ Money. Nobody is told it ran, or that it failed, and there is no test. A red in 
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /admin/alerts, /admin/ev07b, /call-centre, /call-centre/alerts, /call-centre/documents, /call-centre/holiday-approvals +12
+- **routes** /admin/alerts, /admin/ev07b, /call-centre, /call-centre/alerts, /call-centre/documents, /call-centre/holiday-approvals +13
 - **call sites** src/lib/alertResolution.ts
 
 Human gate: any change here is Lee's read (SOS path). Not touched by this goal.
@@ -890,7 +891,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +77
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +78
 - **call sites** src/components/chat/CallMeModal.tsx
 
 SOS path — untouched here and flagged. No end-to-end proof was found for the conference leg, and Twilio credentials are a production secret this repo cannot check, so it cannot score above 6 under the rubric. Lee's gate.
@@ -903,7 +904,7 @@ SOS path — untouched here and flagged. No end-to-end proof was found for the c
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /call-centre, /call-centre/alerts, /call-centre/documents, /call-centre/holiday-approvals, /call-centre/holidays, /call-centre/leads +10
+- **routes** /call-centre, /call-centre/alerts, /call-centre/documents, /call-centre/holiday-approvals, /call-centre/holidays, /call-centre/leads +11
 - **call sites** src/hooks/useTwilioDevice.ts
 
 SOS path — untouched here and flagged. No end-to-end proof was found for the conference leg, and Twilio credentials are a production secret this repo cannot check, so it cannot score above 6 under the rubric. Lee's gate.
@@ -955,7 +956,7 @@ Deep link always works; the outbound function returns “Twilio not configured�
 - **who is told** bell
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /admin, /admin/holidays, /admin/rota, /call-centre, /call-centre/alerts, /call-centre/documents +13
+- **routes** /admin, /admin/holidays, /admin/rota, /call-centre, /call-centre/alerts, /call-centre/documents +14
 - **call sites** src/components/admin/dashboard/AISalesDesk.tsx, src/hooks/useShiftCovers.ts, src/hooks/useStaffHolidays.ts, src/hooks/useStaffShifts.ts
 
 Some ai_events call sites sit beside notifyUsers; the log row itself is for humans to audit later.
@@ -968,7 +969,7 @@ Some ai_events call sites sit beside notifyUsers; the log row itself is for huma
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /admin/alerts, /call-centre, /call-centre/alerts, /call-centre/documents, /call-centre/holiday-approvals, /call-centre/holidays +11
+- **routes** /admin/alerts, /call-centre, /call-centre/alerts, /call-centre/documents, /call-centre/holiday-approvals, /call-centre/holidays +12
 - **call sites** src/components/call-centre/sos/SOSActionPanel.tsx, src/hooks/useAlerts.ts, src/lib/alertOwnership.ts, src/pages/admin/AlertsPage.tsx
 
 Human gate: any change here is Lee's read (SOS path). Not touched by this goal.
@@ -1113,7 +1114,7 @@ publish-scheduled writes a notification_log row on failure, so a post that does 
 - **who is told** email
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /admin, /admin/members/:id, /admin/settings, /admin/staff, /admin/staff/:staffId, /call-centre +16
+- **routes** /admin, /admin/members/:id, /admin/settings, /admin/staff, /admin/staff/:staffId, /call-centre +17
 - **call sites** src/components/admin/dashboard/AISalesDesk.tsx, src/components/admin/member-detail/MessagesTab.tsx, src/components/admin/member-detail/NotesTab.tsx, src/components/call-centre/AlertDetailPanel.tsx +7
 
 Roles are assigned by trigger/admin only (golden rule 3) — nothing in this family lets a user set their own role. Delivery of the invite depends on the email secret, so `email`.
@@ -1126,7 +1127,7 @@ Roles are assigned by trigger/admin only (golden rule 3) — nothing in this fam
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /call-centre, /call-centre/alerts, /call-centre/documents, /call-centre/holiday-approvals, /call-centre/holidays, /call-centre/leads +10
+- **routes** /call-centre, /call-centre/alerts, /call-centre/documents, /call-centre/holiday-approvals, /call-centre/holidays, /call-centre/leads +11
 - **call sites** src/hooks/useStaffHeartbeat.ts
 
 See channel:shift_notes — the note lands, the live update does not.
@@ -1152,7 +1153,7 @@ THE MOST CONSEQUENTIAL EMAIL IN THE PRODUCT, and the register was not asking abo
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +103
 - **call sites** src/lib/authSessionSync.ts, src/pages/partner/PartnerInvitePage.tsx, src/pages/staff/StaffInvitePage.tsx
 
 Golden rule 3 lives near here: an invite establishes a session, and the ROLE must still come from the trigger/admin path rather than from anything in the link. Nothing here writes a role.
@@ -1178,7 +1179,7 @@ The front door, on three surfaces. Nothing in the repo proves a member can actua
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +103
 - **call sites** src/components/layout/AdminHeader.tsx, src/components/layout/ClientLayout.tsx, src/contexts/AuthContext.tsx, src/pages/auth/ResetPassword.tsx +2
 
 Present on every route because it lives in the layouts and in AuthContext. StaffLogin and PartnerLogin also call it deliberately: signing in on the wrong surface signs you back out rather than leaving a half-authorised session. That is the right behaviour and it is untested.
@@ -1217,7 +1218,7 @@ THE MOST CONSEQUENTIAL EMAIL IN THE PRODUCT, and the register was not asking abo
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations, /admin/alerts +76
+- **routes** /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations, /admin/alerts +77
 - **call sites** src/components/admin/dashboard/NotificationLog.tsx, src/hooks/useNotifications.ts
 
 The one notification channel this repo can prove is live: published, no secret required, and RLS verified so a member sees only rows addressed to them. Everything scored `bell` depends on this row being right.
@@ -1243,7 +1244,7 @@ outreach-send-email writes notification_log. Suppression and daily-usage caps ar
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +77
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +78
 - **call sites** src/hooks/useAIAgentHealth.ts, src/hooks/useAIAgents.ts, src/hooks/useAIChat.ts
 
 Split from the gate above: `isabellaGate` proves the hard blocks, not that a prompt saved in this UI reaches the database and is the one she reads. Citing it here would have been the register scoring itself on an adjacent test.
@@ -1503,7 +1504,7 @@ Reaches the dialler, and `telHref()` returns null when the number is unset so a 
 - **who is told** external
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +103
 - **call sites** src/components/admin/media/PublishedPostCard.tsx, src/components/admin/video-hub/ExportArtifactButtons.tsx, src/components/admin/video-hub/VideoPreviewDialog.tsx, src/components/admin/video-hub/VideoProjectsTab.tsx +26
 
 The counterpart to `link:*`, and originally invisible to the scanner: a `tel:` in an href was counted while the same number handed to window.location.href was not. 59 call sites. This is also how the checkout redirect leaves the app, which is why the join→pay goal owns that part and this row does not re-prove it.
@@ -1555,7 +1556,7 @@ Read-only, so nothing to notify. `get_user_role_info` is on the critical path fo
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +103
 - **call sites** src/contexts/AuthContext.tsx
 
 Read-only, so nothing to notify. `get_user_role_info` is on the critical path for every protected route: if it fails, the guard sees no role.
@@ -1594,7 +1595,7 @@ Also missed by the original scanner. Each bucket is used on exactly one admin or
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +77
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +78
 - **call sites** src/hooks/useAgentHandoff.ts, src/hooks/useAIChat.ts
 
 The person who typed is the person watching. No notification owed.
@@ -1828,7 +1829,7 @@ Life-safety data with no notification owed — the member is the actor. What it 
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +89
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +90
 - **call sites** src/components/admin/member-detail/CourtesyCallsCard.tsx, src/components/admin/member-detail/ProfileTab.tsx, src/components/LanguageSelector.tsx, src/pages/admin/AddMemberWizard.tsx +5
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
@@ -1841,7 +1842,7 @@ Life-safety data with no notification owed — the member is the actor. What it 
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations, /admin/alerts +76
+- **routes** /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations, /admin/alerts +77
 - **call sites** src/hooks/useNotifications.ts, src/lib/staffNotify.ts, src/utils/notifications.ts
 
 The one notification channel this repo can prove is live: published, no secret required, and RLS verified so a member sees only rows addressed to them. Everything scored `bell` depends on this row being right.
@@ -2023,7 +2024,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 - **who is told** bell
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /admin/rota
+- **routes** /admin/rota, /call-centre/rota
 - **call sites** src/hooks/useEscalationChain.ts
 
 The existing good pattern: one write path (`notifyUsers`), targeted rows so mark-as-read cannot clear someone else's, and insert errors logged rather than swallowed. No named end-to-end proof yet, so capped at 6 despite being the best-wired workflow here.
@@ -2114,7 +2115,7 @@ The existing good pattern: one write path (`notifyUsers`), targeted rows so mark
 - **who is told** bell
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /admin, /admin/holidays, /admin/rota, /call-centre, /call-centre/alerts, /call-centre/documents +13
+- **routes** /admin, /admin/holidays, /admin/rota, /call-centre, /call-centre/alerts, /call-centre/documents +14
 - **call sites** src/hooks/useShiftCovers.ts, src/hooks/useStaffShifts.ts
 
 The existing good pattern: one write path (`notifyUsers`), targeted rows so mark-as-read cannot clear someone else's, and insert errors logged rather than swallowed. No named end-to-end proof yet, so capped at 6 despite being the best-wired workflow here.
@@ -2218,7 +2219,7 @@ Renders and exports are both published, and the webhook notifies. Unproven.
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +102
+- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +103
 - **call sites** src/components/analytics/PageTracker.tsx
 
 Analytics. Present on every route because PageTracker is mounted in App.tsx, not on any page.
@@ -2231,7 +2232,7 @@ Analytics. Present on every route because PageTracker is mounted in App.tsx, not
 - **who is told** self
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +77
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +78
 - **call sites** src/hooks/useAIAgents.ts
 
 Golden rule 6: the hard-blocked tools (update_user_role, manage_alert escalate/resolve, admit_resident, discharge_resident, toggle_user_status) are unreachable in code, and `src/test/isabellaGate.test.ts` proves that by executing the real gate — including that it FAILS OPEN on a settings error and is suppressed when no row exists. That is a real and important property, and it is NOT this wire: it proves what she may not do, not that an action she may do is executed and recorded. Cited here at first and withdrawn on reading it. The block is proven; the wire is not.
@@ -2283,7 +2284,7 @@ Also missed by the original scanner. Each bucket is used on exactly one admin or
 - **who is told** self
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +77
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +78
 - **call sites** src/components/admin/dashboard/AISalesDesk.tsx, src/hooks/useAIAgents.ts
 
 Golden rule 6: the hard-blocked tools (update_user_role, manage_alert escalate/resolve, admit_resident, discharge_resident, toggle_user_status) are unreachable in code, and `src/test/isabellaGate.test.ts` proves that by executing the real gate — including that it FAILS OPEN on a settings error and is suppressed when no row exists. That is a real and important property, and it is NOT this wire: it proves what she may not do, not that an action she may do is executed and recorded. Cited here at first and withdrawn on reading it. The block is proven; the wire is not.
@@ -2296,7 +2297,7 @@ Golden rule 6: the hard-blocked tools (update_user_role, manage_alert escalate/r
 - **who is told** self
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +77
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +78
 - **call sites** src/hooks/useAIAgents.ts
 
 Split from the gate above: `isabellaGate` proves the hard blocks, not that a prompt saved in this UI reaches the database and is the one she reads. Citing it here would have been the register scoring itself on an adjacent test.
@@ -2309,7 +2310,7 @@ Split from the gate above: `isabellaGate` proves the hard blocks, not that a pro
 - **who is told** self
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +77
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +78
 - **call sites** src/components/admin/ai/AIAvatarUpload.tsx, src/hooks/useAIAgents.ts
 
 Split from the gate above: `isabellaGate` proves the hard blocks, not that a prompt saved in this UI reaches the database and is the one she reads. Citing it here would have been the register scoring itself on an adjacent test.
@@ -2322,7 +2323,7 @@ Split from the gate above: `isabellaGate` proves the hard blocks, not that a pro
 - **who is told** self
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +77
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +78
 - **call sites** src/hooks/useAIAgents.ts
 
 Split from the gate above: `isabellaGate` proves the hard blocks, not that a prompt saved in this UI reaches the database and is the one she reads. Citing it here would have been the register scoring itself on an adjacent test.
@@ -2543,7 +2544,7 @@ The database refuses a `member_action` row without a reason and an actor, which 
 - **who is told** self
 - **failure shown to user** mutation onError
 - **proof** `src/test/checkoutPaymentMethods.test.ts`
-- **routes** /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations, /admin/alerts +58
+- **routes** /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations, /admin/alerts +59
 - **call sites** src/hooks/useAdminIdeas.ts
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. THE PAYMENT-METHOD ROWS ARE THE EXCEPTION TO 'cosmetic': neither checkout function set `payment_method_types`, so STRIPE'S DASHBOARD DEFAULTS decided — and in the EEA those include SEPA Direct Debit, which is ASYNCHRONOUS. Its session completes with `payment_status: "unpaid"` and activation depends on `checkout.session.async_payment_succeeded`; unless the webhook destination is subscribed to that, the customer pays and is NEVER ACTIVATED, with no error anywhere. Card is always offered and cannot be unticked; the three async methods are greyed with the reason until an admin confirms the destination listens, and that acknowledgement is re-applied when the setting is READ as well as when it is written.
@@ -2842,7 +2843,7 @@ OWNED HERE AS OF ITEM 5 — this entry previously read 'out of scope by instruct
 - **who is told** bell
 - **failure shown to user** no
 - **proof** `src/test/inboundMessages.test.ts`
-- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +77
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +78
 - **call sites** src/components/admin/member-detail/MessagesTab.tsx, src/components/call-centre/MessagesPanel.tsx, src/hooks/useAgentHandoff.ts, src/hooks/useAIChat.ts +4
 
 This is the wire the platform gets RIGHT, and it is the model for fixing the lead: the member surface cannot write the staff notification itself, so it calls a server function that verifies ownership and then broadcasts. Both tables are published and both screens subscribe. Failure is shown.

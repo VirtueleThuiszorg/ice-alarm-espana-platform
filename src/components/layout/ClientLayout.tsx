@@ -56,6 +56,7 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { MemberReadinessNotice } from "@/components/client/MemberReadinessNotice";
 import { TextSizeControl } from "@/components/client/TextSizeControl";
 import { useMemberUnread } from "@/hooks/useMemberUnread";
+import { useMemberAlertHistory } from "@/hooks/useMemberAlertHistory";
 
 interface MenuItem {
   icon: React.ElementType;
@@ -91,6 +92,8 @@ export function ClientLayout() {
   // (see ClientDashboard); members keep using their own memberId.
   const memberId = searchParams.get("memberId") ?? authMemberId;
 
+  const { enabled: alertHistoryEnabled } = useMemberAlertHistory();
+
   // Menu structure matching Admin sidebar pattern
   const menuGroups: MenuGroup[] = [
     {
@@ -117,7 +120,21 @@ export function ClientLayout() {
       label: t("navigation.services"),
       items: [
         { icon: Smartphone, label: t("navigation.myDevice"), path: "/dashboard/device" },
-        { icon: Bell, label: t("navigation.alertHistory"), path: "/dashboard/alerts" },
+        /*
+          ALERT HISTORY IS BEHIND A SETTING, and off by default.
+
+          NO ITEM AT ALL when it is off — not a disabled one, and not one that leads to a page
+          that redirects. A nav entry whose destination bounces you back is the dead-control
+          pattern this codebase keeps finding; `AlertHistoryPage`'s guard is the second half of
+          the same rule, for a member who has the URL.
+
+          `enabled` rather than `settled` here: hiding something while the answer is still
+          unknown is safe, because an item that appears a beat late is an item that appears.
+          The route guard is the one that has to wait — see `useMemberAlertHistory`.
+        */
+        ...(alertHistoryEnabled
+          ? [{ icon: Bell, label: t("navigation.alertHistory"), path: "/dashboard/alerts" }]
+          : []),
         {
           icon: MessageSquare,
           label: t("navigation.messages"),

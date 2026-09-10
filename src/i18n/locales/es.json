@@ -5496,7 +5496,12 @@
     "deploymentGuide": "Guía de Despliegue",
     "gpsGatewaySetup": "Instrucciones de Configuración del GPS Gateway",
     "saveDeviceSettings": "Guardar Configuración de Dispositivos",
-    "devicesSaved": "Configuración de dispositivos guardada"
+    "devicesSaved": "Configuración de dispositivos guardada",
+    "members": "Miembros",
+    "memberPortal": "Portal del miembro",
+    "memberPortalDesc": "Lo que se muestra a los miembros de su propia cuenta. Esto cambia únicamente el portal del miembro: las alertas se siguen registrando y escalando, y ninguna vista del personal se ve afectada.",
+    "memberAlertHistory": "Mostrar a los miembros su historial de alertas",
+    "memberAlertHistoryDesc": "Desactivado: sin página de historial de alertas, sin tarjeta de actividad reciente y sin panel de alertas en el portal del miembro. Activado: los miembros pueden consultar las veces que se activó su propia alarma."
   },
   "adminPartners": {
     "title": "Asociados / Afiliados",

@@ -5496,7 +5496,12 @@
     "deploymentGuide": "Deployment Guide",
     "gpsGatewaySetup": "GPS Gateway Setup Instructions",
     "saveDeviceSettings": "Save Device Settings",
-    "devicesSaved": "Device settings saved"
+    "devicesSaved": "Device settings saved",
+    "members": "Members",
+    "memberPortal": "Member portal",
+    "memberPortalDesc": "What members are shown of their own account. These change the member portal only — alerts are still recorded and still escalate, and every staff view is unaffected.",
+    "memberAlertHistory": "Show members their alert history",
+    "memberAlertHistoryDesc": "Off: no Alert History page, no recent-activity card and no alerts tile in the member portal. On: members can read the times their own alarm was raised."
   },
   "adminPartners": {
     "title": "Partners / Affiliates",

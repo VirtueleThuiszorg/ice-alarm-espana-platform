@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MemberPortalSettingsTab } from "@/components/admin/settings/MemberPortalSettingsTab";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -95,7 +96,7 @@ const KEY = {
 // to when it blocks an admin for having no verified TOTP factor. Without it in this
 // list the param is dropped and the tab falls back to "company" — which is how the
 // gate came to redirect somewhere that did not offer enrolment.
-const SETTINGS_TABS = ["company", "pricing", "payments", "communications", "notifications", "devices", "images", "documentation", "security"] as const;
+const SETTINGS_TABS = ["company", "pricing", "payments", "communications", "notifications", "members", "devices", "images", "documentation", "security"] as const;
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -500,6 +501,7 @@ export default function SettingsPage() {
           <TabsTrigger value="payments">{t("adminSettings.payments", "Payments")}</TabsTrigger>
           <TabsTrigger value="communications">{t("adminSettings.communications", "Communications")}</TabsTrigger>
           <TabsTrigger value="notifications">{t("adminSettings.notifications", "Notifications")}</TabsTrigger>
+          <TabsTrigger value="members">{t("adminSettings.members", "Members")}</TabsTrigger>
           <TabsTrigger value="devices">{t("adminSettings.devices", "Devices")}</TabsTrigger>
           <TabsTrigger value="images">{t("adminSettings.images", "Images")}</TabsTrigger>
           <TabsTrigger value="documentation">{t("adminSettings.documentation", "Docs")}</TabsTrigger>
@@ -1033,6 +1035,14 @@ export default function SettingsPage() {
         </TabsContent>
 
         {/* Devices Tab */}
+        {/*
+          MEMBERS — what the member portal shows of a member's own account. Display only: it
+          changes no policy, records no alert differently and hides nothing from staff.
+        */}
+        <TabsContent value="members" className="space-y-6">
+          <MemberPortalSettingsTab />
+        </TabsContent>
+
         <TabsContent value="devices">
           <DevicesSettingsTab isSaving={saveMutation.isPending} />
         </TabsContent>

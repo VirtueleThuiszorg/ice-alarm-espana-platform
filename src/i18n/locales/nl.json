@@ -5496,7 +5496,12 @@
     "deploymentGuide": "Deployment Guide",
     "gpsGatewaySetup": "GPS Gateway Setup Instructions",
     "saveDeviceSettings": "Save Device Settings",
-    "devicesSaved": "Device settings saved"
+    "devicesSaved": "Device settings saved",
+    "members": "Leden",
+    "memberPortal": "Ledenportaal",
+    "memberPortalDesc": "Wat leden van hun eigen account te zien krijgen. Dit verandert alleen het ledenportaal: meldingen worden nog steeds vastgelegd en geëscaleerd, en geen enkele medewerkersweergave wordt beïnvloed.",
+    "memberAlertHistory": "Leden hun meldingsgeschiedenis laten zien",
+    "memberAlertHistoryDesc": "Uit: geen pagina met meldingsgeschiedenis, geen kaart met recente activiteit en geen meldingentegel in het ledenportaal. Aan: leden kunnen nalezen wanneer hun eigen alarm is afgegaan."
   },
   "adminPartners": {
     "title": "Partners / Affiliates",

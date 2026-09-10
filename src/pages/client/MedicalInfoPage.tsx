@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { AlertTriangle, Edit, Home, Loader2, Plus, Save, X } from "lucide-react";
+import { AlertTriangle, Home, Loader2 } from "lucide-react";
+import { EditableCard } from "@/components/EditableCard";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { functionError } from "@/lib/functionError";
@@ -15,6 +15,7 @@ import {
   LockedValue,
   MedicalFieldRow,
 } from "@/components/client/MedicalFieldRow";
+import type { MedicalSection } from "@/lib/medicalFields";
 import {
   MEDICAL_FIELDS,
   MEDICAL_SECTIONS,
@@ -52,14 +53,45 @@ function emptyValues(): Values {
   return v;
 }
 
+/**
+ * Has this field changed? One comparison, used by both the dirty check that drives the
+ * unsaved-changes warning and the re-seeding that adopts a fresh read.
+ *
+ * Lists compare element by element: `["Penicillin"] !== ["Penicillin"]` by identity, and a
+ * dirty check on identity would mark every list field changed on every render — which would put
+ * the discard dialog in front of a member who had typed nothing.
+ */
+function sameValue(a: Scalar | string[] | undefined, b: Scalar | string[] | undefined): boolean {
+  const av = a ?? "";
+  const bv = b ?? "";
+  if (Array.isArray(av) || Array.isArray(bv)) {
+    const al = Array.isArray(av) ? av : [];
+    const bl = Array.isArray(bv) ? bv : [];
+    return al.length === bl.length && al.every((x, i) => x === bl[i]);
+  }
+  return av === bv;
+}
+
 export default function MedicalInfoPage() {
   const { t } = useTranslation();
   const { memberId } = useAuth();
   const { data: medicalInfo, isLoading } = useMedicalInfo();
   const queryClient = useQueryClient();
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  /*
+    ONE DRAFT, AND A SAVE THAT ONLY CARRIES ITS OWN CARD.
+
+    R6 asks for Edit per section, which means two cards can be open at once — and the write this
+    page makes sends every one of the sixteen columns (an omitted column is indistinguishable
+    from a cleared one, see `onSave`). So a naive per-card save would post the OTHER open card's
+    unsaved draft as well: a member who typed a new doctor into one card and then saved their
+    allergies in another would have silently saved both.
+
+    `saveSection` therefore builds its payload from the RECORD, overridden only by the columns
+    belonging to the section being saved. `dirtyColumns` and `cancelSection` are scoped the
+    same way, so Cancel on one card cannot discard another card's typing.
+  */
+  const [isSavingSection, setIsSavingSection] = useState<string | null>(null);
   const [values, setValues] = useState<Values>(emptyValues);
 
   /**
@@ -93,30 +125,75 @@ export default function MedicalInfoPage() {
     return v;
   }, [medicalInfo]);
 
-  // Outside edit mode the form mirrors the record, so a save elsewhere is reflected here rather
-  // than leaving a stale draft on screen.
-  useEffect(() => {
-    if (!isEditing) setValues(fromRecord);
-  }, [fromRecord, isEditing]);
+  /*
+    THE RECORD FLOWS INTO THE DRAFT, and the draft is keyed to the record it came from.
 
-  const onSave = async () => {
-    if (!memberId) return;
-    setIsSaving(true);
+    It was `if (!isEditing) setValues(fromRecord)` — safe while ONE button governed the page,
+    and wrong now that cards open independently: with any card open, a save on another card
+    invalidates the query, the record changes underneath, and this effect would have refused to
+    take the new values in. Comparing against the record the draft was seeded from means a
+    fresh read is always adopted for the fields nobody is editing, while a field somebody IS
+    typing into is never yanked out from under them — `dirtyColumns` is what protects those.
+  */
+  const [seededFrom, setSeededFrom] = useState<Values | null>(null);
+  useEffect(() => {
+    if (seededFrom === fromRecord) return;
+    setSeededFrom(fromRecord);
+    setValues((prev) => {
+      const next = { ...fromRecord };
+      // Keep whatever the member has typed and not saved; take the record for everything else.
+      for (const f of MEDICAL_FIELDS) {
+        if (!sameValue(prev[f.column], (seededFrom ?? emptyValues())[f.column])) {
+          next[f.column] = prev[f.column];
+        }
+      }
+      return next;
+    });
+  }, [fromRecord, seededFrom]);
+
+  /** The columns of one section whose draft differs from the record. */
+  const dirtyColumns = (section: MedicalSection): string[] =>
+    section.fields
+      .map((f) => f.column)
+      .filter((col) => !sameValue(values[col], fromRecord[col]));
+
+  const cancelSection = (section: MedicalSection) => {
+    // Only this card's columns. Another open card's typing is not this Cancel's business.
+    setValues((prev) => {
+      const next = { ...prev };
+      for (const f of section.fields) next[f.column] = fromRecord[f.column];
+      return next;
+    });
+  };
+
+  /**
+   * Save ONE card.
+   *
+   * Returns whether the write happened: `EditableCard` re-locks on true and stays open on
+   * false, so a member whose save was refused still has what they typed in front of them.
+   */
+  const saveSection = async (section: MedicalSection): Promise<boolean> => {
+    if (!memberId) return false;
+    setIsSavingSection(section.key);
     try {
       /*
         EVERY field is sent, and an empty one is sent as NULL rather than omitted. Omitting it
         would make "I cleared this" indistinguishable from "I did not touch it", and the member
         who deletes a medication they no longer take needs it gone from what the operator reads.
+
+        The VALUES, though, come from the record for every column outside this card. That is
+        what keeps a second open card's unsaved draft out of this write — see `isSavingSection`.
       */
+      const own = new Set(section.fields.map((f) => f.column));
       const payload: Record<string, unknown> = {};
       for (const f of MEDICAL_FIELDS) {
-        const v = values[f.column];
+        const v = own.has(f.column) ? values[f.column] : fromRecord[f.column];
         if (f.kind === "list") {
           const list = (v as string[]) ?? [];
           payload[f.column] = list.length > 0 ? list : null;
         } else {
-          const s = ((v as string) ?? "").trim();
-          payload[f.column] = s.length > 0 ? s : null;
+          const str = ((v as string) ?? "").trim();
+          payload[f.column] = str.length > 0 ? str : null;
         }
       }
 
@@ -132,12 +209,13 @@ export default function MedicalInfoPage() {
 
       queryClient.invalidateQueries({ queryKey: ["medical-info"] });
       toast.success(t("common.success"));
-      setIsEditing(false);
+      return true;
     } catch (e) {
       console.error("Error saving medical info:", e);
       toast.error(t("common.error"));
+      return false;
     } finally {
-      setIsSaving(false);
+      setIsSavingSection(null);
     }
   };
 
@@ -157,30 +235,15 @@ export default function MedicalInfoPage() {
           "medical.subtitle",
           "This is exactly what an operator sees the moment you press your pendant.",
         )}
-        action={
-          isEditing ? (
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>
-                <X className="mr-2 h-4 w-4" />
-                {t("common.cancel", "Cancel")}
-              </Button>
-              <Button onClick={onSave} disabled={isSaving} data-testid="medical-save">
-                {isSaving ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="mr-2 h-4 w-4" />
-                )}
-                {t("common.save", "Save")}
-              </Button>
-            </div>
-          ) : (
-            <Button onClick={() => setIsEditing(true)} data-testid="medical-edit">
-              {medicalInfo ? <Edit className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
-              {medicalInfo ? t("common.edit", "Edit") : t("common.add", "Add")}
-            </Button>
-          )
-        }
       />
+      {/*
+        NO PAGE-LEVEL EDIT BUTTON ANY MORE. R6: *"Edit per section, then Save."*
+
+        One button unlocked all sixteen fields in five cards, which meant a member fixing a
+        typo in their doctor's phone number had their allergies, their blood group and their
+        mobility live at the same time. Each card now carries its own Edit/Save/Cancel, and the
+        page's single action slot is free for the one thing a page-level action should be.
+      */}
 
       {/*
         R2: brand red is never a status. This is a notice about who reads the page, not an alert,
@@ -203,28 +266,47 @@ export default function MedicalInfoPage() {
         </CardContent>
       </Card>
 
-      {MEDICAL_SECTIONS.map((section) => (
-        <Card key={section.key} data-testid={`medical-section-${section.key}`}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">{t(section.title.key, section.title.fallback)}</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-5 md:grid-cols-2">
-            {section.fields.map((field) => (
-              <div
-                key={field.column}
-                className={field.kind === "textarea" ? "md:col-span-2" : undefined}
-              >
-                <MedicalFieldRow
-                  field={field}
-                  isEditing={isEditing}
-                  value={values[field.column] ?? (field.kind === "list" ? [] : "")}
-                  onChange={(v) => setValues((prev) => ({ ...prev, [field.column]: v }))}
-                />
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      ))}
+      {MEDICAL_SECTIONS.map((section) => {
+        const dirty = dirtyColumns(section);
+        // "Add" rather than "Edit" when the card holds nothing: a member with no allergies on
+        // file is not editing them, and "Edit" over five "Not added"s reads as a mistake.
+        const sectionEmpty = section.fields.every((f) =>
+          sameValue(fromRecord[f.column], f.kind === "list" ? [] : ""),
+        );
+        return (
+          <EditableCard
+            key={section.key}
+            testId={`medical-section-${section.key}`}
+            title={<span className="text-lg">{t(section.title.key, section.title.fallback)}</span>}
+            isDirty={dirty.length > 0}
+            saving={isSavingSection === section.key}
+            emptyState={sectionEmpty}
+            onSave={() => saveSection(section)}
+            onCancel={() => cancelSection(section)}
+            /*
+              NO `fieldset disabled` HERE. The fields already render as plain text when locked
+              (`MedicalFieldRow` reads the card's lock), and a disabled fieldset around text is
+              a group a screen reader announces as unavailable for no reason.
+            */
+            disableFieldsWhenLocked={false}
+          >
+            <div className="grid gap-5 md:grid-cols-2">
+              {section.fields.map((field) => (
+                <div
+                  key={field.column}
+                  className={field.kind === "textarea" ? "md:col-span-2" : undefined}
+                >
+                  <MedicalFieldRow
+                    field={field}
+                    value={values[field.column] ?? (field.kind === "list" ? [] : "")}
+                    onChange={(v) => setValues((prev) => ({ ...prev, [field.column]: v }))}
+                  />
+                </div>
+              ))}
+            </div>
+          </EditableCard>
+        );
+      })}
 
       {/*
         GETTING INTO YOUR HOME — a different table, and read-only by RLS rather than by choice.

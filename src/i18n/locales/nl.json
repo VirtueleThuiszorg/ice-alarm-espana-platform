@@ -608,7 +608,8 @@
     "change": "Wijzigen",
     "hide": "Verbergen",
     "show": "Tonen",
-    "remove": "Verwijderen"
+    "remove": "Verwijderen",
+    "notAdded": "Niet toegevoegd"
   },
   "auth": {
     "login": "Inloggen",
@@ -1132,7 +1133,6 @@
     "additionalNotes": "Additional Notes",
     "notesPlaceholder": "Any other important medical information...",
     "noneRecorded": "None recorded",
-    "notAdded": "Niet toegevoegd",
     "chooseBloodType": "Kies",
     "section": {
       "conditions": "Aandoeningen en medicatie",

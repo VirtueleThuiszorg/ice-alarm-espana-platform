@@ -38,6 +38,7 @@ import {
 } from "@/lib/allocatePendant";
 import { FULFILMENT_LABEL } from "@/lib/fulfilmentState";
 import { PendantFulfilmentCard } from "@/components/admin/member-detail/PendantFulfilmentCard";
+import { EditableCard } from "@/components/EditableCard";
 
 interface Device {
   id: string;
@@ -338,12 +339,14 @@ export function DeviceTab({ memberId }: DeviceTabProps) {
 
   if (!device) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>EV-07B Device</CardTitle>
-          <CardDescription>No EV-07B pendant assigned to this member.</CardDescription>
-        </CardHeader>
-        <CardContent className="text-center py-8">
+      <EditableCard
+        testId="device-assign-card"
+        mode="manage"
+        title="EV-07B Device"
+        description="No EV-07B pendant assigned to this member."
+        manageHint="Press Edit to assign a pendant from stock."
+      >
+        <div className="text-center py-8">
           <Smartphone className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
           <p className="text-muted-foreground mb-4">
             This member is currently using phone-only service.
@@ -388,8 +391,8 @@ export function DeviceTab({ memberId }: DeviceTabProps) {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </CardContent>
-      </Card>
+        </div>
+      </EditableCard>
     );
   }
 
@@ -408,12 +411,18 @@ export function DeviceTab({ memberId }: DeviceTabProps) {
       */}
       <PendantFulfilmentCard memberId={memberId} />
 
-      {/* Status Timeline */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Device Workflow Status</CardTitle>
-        </CardHeader>
-        <CardContent>
+      {/*
+        THE THREE MARK BUTTONS ARE WRITES, and two of them move a member's protection: "Mark
+        Live" is what says the pendant is in service, "Mark Faulty" takes it off the member
+        entirely and clears has_pendant. Armed by Edit, like everything else on this record.
+      */}
+      <EditableCard
+        testId="device-workflow-card"
+        mode="manage"
+        title={<span className="text-sm font-medium">Device Workflow Status</span>}
+        manageHint="Press Edit to mark the pendant collected, live or faulty."
+      >
+        <div>
           <div className="flex items-center justify-between mb-4">
             {/* Step 1: Allocated */}
             <div className="flex flex-col items-center flex-1">
@@ -461,8 +470,8 @@ export function DeviceTab({ memberId }: DeviceTabProps) {
               </Button>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </EditableCard>
 
       {/* Provisioning Status */}
       {device.management_mode !== "api" && (
@@ -508,16 +517,19 @@ export function DeviceTab({ memberId }: DeviceTabProps) {
       )}
 
       {/* Device Info Card */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Smartphone className="h-5 w-5" />
-              EV-07B Pendant
-            </CardTitle>
-            <CardDescription>Device assigned to this member</CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
+      <EditableCard
+        testId="device-details-card"
+        mode="manage"
+        title={
+          <span className="flex items-center gap-2">
+            <Smartphone className="h-5 w-5" />
+            EV-07B Pendant
+          </span>
+        }
+        description="Device assigned to this member"
+        manageHint="Press Edit to unassign this pendant. SMS commands and the device page open either way."
+        headerExtra={
+          <div className="flex flex-wrap items-center gap-2 pt-2">
             {/* Online/Offline status with check-in time */}
             {device.is_online ? (
               <Badge variant="default" className="bg-green-600">
@@ -537,8 +549,9 @@ export function DeviceTab({ memberId }: DeviceTabProps) {
               {device.status.replace("_", " ")}
             </Badge>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
+        }
+      >
+        <div className="space-y-6">
           {/* Offline warning */}
           {!device.is_online && device.offline_since && (
             <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
@@ -614,8 +627,8 @@ export function DeviceTab({ memberId }: DeviceTabProps) {
               Unassign Device
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </EditableCard>
 
       {/* Location Card */}
       {device.last_location_lat && device.last_location_lng && (

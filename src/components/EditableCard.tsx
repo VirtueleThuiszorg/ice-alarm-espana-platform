@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Lock, Pencil, Save, X } from "lucide-react";
+import { Check, Loader2, Lock, Pencil, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -108,13 +108,42 @@ interface EditableCardLocked extends EditableCardBase {
   saving?: never;
 }
 
-export type EditableCardProps = EditableCardForm | EditableCardLocked;
+/**
+ * A card whose ROWS commit themselves — a list, not a form.
+ *
+ * Contacts, notes, tasks and devices are edited one row at a time, each through its own dialog
+ * or its own button, and each write lands the moment it is made. There is nothing to batch and
+ * nothing to cancel, so a `Save` here would be a button that saves nothing — the same lie as an
+ * `Edit` that unlocks nothing.
+ *
+ * WHAT THE LOCK IS FOR HERE is not batching a write. It is that "Add contact", "Delete note"
+ * and "Unassign pendant" are one stray click away on a screen somebody is reading down the
+ * phone, and deleting a member's only emergency contact by accident is a life-safety event
+ * rather than a typo. Edit ARMS those controls; Done disarms them.
+ */
+interface EditableCardManage extends EditableCardBase {
+  mode: "manage";
+  /** Named so the reader knows what pressing Edit is for. Shown while locked. */
+  manageHint?: ReactNode;
+  onEditStart?: () => void;
+  /** Called when the operator presses Done. Nothing is pending, so this is a refresh hook. */
+  onDone?: () => void;
+  onSave?: never;
+  onCancel?: never;
+  isDirty?: never;
+  saving?: never;
+  lockedReason?: never;
+}
+
+export type EditableCardProps = EditableCardForm | EditableCardLocked | EditableCardManage;
 
 export function EditableCard(props: EditableCardProps) {
   const { title, description, headerExtra, children, testId } = props;
   const locked = props.mode === "locked";
-  const isDirty = locked ? false : (props.isDirty ?? false);
-  const saving = locked ? false : (props.saving ?? false);
+  const manage = props.mode === "manage";
+  // A managed list has nothing pending: every row wrote itself when it was changed.
+  const isDirty = props.mode === "form" || props.mode === undefined ? (props.isDirty ?? false) : false;
+  const saving = props.mode === "form" || props.mode === undefined ? (props.saving ?? false) : false;
   const { t } = useTranslation();
   const [wantsEdit, setWantsEdit] = useState(false);
   /*
@@ -158,7 +187,8 @@ export function EditableCard(props: EditableCardProps) {
 
   const leaveEditing = () => {
     setWantsEdit(false);
-    if (props.mode !== "locked") props.onCancel?.();
+    if (props.mode === "manage") props.onDone?.();
+    else if (props.mode !== "locked") props.onCancel?.();
   };
 
   const requestCancel = () => {
@@ -200,6 +230,14 @@ export function EditableCard(props: EditableCardProps) {
                 {props.lockedReason}
               </p>
             ) : null}
+            {manage && !editing && props.manageHint ? (
+              <p
+                className="text-[0.8125rem] text-muted-foreground"
+                data-testid={testId ? `${testId}-manage-hint` : undefined}
+              >
+                {props.manageHint}
+              </p>
+            ) : null}
             {headerExtra}
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -207,7 +245,21 @@ export function EditableCard(props: EditableCardProps) {
               NO EDIT BUTTON AT ALL in locked mode. A disabled one would still be a button
               somebody presses, twice, wondering what is wrong with it.
             */}
-            {locked ? null : editing ? (
+            {locked ? null : editing && manage ? (
+              /*
+                ONE BUTTON, AND IT SAYS DONE. There is nothing to save (each row already wrote
+                itself) and nothing to cancel, so a Save/Cancel pair here would be two controls
+                that do not do what they say.
+              */
+              <Button
+                size="sm"
+                onClick={leaveEditing}
+                data-testid={testId ? `${testId}-done` : undefined}
+              >
+                <Check className="mr-2 h-4 w-4" />
+                {t("common.done", "Done")}
+              </Button>
+            ) : editing ? (
               <>
                 <Button
                   variant="outline"

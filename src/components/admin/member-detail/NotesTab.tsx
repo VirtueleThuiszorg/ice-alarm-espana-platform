@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EditableCard } from "@/components/EditableCard";
 import {
   Dialog,
   DialogContent,
@@ -248,12 +248,44 @@ export function NotesTab({ memberId }: NotesTabProps) {
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>CRM Notes</CardTitle>
-          <CardDescription>Internal notes and follow-ups for this member</CardDescription>
+    <EditableCard
+      testId="notes-card"
+      mode="manage"
+      title="CRM Notes"
+      description="Internal notes and follow-ups for this member"
+      manageHint="Press Edit to add, change, pin or delete a note. Searching and filtering work either way."
+      headerExtra={
+        /*
+          THE SEARCH AND THE FILTER STAY OUTSIDE THE FIELDSET. They read; they change nothing.
+          Inside, a disabled fieldset would make a locked card unsearchable, which punishes the
+          commonest thing anybody does here — finding the note about the daughter's number.
+        */
+        <div className="flex flex-col gap-2 pt-2 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search notes..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+              aria-label="Search notes"
+            />
+          </div>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[150px]" aria-label="Filter by type">
+              <SelectValue placeholder="Filter by type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              {Object.entries(noteTypeConfig).map(([key, config]) => (
+                <SelectItem key={key} value={key}>{config.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+      }
+    >
+      <div className="space-y-4">
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={openAddDialog}>
@@ -369,31 +401,7 @@ export function NotesTab({ memberId }: NotesTabProps) {
             </Form>
           </DialogContent>
         </Dialog>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search notes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Filter by type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              {Object.entries(noteTypeConfig).map(([key, config]) => (
-                <SelectItem key={key} value={key}>{config.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+
 
         {/* Pinned Notes */}
         {pinnedNotes.length > 0 && (
@@ -436,8 +444,8 @@ export function NotesTab({ memberId }: NotesTabProps) {
             ))
           )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </EditableCard>
   );
 }
 

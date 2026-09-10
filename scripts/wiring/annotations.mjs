@@ -359,33 +359,37 @@ export const FAMILIES = [
   },
   {
     wires: ["fn:send-email"],
-    control: "Billing reminder emails (useBillingReminders)",
-    promise: "a member behind on payment is reminded before anything is cut off",
-    dest: "send-email edge function → Resend",
+    control: "Email a member from their record (MemberQuickContact); billing reminder emails (useBillingReminders)",
+    promise: "an operator can email the member from the record, and it is on their history afterwards",
+    dest: "send-email edge function → Resend; a member_interactions row either way",
     told: "email",
-    dead: true,
     proof: null,
     note:
-      "`src/hooks/useBillingReminders.ts` is imported by NOTHING except a test — no page, no " +
-      "layout, no other hook, and there is no server-side twin (no cron, no migration, no edge " +
-      "function that sends billing reminders). The hook is unreachable, so no billing reminder " +
-      "has ever been sent from this app. Reported, not fixed: whether members should be chased " +
-      "automatically is a business decision, and it touches billing.",
+      "NO LONGER DEAD ON THE FIRST HALF. The Messages tab's Email button was " +
+      "`toast.info(\"Email integration coming soon\")` and now calls this function with " +
+      "`module: member` and the member as the related entity, logging the result. " +
+      "THE SECOND HALF IS STILL DEAD: `src/hooks/useBillingReminders.ts` is imported by nothing " +
+      "except a test — no page, no layout, no other hook — and there is no server-side twin (no " +
+      "cron, no migration, no edge function that sends billing reminders), so no billing " +
+      "reminder has ever been sent from this app. Reported, not fixed: whether members are " +
+      "chased automatically is a business decision, and it touches billing.",
   },
   {
     wires: ["table:member_interactions"],
-    control: "Communication log — every logSms / logCall / logWhatsApp / logEmail / logPaymentReceived helper",
+    control: "Communication log — the SMS / WhatsApp / Email / Log Call controls on the member record (MemberQuickContact), through logSms / logWhatsApp / logEmail / logInteraction",
     promise: "a member's contact history is on their record",
-    dest: "member_interactions",
-    told: "nobody",
-    dead: true,
+    dest: "member_interactions — read by ActivityTab and by the call-centre alert panel",
+    told: "screen",
     proof: null,
     note:
-      "`src/lib/communicationLogger.ts` exports ten log functions and is imported by nothing. " +
-      "Meanwhile `ActivityTab.tsx` (member detail) and `AlertDetailPanel.tsx` (call centre) both " +
-      "READ member_interactions — two screens that can only ever be empty, with no hint that the " +
-      "writer was never wired up. Reported, not fixed: choosing which events deserve a log row is " +
-      "a product decision, and one of the readers is on the alert path.",
+      "NOT DEAD ANY MORE, and the fix was the same change that fixed the four controls. " +
+      "`src/lib/communicationLogger.ts` exported ten log functions and was imported by NOTHING, " +
+      "while `ActivityTab.tsx` and `AlertDetailPanel.tsx` both READ member_interactions — two " +
+      "screens that could only ever be empty, with no hint that the writer had never been wired " +
+      "up. `MemberQuickContact` is its first caller: every text, WhatsApp handoff, email and " +
+      "logged call from the record now writes a row those two screens can show. " +
+      "STILL UNWIRED: the alert, payment, profile and device helpers in the same module. Which " +
+      "events deserve a row is a product decision, and one of those readers is on the alert path.",
   },
 
   // ───────────────────────── the SOS / alert path ──────────────────────────

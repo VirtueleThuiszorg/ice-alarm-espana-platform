@@ -33,6 +33,113 @@ What did **not** change: golden rules 1–10 in `CLAUDE.md`, and **never merge r
 moved; the standard for what may merge did not. Green is now the only gate, which is why the CI
 gates were split one-per-job the same day (below).
 
+## Rota, shifts and holidays — 2026-09-10 · **five items on main, the sixth built and held by a gate**
+
+Lee's brief: *"Staff see and manage their own shifts; supervisors control everyone's; holiday
+balances correct and Spanish-law compliant."* Seven PRs merged, one open (#306), one per
+concern. Every claim below names what presses it.
+
+### What is now true
+
+- ✅ **"My shifts" exists for every staff role** (#289, `/call-centre/my-shifts`). Four tabs then
+  five: Upcoming (8 weeks, hours from `SHIFT_BOUNDS`, cover labels), Past (month picker back to
+  the rota's first day, `is_confirmed` + `shift_notes` as evidence), Holidays (own rows +
+  balance) and Bank holidays — the fifth, Requests, arrives with #306. Proven by
+  `myShiftsPage.test.tsx`,
+  `shiftSummary.test.ts` and `e2e/myShifts.spec.ts`.
+  **The Past tab never says a shift was "worked"** — the platform holds no attendance record
+  (`staff_presence` is one upserted row describing now; `staff_activity_log` is admin-only), so a
+  shift with neither confirmation nor notes is shown as exactly that. Overstating it would put a
+  number nobody can support in front of a payroll conversation.
+- ✅ **A supervisor can reach the rota** (#288). `/call-centre/rota` mounts the SAME
+  `pages/admin/RotaPage` component — a role gate and `return <AdminRotaPage />`, not a copy — with
+  every editing control live. RLS had said for months that a `call_centre_supervisor` runs the
+  rota; the only rota screen was admin-only, so Mary could not reach what the database already
+  granted her. `rotaAccess.test.tsx` (24 cases) drives the gate from the constant and asserts
+  "same page, not a copy".
+- ✅ **The SOS escalation chain stayed admin-only** (#288). It is not the rota: it is the ladder
+  `sos-escalation-runner` reads to decide who is telephoned when an alert goes unanswered.
+  Widening who may edit it is a change to the SOS path and was not what "give Mary the rota"
+  asked for, so the row and its dialog are hidden AND the query is not run for a supervisor.
+- ✅ **A supervisor sees personnel** (#298, #300). Rota filter by person — which deliberately does
+  NOT filter the coverage banner, because a false "uncovered" caused by somebody's own filter is
+  the fastest way to teach people to ignore the one banner that means a shift has nobody on it.
+  A "who is on now / next" strip on the supervisor dashboard, built on the escalation ladder's own
+  `staff_on_shift_now` + `staff_presence` reads rather than a fork, showing SCHEDULED, ON DUTY and
+  PRESENT as three separate statements — a single green tick would read as covered at the moment
+  `staff-shift-monitor` is raising a no-show. Holiday approvals link each uncovered shift to the
+  cover picker.
+- ⬜ **Swaps and cover — BUILT, PROVEN, NOT MERGED** (PR #306, rota brief §3, open). This is the
+  one item not on `main`, and it is held by a gate rather than by a defect. `staff_shift_swaps`
+  had a table, six statuses and RLS since the rota landed, and no UI and no apply step. The PR
+  adds: ask from the shift itself, answer in My shifts → Requests, approve on the rota;
+  `apply_shift_swap` moving both shifts and writing the cover rows and the audit row in ONE
+  transaction (a half-applied swap puts two people on one slot and nobody on another, and the
+  shift monitor agrees with it); the bell written by a database trigger, because an operator
+  cannot call `notify-staff` at all.
+  Green: tests, lint, type check, build, wiring register, security audit, and 558 RLS assertions
+  locally. Red: the **migration drift gate**, which refuses to stack its two migrations on top of
+  the unapplied backfill — *"Merge that first, then this."* That is the gate working, so the PR
+  waits. See PENDING_FOR_LEE §1.
+  Two bugs worth keeping on the record, both found by execution rather than reading: an assertion
+  written as `apply_as(...) = X AND (SELECT staff_id ...) = Y` evaluated its reads BEFORE the
+  apply (SQL does not promise left-to-right AND), and the bell called every swap request "cover"
+  because both triggers read `offered_shift_id`, which is NULL until the counterparty answers.
+- ✅ **Holiday entitlement is 30 días naturales** (ET art. 38.1), and the legal rules are
+  SETTINGS, not code (#295): pro-rata only for a start date inside the year, festivos-inside-a-
+  range default OFF with "confirm with convenio" on the screen, a warning on approving inside two
+  months (art. 38.3 — 59 days warns, 60 does not), carry-over off with the sickness exception as
+  a note. **No pay-out control anywhere**, and a test forbids the phrase outside comments: art.
+  38.1 makes vacaciones non-substitutable by money.
+
+### ⬜ NOT live, and why — the one honest gap
+
+The **2026 holiday backfill** (`20260910120000`, #292) has never been applied. The rota seed
+imported holidays only from 2026-09-10, so production still shows Mary 4 / Carmen 9 / Albert 4
+days used where the sheet says 18 / 28 / 16.
+
+The migration is written, idempotent, rehearsed against a real PostgreSQL 16 in four scenarios,
+and carries a runtime assertion that fails the migration if the resulting counts are not
+`asoares=12, cnicolas=19, mbonner=14` pre-cut. Every range is re-derived from
+`docs/rota/rota_2026_clean.csv` by `holidayBackfill2026.test.ts`, so the numbers in the migration
+cannot drift from the sheet.
+
+It is blocked on **one endpoint, not a dead credential** — and the first version of this
+paragraph got that wrong. `SUPABASE_ACCESS_TOKEN` is rejected by `supabase link`
+("Authorization failed for the access token and project ref pair"), while the SAME token and the
+SAME project ref deployed every edge function to production 46 minutes later in run #6. So the
+token is live and the account reaches the project; what is refused is the privilege
+`supabase link` needs. Corrected diagnosis and the two candidate fixes: PENDING_FOR_LEE §1.
+
+Worth knowing when reading that workflow's history: runs #4, #5 and #6 are all green and none of
+them migrated anything — their Apply-migrations job was *skipped*, because those pushes touched
+no migration file. **A green Migrate Production run is not evidence that migrating works.**
+
+The same credential is why **two CI jobs are red on `main`**: the migration drift gate (any
+pending migration fails it there — production legitimately trails `main`) and "Manifest matches
+production", whose link step is the thing that cannot authenticate. Neither can go green from
+inside a session. On a PR the two behave differently and it is worth knowing which: "Manifest
+matches production" does not run at all, and the drift gate passes with a warning **unless** the
+PR adds a migration of its own — which is what is holding #306.
+
+**So the balances are rehearsed, not live.** They become live on the first successful
+`Migrate Production` run after the token is replaced, and the migration's own assertion is what
+will confirm it rather than a person reading a screen.
+
+### Follow-ups, recorded rather than done
+
+- **The RLS harness skips pg_net migrations**, so `20260909130000` (lead emit) and
+  `20260910130100` (swap emit) are never applied by any gate. Applying them with only the
+  `CREATE EXTENSION` line stripped works — bootstrap.sql already stubs `net.http_post` and
+  `vault.decrypted_secrets` — and doing it by hand is how a real bug in the swap emit was found
+  (it titled every swap request "cover"). Making the harness do that would have caught it in CI.
+- `hire_date` is missing for the four operators, so pro-rata cannot be computed for anybody who
+  started mid-year (PENDING_FOR_LEE D-16).
+- The two convenio questions — do festivos inside a holiday range count against vacaciones, and
+  is carry-over allowed — are settings with defaults and notes, awaiting Lee's answer.
+
+---
+
 ## CI — 2026-09-09 · **one gate per job; a missing secret fails**
 
 Four gates shared one job — drift, wiring register, typecheck, build, in that order. A failing step

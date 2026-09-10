@@ -1509,7 +1509,7 @@ mailto: leaves the platform entirely — nothing is recorded and nothing can be.
 - **who is told** external
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /admin, /admin/leads, /admin/members/:id, /admin/messages, /admin/tasks +18
+- **routes** /, /admin, /admin/leads, /admin/members/:id, /admin/messages, /admin/tasks +22
 - **call sites** src/components/call-centre/AlertDetailPanel.tsx, src/components/call-centre/DeviceOfflineAlertsCard.tsx, src/components/call-centre/MemberQuickSearch.tsx, src/components/call-centre/PendantLiveStatusModal.tsx +15
 
 Reaches the dialler, and `telHref()` returns null when the number is unset so a “Call us” card with no number in it is not rendered — the right failure. Nothing is recorded: a call placed this way leaves no interaction row (see table:member_interactions, whose logger is dead code), so the platform cannot say a member was ever phoned. On the SOS path the brief already calls for replacing tel: with the Twilio conference; that is Lee's gate, not this goal.

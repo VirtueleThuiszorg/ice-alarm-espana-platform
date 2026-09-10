@@ -1459,7 +1459,6 @@
     "updateContacts": "Actualizar contactos",
     "announcement": "Anuncio de servicio",
     "deviceWorking": "Su colgante está funcionando correctamente",
-    "contactIceAlarm": "Contactar ICE Alarm España",
     "alertsLast30Days": "Alertas (30 días)",
     "batteryLevel": "Batería",
     "deviceStatus": "Dispositivo",
@@ -1500,7 +1499,9 @@
     },
     "recentActivity": "Actividad reciente",
     "noAlerts": "Sin avisos. No ha pasado nada, que es de lo que se trata.",
-    "viewAllAlerts": "Ver su historial de avisos"
+    "viewAllAlerts": "Ver su historial de avisos",
+    "twentyFourHourLine": "Línea 24 horas",
+    "callTwentyFourHour": "Llame a nuestra línea de 24 horas: {{number}}"
   },
   "phoneOnly": {
     "yourCurrentService": "Su servicio actual",

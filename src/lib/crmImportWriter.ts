@@ -30,7 +30,7 @@
  * The rule here is the opposite: a row that cannot be represented honestly does not become a
  * member. It becomes a CRM contact with the reason attached, which is a thing a human can fix.
  */
-import type { MappedRow } from "./iceCrmImport";
+import type { EmailOwner, MappedRow } from "./iceCrmImport";
 
 /* ------------------------------------------------------------------ *
  * The plan
@@ -41,7 +41,10 @@ export type RowOutcome = "member" | "crm_contact" | "skip";
 export interface MemberInsert {
   first_name: string;
   last_name: string;
-  email: string;
+  /** Nullable since 20260910170000. Most legacy clients have no address at all. */
+  email: string | null;
+  /** Whose address it is. Only `member` is unique-constrained, and only `member` can log in. */
+  email_owner: EmailOwner;
   phone: string;
   date_of_birth: string;
   address_line_1: string;
@@ -50,7 +53,8 @@ export interface MemberInsert {
   postal_code: string;
   country: string;
   address_line_2: string | null;
-  status: "inactive";
+  status: "pending_review";
+  billing_source: "legacy";
   special_instructions: string | null;
   nie_dni: string | null;
   gender: string | null;
@@ -124,6 +128,8 @@ export interface RowPlan {
     first_name: string;
     last_name: string;
     email: string | null;
+    /** Whose address it is — the dedupe reads this, not just the address. */
+    email_owner: EmailOwner;
     phone: string | null;
     date_of_birth: string | null;
     address_line_1: string | null;
@@ -141,13 +147,33 @@ export interface RowPlan {
   notes: string[];
   /** Verbatim CRM strings, for the CRM profile. Never a subscription or an active status. */
   crmProfile: Record<string, unknown>;
+  /**
+   * Write an email notification opt-in for this member.
+   *
+   * Only set when the CRM said yes unambiguously. It is on the plan rather than done inside the
+   * apply step so the PREVIEW can show it: consent is the one thing an admin should see before
+   * pressing Import, not discover afterwards.
+   */
+  emailContactConsent: boolean;
 }
 
-/** The nine columns `members` will not accept as null. */
+/**
+ * The columns `members` will not accept as null.
+ *
+ * EMAIL LEFT THIS LIST ON 2026-09-10, and it is the single biggest change to what the import
+ * produces. `members.email` was `UNIQUE NOT NULL`, so "no email" was the commonest reason one of
+ * Lee's clients became a CRM contact instead of a member — and most of them have no email. Since
+ * 20260910170000 the column is nullable, so the absence of an address is no longer the absence
+ * of a member.
+ *
+ * It is still REQUIRED in `memberRequiredFields.ts`, deliberately. That list is what the
+ * Missing-info badge and the member-update link read, and an email is still something the
+ * platform wants — a member without one has no login. The difference is that wanting it no
+ * longer means refusing to hold the person's record until it arrives.
+ */
 const REQUIRED_MEMBER_FIELDS: { key: string; label: string }[] = [
   { key: "first_name", label: "first name" },
   { key: "last_name", label: "last name" },
-  { key: "email", label: "email" },
   { key: "phone", label: "phone" },
   { key: "date_of_birth", label: "date of birth" },
   { key: "address_line_1", label: "address" },
@@ -157,29 +183,29 @@ const REQUIRED_MEMBER_FIELDS: { key: string; label: string }[] = [
 ];
 
 /**
- * MEMBERS IMPORTED FROM THE CRM ARE `inactive`, AND THAT IS DELIBERATE.
+ * AN IMPORTED MEMBER IS `pending_review` + `billing_source = 'legacy'`.
  *
- * The goal asks for "the fulfilment model's legacy-member state". There is no such state:
- * `member_status` is ('active','inactive','suspended') and `fulfilment_state` is about a pendant
- * order, not a person. So a choice had to be made, and it is documented here rather than buried.
+ * They were `inactive` until Lee's ruling of 2026-09-10 (PENDING_FOR_LEE D-19 item 2), because
+ * `member_status` had nothing better and golden rule 4 forbids `active`. `inactive` was honest
+ * about the payment and wrong about the person: an inactive member is one nobody is watching,
+ * and these 431 people are wearing the pendant tonight.
  *
- * `active` is not available. Golden rule 4: a member is activated by the payment webhook and by
- * nothing else. These 431 people have no Stripe or Mollie record in this platform — whatever
- * Karma says about them, this system has never seen them pay it. Writing `active` would be the
- * import asserting a payment it has no evidence for, and `subscriptions.status='active'` with no
- * subscription row is precisely the impossible state production was already found in.
+ * `pending_review` says what is true — a real client, whose billing this platform has never
+ * seen — and `billing_source = 'legacy'` is what lets them become active later without
+ * weakening golden rule 4. An active legacy member is monitored; only `stripe` means there is a
+ * subscription here to renew, dun or cancel, so renewal logic reads the SOURCE and never fires
+ * at somebody who pays Mary in cash.
  *
- * `suspended` would be wrong in the other direction: it means a live member who is on hold.
- *
- * So: `inactive`, plus the verbatim Karma status on the CRM profile, so nothing is lost and a
- * human can see "Active Member in Karma" beside "inactive here". They become active when a
- * payment arrives, which is the only thing that has ever been allowed to do it.
- *
- * The better long-term answer is a `legacy` value on `member_status`, so these are visibly
- * neither new nor cancelled. That needs a migration, and three are already unapplied — adding a
- * fourth would fail the drift gate's stacking rule. Recorded for Lee instead.
+ * WHAT THIS DOES NOT DO, AND MUST NOT: it does not set anybody active. `active` is reachable
+ * only through the payment webhook, a staff reinstatement of a member who already has a paid
+ * subscription, or `confirm_legacy_member()` — a supervisor's decision, recorded with their
+ * name against it. `guard_member_status_self_write` refuses everything else, including this
+ * import, and `scripts/rls/isolation.sql` asserts the refusal.
  */
-const IMPORTED_MEMBER_STATUS = "inactive" as const;
+const IMPORTED_MEMBER_STATUS = "pending_review" as const;
+
+/** Paid outside Stripe. Never `stripe`: this platform has no record of any of them paying it. */
+const IMPORTED_BILLING_SOURCE = "legacy" as const;
 
 export function planRowWrites(row: MappedRow): RowPlan {
   const warnings = [...row.warnings];
@@ -197,6 +223,7 @@ export function planRowWrites(row: MappedRow): RowPlan {
         first_name: row.member.first_name,
         last_name: row.member.last_name,
         email: row.member.email,
+        email_owner: row.member.email_owner,
         phone: row.member.phone,
         date_of_birth: row.member.date_of_birth,
         address_line_1: row.member.address_line_1,
@@ -212,6 +239,7 @@ export function planRowWrites(row: MappedRow): RowPlan {
       extraEmails: [],
       notes: [],
       crmProfile: {},
+      emailContactConsent: false,
     };
   }
 
@@ -220,7 +248,6 @@ export function planRowWrites(row: MappedRow): RowPlan {
   const candidate: Record<string, unknown> = {
     first_name: m.first_name,
     last_name: m.last_name,
-    email: m.email,
     phone: m.phone,
     date_of_birth: m.date_of_birth,
     address_line_1: m.address_line_1,
@@ -296,27 +323,18 @@ export function planRowWrites(row: MappedRow): RowPlan {
     }
   }
 
-  /* Membership type, payment type and date joined.
-     The goal asks for these as CRM profile fields, and `crm_profiles` has no column for any of
-     them — it holds stage, status, referral_source, assigned_to_staff_id, department, industry,
-     tags and groups, and that is all. Three new columns is a migration, and three migrations are
-     already unapplied: the drift gate refuses a fourth stacked on top.
-     So they are written where they fit today — one note, verbatim, with a stable prefix so a
-     re-run recognises it rather than adding a second copy — and `crm_import_rows` keeps them in
-     `parsed_membership_type` and in `raw` besides. Nothing is lost; it is simply not yet a
-     column. Recorded for Lee rather than forced. */
-  const membershipFacts = [
-    row.subscription?.legacy_membership_label
-      ? `membership type ${row.subscription.legacy_membership_label}`
-      : null,
-    row.subscription?.payment_arrangement
-      ? `payment type ${row.subscription.payment_arrangement}`
-      : null,
-    row.subscription?.start_date ? `joined ${row.subscription.start_date}` : null,
-  ].filter(Boolean);
-  if (membershipFacts.length > 0) {
-    notes.push(`Karma CRM membership: ${membershipFacts.join("; ")}`);
-  }
+  /* Membership type, payment type and date joined USED TO BE A NOTE, because `crm_profiles` had
+     no column for any of them. They have columns now (Lee's ruling, D-19 item 1), so the note is
+     no longer written.
+     THE NOTE IS NOT DELETED for rows already imported: the migration's backfill lifts the values
+     out of it into the new columns and leaves the note where it is. It is the only copy if a
+     backfill pattern turned out to be wrong, and it is what a human reads on the record. So the
+     import stops ADDING notes rather than starting to remove them — an import that deletes is an
+     import nobody can run twice with confidence. */
+
+  /* Spouse: a note, and only a note. Same stable prefix as the membership note so a re-run
+     recognises it rather than adding a second copy. */
+  if (row.spouse) notes.push(`Spouse: ${row.spouse}`);
 
   if (row.notes) notes.push(row.notes);
 
@@ -332,7 +350,8 @@ export function planRowWrites(row: MappedRow): RowPlan {
         ? {
             first_name: m.first_name,
             last_name: m.last_name,
-            email: m.email as string,
+            email: m.email,
+            email_owner: m.email_owner,
             phone: m.phone as string,
             date_of_birth: m.date_of_birth as string,
             address_line_1: m.address_line_1 as string,
@@ -342,6 +361,7 @@ export function planRowWrites(row: MappedRow): RowPlan {
             country: m.country || "Spain",
             address_line_2: m.address_line_2,
             status: IMPORTED_MEMBER_STATUS,
+            billing_source: IMPORTED_BILLING_SOURCE,
             special_instructions: m.special_instructions,
             nie_dni: m.nie_dni,
             gender: m.gender,
@@ -361,6 +381,7 @@ export function planRowWrites(row: MappedRow): RowPlan {
       first_name: m.first_name,
       last_name: m.last_name,
       email: m.email,
+      email_owner: m.email_owner,
       phone: m.phone,
       date_of_birth: m.date_of_birth,
       address_line_1: m.address_line_1,
@@ -391,7 +412,17 @@ export function planRowWrites(row: MappedRow): RowPlan {
       referral_source: row.crmProfile.referral_source,
       tags: row.crmProfile.tags,
       groups: row.crmProfile.groups,
+      /* The three legacy membership facts, in their own columns since
+         20260910150000_crm_profile_legacy_membership. Verbatim on purpose: this is what KARMA
+         said, not what this platform has ever charged. They are on `crm_profiles` and not on
+         `subscriptions` because a subscriptions row means a billing relationship this system
+         owns, and golden rule 4 exists because that distinction decides whether somebody is
+         treated as paying. */
+      legacy_membership_type: row.subscription?.legacy_membership_label ?? null,
+      legacy_payment_type: row.subscription?.payment_arrangement ?? null,
+      legacy_date_joined: row.subscription?.start_date ?? null,
     },
+    emailContactConsent: row.emailContactConsent,
   };
 }
 
@@ -509,7 +540,24 @@ export interface DedupeKeys {
 export function dedupeKeysFor(plan: RowPlan): DedupeKeys {
   return {
     nie: normaliseNie(plan.member?.nie_dni ?? null),
-    email: plan.parsedMember.email ? plan.parsedMember.email.trim().toLowerCase() : null,
+    /*
+     * A CARER'S ADDRESS IS NOT A DEDUPE KEY, and this is the one line that stops the worst
+     * outcome of item 3.
+     *
+     * One daughter looking after both her parents gives the same address on both rows. Keyed on
+     * email, the second row would MATCH THE FIRST and the import would patch her father's
+     * details onto her mother's record — one member where there are two, with one set of
+     * emergency contacts and one pendant between them. An SOS from the other pendant then
+     * resolves to a person it is not.
+     *
+     * `resolveSharedEmails` has already marked every address that appears more than once in the
+     * file, so by the time a plan exists the question is answered. Only an address the MEMBER
+     * owns is a key.
+     */
+    email:
+      plan.parsedMember.email && plan.parsedMember.email_owner === "member"
+        ? plan.parsedMember.email.trim().toLowerCase()
+        : null,
     phone: plan.parsedMember.phone ?? null,
   };
 }
@@ -561,6 +609,14 @@ export function computeEmptyOnlyPatch(
 const NEVER_PATCH = new Set([
   "id",
   "status",
+  /*
+    `billing_source` belongs here for the same reason as `status`, and the omission was caught by
+    a test rather than by reading it: filling it on a member the platform ALREADY HOLDS would
+    flip a Stripe-paying member to `legacy` — and a legacy member is exempt from renewal and
+    dunning, so the platform would quietly stop chasing money it is owed. The CRM knows what
+    Karma billed; it knows nothing about what this platform bills.
+  */
+  "billing_source",
   "created_at",
   "updated_at",
   "user_id",
@@ -631,6 +687,9 @@ export interface ImportDb {
   existingContactMethodValues(memberId: string): Promise<string[]>;
   insertContactMethod(memberId: string, method: ContactMethodInsert): Promise<void>;
   insertContact(memberId: string, contact: ContactInsert): Promise<void>;
+  /** True when this member already has a row for the email channel, opted in or not. */
+  hasEmailOptIn(memberId: string): Promise<boolean>;
+  insertEmailOptIn(memberId: string): Promise<void>;
   hasMedical(memberId: string): Promise<boolean>;
   insertMedical(memberId: string, medical: Record<string, unknown>): Promise<void>;
   deviceExists(imei: string): Promise<boolean>;
@@ -660,6 +719,7 @@ export interface AppliedResult {
   contactMethodsCreated: number;
   deviceCreated: boolean;
   medicalCreated: boolean;
+  emailOptInCreated: boolean;
   notesCreated: number;
   /** Non-fatal problems. A row that half-wrote says so rather than reporting success. */
   problems: string[];
@@ -684,6 +744,7 @@ export async function applyRowPlan(db: ImportDb, plan: RowPlan): Promise<Applied
     contactMethodsCreated: 0,
     deviceCreated: false,
     medicalCreated: false,
+    emailOptInCreated: false,
     notesCreated: 0,
     problems: [],
   };
@@ -763,6 +824,15 @@ export async function applyRowPlan(db: ImportDb, plan: RowPlan): Promise<Applied
     await db.insertContactMethod(memberId, { type: "email", value, label: "CRM import" });
     heldMethods.add(value);
     result.contactMethodsCreated += 1;
+  }
+
+  /* Consent. NEVER overwritten: a member who has since said no keeps saying no, whatever the
+     CRM export still holds. That is why the guard is "has a row at all" rather than "has an
+     opted-in row" — flipping a recorded refusal back to yes on a re-import is the one thing
+     this must not do. */
+  if (plan.emailContactConsent && !(await db.hasEmailOptIn(memberId))) {
+    await db.insertEmailOptIn(memberId);
+    result.emailOptInCreated = true;
   }
 
   if (plan.medical && !(await db.hasMedical(memberId))) {

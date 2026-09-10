@@ -279,7 +279,9 @@ export default function CRMImportPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Become members</p>
                   <p className="text-2xl font-bold" data-testid="summary-members">{planSummary.members}</p>
-                  <p className="text-xs text-muted-foreground">status inactive until a payment arrives</p>
+                  <p className="text-xs text-muted-foreground">
+                    pending review, billed outside Stripe — confirm each one on their record
+                  </p>
                 </div>
               </div>
             </CardContent>

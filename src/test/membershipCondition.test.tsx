@@ -25,6 +25,7 @@ import path from "node:path";
 
 import {
   MEMBERSHIP_CONDITIONS,
+  hasPlatformBilling,
   STATUS_CONDITION,
   membershipCondition,
   membershipConditionSpec,
@@ -165,9 +166,44 @@ describe("R8 — the plans are shown to exactly one of them", () => {
 });
 
 describe("what the copy is and is not allowed to say", () => {
-  it("only `active` claims somebody is monitoring", () => {
+  it("exactly two conditions claim somebody is monitoring, and both are true", () => {
+    // `active` and `legacy_billing`, and nothing else. Named as a closed list rather than a
+    // count, because the failure this guards against is a condition added later inheriting
+    // "yes, you are covered" from nobody having thought about it.
     const monitored = MEMBERSHIP_CONDITIONS.filter((c) => c.monitored).map((c) => c.condition);
-    expect(monitored).toEqual(["active"]);
+    expect([...monitored].sort()).toEqual(["active", "legacy_billing"]);
+  });
+
+  it("a legacy member is monitored, is not shown the plans, and is not treated as new", () => {
+    // The state exists because `inactive` was wrong about the person: these members wear the
+    // pendant tonight and pay outside Stripe. Showing them the plans would invite a second
+    // payment; telling them nobody is watching would be false.
+    const spec = membershipConditionSpec("legacy_billing");
+    expect(spec.monitored).toBe(true);
+    expect(spec.showsPlans).toBe(false);
+    expect(spec.title.fallback).toContain("active");
+  });
+
+  it("a legacy member is only legacy when BOTH columns say so", () => {
+    // status alone would catch every active Stripe member; billing_source alone would catch a
+    // member the import left pending_review, who is NOT yet monitored.
+    expect(membershipCondition(null, { status: "active", billing_source: "legacy" }))
+      .toBe("legacy_billing");
+    expect(membershipCondition(null, { status: "pending_review", billing_source: "legacy" }))
+      .toBe("never_joined");
+    expect(membershipCondition(null, { status: "active", billing_source: "stripe" }))
+      .toBe("never_joined");
+  });
+
+  it("renewal and dunning fire for stripe and for nobody else", () => {
+    // This is why billing_source exists rather than another status value: a legacy member IS
+    // active, so anything keyed on status alone would start chasing them for a card we have
+    // never held.
+    expect(hasPlatformBilling({ status: "active", billing_source: "stripe" })).toBe(true);
+    expect(hasPlatformBilling({ status: "active", billing_source: "legacy" })).toBe(false);
+    expect(hasPlatformBilling({ status: "active", billing_source: "none" })).toBe(false);
+    expect(hasPlatformBilling(null)).toBe(false);
+    expect(hasPlatformBilling(undefined)).toBe(false);
   });
 
   it("never says 'contact support to change' — R6 bans the sentence", () => {

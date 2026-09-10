@@ -1419,6 +1419,9 @@ export type Database = {
           department: string | null
           groups: string[] | null
           industry: string | null
+          legacy_date_joined: string | null
+          legacy_membership_type: string | null
+          legacy_payment_type: string | null
           member_id: string
           referral_source: string | null
           stage: string | null
@@ -1431,6 +1434,9 @@ export type Database = {
           department?: string | null
           groups?: string[] | null
           industry?: string | null
+          legacy_date_joined?: string | null
+          legacy_membership_type?: string | null
+          legacy_payment_type?: string | null
           member_id: string
           referral_source?: string | null
           stage?: string | null
@@ -1443,6 +1449,9 @@ export type Database = {
           department?: string | null
           groups?: string[] | null
           industry?: string | null
+          legacy_date_joined?: string | null
+          legacy_membership_type?: string | null
+          legacy_payment_type?: string | null
           member_id?: string
           referral_source?: string | null
           stage?: string | null
@@ -3252,7 +3261,8 @@ export type Database = {
           user_id: string | null
           first_name: string
           last_name: string
-          email: string
+          email: string | null
+          email_owner: string
           phone: string
           date_of_birth: string
           nie_dni: string | null
@@ -3297,6 +3307,7 @@ export type Database = {
           away_until: string | null
           pendant_with_member: boolean | null
           urbanizacion: string | null
+          billing_source: string
           bloque: string | null
           portal: string | null
           escalera: string | null
@@ -3314,7 +3325,8 @@ export type Database = {
           user_id?: string | null
           first_name: string
           last_name: string
-          email: string
+          email?: string | null
+          email_owner?: string
           phone: string
           date_of_birth: string
           nie_dni?: string | null
@@ -3359,6 +3371,7 @@ export type Database = {
           away_until?: string | null
           pendant_with_member?: boolean | null
           urbanizacion?: string | null
+          billing_source?: string
           bloque?: string | null
           portal?: string | null
           escalera?: string | null
@@ -3376,7 +3389,8 @@ export type Database = {
           user_id?: string | null
           first_name?: string
           last_name?: string
-          email?: string
+          email?: string | null
+          email_owner?: string
           phone?: string
           date_of_birth?: string
           nie_dni?: string | null
@@ -3421,6 +3435,7 @@ export type Database = {
           away_until?: string | null
           pendant_with_member?: boolean | null
           urbanizacion?: string | null
+          billing_source?: string
           bloque?: string | null
           portal?: string | null
           escalera?: string | null
@@ -7641,6 +7656,14 @@ export type Database = {
           staff_name: string
         }[]
       }
+      confirm_legacy_member: {
+        Args: { _member_id: string; _reason?: string }
+        Returns: {
+          billing_source: string
+          member_id: string
+          status: string
+        }[]
+      }
       expire_pending_covers: { Args: never; Returns: number }
       get_admin_dashboard_stats: { Args: never; Returns: Json }
       get_member_id: { Args: { _user_id: string }; Returns: string }
@@ -7779,7 +7802,7 @@ export type Database = {
         | "triage_decision"
         | "handover_briefing"
         | "flag"
-      member_status: "active" | "inactive" | "suspended"
+      member_status: "active" | "inactive" | "pending_review" | "suspended"
       order_item_type:
         | "pendant"
         | "registration_fee"
@@ -8054,7 +8077,7 @@ export const Constants = {
         "handover_briefing",
         "flag",
       ],
-      member_status: ["active", "inactive", "suspended"],
+      member_status: ["active", "inactive", "pending_review", "suspended"],
       order_item_type: [
         "pendant",
         "registration_fee",

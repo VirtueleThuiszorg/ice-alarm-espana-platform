@@ -49,6 +49,7 @@ interface FakeMember {
   row: Record<string, unknown>;
   contacts: ContactInsert[];
   medical: Record<string, unknown> | null;
+  emailOptIn: boolean;
   contactMethods: { type: string; value: string }[];
   devices: { imei: string }[];
   notes: string[];
@@ -69,6 +70,7 @@ class FakeDb implements ImportDb {
       row: { ...row },
       contacts: [],
       medical: null,
+      emailOptIn: false,
       contactMethods: [],
       devices: [],
       notes: [],
@@ -117,6 +119,7 @@ class FakeDb implements ImportDb {
       row: { ...row } as Record<string, unknown>,
       contacts: [],
       medical: null,
+      emailOptIn: false,
       contactMethods: [],
       devices: [],
       notes: [],
@@ -147,6 +150,15 @@ class FakeDb implements ImportDb {
   async insertContactMethod(memberId: string, method: { type: "phone" | "email"; value: string }) {
     this.writes.push(`insertContactMethod ${memberId} ${method.type} ${method.value}`);
     this.mustFind(memberId).contactMethods.push({ type: method.type, value: method.value });
+  }
+
+  async hasEmailOptIn(memberId: string) {
+    return this.mustFind(memberId).emailOptIn;
+  }
+
+  async insertEmailOptIn(memberId: string) {
+    this.writes.push(`insertEmailOptIn ${memberId}`);
+    this.mustFind(memberId).emailOptIn = true;
   }
 
   async hasMedical(memberId: string) {
@@ -242,10 +254,11 @@ describe("importing into an empty platform", () => {
     expect(db.members[0].medical).not.toBeNull();
   });
 
-  it("writes status 'inactive' and never 'active' — golden rule 4", async () => {
+  it("writes status 'pending_review' + billing_source 'legacy', never 'active' — golden rule 4", async () => {
     const db = new FakeDb();
     await applyRowPlan(db, byId("9001"));
-    expect(db.members[0].row.status).toBe("inactive");
+    expect(db.members[0].row.status).toBe("pending_review");
+    expect(db.members[0].row.billing_source).toBe("legacy");
     expect(db.snapshot()).not.toContain('"status":"active"');
   });
 
@@ -272,7 +285,8 @@ describe("importing into an empty platform", () => {
     const db = new FakeDb();
     await applyRowPlan(db, byId("9001"));
     expect(db.members[0].crmProfile?.status).toBe("Active Member");
-    expect(db.members[0].row.status).toBe("inactive");
+    expect(db.members[0].row.status).toBe("pending_review");
+    expect(db.members[0].row.billing_source).toBe("legacy");
   });
 
   it("makes no database call at all for an excluded row", async () => {
@@ -297,6 +311,7 @@ function withEmail(plan: RowPlan, email: string): RowPlan {
       first_name: plan.parsedMember.first_name,
       last_name: plan.parsedMember.last_name,
       email,
+      email_owner: "member",
       phone: plan.parsedMember.phone ?? "+34600000000",
       date_of_birth: plan.parsedMember.date_of_birth ?? "1940-01-01",
       address_line_1: plan.parsedMember.address_line_1 ?? "1 Calle Test",
@@ -305,7 +320,8 @@ function withEmail(plan: RowPlan, email: string): RowPlan {
       postal_code: plan.parsedMember.postal_code ?? "29620",
       country: "Spain",
       address_line_2: null,
-      status: "inactive",
+      status: "pending_review",
+      billing_source: "legacy",
       special_instructions: null,
       // No pin on this fixture row: the CRM cell is empty, so all four stay null together.
       home_lat: null,
@@ -507,6 +523,7 @@ describe("an existing member the platform already holds", () => {
       nationality: "British",
       crm_source: "karmacrm",
       crm_source_id: "9006",
+      email_owner: "member",
       address_line_2: "-",
       special_instructions: "-",
       passport_number: "-",
@@ -524,7 +541,7 @@ describe("an existing member the platform already holds", () => {
 describe("a row that cannot be a member", () => {
   it("becomes a CRM contact when the platform has never heard of them", async () => {
     const db = new FakeDb();
-    const result = await applyRowPlan(db, byId("9002"));
+    const result = await applyRowPlan(db, byId("9008"));
     expect(result.action).toBe("crm_contact");
     expect(result.crmContactId).toBeTruthy();
     expect(db.members).toEqual([]);
@@ -533,8 +550,8 @@ describe("a row that cannot be a member", () => {
 
   it("is not inserted a second time on a re-run", async () => {
     const db = new FakeDb();
-    await applyRowPlan(db, byId("9002"));
-    const second = await applyRowPlan(db, byId("9002"));
+    await applyRowPlan(db, byId("9008"));
+    const second = await applyRowPlan(db, byId("9008"));
     expect(second.action).toBe("unchanged");
     // Nothing was created this time, so there is nothing to point at.
     expect(second.crmContactId).toBeNull();
@@ -550,12 +567,12 @@ describe("a row that cannot be a member", () => {
       email: "old.address@example.com",
       first_name: "Margaret",
       last_name: "Wilson",
-      phone: "+34952383121", // the phone on row 9002
+      phone: "+34677888999", // the phone on row 9008
       address_line_1: "",
       city: "",
       status: "active",
     });
-    const result = await applyRowPlan(db, byId("9002"));
+    const result = await applyRowPlan(db, byId("9008"));
     expect(result.action).toBe("updated");
     expect(db.crmContacts).toEqual([]);
     expect(db.members.length).toBe(1);
@@ -564,8 +581,9 @@ describe("a row that cannot be a member", () => {
 
   it("reports 'unchanged' when the matched member needs nothing", async () => {
     const db = new FakeDb();
-    const p = byId("9002");
+    const p = byId("9008");
     db.seedMember({
+      email_owner: "member",
       email: "held@example.com",
       first_name: p.parsedMember.first_name,
       last_name: p.parsedMember.last_name,
@@ -581,5 +599,47 @@ describe("a row that cannot be a member", () => {
     // A crm_contact plan has no MemberInsert, so there is nothing to patch from.
     expect(result.action).toBe("unchanged");
     expect(db.crmContacts).toEqual([]);
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Consent, once, and never flipped back
+ * ------------------------------------------------------------------ */
+
+describe("the email consent the CRM recorded", () => {
+  it("is written once for the row that said Yes", async () => {
+    const db = new FakeDb();
+    const plan = byId("9007");
+    expect(plan.emailContactConsent).toBe(true);
+    const first = await applyRowPlan(db, plan);
+    expect(first.emailOptInCreated).toBe(true);
+    const second = await applyRowPlan(db, plan);
+    expect(second.emailOptInCreated).toBe(false);
+    expect(db.writes.filter((w) => w.startsWith("insertEmailOptIn")).length).toBe(1);
+  });
+
+  it("is not written for a row whose cell was not a clear yes", async () => {
+    const db = new FakeDb();
+    // 9008 has no email of its own, so make it a member first — the question under test is the
+    // consent flag, not whether the row can be a member.
+    const plan = withEmail(byId("9008"), "brenda.colefax@example.com");
+    expect(plan.emailContactConsent).toBe(false);
+    const result = await applyRowPlan(db, plan);
+    expect(result.emailOptInCreated).toBe(false);
+    expect(db.writes.filter((w) => w.startsWith("insertEmailOptIn"))).toEqual([]);
+  });
+
+  it("never overwrites a member who has since said no", async () => {
+    // The case the guard exists for: staff record a refusal, then somebody re-runs the file.
+    // The guard is "has a row at all", not "has an opted-in row", precisely so a recorded NO
+    // survives the next import.
+    const db = new FakeDb();
+    const plan = byId("9007");
+    await applyRowPlan(db, plan);
+    db.members[0].emailOptIn = true; // a row exists — say it now reads opted_in = false
+    const before = db.writes.length;
+    const again = await applyRowPlan(db, plan);
+    expect(again.emailOptInCreated).toBe(false);
+    expect(db.writes.length).toBe(before);
   });
 });

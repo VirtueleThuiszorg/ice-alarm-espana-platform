@@ -57,6 +57,8 @@ import { MemberReadinessNotice } from "@/components/client/MemberReadinessNotice
 import { TextSizeControl } from "@/components/client/TextSizeControl";
 import { useMemberUnread } from "@/hooks/useMemberUnread";
 import { useMemberAvatarUrl } from "@/hooks/useMemberAvatar";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { telHref } from "@/lib/phone";
 
 interface MenuItem {
   icon: React.ElementType;
@@ -87,6 +89,13 @@ export function ClientLayout() {
   const [searchParams] = useSearchParams();
   const { signOut, user, memberId: authMemberId } = useAuth();
   const { data: unreadCount } = useMemberUnread();
+  /*
+    THE NUMBER ITSELF, for the sidebar block below. `telHref` returns null when
+    `settings_emergency_phone` is unset, and the block is rendered conditionally on it — the
+    same "show nothing, never a fake number" rule the rest of the portal follows.
+  */
+  const { settings: companySettings } = useCompanySettings();
+  const phoneHref = telHref(companySettings.emergency_phone);
 
   // Admin-view mode: staff admins open member routes with ?memberId=...
   // (see ClientDashboard); members keep using their own memberId.
@@ -248,7 +257,20 @@ export function ClientLayout() {
           "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
           "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
           active 
-            ? "bg-sidebar-primary text-sidebar-primary-foreground" 
+            /*
+              D12: *"sidebar: active item is a DARK FILL, NOT RED."*
+
+              It was `bg-sidebar-primary`, and `--sidebar-primary` is `350 85% 42%` — the brand
+              red. So the member's current page was marked in the colour R2 reserves for alerts,
+              on every page, permanently. A colour that is always on screen is a colour that
+              means nothing when it appears on something that matters.
+
+              A lighter step of the sidebar's own dark blue-grey instead: clearly the current
+              item, clearly not an alarm. The STAFF sidebars keep the red — D12 is a member-surface
+              decision and `ICE_OPERATOR_CARD_SPEC` governs theirs — which is why this is a class
+              here rather than a change to the shared `--sidebar-primary` token.
+            */
+            ? "bg-sidebar-accent text-sidebar-foreground ring-1 ring-inset ring-sidebar-border" 
             : "text-sidebar-foreground",
           !isMobile && collapsed && "justify-center px-2",
           isNested && !collapsed && "pl-9"
@@ -355,11 +377,12 @@ export function ClientLayout() {
                   "flex items-center justify-center w-full rounded-lg px-2 py-2.5 text-sm font-medium transition-all",
                   "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                   active 
-                    ? "bg-sidebar-primary/20 text-sidebar-primary" 
+                    /* Same as the item above: the open group is marked, not alarmed. */
+                    ? "bg-sidebar-accent/60 text-sidebar-foreground" 
                     : "text-sidebar-foreground"
                 )}
               >
-                <Icon className={cn("h-5 w-5 shrink-0", active && "text-sidebar-primary")} />
+                <Icon className={cn("h-5 w-5 shrink-0", active && "text-sidebar-foreground")} />
               </button>
             </TooltipTrigger>
             <TooltipContent side="right" className="font-medium">
@@ -380,12 +403,13 @@ export function ClientLayout() {
               className={cn(
                 "flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-sm font-semibold transition-all",
                 "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                active 
-                  ? "bg-sidebar-primary/20 text-sidebar-primary" 
+                active
+                  /* D12 again — the expanded group heading, marked and not alarmed. */
+                  ? "bg-sidebar-accent/60 text-sidebar-foreground"
                   : "text-sidebar-foreground/70"
               )}
             >
-              <Icon className={cn("h-5 w-5 shrink-0", active && "text-sidebar-primary")} />
+              <Icon className={cn("h-5 w-5 shrink-0", active && "text-sidebar-foreground")} />
               <span className="flex-1 text-left truncate">{group.label}</span>
               <ChevronDown className={cn(
                 "h-4 w-4 transition-transform duration-200 shrink-0",
@@ -433,19 +457,67 @@ export function ClientLayout() {
         </div>
       </nav>
 
-      {/* Emergency Button */}
-      <div className="p-3 border-t border-sidebar-border">
-        <Button 
-          size="lg" 
-          className={cn(
-            "w-full font-semibold bg-alert-sos hover:bg-alert-sos/90 text-alert-sos-foreground shadow-lg",
-            collapsed && !isMobile ? "h-10 px-2" : "h-12"
-          )}
-        >
-            <Phone className={cn("shrink-0 h-5 w-5", !collapsed && !isMobile && "mr-2")} />
-            {(isMobile || !collapsed) && <span className="text-sm">{t("dashboard.contactIceAlarm")}</span>}
-          </Button>
-      </div>
+      {/*
+        THE 24-HOUR NUMBER — D12, and this control DID NOTHING AT ALL.
+
+        It was a full-width `<Button size="lg">` in `bg-alert-sos`, labelled "Contact ICE Alarm
+        España", on every page of the member portal — with no `onClick`, no `href` and no
+        `asChild`. A member who pressed the biggest, reddest control on their own alarm account
+        got nothing. On a life-safety product that is the worst kind of dead control: it is
+        exactly the button somebody reaches for when they are frightened, and its colour
+        promised an emergency response.
+
+        D12 says what it should be instead, and says it precisely: *"the red 'Contact' button
+        becomes an Ink block SHOWING THE 24-HOUR NUMBER."* Three things follow from that
+        sentence and each is a decision:
+
+        - IT IS AN `<a href="tel:">`, not a button. A number a member can press is the whole
+          point; a button that opens a dialer is a button, but a link is what a screen reader
+          announces as a phone number and what a desktop lets you copy.
+        - IT SHOWS THE NUMBER. R2 (brand red is never a status) and D12 both push against the
+          red block, but the deeper reason is that a member who can READ the number can write
+          it on a pad by the phone, which is the thing we actually want. A button labelled
+          "Contact" hides it.
+        - INK, NOT `alert-sos`. `alert-sos` is the colour this product reserves for an alarm in
+          progress. Spending it on a permanent piece of furniture is what makes it stop meaning
+          anything when it appears on a real alert.
+
+        AND IT IS OMITTED ENTIRELY WITH NO NUMBER CONFIGURED. WP1b: show nothing, never a fake
+        number. A block that says "24-hour line" over nothing at all is worse than no block —
+        and it is what the old button effectively was, for every member, all the time.
+      */}
+      {phoneHref && (
+        <div className="border-t border-sidebar-border p-3">
+          <a
+            href={phoneHref}
+            data-testid="sidebar-emergency-number"
+            className={cn(
+              "flex w-full items-center justify-center rounded-lg bg-foreground font-semibold text-background transition-colors hover:bg-foreground/90",
+              collapsed && !isMobile ? "h-10 px-2" : "h-12 px-3",
+            )}
+          >
+            <Phone
+              className={cn("h-5 w-5 shrink-0", !collapsed && !isMobile && "mr-2")}
+              aria-hidden="true"
+            />
+            {(isMobile || !collapsed) && (
+              <span className="flex flex-col items-start leading-tight">
+                {/* The label is small and the NUMBER is the thing, which is the point of D12. */}
+                <span className="text-[0.6875rem] font-medium uppercase tracking-wide opacity-80">
+                  {t("dashboard.twentyFourHourLine", "24-hour line")}
+                </span>
+                <span className="text-sm tabular-nums">{companySettings.emergency_phone}</span>
+              </span>
+            )}
+            {/* Collapsed the number is hidden, so the accessible name carries it. */}
+            <span className="sr-only">
+              {t("dashboard.callTwentyFourHour", "Call our 24-hour line: {{number}}", {
+                number: companySettings.emergency_phone,
+              })}
+            </span>
+          </a>
+        </div>
+      )}
 
       {/* Sign out */}
       <div className="border-t border-sidebar-border p-3">

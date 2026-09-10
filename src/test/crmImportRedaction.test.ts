@@ -49,10 +49,10 @@ describe("the fixture is the real shape", () => {
     expect(count("Policy Number")).toBe(2);
   });
 
-  it("has 6 rows and really contains the card marker", () => {
+  it("has 10 rows and really contains the card marker", () => {
     // If this fails every redaction assertion below is vacuous — the file would be proving
     // nothing was leaked from a file that never held anything.
-    expect(parsed.rows.length).toBe(6);
+    expect(parsed.rows.length).toBe(10);
     expect(csvText).toContain(MARKERS.card);
     expect(csvText).toContain(MARKERS.bank);
     expect(csvText).toContain(MARKERS.privateMedical);
@@ -101,8 +101,8 @@ describe("no redacted value survives mapping, at any depth", () => {
   const mapped = mapIceCsv(csvText);
   const serialised = JSON.stringify(mapped);
 
-  it("maps all 6 rows", () => {
-    expect(mapped.length).toBe(6);
+  it("maps all 10 rows", () => {
+    expect(mapped.length).toBe(10);
   });
 
   it.each(Object.entries(MARKERS))("the whole mapped output contains no %s", (_name, marker) => {

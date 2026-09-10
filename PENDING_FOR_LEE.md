@@ -24,6 +24,8 @@
 
 ## 1. Migrations merged but NOT in production
 
+*This is the **A1** row of the go-live gap review.*
+
 > ### ✅ RESOLVED 2026-09-10 14:35 — everything is in production; ONE thing is still yours
 >
 > **Nothing is stranded any more.** `check-migration-drift --main` reports **repo: 188 ·
@@ -41,10 +43,40 @@
 > ```
 >
 > **WHAT IS STILL YOURS: route A below.** `supabase link` is still refused — it failed again on
-> main a minute after run #8 — so **"Manifest matches production" stays red on main** until a
-> token with that privilege replaces the current one. Migrations flow through the pooler fallback
-> (#313), which shouts a warning every time it is used, and it was used for all three of these.
-> The Management API is not restored, and nothing else in this repo can restore it.
+> main a minute after run #8, and again on every run since — until a token with that privilege
+> replaces the current one. Migrations flow through the pooler fallback (#313), which shouts a
+> warning every time it is used, and it was used for all three of these. The Management API is not
+> restored, and nothing else in this repo can restore it.
+>
+> ("Manifest matches production" stayed red on main for that same reason until #337, which is the
+> paragraph below. It is green now.)
+>
+> #### Read the colours honestly — A1 in one paragraph
+>
+> **A1 is closed as "everything merged is in production", and it is NOT closed as "the supported
+> path works".** Those are two different facts and the review's single tick hid the second one.
+> Say it in full so nobody has to reconstruct it:
+>
+> * **Migrations flow via the FALLBACK.** Every schema change since 10 Sep reached production
+>   through the pooler, not the Management API. It works, it is recorded in `APPLIED_TO_PROD.txt`
+>   like any other run, and every single run posts a
+>   `⚠ Reached production WITHOUT the Management API` warning. **A green Migrate Production run
+>   does not mean the token is fixed.** If those warnings ever stop appearing, that is the good
+>   news — it means `link` started working again.
+> * **"Manifest matches production" was RED on main, and that red was NORMAL — until #337.**
+>   The job linked its own way, so it could not pass while `link` was refused, on any commit, for
+>   any reason. It is now the same shared script `migrate.yml` uses
+>   (`scripts/ci/reach-production.sh`), so it reaches production by the same fallback and passes.
+>   **From #337 onwards, red on that job means something real.** Do not wave it through. Its first
+>   run on main
+>   ([#762](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34506988777))
+>   is what that looks like: `link` refused with the same privilege error, `aws-0-eu-west-1`
+>   probed and connected, the warning posted, then **production: 189 applied · manifest: 189
+>   recorded**.
+> * **What is still yours is unchanged: route A.** A token that may call the Management API. The
+>   fallback is a fallback — it needs `SUPABASE_DB_PASSWORD` to keep working and it cannot deploy
+>   functions, so the day that password rotates without the token being fixed, schema stops
+>   flowing altogether.
 >
 > The original diagnosis, kept because it was wrong and the correction is the useful part:
 

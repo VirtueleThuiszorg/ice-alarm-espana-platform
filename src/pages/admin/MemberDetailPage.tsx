@@ -46,6 +46,8 @@ interface Member {
   email: string;
   phone: string;
   status: string;
+  /** Who bills them: stripe, legacy (imported, paid outside Stripe) or none. */
+  billing_source: string | null;
   photo_url: string | null;
   address_line_1: string;
   address_line_2: string | null;
@@ -321,6 +323,8 @@ function MemberRecord() {
           <SubscriptionTab
             memberId={member.id}
             memberName={`${member.first_name} ${member.last_name}`}
+            memberStatus={member.status}
+            billingSource={member.billing_source}
           />
         </TabsContent>
 

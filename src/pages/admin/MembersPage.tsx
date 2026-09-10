@@ -63,6 +63,9 @@ const ITEMS_PER_PAGE = 20;
 type MemberRow = Tables<"members"> & {
   subscriptions: Pick<Tables<"subscriptions">, "plan_type" | "status" | "has_pendant">[];
   devices: Pick<Tables<"devices">, "id" | "status" | "imei">[];
+  /* An object and not an array: crm_profiles is keyed on member_id, so it is one row or none —
+     PostgREST returns the object for a one-to-one embed. */
+  crm_profiles: Pick<Tables<"crm_profiles">, "legacy_membership_type"> | null;
 };
 
 export default function MembersPage() {
@@ -73,6 +76,7 @@ export default function MembersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [planFilter, setPlanFilter] = useState<string>("all");
+  const [legacyTypeFilter, setLegacyTypeFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [memberToDelete, setMemberToDelete] = useState<{ id: string; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -105,14 +109,23 @@ export default function MembersPage() {
   };
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-members", searchQuery, statusFilter, planFilter, page],
+    queryKey: ["admin-members", searchQuery, statusFilter, planFilter, legacyTypeFilter, page],
     queryFn: async () => {
+      /* `!inner` ONLY when the legacy filter is on. An inner join left in place would silently
+         drop every member with no crm_profiles row — the ones created through the wizard rather
+         than the import — and a roster that quietly omits members is worse than one that says
+         it is filtered. */
+      const legacyJoin =
+        legacyTypeFilter === "all"
+          ? "crm_profiles (legacy_membership_type)"
+          : "crm_profiles!inner (legacy_membership_type)";
       let query = supabase
         .from("members")
         .select(`
           *,
           subscriptions (plan_type, status, has_pendant),
-          devices (id, status, imei)
+          devices (id, status, imei),
+          ${legacyJoin}
         `, { count: "exact" })
         .order("created_at", { ascending: false })
         .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
@@ -123,6 +136,15 @@ export default function MembersPage() {
 
       if (statusFilter !== "all") {
         query = query.eq("status", statusFilter as "active" | "inactive" | "suspended");
+      }
+
+      /* Filtered in the DATABASE, not client-side after the page was cut. The plan filter above
+         is client-side and therefore filters only the twenty rows this page fetched — which is a
+         bug of its own, left alone here rather than fixed in a PR about something else. This one
+         must not repeat it: "show me everyone Karma called Couple" over 431 members has to reach
+         past page one. */
+      if (legacyTypeFilter !== "all") {
+        query = query.eq("crm_profiles.legacy_membership_type", legacyTypeFilter);
       }
 
       const { data: members, count, error } = await query;
@@ -139,6 +161,26 @@ export default function MembersPage() {
 
       return { members: filteredMembers, totalCount: count || 0 };
     },
+  });
+
+  /* The values Karma actually used, for the filter. One read, cached, and independent of the
+     page — a filter offering only what happens to be on page one is a filter that lies. */
+  const { data: legacyTypes = [] } = useQuery({
+    queryKey: ["admin-members-legacy-types"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crm_profiles")
+        .select("legacy_membership_type")
+        .not("legacy_membership_type", "is", null);
+      if (error) throw error;
+      const seen = new Set(
+        (data ?? [])
+          .map((r) => (r.legacy_membership_type ?? "").trim())
+          .filter(Boolean)
+      );
+      return [...seen].sort((a, b) => a.localeCompare(b));
+    },
+    staleTime: 5 * 60 * 1000,
   });
 
   /*
@@ -275,6 +317,25 @@ export default function MembersPage() {
                 <SelectItem value="suspended">{t("membership.suspended")}</SelectItem>
               </SelectContent>
             </Select>
+            {/* Free text from Karma — 'Single', 'Couple 2 pendants', 'FOC — Ayuntamiento'. The
+                options are read from the data rather than hardcoded, because an enum invented
+                over somebody else's free text is an enum that stops matching the file. */}
+            {legacyTypes.length > 0 && (
+              <Select
+                value={legacyTypeFilter}
+                onValueChange={(v) => { setLegacyTypeFilter(v); setPage(1); }}
+              >
+                <SelectTrigger className="w-[200px]" data-testid="legacy-type-filter">
+                  <SelectValue placeholder="Karma membership" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Karma memberships</SelectItem>
+                  {legacyTypes.map((v) => (
+                    <SelectItem key={v} value={v}>{v}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <Select value={planFilter} onValueChange={(v) => { setPlanFilter(v); setPage(1); }}>
               <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder={t("common.plan")} />

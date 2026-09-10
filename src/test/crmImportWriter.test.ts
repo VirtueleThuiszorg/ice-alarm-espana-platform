@@ -193,10 +193,12 @@ describe("the CRM profile", () => {
     // A key with no column fails the WHOLE insert, and PostgREST reports it as the row failing
     // rather than as the key being wrong — so this would have looked like bad data.
     // crm_profiles: member_id, stage, status, referral_source, tags, groups,
-    //               assigned_to_staff_id, department, industry, updated_at.
+    //               assigned_to_staff_id, department, industry, updated_at, and — since
+    //               20260910150000_crm_profile_legacy_membership — the three legacy columns.
     const allowed = new Set([
       "stage", "status", "referral_source", "tags", "groups",
       "assigned_to_staff_id", "department", "industry",
+      "legacy_membership_type", "legacy_payment_type", "legacy_date_joined",
     ]);
     for (const p of plans) {
       for (const key of Object.keys(p.crmProfile)) {
@@ -205,12 +207,23 @@ describe("the CRM profile", () => {
     }
   });
 
-  it("keeps membership type, payment type and date joined as a note instead", () => {
-    // The goal asks for these as CRM profile fields and there are no such columns. They are kept
-    // verbatim rather than dropped, and the gap is recorded for Lee rather than forced through a
-    // fourth stacked migration.
-    const p = byId("9005"); // the duplicate-header row, whose first Membership Type is real
-    expect(p.notes.join(" ")).toContain("membership type FIRST-OCCURRENCE");
+  it("writes membership type, payment type and date joined into their own columns", () => {
+    // They were a note until Lee's ruling of 2026-09-10, because crm_profiles had no column for
+    // any of them. The note is no longer written; the migration's backfill lifts the old ones
+    // out of the notes already in the database.
+    const p = byId("9005"); // the duplicate-header row, whose FIRST Membership Type is the real one
+    expect(p.crmProfile.legacy_membership_type).toBe("FIRST-OCCURRENCE");
+    // And it is not written twice — once as a column and once as a note nobody maintains.
+    expect(p.notes.join(" ")).not.toContain("Karma CRM membership:");
+  });
+
+  it("takes the date joined only when the mapper could parse it", () => {
+    // `legacy_date_joined` is a DATE column, so a value the DD/MM parser refused must arrive as
+    // null rather than as a string Postgres would reject — which would fail the whole row.
+    for (const p of plans) {
+      const d = p.crmProfile.legacy_date_joined;
+      if (d !== null && d !== undefined) expect(d).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
   });
 });
 

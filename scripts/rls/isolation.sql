@@ -6250,6 +6250,111 @@ SELECT pg_temp.check(
       WHERE user_id = ''11111111-1111-1111-1111-111111111111'''),
   'two BEFORE UPDATE triggers on one table — this fails if either stops running');
 
+
+-- ============================================================
+--  member-avatars — a member's photograph reaches exactly one folder
+-- ============================================================
+--
+-- MEMBER_UX_RULES R7: *"RLS: own bucket path."* The path is `<memberId>/<file>` and every policy
+-- in 20260910150000 compares its first segment against the caller's own `members.id`. That IS
+-- the security model — there is no second mechanism, and nothing in the browser is trusted — so
+-- it is asserted here against real PostgreSQL and the real policies rather than argued for in a
+-- comment.
+--
+-- WHY THIS SUITE AND NOT A UNIT TEST. A vitest suite can prove the client builds the right path.
+-- It cannot prove that a member who builds the WRONG one is refused, and that is the only
+-- question that matters: a public bucket, or a policy written with `USING` where it needed
+-- `WITH CHECK`, would let member A read — or overwrite — a photograph of member B at their home
+-- address. The failure is invisible from the UI and total.
+--
+-- THE STAFF FIXTURE IS a6000000-0000-0000-0000-00000000000f (Otto Ordinary, call_centre) AND
+-- NOT THE OBVIOUS 55555555-5555-5555-5555-555555555555: line 1976 of this file DELETEs that
+-- staff row on purpose, to prove what a signed-in user
+-- with no staff row can see, so by the time this block runs it is not staff any more. A staff
+-- assertion written against it would report FAIL for a reason that has nothing to do with the
+-- policy under test — which is how a real defect gets explained away as a fixture problem.
+--
+-- Fixtures are inserted as the superuser this script runs as; every assertion then runs through
+-- `count_as` / `exec_as` / `raises_as`, which drop to `authenticated` with a real
+-- `request.jwt.claims`, exactly as PostgREST does.
+
+INSERT INTO storage.objects (bucket_id, name)
+VALUES
+  ('member-avatars', 'aaaaaaaa-0000-0000-0000-000000000001/avatar.jpg'),
+  ('member-avatars', 'bbbbbbbb-0000-0000-0000-000000000002/avatar.jpg');
+
+SELECT pg_temp.check(
+  'the member-avatars bucket is PRIVATE',
+  (SELECT public IS NOT TRUE FROM storage.buckets WHERE id = 'member-avatars'),
+  'a public bucket serves any object to anyone holding its path, and a member id is not a secret');
+
+SELECT pg_temp.check(
+  'member A can read their OWN avatar object',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM storage.objects WHERE bucket_id = ''member-avatars''
+       AND name = ''aaaaaaaa-0000-0000-0000-000000000001/avatar.jpg''') = 1,
+  'without this the next assertion could pass vacuously — a member who can read nothing at all');
+
+SELECT pg_temp.check(
+  'MEMBER A CANNOT READ MEMBER B''S AVATAR',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM storage.objects WHERE bucket_id = ''member-avatars''
+       AND name = ''bbbbbbbb-0000-0000-0000-000000000002/avatar.jpg''') = 0,
+  'the whole point: SELECT is what createSignedUrl is evaluated against');
+
+SELECT pg_temp.check(
+  'member A sees exactly one object in the bucket — their own',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM storage.objects WHERE bucket_id = ''member-avatars''') = 1,
+  'listing the bucket must not enumerate other members');
+
+SELECT pg_temp.check(
+  'member A cannot UPLOAD into member B''s folder',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO storage.objects (bucket_id, name)
+       VALUES (''member-avatars'', ''bbbbbbbb-0000-0000-0000-000000000002/hacked.jpg'')'),
+  'WITH CHECK on INSERT — a policy written with USING alone would allow every upload');
+
+SELECT pg_temp.check(
+  'member A CAN upload into their own folder',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO storage.objects (bucket_id, name)
+       VALUES (''member-avatars'', ''aaaaaaaa-0000-0000-0000-000000000001/second.webp'')') = 1,
+  'the feature has to work, not merely be refused consistently');
+
+SELECT pg_temp.check(
+  'member A cannot MOVE their own object into member B''s folder',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE storage.objects SET name = ''bbbbbbbb-0000-0000-0000-000000000002/hacked.jpg''
+      WHERE name = ''aaaaaaaa-0000-0000-0000-000000000001/avatar.jpg'''),
+  'this is what the UPDATE policy''s WITH CHECK is for. USING alone permits the move, because the row being changed IS the caller''s own and nothing then constrains the new name');
+
+SELECT pg_temp.check(
+  'member A cannot DELETE member B''s avatar',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'DELETE FROM storage.objects
+      WHERE name = ''bbbbbbbb-0000-0000-0000-000000000002/avatar.jpg''') = 0,
+  'a DELETE that matches no row under RLS deletes nothing rather than raising');
+
+SELECT pg_temp.check(
+  'member B''s avatar survived everything member A tried',
+  (SELECT count(*) FROM storage.objects
+     WHERE name = 'bbbbbbbb-0000-0000-0000-000000000002/avatar.jpg') = 1,
+  'checked as superuser, so it reports the real state of the table rather than what A can see');
+
+SELECT pg_temp.check(
+  'STAFF can read every member avatar — an operator has to know who they are looking for',
+  pg_temp.count_as('a6000000-0000-0000-0000-00000000000f',
+    'SELECT id FROM storage.objects WHERE bucket_id = ''member-avatars''') >= 2,
+  'staff read is a real requirement, and a policy granting nothing would pass every isolation check above while breaking the operator card');
+
+SELECT pg_temp.check(
+  'staff CANNOT delete a member''s photograph',
+  pg_temp.exec_as('a6000000-0000-0000-0000-00000000000f',
+    'DELETE FROM storage.objects
+      WHERE name = ''aaaaaaaa-0000-0000-0000-000000000001/avatar.jpg''') = 0,
+  'staff get SELECT and nothing else. The ABSENCE of the other three policies is the enforcement, so this fails the moment somebody adds a convenience policy');
+
 -- ============================================================
 --  Report
 -- ============================================================

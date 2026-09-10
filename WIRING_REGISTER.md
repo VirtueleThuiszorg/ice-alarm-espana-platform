@@ -28,7 +28,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   1  
 ```
 
-191 distinct wires across 650 call sites and 110 routes.
+191 distinct wires across 652 call sites and 110 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
@@ -63,7 +63,7 @@ things, and a control with no wire cannot do anything:
 
 | kind | what it is | call sites |
 |---|---|---:|
-| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 347 |
+| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 349 |
 | `fn` | `supabase.functions.invoke(f)` — an edge function | 87 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 5 |
 | `channel` | `postgres_changes` — a realtime subscription | 51 |
@@ -131,7 +131,7 @@ The checks, verified on every build:
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:conversation_messages` | Isabella conversation turns — the assistant's reply appears as it is produced | conversation_messages | self | — | none | 2 |
 | **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 10 |
+| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 11 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
 | **6** | `fn:ai-execute-action` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | mutation onError | none | 1 |
 | **6** | `table:ai_actions` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | toast | none | 2 |
@@ -160,7 +160,7 @@ The checks, verified on every build:
 | **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 32 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 10 |
+| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 11 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
 | **7** | `fn:join-order-status` | /join?success — the confirmation screen, polling for the webhook — your payment is confirmed, and here is the one thing still to do | join-order-status, keyed on the Stripe Checkout Session id (never the order number, which is sequential) → the member's second-stage link and the 24-hour number | screen | — | `src/test/joinOrderPolling.test.tsx` | 1 |
 | **7** | `table:app_daily_metrics` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | — | `src/test/checkoutPaymentMethods.test.ts` | 1 |
@@ -193,7 +193,7 @@ The checks, verified on every build:
 | **5** | `table:conversation_messages` | Isabella conversation turns — the assistant's reply appears as it is produced | conversation_messages | self | — | none | 2 |
 | **5** | `table:documentation` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | toast | none | 1 |
 | **5** | `table:emergency_contacts` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 3 |
-| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 10 |
+| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 11 |
 | **5** | `table:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 3 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
 | **6** | `fn:ai-execute-action` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | mutation onError | none | 1 |
@@ -259,7 +259,7 @@ The checks, verified on every build:
 | **5** | `table:emergency_contacts` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 3 |
 | **5** | `table:medical_information` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 2 |
 | **5** | `table:member_notes` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 3 |
-| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 10 |
+| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 11 |
 | **5** | `table:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 3 |
 | **5** | `table:shift_escalation_chain` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
 | **5** | `table:shift_notes` | Write a handover note; go on/off duty — the next shift knows what happened | shift_notes / staff_presence | screen | toast | none | 1 |
@@ -377,7 +377,7 @@ The checks, verified on every build:
 | **5** | `table:medical_information` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 2 |
 | **5** | `table:member_contact_methods` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 1 |
 | **5** | `table:member_notes` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 3 |
-| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 10 |
+| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 11 |
 | **5** | `table:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 3 |
 | **5** | `table:outreach_crm_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 3 |
 | **5** | `table:outreach_queued_tasks` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | mutation onError | none | 1 |
@@ -469,7 +469,7 @@ The checks, verified on every build:
 | **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 32 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 10 |
+| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 11 |
 | **5** | `table:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 3 |
 | **5** | `table:partner_agreements` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
 | **5** | `table:partner_alert_notifications` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
@@ -1851,7 +1851,7 @@ The home-location pin (2026-09-10) is a direct staff write to `members`, and wha
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +91
-- **call sites** src/components/admin/member-detail/CourtesyCallsCard.tsx, src/components/admin/member-detail/ProfileTab.tsx, src/components/LanguageSelector.tsx, src/components/maps/SetHomeLocationDialog.tsx +6
+- **call sites** src/components/admin/member-detail/CourtesyCallsCard.tsx, src/components/admin/member-detail/ProfileTab.tsx, src/components/LanguageSelector.tsx, src/components/maps/SetHomeLocationDialog.tsx +7
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
 

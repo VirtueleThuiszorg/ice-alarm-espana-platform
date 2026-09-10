@@ -28,7 +28,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   1  
 ```
 
-189 distinct wires across 644 call sites and 110 routes.
+189 distinct wires across 643 call sites and 110 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
@@ -63,7 +63,7 @@ things, and a control with no wire cannot do anything:
 
 | kind | what it is | call sites |
 |---|---|---:|
-| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 345 |
+| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 344 |
 | `fn` | `supabase.functions.invoke(f)` — an edge function | 86 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 4 |
 | `channel` | `postgres_changes` — a realtime subscription | 51 |

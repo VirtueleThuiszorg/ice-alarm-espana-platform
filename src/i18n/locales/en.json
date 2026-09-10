@@ -5804,6 +5804,8 @@
     "annual": "Annual"
   },
   "rota": {
+    "addShiftFor": "Add a shift for {{name}} on {{date}}",
+    "editShiftFor": "Edit {{name}}'s {{shift}} shift on {{date}}",
     "filterByPerson": "Show",
     "everyone": "Everyone",
     "filterNote": "One person's rows. The coverage banner above still counts everybody's shifts.",

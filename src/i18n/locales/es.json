@@ -5804,6 +5804,8 @@
     "annual": "Anual"
   },
   "rota": {
+    "addShiftFor": "Añadir un turno para {{name}} el {{date}}",
+    "editShiftFor": "Editar el turno de {{shift}} de {{name}} el {{date}}",
     "filterByPerson": "Ver",
     "everyone": "Todos",
     "filterNote": "Las filas de una sola persona. El aviso de cobertura de arriba sigue contando los turnos de todos.",

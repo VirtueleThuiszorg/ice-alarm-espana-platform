@@ -5804,6 +5804,8 @@
     "annual": "Jaarlijks"
   },
   "rota": {
+    "addShiftFor": "Een dienst toevoegen voor {{name}} op {{date}}",
+    "editShiftFor": "De {{shift}}dienst van {{name}} op {{date}} bewerken",
     "filterByPerson": "Toon",
     "everyone": "Iedereen",
     "filterNote": "De rijen van één persoon. De dekkingsmelding hierboven telt nog steeds ieders diensten.",

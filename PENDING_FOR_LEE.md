@@ -635,6 +635,44 @@ The holiday card avoids the trap by passing `service: "holiday"` against keys th
 `holiday_`; the reason is written out in that file so the next person does not copy the broken
 call.
 
+### D-18 — the 21 fields the platform now treats as REQUIRED on a member's file (2026-09-10)
+
+**This one is a list to read, not a defect.** Five parts of the codebase had five different
+answers to "what is missing from this member's record", and the member-record work needed one. It
+is now `src/lib/memberRequiredFields.ts`, and everything reads it: the header badge, the
+Missing-info dialog, the members-list column, and the link the member fills in.
+
+**The list, by group** — each entry in the file also carries WHY, in the sentence a member sees:
+
+- **Identity** — first name, last name, date of birth, NIE/DNI
+- **Address** — address line 1, town or city, province, postal code
+- **Contact** — phone, email
+- **Medical** — blood group, allergies, medication, doctor, doctor's phone, preferred hospital
+- **Emergency contacts** — at least one contact, and a phone number for every contact
+- **Device** — a pendant assigned (IMEI), pendant tested with an operator *(ours, not theirs)*
+- **Membership** — an active subscription *(ours, not theirs — golden rule 4)*
+
+**The two places the old sources disagreed, resolved in the open rather than quietly:**
+
+1. **NIE/DNI** — the registration schema has it OPTIONAL (REVIEW_JOIN_PATH F1 is the record of
+   what asking too much at the wizard cost), while the old inline list chased it. Both are right
+   about their own moment, so the list means *"required on file"*, not *"required to sign up"*.
+2. **ONE emergency contact, not two.** The old inline list chased a second. `readinessGap.ts`,
+   `protectionChecklist.ts` and the readiness view all make ONE the condition, and making two
+   required here would put the badge in disagreement with the readiness queue, the member header
+   notice and the operator card. A second contact is better practice; it is not counted as
+   missing.
+
+**What to do with it:** read the fourteen medical/identity items and say whether any is wrong.
+Adding one is a line in that file plus a control on the member's page (the ratchet in
+`memberUpdateForm.ts` fails the build until the control exists, so it cannot be half-done).
+Removing one is a line. The three marked *ours* cannot be asked of a member and are shown on the
+staff dialog as "Ours to do" — a pendant nobody has tested is a phone call we owe them, not a form
+field.
+
+**Nothing is blocked on this.** It shipped; changing it is a one-line decision whenever you have
+read the list.
+
 ---
 
 ## 3. Per-channel flags (D7) — turn on only when proven

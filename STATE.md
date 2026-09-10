@@ -54,6 +54,79 @@ names what is missing. Proven by `src/test/ciJobIsolation.test.ts` (23 assertion
 killed — including a duplicate gate re-added inside the shared job, which the first version of the
 test missed).
 
+## Member CRM record — 2026-09-10 · **read-only by default, and it says what is missing**
+
+Seven PRs on the member record (#290, #291, #293, #296, #297, #299, #301, #303, #304). What is
+claimed here is what a test presses; where something is left undone it is named as undone.
+
+### ✅ ONE definition of "required" (#290)
+`src/lib/memberRequiredFields.ts` — **21 items**, each carrying WHY it is required (SOS
+response / billing / legal), the sentence a member or a staff member reads, and which source
+asserts it. It replaces **five** disagreeing answers: `readinessGap.ts`, `protectionChecklist.ts`,
+the registration schema, `medicalFields.ts` (which marks nothing required) and an inline list
+inside `MemberUpdateRequestModal` that was written nowhere else. The two real disagreements are
+recorded in the file rather than resolved quietly — NIE/DNI is optional AT SIGN-UP and required
+ON FILE; ONE emergency contact, not two, because the readiness view, the queue and the operator
+card all say one. **Lee's to check:** the list itself, in that file's `MEMBER_REQUIRED_FIELDS`.
+Proof: `memberRequiredFields.test.ts` (26).
+
+### ✅ Locked until Edit (#301, #304)
+`EditableCard` — one shell, and the lock is a single `<fieldset disabled>` rather than a
+`disabled` prop on forty inputs, because the forty-first is the one somebody forgets and the
+forgetting is invisible. ProfileTab, MedicalTab and CourtesyCallsCard converted; a refused save
+keeps the card open with what was typed in it; unsaved changes are warned about in-app and by the
+browser. MedicalTab now writes an audit row (it wrote to `medical_information` and left none).
+Contacts / Notes / Tasks / Device / Subscription needed no change — every field on them already
+sits inside a dialog behind an explicit Add or Edit, checked by sweeping for fields outside a
+dialog rather than assumed. Proof: `memberLockedUntilEdit.test.tsx` (9), `courtesyCallsLocked.test.tsx` (5).
+
+### ✅ Overview and Missing-info pop-ups (#293, #299)
+Overview shows only what we HAVE, in eight groups, empty fields omitted rather than rendered as
+"—", with Copy-as-text and a Print document of its own. Missing-info carries the count as a badge
+read on mount (a number nobody sees until they click is not a warning), every item with its
+reason, requestable items pre-ticked, and what only WE can do shown but not tickable. The count is
+on the members list too — five batched reads per page, and `…` rather than `0` while it is unknown.
+Proof: `memberOverview.test.ts` (16), `memberOverviewDialog.test.tsx` (7),
+`memberMissingInfo.test.tsx` (12).
+
+### ✅ The member's link asks for everything, and can only write what it should (#296, #297)
+`send-member-update-request` used to THROW when the email bounced — the token existed, the link
+worked, and the staff member was told it had failed. It now returns the link with a named outcome
+per channel (SMS when `notify_channel_sms` is on, to the number on the member's own row), and the
+dialog shows the link with a Copy button whatever the transports did.
+`MemberUpdatePage` understood **nine** tokens while the list names **eighteen** a member can
+supply, so a ticked "date of birth" produced a token that asked for it and a page that did not
+mention it. It is now driven from the list, with a ratchet that fails the suite if a requestable
+field has no control. Old tokens (`contacts_count`, `contacts_email`) still work for their 7 days.
+**Security:** `submit-member-update` spread the request body into a `service_role`
+`.update({...member})` — the interface named three fields and the runtime accepted every column on
+`members`, from an anonymous link holder, with RLS not behind it. Whitelisted now, refused keys
+logged and audited. Proof: `memberUpdateRequest.test.ts` (18), `memberUpdateForm.test.ts` (18),
+`memberUpdatePage.test.tsx` (6), `memberUpdateRequestModal.test.tsx` (6).
+
+### ✅ Four controls that were toasts (#303)
+The Messages tab's SMS, WhatsApp, Email and Log Call were each
+`onClick={() => toast.info("… coming soon")}`. All four are wired: `twilio-sms`, `send-email`, a
+`wa.me` handoff that deliberately does NOT claim delivery, and one `member_interactions` row
+carrying the operator's note. That last one revives a dead reader: `communicationLogger.ts`
+exported ten log functions imported by NOTHING while `ActivityTab` and the call-centre alert panel
+both read `member_interactions`. Two register rows moved off DEAD; the still-dead halves
+(billing reminders, the alert/payment/device helpers) still say so. A control walk covers 32
+controls across the twelve tabs, the header and the ⋯ menu, with a sweep that fails on
+"coming soon" or a no-op handler anywhere on the record. Proof: `memberQuickContact.test.tsx` (9),
+`memberCrmControls.test.ts` (57).
+
+### 🟡 Not done, and not claimed
+- **The 12 tabs are brand-red cards** (#291) with a page-scoped token set and a ≥4.5:1 assertion,
+  but active-vs-base is only 1.58, which is why the active tab also carries a ring and an
+  underline. Nobody has looked at it on a real screen.
+- **`dbMessage()`** was added because `error instanceof Error` is FALSE for a PostgrestError, so
+  every `error instanceof Error ? error.message : String(error)` on the record rendered
+  "[object Object]" — including the guard trigger's *"activation is the payment webhook's job"*.
+  Two call sites are fixed. **The same pattern is elsewhere in the app and was not swept.**
+- **`member_interactions` still has no test proving a row reaches `ActivityTab`** end to end; the
+  writer and the reader are each proven alone.
+
 ## Sessions — 2026-09-09 · **the idle logout is gone, and the browser decides**
 
 A session now lasts until the browser is closed or the user signs out. Nothing expires it on a

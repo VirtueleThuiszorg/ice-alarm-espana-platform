@@ -306,6 +306,69 @@ jobs:
       # Appends EXACTLY the filenames whose versions appeared in the remote list after the push and
       # were absent before it. Not "the files we meant to push", not "everything pending" — the
       # database is asked what it has. Writes the job summary too.
+      # ── AND WHAT THE DATABASE SAYS AFTERWARDS, not what the migration claimed ────────────────
+      #
+      # Every other step here reports on FILES: which migrations the remote history table gained.
+      # That is the right question for drift and the wrong one for "is the number on the screen
+      # correct now". The 2026 holiday backfill is the case in point — it raises an EXCEPTION if
+      # the pre-cut day counts are wrong, so a clean apply does prove its inputs, and it computes
+      # the resulting year totals into a `RAISE NOTICE` that the Supabase CLI does not surface.
+      # The one thing nobody could read back was the balances themselves.
+      #
+      # So this asks the database, read-only, and puts the answer in the run summary. `psql` is
+      # preinstalled on ubuntu-latest; the connection goes through libpq's ENVIRONMENT variables
+      # (PGHOST/PGUSER/PGPASSWORD/...), never argv, so the password cannot reach a log line or
+      # `ps` — the same rule the rest of this job follows.
+      #
+      # `continue-on-error`: this is a REPORT, not a gate. A migration that applied correctly must
+      # not be reported as failed because a read-back could not connect, and the drift gate plus
+      # the manifest already decide whether the run succeeded. It says so out loud when it cannot
+      # read, rather than printing nothing and letting silence look like agreement.
+      - name: The holiday balances, read back from production
+        if: always()
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+
+          if ! command -v psql >/dev/null; then
+            echo "psql is not on this runner; skipping the read-back" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          export PGPASSWORD="$SUPABASE_DB_PASSWORD"
+          export PGUSER="postgres.${SUPABASE_PROJECT_REF}"
+          export PGDATABASE=postgres
+          export PGPORT=5432
+          export PGCONNECT_TIMEOUT=15
+
+          SQL="SELECT first_name || ' ' || last_name || ': ' || days_approved || ' used, '
+               || days_pending || ' pending, ' || days_remaining || ' left of '
+               || annual_holiday_days
+               FROM public.staff_holiday_balance
+               WHERE lower(first_name) IN ('mary','carmen','albert','travis')
+               ORDER BY first_name;"
+
+          for HOST in aws-0-eu-west-1.pooler.supabase.com aws-1-eu-west-1.pooler.supabase.com; do
+            export PGHOST="$HOST"
+            if psql -At -c "$SQL" > /tmp/balances.txt 2>/tmp/balances.err; then
+              {
+                echo ""
+                echo "### Holiday balances, as the database reports them"
+                echo ""
+                echo '```'
+                cat /tmp/balances.txt
+                echo '```'
+                echo ""
+                echo "_Read from \`staff_holiday_balance\` after the push, via ${HOST}._"
+              } | tee -a "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sed 's/^/  /' /tmp/balances.err >&2
+          done
+
+          echo "could not read the balances back — the push result above still stands" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Record what actually applied
         id: record
         if: always()

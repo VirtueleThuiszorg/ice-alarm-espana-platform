@@ -52,6 +52,15 @@ import {
  */
 interface EditableCardBase {
   title: ReactNode;
+  /**
+   * OPEN THIS CARD FROM OUTSIDE. Bump the number to put it into edit mode — the member
+   * header's Edit button does exactly that, having switched to the tab first.
+   *
+   * A LOCKED CARD IGNORES IT, and that is not incidental: it is the only thing that can reach
+   * the `!locked && wantsEdit` invariant from outside, which is why the invariant is now
+   * testable rather than merely argued for.
+   */
+  editSignal?: number;
   description?: ReactNode;
   /** Anything that belongs beside the title — a "last updated" line, a badge. */
   headerExtra?: ReactNode;
@@ -138,7 +147,7 @@ interface EditableCardManage extends EditableCardBase {
 export type EditableCardProps = EditableCardForm | EditableCardLocked | EditableCardManage;
 
 export function EditableCard(props: EditableCardProps) {
-  const { title, description, headerExtra, children, testId } = props;
+  const { title, description, headerExtra, children, testId, editSignal } = props;
   const locked = props.mode === "locked";
   const manage = props.mode === "manage";
   // A managed list has nothing pending: every row wrote itself when it was changed.
@@ -155,12 +164,13 @@ export function EditableCard(props: EditableCardProps) {
     own absence. Both are deleted — a guard nothing can tell apart from nothing is decoration
     (the same call `memberRequiredFields.ts` made about its contacts length check).
 
-    THIS ONE IS KEPT DELIBERATELY, and a mutation does not kill it either. The rule is "keep
-    one expression of the invariant", not "delete the last one": today it is unreachable by
-    construction, and the day somebody adds a second way into edit mode — a keyboard shortcut,
-    a parent that opens a card — it is the line that stops a locked card becoming editable. The
-    guard that IS observable is the one deciding whether the Edit button exists at all, below,
-    and `lockedCards.test.tsx` asserts a locked card renders no control that could set this.
+    THIS ONE IS KEPT, AND IT IS NOW KILLABLE. When it was written no mutation could reach it:
+    with no Edit button rendered in locked mode, nothing outside could set `wantsEdit`, and the
+    note here said so and argued for keeping it anyway ("the rule is keep one expression of the
+    invariant, not delete the last one"). `editSignal` — the member header opening the profile
+    card from outside — is precisely the second way in that was predicted, so a locked card
+    refusing it is now a property a test can press. Flip the `!locked &&` and
+    `lockedCards.test.tsx` fails.
   */
   const editing = !locked && wantsEdit;
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -179,6 +189,15 @@ export function EditableCard(props: EditableCardProps) {
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [editing, isDirty]);
+
+  /*
+    An outside request to edit. Runs on a CHANGE of the signal rather than on its value, so a
+    card the operator has deliberately closed does not spring open again on the next render.
+  */
+  useEffect(() => {
+    if (editSignal === undefined || editSignal === 0) return;
+    setWantsEdit(true);
+  }, [editSignal]);
 
   const startEditing = () => {
     setWantsEdit(true);

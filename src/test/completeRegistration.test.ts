@@ -109,14 +109,47 @@ describe("fix 4 — no policy loosening, no other client-side member inserts app
       }
       return out;
     };
+    /**
+     * One file outside those folders may insert, and it is named rather than pattern-matched.
+     *
+     * `src/lib/crmImportDb.ts` is the Supabase adapter for the admin CRM import. It runs under
+     * the admin's own session and the "Staff can manage members" policy — the same authority as
+     * an insert written inside `pages/admin` — and it lives in `lib/` on purpose: the decisions
+     * about WHAT to write are in `crmImportWriter.ts` and are tested against a fake database,
+     * which is only possible because the queries are separated from them.
+     *
+     * The exception is kept honest by the assertion below: nothing outside an admin surface may
+     * import this module. A file that is admin-only by convention is admin-only until somebody
+     * imports it from the member portal.
+     */
+    const ADMIN_ONLY_ADAPTERS = ["src/lib/crmImportDb.ts"];
+
     const offenders: string[] = [];
     for (const file of walk(SRC)) {
       if (file.includes("/test/")) continue;
       // Staff/admin surfaces legitimately insert as staff under RLS.
       if (file.includes("/admin/") || file.includes("/call-centre/")) continue;
+      const relative = file.replace(SRC, "src");
+      if (ADMIN_ONLY_ADAPTERS.includes(relative)) continue;
       const src = readFileSync(file, "utf8");
-      if (/from\(["']members["']\)\s*\.insert/.test(src)) offenders.push(file.replace(SRC, "src"));
+      if (/from\(["']members["']\)\s*\.insert/.test(src)) offenders.push(relative);
     }
+
+    // The exception's price: only an admin page may reach the adapter.
+    const importers: string[] = [];
+    for (const file of walk(SRC)) {
+      if (file.includes("/test/")) continue;
+      const relative = file.replace(SRC, "src");
+      if (ADMIN_ONLY_ADAPTERS.includes(relative)) continue;
+      const src = readFileSync(file, "utf8");
+      if (/from\s+["'][^"']*crmImportDb["']/.test(src)) importers.push(relative);
+    }
+    expect(
+      importers.filter((f) => !f.includes("/admin/")),
+      `crmImportDb is imported outside an admin surface: ${importers.join(", ")}`
+    ).toEqual([]);
+    // And it IS imported, so the assertion above is not passing on an empty list.
+    expect(importers.length).toBeGreaterThan(0);
     // The list was `["src/components/partner/ResidentialDashboard.tsx"]` — the
     // partner "add resident" flow, pinned as known-broken. That insert is now
     // gone: no partner INSERT policy on `members` ever allowed it, it omitted

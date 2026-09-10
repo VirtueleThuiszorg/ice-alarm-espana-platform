@@ -24,7 +24,31 @@
 
 ## 1. Migrations merged but NOT in production
 
-> ### 🔴 BLOCKED 2026-09-10 — `migrate.yml` can no longer log in to Supabase, and ONE migration is stranded
+> ### ✅ RESOLVED 2026-09-10 14:35 — everything is in production; ONE thing is still yours
+>
+> **Nothing is stranded any more.** `check-migration-drift --main` reports **repo: 188 ·
+> manifest: 188 · production is level with the repo**. The holiday backfill went in on
+> [run #8](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34488553431)
+> and the two swap migrations on
+> [run #9](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34489927779).
+> The balances the run read back out of `staff_holiday_balance`:
+>
+> ```
+> Albert Soares:  16 used, 0 pending, 14 left of 30
+> Carmen Nicolas: 28 used, 0 pending,  2 left of 30
+> Mary Bonner:    18 used, 0 pending, 12 left of 30
+> Travis Nelison:  0 used, 0 pending, 30 left of 30
+> ```
+>
+> **WHAT IS STILL YOURS: route A below.** `supabase link` is still refused — it failed again on
+> main a minute after run #8 — so **"Manifest matches production" stays red on main** until a
+> token with that privilege replaces the current one. Migrations flow through the pooler fallback
+> (#313), which shouts a warning every time it is used, and it was used for all three of these.
+> The Management API is not restored, and nothing else in this repo can restore it.
+>
+> The original diagnosis, kept because it was wrong and the correction is the useful part:
+
+> ### 🔴 (superseded) 2026-09-10 — `migrate.yml` can no longer log in to Supabase, and ONE migration is stranded
 >
 > [Migrate Production run #3](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34474797455)
 > failed on its second real outing, at the very first step that talks to Supabase:

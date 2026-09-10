@@ -1419,6 +1419,9 @@ export type Database = {
           department: string | null
           groups: string[] | null
           industry: string | null
+          legacy_date_joined: string | null
+          legacy_membership_type: string | null
+          legacy_payment_type: string | null
           member_id: string
           referral_source: string | null
           stage: string | null
@@ -1431,6 +1434,9 @@ export type Database = {
           department?: string | null
           groups?: string[] | null
           industry?: string | null
+          legacy_date_joined?: string | null
+          legacy_membership_type?: string | null
+          legacy_payment_type?: string | null
           member_id: string
           referral_source?: string | null
           stage?: string | null
@@ -1443,6 +1449,9 @@ export type Database = {
           department?: string | null
           groups?: string[] | null
           industry?: string | null
+          legacy_date_joined?: string | null
+          legacy_membership_type?: string | null
+          legacy_payment_type?: string | null
           member_id?: string
           referral_source?: string | null
           stage?: string | null
@@ -3297,9 +3306,18 @@ export type Database = {
           away_until: string | null
           pendant_with_member: boolean | null
           urbanizacion: string | null
+          billing_source: string
           bloque: string | null
           portal: string | null
           escalera: string | null
+          home_lat: number | null
+          home_lng: number | null
+          home_location_accuracy_m: number | null
+          home_location_source:
+            | Database["public"]["Enums"]["home_location_source"]
+            | null
+          home_location_set_at: string | null
+          home_location_set_by: string | null
         }
         Insert: {
           id?: string
@@ -3351,9 +3369,18 @@ export type Database = {
           away_until?: string | null
           pendant_with_member?: boolean | null
           urbanizacion?: string | null
+          billing_source?: string
           bloque?: string | null
           portal?: string | null
           escalera?: string | null
+          home_lat?: number | null
+          home_lng?: number | null
+          home_location_accuracy_m?: number | null
+          home_location_source?:
+            | Database["public"]["Enums"]["home_location_source"]
+            | null
+          home_location_set_at?: string | null
+          home_location_set_by?: string | null
         }
         Update: {
           id?: string
@@ -3405,9 +3432,18 @@ export type Database = {
           away_until?: string | null
           pendant_with_member?: boolean | null
           urbanizacion?: string | null
+          billing_source?: string
           bloque?: string | null
           portal?: string | null
           escalera?: string | null
+          home_lat?: number | null
+          home_lng?: number | null
+          home_location_accuracy_m?: number | null
+          home_location_source?:
+            | Database["public"]["Enums"]["home_location_source"]
+            | null
+          home_location_set_at?: string | null
+          home_location_set_by?: string | null
         }
         Relationships: [
           {
@@ -7726,6 +7762,12 @@ export type Database = {
         | "browser_alert"
         | "mobile_call"
         | "emergency_contact_call"
+      home_location_source:
+        | "member_pin"
+        | "member_gps"
+        | "staff_pin"
+        | "geocoded"
+        | "imported"
       import_batch_status:
         | "uploaded"
         | "parsed"
@@ -7749,7 +7791,7 @@ export type Database = {
         | "triage_decision"
         | "handover_briefing"
         | "flag"
-      member_status: "active" | "inactive" | "suspended"
+      member_status: "active" | "inactive" | "pending_review" | "suspended"
       order_item_type:
         | "pendant"
         | "registration_fee"
@@ -7991,6 +8033,13 @@ export const Constants = {
         "mobile_call",
         "emergency_contact_call",
       ],
+      home_location_source: [
+        "member_pin",
+        "member_gps",
+        "staff_pin",
+        "geocoded",
+        "imported",
+      ],
       import_batch_status: [
         "uploaded",
         "parsed",
@@ -8017,7 +8066,7 @@ export const Constants = {
         "handover_briefing",
         "flag",
       ],
-      member_status: ["active", "inactive", "suspended"],
+      member_status: ["active", "inactive", "pending_review", "suspended"],
       order_item_type: [
         "pendant",
         "registration_fee",

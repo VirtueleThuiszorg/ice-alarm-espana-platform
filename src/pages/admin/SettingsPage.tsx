@@ -61,9 +61,28 @@ const KEY = {
   SUPPORT_EMAIL: "settings_support_email",
   ADDRESS: "settings_address",
 
-  // Registration fee settings (stored with settings_ prefix)
-  REG_FEE_ENABLED: "settings_registration_fee_enabled",
-  REG_FEE_DISCOUNT: "settings_registration_fee_discount",
+  // ── Registration fee: THE CANONICAL KEYS, unprefixed ─────────────────────
+  //
+  // These were `settings_registration_fee_enabled` / `settings_registration_fee_discount`, and
+  // nothing on the money path has ever read those. The wizard (usePricingSettings.ts), the
+  // server (submit-registration) and the shared quote (_shared/checkout-pricing.ts) all read the
+  // UNPREFIXED pair, so turning the fee off on this screen left the customer paying €59.99.
+  //
+  // Migration 20260908120000 (P5) settled which family wins — it copied any value across to the
+  // unprefixed rows and then DELETED the prefixed ones — and it is in production. Its code half
+  // is this constant, and until now it had not landed, which made the screen worse rather than
+  // better: reading a row that no longer exists, the toggle fell back to its `?? "true"` default
+  // and displayed the fee as ON whatever the canonical row said.
+  //
+  // AND THE CONSTANT WAS ONLY HALF OF IT. These three are saved under `service: "registration"`
+  // (see `saveKeys`), because `save-api-keys` derives the row name from the service: with the
+  // page's old hardcoded "settings" the value went into `settings_registration_fee_enabled`
+  // however canonical the constant was, and the fee kept being charged with the switch off.
+  //
+  // Pinned by src/test/settingsKeyParity.test.ts, which compares the name the row is STORED
+  // under — service prefix applied — against the keys the readers read, from their source.
+  REG_FEE_ENABLED: "registration_fee_enabled",
+  REG_FEE_DISCOUNT: "registration_fee_discount",
   TEST_MODE_ENABLED: "registration_test_mode_enabled",
 
   // Stripe (no settings_ prefix in your current DB usage)
@@ -267,7 +286,7 @@ export default function SettingsPage() {
       // keep facebookTokenInput as-is
     }
 
-    // Registration fee (stored with settings_ prefix)
+    // Registration fee — the canonical unprefixed rows; see KEY above.
     setRegistrationFeeSettings({
       enabled: (settingsMap[KEY.REG_FEE_ENABLED] ?? "true") !== "false",
       discount: parseFloat(settingsMap[KEY.REG_FEE_DISCOUNT] || "0"),
@@ -278,13 +297,19 @@ export default function SettingsPage() {
   }, [settings, recentlySavedSection]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Save settings mutation (writes through your edge function save-api-keys)
+  //
+  // THE `service` IS PART OF THE KEY, which is the whole reason this takes one. `save-api-keys`
+  // stores `${service}_${key}` unless the key already starts with `${service}_`, so a hardcoded
+  // "settings" silently renamed every key in `KEY` that is not itself `settings_`-prefixed:
+  // `registration_fee_enabled` landed in `settings_registration_fee_enabled`, which nothing on
+  // the money path reads. See `saveKeys` below.
   const saveMutation = useMutation({
-    mutationFn: async (updates: Record<string, string>) => {
+    mutationFn: async ({ keys: updates, service }: { keys: Record<string, string>; service: string }) => {
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.access_token) throw new Error("Not authenticated");
 
       const response = await supabase.functions.invoke("save-api-keys", {
-        body: { service: "settings", keys: updates },
+        body: { service, keys: updates },
       });
 
       if (response.error) throw await functionError(response.error);
@@ -322,9 +347,27 @@ export default function SettingsPage() {
     },
   });
 
+  /**
+   * Save a family of settings under the service its keys belong to.
+   *
+   * A KEY IS ONLY STORED WHERE ITS `service` PUTS IT. `save-api-keys` writes
+   * `key.startsWith(`${service}_`) ? key : `${service}_${key}``, so the service is not a label —
+   * it decides the row name. Every key in `KEY` above must therefore be saved under the service
+   * matching its own prefix:
+   *
+   *   settings_*     -> "settings"        (company, twilio, mollie, facebook, gateway)
+   *   registration_* -> "registration"    (the fee, the discount, test mode)
+   *
+   * The default is "settings" because that is what most of this page holds; passing the wrong one
+   * does not fail, it saves the value under a name the readers do not look for. That is exactly
+   * how the registration fee came to be charged with the switch off.
+   */
+  const saveKeys = (keys: Record<string, string>, service = "settings") =>
+    saveMutation.mutate({ keys, service });
+
   // ✅ Correctly map UI state -> DB keys
   const handleSaveCompany = () => {
-    saveMutation.mutate({
+    saveKeys({
       [KEY.COMPANY_NAME]: companySettings.company_name,
       [KEY.EMERGENCY_PHONE]: companySettings.emergency_phone,
       [KEY.SUPPORT_EMAIL]: companySettings.support_email,
@@ -332,23 +375,31 @@ export default function SettingsPage() {
     });
   };
 
+  // `"registration"`, not `"settings"`. B3 changed these constants to the canonical unprefixed
+  // rows the money path reads, and that half was right — but the write still went through
+  // `service: "settings"`, so it landed in `settings_registration_fee_enabled`. The screen read
+  // one row and charged from another, which is the original defect with the halves swapped: the
+  // fee stayed on at €59.99 with the switch off. Pinned by src/test/settingsKeyParity.test.ts,
+  // which now compares the STORED name and not the constant.
   const handleSaveRegistrationFee = () => {
-    saveMutation.mutate({
-      [KEY.REG_FEE_ENABLED]: registrationFeeSettings.enabled.toString(),
-      [KEY.REG_FEE_DISCOUNT]: registrationFeeSettings.discount.toString(),
-    });
+    saveKeys(
+      {
+        [KEY.REG_FEE_ENABLED]: registrationFeeSettings.enabled.toString(),
+        [KEY.REG_FEE_DISCOUNT]: registrationFeeSettings.discount.toString(),
+      },
+      "registration"
+    );
   };
 
   const handleToggleTestMode = (checked: boolean) => {
     setTestModeEnabled(checked);
-    saveMutation.mutate({
-      [KEY.TEST_MODE_ENABLED]: checked.toString(),
-    });
+    // `registration_test_mode_enabled` — the same family, and it was dead for the same reason.
+    saveKeys({ [KEY.TEST_MODE_ENABLED]: checked.toString() }, "registration");
   };
 
   const handleSaveGateway = (gateway: "stripe" | "mollie") => {
     setActiveGateway(gateway);
-    saveMutation.mutate({ [KEY.ACTIVE_GATEWAY]: gateway });
+    saveKeys({ [KEY.ACTIVE_GATEWAY]: gateway });
   };
 
   const handleSaveMollie = () => {
@@ -366,7 +417,7 @@ export default function SettingsPage() {
       return;
     }
 
-    saveMutation.mutate(updates);
+    saveKeys(updates);
   };
 
   const handleSaveStripe = () => {
@@ -387,7 +438,7 @@ export default function SettingsPage() {
       return;
     }
 
-    saveMutation.mutate(updates);
+    saveKeys(updates);
   };
 
   const handleSaveTwilio = () => {
@@ -413,12 +464,12 @@ export default function SettingsPage() {
     }
 
     setRecentlySavedSection("twilio");
-    saveMutation.mutate(updates);
+    saveKeys(updates);
   };
 
   const handleSaveGoogleMaps = () => {
     if (!googleMapsKey.trim()) return;
-    saveMutation.mutate({ [KEY.GOOGLE_MAPS]: googleMapsKey.trim() });
+    saveKeys({ [KEY.GOOGLE_MAPS]: googleMapsKey.trim() });
   };
 
   const handleSaveFacebook = () => {
@@ -436,7 +487,7 @@ export default function SettingsPage() {
     }
 
     setRecentlySavedSection("facebook");
-    saveMutation.mutate(updates);
+    saveKeys(updates);
   };
 
   const handleSaveWhatsApp = () => {
@@ -444,7 +495,7 @@ export default function SettingsPage() {
       toast({ title: "No changes to save", description: "Enter a WhatsApp number to save." });
       return;
     }
-    saveMutation.mutate({ [KEY.TWILIO_WA]: twilioKeys.whatsapp_number.trim() });
+    saveKeys({ [KEY.TWILIO_WA]: twilioKeys.whatsapp_number.trim() });
   };
 
   const handleTestTwilio = async () => {

@@ -126,8 +126,14 @@ jobs:
         with:
           version: latest
 
-      - name: Link to the production project
-        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+      # THE SAME SCRIPT migrate.yml uses, and that is the point of this change. This job links
+      # to the same project with the same secrets, so when `supabase link` began being refused it
+      # went red and STAYED red — on every push to main, for a reason nothing in the commit could
+      # fix. A required gate that cannot pass is as bad as one that cannot fail: it trains people
+      # to merge past a red X, and it can hide a second, real failure behind the first.
+      - name: Reach production
+        id: conn
+        run: scripts/ci/reach-production.sh "check the manifest"
 
       - name: Manifest matches production
         run: node scripts/ci/check-manifest-truth.mjs

@@ -19,8 +19,8 @@ main cannot drift from the code in main. To change a row, change the wire or the
  9 │   6  ██
  8 │   0  
  7 │  33  █████████████
- 6 │  10  ████
- 5 │  84  ██████████████████████████████████
+ 6 │   9  ████
+ 5 │  85  ██████████████████████████████████
  4 │  49  ████████████████████
  3 │   0  
  2 │   0  
@@ -28,7 +28,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   1  
 ```
 
-191 distinct wires across 647 call sites and 110 routes.
+191 distinct wires across 655 call sites and 110 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
@@ -63,14 +63,14 @@ things, and a control with no wire cannot do anything:
 
 | kind | what it is | call sites |
 |---|---|---:|
-| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 346 |
-| `fn` | `supabase.functions.invoke(f)` — an edge function | 87 |
+| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 348 |
+| `fn` | `supabase.functions.invoke(f)` — an edge function | 88 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 5 |
 | `channel` | `postgres_changes` — a realtime subscription | 51 |
 | `auth` | `supabase.auth.*` — sign in, sign out, register, password reset | 20 |
 | `storage` | `supabase.storage.from(b).upload/remove/…` — a file put somewhere | 14 |
-| `link` | `mailto:` / `tel:` / `wa.me` — a hand-off off the platform | 64 |
-| `open` | `window.open` / `window.location` — the SPA being left | 60 |
+| `link` | `mailto:` / `tel:` / `wa.me` — a hand-off off the platform | 65 |
+| `open` | `window.open` / `window.location` — the SPA being left | 64 |
 
 Routes come from an import graph over `src/App.tsx`, so a wire in a shared hook is
 attributed to every page that can reach it, and a wire in a **layout** (the notification
@@ -126,12 +126,12 @@ The checks, verified on every build:
 | **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
 | **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
-| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
-| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 31 |
+| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 19 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 34 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:conversation_messages` | Isabella conversation turns — the assistant's reply appears as it is produced | conversation_messages | self | — | none | 2 |
 | **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 9 |
+| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 10 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
 | **6** | `fn:ai-execute-action` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | mutation onError | none | 1 |
 | **6** | `table:ai_actions` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | toast | none | 2 |
@@ -156,11 +156,11 @@ The checks, verified on every build:
 | **5** | `auth:updateUser` | Forgot password → email link → set a new one — we will email you a link to get back in | resetPasswordForEmail sends via GoTrue's own mailer; the link returns to /reset-password, where updateUser sets the password | email | toast | none | 1 |
 | **5** | `fn:submit-member-update` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | toast | none | 1 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
-| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
-| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 31 |
+| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 19 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 34 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 9 |
+| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 10 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
 | **7** | `fn:join-order-status` | /join?success — the confirmation screen, polling for the webhook — your payment is confirmed, and here is the one thing still to do | join-order-status, keyed on the Stripe Checkout Session id (never the order number, which is sequential) → the member's second-stage link and the 24-hour number | screen | — | `src/test/joinOrderPolling.test.tsx` | 1 |
 | **7** | `table:app_daily_metrics` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | — | `src/test/checkoutPaymentMethods.test.ts` | 1 |
@@ -176,10 +176,10 @@ The checks, verified on every build:
 
 | score | wire | control · what is promised | where it goes | who is told | failure shown | proof | sites |
 |---:|---|---|---|---|---|---|---:|
-| **4** | `channel:conversations` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 6 |
+| **4** | `channel:conversations` | Live arrival of a message on either Messages screen; the member-side notify, mark-read and home-location calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff, mark_read, save_medical_info and save_home_location | bell | — | none | 6 |
 | **4** | `channel:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 5 |
-| **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 8 |
-| **4** | `fn:member-self-service` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 3 |
+| **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify, mark-read and home-location calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff, mark_read, save_medical_info and save_home_location | bell | — | none | 8 |
+| **4** | `fn:member-self-service` | Live arrival of a message on either Messages screen; the member-side notify, mark-read and home-location calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff, mark_read, save_medical_info and save_home_location | bell | — | none | 4 |
 | **4** | `fn:twilio-call-me` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
 | **4** | `link:wa.me` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | — | none | 13 |
 | **4** | `table:staff` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 11 |
@@ -187,13 +187,14 @@ The checks, verified on every build:
 | **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
 | **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
 | **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
-| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
-| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 31 |
+| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 19 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 34 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:conversation_messages` | Isabella conversation turns — the assistant's reply appears as it is produced | conversation_messages | self | — | none | 2 |
 | **5** | `table:documentation` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | toast | none | 1 |
 | **5** | `table:emergency_contacts` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 3 |
-| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 9 |
+| **5** | `table:member_notification_optin` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 2 |
+| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 10 |
 | **5** | `table:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 3 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
 | **6** | `fn:ai-execute-action` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | mutation onError | none | 1 |
@@ -201,7 +202,6 @@ The checks, verified on every build:
 | **6** | `table:ai_agent_configs` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
 | **6** | `table:ai_agents` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | toast | none | 2 |
 | **6** | `table:ai_memory` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
-| **6** | `table:member_notification_optin` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | mutation onError | none | 1 |
 | **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
 | **9** | `table:conversations` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 8 |
 | **9** | `table:messages` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 7 |
@@ -214,14 +214,14 @@ The checks, verified on every build:
 | **4** | `channel:alerts` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 7 |
 | **4** | `channel:conference_participants` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
 | **4** | `channel:conference_rooms` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `channel:conversations` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 6 |
+| **4** | `channel:conversations` | Live arrival of a message on either Messages screen; the member-side notify, mark-read and home-location calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff, mark_read, save_medical_info and save_home_location | bell | — | none | 6 |
 | **4** | `channel:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 5 |
 | **4** | `channel:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
 | **4** | `channel:isabella_assessment_notes` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 2 |
 | **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 4 |
-| **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 8 |
+| **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify, mark-read and home-location calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff, mark_read, save_medical_info and save_home_location | bell | — | none | 8 |
 | **4** | `channel:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
-| **4** | `fn:member-self-service` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 3 |
+| **4** | `fn:member-self-service` | Live arrival of a message on either Messages screen; the member-side notify, mark-read and home-location calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff, mark_read, save_medical_info and save_home_location | bell | — | none | 4 |
 | **4** | `fn:send-email` | Email a member from their record (MemberQuickContact); billing reminder emails (useBillingReminders) — an operator can email the member from the record, and it is on their history afterwards | send-email edge function → Resend; a member_interactions row either way | email | — | none | 2 |
 | **4** | `fn:sos-alert-resolve` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 1 |
 | **4** | `fn:sos-conference-join` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
@@ -242,15 +242,15 @@ The checks, verified on every build:
 | **4** | `table:staff_presence` | Write a handover note; go on/off duty — the next shift knows what happened | shift_notes / staff_presence | screen | — | none | 1 |
 | **5** | `auth:setSession` | Accept a staff or partner invite from an emailed link — this link makes your account real | auth.setSession with the tokens in the invite URL, then the *-complete-invite function | self | — | none | 3 |
 | **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
-| **5** | `channel:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 2 |
+| **5** | `channel:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 2 |
 | **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
 | **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
 | **5** | `fn:send-member-update-request` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | toast | none | 1 |
 | **5** | `fn:twilio-sms` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 4 |
 | **5** | `fn:twilio-whatsapp` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | toast | none | 1 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
-| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
-| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 31 |
+| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 19 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 34 |
 | **5** | `rpc:get_todays_birthdays` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:conversation_messages` | Isabella conversation turns — the assistant's reply appears as it is produced | conversation_messages | self | — | none | 2 |
@@ -258,15 +258,15 @@ The checks, verified on every build:
 | **5** | `table:documentation` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | toast | none | 1 |
 | **5** | `table:emergency_contacts` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 3 |
 | **5** | `table:medical_information` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 2 |
-| **5** | `table:member_notes` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 3 |
-| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 9 |
+| **5** | `table:member_notes` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 3 |
+| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 10 |
 | **5** | `table:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 3 |
 | **5** | `table:shift_escalation_chain` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
 | **5** | `table:shift_notes` | Write a handover note; go on/off duty — the next shift knows what happened | shift_notes / staff_presence | screen | toast | none | 1 |
 | **5** | `table:staff_holidays` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
 | **5** | `table:staff_shift_covers` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
 | **5** | `table:staff_shifts` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 2 |
-| **5** | `table:subscriptions` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 1 |
+| **5** | `table:subscriptions` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 1 |
 | **5** | `table:tasks` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 4 |
 | **5** | `table:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 1 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
@@ -275,7 +275,7 @@ The checks, verified on every build:
 | **6** | `table:ai_agent_configs` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
 | **6** | `table:ai_agents` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | toast | none | 2 |
 | **6** | `table:ai_memory` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
-| **6** | `table:payments` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | toast | none | 1 |
+| **6** | `table:payments` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | toast | none | 1 |
 | **7** | `channel:shift_notes` | Shift notes page — live handover list — code comment: “Keep the list live: notes added/edited/deleted by other operators appear without a reload.” | supabase.channel('call-centre-shift-notes') → fetchNotes() | screen | — | `scripts/rls/wiring.sql` | 1 |
 | **7** | `channel:tasks` | Call-centre dashboard — courtesy-call list auto-refresh — the courtesy-call list stays current while the operator works | supabase.channel('dashboard-courtesy-calls') → fetchCourtesyCalls() | screen | — | `scripts/rls/wiring.sql` | 1 |
 | **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
@@ -297,17 +297,17 @@ The checks, verified on every build:
 | score | wire | control · what is promised | where it goes | who is told | failure shown | proof | sites |
 |---:|---|---|---|---|---|---|---:|
 | **4** | `channel:alerts` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 7 |
-| **4** | `channel:conversations` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 6 |
+| **4** | `channel:conversations` | Live arrival of a message on either Messages screen; the member-side notify, mark-read and home-location calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff, mark_read, save_medical_info and save_home_location | bell | — | none | 6 |
 | **4** | `channel:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 5 |
 | **4** | `channel:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
 | **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 4 |
-| **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 8 |
+| **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify, mark-read and home-location calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff, mark_read, save_medical_info and save_home_location | bell | — | none | 8 |
 | **4** | `channel:outreach_raw_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 1 |
 | **4** | `channel:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
 | **4** | `channel:video_exports` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | — | none | 1 |
 | **4** | `channel:video_renders` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | — | none | 1 |
 | **4** | `fn:facebook-metrics` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | — | none | 1 |
-| **4** | `fn:member-self-service` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 3 |
+| **4** | `fn:member-self-service` | Live arrival of a message on either Messages screen; the member-side notify, mark-read and home-location calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff, mark_read, save_medical_info and save_home_location | bell | — | none | 4 |
 | **4** | `fn:partner-admin-create` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
 | **4** | `fn:process-commissions` | Run the commission calculation — partners are paid what they earned | process-commissions → partner_commissions | nobody | — | none | 2 |
 | **4** | `fn:send-email` | Email a member from their record (MemberQuickContact); billing reminder emails (useBillingReminders) — an operator can email the member from the record, and it is on their history afterwards | send-email edge function → Resend; a member_interactions row either way | email | — | none | 2 |
@@ -332,7 +332,7 @@ The checks, verified on every build:
 | **4** | `table:staff` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 11 |
 | **5** | `auth:setSession` | Accept a staff or partner invite from an emailed link — this link makes your account real | auth.setSession with the tokens in the invite URL, then the *-complete-invite function | self | — | none | 3 |
 | **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
-| **5** | `channel:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 2 |
+| **5** | `channel:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 2 |
 | **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
 | **5** | `channel:outreach_crm_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | mutation onError | none | 1 |
 | **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
@@ -352,8 +352,8 @@ The checks, verified on every build:
 | **5** | `fn:youtube-oauth-start` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
 | **5** | `fn:youtube-publish` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
-| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
-| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 31 |
+| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 19 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 34 |
 | **5** | `rpc:get_admin_dashboard_stats` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `rpc:get_sales_command_stats` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
@@ -375,9 +375,10 @@ The checks, verified on every build:
 | **5** | `table:media_topic_goals` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
 | **5** | `table:media_topics` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
 | **5** | `table:medical_information` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 2 |
-| **5** | `table:member_contact_methods` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 1 |
-| **5** | `table:member_notes` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 3 |
-| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 9 |
+| **5** | `table:member_contact_methods` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 1 |
+| **5** | `table:member_notes` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 3 |
+| **5** | `table:member_notification_optin` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 2 |
+| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 10 |
 | **5** | `table:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 3 |
 | **5** | `table:outreach_crm_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 3 |
 | **5** | `table:outreach_queued_tasks` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | mutation onError | none | 1 |
@@ -388,7 +389,7 @@ The checks, verified on every build:
 | **5** | `table:partner_alert_subscriptions` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
 | **5** | `table:partner_members` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
 | **5** | `table:partner_pricing_tiers` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:payers` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 1 |
+| **5** | `table:payers` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 1 |
 | **5** | `table:shift_escalation_chain` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
 | **5** | `table:staff_activity_log` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
 | **5** | `table:staff_documents` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | mutation onError | none | 1 |
@@ -396,7 +397,7 @@ The checks, verified on every build:
 | **5** | `table:staff_invites` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
 | **5** | `table:staff_shift_covers` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
 | **5** | `table:staff_shifts` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 2 |
-| **5** | `table:subscriptions` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 1 |
+| **5** | `table:subscriptions` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 1 |
 | **5** | `table:tasks` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 4 |
 | **5** | `table:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 1 |
 | **5** | `table:video_brand_settings` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
@@ -411,7 +412,7 @@ The checks, verified on every build:
 | **6** | `table:ai_agent_configs` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
 | **6** | `table:ai_agents` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | toast | none | 2 |
 | **6** | `table:ai_memory` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
-| **6** | `table:payments` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | toast | none | 1 |
+| **6** | `table:payments` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | toast | none | 1 |
 | **7** | `channel:registration_drafts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | toast | `scripts/rls/wiring.sql` | 1 |
 | **7** | `channel:social_post_metrics` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
 | **7** | `channel:social_posts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
@@ -465,11 +466,11 @@ The checks, verified on every build:
 | **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
 | **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
-| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
-| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 31 |
+| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 19 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 34 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 9 |
+| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 10 |
 | **5** | `table:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 3 |
 | **5** | `table:partner_agreements` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
 | **5** | `table:partner_alert_notifications` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
@@ -552,9 +553,9 @@ SOS path — untouched here and flagged. No end-to-end proof was found for the c
 
 ### `channel:conversations` — 4/10 (arrives, unproven)
 
-- **control** Live arrival of a message on either Messages screen; the member-side notify and mark-read calls
+- **control** Live arrival of a message on either Messages screen; the member-side notify, mark-read and home-location calls
 - **promised** a new message appears, and the team is told
-- **goes to** postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read
+- **goes to** postgres_changes on messages / conversations (both published); member-self-service for notify_staff, mark_read, save_medical_info and save_home_location
 - **who is told** bell
 - **failure shown to user** no
 - **proof** none — capped at 6
@@ -562,6 +563,8 @@ SOS path — untouched here and flagged. No end-to-end proof was found for the c
 - **call sites** src/components/call-centre/MessagesPanel.tsx, src/pages/admin/MessagesPage.tsx, src/pages/call-centre/CallCentreDashboard.tsx, src/pages/call-centre/MessagesPage.tsx +2
 
 Split from the tables above, which cite `inboundMessages`. That suite proves an INBOUND SMS becomes a message row; it does not exercise these subscriptions, and it does not cover member-self-service's `notify_staff` leg — the one that actually rings the bell. Claiming it for all five wires was the register scoring a neighbour's test, which is the habit it exists to break.
+
+`save_home_location` (2026-09-10) is on this wire too and does NOT ring the bell, deliberately: a member marking their own front door is not news anybody has to act on tonight, and it is on the record where it matters — the member row, the SOS card, and an activity_logs row naming who set it and whether it replaced an earlier pin. What is PROVEN of it is the write and the refusals (src/test/memberHomeLocationWrite.test.ts, scripts/rls/isolation.sql); what is not is the click-through, until the Playwright spec runs against a seeded member. So this row still scores as unproven, which is the honest answer.
 
 ### `channel:devices` — 4/10 (arrives, unproven)
 
@@ -617,9 +620,9 @@ This subscription WORKS — leads is published and the refetch fires. It is also
 
 ### `channel:messages` — 4/10 (arrives, unproven)
 
-- **control** Live arrival of a message on either Messages screen; the member-side notify and mark-read calls
+- **control** Live arrival of a message on either Messages screen; the member-side notify, mark-read and home-location calls
 - **promised** a new message appears, and the team is told
-- **goes to** postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read
+- **goes to** postgres_changes on messages / conversations (both published); member-self-service for notify_staff, mark_read, save_medical_info and save_home_location
 - **who is told** bell
 - **failure shown to user** no
 - **proof** none — capped at 6
@@ -627,6 +630,8 @@ This subscription WORKS — leads is published and the refetch fires. It is also
 - **call sites** src/components/admin/member-detail/MessagesTab.tsx, src/components/call-centre/MessagesPanel.tsx, src/components/layout/CallCentreSidebar.tsx, src/pages/admin/MessagesPage.tsx +4
 
 Split from the tables above, which cite `inboundMessages`. That suite proves an INBOUND SMS becomes a message row; it does not exercise these subscriptions, and it does not cover member-self-service's `notify_staff` leg — the one that actually rings the bell. Claiming it for all five wires was the register scoring a neighbour's test, which is the habit it exists to break.
+
+`save_home_location` (2026-09-10) is on this wire too and does NOT ring the bell, deliberately: a member marking their own front door is not news anybody has to act on tonight, and it is on the record where it matters — the member row, the SOS card, and an activity_logs row naming who set it and whether it replaced an earlier pin. What is PROVEN of it is the write and the refusals (src/test/memberHomeLocationWrite.test.ts, scripts/rls/isolation.sql); what is not is the click-through, until the Playwright spec runs against a seeded member. So this row still scores as unproven, which is the honest answer.
 
 ### `channel:outreach_raw_leads` — 4/10 (arrives, unproven)
 
@@ -695,16 +700,18 @@ publish-scheduled writes a notification_log row on failure, so a post that does 
 
 ### `fn:member-self-service` — 4/10 (arrives, unproven)
 
-- **control** Live arrival of a message on either Messages screen; the member-side notify and mark-read calls
+- **control** Live arrival of a message on either Messages screen; the member-side notify, mark-read and home-location calls
 - **promised** a new message appears, and the team is told
-- **goes to** postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read
+- **goes to** postgres_changes on messages / conversations (both published); member-self-service for notify_staff, mark_read, save_medical_info and save_home_location
 - **who is told** bell
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /admin/members/:id, /admin/messages, /call-centre/alerts, /call-centre/members/:id, /call-centre/messages, /dashboard +8
-- **call sites** src/hooks/useFeedback.ts, src/pages/client/MedicalInfoPage.tsx, src/utils/notifications.ts
+- **call sites** src/components/maps/SetHomeLocationDialog.tsx, src/hooks/useFeedback.ts, src/pages/client/MedicalInfoPage.tsx, src/utils/notifications.ts
 
 Split from the tables above, which cite `inboundMessages`. That suite proves an INBOUND SMS becomes a message row; it does not exercise these subscriptions, and it does not cover member-self-service's `notify_staff` leg — the one that actually rings the bell. Claiming it for all five wires was the register scoring a neighbour's test, which is the habit it exists to break.
+
+`save_home_location` (2026-09-10) is on this wire too and does NOT ring the bell, deliberately: a member marking their own front door is not news anybody has to act on tonight, and it is on the record where it matters — the member row, the SOS card, and an activity_logs row naming who set it and whether it replaced an earlier pin. What is PROVEN of it is the write and the refusals (src/test/memberHomeLocationWrite.test.ts, scripts/rls/isolation.sql); what is not is the click-through, until the Playwright spec runs against a seeded member. So this row still scores as unproven, which is the honest answer.
 
 ### `fn:partner-admin-create` — 4/10 (arrives, unproven)
 
@@ -1208,7 +1215,7 @@ THE MOST CONSEQUENTIAL EMAIL IN THE PRODUCT, and the register was not asking abo
 
 ### `channel:members` — 5/10 (arrives, unproven)
 
-- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment
+- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin
 - **promised** the record reflects what was agreed
 - **goes to** the named tables
 - **who is told** self
@@ -1218,6 +1225,8 @@ THE MOST CONSEQUENTIAL EMAIL IN THE PRODUCT, and the register was not asking abo
 - **call sites** src/hooks/useMembersRealtime.ts, src/pages/call-centre/StaffDashboard.tsx
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
+
+The home-location pin (2026-09-10) is a direct staff write to `members`, and what stops it lying is not this component: `guard_member_home_location()` forces a staff write to be source='staff_pin', stamps set_at/set_by, and refuses a provenance-only edit. The SOS card labels a staff_pin differently from a member confirmation, so the trigger is what makes that label true. Proven by execution in scripts/rls/isolation.sql.
 
 ### `channel:notification_log` — 5/10 (arrives, unproven)
 
@@ -1501,7 +1510,7 @@ mailto: leaves the platform entirely — nothing is recorded and nothing can be.
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /, /admin, /admin/leads, /admin/members/:id, /admin/messages, /admin/tasks +18
-- **call sites** src/components/call-centre/AlertDetailPanel.tsx, src/components/call-centre/DeviceOfflineAlertsCard.tsx, src/components/call-centre/MemberQuickSearch.tsx, src/components/call-centre/PendantLiveStatusModal.tsx +14
+- **call sites** src/components/call-centre/AlertDetailPanel.tsx, src/components/call-centre/DeviceOfflineAlertsCard.tsx, src/components/call-centre/MemberQuickSearch.tsx, src/components/call-centre/PendantLiveStatusModal.tsx +15
 
 Reaches the dialler, and `telHref()` returns null when the number is unset so a “Call us” card with no number in it is not rendered — the right failure. Nothing is recorded: a call placed this way leaves no interaction row (see table:member_interactions, whose logger is dead code), so the platform cannot say a member was ever phoned. On the SOS path the brief already calls for replacing tel: with the Twilio conference; that is Lee's gate, not this goal.
 
@@ -1514,7 +1523,7 @@ Reaches the dialler, and `telHref()` returns null when the number is unset so a 
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +104
-- **call sites** src/components/admin/media/PublishedPostCard.tsx, src/components/admin/member-detail/MemberQuickContact.tsx, src/components/admin/video-hub/ExportArtifactButtons.tsx, src/components/admin/video-hub/VideoPreviewDialog.tsx +27
+- **call sites** src/components/admin/media/PublishedPostCard.tsx, src/components/admin/member-detail/MemberQuickContact.tsx, src/components/admin/member-detail/StaffHomeLocationCard.tsx, src/components/admin/video-hub/ExportArtifactButtons.tsx +30
 
 The counterpart to `link:*`, and originally invisible to the scanner: a `tel:` in an href was counted while the same number handed to window.location.href was not. 59 call sites. This is also how the checkout redirect leaves the app, which is why the join→pay goal owns that part and this row does not re-prove it.
 
@@ -1806,7 +1815,7 @@ Life-safety data with no notification owed — the member is the actor. What it 
 
 ### `table:member_contact_methods` — 5/10 (arrives, unproven)
 
-- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment
+- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin
 - **promised** the record reflects what was agreed
 - **goes to** the named tables
 - **who is told** self
@@ -1817,9 +1826,11 @@ Life-safety data with no notification owed — the member is the actor. What it 
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
 
+The home-location pin (2026-09-10) is a direct staff write to `members`, and what stops it lying is not this component: `guard_member_home_location()` forces a staff write to be source='staff_pin', stamps set_at/set_by, and refuses a provenance-only edit. The SOS card labels a staff_pin differently from a member confirmation, so the trigger is what makes that label true. Proven by execution in scripts/rls/isolation.sql.
+
 ### `table:member_notes` — 5/10 (arrives, unproven)
 
-- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment
+- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin
 - **promised** the record reflects what was agreed
 - **goes to** the named tables
 - **who is told** self
@@ -1830,18 +1841,35 @@ Life-safety data with no notification owed — the member is the actor. What it 
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
 
+The home-location pin (2026-09-10) is a direct staff write to `members`, and what stops it lying is not this component: `guard_member_home_location()` forces a staff write to be source='staff_pin', stamps set_at/set_by, and refuses a provenance-only edit. The SOS card labels a staff_pin differently from a member confirmation, so the trigger is what makes that label true. Proven by execution in scripts/rls/isolation.sql.
+
+### `table:member_notification_optin` — 5/10 (arrives, unproven)
+
+- **control** Member edits their emergency contacts, medical information, notification opt-in
+- **promised** this is what an operator will see when you press the pendant
+- **goes to** emergency_contacts / medical_information / member_notification_optin
+- **who is told** self
+- **failure shown to user** no
+- **proof** none — capped at 6
+- **routes** /admin/crm-import, /dashboard/profile
+- **call sites** src/hooks/useMemberNotificationOptin.ts, src/lib/crmImportDb.ts
+
+Life-safety data with no notification owed — the member is the actor. What it DOES need is proof that an operator can read it and a stranger cannot; the RLS harness covers the isolation half, and the end-to-end half is unproven, so 5.
+
 ### `table:members` — 5/10 (arrives, unproven)
 
-- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment
+- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin
 - **promised** the record reflects what was agreed
 - **goes to** the named tables
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +91
-- **call sites** src/components/admin/member-detail/CourtesyCallsCard.tsx, src/components/admin/member-detail/ProfileTab.tsx, src/components/LanguageSelector.tsx, src/lib/crmImportDb.ts +5
+- **call sites** src/components/admin/member-detail/CourtesyCallsCard.tsx, src/components/admin/member-detail/ProfileTab.tsx, src/components/LanguageSelector.tsx, src/components/maps/SetHomeLocationDialog.tsx +6
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
+
+The home-location pin (2026-09-10) is a direct staff write to `members`, and what stops it lying is not this component: `guard_member_home_location()` forces a staff write to be source='staff_pin', stamps set_at/set_by, and refuses a provenance-only edit. The SOS card labels a staff_pin differently from a member confirmation, so the trigger is what makes that label true. Proven by execution in scripts/rls/isolation.sql.
 
 ### `table:notification_log` — 5/10 (arrives, unproven)
 
@@ -2014,7 +2042,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 
 ### `table:payers` — 5/10 (arrives, unproven)
 
-- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment
+- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin
 - **promised** the record reflects what was agreed
 - **goes to** the named tables
 - **who is told** self
@@ -2024,6 +2052,8 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 - **call sites** src/pages/admin/AddMemberWizard.tsx
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
+
+The home-location pin (2026-09-10) is a direct staff write to `members`, and what stops it lying is not this component: `guard_member_home_location()` forces a staff write to be source='staff_pin', stamps set_at/set_by, and refuses a provenance-only edit. The SOS card labels a staff_pin differently from a member confirmation, so the trigger is what makes that label true. Proven by execution in scripts/rls/isolation.sql.
 
 ### `table:shift_escalation_chain` — 5/10 (arrives, unproven)
 
@@ -2131,7 +2161,7 @@ The existing good pattern: one write path (`notifyUsers`), targeted rows so mark
 
 ### `table:subscriptions` — 5/10 (arrives, unproven)
 
-- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment
+- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin
 - **promised** the record reflects what was agreed
 - **goes to** the named tables
 - **who is told** self
@@ -2141,6 +2171,8 @@ The existing good pattern: one write path (`notifyUsers`), targeted rows so mark
 - **call sites** src/components/admin/member-detail/DeviceTab.tsx
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
+
+The home-location pin (2026-09-10) is a direct staff write to `members`, and what stops it lying is not this component: `guard_member_home_location()` forces a staff write to be source='staff_pin', stamps set_at/set_by, and refuses a provenance-only edit. The SOS card labels a staff_pin differently from a member confirmation, so the trigger is what makes that label true. Proven by execution in scripts/rls/isolation.sql.
 
 ### `table:tasks` — 5/10 (arrives, unproven)
 
@@ -2337,22 +2369,9 @@ Split from the gate above: `isabellaGate` proves the hard blocks, not that a pro
 
 Split from the gate above: `isabellaGate` proves the hard blocks, not that a prompt saved in this UI reaches the database and is the one she reads. Citing it here would have been the register scoring itself on an adjacent test.
 
-### `table:member_notification_optin` — 6/10 (arrives, unproven)
-
-- **control** Member edits their emergency contacts, medical information, notification opt-in
-- **promised** this is what an operator will see when you press the pendant
-- **goes to** emergency_contacts / medical_information / member_notification_optin
-- **who is told** self
-- **failure shown to user** mutation onError
-- **proof** none — capped at 6
-- **routes** /dashboard/profile
-- **call sites** src/hooks/useMemberNotificationOptin.ts
-
-Life-safety data with no notification owed — the member is the actor. What it DOES need is proof that an operator can read it and a stranger cannot; the RLS harness covers the isolation half, and the end-to-end half is unproven, so 5.
-
 ### `table:payments` — 6/10 (arrives, unproven)
 
-- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment
+- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin
 - **promised** the record reflects what was agreed
 - **goes to** the named tables
 - **who is told** self
@@ -2362,6 +2381,8 @@ Life-safety data with no notification owed — the member is the actor. What it 
 - **call sites** src/components/admin/member-detail/PaymentsTab.tsx
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
+
+The home-location pin (2026-09-10) is a direct staff write to `members`, and what stops it lying is not this component: `guard_member_home_location()` forces a staff write to be source='staff_pin', stamps set_at/set_by, and refuses a provenance-only edit. The SOS card labels a staff_pin differently from a member confirmation, so the trigger is what makes that label true. Proven by execution in scripts/rls/isolation.sql.
 
 ### `channel:registration_drafts` — 7/10 (proven; nobody told)
 

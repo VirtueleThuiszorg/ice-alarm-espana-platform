@@ -608,7 +608,8 @@
     "change": "Cambiar",
     "hide": "Ocultar",
     "show": "Mostrar",
-    "remove": "Quitar"
+    "remove": "Quitar",
+    "notAdded": "Sin añadir"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -1132,7 +1133,6 @@
     "additionalNotes": "Notas Adicionales",
     "notesPlaceholder": "Cualquier otra información médica importante...",
     "noneRecorded": "Ninguna registrada",
-    "notAdded": "Sin añadir",
     "chooseBloodType": "Elija",
     "section": {
       "conditions": "Enfermedades y medicación",
@@ -6105,6 +6105,18 @@
     },
     "secondary": {
       "otherAlerts": "{{count}} otra(s) alerta(s) pendiente(s)"
+    },
+    "noRecentFix": "Sin ubicación reciente del colgante: se muestra el domicilio",
+    "home": {
+      "mapHeader": "Ubicación del domicilio",
+      "labelMember": "Ubicación del domicilio (marcada por el miembro el {{date}})",
+      "labelMemberNoDate": "Ubicación del domicilio (marcada por el miembro)",
+      "labelStaff": "Ubicación del domicilio (marcada por nuestro equipo el {{date}})",
+      "labelStaffNoDate": "Ubicación del domicilio (marcada por nuestro equipo)",
+      "labelUnconfirmed": "Ubicación del domicilio (de nuestros registros: no confirmada por el miembro)",
+      "distance": "El colgante está a {{value}} {{unit}} del domicilio",
+      "map": "Mapa",
+      "directions": "Indicaciones"
     }
   },
   "falseAlarm": {
@@ -6467,5 +6479,43 @@
       "alreadyApplied": "Ya estaba aprobado: no se ha movido nada",
       "approveFailed": "No se ha podido aprobar"
     }
+  },
+  "homeLocation": {
+    "row": {
+      "title": "Ubicación de su domicilio",
+      "purpose": "El lugar al que enviamos ayuda si su colgante no puede indicarnos dónde está.",
+      "setButton": "Marcar la ubicación de mi domicilio",
+      "openInMaps": "Abrir en Maps",
+      "change": "Cambiar",
+      "setOn": "Marcada el {{date}}",
+      "setDateUnknown": "No tenemos fecha para esta marca.",
+      "mapLabel": "Mapa con la ubicación guardada de su domicilio"
+    },
+    "dialog": {
+      "title": "Marque la ubicación de su domicilio",
+      "purpose": "Este es el lugar al que enviamos ayuda si su colgante no puede indicarnos dónde está.",
+      "useCurrent": "Usar mi ubicación actual",
+      "accuracyOk": "Precisión de unos {{metres}} metros.",
+      "accuracyTooLow": "Su teléfono solo ha podido situarle con unos {{metres}} metros de precisión, y no es suficiente: colóquese en la puerta de su casa e inténtelo de nuevo.",
+      "permissionDenied": "Su dispositivo no nos ha permitido leer su ubicación. Puede colocar la marca en el mapa de abajo.",
+      "gpsError": "No hemos podido leer su ubicación. Puede colocar la marca en el mapa de abajo.",
+      "dragHelp": "Mueva la marca hasta la puerta de su casa. Toque el mapa donde está su puerta o use las flechas.",
+      "mapLabel": "Mapa con la marca de la ubicación de su domicilio",
+      "noStartingPoint": "No hemos encontrado su dirección en el mapa. Use el botón de arriba mientras está en la puerta de su casa.",
+      "nudgeGroup": "Mover la marca en pasos pequeños",
+      "nudge": {
+        "north": "Mover al norte",
+        "south": "Mover al sur",
+        "east": "Mover al este",
+        "west": "Mover al oeste"
+      },
+      "save": "Guardar la ubicación de mi domicilio",
+      "purposeStaff": "El lugar al que un operador envía ayuda cuando el colgante no puede indicarlo. Se registra como una corrección de nuestro equipo, no como una confirmación del propio miembro.",
+      "titleStaff": "Marcar la ubicación del domicilio del miembro",
+      "saveStaff": "Guardar esta ubicación",
+      "dragHelpStaff": "Mueva la marca hasta la puerta del domicilio del miembro. Toque el mapa o use las flechas."
+    },
+    "saved": "Ubicación del domicilio guardada",
+    "saveFailed": "No hemos podido guardar la ubicación de su domicilio."
   }
 }

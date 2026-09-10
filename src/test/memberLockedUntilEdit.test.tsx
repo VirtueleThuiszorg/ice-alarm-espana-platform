@@ -15,6 +15,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 let updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
 let updateError: { message: string } | null = null;
@@ -74,6 +75,35 @@ vi.mock("@/components/admin/member-detail/PartnerAttributionCard", () => ({
 }));
 
 import { ProfileTab } from "@/components/admin/member-detail/ProfileTab";
+
+/**
+ * ProfileTab NEEDS A QUERY CLIENT as of the home-location card beside it, which reads the
+ * member's pin through react-query. `MemberDetailPage` — the only real caller — is inside the
+ * app's provider, so this is a harness gap rather than a product one; the tab was rendered bare
+ * here and every one of these tests threw "No QueryClient set" the moment it gained one.
+ *
+ * A fresh client per render, with retries off, so a failed read is a failed read rather than
+ * three seconds of backoff.
+ */
+function renderProfileTab(props: React.ComponentProps<typeof ProfileTab>) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const wrap = (p: React.ComponentProps<typeof ProfileTab>) => (
+    <QueryClientProvider client={qc}>
+      <ProfileTab {...p} />
+    </QueryClientProvider>
+  );
+  const result = render(wrap(props));
+  return {
+    ...result,
+    /*
+      `rerender` replaces the WHOLE tree with what it is handed, so passing a bare <ProfileTab>
+      would drop the provider and throw again — which is exactly what the first version of this
+      helper did. This re-wraps, and keeps the SAME client, so a re-render is a re-render rather
+      than a fresh cache.
+    */
+    rerenderTab: (p: React.ComponentProps<typeof ProfileTab>) => result.rerender(wrap(p)),
+  };
+}
 import { MedicalTab } from "@/components/admin/member-detail/MedicalTab";
 
 const MEMBER = {
@@ -109,7 +139,7 @@ const fields = (testId: string) => screen.getByTestId(`${testId}-fields`) as HTM
 
 describe("the profile card", () => {
   it("opens locked: every input is disabled and there is no Save", () => {
-    render(<ProfileTab member={MEMBER} onUpdate={() => {}} />);
+    renderProfileTab({ member: MEMBER, onUpdate: () => {} });
     expect(fields("profile-card").disabled).toBe(true);
     expect(screen.getByTestId("profile-card-lock")).toBeTruthy();
     expect(screen.queryByTestId("profile-card-save")).toBeNull();
@@ -120,7 +150,7 @@ describe("the profile card", () => {
   });
 
   it("Edit unlocks the whole card at once", () => {
-    render(<ProfileTab member={MEMBER} onUpdate={() => {}} />);
+    renderProfileTab({ member: MEMBER, onUpdate: () => {} });
     fireEvent.click(screen.getByTestId("profile-card-edit"));
     expect(fields("profile-card").disabled).toBe(false);
     expect(screen.queryByTestId("profile-card-lock")).toBeNull();
@@ -128,7 +158,7 @@ describe("the profile card", () => {
   });
 
   it("Save writes the record, an audit row, and locks again", async () => {
-    render(<ProfileTab member={MEMBER} onUpdate={() => {}} />);
+    renderProfileTab({ member: MEMBER, onUpdate: () => {} });
     fireEvent.click(screen.getByTestId("profile-card-edit"));
     const city = fields("profile-card").querySelector('input[name="city"]') as HTMLInputElement;
     fireEvent.change(city, { target: { value: "Estepona" } });
@@ -143,7 +173,7 @@ describe("the profile card", () => {
 
   it("a refused write leaves the card OPEN with what was typed still in it", async () => {
     updateError = { message: "activation is the payment webhook's job" };
-    render(<ProfileTab member={MEMBER} onUpdate={() => {}} />);
+    renderProfileTab({ member: MEMBER, onUpdate: () => {} });
     fireEvent.click(screen.getByTestId("profile-card-edit"));
     fireEvent.change(fields("profile-card").querySelector('input[name="city"]')!, {
       target: { value: "Estepona" },
@@ -161,7 +191,7 @@ describe("the profile card", () => {
   });
 
   it("Cancel on a changed card asks before discarding", async () => {
-    render(<ProfileTab member={MEMBER} onUpdate={() => {}} />);
+    renderProfileTab({ member: MEMBER, onUpdate: () => {} });
     fireEvent.click(screen.getByTestId("profile-card-edit"));
     fireEvent.change(fields("profile-card").querySelector('input[name="city"]')!, {
       target: { value: "Estepona" },
@@ -178,7 +208,7 @@ describe("the profile card", () => {
   });
 
   it("Cancel on an untouched card just closes — no dialog to dismiss for nothing", async () => {
-    render(<ProfileTab member={MEMBER} onUpdate={() => {}} />);
+    renderProfileTab({ member: MEMBER, onUpdate: () => {} });
     fireEvent.click(screen.getByTestId("profile-card-edit"));
     fireEvent.click(screen.getByTestId("profile-card-cancel"));
     await waitFor(() => expect(fields("profile-card").disabled).toBe(true));
@@ -303,26 +333,22 @@ describe("one shell, and it is not the admin's", () => {
 
 describe("opening a card from outside", () => {
   it("the profile card opens when the header's Edit asks it to", () => {
-    const { rerender } = render(
-      <ProfileTab member={MEMBER} onUpdate={() => {}} editSignal={0} />,
-    );
+    const { rerenderTab } = renderProfileTab({ member: MEMBER, onUpdate: () => {}, editSignal: 0 });
     expect(fields("profile-card").disabled).toBe(true);
 
     // What MemberDetailPage does when the header Edit is pressed: switch tab, bump the signal.
-    rerender(<ProfileTab member={MEMBER} onUpdate={() => {}} editSignal={1} />);
+    rerenderTab({ member: MEMBER, onUpdate: () => {}, editSignal: 1 });
     expect(fields("profile-card").disabled).toBe(false);
   });
 
   it("a card the operator closed does not spring open again on the next render", () => {
-    const { rerender } = render(
-      <ProfileTab member={MEMBER} onUpdate={() => {}} editSignal={1} />,
-    );
+    const { rerenderTab } = renderProfileTab({ member: MEMBER, onUpdate: () => {}, editSignal: 1 });
     expect(fields("profile-card").disabled).toBe(false);
     fireEvent.click(screen.getByTestId("profile-card-cancel"));
     expect(fields("profile-card").disabled).toBe(true);
 
     // Same signal value, unrelated re-render. It fires on a CHANGE, not on a value.
-    rerender(<ProfileTab member={{ ...MEMBER, city: "Estepona" }} onUpdate={() => {}} editSignal={1} />);
+    rerenderTab({ member: { ...MEMBER, city: "Estepona" }, onUpdate: () => {}, editSignal: 1 });
     expect(fields("profile-card").disabled).toBe(true);
   });
 });

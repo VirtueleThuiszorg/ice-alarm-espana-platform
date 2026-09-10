@@ -14,6 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { BLOOD_TYPES, type MedicalField } from "@/lib/medicalFields";
+import { FieldLabel, NotAdded } from "@/components/FieldControl";
+import { useEditableCard } from "@/components/editableCardContext";
 
 /**
  * One field, read or edited — MEMBER_UX_RULES R6.
@@ -26,23 +28,10 @@ import { BLOOD_TYPES, type MedicalField } from "@/lib/medicalFields";
  * this is the page whose subtitle promises it is exactly what an operator sees.
  */
 
-export function FieldLabel({ children }: { children: React.ReactNode }) {
-  /* 13px uppercase Slate — R6's label, and R10's floor for a label specifically. */
-  return (
-    <span className="text-[0.8125rem] font-medium uppercase tracking-wide text-muted-foreground">
-      {children}
-    </span>
-  );
-}
-
-export function NotAdded() {
-  const { t } = useTranslation();
-  return (
-    <span data-testid="not-added" className="text-base italic text-muted-foreground">
-      {t("medical.notAdded", "Not added")}
-    </span>
-  );
-}
+/* `FieldLabel` and `NotAdded` moved to `@/components/ui/editable-card` — the staff record needs
+   both, and R6's label size is one decision, not one per page. Re-exported here so the callers
+   that read a medical field find them beside it. */
+export { FieldLabel, NotAdded };
 
 /** A value the member may read but not change, with the reason on the screen (R7's pattern). */
 export function LockedValue({
@@ -98,14 +87,23 @@ export function LockedValue({
 
 export interface MedicalFieldRowProps {
   field: MedicalField;
-  isEditing: boolean;
   /** The current value: a string for scalar fields, a string[] for lists. */
   value: string | string[] | null;
   onChange: (value: string | string[]) => void;
 }
 
-export function MedicalFieldRow({ field, isEditing, value, onChange }: MedicalFieldRowProps) {
+/**
+ * THE LOCK COMES FROM THE CARD, not from a prop.
+ *
+ * It was `isEditing: boolean`, passed down from a single page-level Edit button that unlocked
+ * all seventeen fields in five sections at once. R6 asks for *"Edit per section"*, and a page
+ * where one button opens everything is a page where a member correcting their doctor's phone
+ * number has their allergies live at the same time. Reading `useEditableCard()` means the field
+ * cannot disagree with the card it is drawn in, and there is no prop to forget on the next one.
+ */
+export function MedicalFieldRow({ field, value, onChange }: MedicalFieldRowProps) {
   const { t } = useTranslation();
+  const { editing: isEditing } = useEditableCard();
   const [pending, setPending] = useState("");
   const label = t(field.label.key, field.label.fallback);
   const list = Array.isArray(value) ? value : [];

@@ -9,7 +9,7 @@ stale without CI saying so. Regenerate with:
 UPDATE_COLUMN_MAP=1 npx vitest run src/test/iceImportColumnMap.test.ts
 ```
 
-Columns: **147** · mapped **92** · read only as a fallback **4** · kept in raw only **47** · discarded **4**
+Columns: **147** · mapped **94** · read only as a fallback **5** · kept in raw only **44** · discarded **4**
 
 Three things the numbering shows that a name-keyed table cannot: `Membership Type`
 appears three times, `Policy Number` twice and `Company` twice. The column number is the
@@ -18,6 +18,13 @@ position in the export (0-based), and the destinations tell you which occurrence
 Column names are as `normaliseHeader` sees them: the export carries stray whitespace
 (`Allergies `, `Nationality `, `Contact  1 - Tel` with a double space) and it is collapsed
 once on read, so the table reads the way the column reads.
+
+Four columns changed hands on **2026-09-10**, by Lee's ruling on `PENDING_FOR_LEE.md`
+D-19 item 4: `Dob` became the fallback for `date_of_birth` when `Birthday` is blank (the
+same DD/MM parser, so an ambiguous value is still refused); `Spouse` became a member note
+and a couple-plan hint only; `Contact Friend for Email` became the member's email
+notification consent, written **only** on an unambiguous yes; and `Wellbeing Appt Date`
+stayed in raw deliberately. The other 43 unmapped columns stayed as they were.
 
 `address_line_1` is `House Number` + `Home Street`, in that order — an ambulance is given
 line 1, and a house number sitting on line 2 is a number the driver may never see.
@@ -67,8 +74,8 @@ for their value: `Credit Card Details`, `20 Digit Bank No`.
 | 58 | `Home State` | `member.province` |
 | 59 | `Home County` | `member.county` |
 | 60 | `Home Postal Code` | `member.postal_code` |
-| 61 | `GPS Co-ordinates` | `member.gps_lat`, `member.gps_lng` |
-| 62 | `Google Map Link` | `member.map_link` |
+| 61 | `GPS Co-ordinates` | `member.gps_lat`, `member.gps_lng`, `member.home_lat`, `member.home_lng` |
+| 62 | `Google Map Link` | `member.home_lat`, `member.home_lng`, `member.map_link` |
 | 63 | `Important Medical Info` | `medical.additional_notes`, `member.special_instructions` |
 | 64 | `Membership Type` | `subscription.billing_frequency`, `subscription.legacy_membership_label`, `subscription.plan_type` |
 | 67 | `Critical Info` | `medical.additional_notes`, `member.special_instructions` |
@@ -80,6 +87,7 @@ for their value: `Credit Card Details`, `20 Digit Bank No`.
 | 73 | `Birthday` | `member.date_of_birth`, `memberReady` |
 | 74 | `Gender` | `member.gender` |
 | 75 | `Marital Status` | `member.marital_status` |
+| 76 | `Spouse` | `spouse` |
 | 77 | `Allergies` | `medical.allergies`, `medical.allergies[]` |
 | 78 | `Languages Spoken` | `member.language_notes` |
 | 79 | `Hearing Problems` | `medical.hearing_notes` |
@@ -123,6 +131,7 @@ for their value: `Credit Card Details`, `20 Digit Bank No`.
 | 122 | `Unit Type` | `device.unit_type` |
 | 123 | `Alarm Manufacturer` | `device.manufacturer` |
 | 124 | `Alarm Type` | `device.device_type` |
+| 125 | `Contact Friend for Email` | `emailContactConsent` |
 | 127 | `Policy Number` | `medical.private_policy_number` |
 | 129 | `Funeral Plan` | `endOfLife.funeral_plan` |
 | 130 | `Policy Number` | `endOfLife.policy_number` |
@@ -145,6 +154,7 @@ when the first is blank. `Joined Date` is the same relationship with `Date Joine
 
 | # | Column | Destination when it is used |
 |---|---|---|
+| 5 | `Dob` | `member.date_of_birth` |
 | 65 | `Joined Date` | `subscription`, `subscription.has_pendant`, `subscription.is_free_of_charge`, `subscription.start_date` |
 | 66 | `Membership Type` | `subscription`, `subscription.billing_frequency`, `subscription.has_pendant`, `subscription.is_free_of_charge`, `subscription.legacy_membership_label`, `subscription.plan_type` |
 | 114 | `Purchased Package` | `subscription`, `subscription.billing_frequency`, `subscription.has_pendant`, `subscription.is_free_of_charge`, `subscription.legacy_membership_label`, `subscription.plan_type` |
@@ -160,7 +170,6 @@ destination.**
 | # | Column |
 |---|---|
 | 3 | `Background` |
-| 5 | `Dob` |
 | 6 | `Name` |
 | 10 | `Industry` |
 | 12 | `Department` |
@@ -196,9 +205,7 @@ destination.**
 | 51 | `Url (w)` |
 | 52 | `Url (h)` |
 | 53 | `Url (o)` |
-| 76 | `Spouse` |
 | 113 | `Wellbeing Appt Date` |
-| 125 | `Contact Friend for Email` |
 | 132 | `Lead Recieved` |
 | 133 | `Created Date` |
 | 137 | `Membership Information` |
@@ -214,13 +221,10 @@ which unmapped columns look like they matter — and the test only checks that e
 genuinely unmapped, not that the reasoning is right. Say the word on any of them and it
 gets a destination.
 
-- **`Dob`** — a SECOND date-of-birth column beside `Birthday`. If some rows have one and not the other, this is the difference between a member with a date of birth and a member without.
+- **`Wellbeing Appt Date`** — if wellbeing appointments are still run, this is the schedule. Lee's ruling of 2026-09-10 left it in raw deliberately, rather than mapping a date nothing reads.
 - **`Name`** — the full name, where the import uses `First Name` + `Last Name`. Only matters for rows where the split columns are empty and this one is not.
-- **`Spouse`** — who else lives there. Not an emergency contact today, and arguably should be one.
-- **`Wellbeing Appt Date`** — if wellbeing appointments are still run, this is the schedule.
 - **`Company`** — appears twice. Empty for a private client; may hold the residence for a partner one.
 - **`Lead Recieved`** — when the enquiry arrived — the only record of how long somebody waited.
-- **`Contact Friend for Email`** — reads like a consent flag about contacting a relative by email. Consent is not something to guess at.
 
 The rest are Karma's own layout artefacts (`Membership Information`, `Home Address`, `Postal Address (If Different)`, `Personal Information`, `Emergency Contacts` are section headings exported as columns), the work/other-address and social-media blocks
 that a Spanish care client does not have, and Karma's own bookkeeping (`Attachments`,

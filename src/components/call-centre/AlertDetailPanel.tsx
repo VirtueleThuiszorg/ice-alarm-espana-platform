@@ -38,6 +38,9 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { LocationMap } from "@/components/maps/LocationMap";
+import { useMemberHomeLocation } from "@/hooks/useMemberHomeLocation";
+import { resolveSosLocation } from "@/lib/homeLocation";
+import { HomeLocationBlock } from "@/components/call-centre/sos/HomeLocationBlock";
 
 type AlertType = "sos_button" | "fall_detected" | "low_battery" | "geo_fence" | "check_in" | "manual" | "device_offline";
 
@@ -131,6 +134,29 @@ export function AlertDetailPanel({
   const [customMessage, setCustomMessage] = useState("");
   const [isSendingSms, setIsSendingSms] = useState(false);
   const [sendingContactId, setSendingContactId] = useState<string | null>(null);
+
+  /*
+    ABOVE THE EARLY RETURN, and it has to be: `if (!alert) return null` follows, and a hook
+    called after it would run on some renders and not others. `useMemberHomeLocation` is disabled
+    when there is no member id, so a closed panel costs nothing.
+  */
+  const { data: home } = useMemberHomeLocation(alert?.member?.id ?? null);
+  /*
+    The alert's own `receivedAt` is the age of the fix: the coordinates arrive with the SOS. So a
+    thirty-minute-old alert with a coordinate has a thirty-minute-old coordinate, which is what
+    `resolveSosLocation` is deciding about.
+  */
+  const locationView = resolveSosLocation({
+    live: alert
+      ? {
+          lat: alert.locationLat,
+          lng: alert.locationLng,
+          at: alert.receivedAt.toISOString(),
+          address: alert.location,
+        }
+      : null,
+    home,
+  });
 
   if (!alert) return null;
 
@@ -357,6 +383,19 @@ export function AlertDetailPanel({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  {/*
+                    IN WORDS. No recent pendant fix is a fact an operator has to be TOLD, not one
+                    they should infer from a missing map. DISPLAY ONLY — nothing here escalates,
+                    times, or decides who is called.
+                  */}
+                  {locationView.announceNoRecentFix && (
+                    <p
+                      className="rounded-md border border-amber-500/50 bg-amber-500/10 px-2 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-300"
+                      data-testid="sos-no-recent-fix"
+                    >
+                      {t("sos.noRecentFix", "No recent pendant location — showing home")}
+                    </p>
+                  )}
                   {alert.locationLat && alert.locationLng ? (
                     <>
                       {alert.location && <p className="text-sm">{alert.location}</p>}
@@ -394,6 +433,21 @@ export function AlertDetailPanel({
                     </>
                   ) : (
                     <p className="text-sm text-muted-foreground">{t("callCentre.alert.noLocation", "No location data available")}</p>
+                  )}
+
+                  {/*
+                    THE HOME PIN, BELOW THE LIVE FIX AND NEVER INSTEAD OF IT. Its own labelled
+                    block, its own Map and Directions, and the distance between the two when both
+                    exist — which is the line that tells an operator on its own whether to send
+                    help to the house.
+                  */}
+                  {locationView.home && (
+                    <HomeLocationBlock
+                      home={locationView.home}
+                      isPrimary={locationView.primary === "home"}
+                      distanceMetres={locationView.distanceMetres}
+                      tone="card"
+                    />
                   )}
                 </CardContent>
               </Card>

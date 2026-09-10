@@ -61,6 +61,9 @@ export const NOTIFY_EVENTS = [
   "shift.swap_requested",
   "shift.swap_accepted",
   "shift.swap_approved",
+  // ── a legacy member confirmed (D-19 item 2). It changes who the platform considers
+  //    monitored, and it is the one activation that did not come from a payment ──
+  "member.legacy_confirmed",
   "system.runner_failure",
   "escalation.call_failed",
   "escalation.no_emergency_contacts",

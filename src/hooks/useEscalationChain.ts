@@ -36,8 +36,18 @@ const escalationDb = supabase as unknown as {
   from: (table: string) => EscalationTable;
 };
 
-export function useEscalationChains(startDate: string, endDate: string) {
+/**
+ * `enabled` exists so a NON-ADMIN never runs this query at all.
+ *
+ * The rota page is mounted for supervisors too (`pages/call-centre/RotaPage`), and the escalation
+ * row is hidden for them. Hiding the UI while still fetching would send every supervisor a
+ * `shift_escalation_chain` read that RLS refuses — a wasted round trip and a policy denial in the
+ * logs on every week they page through, which is noise that makes a real denial harder to see.
+ * Defaults to true, so the admin call sites are unchanged.
+ */
+export function useEscalationChains(startDate: string, endDate: string, enabled = true) {
   return useQuery({
+    enabled,
     queryKey: ["escalation-chains", startDate, endDate],
     queryFn: async () => {
       const { data, error } = await escalationDb

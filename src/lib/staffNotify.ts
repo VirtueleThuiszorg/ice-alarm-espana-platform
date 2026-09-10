@@ -29,6 +29,28 @@ export const HOLIDAY_APPROVER_ROLES = [
   "super_admin",
 ] as const;
 
+/**
+ * Roles that may MANAGE THE ROTA — add, edit, delete, copy a week, generate, approve a swap.
+ *
+ * The same three roles as HOLIDAY_APPROVER_ROLES, and deliberately a separate name rather than a
+ * reuse: they are two different permissions that happen to coincide today. The rota one is what
+ * the database already says — the RLS policies on `staff_shifts`, `staff_holidays` and
+ * `staff_shift_swaps` grant manage-all to `call_centre_supervisor`, and `generate_rota()` checks
+ * for it by name — so a future convenio change that gives a senior operator holiday sign-off
+ * without rota control must not silently hand them the rota too.
+ *
+ * NOT the escalation chain. `shift_escalation_chain` is the SOS ladder's own table and stays
+ * admin-only; see the guard in `src/pages/admin/RotaPage.tsx`.
+ */
+export const ROTA_MANAGER_ROLES = [
+  "call_centre_supervisor",
+  "admin",
+  "super_admin",
+] as const;
+
+/** Roles that may edit the SOS escalation chain. Narrower than the rota on purpose. */
+export const ESCALATION_EDITOR_ROLES = ["admin", "super_admin"] as const;
+
 /** Insert one targeted notification per auth user id. Returns true if all landed. */
 export async function notifyUsers(
   userIds: Array<string | null | undefined>,

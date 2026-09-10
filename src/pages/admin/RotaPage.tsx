@@ -36,6 +36,8 @@ import { useStaffShifts, useOnShiftNow, useShiftMutations } from "@/hooks/useSta
 import type { StaffShift } from "@/hooks/useStaffShifts";
 import { useCurrentStaff } from "@/hooks/useCurrentStaff";
 import { useEscalationChains, useEscalationChainMutations } from "@/hooks/useEscalationChain";
+import { useAuth } from "@/contexts/AuthContext";
+import { ESCALATION_EDITOR_ROLES } from "@/lib/staffNotify";
 import { SHIFT_TYPES, SHIFT_TYPE_OPTIONS } from "@/config/shifts";
 import type { ShiftType } from "@/config/shifts";
 import { format, addDays, startOfWeek, endOfWeek } from "date-fns";
@@ -130,8 +132,28 @@ export default function RotaPage() {
     staleTime: STALE_TIMES.LONG,
   });
 
+  /**
+   * THE SOS ESCALATION CHAIN IS ADMIN-ONLY, and that is the one thing a supervisor does not get
+   * with the rota.
+   *
+   * This page is now mounted twice: at /admin/rota, and at /call-centre/rota for supervisors
+   * (`pages/call-centre/RotaPage`). Everything else on it is the rota, which the database
+   * already says a supervisor owns. `shift_escalation_chain` is not the rota — it is the ladder
+   * `sos-escalation-runner` reads to decide who is telephoned when an alert goes unanswered, on
+   * a separate hand-populated table. Widening who may edit that is a change to the SOS path and
+   * is not what "give Mary the rota" asked for, so the row and its dialog are hidden and the
+   * query is not even run for a supervisor.
+   */
+  const { staffRole } = useAuth();
+  const canEditEscalation =
+    !!staffRole && (ESCALATION_EDITOR_ROLES as readonly string[]).includes(staffRole);
+
   // Escalation chains for this week
-  const { data: escalationChains = [] } = useEscalationChains(weekStartStr, weekEndStr);
+  const { data: escalationChains = [] } = useEscalationChains(
+    weekStartStr,
+    weekEndStr,
+    canEditEscalation,
+  );
   const { upsertChain } = useEscalationChainMutations();
 
   // All active staff for escalation chain selection (includes admins/supervisors)
@@ -490,37 +512,39 @@ export default function RotaPage() {
                 })}
               </tr>
 
-              {/* Escalation chain row */}
-              <tr className="bg-amber-500/5 font-medium">
-                <td className="px-3 py-2 text-xs text-muted-foreground sticky left-0 bg-amber-500/5 z-10 flex items-center gap-1">
-                  <Shield className="h-3 w-3" />
-                  {t("rota.escalation", "Escalation")}
-                </td>
-                {weekDays.map((day) => {
-                  const dk = formatDateKey(day);
-                  return (
-                    <td key={dk} className={`px-1 py-1.5 ${isToday(day) ? "bg-primary/5" : ""}`}>
-                      <div className="flex justify-center gap-1">
-                        {SHIFT_TYPE_OPTIONS.map((st) => {
-                          const hasChain = !!chainLookup[`${dk}-${st}`];
-                          return (
-                            <button
-                              key={st}
-                              onClick={() => openEscalationDialog(dk, st)}
-                              className={`text-xs px-1 rounded hover:bg-amber-200/50 transition-colors ${
-                                hasChain ? "text-amber-600 font-bold" : "text-muted-foreground/40"
-                              }`}
-                              title={`${SHIFT_TYPES[st].label} escalation chain: ${hasChain ? "Configured" : "Not set"}`}
-                            >
-                              {hasChain ? "⛓" : "○"}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </td>
-                  );
-                })}
-              </tr>
+              {/* Escalation chain row — admin only, see canEditEscalation above */}
+              {canEditEscalation && (
+                <tr className="bg-amber-500/5 font-medium">
+                  <td className="px-3 py-2 text-xs text-muted-foreground sticky left-0 bg-amber-500/5 z-10 flex items-center gap-1">
+                    <Shield className="h-3 w-3" />
+                    {t("rota.escalation", "Escalation")}
+                  </td>
+                  {weekDays.map((day) => {
+                    const dk = formatDateKey(day);
+                    return (
+                      <td key={dk} className={`px-1 py-1.5 ${isToday(day) ? "bg-primary/5" : ""}`}>
+                        <div className="flex justify-center gap-1">
+                          {SHIFT_TYPE_OPTIONS.map((st) => {
+                            const hasChain = !!chainLookup[`${dk}-${st}`];
+                            return (
+                              <button
+                                key={st}
+                                onClick={() => openEscalationDialog(dk, st)}
+                                className={`text-xs px-1 rounded hover:bg-amber-200/50 transition-colors ${
+                                  hasChain ? "text-amber-600 font-bold" : "text-muted-foreground/40"
+                                }`}
+                                title={`${SHIFT_TYPES[st].label} escalation chain: ${hasChain ? "Configured" : "Not set"}`}
+                              >
+                                {hasChain ? "⛓" : "○"}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              )}
             </tbody>
           </table>
         </CardContent>
@@ -624,100 +648,102 @@ export default function RotaPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Escalation Chain Dialog */}
-      <Dialog open={escalationDialogOpen} onOpenChange={setEscalationDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-amber-500" />
-                {t("rota.escalationChain", "Escalation Chain")}
+      {/* Escalation Chain Dialog — admin only, same gate as the row */}
+      {canEditEscalation && (
+        <Dialog open={escalationDialogOpen} onOpenChange={setEscalationDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                <div className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-amber-500" />
+                  {t("rota.escalationChain", "Escalation Chain")}
+                </div>
+              </DialogTitle>
+              <DialogDescription>
+                {escalationDate && format(new Date(escalationDate + "T12:00:00"), "EEEE, d MMMM yyyy")}
+                {" — "}
+                {SHIFT_TYPES[escalationShiftType]?.label} ({SHIFT_TYPES[escalationShiftType]?.start} - {SHIFT_TYPES[escalationShiftType]?.end})
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              <div>
+                <label className="text-sm font-medium">{t("rota.primaryStaff", "Primary (Level 2 — first call)")}</label>
+                <Select value={escPrimary} onValueChange={setEscPrimary}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder={t("rota.selectStaff", "Select staff...")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">
+                      {t("rota.none", "— None —")}
+                    </SelectItem>
+                    {allStaff.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.first_name} {s.last_name}
+                        {s.personal_mobile ? ` (${s.personal_mobile})` : " (no mobile)"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </DialogTitle>
-            <DialogDescription>
-              {escalationDate && format(new Date(escalationDate + "T12:00:00"), "EEEE, d MMMM yyyy")}
-              {" — "}
-              {SHIFT_TYPES[escalationShiftType]?.label} ({SHIFT_TYPES[escalationShiftType]?.start} - {SHIFT_TYPES[escalationShiftType]?.end})
-            </DialogDescription>
-          </DialogHeader>
 
-          <div className="space-y-4 py-2">
-            <div>
-              <label className="text-sm font-medium">{t("rota.primaryStaff", "Primary (Level 2 — first call)")}</label>
-              <Select value={escPrimary} onValueChange={setEscPrimary}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder={t("rota.selectStaff", "Select staff...")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">
-                    {t("rota.none", "— None —")}
-                  </SelectItem>
-                  {allStaff.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.first_name} {s.last_name}
-                      {s.personal_mobile ? ` (${s.personal_mobile})` : " (no mobile)"}
+              <div>
+                <label className="text-sm font-medium">{t("rota.backupStaff", "Backup (Level 2 — if primary unavailable)")}</label>
+                <Select value={escBackup} onValueChange={setEscBackup}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder={t("rota.selectStaff", "Select staff...")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">
+                      {t("rota.none", "— None —")}
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    {allStaff.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.first_name} {s.last_name}
+                        {s.personal_mobile ? ` (${s.personal_mobile})` : " (no mobile)"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">{t("rota.supervisorStaff", "Supervisor (Level 3)")}</label>
+                <Select value={escSupervisor} onValueChange={setEscSupervisor}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder={t("rota.selectStaff", "Select staff...")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">
+                      {t("rota.none", "— None —")}
+                    </SelectItem>
+                    {allStaff.filter((s) => ["call_centre_supervisor", "admin", "super_admin"].includes(s.role)).map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.first_name} {s.last_name}
+                        {s.personal_mobile ? ` (${s.personal_mobile})` : " (no mobile)"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                {t("rota.escalationHelp", "If no chain is configured, the escalation runner falls back to on-call staff sorted by escalation priority.")}
+              </p>
             </div>
 
-            <div>
-              <label className="text-sm font-medium">{t("rota.backupStaff", "Backup (Level 2 — if primary unavailable)")}</label>
-              <Select value={escBackup} onValueChange={setEscBackup}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder={t("rota.selectStaff", "Select staff...")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">
-                    {t("rota.none", "— None —")}
-                  </SelectItem>
-                  {allStaff.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.first_name} {s.last_name}
-                      {s.personal_mobile ? ` (${s.personal_mobile})` : " (no mobile)"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">{t("rota.supervisorStaff", "Supervisor (Level 3)")}</label>
-              <Select value={escSupervisor} onValueChange={setEscSupervisor}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder={t("rota.selectStaff", "Select staff...")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">
-                    {t("rota.none", "— None —")}
-                  </SelectItem>
-                  {allStaff.filter((s) => ["call_centre_supervisor", "admin", "super_admin"].includes(s.role)).map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.first_name} {s.last_name}
-                      {s.personal_mobile ? ` (${s.personal_mobile})` : " (no mobile)"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              {t("rota.escalationHelp", "If no chain is configured, the escalation runner falls back to on-call staff sorted by escalation priority.")}
-            </p>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEscalationDialogOpen(false)}>
-              {t("common.cancel", "Cancel")}
-            </Button>
-            <Button onClick={handleSaveEscalation} disabled={upsertChain.isPending}>
-              <Shield className="h-4 w-4 mr-1" />
-              {t("common.save", "Save")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEscalationDialogOpen(false)}>
+                {t("common.cancel", "Cancel")}
+              </Button>
+              <Button onClick={handleSaveEscalation} disabled={upsertChain.isPending}>
+                <Shield className="h-4 w-4 mr-1" />
+                {t("common.save", "Save")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

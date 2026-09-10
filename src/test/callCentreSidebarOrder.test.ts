@@ -92,6 +92,26 @@ describe("call-centre sidebar order", () => {
     expect(SIDEBAR).toContain('labelKey: "sidebar.holidayApprovals"');
   });
 
+  it("nor is the supervisor-only rota item", () => {
+    // Added 10 Sep with `/call-centre/rota`. Same reasoning as holiday approvals: it is offered to
+    // supervisors and admins only, so declaring it here would append an item to the order for two
+    // people and to nobody else's — which is precisely the drift this file exists to stop. Who
+    // actually sees it is rendered in src/test/rotaAccess.test.tsx.
+    expect(order).not.toContain("rota");
+    expect(SIDEBAR).toContain('labelKey: "sidebar.rota"');
+  });
+
+  it("the conditional items come AFTER every pinned one", () => {
+    // The order is only pinned if the splice is an append. Both extras are spliced from the same
+    // array literal, so this reads it: `...menuItems` must come first.
+    const visible = SIDEBAR.slice(SIDEBAR.indexOf("const visibleMenuItems = ["));
+    const spread = visible.indexOf("...menuItems");
+    const firstConditional = visible.indexOf("sidebar.rota");
+    expect(spread).toBeGreaterThan(-1);
+    expect(firstConditional).toBeGreaterThan(spread);
+    expect(visible.indexOf("sidebar.holidayApprovals")).toBeGreaterThan(spread);
+  });
+
   it("the badges stayed with their own items", () => {
     // Alerts and Messages carry counts. A reorder that moved a badgeKey onto the wrong row would
     // put the alert count on Leads, which reads as five people waiting rather than five alerts.

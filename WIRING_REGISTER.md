@@ -21,22 +21,22 @@ main cannot drift from the code in main. To change a row, change the wire or the
  7 │  33  █████████████
  6 │  10  ████
  5 │  84  ██████████████████████████████████
- 4 │  47  ███████████████████
+ 4 │  49  ████████████████████
  3 │   0  
  2 │   0  
  1 │   0  
- 0 │   3  █
+ 0 │   1  
 ```
 
-189 distinct wires across 640 call sites and 110 routes.
+189 distinct wires across 643 call sites and 110 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
 | 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 6 | 3% |
 | 7–9 | arrives and proven; notification missing or on a channel not live today | 39 | 21% |
-| 4–6 | arrives; nobody told; nothing proves it | 141 | 75% |
+| 4–6 | arrives; nobody told; nothing proves it | 143 | 76% |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0% |
-| 0 | dead control | 3 | 2% |
+| 0 | dead control | 1 | 1% |
 
 ### How to read a low score
 
@@ -63,14 +63,14 @@ things, and a control with no wire cannot do anything:
 
 | kind | what it is | call sites |
 |---|---|---:|
-| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 345 |
-| `fn` | `supabase.functions.invoke(f)` — an edge function | 84 |
+| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 344 |
+| `fn` | `supabase.functions.invoke(f)` — an edge function | 86 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 4 |
 | `channel` | `postgres_changes` — a realtime subscription | 51 |
 | `auth` | `supabase.auth.*` — sign in, sign out, register, password reset | 20 |
 | `storage` | `supabase.storage.from(b).upload/remove/…` — a file put somewhere | 14 |
-| `link` | `mailto:` / `tel:` / `wa.me` — a hand-off off the platform | 63 |
-| `open` | `window.open` / `window.location` — the SPA being left | 59 |
+| `link` | `mailto:` / `tel:` / `wa.me` — a hand-off off the platform | 64 |
+| `open` | `window.open` / `window.location` — the SPA being left | 60 |
 
 Routes come from an import graph over `src/App.tsx`, so a wire in a shared hook is
 attributed to every page that can reach it, and a wire in a **layout** (the notification
@@ -121,13 +121,13 @@ The checks, verified on every build:
 |---:|---|---|---|---|---|---|---:|
 | **4** | `fn:track-invite-view` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
 | **4** | `fn:twilio-call-me` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `link:wa.me` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | — | none | 12 |
+| **4** | `link:wa.me` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | — | none | 13 |
 | **5** | `auth:setSession` | Accept a staff or partner invite from an emailed link — this link makes your account real | auth.setSession with the tokens in the invite URL, then the *-complete-invite function | self | — | none | 3 |
 | **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
 | **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
 | **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
-| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 30 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 31 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:conversation_messages` | Isabella conversation turns — the assistant's reply appears as it is produced | conversation_messages | self | — | none | 2 |
 | **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
@@ -157,7 +157,7 @@ The checks, verified on every build:
 | **5** | `fn:submit-member-update` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | toast | none | 1 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
 | **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
-| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 30 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 31 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
 | **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 9 |
@@ -181,14 +181,14 @@ The checks, verified on every build:
 | **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 8 |
 | **4** | `fn:member-self-service` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 3 |
 | **4** | `fn:twilio-call-me` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `link:wa.me` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | — | none | 12 |
+| **4** | `link:wa.me` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | — | none | 13 |
 | **4** | `table:staff` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 11 |
 | **5** | `auth:setSession` | Accept a staff or partner invite from an emailed link — this link makes your account real | auth.setSession with the tokens in the invite URL, then the *-complete-invite function | self | — | none | 3 |
 | **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
 | **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
 | **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
 | **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
-| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 30 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 31 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:conversation_messages` | Isabella conversation turns — the assistant's reply appears as it is produced | conversation_messages | self | — | none | 2 |
 | **5** | `table:documentation` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | toast | none | 1 |
@@ -222,16 +222,18 @@ The checks, verified on every build:
 | **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 8 |
 | **4** | `channel:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
 | **4** | `fn:member-self-service` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 3 |
+| **4** | `fn:send-email` | Email a member from their record (MemberQuickContact); billing reminder emails (useBillingReminders) — an operator can email the member from the record, and it is on their history afterwards | send-email edge function → Resend; a member_interactions row either way | email | — | none | 2 |
 | **4** | `fn:sos-alert-resolve` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 1 |
 | **4** | `fn:sos-conference-join` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
 | **4** | `fn:sos-conference-leave` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
 | **4** | `fn:twilio-call-me` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
 | **4** | `fn:twilio-token` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
-| **4** | `link:wa.me` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | — | none | 12 |
+| **4** | `link:wa.me` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | — | none | 13 |
 | **4** | `table:ai_events` | Isabella actions and observations — what the assistant did is on the record | ai_events (published to supabase_realtime) | bell | — | none | 4 |
 | **4** | `table:alerts` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 4 |
 | **4** | `table:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 10 |
 | **4** | `table:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 2 |
+| **4** | `table:member_interactions` | Communication log — the SMS / WhatsApp / Email / Log Call controls on the member record (MemberQuickContact), through logSms / logWhatsApp / logEmail / logInteraction — a member's contact history is on their record | member_interactions — read by ActivityTab and by the call-centre alert panel | screen | — | none | 1 |
 | **4** | `table:order_items` | Staff move an order through fulfilment; add or remove an order line — the order says where the device actually is | orders / order_items | bell | — | none | 1 |
 | **4** | `table:orders` | Staff move an order through fulfilment; add or remove an order line — the order says where the device actually is | orders / order_items | bell | — | none | 3 |
 | **4** | `table:partner_commissions` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 3 |
@@ -244,11 +246,11 @@ The checks, verified on every build:
 | **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
 | **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
 | **5** | `fn:send-member-update-request` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | toast | none | 1 |
-| **5** | `fn:twilio-sms` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 3 |
+| **5** | `fn:twilio-sms` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 4 |
 | **5** | `fn:twilio-whatsapp` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | toast | none | 1 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
 | **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
-| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 30 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 31 |
 | **5** | `rpc:get_todays_birthdays` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:conversation_messages` | Isabella conversation turns — the assistant's reply appears as it is produced | conversation_messages | self | — | none | 2 |
@@ -306,15 +308,17 @@ The checks, verified on every build:
 | **4** | `fn:member-self-service` | Live arrival of a message on either Messages screen; the member-side notify and mark-read calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff and mark_read | bell | — | none | 3 |
 | **4** | `fn:partner-admin-create` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
 | **4** | `fn:process-commissions` | Run the commission calculation — partners are paid what they earned | process-commissions → partner_commissions | nobody | — | none | 2 |
+| **4** | `fn:send-email` | Email a member from their record (MemberQuickContact); billing reminder emails (useBillingReminders) — an operator can email the member from the record, and it is on their history afterwards | send-email edge function → Resend; a member_interactions row either way | email | — | none | 2 |
 | **4** | `fn:sos-alert-resolve` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 1 |
 | **4** | `fn:sos-drill` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 1 |
 | **4** | `fn:twilio-call-me` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
 | **4** | `fn:video-render-queue` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | — | none | 5 |
-| **4** | `link:wa.me` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | — | none | 12 |
+| **4** | `link:wa.me` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | — | none | 13 |
 | **4** | `table:ai_events` | Isabella actions and observations — what the assistant did is on the record | ai_events (published to supabase_realtime) | bell | — | none | 4 |
 | **4** | `table:alerts` | Operator: acknowledge / resolve an alert; run a drill — the alert leaves the queue and the audit says who closed it | alerts (update) via sos-alert-resolve; sos-drill for rehearsals | screen | — | none | 4 |
 | **4** | `table:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 10 |
 | **4** | `table:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 2 |
+| **4** | `table:member_interactions` | Communication log — the SMS / WhatsApp / Email / Log Call controls on the member record (MemberQuickContact), through logSms / logWhatsApp / logEmail / logInteraction — a member's contact history is on their record | member_interactions — read by ActivityTab and by the call-centre alert panel | screen | — | none | 1 |
 | **4** | `table:order_items` | Staff move an order through fulfilment; add or remove an order line — the order says where the device actually is | orders / order_items | bell | — | none | 1 |
 | **4** | `table:orders` | Staff move an order through fulfilment; add or remove an order line — the order says where the device actually is | orders / order_items | bell | — | none | 3 |
 | **4** | `table:outreach_campaigns` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | — | none | 2 |
@@ -340,14 +344,14 @@ The checks, verified on every build:
 | **5** | `fn:send-member-update-request` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | toast | none | 1 |
 | **5** | `fn:staff-register` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 2 |
 | **5** | `fn:staff-send-invite` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
-| **5** | `fn:twilio-sms` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 3 |
+| **5** | `fn:twilio-sms` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 4 |
 | **5** | `fn:youtube-disconnect` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
 | **5** | `fn:youtube-integration-status` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
 | **5** | `fn:youtube-oauth-start` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
 | **5** | `fn:youtube-publish` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
 | **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
-| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 30 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 31 |
 | **5** | `rpc:get_admin_dashboard_stats` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `rpc:get_sales_command_stats` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
@@ -449,7 +453,7 @@ The checks, verified on every build:
 | **4** | `fn:partner-complete-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
 | **4** | `fn:partner-send-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 2 |
 | **4** | `fn:partner-validate-invite` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 1 |
-| **4** | `link:wa.me` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | — | none | 12 |
+| **4** | `link:wa.me` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | — | none | 13 |
 | **4** | `table:partner_invites` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 3 |
 | **4** | `table:social_posts` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | — | none | 3 |
 | **5** | `auth:setSession` | Accept a staff or partner invite from an emailed link — this link makes your account real | auth.setSession with the tokens in the invite URL, then the *-complete-invite function | self | — | none | 3 |
@@ -458,7 +462,7 @@ The checks, verified on every build:
 | **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
 | **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
-| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 30 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 31 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
 | **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment — the record reflects what was agreed | the named tables | self | — | none | 9 |
@@ -489,32 +493,6 @@ The checks, verified on every build:
 - **call sites** src/pages/auth/Register.tsx
 
 UNREACHABLE. `Register.tsx` is imported by nothing and `/register` is a Navigate to /join, so the page cannot be opened — it is the only wire in the register with zero routes attributed by the import graph. Harmless while dead, and worth removing rather than leaving: it creates an account OUTSIDE the join wizard, so reviving it would be a route to a member record with no payment behind it, which is golden rule 4's whole subject. Reported, not deleted — removing a page is a product call.
-
-### `fn:send-email` — 0/10 (dead control)
-
-- **control** Billing reminder emails (useBillingReminders)
-- **promised** a member behind on payment is reminded before anything is cut off
-- **goes to** send-email edge function → Resend
-- **who is told** email — the wire cannot fire at all
-- **failure shown to user** toast
-- **proof** none — capped at 6
-- **routes** —
-- **call sites** src/hooks/useBillingReminders.ts
-
-`src/hooks/useBillingReminders.ts` is imported by NOTHING except a test — no page, no layout, no other hook, and there is no server-side twin (no cron, no migration, no edge function that sends billing reminders). The hook is unreachable, so no billing reminder has ever been sent from this app. Reported, not fixed: whether members should be chased automatically is a business decision, and it touches billing.
-
-### `table:member_interactions` — 0/10 (dead control)
-
-- **control** Communication log — every logSms / logCall / logWhatsApp / logEmail / logPaymentReceived helper
-- **promised** a member's contact history is on their record
-- **goes to** member_interactions
-- **who is told** nobody — the wire cannot fire at all
-- **failure shown to user** no
-- **proof** none — capped at 6
-- **routes** —
-- **call sites** src/lib/communicationLogger.ts
-
-`src/lib/communicationLogger.ts` exports ten log functions and is imported by nothing. Meanwhile `ActivityTab.tsx` (member detail) and `AlertDetailPanel.tsx` (call centre) both READ member_interactions — two screens that can only ever be empty, with no hint that the writer was never wired up. Reported, not fixed: choosing which events deserve a log row is a product decision, and one of the readers is on the alert path.
 
 ### `channel:alert_escalations` — 4/10 (arrives, unproven)
 
@@ -789,6 +767,19 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 
 Money. Nobody is told it ran, or that it failed, and there is no test. A red in the report.
 
+### `fn:send-email` — 4/10 (arrives, unproven)
+
+- **control** Email a member from their record (MemberQuickContact); billing reminder emails (useBillingReminders)
+- **promised** an operator can email the member from the record, and it is on their history afterwards
+- **goes to** send-email edge function → Resend; a member_interactions row either way
+- **who is told** email
+- **failure shown to user** no
+- **proof** none — capped at 6
+- **routes** /admin/members/:id, /call-centre/members/:id
+- **call sites** src/components/admin/member-detail/MemberQuickContact.tsx, src/hooks/useBillingReminders.ts
+
+NO LONGER DEAD ON THE FIRST HALF. The Messages tab's Email button was `toast.info("Email integration coming soon")` and now calls this function with `module: member` and the member as the related entity, logging the result. THE SECOND HALF IS STILL DEAD: `src/hooks/useBillingReminders.ts` is imported by nothing except a test — no page, no layout, no other hook — and there is no server-side twin (no cron, no migration, no edge function that sends billing reminders), so no billing reminder has ever been sent from this app. Reported, not fixed: whether members are chased automatically is a business decision, and it touches billing.
+
 ### `fn:sos-alert-resolve` — 4/10 (arrives, unproven)
 
 - **control** Operator: acknowledge / resolve an alert; run a drill
@@ -945,7 +936,7 @@ Renders and exports are both published, and the webhook notifies. Unproven.
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /, /admin/members/:id, /call-centre/alerts, /call-centre/members/:id, /dashboard, /dashboard/device +8
-- **call sites** src/components/call-centre/MemberQuickSearch.tsx, src/components/client/NotificationPreferences.tsx, src/components/partner/ShareContentSection.tsx, src/hooks/useInputValidation.ts +8
+- **call sites** src/components/admin/member-detail/MemberQuickContact.tsx, src/components/call-centre/MemberQuickSearch.tsx, src/components/client/NotificationPreferences.tsx, src/components/partner/ShareContentSection.tsx +9
 
 Deep link always works; the outbound function returns “Twilio not configured” when the secret is absent, which is a production question.
 
@@ -1002,6 +993,19 @@ Device state feeds the operator card, so this is adjacent to the SOS path withou
 - **call sites** src/hooks/useAgentHandoff.ts, src/pages/admin/TicketsPage.tsx
 
 Tickets and comments ARE published, so they arrive live on an open Tickets screen. `tasks` is not (see channel:tasks above) — assigning a task tells its owner nothing, on any channel. Listed as a red.
+
+### `table:member_interactions` — 4/10 (arrives, unproven)
+
+- **control** Communication log — the SMS / WhatsApp / Email / Log Call controls on the member record (MemberQuickContact), through logSms / logWhatsApp / logEmail / logInteraction
+- **promised** a member's contact history is on their record
+- **goes to** member_interactions — read by ActivityTab and by the call-centre alert panel
+- **who is told** screen
+- **failure shown to user** no
+- **proof** none — capped at 6
+- **routes** /admin/members/:id, /call-centre/members/:id
+- **call sites** src/lib/communicationLogger.ts
+
+NOT DEAD ANY MORE, and the fix was the same change that fixed the four controls. `src/lib/communicationLogger.ts` exported ten log functions and was imported by NOTHING, while `ActivityTab.tsx` and `AlertDetailPanel.tsx` both READ member_interactions — two screens that could only ever be empty, with no hint that the writer had never been wired up. `MemberQuickContact` is its first caller: every text, WhatsApp handoff, email and logged call from the record now writes a row those two screens can show. STILL UNWIRED: the alert, payment, profile and device helpers in the same module. Which events deserve a row is a product decision, and one of those readers is on the alert path.
 
 ### `table:order_items` — 4/10 (arrives, unproven)
 
@@ -1401,8 +1405,8 @@ A member confirms or corrects their details and no one is told the answer came b
 - **who is told** external
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /admin/devices/:id, /call-centre/alerts
-- **call sites** src/components/admin/devices/ProvisioningChecklist.tsx, src/components/call-centre/AlertDetailPanel.tsx, src/hooks/useDeviceSmsCommands.ts
+- **routes** /admin/devices/:id, /admin/members/:id, /call-centre/alerts, /call-centre/members/:id
+- **call sites** src/components/admin/devices/ProvisioningChecklist.tsx, src/components/admin/member-detail/MemberQuickContact.tsx, src/components/call-centre/AlertDetailPanel.tsx, src/hooks/useDeviceSmsCommands.ts
 
 mailto: leaves the platform entirely — nothing is recorded and nothing can be. twilio-sms degrades to “Twilio not configured”.
 
@@ -1506,7 +1510,7 @@ Reaches the dialler, and `telHref()` returns null when the number is unset so a 
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +104
-- **call sites** src/components/admin/media/PublishedPostCard.tsx, src/components/admin/video-hub/ExportArtifactButtons.tsx, src/components/admin/video-hub/VideoPreviewDialog.tsx, src/components/admin/video-hub/VideoProjectsTab.tsx +26
+- **call sites** src/components/admin/media/PublishedPostCard.tsx, src/components/admin/member-detail/MemberQuickContact.tsx, src/components/admin/video-hub/ExportArtifactButtons.tsx, src/components/admin/video-hub/VideoPreviewDialog.tsx +27
 
 The counterpart to `link:*`, and originally invisible to the scanner: a `tel:` in an href was counted while the same number handed to window.location.href was not. 59 call sites. This is also how the checkout redirect leaves the app, which is why the join→pay goal owns that part and this row does not re-prove it.
 

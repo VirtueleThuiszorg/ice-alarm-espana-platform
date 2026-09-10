@@ -300,3 +300,29 @@ describe("one shell, and it is not the admin's", () => {
     }
   });
 });
+
+describe("opening a card from outside", () => {
+  it("the profile card opens when the header's Edit asks it to", () => {
+    const { rerender } = render(
+      <ProfileTab member={MEMBER} onUpdate={() => {}} editSignal={0} />,
+    );
+    expect(fields("profile-card").disabled).toBe(true);
+
+    // What MemberDetailPage does when the header Edit is pressed: switch tab, bump the signal.
+    rerender(<ProfileTab member={MEMBER} onUpdate={() => {}} editSignal={1} />);
+    expect(fields("profile-card").disabled).toBe(false);
+  });
+
+  it("a card the operator closed does not spring open again on the next render", () => {
+    const { rerender } = render(
+      <ProfileTab member={MEMBER} onUpdate={() => {}} editSignal={1} />,
+    );
+    expect(fields("profile-card").disabled).toBe(false);
+    fireEvent.click(screen.getByTestId("profile-card-cancel"));
+    expect(fields("profile-card").disabled).toBe(true);
+
+    // Same signal value, unrelated re-render. It fires on a CHANGE, not on a value.
+    rerender(<ProfileTab member={{ ...MEMBER, city: "Estepona" }} onUpdate={() => {}} editSignal={1} />);
+    expect(fields("profile-card").disabled).toBe(true);
+  });
+});

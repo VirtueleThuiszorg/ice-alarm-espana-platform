@@ -24,6 +24,43 @@
 
 ## 1. Migrations merged but NOT in production
 
+> ### 🔴 BLOCKED 2026-09-10 — `migrate.yml` can no longer log in to Supabase, and ONE migration is stranded
+>
+> [Migrate Production run #3](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34474797455)
+> failed on its second real outing, at the very first step that talks to Supabase:
+>
+> ```
+> supabase link --project-ref "$SUPABASE_PROJECT_REF"
+> Authorization failed for the access token and project ref pair:
+> {"message":"Your account does not have the necessary privileges to access this endpoint."}
+> ```
+>
+> **Nothing was applied** — `db push` was skipped, the manifest was not touched, and the job went
+> red, which is what it is supposed to do. Run #2 (9 Sep) linked and pushed fine with the same
+> workflow, so this is the CREDENTIAL, not the code: `SUPABASE_ACCESS_TOKEN` has expired, been
+> revoked, or belongs to an account that no longer has access to `crpsuhoixfdhjugprbuc`.
+>
+> **THE FIX, and only you can do it.** Create a new personal access token at
+> <https://supabase.com/dashboard/account/tokens> from an account with access to that project,
+> then replace the repository secret `SUPABASE_ACCESS_TOKEN` (Settings → Secrets and variables →
+> Actions). Check `SUPABASE_PROJECT_REF` is `crpsuhoixfdhjugprbuc` while you are there. Then
+> re-run the failed run from the Actions tab — it is idempotent, so re-running is safe.
+>
+> **What is stranded, and what it means until then:**
+>
+> | Migration | Effect of it not being applied |
+> |---|---|
+> | `20260910120000_holidays_2026_backfill_before_cut.sql` | The 2026 holidays taken **before** 2026-09-10 are missing from every balance. Mary reads 4 days used instead of 18, Carmen 9 instead of 28, Albert 4 instead of 16 — so a supervisor approving November sees roughly 21 days left for Carmen when she has **2**. It also has not set the four entitlements to 30 explicitly. Rehearsed on a local PostgreSQL 16 before merge: 16 ranges imported, 2 entitlements lifted, and the year then reads Albert 16/30, Carmen 28/30, Mary 18/30 — remaining **14 / 2 / 12** |
+>
+> `main`'s **drift gate is legitimately RED** until the token is replaced and the run re-run. That
+> is the gate doing its job: production trails `main` by one migration.
+>
+> **One honest limitation this exposed.** `scripts/ci/require-secrets.mjs` checks a secret is
+> PRESENT, not that it still works — so the run got as far as the CLI before failing. A cheap
+> improvement would be to make the link step's failure message say "the token is probably expired"
+> rather than leaving somebody to read the Supabase error. Not done here; it is a change to the
+> migrate workflow and this branch is about the holidays.
+
 > ### ✅ CLEARED 2026-09-09 — all of these are in production, applied by CI
 >
 > `APPLIED_TO_PROD.txt` and production both name **185** migrations; the drift gate reports
@@ -560,6 +597,43 @@ code, so they flip without a deploy):
   than convenio is sickness or maternity/paternity overlapping booked leave (ET art. 38.3), where
   the days are not lost. That is recorded as a note, not automated: it needs a human to say which
   absence caused it.
+
+### D-17 — the checkout payment-methods card saves to a key nothing reads (2026-09-10)
+
+Found while building the holiday-policy card on the same pattern, and **not fixed here** because
+it is the payment path and it is its own concern. It is a real defect, so it is written down
+rather than left in a branch nobody reads.
+
+`save-api-keys` prefixes every key it is given with `${service}_` **unless the key already starts
+with that prefix**:
+
+```ts
+const finalKey = key.startsWith(`${service}_`) ? key : `${service}_${key}`;
+```
+
+`CheckoutPaymentMethodsCard` calls it with `service: "settings"` and the keys
+`checkout_payment_methods` / `checkout_async_events_confirmed`, so the rows land as
+**`settings_checkout_payment_methods`** and **`settings_checkout_async_events_confirmed`** — while
+the card READS the unprefixed names. It saves, it says it saved, and the value never comes back.
+
+**What that costs.** The card's whole purpose is to keep SEPA (and the other asynchronous methods)
+switched off until somebody ticks the acknowledgement that
+`checkout.session.async_payment_succeeded` is enabled on the webhook destination — because without
+that event a SEPA customer pays and is never activated. If the acknowledgement cannot be read
+back, the card returns to its defaults on every load: the tick is lost, and whatever selection was
+saved is not the selection in force. `create-checkout` and `send-payment-link` both read those
+same unprefixed keys through `loadCheckoutPaymentMethods`, so they see nothing either and fall
+back to card-only — which is the safe direction to fail, and still not what an admin was told
+they had chosen.
+
+**The fix is one word** — `service: "checkout"`, which matches the keys' own prefix and makes
+`finalKey === key` — plus a one-off tidy-up of any `settings_checkout_*` rows already written. It
+needs a test that saves and reads back through the same path, which is exactly what no test does
+today. Worth doing on its own branch, with the SEPA activation question (S20) beside it.
+
+The holiday card avoids the trap by passing `service: "holiday"` against keys that all start
+`holiday_`; the reason is written out in that file so the next person does not copy the broken
+call.
 
 ---
 

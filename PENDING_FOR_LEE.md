@@ -65,14 +65,23 @@
 > organisation, and replace the secret (Settings → Secrets and variables → Actions). Then re-run
 > run #3 from the Actions tab — it is idempotent, so re-running is safe.
 >
-> **B. Stop using `supabase link` at all — CANDIDATE, not verified.** The push step runs
-> `db push --linked`, which is the only reason the link is needed; the CLI can also be pointed
-> straight at the database, and `SUPABASE_DB_PASSWORD` is already a secret in that job. Whether
-> that path clears the same authorisation is **untested from here** — I cannot try it without
-> pushing to production, which is not mine to do on my own initiative. So it is offered as a
-> hypothesis to try if A is inconvenient, not as a known fix, and it is a change to
-> `.github/workflows/migrate.yml` — the production migration path. Say the word and it is a small
-> PR with the same gates on it.
+> **B. BUILT — the workflow no longer depends on that endpoint.** `migrate.yml` now tries
+> `supabase link` first and, when it is refused, writes the two files `link` would have written
+> (the project ref and the IPv4 **pooler** connection string) into the gitignored
+> `supabase/.temp/`, probes the pooler READ-ONLY, and then runs the rest of the job exactly as
+> before — still `--linked`, still reading the password from the environment, never on a command
+> line. It emits a loud `::warning::` whenever the fallback is used, because a fallback that
+> quietly rescues a broken credential is how a broken credential stays broken.
+>
+> Established rather than assumed, since the first version of this note was a guess:
+> `db.crpsuhoixfdhjugprbuc.supabase.co` has **no A record** (direct connections are IPv6-only and
+> GitHub runners are IPv4), which is exactly why `link` is what fetches the pooler URL; both
+> `aws-0-` and `aws-1-eu-west-1.pooler.supabase.com` resolve, so the workflow probes each rather
+> than betting on one; and `SUPABASE_DB_URL` is **not** read from the environment by the CLI, so
+> the connection genuinely has to come from either the API or those files.
+>
+> **A is still wanted.** B gets migrations flowing again; it does not restore the Management API,
+> which `supabase link` and anything else API-shaped still needs. Please do A when you can.
 >
 > Either way, check `SUPABASE_PROJECT_REF` is `crpsuhoixfdhjugprbuc` while you are in there.
 >

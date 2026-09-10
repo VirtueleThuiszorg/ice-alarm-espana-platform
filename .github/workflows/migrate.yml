@@ -173,8 +173,86 @@ jobs:
         with:
           version: latest
 
-      - name: Link to the production project
-        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+      # ── REACH PRODUCTION: the Management API if it will have us, the pooler if it will not ──
+      #
+      # `supabase link` calls the Management API, and on 2026-09-10 it began refusing:
+      #
+      #   Authorization failed for the access token and project ref pair:
+      #   {"message":"Your account does not have the necessary privileges to access this endpoint."}
+      #
+      # THE TOKEN IS NOT DEAD, which is the whole reason this fallback is legitimate. Forty-six
+      # minutes after that refusal, run #6 used the SAME `SUPABASE_ACCESS_TOKEN` and the SAME
+      # `SUPABASE_PROJECT_REF` to deploy every edge function to that project. One endpoint refuses
+      # the token, another accepts it and writes to production — so the account does reach the
+      # project, and what is missing is only the privilege `link` needs. Restoring that is an
+      # org-role change and PENDING_FOR_LEE section 1 asks for it.
+      #
+      # Meanwhile a correct, tested, merged migration sat unapplied: the holiday balances stayed
+      # wrong on production and the next PR was held shut behind the stacking gate. Nothing about
+      # applying a migration actually requires the Management API.
+      #
+      # WHAT `link` DOES THAT WE NEED, and it is not authorisation. It writes two files into the
+      # gitignored `supabase/.temp/`: the project ref, and the IPv4 POOLER connection string. With
+      # only the ref, `--linked` tries the direct host and dies with
+      # `LegacyDbConfigIpv6Error: IPv6 is not supported on your current network` — because
+      # `db.<ref>.supabase.co` has no A record (checked) and GitHub runners are IPv4. So the
+      # fallback writes those two files itself and every step after this one is UNCHANGED: still
+      # `--linked`, still reading the password from the environment.
+      #
+      # THE PASSWORD STILL NEVER REACHES A COMMAND LINE. `--db-url` would have put it in argv and
+      # broken this file's promise (and `ciJobIsolation.test.ts` enforces that promise). It goes
+      # into a 0600 file the CLI reads, and the percent-encoded form is masked explicitly because
+      # it is a different string from the registered secret and GitHub would not mask it itself.
+      #
+      # SESSION MODE, PORT 5432. Transaction mode (6543) cannot run migrations.
+      #
+      # LINK IS TRIED FIRST, so when the privilege is restored this job silently returns to the
+      # path runs #1-#6 used, and the fallback stops being exercised. It is a fallback, not a
+      # replacement — AND IT SHOUTS, because a fallback that quietly rescues a broken credential
+      # is how a broken credential stays broken. Green here does not mean the token is fine.
+      - name: Reach production
+        id: conn
+        run: |
+          set -uo pipefail
+
+          if supabase link --project-ref "$SUPABASE_PROJECT_REF" 2>/tmp/link.err; then
+            echo "reached production through the Management API (supabase link)"
+            echo "mode=linked" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "supabase link was refused:" >&2
+          sed 's/^/  /' /tmp/link.err >&2
+
+          ENC="$(python3 -c 'import os,urllib.parse; print(urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"], safe=""))')"
+          echo "::add-mask::$ENC"
+
+          mkdir -p supabase/.temp
+          printf '%s' "$SUPABASE_PROJECT_REF" > supabase/.temp/project-ref
+
+          # `eu-west-1` is this project's region (docs/archive/AUDIT_REPORT_2026-06.md section 5,
+          # indexed by PROJECT_REFS.md). Both regional endpoints resolve, and which one serves a
+          # given project is not derivable, so each is PROBED with a READ-ONLY `migration list`.
+          # Nothing is written to production until a connection is known to work.
+          for HOST in aws-0-eu-west-1.pooler.supabase.com aws-1-eu-west-1.pooler.supabase.com; do
+            umask 077
+            printf 'postgresql://postgres.%s:%s@%s:5432/postgres' \
+              "$SUPABASE_PROJECT_REF" "$ENC" "$HOST" > supabase/.temp/pooler-url
+            chmod 600 supabase/.temp/pooler-url
+            echo "probing $HOST (read-only)..."
+            if supabase migration list --linked > /tmp/probe.txt 2>/tmp/probe.err; then
+              echo "connected through $HOST"
+              echo "mode=pooler" >> "$GITHUB_OUTPUT"
+              echo "host=$HOST" >> "$GITHUB_OUTPUT"
+              echo "::warning title=Migrated WITHOUT the Management API::supabase link was refused, so this run reached the database directly through $HOST. The access token still lacks the privilege link needs - see PENDING_FOR_LEE section 1. This is a fallback, not a fix."
+              exit 0
+            fi
+            sed 's/^/  /' /tmp/probe.err >&2
+          done
+
+          rm -f supabase/.temp/pooler-url
+          echo "::error title=Cannot reach production at all::supabase link was refused AND no pooler candidate authenticated. Nothing has been applied. Fix SUPABASE_ACCESS_TOKEN (PENDING_FOR_LEE section 1), or the database password if that is what the probe rejected."
+          exit 1
 
       # Captured to a file rather than parsed inline: the same text is the input to the recorder
       # AFTER the push, and the two captures are the only evidence of what this run actually
@@ -228,6 +306,69 @@ jobs:
       # Appends EXACTLY the filenames whose versions appeared in the remote list after the push and
       # were absent before it. Not "the files we meant to push", not "everything pending" — the
       # database is asked what it has. Writes the job summary too.
+      # ── AND WHAT THE DATABASE SAYS AFTERWARDS, not what the migration claimed ────────────────
+      #
+      # Every other step here reports on FILES: which migrations the remote history table gained.
+      # That is the right question for drift and the wrong one for "is the number on the screen
+      # correct now". The 2026 holiday backfill is the case in point — it raises an EXCEPTION if
+      # the pre-cut day counts are wrong, so a clean apply does prove its inputs, and it computes
+      # the resulting year totals into a `RAISE NOTICE` that the Supabase CLI does not surface.
+      # The one thing nobody could read back was the balances themselves.
+      #
+      # So this asks the database, read-only, and puts the answer in the run summary. `psql` is
+      # preinstalled on ubuntu-latest; the connection goes through libpq's ENVIRONMENT variables
+      # (PGHOST/PGUSER/PGPASSWORD/...), never argv, so the password cannot reach a log line or
+      # `ps` — the same rule the rest of this job follows.
+      #
+      # `continue-on-error`: this is a REPORT, not a gate. A migration that applied correctly must
+      # not be reported as failed because a read-back could not connect, and the drift gate plus
+      # the manifest already decide whether the run succeeded. It says so out loud when it cannot
+      # read, rather than printing nothing and letting silence look like agreement.
+      - name: The holiday balances, read back from production
+        if: always()
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+
+          if ! command -v psql >/dev/null; then
+            echo "psql is not on this runner; skipping the read-back" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          export PGPASSWORD="$SUPABASE_DB_PASSWORD"
+          export PGUSER="postgres.${SUPABASE_PROJECT_REF}"
+          export PGDATABASE=postgres
+          export PGPORT=5432
+          export PGCONNECT_TIMEOUT=15
+
+          SQL="SELECT first_name || ' ' || last_name || ': ' || days_approved || ' used, '
+               || days_pending || ' pending, ' || days_remaining || ' left of '
+               || annual_holiday_days
+               FROM public.staff_holiday_balance
+               WHERE lower(first_name) IN ('mary','carmen','albert','travis')
+               ORDER BY first_name;"
+
+          for HOST in aws-0-eu-west-1.pooler.supabase.com aws-1-eu-west-1.pooler.supabase.com; do
+            export PGHOST="$HOST"
+            if psql -At -c "$SQL" > /tmp/balances.txt 2>/tmp/balances.err; then
+              {
+                echo ""
+                echo "### Holiday balances, as the database reports them"
+                echo ""
+                echo '```'
+                cat /tmp/balances.txt
+                echo '```'
+                echo ""
+                echo "_Read from \`staff_holiday_balance\` after the push, via ${HOST}._"
+              } | tee -a "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sed 's/^/  /' /tmp/balances.err >&2
+          done
+
+          echo "could not read the balances back — the push result above still stands" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Record what actually applied
         id: record
         if: always()

@@ -249,8 +249,10 @@ member status, `members.email` being `UNIQUE NOT NULL`, and the 47 unmapped colu
 
 ## Member CRM record — 2026-09-10 · **read-only by default, and it says what is missing**
 
-Seven PRs on the member record (#290, #291, #293, #296, #297, #299, #301, #303, #304). What is
-claimed here is what a test presses; where something is left undone it is named as undone.
+Sixteen PRs on the member record (#290, #291, #293, #296, #297, #299, #301, #303, #304, #310,
+#314, #317, #319, #326, #328, #329), plus the #305 and #322 corrections to this section and
+the #333 repair below. What is claimed here is what a test presses; where something is left
+undone it is named as undone.
 
 ### ✅ ONE definition of "required" (#290)
 `src/lib/memberRequiredFields.ts` — **21 items**, each carrying WHY it is required (SOS
@@ -304,6 +306,52 @@ killable by a mutation, which it had not been.
 
 Proof: `memberLockedUntilEdit.test.tsx` (14), `courtesyCallsLocked.test.tsx` (5),
 `lockedCards.test.tsx` (6), `manageModeCards.test.tsx` (7).
+
+### ✅ Leaving a half-typed edit is warned about, not silently discarded (#326)
+The tab row and the browser go through one registry. `UnsavedChangesProvider` holds the set of
+dirty card ids in a **ref and nothing else** — an earlier version kept a version counter in
+state, and because each card's effect depended on the context object, one keystroke
+unregistered-and-reregistered itself into an infinite render loop. That loop pegged the event
+loop hard enough that vitest could not fire its own timeout: the runner hung rather than
+failing, which is the worse of the two. The ref version has no state to loop on.
+Proof: `unsavedRegistry.test.tsx`, `unsavedTabChange.test.tsx`.
+
+### ✅ Read mode looks like reading (#328)
+`<fieldset disabled>` stops the typing and changes nothing about the look: a disabled input is
+still a bordered box with a placeholder and a chevron, so a locked record read as a form
+somebody had switched off. One rule in `index.css` scoped to `.editable-card-fields:disabled`
+strips the chrome and keeps **full-contrast** text — WCAG 1.4.3 exempts disabled controls, and
+that exemption is for things you cannot use, not for the primary way of reading a medical record
+down the phone. Placeholders are hidden with it, because "e.g. Penicillin, Shellfish" looks
+exactly like a recorded allergy once the box around it is gone. jsdom applies no stylesheet, so
+the test pins both halves separately — the class on the element, and the rule in `index.css`
+itself; either half alone passes while the feature is broken. Proof: `readModePlainText.test.tsx`
+(7).
+
+### ✅ "After Save the value persists on reload" is a test now (#329)
+It was the one line of the brief still resting on a click-through. Six tests over `ProfileTab`
+against a fake that **holds and mutates a row** rather than swallowing the write: the value is on
+the card after Save, still there on a fresh mount, untouched fields are not blanked, `onUpdate`
+fires so the page re-reads, no discard prompt follows a save, and a cancelled edit puts the old
+value back **on the screen** while writing nothing. Proof: `memberSavePersists.test.tsx` (6).
+
+### 🔴 It broke main for eleven minutes, and the way it broke is worth keeping (#333)
+#327 put `StaffHomeLocationCard` — a react-query consumer — on the Profile tab. #329 renders
+`ProfileTab` bare. Both were green on their own branch, and neither CI run could have seen the
+other's change: #327 ran before #329's test file existed. On the merged result the tab threw
+`No QueryClient set` before the form under test ever mounted, and all six assertions went down.
+
+**They touch no file in common.** The merging rule in CLAUDE.md keys on that — "when more than
+one open PR touches the same large file, merge them serially" — and this pair would have passed
+that check on the way in. The signal that was actually available was cheaper: #327 changed what
+`ProfileTab` renders, and #329 renders `ProfileTab`. A PR that adds a component to a shared page
+is a PR that can break any test which mounts that page, whatever files it lists.
+
+Fixed by wrapping the render in a `QueryClientProvider` (`retry: false`, a fresh client per
+open), **not** by stubbing the one card — stubbing buys a week, and the next react-query card on
+this tab breaks it again the same way. `memberLockedUntilEdit` had the same gap and was fixed
+inside #327. Two sessions diagnosed this independently and wrote the same patch; #333 is the one
+that merged, #335 was closed as a duplicate.
 
 ### ✅ Overview and Missing-info pop-ups (#293, #299)
 Overview shows only what we HAVE, in eight groups, empty fields omitted rather than rendered as

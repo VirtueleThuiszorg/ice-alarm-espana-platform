@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { MemberQuickContact } from "@/components/admin/member-detail/MemberQuickContact";
 import { toast } from "sonner";
-import { 
-  Loader2, Plus, Send, MessageSquare, Phone, Mail
-} from "lucide-react";
+import { Loader2, Plus, Send, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -76,6 +75,29 @@ export function MessagesTab({ memberId, memberName }: MessagesTabProps) {
   const [newMessage, setNewMessage] = useState("");
   const [replyMessage, setReplyMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  /*
+    The member's own phone and email, for the quick-contact controls. Read here rather than
+    passed in: this tab is mounted from two routes (admin and call-centre) and neither of them
+    holds the contact details already.
+  */
+  const [contact, setContact] = useState<{ phone: string | null; email: string | null } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("members")
+        .select("phone, email")
+        .eq("id", memberId)
+        .maybeSingle();
+      if (!cancelled) setContact(data ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [memberId]);
 
   useEffect(() => {
     fetchConversations();
@@ -533,24 +555,18 @@ export function MessagesTab({ memberId, memberName }: MessagesTabProps) {
                         )}
                       </Button>
                     </div>
-                    <div className="flex gap-2 mt-2">
-                      <Button variant="outline" size="sm" onClick={() => toast.info("SMS integration coming soon")}>
-                        <MessageSquare className="mr-1 h-3 w-3" />
-                        SMS
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => toast.info("WhatsApp integration coming soon")}>
-                        <MessageSquare className="mr-1 h-3 w-3" />
-                        WhatsApp
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => toast.info("Email integration coming soon")}>
-                        <Mail className="mr-1 h-3 w-3" />
-                        Email
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => toast.info("Call logging coming soon")}>
-                        <Phone className="mr-1 h-3 w-3" />
-                        Log Call
-                      </Button>
-                    </div>
+                    {/*
+                      These four were `toast.info("… coming soon")`. All four exist today —
+                      see MemberQuickContact for what each one actually does, and for why the
+                      WhatsApp one does not claim delivery.
+                    */}
+                    <MemberQuickContact
+                      memberId={memberId}
+                      memberName={memberName}
+                      phone={contact?.phone}
+                      email={contact?.email}
+                      draft={replyMessage}
+                    />
                   </div>
                 </>
               ) : (

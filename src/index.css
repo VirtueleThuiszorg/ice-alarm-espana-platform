@@ -61,6 +61,26 @@
     /* Legacy token name, re-pointed. ICE has one brand hue, so this now
        resolves to the deeper red used for hover/pressed states. Kept rather
        than renamed because four components still reference it. */
+    /* MEMBER-RECORD TABS — Lee's instruction, 10 September 2026. Used ONLY by the twelve
+       tabs on /admin/members/:id.
+
+       WHY A SCOPED SET AND NOT `bg-primary`: on .theme-admin --primary is INK, deliberately —
+       "red is rationed" on the surface an operator watches for emergencies (see the portal
+       block below). That rule stands; the member RECORD is a filing screen, and confining the
+       red to these four tokens is what lets both be true without repainting the global <Tabs>
+       component the member portal and the public site also use.
+
+       --member-tab is the APP-ICON RED, the same triplet as --primary above, aliased rather
+       than re-typed so a change to the brand hue cannot leave these tabs behind. Contrast
+       against white, by the same helper the rest of the palette is checked with:
+         base 5.97:1 · active 9.47:1 · hover 7.50:1   (AA needs 4.5)
+       Active is ALSO given a white ring and underline: darker-red-on-red is 1.58:1, and colour
+       must never be the only cue (WCAG 1.4.1). */
+    --member-tab: 350 85% 42%;
+    --member-tab-foreground: 0 0% 100%;
+    --member-tab-active: 351 85% 30%;
+    --member-tab-hover: 351 85% 36%;
+
     --brand-teal: 351 85% 34%;
     --brand-teal-foreground: 0 0% 100%;
     --brand-teal-soft: 353 68% 95%;

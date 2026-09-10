@@ -41,6 +41,7 @@ SKIP_MIGRATIONS=(
   "20260716120000_sos_escalation_cron.sql"                   # pg_cron
   "20260723120000_fix_cron_url_and_auth.sql"                 # pg_cron
   "20260909130000_lead_new_router_emit.sql"                  # pg_net
+  "20260910130100_shift_swap_router_emit.sql"                # pg_net
 )
 
 # AND THE CLAIM ABOVE IS NOW CHECKED, not just written down.

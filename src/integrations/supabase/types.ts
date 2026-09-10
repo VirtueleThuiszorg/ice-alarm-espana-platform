@@ -6486,6 +6486,7 @@ export type Database = {
           requested_shift_id: string
           status: string
           updated_at: string
+          wants_exchange: boolean
         }
         Insert: {
           accepted_at?: string | null
@@ -6501,6 +6502,7 @@ export type Database = {
           requested_shift_id: string
           status?: string
           updated_at?: string
+          wants_exchange?: boolean
         }
         Update: {
           accepted_at?: string | null
@@ -6516,6 +6518,7 @@ export type Database = {
           requested_shift_id?: string
           status?: string
           updated_at?: string
+          wants_exchange?: boolean
         }
         Relationships: [
           {
@@ -7597,6 +7600,14 @@ export type Database = {
       }
     }
     Functions: {
+      apply_shift_swap: {
+        Args: { p_swap_id: string }
+        Returns: {
+          covers_written: number
+          moved_shifts: number
+          outcome: string
+        }[]
+      }
       check_shift_coverage: {
         Args: { p_end: string; p_start: string }
         Returns: {

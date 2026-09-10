@@ -329,7 +329,12 @@ BEGIN
     v_event := 'shift.swap_requested';
     v_message := format('%s %s has asked you to %s a shift',
                         v_requester.first_name, v_requester.last_name,
-                        CASE WHEN NEW.offered_shift_id IS NULL THEN 'cover' ELSE 'swap' END);
+                        -- `wants_exchange`, NOT `offered_shift_id`. This read the offered shift
+                        -- and was therefore wrong on every single request: nothing is offered
+                        -- until the counterparty answers, so a swap request announced itself as
+                        -- "cover" — the exact confusion the column was added to remove. Caught
+                        -- by driving a real swap through the triggers, not by reading it.
+                        CASE WHEN NEW.wants_exchange THEN 'swap' ELSE 'cover' END);
     v_targets := ARRAY[v_counter.user_id];
 
   ELSIF TG_OP = 'UPDATE' AND NEW.status = 'accepted' AND OLD.status <> 'accepted' THEN

@@ -89,9 +89,12 @@ BEGIN
   FROM public.staff_shifts WHERE id = NEW.requested_shift_id;
 
   IF v_event = 'shift.swap_requested' THEN
-    v_title := CASE WHEN NEW.offered_shift_id IS NULL
-                    THEN 'Somebody has asked you to cover a shift'
-                    ELSE 'Somebody has asked you to swap a shift' END;
+    -- `wants_exchange`, NOT `offered_shift_id`: nothing is offered until the counterparty
+    -- answers, so deciding from the offered shift titled every request "cover", including the
+    -- swaps. Same fix as the bell trigger's message in 20260910130000.
+    v_title := CASE WHEN NEW.wants_exchange
+                    THEN 'Somebody has asked you to swap a shift'
+                    ELSE 'Somebody has asked you to cover a shift' END;
     v_body := format('%s %s — %s %s. Open My shifts to answer.',
                      v_requester.first_name, v_requester.last_name,
                      to_char(v_shift.shift_date, 'FMDay DD Mon'), v_shift.shift_type);

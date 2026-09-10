@@ -5689,6 +5689,25 @@ SELECT pg_temp.check(
   'the second half is the reason the first half cannot carry an offered shift: Mary cannot see '
   'the shift she would be taking');
 
+-- WHAT THE BELL SAYS IT IS, and this assertion exists because the code was wrong.
+--
+-- Both triggers decided "swap" vs "cover" from `offered_shift_id`, which is NULL on every
+-- request — nothing is offered until the counterparty answers. So a swap request announced
+-- itself to the person being asked as a request for COVER: they would have read "Mary asked you
+-- to cover a shift", accepted, and found they had given a shift away for nothing. The column
+-- exists to carry exactly this distinction and the message was not reading it.
+SELECT pg_temp.check(
+  'ROTA SWAP: the bell calls a swap a SWAP, and cover COVER — from wants_exchange, not from the '
+  'shift that has not been offered yet',
+  (SELECT message LIKE '%swap a shift%' FROM public.notification_log
+    WHERE entity_id = 'dddddddd-0000-0000-0000-000000000010'
+      AND event_type = 'shift.swap_requested')
+  AND (SELECT message LIKE '%cover a shift%' FROM public.notification_log
+        WHERE entity_id = 'dddddddd-0000-0000-0000-00000000000b'
+          AND event_type = 'shift.swap_requested'),
+  'the swap fixture asked for an exchange; the two-sided fixture above it asked for cover — and '
+  'both were announced as cover before this');
+
 SELECT pg_temp.check(
   'ROTA SWAP: the COUNTERPARTY nominates one of their own shifts when they accept',
   pg_temp.exec_as('c0000001-0000-0000-0000-000000000001',

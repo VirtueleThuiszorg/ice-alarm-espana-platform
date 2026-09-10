@@ -1501,7 +1501,10 @@
     "noAlerts": "No alerts. Nothing has happened, which is the idea.",
     "viewAllAlerts": "See your alert history",
     "twentyFourHourLine": "24-hour line",
-    "callTwentyFourHour": "Call our 24-hour line: {{number}}"
+    "callTwentyFourHour": "Call our 24-hour line: {{number}}",
+    "completeMyDetails": "Complete my details",
+    "detailsComplete": "Your details are complete",
+    "reviewMyDetails": "Review my details"
   },
   "phoneOnly": {
     "yourCurrentService": "Your Current Service",
@@ -6519,5 +6522,21 @@
     },
     "saved": "Home location saved",
     "saveFailed": "We could not save your home location."
+  },
+  "completeDetails": {
+    "title": "Complete my details",
+    "subtitle": "These are the things we still need. Each one is used when somebody presses your alarm.",
+    "listHint": "Separate each one with a comma",
+    "goToContacts": "Add an emergency contact",
+    "nothingTyped": "Fill in at least one of these before saving.",
+    "saved": "Thank you — we have saved that.",
+    "failed": "We could not save that. Please try again."
+  },
+  "reviewDetails": {
+    "title": "Review my details",
+    "subtitle": "Everything we hold about you. Only the things we actually have are listed.",
+    "empty": "We do not hold any details for you yet. Use “Complete my details” to add them.",
+    "print": "Print / Save as PDF",
+    "printedOn": "Printed {{date}}"
   }
 }

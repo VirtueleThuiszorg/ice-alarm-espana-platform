@@ -29,9 +29,9 @@ export default function CallCentreRotaPage() {
   const { staffRole } = useAuth();
 
   if (!staffRole || !(ROTA_MANAGER_ROLES as readonly string[]).includes(staffRole)) {
-    // An operator who lands here by typing the URL goes to the dashboard rather than to an
-    // error: the rota is not theirs to manage, but `MyShiftsWidget` there shows the part that is.
-    return <Navigate to="/call-centre" replace />;
+    // An operator who lands here by typing the URL goes to their OWN shifts rather than to an
+    // error: the rota is not theirs to manage, but the part of it that is theirs is one page over.
+    return <Navigate to="/call-centre/my-shifts" replace />;
   }
 
   return <AdminRotaPage />;

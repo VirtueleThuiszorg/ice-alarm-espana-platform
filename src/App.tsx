@@ -132,6 +132,7 @@ const FeedbackDashboardPage = lazyWithRetry(() => import("./pages/admin/Feedback
 const TestimonialsPage = lazyWithRetry(() => import("./pages/admin/TestimonialsPage"));
 const RotaPage = lazyWithRetry(() => import("./pages/admin/RotaPage"));
 const CallCentreRotaPage = lazyWithRetry(() => import("./pages/call-centre/RotaPage"));
+const MyShiftsPage = lazyWithRetry(() => import("./pages/call-centre/MyShiftsPage"));
 const AdminHolidaysPage = lazyWithRetry(() => import("./pages/admin/HolidaysPage"));
 
 // Partner Pages - Lazy loaded
@@ -480,6 +481,7 @@ const App = () => {
                       <Route path="holidays" element={<CallCentreHolidaysPage />} />
                       <Route path="holiday-approvals" element={<HolidayApprovalsPage />} />
                       <Route path="rota" element={<CallCentreRotaPage />} />
+                      <Route path="my-shifts" element={<MyShiftsPage />} />
                     </Route>
 
                     {/* Client Dashboard Routes - Require Member */}

@@ -41,8 +41,20 @@ function menuOrder(): string[] {
   return [...menuBlock().matchAll(/labelKey:\s*"sidebar\.(\w+)"/g)].map((m) => m[1]);
 }
 
-/** Lee's order, dashboard notes 9 Sep: Members third, Alerts in the slot Members had. */
-const REQUIRED_HEAD = ["dashboard", "medconneqt", "members", "leads", "alerts", "messages"];
+/**
+ * Lee's order, dashboard notes 9 Sep: Members third, Alerts in the slot Members had. "My shifts"
+ * joins it on 10 Sep, directly after Messages and for EVERY staff role — which is why it belongs
+ * in the pinned list while Rota and holiday approvals, which two people see, do not.
+ */
+const REQUIRED_HEAD = [
+  "dashboard",
+  "medconneqt",
+  "members",
+  "leads",
+  "alerts",
+  "messages",
+  "myShifts",
+];
 
 describe("call-centre sidebar order", () => {
   const order = menuOrder();
@@ -53,12 +65,20 @@ describe("call-centre sidebar order", () => {
     expect(order.length).toBeGreaterThanOrEqual(REQUIRED_HEAD.length);
   });
 
-  it("starts with Dashboard, MedConneqt, Members, Leads, Alerts, Messages — in that order", () => {
+  it("starts with Dashboard, MedConneqt, Members, Leads, Alerts, Messages, My shifts — in that order", () => {
     expect(order.slice(0, REQUIRED_HEAD.length)).toEqual(REQUIRED_HEAD);
   });
 
   it("Members is THIRD — the item an operator reaches for by hand most often", () => {
     expect(order[2]).toBe("members");
+  });
+
+  it("My shifts is directly after Messages, where Lee put it", () => {
+    // Adjacency is the claim: "somewhere after Messages" stays true through a dozen wrong
+    // positions, including the one where it lands under Documents at the bottom.
+    expect(order.indexOf("myShifts")).toBe(order.indexOf("messages") + 1);
+    const paths = [...menuBlock().matchAll(/path:\s*"(\/call-centre[^"]*)"/g)].map((m) => m[1]);
+    expect(paths[order.indexOf("myShifts")]).toBe("/call-centre/my-shifts");
   });
 
   it("Alerts sits where Members used to, fifth", () => {

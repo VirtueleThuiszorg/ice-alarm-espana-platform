@@ -65,12 +65,14 @@
 > organisation, and replace the secret (Settings → Secrets and variables → Actions). Then re-run
 > run #3 from the Actions tab — it is idempotent, so re-running is safe.
 >
-> **B. Stop using `supabase link` at all.** The push step runs `db push --linked`, which is why
-> the link is needed. `SUPABASE_DB_PASSWORD` is already a secret in that job and is already
-> passed through `env`, so the same push can go straight at the database and skip the endpoint
-> that is refusing. That is a change to `.github/workflows/migrate.yml` — the production
-> migration path — so it is offered here rather than made: say the word and it is a small PR with
-> the same gates on it.
+> **B. Stop using `supabase link` at all — CANDIDATE, not verified.** The push step runs
+> `db push --linked`, which is the only reason the link is needed; the CLI can also be pointed
+> straight at the database, and `SUPABASE_DB_PASSWORD` is already a secret in that job. Whether
+> that path clears the same authorisation is **untested from here** — I cannot try it without
+> pushing to production, which is not mine to do on my own initiative. So it is offered as a
+> hypothesis to try if A is inconvenient, not as a known fix, and it is a change to
+> `.github/workflows/migrate.yml` — the production migration path. Say the word and it is a small
+> PR with the same gates on it.
 >
 > Either way, check `SUPABASE_PROJECT_REF` is `crpsuhoixfdhjugprbuc` while you are in there.
 >

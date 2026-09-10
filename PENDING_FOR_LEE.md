@@ -735,6 +735,63 @@ read the list.
 
 ---
 
+### D-19 — the KarmaCRM import has three homeless facts and one invented status (2026-09-10)
+
+Found while making the import work on the real 431-row export (#302, #307, #308, #316, #318).
+Four decisions, none of them urgent, all of them yours.
+
+**1. `crm_profiles` has no column for membership type, payment type or date joined.**
+
+The brief said these three go to "CRM profile fields". There are no such fields: `crm_profiles`
+holds `stage`, `status`, `referral_source`, `assigned_to_staff_id`, `department`, `industry`,
+`tags` and `groups`, and that is all. A key with no column fails the **whole** insert, and
+PostgREST reports that as the row failing rather than the key being wrong — so the first version
+would have looked like bad data in your export.
+
+They are written verbatim as one member note instead (`Karma CRM membership: membership type X;
+payment type Y; joined Z`), with a stable prefix so a re-run recognises it rather than adding a
+second copy, and `crm_import_rows` keeps them in `parsed_membership_type` and in `raw` besides.
+**Nothing is lost; it is simply not a column.** Three columns and a migration is the fix, and it
+is a five-line migration — say the word.
+
+**2. Imported members are `inactive`, and there is no "legacy" state to be.**
+
+The brief asked for "the fulfilment model's legacy-member state". There isn't one: `member_status`
+is `('active','inactive','suspended')` and `fulfilment_state` describes a pendant order, not a
+person.
+
+`active` is not available — golden rule 4, a member is activated by the payment webhook and by
+nothing else, and this platform has never seen any of these 431 people pay it. Writing `active`
+would be the import asserting a payment it has no evidence for. `suspended` means a live member on
+hold, which is wrong in the other direction. So: **`inactive`, with the verbatim Karma status on
+the CRM profile**, so a human sees "Active Member in Karma" beside "inactive here" and nothing is
+lost. They become active when a payment arrives.
+
+The better answer is a fourth value, `legacy`, so these are visibly neither new nor cancelled.
+That is a migration and an enum change, and it is your call whether it is worth one.
+
+**3. `members.email` is `UNIQUE NOT NULL`, and that is why your clients land as CRM contacts.**
+
+This is the single biggest reason a row cannot become a member: most of your clients have no
+email. Households that share one get a plus-tag (`name+tag@…`) so the mail still reaches them, but
+a client with none cannot be a member at all today. It is surfaced on the import preview rather
+than worked around, because making `email` nullable is a decision about what a member *is* — a
+person we can reach, or a person we hold a record for — and it changes the login flow.
+
+**4. Forty-seven of the 147 columns are read by nothing.**
+
+`ICE_IMPORT_COLUMN_MAP.md` lists every one. Nothing is lost — the whole row (minus the four
+discarded columns) is kept in `crm_import_rows.raw`, so any of them can be mapped later **without
+re-exporting from Karma**. The four I would ask about: **`Dob`** (a second date-of-birth column
+beside `Birthday` — the difference between a member and a CRM contact for any row that has one and
+not the other), **`Spouse`**, **`Wellbeing Appt Date`**, and **`Contact Friend for Email`**, which
+reads like a consent flag and consent is not something to guess at.
+
+**Nothing is blocked on any of these four.** The import works, and each is a decision you can take
+whenever you have read the table.
+
+---
+
 ## 3. Per-channel flags (D7) — turn on only when proven
 
 Each channel is switched on independently in `system_settings`, **default OFF**. A channel that

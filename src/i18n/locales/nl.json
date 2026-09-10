@@ -1400,7 +1400,7 @@
     "personalInfo": "Personal Information",
     "managePersonalInfo": "Manage your personal information",
     "profilePhoto": "Profile Photo",
-    "changePhoto": "Change Photo",
+    "changePhoto": "Foto wijzigen",
     "photoFormat": "JPG or PNG, max 5MB",
     "firstName": "First Name",
     "lastName": "Last Name",
@@ -1417,7 +1417,6 @@
     "languageDesc": "Choose your preferred language for communication",
     "saveChanges": "Save Changes",
     "saving": "Saving...",
-    "contactSupportToChange": "Contact support to change",
     "emailChangeNote": "Hiermee logt u in, dus we wijzigen dit samen met u per telefoon.",
     "addressEmergencyNote": "This address is used for emergency response",
     "updateSuccess": "Profile updated successfully",
@@ -1442,7 +1441,19 @@
     "awayFrom": "Weg vanaf",
     "awayUntil": "Terug op",
     "pendantWithMe": "Ik neem mijn hanger mee",
-    "pendantWithMeHelp": "Als u hem thuis laat, verwachten we niet dat hij beweegt."
+    "pendantWithMeHelp": "Als u hem thuis laat, verwachten we niet dat hij beweegt.",
+    "photoSaved": "Uw foto is bijgewerkt",
+    "photoFailed": "Uw foto kon niet worden opgeslagen",
+    "photoRemoved": "Uw foto is verwijderd",
+    "choosePhoto": "Kies een foto",
+    "addPhoto": "Een foto toevoegen",
+    "removePhoto": "Foto verwijderen",
+    "removePhotoTitle": "Uw foto verwijderen?",
+    "removePhotoBody": "Uw account toont dan uw initialen. U kunt altijd opnieuw een foto toevoegen.",
+    "photoHelp": "Een foto helpt onze operators u te herkennen. Wij verkleinen deze op uw telefoon tot {{edge}} pixels voordat hij wordt verzonden, en alleen u en ons team kunnen hem zien.",
+    "photoPrivate": "Alleen u en ons team kunnen deze zien.",
+    "photoNone": "Nog geen foto. Druk op Bewerken om er een toe te voegen.",
+    "photoEditHint": "Druk op Bewerken om uw foto toe te voegen of te wijzigen."
   },
   "dashboard": {
     "welcomeBack": "Welcome back",
@@ -1501,7 +1512,10 @@
     "noAlerts": "Geen meldingen. Er is niets gebeurd, en dat is de bedoeling.",
     "viewAllAlerts": "Uw meldingsgeschiedenis bekijken",
     "twentyFourHourLine": "24-uurslijn",
-    "callTwentyFourHour": "Bel onze 24-uurslijn: {{number}}"
+    "callTwentyFourHour": "Bel onze 24-uurslijn: {{number}}",
+    "completeMyDetails": "Mijn gegevens aanvullen",
+    "detailsComplete": "Uw gegevens zijn compleet",
+    "reviewMyDetails": "Mijn gegevens bekijken"
   },
   "phoneOnly": {
     "yourCurrentService": "Your Current Service",
@@ -6524,5 +6538,21 @@
     },
     "saved": "Locatie van de woning opgeslagen",
     "saveFailed": "Wij konden de locatie van uw woning niet opslaan."
+  },
+  "completeDetails": {
+    "title": "Mijn gegevens aanvullen",
+    "subtitle": "Dit hebben wij nog nodig. Elk gegeven wordt gebruikt wanneer iemand op uw alarm drukt.",
+    "listHint": "Scheid ze met een komma",
+    "goToContacts": "Een noodcontact toevoegen",
+    "nothingTyped": "Vul ten minste één van deze velden in voordat u opslaat.",
+    "saved": "Dank u — wij hebben het opgeslagen.",
+    "failed": "Wij konden dit niet opslaan. Probeer het opnieuw."
+  },
+  "reviewDetails": {
+    "title": "Mijn gegevens bekijken",
+    "subtitle": "Alles wat wij over u hebben. Alleen wat wij daadwerkelijk hebben, staat hier.",
+    "empty": "Wij hebben nog geen gegevens van u. Gebruik ‘Mijn gegevens aanvullen’ om ze toe te voegen.",
+    "print": "Afdrukken / Opslaan als PDF",
+    "printedOn": "Afgedrukt op {{date}}"
   }
 }

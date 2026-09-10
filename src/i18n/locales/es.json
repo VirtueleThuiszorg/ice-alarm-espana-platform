@@ -1400,7 +1400,7 @@
     "personalInfo": "Información personal",
     "managePersonalInfo": "Gestione su información personal",
     "profilePhoto": "Foto de perfil",
-    "changePhoto": "Cambiar foto",
+    "changePhoto": "Cambiar la foto",
     "photoFormat": "JPG o PNG, máximo 5MB",
     "firstName": "Nombre",
     "lastName": "Apellidos",
@@ -1417,7 +1417,6 @@
     "languageDesc": "Elija su idioma preferido para la comunicación",
     "saveChanges": "Guardar cambios",
     "saving": "Guardando...",
-    "contactSupportToChange": "Contacte soporte para cambiar",
     "emailChangeNote": "Con esta dirección inicia sesión, así que la cambiamos con usted por teléfono.",
     "addressEmergencyNote": "Esta dirección se utiliza para respuesta de emergencia",
     "updateSuccess": "Perfil actualizado correctamente",
@@ -1442,7 +1441,19 @@
     "awayFrom": "Fuera desde",
     "awayUntil": "Fecha de regreso",
     "pendantWithMe": "Me llevo el colgante",
-    "pendantWithMeHelp": "Si lo deja en casa, no esperaremos que se mueva."
+    "pendantWithMeHelp": "Si lo deja en casa, no esperaremos que se mueva.",
+    "photoSaved": "Su foto se ha actualizado",
+    "photoFailed": "No se ha podido guardar su foto",
+    "photoRemoved": "Su foto se ha eliminado",
+    "choosePhoto": "Elija una foto",
+    "addPhoto": "Añadir una foto",
+    "removePhoto": "Eliminar la foto",
+    "removePhotoTitle": "¿Eliminar su foto?",
+    "removePhotoBody": "Su cuenta mostrará sus iniciales en su lugar. Puede volver a añadir una foto cuando lo desee.",
+    "photoHelp": "Una foto ayuda a nuestros operadores a reconocerle. La reducimos a {{edge}} píxeles en su teléfono antes de enviarla, y solo usted y nuestro equipo pueden verla.",
+    "photoPrivate": "Solo usted y nuestro equipo pueden verla.",
+    "photoNone": "Todavía no hay foto. Pulse Editar para añadir una.",
+    "photoEditHint": "Pulse Editar para añadir o cambiar su foto."
   },
   "dashboard": {
     "welcomeBack": "Bienvenido/a",
@@ -1501,7 +1512,10 @@
     "noAlerts": "Sin avisos. No ha pasado nada, que es de lo que se trata.",
     "viewAllAlerts": "Ver su historial de avisos",
     "twentyFourHourLine": "Línea 24 horas",
-    "callTwentyFourHour": "Llame a nuestra línea de 24 horas: {{number}}"
+    "callTwentyFourHour": "Llame a nuestra línea de 24 horas: {{number}}",
+    "completeMyDetails": "Completar mis datos",
+    "detailsComplete": "Sus datos están completos",
+    "reviewMyDetails": "Revisar mis datos"
   },
   "phoneOnly": {
     "yourCurrentService": "Su servicio actual",
@@ -6524,5 +6538,21 @@
     },
     "saved": "Ubicación del domicilio guardada",
     "saveFailed": "No hemos podido guardar la ubicación de su domicilio."
+  },
+  "completeDetails": {
+    "title": "Completar mis datos",
+    "subtitle": "Esto es lo que aún necesitamos. Cada dato se utiliza cuando alguien pulsa su alarma.",
+    "listHint": "Separe cada uno con una coma",
+    "goToContacts": "Añadir un contacto de emergencia",
+    "nothingTyped": "Rellene al menos uno de estos campos antes de guardar.",
+    "saved": "Gracias, lo hemos guardado.",
+    "failed": "No hemos podido guardarlo. Vuelva a intentarlo."
+  },
+  "reviewDetails": {
+    "title": "Revisar mis datos",
+    "subtitle": "Todo lo que tenemos sobre usted. Solo se enumera lo que realmente tenemos.",
+    "empty": "Todavía no tenemos datos suyos. Utilice «Completar mis datos» para añadirlos.",
+    "print": "Imprimir / Guardar como PDF",
+    "printedOn": "Impreso el {{date}}"
   }
 }

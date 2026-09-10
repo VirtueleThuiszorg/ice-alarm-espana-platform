@@ -7,26 +7,28 @@ import {
   type SubmitResult,
   type SubmitRoute,
 } from "../_shared/member-update-outcome.ts";
+import {
+  MEDICAL_WRITABLE_COLUMNS,
+  MEMBER_WRITABLE_COLUMNS,
+  pickWritable,
+  rejectedKeys,
+} from "../_shared/member-update-writable.ts";
 
 const FN = "submit-member-update";
 
+/*
+  THE SHAPES BELOW ARE DOCUMENTATION, NOT A GUARD.
+
+  They used to be treated as one: the handler spread `member` straight into the update, so
+  while the interface named three fields the runtime accepted every column on the table — from
+  an anonymous caller, through a service_role client, with RLS not standing behind it. The
+  whitelist in `member-update-writable.ts` is what actually decides now, and it is applied
+  before anything reaches Postgres.
+*/
 interface UpdatePayload {
   token: string;
-  member: {
-    nie_dni?: string;
-    phone?: string;
-    address_line_2?: string;
-  };
-  medical: {
-    blood_type?: string;
-    doctor_name?: string;
-    doctor_phone?: string;
-    hospital_preference?: string;
-    allergies?: string[];
-    medications?: string[];
-    medical_conditions?: string[];
-    additional_notes?: string;
-  };
+  member: Record<string, unknown>;
+  medical: Record<string, unknown>;
   emergencyContacts: Array<{
     id?: string;
     contact_name: string;
@@ -135,18 +137,29 @@ const handler = async (req: Request): Promise<Response> => {
     const requestedFields: string[] = tokenData.requested_fields ?? [];
     const { route, staffId } = await resolveRoute(req, supabaseUrl);
 
-    // Update member profile
-    if (member && Object.keys(member).length > 0) {
+    // Update member profile — whitelisted, never spread.
+    const memberUpdates = pickWritable(member, MEMBER_WRITABLE_COLUMNS);
+    const refusedMember = rejectedKeys(member, MEMBER_WRITABLE_COLUMNS);
+    if (refusedMember.length > 0) {
+      // Named in the log, and in the audit row below, so a rejected key is visible rather than
+      // silently dropped — a client sending one is either a stale build or somebody probing.
+      console.warn(
+        JSON.stringify({ fn: FN, event: "member_keys_refused", keys: refusedMember }),
+      );
+    }
+    if (Object.keys(memberUpdates).length > 0) {
       const { error: memberError } = await supabase
         .from("members")
         .update({
-          ...member,
+          ...memberUpdates,
           updated_at: new Date().toISOString(),
         })
         .eq("id", memberId);
 
       if (memberError) {
-        console.error("Error updating member:", memberError);
+        console.error(
+          JSON.stringify({ fn: FN, event: "member_update_failed", member_id: memberId, error: memberError.message }),
+        );
         throw new Error("Failed to update member profile");
       }
     }
@@ -155,7 +168,14 @@ const handler = async (req: Request): Promise<Response> => {
     // as service_role, where auth.uid() is NULL and the trigger cannot infer the route.
     let medicalAttempted = false;
     let medicalError = false;
-    if (medical && Object.keys(medical).length > 0) {
+    const medicalUpdates = pickWritable(medical, MEDICAL_WRITABLE_COLUMNS);
+    const refusedMedical = rejectedKeys(medical, MEDICAL_WRITABLE_COLUMNS);
+    if (refusedMedical.length > 0) {
+      console.warn(
+        JSON.stringify({ fn: FN, event: "medical_keys_refused", keys: refusedMedical }),
+      );
+    }
+    if (Object.keys(medicalUpdates).length > 0) {
       medicalAttempted = true;
       const { data: existingMedical } = await supabase
         .from("medical_information")
@@ -167,7 +187,7 @@ const handler = async (req: Request): Promise<Response> => {
         const { error: medErr } = await supabase
           .from("medical_information")
           .update({
-            ...medical,
+            ...medicalUpdates,
             recorded_via: route,
             recorded_by_staff: staffId,
             updated_at: new Date().toISOString(),
@@ -183,7 +203,7 @@ const handler = async (req: Request): Promise<Response> => {
           .from("medical_information")
           .insert({
             member_id: memberId,
-            ...medical,
+            ...medicalUpdates,
             recorded_via: route,
             recorded_by_staff: staffId,
           });
@@ -287,6 +307,8 @@ const handler = async (req: Request): Promise<Response> => {
         outcome: result.outcome,
         contacts_written: result.contactsWritten,
         medical_written: result.medicalWritten,
+        member_fields: Object.keys(memberUpdates),
+        refused_keys: [...refusedMember, ...refusedMedical],
       },
     });
 

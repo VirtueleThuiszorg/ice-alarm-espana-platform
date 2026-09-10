@@ -10,6 +10,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { supabase } from "@/integrations/supabase/client";
+import {
+  buildUpdateSubmission,
+  groupUpdateFormFields,
+  requestedIncludesContacts,
+  updateFormFields,
+  type UpdateFormField,
+} from "@/lib/memberUpdateForm";
+import { REQUIRED_GROUP_LABELS } from "@/lib/memberRequiredFields";
+import { BLOOD_TYPES } from "@/lib/medicalFields";
 import { toast } from "sonner";
 import { Logo } from "@/components/ui/logo";
 import { functionError } from "@/lib/functionError";
@@ -56,6 +65,78 @@ interface EmergencyContact {
 
 type TokenStatus = "loading" | "valid" | "invalid" | "expired" | "used" | "submitted";
 
+/**
+ * ONE CONTROL, CHOSEN BY THE FIELD'S KIND.
+ *
+ * Bigger text and a real `type` on the input are not decoration here: this page is opened on a
+ * phone by somebody in their seventies, and `type="tel"` is the difference between a number pad
+ * and a keyboard. The reason we are asking sits under the label, where it is read.
+ */
+function UpdateField({
+  field,
+  value,
+  onChange,
+  label,
+  because,
+  listHint,
+  selectHint,
+}: {
+  field: UpdateFormField;
+  value: string;
+  onChange: (value: string) => void;
+  label: string;
+  because: string;
+  listHint: string;
+  selectHint: string;
+}) {
+  const id = `update-${field.key}`;
+  const control =
+    field.control === "bloodType" ? (
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger id={id}>
+          <SelectValue placeholder={selectHint} />
+        </SelectTrigger>
+        <SelectContent>
+          {BLOOD_TYPES.map((type) => (
+            <SelectItem key={type} value={type}>
+              {type}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    ) : field.control === "list" ? (
+      <Textarea id={id} value={value} onChange={(e) => onChange(e.target.value)} />
+    ) : (
+      <Input
+        id={id}
+        type={
+          field.control === "date"
+            ? "date"
+            : field.control === "tel"
+              ? "tel"
+              : field.control === "email"
+                ? "email"
+                : "text"
+        }
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    );
+
+  return (
+    <div data-testid={`update-field-${field.key}`}>
+      <Label htmlFor={id}>
+        {label}
+        {field.control === "list" ? ` (${listHint})` : ""}
+      </Label>
+      <p className="text-sm text-muted-foreground mb-1">{because}</p>
+      {control}
+    </div>
+  );
+}
+
+
+
 export default function MemberUpdatePage() {
   const { t, i18n } = useTranslation();
   const [searchParams] = useSearchParams();
@@ -79,17 +160,22 @@ export default function MemberUpdatePage() {
   });
   const [_contacts, setContacts] = useState<EmergencyContact[]>([]);
 
-  // Form state
-  const [formMember, setFormMember] = useState({ nie_dni: "" });
-  const [formMedical, setFormMedical] = useState({
-    blood_type: "",
-    doctor_name: "",
-    doctor_phone: "",
-    hospital_preference: "",
-    allergies: "",
-    medications: "",
-  });
+  /*
+    ONE MAP, KEYED BY REQUIRED-FIELD KEY, instead of two hand-written form objects.
+
+    The old page held `formMember` with exactly one field on it and `formMedical` with six,
+    which is why it could only ever render nine of the eighteen things a member can be asked
+    for: adding a tenth meant adding a state field, a control and a submit line by hand, and
+    nobody did. What is rendered is now whatever the token asked for.
+  */
+  const [values, setValues] = useState<Record<string, string>>({});
   const [formContacts, setFormContacts] = useState<EmergencyContact[]>([]);
+
+  const fields = updateFormFields(requestedFields);
+  const groups = groupUpdateFormFields(fields);
+  const showContacts = requestedIncludesContacts(requestedFields);
+  const setValue = (key: string, value: string) =>
+    setValues((prev) => ({ ...prev, [key]: value }));
 
   useEffect(() => {
     if (token) {
@@ -124,16 +210,17 @@ export default function MemberUpdatePage() {
         i18n.changeLanguage(data.member.preferred_language);
       }
 
-      // Pre-fill forms
-      setFormMember({ nie_dni: data.member?.nie_dni || "" });
-      setFormMedical({
-        blood_type: data.medical?.blood_type || "",
-        doctor_name: data.medical?.doctor_name || "",
-        doctor_phone: data.medical?.doctor_phone || "",
-        hospital_preference: data.medical?.hospital_preference || "",
-        allergies: data.medical?.allergies?.join(", ") || "",
-        medications: data.medical?.medications?.join(", ") || "",
-      });
+      // Pre-fill from whatever we already hold, so a member correcting one field is not
+      // retyping the three beside it.
+      const prefill: Record<string, string> = {};
+      for (const field of updateFormFields(data.requestedFields || [])) {
+        if (!field.column) continue;
+        const source = field.target === "member" ? data.member : data.medical;
+        const held = (source as Record<string, unknown> | null | undefined)?.[field.column];
+        if (Array.isArray(held)) prefill[field.key] = held.join(", ");
+        else if (held !== null && held !== undefined) prefill[field.key] = String(held);
+      }
+      setValues(prefill);
       setFormContacts(
         data.emergencyContacts?.map((c: EmergencyContact) => ({
           ...c,
@@ -153,19 +240,12 @@ export default function MemberUpdatePage() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      // Build update payload
-      const memberUpdates: Record<string, string> = {};
-      if (formMember.nie_dni && formMember.nie_dni !== member?.nie_dni) {
-        memberUpdates.nie_dni = formMember.nie_dni;
-      }
-
-      const medicalUpdates: Record<string, unknown> = {};
-      if (formMedical.blood_type) medicalUpdates.blood_type = formMedical.blood_type;
-      if (formMedical.doctor_name) medicalUpdates.doctor_name = formMedical.doctor_name;
-      if (formMedical.doctor_phone) medicalUpdates.doctor_phone = formMedical.doctor_phone;
-      if (formMedical.hospital_preference) medicalUpdates.hospital_preference = formMedical.hospital_preference;
-      if (formMedical.allergies) medicalUpdates.allergies = formMedical.allergies.split(",").map(s => s.trim()).filter(Boolean);
-      if (formMedical.medications) medicalUpdates.medications = formMedical.medications.split(",").map(s => s.trim()).filter(Boolean);
+      // Blank fields are not sent: the link exists to ADD what is missing, and a member who
+      // fills in two of six must not blank the other four.
+      const { member: memberUpdates, medical: medicalUpdates } = buildUpdateSubmission(
+        fields,
+        values,
+      );
 
       const { data, error } = await supabase.functions.invoke("submit-member-update", {
         body: {
@@ -326,118 +406,48 @@ export default function MemberUpdatePage() {
           )}
         </div>
 
-        {/* Profile Section */}
-        {(requestedFields.includes("nie_dni")) && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>{t("memberUpdate.profileSection", "Personal Information")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {requestedFields.includes("nie_dni") && (
-                <div>
-                  <Label htmlFor="nie_dni">{t("common.nieDni", "NIE/DNI")}</Label>
-                  <Input
-                    id="nie_dni"
-                    value={formMember.nie_dni}
-                    onChange={e => setFormMember(prev => ({ ...prev, nie_dni: e.target.value }))}
-                    placeholder="X1234567A"
+        {/*
+          EVERY FIELD THE TOKEN ASKED FOR, grouped as the record groups them, each with the
+          reason we need it underneath. "We need your postal code" reads as bureaucracy; "how a
+          rural property is found at all in Almería" is a reason somebody acts on — and it is
+          the same sentence the staff-side Missing-info dialog shows, from the same list.
+        */}
+        {groups
+          .filter((g) => g.group !== "contacts")
+          .map((group) => (
+            <Card className="mb-6" key={group.group} data-testid={`update-group-${group.group}`}>
+              <CardHeader>
+                <CardTitle>
+                  {t(REQUIRED_GROUP_LABELS[group.group].key, REQUIRED_GROUP_LABELS[group.group].fallback)}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {group.fields.map((field) => (
+                  <UpdateField
+                    key={field.key}
+                    field={field}
+                    value={values[field.key] ?? ""}
+                    onChange={(v) => setValue(field.key, v)}
+                    label={t(field.field.label.key, field.field.label.fallback)}
+                    because={t(field.field.because.key, field.field.because.fallback)}
+                    listHint={t("common.commaSeparated", "comma separated")}
+                    selectHint={t("common.select", "Select...")}
                   />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Medical Section */}
-        {requestedFields.some(f => ["blood_type", "doctor_name", "doctor_phone", "hospital_preference", "allergies", "medications"].includes(f)) && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>{t("memberUpdate.medicalSection", "Medical Information")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {requestedFields.includes("blood_type") && (
-                <div>
-                  <Label htmlFor="blood_type">{t("medical.bloodType", "Blood Type")}</Label>
-                  <Select value={formMedical.blood_type} onValueChange={v => setFormMedical(prev => ({ ...prev, blood_type: v }))}>
-                    <SelectTrigger id="blood_type">
-                      <SelectValue placeholder={t("common.select", "Select...")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(type => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {requestedFields.includes("doctor_name") && (
-                <div>
-                  <Label htmlFor="doctor_name">{t("medical.doctorName", "Doctor Name")}</Label>
-                  <Input
-                    id="doctor_name"
-                    value={formMedical.doctor_name}
-                    onChange={e => setFormMedical(prev => ({ ...prev, doctor_name: e.target.value }))}
-                  />
-                </div>
-              )}
-
-              {requestedFields.includes("doctor_phone") && (
-                <div>
-                  <Label htmlFor="doctor_phone">{t("medical.doctorPhone", "Doctor Phone")}</Label>
-                  <Input
-                    id="doctor_phone"
-                    value={formMedical.doctor_phone}
-                    onChange={e => setFormMedical(prev => ({ ...prev, doctor_phone: e.target.value }))}
-                  />
-                </div>
-              )}
-
-              {requestedFields.includes("hospital_preference") && (
-                <div>
-                  <Label htmlFor="hospital_preference">{t("medical.hospitalPreference", "Preferred Hospital")}</Label>
-                  <Input
-                    id="hospital_preference"
-                    value={formMedical.hospital_preference}
-                    onChange={e => setFormMedical(prev => ({ ...prev, hospital_preference: e.target.value }))}
-                  />
-                </div>
-              )}
-
-              {requestedFields.includes("allergies") && (
-                <div>
-                  <Label htmlFor="allergies">{t("medical.allergies", "Allergies")} ({t("common.commaSeparated", "comma separated")})</Label>
-                  <Textarea
-                    id="allergies"
-                    value={formMedical.allergies}
-                    onChange={e => setFormMedical(prev => ({ ...prev, allergies: e.target.value }))}
-                    placeholder={t("medical.allergiesPlaceholder", "e.g., Penicillin, Shellfish, Peanuts")}
-                  />
-                </div>
-              )}
-
-              {requestedFields.includes("medications") && (
-                <div>
-                  <Label htmlFor="medications">{t("medical.medications", "Current Medications")} ({t("common.commaSeparated", "comma separated")})</Label>
-                  <Textarea
-                    id="medications"
-                    value={formMedical.medications}
-                    onChange={e => setFormMedical(prev => ({ ...prev, medications: e.target.value }))}
-                    placeholder={t("medical.medicationsPlaceholder", "e.g., Aspirin 100mg, Metformin 500mg")}
-                  />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+                ))}
+              </CardContent>
+            </Card>
+          ))}
 
         {/* Emergency Contacts Section */}
-        {requestedFields.some(f => ["contacts_count", "contacts_email"].includes(f)) && (
+        {showContacts && (
           <Card className="mb-6">
             <CardHeader>
               <CardTitle>{t("memberUpdate.contactsSection", "Emergency Contacts")}</CardTitle>
               <CardDescription>
-                {t("memberUpdate.contactsDescription", "Please ensure you have at least 2 emergency contacts with valid information.")}
+                {t(
+                  "memberUpdate.contactsDescription",
+                  "Somebody we can ring if you need help. One is enough — a second is better.",
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

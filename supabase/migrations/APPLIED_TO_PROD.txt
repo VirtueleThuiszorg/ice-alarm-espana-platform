@@ -232,3 +232,4 @@
 20260910130100_shift_swap_router_emit.sql
 20260910140000_member_home_location.sql
 20260910150000_crm_profile_legacy_membership.sql
+20260910160000_legacy_member_state.sql

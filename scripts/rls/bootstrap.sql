@@ -151,8 +151,8 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
   GRANT USAGE, SELECT ON SEQUENCES TO anon, authenticated, service_role;
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 
--- pg_cron / pg_net are unavailable on a plain instance and are referenced only by
--- the scheduling migrations, never by a policy. Stubbed so those migrations apply
+-- pg_cron cannot be installed on a plain instance and is referenced only by the
+-- scheduling migrations, never by a policy. Stubbed so those migrations apply
 -- instead of aborting the run.
 CREATE SCHEMA IF NOT EXISTS cron;
 CREATE OR REPLACE FUNCTION cron.schedule(text, text, text)
@@ -160,20 +160,67 @@ RETURNS bigint LANGUAGE sql AS $$ SELECT 0::bigint $$;
 CREATE OR REPLACE FUNCTION cron.unschedule(text)
 RETURNS boolean LANGUAGE sql AS $$ SELECT true $$;
 
+-- ── pg_net: A STUB THAT RECORDS, because two triggers now reach the router through it ──
+--
+-- pg_net cannot be installed either, and until now this was a no-op returning 0 while the two
+-- migrations that USE it were skipped entirely by run.sh. That was a hole: nothing in CI ever
+-- compiled `emit_lead_new_to_router` or `emit_shift_swap_to_router`, so a plpgsql body only
+-- production would ever execute went out unexamined — and one of them shipped a real bug (it
+-- announced every swap request as a request for "cover", because it read `offered_shift_id`,
+-- which is NULL until the counterparty answers). That was found by hand, on a throwaway
+-- database, after it had merged.
+--
+-- run.sh now applies those migrations with only the `CREATE EXTENSION` line neutralised, and
+-- this stub RECORDS what it was asked to send. "Did the trigger fire, and with what?" is the
+-- only interesting question about an emit, and a function that discards its arguments cannot
+-- answer it.
+--
+-- The signature matches real pg_net's — same parameter names, same order — because both callers
+-- use named arguments (`url :=`, `headers :=`, `body :=`). Returning the row id rather than 0
+-- matches the real function's "here is your request id" contract too.
 CREATE SCHEMA IF NOT EXISTS net;
+
+CREATE TABLE IF NOT EXISTS net.sent (
+  id      bigserial PRIMARY KEY,
+  url     text,
+  body    jsonb,
+  headers jsonb,
+  sent_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE OR REPLACE FUNCTION net.http_post(url text, body jsonb DEFAULT '{}'::jsonb, params jsonb DEFAULT '{}'::jsonb, headers jsonb DEFAULT '{}'::jsonb, timeout_milliseconds integer DEFAULT 5000)
-RETURNS bigint LANGUAGE sql AS $$ SELECT 0::bigint $$;
+RETURNS bigint LANGUAGE plpgsql AS $$
+DECLARE v_id bigint;
+BEGIN
+  INSERT INTO net.sent (url, body, headers)
+  VALUES (http_post.url, http_post.body, http_post.headers)
+  RETURNING net.sent.id INTO v_id;
+  RETURN v_id;
+END $$;
+
+/** The event type of the Nth-from-last thing the router was asked to send. Used by the suite. */
+CREATE OR REPLACE FUNCTION net.last_event(p_back integer DEFAULT 0)
+RETURNS jsonb LANGUAGE sql STABLE AS $$
+  SELECT body->'event' FROM net.sent ORDER BY id DESC OFFSET p_back LIMIT 1
+$$;
 
 CREATE OR REPLACE FUNCTION extensions.http_post(url text, body jsonb DEFAULT '{}'::jsonb)
 RETURNS bigint LANGUAGE sql AS $$ SELECT 0::bigint $$;
 
--- Supabase exposes secrets via vault; only referenced by the cron migrations.
+-- Supabase exposes secrets via vault. The cron migrations read it, and so do both router emits:
+-- absent, they RAISE WARNING and return, which would make every emit assertion in the suite pass
+-- vacuously by never emitting. Seeded here so the NORMAL path is what the suite exercises; the
+-- missing-key path is asserted explicitly, by removing it and putting it back.
 CREATE SCHEMA IF NOT EXISTS vault;
 CREATE TABLE IF NOT EXISTS vault.decrypted_secrets (
   id uuid PRIMARY KEY DEFAULT extensions.gen_random_uuid(),
   name text UNIQUE,
   decrypted_secret text
 );
+
+INSERT INTO vault.decrypted_secrets (name, decrypted_secret)
+VALUES ('service_role_key', 'stub-service-role-key-for-the-harness')
+ON CONFLICT (name) DO NOTHING;
 
 -- ── realtime ───────────────────────────────────────────────────────────────
 -- 18 migrations do `ALTER PUBLICATION supabase_realtime ADD TABLE ...`. Realtime

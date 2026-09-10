@@ -5815,6 +5815,197 @@ SELECT pg_temp.check(
   'returned ' || (SELECT result FROM _apply_partial)
   || ' — covers=2 would mean the count includes a row the NOT EXISTS guard refused to write');
 
+-- ============================================================
+--  THE ROUTER EMITS — the two triggers CI never used to compile
+-- ============================================================
+--
+-- WHY THIS SECTION EXISTS AT ALL. `emit_lead_new_to_router` (20260909130000) and
+-- `emit_shift_swap_to_router` (20260910130100) were SKIPPED by this harness, because they open
+-- with `CREATE EXTENSION pg_net` and a stock PostgreSQL cannot install it. Skipping the file
+-- skips the function, so no CI job on any PR ever compiled either body — and one of them shipped
+-- a real defect: every swap request announced itself to the person being asked as a request for
+-- COVER, because the title was decided from `offered_shift_id`, which is NULL until they answer.
+-- It was found by hand, on a throwaway database, AFTER it had merged.
+--
+-- run.sh now applies both files with only that one statement commented out, and bootstrap.sql's
+-- `net.http_post` RECORDS its arguments into `net.sent`. So "what did the trigger ask the router
+-- to send?" is a question this suite can answer, and the answer is asserted below.
+--
+-- NO NEW FIXTURES for most of it, deliberately. The emits below were produced by the swap
+-- fixtures ABOVE, going through the real INSERT and the real accept and the real
+-- `apply_shift_swap`. An emit assertion driven by a bespoke fixture proves the function works
+-- when called the way the test calls it; these prove it worked on the flow the suite already
+-- exercises.
+
+SELECT pg_temp.check(
+  'CONTROL: pg_net is the RECORDING stub, and both emit triggers exist',
+  to_regclass('net.sent') IS NOT NULL
+  AND (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'net' AND p.proname = 'http_post') = 1
+  AND (SELECT count(*) FROM pg_trigger
+        WHERE tgname IN ('emit_lead_new_to_router', 'emit_shift_swap_to_router')
+          AND NOT tgisinternal) = 2,
+  'without all three, every assertion in this section is vacuous — which is exactly the state '
+  'this suite was in until the pg_net files stopped being skipped');
+
+-- ── lead.new ────────────────────────────────────────────────────────────────
+-- The lead inserted earlier in this file (the bell/channel section) went through the same
+-- trigger. Scoped by entity id rather than counted, because leads are inserted in more than one
+-- place and a count would be answering a different question.
+SELECT pg_temp.check(
+  'EMIT: a new lead reaches the router as lead.new, with the bell marked already-written',
+  (SELECT count(*) FROM net.sent
+    WHERE body->'event'->>'type' = 'lead.new') >= 1
+  AND (SELECT bool_and((body->'event'->>'bellWrittenElsewhere')::boolean) FROM net.sent
+        WHERE body->'event'->>'type' = 'lead.new')
+  AND (SELECT bool_and(body->'audience'->'roles' ? 'super_admin') FROM net.sent
+        WHERE body->'event'->>'type' = 'lead.new'),
+  'bellWrittenElsewhere is load-bearing: notify_staff_of_new_lead has already written one bell '
+  'row per active staff member, and without the flag every enquiry would appear twice');
+
+-- ── THE REGRESSION THAT SHIPPED: swap vs cover ─────────────────────────────
+--
+-- Two requests were opened above. `…010` asked for an exchange (`wants_exchange = true`) and
+-- `…00b` asked for cover. If the title is ever again decided from `offered_shift_id` — NULL on
+-- both at request time — the two lines below stop disagreeing and this goes red in CI, which is
+-- the whole point of teaching the harness to apply these files.
+SELECT pg_temp.check(
+  'EMIT: a SWAP request is announced as a swap',
+  (SELECT body->'event'->>'title' FROM net.sent
+    WHERE body->'event'->>'type' = 'shift.swap_requested'
+      AND body->'event'->'entity'->>'id' = 'dddddddd-0000-0000-0000-000000000010')
+    LIKE '%swap a shift%',
+  'the requester ticked "swap"; the person being asked must be told that, not "cover"');
+
+-- `…00b` is the sharper of the two controls, and by accident rather than design: it was created
+-- with an offered shift already named (a supervisor writing up something agreed in the office)
+-- while `wants_exchange` stayed false. So the two sources of truth DISAGREE on that row — read
+-- `offered_shift_id` and it looks like a swap, read the column that recorded the question and it
+-- is cover. Reintroducing the bug therefore fails this assertion as well as the one above,
+-- which is how the mutation run found it flipping both.
+SELECT pg_temp.check(
+  'EMIT: a COVER request is announced as cover',
+  (SELECT body->'event'->>'title' FROM net.sent
+    WHERE body->'event'->>'type' = 'shift.swap_requested'
+      AND body->'event'->'entity'->>'id' = 'dddddddd-0000-0000-0000-00000000000b')
+    LIKE '%cover a shift%',
+  'and the two must DISAGREE — one title for both is the bug that shipped');
+
+-- ── who each transition is addressed to ────────────────────────────────────
+SELECT pg_temp.check(
+  'EMIT: the request goes to the counterparty alone, by id, with no role broadcast',
+  (SELECT body->'audience' FROM net.sent
+    WHERE body->'event'->>'type' = 'shift.swap_requested'
+      AND body->'event'->'entity'->>'id' = 'dddddddd-0000-0000-0000-000000000010')
+  = jsonb_build_object('staffIds', jsonb_build_array(
+      (SELECT id::text FROM public.staff WHERE email = 'asoares@icealarm.es'))),
+  'a request is a question between two people — the supervisor hears about it on accept');
+
+SELECT pg_temp.check(
+  'EMIT: the accept reaches the requester AND everybody who can approve it',
+  (SELECT body->'audience'->'staffIds' FROM net.sent
+    WHERE body->'event'->>'type' = 'shift.swap_accepted'
+      AND body->'event'->'entity'->>'id' = 'dddddddd-0000-0000-0000-000000000010')
+    ? (SELECT id::text FROM public.staff WHERE email = 'mbonner@icealarm.es')
+  AND (SELECT body->'audience'->'roles' FROM net.sent
+        WHERE body->'event'->>'type' = 'shift.swap_accepted'
+          AND body->'event'->'entity'->>'id' = 'dddddddd-0000-0000-0000-000000000010')
+    ? 'call_centre_supervisor',
+  'the supervisor by ROLE, because approving is hers — an admins-only audience would leave the '
+  'person whose job it is out of it');
+
+SELECT pg_temp.check(
+  'EMIT: once applied, BOTH people are told, by id',
+  (SELECT count(*) FROM net.sent
+    WHERE body->'event'->>'type' = 'shift.swap_approved'
+      AND body->'event'->'entity'->>'id' = 'dddddddd-0000-0000-0000-000000000010'
+      AND jsonb_array_length(body->'audience'->'staffIds') = 2) = 1,
+  'the rota they turn up to has changed, so neither of them may be left to find out on the day');
+
+SELECT pg_temp.check(
+  'EMIT: every swap event opens My shifts, not an admin screen',
+  (SELECT bool_and(body->'event'->>'link' = '/call-centre/my-shifts') FROM net.sent
+    WHERE body->'event'->>'type' LIKE 'shift.swap_%'),
+  'an operator following the push has to land somewhere they are allowed to be');
+
+-- Asserted for the swap events as well as for lead.new, and it was missing here until a mutant
+-- walked through the gap: dropping the flag from the SWAP emit changed nothing in this suite
+-- while doubling every swap in everybody's bell, because `bell_on_shift_swap` has already
+-- written the targeted rows and the router would add a second set.
+SELECT pg_temp.check(
+  'EMIT: every swap event says the bell is already written',
+  (SELECT count(*) FROM net.sent WHERE body->'event'->>'type' LIKE 'shift.swap_%') >= 3
+  AND (SELECT bool_and((body->'event'->>'bellWrittenElsewhere')::boolean) FROM net.sent
+        WHERE body->'event'->>'type' LIKE 'shift.swap_%'),
+  'without it the router writes a second bell row for every transition, on top of the targeted '
+  'ones the trigger in 20260910130000 already wrote');
+
+-- ── and an UPDATE that is not a transition must say nothing ────────────────
+-- The trigger is AFTER UPDATE OF status, and it also re-checks the status itself. Editing the
+-- reason on a swap must not buzz two people again.
+CREATE TEMP TABLE _emit_before AS SELECT count(*) AS n FROM net.sent;
+
+UPDATE public.staff_shift_swaps
+SET reason = 'reason edited, nobody should hear about it'
+WHERE id = 'dddddddd-0000-0000-0000-000000000010';
+
+SELECT pg_temp.check(
+  'EMIT: editing a swap without changing its status emits nothing',
+  (SELECT count(*) FROM net.sent) = (SELECT n FROM _emit_before),
+  'was ' || (SELECT n FROM _emit_before)::text || ', now '
+         || (SELECT count(*)::text FROM net.sent));
+
+-- AND THE HARDER HALF, which the assertion above cannot reach. The trigger is
+-- `AFTER INSERT OR UPDATE OF status`, so an edit to `reason` never fires it — meaning that
+-- assertion passes even if the branch guards inside the function are removed. A mutant proved
+-- exactly that. This one WRITES THE STATUS, with the value it already has, so the trigger does
+-- fire and the `OLD.status IS DISTINCT FROM …` guards are what has to stop it. Not a contrived
+-- case: an UPSERT or a bulk update rewriting a row's own status is ordinary, and re-announcing
+-- an approval would tell two people their rota changed when nothing had.
+UPDATE public.staff_shift_swaps
+SET status = status
+WHERE id = 'dddddddd-0000-0000-0000-000000000010';
+
+SELECT pg_temp.check(
+  'EMIT: re-writing a swap''s status with the value it already has emits nothing',
+  (SELECT count(*) FROM net.sent) = (SELECT n FROM _emit_before),
+  'the trigger fires on this one — the guards inside it are what has to be right');
+
+-- ── no service_role_key: a warning, and the swap still saves ──────────────
+--
+-- The emit reads the key from Vault and returns early when it is absent. That branch is the one
+-- that runs on a project where the secret was never set, and it must not cost somebody their
+-- swap: the row commits, the bell (which needs no key) still rings, and only the push is lost.
+DELETE FROM vault.decrypted_secrets WHERE name = 'service_role_key';
+
+INSERT INTO public.staff_shifts (id, staff_id, shift_date, shift_type, start_time, end_time)
+VALUES ('e1000000-0000-0000-0000-00000000000d',
+        (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+        '2027-03-13', 'morning', '07:00', '15:00');
+
+CREATE TEMP TABLE _emit_no_key AS SELECT count(*) AS n FROM net.sent;
+
+INSERT INTO public.staff_shift_swaps (id, requested_shift_id, requested_by, counterparty_id)
+VALUES ('dddddddd-0000-0000-0000-000000000012',
+        'e1000000-0000-0000-0000-00000000000d',
+        (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+        (SELECT id FROM public.staff WHERE email = 'asoares@icealarm.es'));
+
+SELECT pg_temp.check(
+  'EMIT: with no service_role_key the swap still saves and the bell still rings — only the push '
+  'is lost',
+  (SELECT count(*) FROM public.staff_shift_swaps
+    WHERE id = 'dddddddd-0000-0000-0000-000000000012') = 1
+  AND (SELECT count(*) FROM net.sent) = (SELECT n FROM _emit_no_key)
+  AND (SELECT count(*) FROM public.notification_log
+        WHERE entity_id = 'dddddddd-0000-0000-0000-000000000012') = 1,
+  'losing somebody''s swap is strictly worse than not announcing it, and the trigger says so '
+  'with a RAISE WARNING rather than by failing the write');
+
+INSERT INTO vault.decrypted_secrets (name, decrypted_secret)
+VALUES ('service_role_key', 'stub-service-role-key-for-the-harness')
+ON CONFLICT (name) DO NOTHING;
+
 SELECT pg_temp.check(
   'ROTA: RLS is enabled on both new tables',
   (SELECT count(*) FROM pg_class

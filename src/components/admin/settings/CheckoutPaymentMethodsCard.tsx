@@ -89,9 +89,17 @@ export function CheckoutPaymentMethodsCard({ canEdit }: { canEdit: boolean }) {
       // must not be able to enable SEPA while the destination is deaf.
       const methods = normaliseSelection(next.methods, next.asyncEventsConfirmed);
 
+      // `service: "checkout"`, NOT "settings", and the card did nothing at all until this line
+      // was right. `save-api-keys` prefixes every key with `${service}_` unless the key already
+      // starts with it, so `service: "settings"` stored these two as
+      // `settings_checkout_payment_methods` / `settings_checkout_async_events_confirmed` — names
+      // nothing reads. The switches saved, said "Checkout offers: …", and changed nothing:
+      // `_shared/checkout-payment-methods.ts` and this card's own read both look for the
+      // unprefixed rows. Same convention as HolidayPolicyCard — the service must match the
+      // family the keys belong to. Pinned by src/test/settingsKeyParity.test.ts.
       const { error } = await supabase.functions.invoke("save-api-keys", {
         body: {
-          service: "settings",
+          service: "checkout",
           keys: {
             [CHECKOUT_PAYMENT_METHODS_KEY]: methods.join(","),
             [ASYNC_EVENTS_CONFIRMED_KEY]: String(next.asyncEventsConfirmed),

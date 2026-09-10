@@ -11,6 +11,7 @@ import {
   Flag,
   HelpCircle,
   Palmtree,
+  Repeat,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,9 @@ import { useBankHolidays } from "@/hooks/useBankHolidays";
 import { useMyAcceptedCovers } from "@/hooks/useShiftCovers";
 import { useMyHolidayBalance, useMyHolidays } from "@/hooks/useStaffHolidays";
 import { useMyShiftEvidence, useMyShiftRange, type StaffShift } from "@/hooks/useStaffShifts";
+import { useMySwaps, swapAwaits } from "@/hooks/useShiftSwaps";
+import { RequestSwapDialog } from "@/components/call-centre/RequestSwapDialog";
+import { SwapRequestList } from "@/components/call-centre/SwapRequestList";
 import { findLongDays, exceedsTwelveHours } from "@/lib/rota";
 import {
   groupByWeek,
@@ -104,8 +108,13 @@ export default function MyShiftsPage() {
   const upcomingFrom = isoDate(today);
   const upcomingTo = isoDate(addDays(today, UPCOMING_WEEKS * 7));
 
+  /**
+   * Loaded on TWO tabs. Upcoming renders it; Requests needs it because the shift you offer back
+   * in a swap has to be one you are actually on for, and a picker with nothing in it would make
+   * an exchange impossible from a cold load of that tab.
+   */
   const { data: upcoming = [], isLoading: upcomingLoading } = useMyShiftRange(
-    tab === "upcoming" ? staffId : undefined,
+    tab === "upcoming" || tab === "requests" ? staffId : undefined,
     upcomingFrom,
     upcomingTo,
   );
@@ -124,6 +133,16 @@ export default function MyShiftsPage() {
     isoDate(addDays(atNoon(pastFrom), -1)),
     isoDate(addDays(atNoon(pastTo), 1)),
   );
+
+  /**
+   * Swaps are NOT gated on the tab, unlike every other query here.
+   *
+   * The Requests tab carries a count of what is waiting on you, and a count you only load after
+   * opening the tab is a count nobody sees. It is one small query for the two people involved in
+   * each row, which is what RLS returns.
+   */
+  const { data: swaps = [] } = useMySwaps(staffId);
+  const awaitingMe = swaps.filter((s) => swapAwaits(s, staffId) === "you").length;
 
   const { data: holidays = [] } = useMyHolidays(tab === "holidays" ? staffId : undefined);
   const { data: balance } = useMyHolidayBalance(tab === "holidays" ? staffId : undefined);
@@ -260,6 +279,14 @@ export default function MyShiftsPage() {
           <TabsTrigger value="upcoming">{t("myShifts.tabUpcoming", "Upcoming")}</TabsTrigger>
           <TabsTrigger value="past">{t("myShifts.tabPast", "Past")}</TabsTrigger>
           <TabsTrigger value="holidays">{t("myShifts.tabHolidays", "Holidays")}</TabsTrigger>
+          <TabsTrigger value="requests" data-testid="tab-requests">
+            {t("myShifts.tabRequests", "Requests")}
+            {awaitingMe > 0 && (
+              <Badge className="ml-2 border-0 bg-primary text-primary-foreground" data-testid="requests-awaiting-badge">
+                {awaitingMe}
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="bankHolidays">
             {t("myShifts.tabBankHolidays", "Bank holidays")}
           </TabsTrigger>
@@ -298,7 +325,23 @@ export default function MyShiftsPage() {
                         {hoursLabel(week.hours)}
                       </span>
                     </div>
-                    <ul className="space-y-2">{week.shifts.map((s) => shiftRow(s))}</ul>
+                    {/*
+                      The ask lives ON the shift, which is where somebody realises they cannot
+                      work it. Only on Upcoming: a swap for a shift that has already happened is
+                      not a swap, it is a correction, and that is a supervisor's job.
+                    */}
+                    <ul className="space-y-2">
+                      {week.shifts.map((s) =>
+                        shiftRow(
+                          s,
+                          staffId ? (
+                            <span className="ml-auto">
+                              <RequestSwapDialog shift={s} staffId={staffId} />
+                            </span>
+                          ) : undefined,
+                        ),
+                      )}
+                    </ul>
                   </section>
                 ))
               )}
@@ -491,6 +534,37 @@ export default function MyShiftsPage() {
                   })}
                 </ul>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Requests ─────────────────────────────────────────────────── */}
+        <TabsContent value="requests" className="space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Repeat className="h-5 w-5 text-primary" aria-hidden="true" />
+                {t("swaps.title", "Swaps and cover")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {t(
+                  "swaps.pageNote",
+                  "Requests you have made and requests made of you. Nothing moves on the rota until a supervisor approves it.",
+                )}
+              </p>
+              {/*
+                The eight-week window doubles as the exchange picker: a shift you can give back
+                has to be one you are on for. Loading it here as well as on Upcoming is why the
+                query above is gated on two tabs rather than one.
+              */}
+              <SwapRequestList
+                swaps={swaps}
+                staffId={staffId}
+                mode="mine"
+                myShifts={upcoming}
+              />
             </CardContent>
           </Card>
         </TabsContent>

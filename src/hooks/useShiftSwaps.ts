@@ -71,6 +71,8 @@ export interface ShiftSwap {
   requested_by: string;
   counterparty_id: string;
   status: SwapStatus;
+  /** true = a SWAP was asked for (a shift back); false = cover. See the column's comment. */
+  wants_exchange: boolean;
   reason: string | null;
   accepted_at: string | null;
   approved_by: string | null;
@@ -152,10 +154,18 @@ export function useSwapsAwaitingApproval(enabled = true) {
 export interface RequestSwapInput {
   /** A shift of YOUR OWN that you want somebody else to take. */
   requested_shift_id: string;
-  /** What you are giving them in exchange. NULL means "please cover this", not a swap. */
+  /**
+   * The counterparty's shift that comes back in exchange — and it is ALWAYS null here.
+   *
+   * The requester cannot see another operator's shifts (RLS), so they cannot name one. It is
+   * filled in by the counterparty when they accept. `wants_exchange` is what carries the ask
+   * that far, which is the whole reason the column exists.
+   */
   offered_shift_id?: string | null;
   requested_by: string;
   counterparty_id: string;
+  /** true = "swap, give me one of yours back"; false = "just cover it". */
+  wants_exchange?: boolean;
   reason?: string | null;
 }
 
@@ -188,6 +198,7 @@ export function useShiftSwapMutations() {
           offered_shift_id: input.offered_shift_id ?? null,
           requested_by: input.requested_by,
           counterparty_id: input.counterparty_id,
+          wants_exchange: input.wants_exchange ?? false,
           reason: input.reason ?? null,
         })
         .select()
@@ -210,12 +221,28 @@ export function useShiftSwapMutations() {
    * they said yes, not when a supervisor got round to it.
    */
   const respondToSwap = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: "accepted" | "declined" }) => {
+    mutationFn: async ({
+      id,
+      status,
+      offered_shift_id,
+    }: {
+      id: string;
+      status: "accepted" | "declined";
+      /**
+       * One of YOUR OWN shifts, given back in exchange. Only meaningful on 'accepted', and only
+       * you can name it: the person who asked cannot read your rota. Left out, an accept is
+       * plain cover — which stays valid even where a swap was asked for ("I'll just take it").
+       */
+      offered_shift_id?: string | null;
+    }) => {
       const { error } = await supabase
         .from("staff_shift_swaps")
         .update({
           status,
           accepted_at: status === "accepted" ? new Date().toISOString() : null,
+          ...(status === "accepted" && offered_shift_id
+            ? { offered_shift_id }
+            : {}),
         })
         .eq("id", id);
       if (error) throw error;

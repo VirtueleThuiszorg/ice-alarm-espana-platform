@@ -1501,7 +1501,10 @@
     "noAlerts": "Sin avisos. No ha pasado nada, que es de lo que se trata.",
     "viewAllAlerts": "Ver su historial de avisos",
     "twentyFourHourLine": "Línea 24 horas",
-    "callTwentyFourHour": "Llame a nuestra línea de 24 horas: {{number}}"
+    "callTwentyFourHour": "Llame a nuestra línea de 24 horas: {{number}}",
+    "completeMyDetails": "Completar mis datos",
+    "detailsComplete": "Sus datos están completos",
+    "reviewMyDetails": "Revisar mis datos"
   },
   "phoneOnly": {
     "yourCurrentService": "Su servicio actual",
@@ -6519,5 +6522,21 @@
     },
     "saved": "Ubicación del domicilio guardada",
     "saveFailed": "No hemos podido guardar la ubicación de su domicilio."
+  },
+  "completeDetails": {
+    "title": "Completar mis datos",
+    "subtitle": "Esto es lo que aún necesitamos. Cada dato se utiliza cuando alguien pulsa su alarma.",
+    "listHint": "Separe cada uno con una coma",
+    "goToContacts": "Añadir un contacto de emergencia",
+    "nothingTyped": "Rellene al menos uno de estos campos antes de guardar.",
+    "saved": "Gracias, lo hemos guardado.",
+    "failed": "No hemos podido guardarlo. Vuelva a intentarlo."
+  },
+  "reviewDetails": {
+    "title": "Revisar mis datos",
+    "subtitle": "Todo lo que tenemos sobre usted. Solo se enumera lo que realmente tenemos.",
+    "empty": "Todavía no tenemos datos suyos. Utilice «Completar mis datos» para añadirlos.",
+    "print": "Imprimir / Guardar como PDF",
+    "printedOn": "Impreso el {{date}}"
   }
 }

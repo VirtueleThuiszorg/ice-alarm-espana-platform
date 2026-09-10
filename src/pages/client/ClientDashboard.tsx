@@ -1,4 +1,16 @@
-import { Phone, MessageCircle, ArrowRight, Eye, ArrowLeft, MessageSquare, Inbox} from "lucide-react";
+import {
+  Phone,
+  MessageCircle,
+  ArrowRight,
+  Eye,
+  ArrowLeft,
+  MessageSquare,
+  Inbox,
+  Check,
+  ClipboardList,
+  FileText,
+} from "lucide-react";
+import { useState } from "react";
 import { DeviceStatusCard } from "@/components/dashboard/DeviceStatusCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +31,9 @@ import { telHref, waNumber } from "@/lib/phone";
 import { PageHeader } from "@/components/client/PageHeader";
 import { ProtectionChecklist } from "@/components/client/ProtectionChecklist";
 import { useMemberSubscriptions, useMemberAlerts } from "@/hooks/useMemberProfile";
+import { useMemberMissingInfo } from "@/hooks/useMemberMissingInfo";
+import { CompleteMyDetailsDialog } from "@/components/client/CompleteMyDetailsDialog";
+import { ReviewMyDetailsDialog } from "@/components/client/ReviewMyDetailsDialog";
 import { useMemberUnread } from "@/hooks/useMemberUnread";
 import { useMemberLastThread } from "@/hooks/useMemberLastThread";
 import { formatDistanceToNow } from "date-fns";
@@ -166,6 +181,19 @@ export default function ClientDashboard() {
     enabled: !!effectiveMemberId && !isTemplatePreview,
   });
 
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+
+  /*
+    WHAT WE STILL NEED FROM THIS MEMBER — the same read the staff record uses, off the same
+    `memberRequiredFields.ts` definition. One list, so the number on the member's dashboard and
+    the number in the staff queue cannot disagree about what "missing" means.
+  */
+  const { data: missingInfo, isLoading: missingLoading } = useMemberMissingInfo(
+    isTemplatePreview ? null : effectiveMemberId,
+  );
+  const missingCount = missingInfo?.count ?? 0;
+
   // One definition of "unread", shared with the nav badge. It was inline here, so nothing else
   // could reach it — which is why the nav had no badge to put a count on.
   const { data: unreadMsgCount } = useMemberUnread(isTemplatePreview ? null : effectiveMemberId);
@@ -256,7 +284,64 @@ export default function ClientDashboard() {
         }
         subtitle={currentDate}
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+          {/*
+            THE TWO THINGS A MEMBER ACTUALLY WANTS FROM THIS HEADER, beside the phone icon.
+
+            WHY HERE AND NOT ON A CARD. Both answer a question about the record as a WHOLE — "what
+            do you still need from me" and "what do you hold about me" — and neither belongs to
+            Profile or Medical or Contacts, which is exactly why a member could not find the
+            answer before: it was spread across three pages and no page owned it.
+
+            TEXT AND ICON, NOT ICON ALONE. The two controls beside them are icon-only because a
+            telephone and the WhatsApp glyph are universally read; "complete my details" is not
+            a picture. `touch-target` on both, because R11's reader is the same one who misses
+            small buttons.
+          */}
+          {/*
+            HIDDEN ENTIRELY WHEN NOTHING IS MISSING, and replaced by a tick.
+
+            A "Complete my details" button on a complete record is a button that opens an empty
+            dialog — the dead-control pattern this codebase keeps finding. And `missingLoading`
+            gates it too: a badge that says 6 while the query is in flight is a badge members
+            learn to ignore, which is the argument `memberRequiredFields` makes about a NULL
+            source not being a gap.
+          */}
+          {!isTemplatePreview && !missingLoading && (missingCount > 0 ? (
+            <Button
+              variant="outline"
+              className="touch-target gap-2"
+              onClick={() => setCompleteOpen(true)}
+              data-testid="dashboard-complete-details"
+            >
+              <ClipboardList className="h-5 w-5" aria-hidden="true" />
+              <span>{t("dashboard.completeMyDetails", "Complete my details")}</span>
+              {/* Ink, not red: R1 rations red to the page's one action, and a count is not one. */}
+              <Badge className="bg-foreground text-background" data-testid="dashboard-missing-badge">
+                {missingCount}
+              </Badge>
+            </Button>
+          ) : (
+            <span
+              className="inline-flex items-center gap-1.5 text-[0.8125rem] text-muted-foreground"
+              data-testid="dashboard-details-complete"
+            >
+              <Check className="h-4 w-4 text-alert-resolved" aria-hidden="true" />
+              {t("dashboard.detailsComplete", "Your details are complete")}
+            </span>
+          ))}
+
+          {!isTemplatePreview && (
+            <Button
+              variant="outline"
+              className="touch-target gap-2"
+              onClick={() => setReviewOpen(true)}
+              data-testid="dashboard-review-details"
+            >
+              <FileText className="h-5 w-5" aria-hidden="true" />
+              <span>{t("dashboard.reviewMyDetails", "Review my details")}</span>
+            </Button>
+          )}
           {phoneHref && (
             <Button
               size="icon"
@@ -522,6 +607,27 @@ export default function ClientDashboard() {
           </CardContent>
         </Card>
       </div>
+      )}
+
+      {/*
+        THE DIALOGS. Mounted once at page level rather than inside the header, so neither is
+        re-created when the header re-renders — and so `ReviewMyDetailsDialog` can key its own
+        read on `open` and fetch nothing at all until a member asks.
+      */}
+      {!isTemplatePreview && (
+        <>
+          <CompleteMyDetailsDialog
+            open={completeOpen}
+            onOpenChange={setCompleteOpen}
+            memberId={effectiveMemberId}
+            missing={missingInfo?.missing ?? []}
+          />
+          <ReviewMyDetailsDialog
+            open={reviewOpen}
+            onOpenChange={setReviewOpen}
+            memberId={effectiveMemberId}
+          />
+        </>
       )}
 
       {/*

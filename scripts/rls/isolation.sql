@@ -3006,6 +3006,21 @@ INSERT INTO public.staff (user_id, email, first_name, last_name, role) VALUES
   ('a8000000-0000-0000-0000-000000000002', 'operator-settings@example.com', 'Olga', 'Operator', 'call_centre');
 
 -- ── F2: what the anonymous browser can read, exactly ──────────────────────
+--
+-- THE EIGHTH KEY, AND WHY IT IS ON THE LIST. `member_alert_history_enabled` (20260910170000)
+-- decides whether a MEMBER is offered an Alert History page, a recent-activity card and an
+-- alerts tile. A member is `authenticated` with no staff row, so without the whitelist the read
+-- returns nothing, "nothing" parses as off, and the admin switch appears to work while being
+-- permanently stuck — the exact state four pricing keys were in until 20260908120000.
+--
+-- IT IS ALSO GENUINELY PUBLIC, which is the part worth checking rather than assuming. The value
+-- is one boolean about which nav items a member sees. It names no person, carries no credential,
+-- and an anonymous visitor learning that alert history is switched off learns nothing they could
+-- not learn by signing up. That is the test this list should be read against — not "does
+-- somebody need it", which is how a whitelist grows.
+--
+-- This assertion is what caught the widening: it names the members rather than counting them, so
+-- adding a key to the policy turns it red until somebody writes the paragraph above.
 DO $$
 DECLARE v_keys text[];
 BEGIN
@@ -3015,13 +3030,14 @@ BEGIN
   RESET ROLE;
 
   PERFORM pg_temp.check(
-    'anonymous reads EXACTLY the seven whitelisted settings keys',
-    v_keys = ARRAY['registration_fee_discount', 'registration_fee_enabled',
+    'anonymous reads EXACTLY the eight whitelisted settings keys',
+    v_keys = ARRAY['member_alert_history_enabled',
+                   'registration_fee_discount', 'registration_fee_enabled',
                    'settings_active_payment_gateway', 'settings_address',
                    'settings_company_name', 'settings_emergency_phone',
                    'settings_support_email'],
-    'four company keys plus the three /join needs — named, not counted, so a widened '
-    'policy fails here instead of passing with more rows');
+    'four company keys, the three /join needs, and one member-portal display flag — named, '
+    'not counted, so a widened policy fails here instead of passing with more rows');
 END $$;
 
 -- The three that were the blocker, called out individually: a whitelist that happens to have

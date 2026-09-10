@@ -31,6 +31,7 @@ import { telHref, waNumber } from "@/lib/phone";
 import { PageHeader } from "@/components/client/PageHeader";
 import { ProtectionChecklist } from "@/components/client/ProtectionChecklist";
 import { useMemberSubscriptions, useMemberAlerts } from "@/hooks/useMemberProfile";
+import { useMemberAlertHistory } from "@/hooks/useMemberAlertHistory";
 import { useMemberMissingInfo } from "@/hooks/useMemberMissingInfo";
 import { CompleteMyDetailsDialog } from "@/components/client/CompleteMyDetailsDialog";
 import { ReviewMyDetailsDialog } from "@/components/client/ReviewMyDetailsDialog";
@@ -162,6 +163,16 @@ export default function ClientDashboard() {
     fewer round trip and reports the right number.
   */
 
+  /*
+    IS THE MEMBER SHOWN THEIR ALERTS AT ALL? Off by default (20260910140000).
+
+    Governs DISPLAY on this page only. Alerts are still created, still escalate, and staff still
+    see every one of them — the two reads below are simply not rendered, and the reads themselves
+    are disabled so a hidden feature does not cost a member two round trips on the page they open
+    most.
+  */
+  const { enabled: alertHistoryEnabled } = useMemberAlertHistory();
+
   // Fetch recent alerts count
   const { data: alertsCount } = useQuery({
     queryKey: ["member-alerts-count", effectiveMemberId],
@@ -178,7 +189,8 @@ export default function ClientDashboard() {
       if (error) throw error;
       return count || 0;
     },
-    enabled: !!effectiveMemberId && !isTemplatePreview,
+    // Not fetched when the tile that shows it is not rendered.
+    enabled: !!effectiveMemberId && !isTemplatePreview && alertHistoryEnabled,
   });
 
   const [completeOpen, setCompleteOpen] = useState(false);
@@ -201,8 +213,10 @@ export default function ClientDashboard() {
   const { data: lastThread } = useMemberLastThread(isTemplatePreview ? null : effectiveMemberId);
 
   // The last few alerts, for "Recent activity". Same override as the subscription read, for the
-  // same admin-preview reason.
-  const { data: recentAlerts } = useMemberAlerts(isTemplatePreview ? null : effectiveMemberId);
+  // same admin-preview reason — and not read at all when the card is hidden.
+  const { data: recentAlerts } = useMemberAlerts(
+    isTemplatePreview || !alertHistoryEnabled ? null : effectiveMemberId,
+  );
 
   // Use mock data in template preview mode
   const displayMember = isTemplatePreview ? MOCK_MEMBER : member;
@@ -227,6 +241,18 @@ export default function ClientDashboard() {
   const currentDate = format(new Date(), 'EEEE, d MMMM yyyy', { locale: dateLocale });
 
   const memberName = displayMember?.first_name || t("common.member");
+
+  /*
+    HOW MANY STAT TILES THERE ARE, and therefore how the row is laid out.
+
+    Four with the alerts tile, three without. `md:grid-cols-4` with three children leaves an
+    empty quarter on the right at desktop width, which reads as a tile that failed to load on a
+    page whose whole subject is whether something is working. The skeleton row is derived from
+    the same number so the placeholder cannot show four boxes and then settle into three.
+  */
+  const statCount = alertHistoryEnabled ? 4 : 3;
+  const statColumns = alertHistoryEnabled ? "md:grid-cols-4" : "md:grid-cols-3";
+  const statSkeletons = Array.from({ length: statCount }, (_, i) => i);
 
 
 
@@ -447,6 +473,7 @@ export default function ClientDashboard() {
         list is empty, and that is the good outcome — so the empty state says so plainly rather
         than apologising for having nothing to show.
       */}
+      {alertHistoryEnabled && (
       <Card data-testid="recent-activity">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold">
@@ -485,6 +512,7 @@ export default function ClientDashboard() {
           </Button>
         </CardContent>
       </Card>
+      )}
 
       <div className="grid gap-4">
         {/* Messages Card */}
@@ -560,8 +588,8 @@ export default function ClientDashboard() {
         reassurance on a safety dashboard.
       */}
       {!isTemplatePreview && !deviceLoading && !displayDevice ? null : (deviceLoading || readinessLoading) && !isTemplatePreview ? (
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
+        <div className={cn("grid gap-4 grid-cols-2", statColumns)}>
+          {statSkeletons.map((i) => (
             <Card key={i}>
               <CardContent className="p-4">
                 <Skeleton className="h-8 w-16 mx-auto mb-2" />
@@ -571,13 +599,21 @@ export default function ClientDashboard() {
           ))}
         </div>
       ) : (
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+      <div className={cn("grid gap-4 grid-cols-2", statColumns)}>
+        {/*
+          THE ALERTS TILE GOES WITH THE FEATURE. A "0" under "Alerts in the last 30 days" is
+          still a statement about alerts, on a dashboard where somebody decided not to discuss
+          them — and the other three tiles reflow to fill the row rather than leaving a hole
+          where this one was.
+        */}
+        {alertHistoryEnabled && (
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-primary">{displayAlertsCount || 0}</p>
             <p className="text-xs text-muted-foreground">{t("dashboard.alertsLast30Days")}</p>
           </CardContent>
         </Card>
+        )}
         <Card>
           <CardContent className="p-4 text-center">
             {/* The count from the readiness view, not the length of a `.limit(3)` page. An em

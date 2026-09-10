@@ -938,11 +938,7 @@
     "returned": "Devuelto",
     "lastKnownLocation": "Última Ubicación Conocida",
     "viewOnMap": "Ver en Google Maps",
-    "pendantWhatsAppMessage": "Hola, me gustaría actualizar mi membresía para incluir un colgante GPS. ¿Pueden ayudarme?",
     "offlineSince": "Desconectado desde",
-    "yourCurrentService": "Su Servicio Actual",
-    "usingPhoneOnlyMembership": "Está usando nuestra membresía solo teléfono",
-    "contactUsAnytime": "Contáctenos en cualquier momento usando el número de abajo. ¡Guárdelo en su teléfono para emergencias!",
     "addPendantForFullProtection": "Añada un Colgante para Protección Completa",
     "getCompletePeaceOfMind": "Obtenga tranquilidad total con nuestro colgante GPS",
     "quickProvision": "Aprovisionamiento Rápido",
@@ -951,15 +947,25 @@
     "startProvisioning": "Iniciar Aprovisionamiento",
     "quickProvisionComplete": "Aprovisionamiento rápido completado",
     "onItsWay": {
-      "subtitle": "Su colgante está en camino",
-      "unknownState": "Estamos preparando su colgante. Le llamaremos cuando esté en camino.",
       "nextStep": "Cuando llegue le llamaremos y lo probaremos juntos: responde un operador de verdad, así sabrá que funciona.",
       "action": "Pregúntenos dónde está"
     },
     "gpsLocation": "Ubicación GPS",
     "fallDetection": "Detección de caídas",
     "sosButton": "Botón SOS",
-    "geoFencing": "Geo-cercado"
+    "geoFencing": "Geo-cercado",
+    "state": {
+      "withPendant": "Su colgante, y si está funcionando en este momento.",
+      "awaitingPayment": "Su pedido del colgante está pendiente de pago para que podamos enviárselo.",
+      "beingPrepared": "Estamos preparando su colgante. Le llamaremos cuando esté en camino.",
+      "awaitingStock": "Su colgante está pagado y estamos esperando existencias. Le llamaremos en cuanto el suyo quede reservado.",
+      "shipped": "Su colgante está en el correo. Le llamaremos para probarlo juntos cuando llegue.",
+      "noPendant": "Su membresía se atiende por teléfono. Puede añadir un colgante cuando lo desee."
+    },
+    "monitoredLine": {
+      "title": "Su línea atendida",
+      "body": "Llame a este número a cualquier hora del día y le responderá un operador real. Guárdelo en su teléfono."
+    }
   },
   "alerts": {
     "sosAlert": "Alerta SOS",

@@ -30,14 +30,26 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import { supportActionPath } from "@/lib/supportActions";
-import { FULFILMENT_MEANING } from "@/lib/fulfilmentState";
 import type { FulfilmentState } from "@/lib/fulfilmentState";
+import { MEMBER_PENDANT_SUBTITLE } from "@/lib/memberPendantView";
+import { DEFAULT_PRICING_CONFIG, formatPrice } from "@/config/pricing";
+import { canonicalGross } from "@/lib/catalogPriceAuthority";
+
+/**
+ * An admin-EDITED pendant price, deliberately not the seed.
+ *
+ * If the fixture matched `DEFAULT_PRICING_CONFIG`, a page that quoted the seed instead of the
+ * configured figure would pass — and quoting the seed on the card that offers to sell something
+ * is the defect the price assertions exist for.
+ */
+const PRICING_FIXTURE = { ...DEFAULT_PRICING_CONFIG, pendantNet: 200, shipping: 20 };
 
 const read = (p: string) => readFileSync(path.resolve(process.cwd(), p), "utf8");
 
 let deviceRow: Record<string, unknown> | null = null;
 let subscriptionRows: Record<string, unknown>[] = [];
 let pendantState: FulfilmentState | null = null;
+let orderStatus: string | null = null;
 let emergencyPhone: string | null = "950473199";
 
 vi.mock("@/hooks/useMemberProfile", () => ({
@@ -54,7 +66,9 @@ vi.mock("@/hooks/usePendantOrder", () => ({
           memberId: "m1",
           fulfilmentState: pendantState,
           fulfilmentStateReason: null,
-          status: null,
+          // `orders.status` — the second of the two columns the member state derives from, and
+          // the only thing that tells "awaiting stock" from "nobody has allocated one yet".
+          status: orderStatus,
           testedAt: null,
           testedByName: null,
         }
@@ -74,7 +88,21 @@ vi.mock("@/hooks/useCompanySettings", () => ({
   useCompanySettings: () => ({ settings: { emergency_phone: emergencyPhone } }),
 }));
 vi.mock("@/hooks/useDeviceRealtime", () => ({ useDeviceRealtime: () => undefined }));
-vi.mock("@/hooks/usePricing", () => ({ usePricing: () => ({ config: null, isLoading: false }) }));
+/*
+  A REAL CONFIG, because the page now quotes a price off it.
+
+  The mock said `config: null`, which `usePricing` never actually returns — it falls back to
+  `DEFAULT_PRICING_CONFIG` on any failure. A null there made the price untestable and hid the
+  question this page has to get right: whether the figure it shows is the one that is charged.
+*/
+let pricingLoading = false;
+vi.mock("@/hooks/usePricing", () => ({
+  usePricing: () => ({
+    config: { ...PRICING_FIXTURE },
+    isLoading: pricingLoading,
+    error: null,
+  }),
+}));
 vi.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ memberId: "m1" }) }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { from: () => ({}) } }));
 vi.mock("react-router-dom", () => ({
@@ -111,6 +139,8 @@ beforeEach(() => {
   deviceRow = null;
   subscriptionRows = PHONE_ONLY;
   pendantState = null;
+  orderStatus = null;
+  pricingLoading = false;
   emergencyPhone = "950473199";
 });
 afterEach(() => cleanup());
@@ -127,12 +157,76 @@ describe("the member who has PAID for a pendant and is waiting for it", () => {
     expect(screen.queryByTestId("device-add-pendant")).toBeNull();
   });
 
-  it("is told the REAL fulfilment state, from WP2", async () => {
+  it("is told the REAL fulfilment state, from WP2 — in the member's words", async () => {
+    /*
+      IT USED TO RENDER `FULFILMENT_MEANING` STRAIGHT TO THE MEMBER. Those are written for the
+      staff member deciding whether a state is true yet — "A specific pendant is reserved for
+      this member and has left stock", "This is what pays the partner commission". Internal
+      vocabulary and a partner's commission are not what somebody waiting for their alarm reads.
+      `MEMBER_PENDANT_SUBTITLE` is the same facts in the member's register.
+    */
     pendantState = "dispatched";
     await renderPage();
     expect(screen.getByTestId("pendant-awaiting-state").textContent).toBe(
-      FULFILMENT_MEANING.dispatched.fallback,
+      MEMBER_PENDANT_SUBTITLE.shipped.fallback,
     );
+    expect(screen.getByTestId("pendant-awaiting-state").textContent).toMatch(/in the post/i);
+  });
+
+  it("is never told about a partner's commission, or that a pendant 'has left stock'", async () => {
+    for (const state of ["allocated", "delivered"] as const) {
+      pendantState = state;
+      const { unmount } = await renderPage();
+      const text = document.body.textContent ?? "";
+      expect(text, `${state} leaks staff vocabulary`).not.toMatch(/commission/i);
+      expect(text, `${state} leaks staff vocabulary`).not.toMatch(/left stock/i);
+      unmount();
+    }
+  });
+
+  it("a member waiting on STOCK is told that, not that we are getting it ready", async () => {
+    // The member and the fulfilment desk read the same two columns, so they cannot disagree
+    // about whether stock is the hold-up.
+    pendantState = "paid";
+    orderStatus = "awaiting_stock";
+    await renderPage();
+    expect(screen.getByTestId("pendant-awaiting-state").textContent).toMatch(/waiting on stock/i);
+  });
+
+  it("and one who is merely un-allocated is NOT told there is no stock", async () => {
+    pendantState = "paid";
+    orderStatus = null;
+    await renderPage();
+    expect(screen.getByTestId("pendant-awaiting-state").textContent).toMatch(
+      /getting your pendant ready/i,
+    );
+  });
+
+  it("is never called 'phone-only' while a pendant is on order", async () => {
+    /*
+      THE DEFECT THIS PAGE'S STATE DERIVATION EXISTS FOR. `hasPendant` was
+      `subscription?.has_pendant && device`, so every member between paying and the device being
+      assigned was shown the branch titled "Phone-Only membership" — told they had chosen a
+      service they had paid to leave.
+    */
+    for (const state of ["awaiting_payment", "paid", "allocated", "programmed", "dispatched", "delivered", "tested"] as const) {
+      pendantState = state;
+      const { unmount } = await renderPage();
+      expect(document.body.textContent ?? "", `${state} reads as phone-only`).not.toMatch(
+        /phone.only/i,
+      );
+      expect(screen.queryByTestId("device-pendant-offer"), `${state} is offered a pendant`).toBeNull();
+      unmount();
+    }
+  });
+
+  it("a CANCELLED order is not an order — the offer comes back", async () => {
+    // Without this a member whose order was cancelled is held in "getting it ready" forever and
+    // is never offered one again.
+    pendantState = "cancelled";
+    subscriptionRows = [{ has_pendant: false }];
+    await renderPage();
+    expect(screen.getByTestId("device-pendant-offer")).toBeVisible();
   });
 
   it("gets an honest holding line when the order cannot be read, not a blank", async () => {
@@ -174,7 +268,86 @@ describe("the phone-only member", () => {
 
   it("is shown what they DO have — a number that reaches an operator", async () => {
     await renderPage();
-    expect(screen.getByText("950473199")).toBeVisible();
+    expect(screen.getByTestId("device-emergency-number")).toHaveTextContent("950473199");
+  });
+
+  it("the number is a normal link, not the largest text in the portal", async () => {
+    /*
+      It was `text-3xl md:text-4xl font-bold text-primary` — 36-40px, the biggest type on any
+      member page, for a useful detail rather than the page's subject. R5 gives the page one
+      28px title and R10 a 16px body.
+    */
+    await renderPage();
+    const number = screen.getByTestId("device-emergency-number");
+    expect(number.tagName).toBe("A");
+    expect(number.className).not.toMatch(/text-(3xl|4xl)/);
+    expect(number.getAttribute("href")).toMatch(/^tel:/);
+  });
+
+  it("WhatsApp is offered in this product's colours, not a third party's raw hex", async () => {
+    /*
+      `bg-[#25D366] hover:bg-[#128C7E] text-white` was the last raw hex on the member surface:
+      outside the token system, and white on #25D366 is 2.1:1 — below WCAG AA for text of any
+      size, so it failed the bar GOALS.md sets while looking deliberate.
+    */
+    /*
+      `waNumber` refuses a number with no `+`, so the fixture the rest of this file uses
+      ("950473199") legitimately produces NO WhatsApp button — which is `noFakeEmergencyNumber`'s
+      rule working, not a missing control. An E.164 number is what this assertion needs.
+    */
+    emergencyPhone = "+34 950 473 199";
+    await renderPage();
+    const wa = screen.getByTestId("device-whatsapp");
+    expect(wa.getAttribute("href")).toBe("https://wa.me/34950473199");
+    expect(wa.className).not.toMatch(/\[#/);
+  });
+
+  it("and no WhatsApp button at all for a number that is not dialable internationally", async () => {
+    // `wa.me/<digits>` reads them as a full international number, so a local-format number
+    // would produce a link to somebody else entirely.
+    emergencyPhone = "950473199";
+    await renderPage();
+    expect(screen.queryByTestId("device-whatsapp")).toBeNull();
+    // …but the number itself is still shown and still dialable.
+    expect(screen.getByTestId("device-emergency-number")).toHaveTextContent("950473199");
+  });
+
+  it("the monitored-line card is omitted entirely with no number configured", async () => {
+    // WP1b: show nothing, never a fake number. A heading reading EMERGENCY NUMBER over nothing
+    // at all is the most alarming empty state in the portal.
+    emergencyPhone = null;
+    await renderPage();
+    expect(screen.queryByTestId("device-monitored-line")).toBeNull();
+  });
+
+  it("quotes the price that is actually CHARGED, from the pricing authority", async () => {
+    /*
+      It read `getPendantFinalPrice(1)` — a module-level mutable singleton hydrated as a side
+      effect of `usePricing()` having run somewhere. So the figure depended on render order, and
+      on a cold load it was the seed rather than what an admin had set. `canonicalGross` answers
+      the question the card is asking: what is really charged.
+    */
+    await renderPage();
+    expect(screen.getByTestId("device-pendant-price")).toHaveTextContent(
+      formatPrice(canonicalGross("pendant", PRICING_FIXTURE)),
+    );
+    // …and it is NOT the seed, which is what makes the assertion above mean something.
+    expect(screen.getByTestId("device-pendant-price").textContent).not.toBe(
+      formatPrice(canonicalGross("pendant", DEFAULT_PRICING_CONFIG)),
+    );
+  });
+
+  it("shows no price at all while pricing is still loading", async () => {
+    // A quoted figure that changes under a member reading it is worse than one a beat late.
+    pricingLoading = true;
+    await renderPage();
+    expect(screen.queryByTestId("device-pendant-price")).toBeNull();
+    expect(screen.getByTestId("device-pendant-price-loading")).toBeVisible();
+  });
+
+  it("illustrates the pendant with the pendant, not a phone icon", async () => {
+    await renderPage();
+    expect(screen.getByTestId("device-pendant-image").getAttribute("src")).toBe("/pendant1.webp");
   });
 
   it("gets an 'Add a pendant' route even with NO number configured", async () => {
@@ -243,8 +416,17 @@ describe("the source, and the strings that went with the card", () => {
     }
   });
 
-  it("the awaiting branch is keyed on has_pendant AND the absence of a device", () => {
-    expect(page()).toMatch(/subscription\?\.has_pendant === true && !device/);
+  it("the branch is keyed on the shared derivation, not on a boolean in the page", () => {
+    /*
+      `subscription?.has_pendant === true && !device` was the whole decision, and it decided the
+      subtitle. It cannot tell "never bought one" from "bought one, waiting", which is why the
+      page is now keyed on `memberPendantView` — the same two columns the fulfilment desk reads.
+    */
+    expect(page()).toContain("memberPendantView");
+    expect(page()).toContain("mayOfferPendant");
+    expect(page(), "the boolean that could not tell the two apart is gone").not.toMatch(
+      /const hasPendant = subscription\?\.has_pendant && device/,
+    );
   });
 
   it("no route on the page is gated on WhatsApp being configured on its own", () => {

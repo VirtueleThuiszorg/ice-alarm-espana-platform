@@ -28,7 +28,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   1  
 ```
 
-192 distinct wires across 655 call sites and 110 routes.
+192 distinct wires across 654 call sites and 110 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
@@ -69,7 +69,7 @@ things, and a control with no wire cannot do anything:
 | `channel` | `postgres_changes` — a realtime subscription | 51 |
 | `auth` | `supabase.auth.*` — sign in, sign out, register, password reset | 20 |
 | `storage` | `supabase.storage.from(b).upload/remove/…` — a file put somewhere | 14 |
-| `link` | `mailto:` / `tel:` / `wa.me` — a hand-off off the platform | 65 |
+| `link` | `mailto:` / `tel:` / `wa.me` — a hand-off off the platform | 64 |
 | `open` | `window.open` / `window.location` — the SPA being left | 64 |
 
 Routes come from an import graph over `src/App.tsx`, so a wire in a shared hook is

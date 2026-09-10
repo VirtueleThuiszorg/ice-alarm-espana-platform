@@ -214,18 +214,48 @@ describe("multi-value cells", () => {
   });
 });
 
-describe("household emails satisfy the UNIQUE constraint", () => {
-  it("plus-tags the second claimant rather than failing the insert", () => {
+describe("a household address is marked, not mangled", () => {
+  /*
+    THIS USED TO ASSERT PLUS-TAGGING. `members.email` was UNIQUE NOT NULL, so the second row to
+    claim a shared address got `alba.testcase+bruno@example.test` — an address nobody reads, on
+    the column the platform treats as the way to reach the member, invented only to satisfy a
+    constraint.
+
+    Since 20260910170000 the column is nullable and the uniqueness is PARTIAL: only an address
+    the MEMBER owns has to be unique. So the address is stored verbatim on both rows and marked
+    `carer`, which is what it is — one daughter looking after both her parents is two members
+    whose contact address is hers.
+  */
+  it("keeps the real address on BOTH rows", () => {
     expect(byId("900001").member.email).toBe("alba.testcase@example.test");
-    expect(byId("900002").member.email).toBe("alba.testcase+bruno@example.test");
-    expect(byId("900002").warnings.join(" ")).toMatch(/Shared household email/);
+    expect(byId("900002").member.email).toBe("alba.testcase@example.test");
   });
 
-  it("produces no duplicate member emails in a batch", () => {
-    const emails = mapped
-      .filter((r) => r.target === "member" && r.member.email)
-      .map((r) => r.member.email);
-    expect(new Set(emails).size).toBe(emails.length);
+  it("invents no plus-tag", () => {
+    for (const r of mapped) {
+      const local = (r.member.email ?? "").split("@")[0];
+      expect(local).not.toContain("+");
+    }
+  });
+
+  it("marks both as a carer address — the first row is not more entitled to it", () => {
+    expect(byId("900001").member.email_owner).toBe("carer");
+    expect(byId("900002").member.email_owner).toBe("carer");
+  });
+
+  it("says so in a warning", () => {
+    expect(byId("900002").warnings.join(" ")).toMatch(/appears on more than one row/);
+  });
+
+  it("leaves a unique address owned by the member, so it can still be a login", () => {
+    const soleClaimants = mapped.filter(
+      (r) =>
+        r.member.email &&
+        mapped.filter((o) => o.member.email?.toLowerCase() === r.member.email?.toLowerCase())
+          .length === 1,
+    );
+    expect(soleClaimants.length).toBeGreaterThan(0);
+    for (const r of soleClaimants) expect(r.member.email_owner).toBe("member");
   });
 });
 

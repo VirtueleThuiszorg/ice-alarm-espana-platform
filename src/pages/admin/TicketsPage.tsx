@@ -53,7 +53,7 @@ interface TicketType {
   assigned_to: string | null;
   creator?: { first_name: string; last_name: string };
   assignee?: { first_name: string; last_name: string } | null;
-  member?: { id: string; first_name: string; last_name: string; phone: string; email: string } | null;
+  member?: { id: string; first_name: string; last_name: string; phone: string; email: string | null } | null;
 }
 
 interface Comment {
@@ -702,7 +702,7 @@ export default function AdminTicketsPage() {
                                 {selectedTicket.member.first_name} {selectedTicket.member.last_name}
                               </p>
                               <p className="text-sm text-muted-foreground">
-                                {selectedTicket.member.phone} • {selectedTicket.member.email}
+                                {selectedTicket.member.phone}{selectedTicket.member.email ? ` • ${selectedTicket.member.email}` : ""}
                               </p>
                             </div>
                           </div>

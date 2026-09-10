@@ -14,7 +14,7 @@ interface MemberSearchResult {
   firstName: string;
   lastName: string;
   phone: string;
-  email: string;
+  email: string | null;
   hasPendant: boolean;
   planType: string;
   status: string;

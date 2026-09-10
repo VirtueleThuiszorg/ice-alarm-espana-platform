@@ -47,7 +47,7 @@ interface MemberBasic {
   id: string;
   first_name: string;
   last_name: string;
-  email: string;
+  email: string | null;
   phone: string;
   nie_dni: string | null;
   address_line_2: string | null;

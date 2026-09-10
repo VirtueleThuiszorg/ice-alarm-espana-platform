@@ -32,8 +32,8 @@ const byId = (id: string) => {
 describe("the fixture produced plans at all", () => {
   it("has one plan per row", () => {
     // Guards every assertion below from passing over an empty list.
-    expect(plans.length).toBe(8);
-    expect(mapped.length).toBe(8);
+    expect(plans.length).toBe(10);
+    expect(mapped.length).toBe(10);
   });
 });
 
@@ -55,8 +55,10 @@ describe("nothing is invented to satisfy a NOT NULL column", () => {
     // Every planned member has all nine required columns really filled.
     for (const p of plans.filter((x) => x.outcome === "member")) {
       const m = p.member!;
+      // `email` LEFT THIS LIST on 2026-09-10: the column is nullable, so its absence is no
+      // longer the absence of a member. Everything else still has to be really there.
       for (const v of [
-        m.first_name, m.last_name, m.email, m.phone, m.date_of_birth,
+        m.first_name, m.last_name, m.phone, m.date_of_birth,
         m.address_line_1, m.city, m.province, m.postal_code,
       ]) {
         expect(v).toBeTruthy();
@@ -272,8 +274,8 @@ describe("the summary answers 'why is this not a member?' at scale", () => {
   const s = summarisePlans(plans);
 
   it("counts outcomes", () => {
-    expect(s.total).toBe(8);
-    expect(s.members + s.crmContacts + s.skipped).toBe(8);
+    expect(s.total).toBe(10);
+    expect(s.members + s.crmContacts + s.skipped).toBe(10);
   });
 
   it("counts each blocker reason", () => {

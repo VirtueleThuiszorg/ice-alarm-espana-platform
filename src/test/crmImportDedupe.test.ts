@@ -43,7 +43,7 @@ describe("the three dedupe keys", () => {
 
   it("returns nulls rather than empty strings when a key is absent", () => {
     // A key of "" would match every member with an empty column — the worst possible dedupe.
-    const keys = dedupeKeysFor(byId("9002")); // no email, no NIE
+    const keys = dedupeKeysFor(byId("9008")); // no email, no NIE
     expect(keys.email).toBeNull();
     expect(keys.nie).toBeNull();
     expect(keys.phone).not.toBeNull();
@@ -130,19 +130,20 @@ describe("an existing member has empty fields filled, and nothing else", () => {
 
 describe("a row that cannot become a member can still fill a gap on one", () => {
   it("patches from the parsed fields when there is no MemberInsert", () => {
-    // 9002 has no email, so it is a crm_contact and `plan.member` is null. If it matches a
+    // 9008's Birthday is unreadable, so it is a crm_contact and `plan.member` is null. (It used
+    // to be 9002, blocked on "no email" — until email became optional and 9002 became a member.) If it matches a
     // member the platform already holds — by phone or NIE — the fields it DID parse are still
     // worth filling in. Returning {} here made applyRowPlan's "patch rather than shadow" branch
     // a silent no-op.
-    const plan = byId("9002");
+    const plan = byId("9008");
     expect(plan.member).toBeNull();
-    const patch = memberPatchFor({ city: null, postal_code: null, phone: "+34952383121" }, plan);
+    const patch = memberPatchFor({ city: null, postal_code: null, phone: "+34677888999" }, plan);
     expect(Object.keys(patch).length).toBeGreaterThan(0);
     expect(patch.city).toBe(plan.parsedMember.city);
   });
 
   it("still refuses to patch status from a parsed row", () => {
-    const patch = memberPatchFor({ status: null }, byId("9002"));
+    const patch = memberPatchFor({ status: null }, byId("9008"));
     expect(Object.keys(patch)).not.toContain("status");
   });
 });

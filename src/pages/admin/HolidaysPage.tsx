@@ -7,6 +7,7 @@ import {
   Clock,
   Download,
   CalendarClock,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -85,6 +86,57 @@ export default function HolidaysPage() {
   const { requestCover } = useShiftCoverMutations();
 
   const pendingHolidays = holidays.filter((h) => h.status === "requested");
+
+  /**
+   * THE SHIFTS EACH PENDING REQUEST WOULD LEAVE UNCOVERED, up front rather than after approval.
+   *
+   * Approving already opens the cover picker when shifts are affected — but only after the
+   * decision is made, so a supervisor discovers "this leaves three night shifts open" one click
+   * too late. This asks the question first, and gives each request a button straight into the
+   * same picker.
+   *
+   * "Uncovered" means: the requester has a shift inside the range with no ACCEPTED cover against
+   * it. A pending cover is not cover — the person asked has not said yes yet.
+   */
+  const { data: pendingImpact = {} } = useQuery({
+    queryKey: ["pending-holiday-impact", pendingHolidays.map((h) => h.id).sort().join(",")],
+    enabled: pendingHolidays.length > 0,
+    queryFn: async () => {
+      const out: Record<string, Tables<"staff_shifts">[]> = {};
+      for (const h of pendingHolidays) {
+        const { data: affected, error } = await supabase
+          .from("staff_shifts")
+          .select("*")
+          .eq("staff_id", h.staff_id)
+          .gte("shift_date", h.start_date)
+          .lte("shift_date", h.end_date);
+        if (error) throw error;
+        const shiftIds = (affected || []).map((s) => s.id);
+        if (shiftIds.length === 0) {
+          out[h.id] = [];
+          continue;
+        }
+        const { data: covers, error: coverError } = await supabase
+          .from("staff_shift_covers")
+          .select("shift_id, status")
+          .in("shift_id", shiftIds)
+          .eq("status", "accepted");
+        if (coverError) throw coverError;
+        const covered = new Set((covers || []).map((c) => c.shift_id));
+        out[h.id] = (affected || []).filter((s) => !covered.has(s.id));
+      }
+      return out;
+    },
+    staleTime: STALE_TIMES.SHORT,
+  });
+
+  /** Open the cover picker for a request WITHOUT approving it. */
+  const openCoverPicker = (holidayId: string) => {
+    setCoverShifts(pendingImpact[holidayId] ?? []);
+    setCoverHolidayId(holidayId);
+    setCoverAssignments({});
+    setCoverDialogOpen(true);
+  };
 
   // Active CC staff for cover assignment
   const { data: staffList = [] } = useQuery({
@@ -363,6 +415,20 @@ export default function HolidaysPage() {
                   })()}
                 </div>
                 <div className="flex items-center gap-2">
+                  {(pendingImpact[h.id]?.length ?? 0) > 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openCoverPicker(h.id)}
+                      data-testid="assign-cover"
+                      data-holiday-id={h.id}
+                    >
+                      <Users className="mr-1 h-4 w-4" aria-hidden="true" />
+                      {t("holidays.assignCover", "{{count}} shifts need cover", {
+                        count: pendingImpact[h.id]?.length ?? 0,
+                      })}
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"

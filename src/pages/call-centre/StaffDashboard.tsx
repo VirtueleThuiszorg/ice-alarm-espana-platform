@@ -32,6 +32,8 @@ import { EV07BLiveStatusCard } from "@/components/call-centre/EV07BLiveStatusCar
 import { DeviceIssuesQueue } from "@/components/call-centre/DeviceIssuesQueue";
 import { DeviceOfflineAlertsCard } from "@/components/call-centre/DeviceOfflineAlertsCard";
 import { NewEnquiriesCard } from "@/components/call-centre/NewEnquiriesCard";
+import { WhoIsOnStrip } from "@/components/call-centre/WhoIsOnStrip";
+import { ROTA_MANAGER_ROLES } from "@/lib/staffNotify";
 import { MyShiftsWidget } from "@/components/call-centre/MyShiftsWidget";
 import { MyHolidaysWidget } from "@/components/call-centre/MyHolidaysWidget";
 import { PendingCoversWidget } from "@/components/call-centre/PendingCoversWidget";
@@ -113,7 +115,7 @@ interface BirthdayMember {
 export default function StaffDashboard() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, staffRole } = useAuth();
   
   // Enable realtime updates for devices and alerts
   useOpsRealtime();
@@ -772,6 +774,16 @@ export default function StaffDashboard() {
           <DeviceIssuesQueue />
         </div>
       </div>
+
+      {/*
+        WHO IS ON NOW / NEXT — supervisors and admins only, because presence is: RLS grants
+        `staff_presence` SELECT to those roles alone, so an operator would see every scheduled
+        person as absent. Above the personal row on purpose: "is this shift covered" outranks
+        "what am I on next week" for the person who has to fix it.
+      */}
+      <WhoIsOnStrip
+        enabled={!!staffRole && (ROTA_MANAGER_ROLES as readonly string[]).includes(staffRole)}
+      />
 
       {/* Personal Row: my rota & holidays */}
       <div className="grid md:grid-cols-3 gap-4">

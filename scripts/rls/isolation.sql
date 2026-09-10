@@ -4880,14 +4880,21 @@ INSERT INTO auth.users (id, email) VALUES
   ('c0000002-0000-0000-0000-000000000002', 'cnicolas@icealarm.es'),
   ('c0000003-0000-0000-0000-000000000003', 'mbonner@icealarm.es'),
   ('c0000004-0000-0000-0000-000000000004', 'travis@icealarm.es'),
-  ('c0000005-0000-0000-0000-000000000005', 'rota-admin@icealarm.es');
+  ('c0000005-0000-0000-0000-000000000005', 'rota-admin@icealarm.es'),
+  ('c0000006-0000-0000-0000-000000000006', 'rota-super@icealarm.es');
 
+-- The SUPERVISOR is a sixth person with no shifts of her own, deliberately. Mary is the
+-- supervisor in production, but she is also the operator whose 72 shifts the "sees only their
+-- own" assertion counts — giving her the role here would make that assertion pass for the wrong
+-- reason and prove nothing about either half. A supervisor who works no shifts at all is the
+-- sharpest fixture available: every row she can see, she can see BECAUSE of the role.
 INSERT INTO public.staff (user_id, email, first_name, last_name, role) VALUES
   ('c0000001-0000-0000-0000-000000000001', 'asoares@icealarm.es',  'Albert', 'Soares',  'call_centre'),
   ('c0000002-0000-0000-0000-000000000002', 'cnicolas@icealarm.es', 'Carmen', 'Nicolas', 'call_centre'),
   ('c0000003-0000-0000-0000-000000000003', 'mbonner@icealarm.es',  'Mary',   'Bonner',  'call_centre'),
   ('c0000004-0000-0000-0000-000000000004', 'travis@icealarm.es',   'Travis', 'Nelison', 'call_centre'),
-  ('c0000005-0000-0000-0000-000000000005', 'rota-admin@icealarm.es','Rota',  'Admin',   'super_admin');
+  ('c0000005-0000-0000-0000-000000000005', 'rota-admin@icealarm.es','Rota',  'Admin',   'super_admin'),
+  ('c0000006-0000-0000-0000-000000000006', 'rota-super@icealarm.es','Rota',  'Super',   'call_centre_supervisor');
 
 -- Run the import. Counts are asserted below, not here.
 SELECT public.seed_rota_2026();
@@ -5219,6 +5226,92 @@ SELECT pg_temp.check(
     WHERE conrelid = 'public.staff_shift_swaps'::regclass
       AND conname IN ('staff_shift_swaps_distinct_shifts',
                       'staff_shift_swaps_distinct_people')) = 2);
+
+-- ── the SUPERVISOR: what the database already granted, and nobody could reach ──────────────
+--
+-- Lee's finding, 10 Sep: RLS has said for some time that a `call_centre_supervisor` runs the
+-- rota, and the only rota screen was admin-only. #288 gave her the screen. These assertions are
+-- the other half of that claim — that the permission the screen relies on is real — and they are
+-- the fixtures the brief asked for: an operator sees their own rows, the supervisor sees all four
+-- operators, an admin sees everything.
+
+SELECT pg_temp.check(
+  'ROTA: a SUPERVISOR sees the whole rota, not just her own shifts',
+  pg_temp.count_as('c0000006-0000-0000-0000-000000000006',
+    'SELECT id FROM public.staff_shifts
+      WHERE shift_date BETWEEN ''2026-09-10'' AND ''2026-12-31''') = 339,
+  'she works none of them herself — every row is visible because of the role');
+
+SELECT pg_temp.check(
+  'ROTA: a SUPERVISOR sees all four operators in the window',
+  pg_temp.count_as('c0000006-0000-0000-0000-000000000006',
+    'SELECT DISTINCT staff_id FROM public.staff_shifts
+      WHERE shift_date BETWEEN ''2026-09-10'' AND ''2026-12-31''') = 4,
+  'the "filter by person" picker has four names to offer, or it has one');
+
+SELECT pg_temp.check(
+  'ROTA: an ADMIN sees the whole rota too',
+  pg_temp.count_as('c0000005-0000-0000-0000-000000000005',
+    'SELECT id FROM public.staff_shifts
+      WHERE shift_date BETWEEN ''2026-09-10'' AND ''2026-12-31''') = 339);
+
+SELECT pg_temp.check(
+  'ROTA: a SUPERVISOR can move a shift to somebody else — that is the job',
+  pg_temp.exec_as('c0000006-0000-0000-0000-000000000006',
+    'UPDATE public.staff_shifts
+        SET staff_id = (SELECT id FROM public.staff WHERE email = ''mbonner@icealarm.es'')
+      WHERE shift_type = ''afternoon'' AND shift_date = ''2026-11-20''') = 1,
+  'the same write an operator was refused two assertions above');
+
+SELECT pg_temp.check(
+  'ROTA: a SUPERVISOR sees every holiday, including ones that are not hers',
+  pg_temp.count_as('c0000006-0000-0000-0000-000000000006',
+    'SELECT id FROM public.staff_holidays') = 9,
+  'she has none of her own — nine rows means the approvals queue is not empty for her');
+
+SELECT pg_temp.check(
+  'ROTA: a SUPERVISOR can approve a holiday, and an operator cannot',
+  pg_temp.exec_as('c0000006-0000-0000-0000-000000000006',
+    'UPDATE public.staff_holidays SET status = ''approved''
+      WHERE staff_id = (SELECT id FROM public.staff WHERE email = ''cnicolas@icealarm.es'')') = 7
+  AND pg_temp.exec_as('c0000004-0000-0000-0000-000000000004',
+    'UPDATE public.staff_holidays SET status = ''approved''
+      WHERE staff_id = (SELECT id FROM public.staff WHERE email = ''cnicolas@icealarm.es'')') = 0,
+  'both halves, because "the supervisor can" is only interesting if somebody cannot');
+
+SELECT pg_temp.check(
+  'ROTA SWAP: a SUPERVISOR sees a swap she is no party to, and can approve it',
+  pg_temp.count_as('c0000006-0000-0000-0000-000000000006',
+    'SELECT id FROM public.staff_shift_swaps') = 1
+  AND pg_temp.exec_as('c0000006-0000-0000-0000-000000000006',
+    'UPDATE public.staff_shift_swaps SET status = ''approved''
+      WHERE id = ''dddddddd-0000-0000-0000-00000000000a''') = 1,
+  'the step the counterparty was refused above — approval is the supervisor''s, and only hers');
+
+-- Run AS the supervisor. `count_as` drops to `authenticated` with her claim, so the role check
+-- inside the function is the thing under test; running it as the harness's superuser session
+-- would prove only that the function exists, which is how this assertion was written first.
+SELECT pg_temp.check(
+  'ROTA: a SUPERVISOR can run generate_rota, where a plain operator cannot',
+  pg_temp.count_as('c0000006-0000-0000-0000-000000000006',
+    'SELECT * FROM public.generate_rota(DATE ''2027-08-01'', DATE ''2027-08-02'')') >= 1,
+  'the operator negative is asserted above with raises_as — the function refuses them by name');
+
+-- Presence, both directions. `>= 0` would have been true of an empty table, so two rows are
+-- seeded first: the strip's whole value is showing that somebody scheduled is NOT online, and it
+-- cannot do that if a supervisor cannot read the row.
+INSERT INTO public.staff_presence (staff_id, is_online, last_heartbeat_at, session_started_at)
+SELECT id, true, now(), now() FROM public.staff
+WHERE email IN ('asoares@icealarm.es', 'travis@icealarm.es');
+
+SELECT pg_temp.check(
+  'ROTA: a SUPERVISOR reads presence for everyone; an operator reads only their own',
+  pg_temp.count_as('c0000006-0000-0000-0000-000000000006',
+    'SELECT id FROM public.staff_presence') = 2
+  AND pg_temp.count_as('c0000001-0000-0000-0000-000000000001',
+    'SELECT id FROM public.staff_presence') = 1,
+  'without the first half the who-is-on strip cannot tell scheduled-and-online from '
+  'scheduled-and-absent, which is the only reason it exists');
 
 SELECT pg_temp.check(
   'ROTA: RLS is enabled on both new tables',

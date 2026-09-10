@@ -5,6 +5,8 @@ import {
   X,
   AlertTriangle,
   Clock,
+  Download,
+  CalendarClock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +51,14 @@ import { useCurrentStaff } from "@/hooks/useCurrentStaff";
 import { HOLIDAY_ROLES, HOLIDAY_STATUSES } from "@/config/shifts";
 import type { HolidayStatus } from "@/config/shifts";
 import { format } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
+import { HolidayPolicyCard } from "@/components/admin/HolidayPolicyCard";
+import { useHolidayPolicy } from "@/hooks/useHolidayPolicy";
+import { exportToCsv } from "@/lib/csvExporter";
+import {
+  prorataEntitlement,
+  shortNoticeCheck,
+} from "../../../supabase/functions/_shared/holiday-policy";
 
 export default function HolidaysPage() {
   const { t } = useTranslation();
@@ -62,10 +72,15 @@ export default function HolidaysPage() {
   const [coverAssignments, setCoverAssignments] = useState<Record<string, string>>({});
 
   const { data: currentStaff } = useCurrentStaff();
+  const { staffRole } = useAuth();
+  const { policy } = useHolidayPolicy();
   const { data: balances = [] } = useAllHolidayBalances();
   const { data: holidays = [] } = useAllHolidays(
     statusFilter === "all" ? undefined : (statusFilter as HolidayStatus)
   );
+  // Unfiltered, for the per-person table: that table is a statement of the year and must not
+  // change shape because somebody clicked "Rejected" on the tab strip above it.
+  const { data: allHolidays = [] } = useAllHolidays();
   const { reviewHoliday } = useHolidayMutations();
   const { requestCover } = useShiftCoverMutations();
 
@@ -77,7 +92,9 @@ export default function HolidaysPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("staff")
-        .select("id, first_name, last_name")
+        // `hire_date` and `annual_holiday_days` are here for the per-person table below, which
+        // needs them to pro-rate a mid-year start. One query, not a second copy of this list.
+        .select("id, first_name, last_name, hire_date, annual_holiday_days")
         // The shared list, not a second copy of it. This picker was the only one of the four
         // surfaces on this page that filtered at all (Lee, 9 Sep, item 5).
         .in("role", [...HOLIDAY_ROLES])
@@ -153,6 +170,94 @@ export default function HolidaysPage() {
     setRejectDialogOpen(false);
   };
 
+  /**
+   * ONE ROW PER PERSON: entitlement, approved, pending, remaining, and the dates themselves.
+   *
+   * The balance cards above give the four numbers at a glance; this is the version somebody can
+   * read down a column and hand to an accountant, which is why the DATES are on it — a balance
+   * with no dates cannot be checked against anything.
+   *
+   * Entitlement is pro-rated only when the policy says so AND the person's hire date falls inside
+   * the year. Somebody with no hire date on file gets the full entitlement and a flag; reducing
+   * a statutory minimum on a guess is not an option (see D-16 in PENDING_FOR_LEE.md).
+   */
+  const year = new Date().getFullYear();
+  const holidaysThisYear = allHolidays.filter((h) => h.start_date.startsWith(`${year}-`));
+  const staffById = new Map(staffList.map((s) => [s.id, s]));
+
+  const perPerson = balances.map((b) => {
+    const staffRow = staffById.get(b.staff_id);
+    const entitlement = prorataEntitlement(
+      b.annual_holiday_days,
+      staffRow?.hire_date ?? null,
+      year,
+      policy,
+    );
+    const own = holidaysThisYear.filter((h) => h.staff_id === b.staff_id);
+    return {
+      staffId: b.staff_id,
+      name: `${b.first_name} ${b.last_name}`.trim(),
+      entitlement,
+      approved: b.days_approved,
+      pending: b.days_pending,
+      remaining: b.days_remaining,
+      dates: own
+        .filter((h) => h.status === "approved" || h.status === "requested")
+        .sort((a, c) => a.start_date.localeCompare(c.start_date))
+        .map((h) => ({
+          label:
+            h.start_date === h.end_date
+              ? format(new Date(`${h.start_date}T12:00:00`), "d MMM")
+              : `${format(new Date(`${h.start_date}T12:00:00`), "d MMM")}–${format(
+                  new Date(`${h.end_date}T12:00:00`),
+                  "d MMM",
+                )}`,
+          status: h.status as HolidayStatus,
+          days: h.total_days,
+        })),
+    };
+  });
+
+  const downloadCsv = () => {
+    // One row per HOLIDAY, with the person's balance repeated — the shape a spreadsheet can
+    // pivot. A row per person with the dates crammed into one cell cannot be summed.
+    const rows = perPerson.flatMap((p) =>
+      p.dates.length === 0
+        ? [
+            {
+              name: p.name,
+              entitlement: p.entitlement.days,
+              approved: p.approved,
+              pending: p.pending,
+              remaining: p.remaining,
+              dates: "",
+              status: "" as string,
+              days: "" as number | string,
+            },
+          ]
+        : p.dates.map((d) => ({
+            name: p.name,
+            entitlement: p.entitlement.days,
+            approved: p.approved,
+            pending: p.pending,
+            remaining: p.remaining,
+            dates: d.label,
+            status: d.status as string,
+            days: d.days as number | string,
+          })),
+    );
+    exportToCsv(rows, `holidays-${year}-${format(new Date(), "yyyy-MM-dd")}.csv`, [
+      { key: "name", header: "Staff" },
+      { key: "entitlement", header: "Entitlement (días naturales)" },
+      { key: "approved", header: "Approved" },
+      { key: "pending", header: "Pending" },
+      { key: "remaining", header: "Remaining" },
+      { key: "dates", header: "Dates" },
+      { key: "status", header: "Status" },
+      { key: "days", header: "Days" },
+    ]);
+  };
+
   const getStatusBadge = (status: HolidayStatus) => {
     const config = HOLIDAY_STATUSES[status];
     return <Badge className={config.badgeClass}>{t(config.labelKey, status)}</Badge>;
@@ -224,6 +329,38 @@ export default function HolidaysPage() {
                     ({h.total_days} {h.total_days === 1 ? t("holidays.day", "day") : t("holidays.days", "days")})
                   </p>
                   {h.reason && <p className="text-sm text-muted-foreground mt-1">{h.reason}</p>}
+                  {(() => {
+                    /*
+                      ET art. 38.3: the dates are agreed between employer and worker, and the
+                      worker must know them at least two months before they start. Approving
+                      inside that window is lawful — both sides can agree — so this WARNS and
+                      never blocks. The threshold is the setting, and the message names it, so
+                      a supervisor can see which rule is talking to them.
+                    */
+                    const notice = shortNoticeCheck(
+                      h.start_date,
+                      format(new Date(), "yyyy-MM-dd"),
+                      policy,
+                    );
+                    if (!notice.shortNotice) return null;
+                    return (
+                      <p
+                        className="mt-1 flex items-center gap-1 text-xs text-amber-600"
+                        data-testid="short-notice-warning"
+                      >
+                        <CalendarClock className="h-3 w-3" aria-hidden="true" />
+                        {notice.daysAhead < 0
+                          ? t("holidays.shortNoticeStarted", "Already started — {{days}} days ago", {
+                              days: Math.abs(notice.daysAhead),
+                            })
+                          : t(
+                              "holidays.shortNotice",
+                              "Starts in {{days}} days — less than the {{threshold}} days ET art. 38.3 expects",
+                              { days: notice.daysAhead, threshold: notice.thresholdDays },
+                            )}
+                      </p>
+                    );
+                  })()}
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
@@ -252,6 +389,92 @@ export default function HolidaysPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Per person: the four numbers and the dates behind them */}
+      <Card data-testid="per-person-holidays">
+        <CardHeader className="pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle>{t("holidays.perPerson", "Per person, {{year}}", { year })}</CardTitle>
+            <Button variant="outline" size="sm" onClick={downloadCsv}>
+              <Download className="mr-1 h-4 w-4" aria-hidden="true" />
+              {t("holidays.downloadCsv", "Download CSV")}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("common.staff", "Staff")}</TableHead>
+                <TableHead className="text-right">{t("holidays.entitlement", "Entitlement")}</TableHead>
+                <TableHead className="text-right">{t("holidays.statusApproved", "Approved")}</TableHead>
+                <TableHead className="text-right">{t("holidays.pending", "Pending")}</TableHead>
+                <TableHead className="text-right">{t("holidays.remaining", "Remaining")}</TableHead>
+                <TableHead>{t("holidays.dates", "Dates")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {perPerson.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                    {t("holidays.noHolidays", "No holiday requests yet")}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                perPerson.map((p) => (
+                  <TableRow key={p.staffId} data-testid="per-person-row" data-staff-id={p.staffId}>
+                    <TableCell className="font-medium">{p.name}</TableCell>
+                    <TableCell className="text-right">
+                      {p.entitlement.days}
+                      {p.entitlement.prorated && (
+                        <Badge variant="secondary" className="ml-2 text-xs">
+                          {t("holidays.prorated", "pro-rata")}
+                        </Badge>
+                      )}
+                      {p.entitlement.missingHireDate && (
+                        <Badge
+                          variant="outline"
+                          className="ml-2 border-amber-500/40 text-xs text-amber-600"
+                          data-testid="missing-hire-date"
+                        >
+                          {t("holidays.noHireDate", "no hire date")}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">{p.approved}</TableCell>
+                    <TableCell className="text-right text-amber-600">{p.pending}</TableCell>
+                    <TableCell className="text-right font-medium">{p.remaining}</TableCell>
+                    <TableCell className="max-w-[22rem]">
+                      <div className="flex flex-wrap gap-1">
+                        {p.dates.length === 0 ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          p.dates.map((d, i) => (
+                            <Badge
+                              key={`${d.label}-${i}`}
+                              variant="outline"
+                              className={
+                                d.status === "requested"
+                                  ? "border-amber-500/40 text-amber-600"
+                                  : undefined
+                              }
+                            >
+                              {d.label} ({d.days})
+                            </Badge>
+                          ))
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* The rules every number above is calculated against */}
+      <HolidayPolicyCard canEdit={staffRole === "super_admin"} />
 
       {/* All Holidays Table */}
       <Card>

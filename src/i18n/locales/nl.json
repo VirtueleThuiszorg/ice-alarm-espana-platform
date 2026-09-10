@@ -5833,6 +5833,13 @@
     "escalationHelp": "If no chain is configured, the escalation runner falls back to on-call staff sorted by escalation priority."
   },
   "holidays": {
+    "perPerson": "Per persoon, {{year}}",
+    "downloadCsv": "CSV downloaden",
+    "entitlement": "Recht",
+    "prorated": "pro rata",
+    "noHireDate": "geen datum in dienst",
+    "shortNotice": "Begint over {{days}} dagen — minder dan de {{threshold}} dagen die art. 38.3 ET verwacht",
+    "shortNoticeStarted": "Al begonnen — {{days}} dagen geleden",
     "title": "Staff Holidays",
     "subtitle": "Manage holiday requests and staff leave balances.",
     "staffSubtitle": "Request time off and view your holiday balance.",

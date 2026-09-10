@@ -19,8 +19,8 @@ main cannot drift from the code in main. To change a row, change the wire or the
  9 │   6  ██
  8 │   0  
  7 │  33  █████████████
- 6 │  10  ████
- 5 │  84  ██████████████████████████████████
+ 6 │   9  ████
+ 5 │  85  ██████████████████████████████████
  4 │  49  ████████████████████
  3 │   0  
  2 │   0  
@@ -28,7 +28,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   1  
 ```
 
-191 distinct wires across 653 call sites and 110 routes.
+191 distinct wires across 654 call sites and 110 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
@@ -63,7 +63,7 @@ things, and a control with no wire cannot do anything:
 
 | kind | what it is | call sites |
 |---|---|---:|
-| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 347 |
+| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 348 |
 | `fn` | `supabase.functions.invoke(f)` — an edge function | 87 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 5 |
 | `channel` | `postgres_changes` — a realtime subscription | 51 |
@@ -193,6 +193,7 @@ The checks, verified on every build:
 | **5** | `table:conversation_messages` | Isabella conversation turns — the assistant's reply appears as it is produced | conversation_messages | self | — | none | 2 |
 | **5** | `table:documentation` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | toast | none | 1 |
 | **5** | `table:emergency_contacts` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 3 |
+| **5** | `table:member_notification_optin` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 2 |
 | **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 10 |
 | **5** | `table:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 3 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
@@ -201,7 +202,6 @@ The checks, verified on every build:
 | **6** | `table:ai_agent_configs` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
 | **6** | `table:ai_agents` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | toast | none | 2 |
 | **6** | `table:ai_memory` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
-| **6** | `table:member_notification_optin` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | mutation onError | none | 1 |
 | **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
 | **9** | `table:conversations` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 8 |
 | **9** | `table:messages` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 7 |
@@ -377,6 +377,7 @@ The checks, verified on every build:
 | **5** | `table:medical_information` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 2 |
 | **5** | `table:member_contact_methods` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 1 |
 | **5** | `table:member_notes` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 3 |
+| **5** | `table:member_notification_optin` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 2 |
 | **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 10 |
 | **5** | `table:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 3 |
 | **5** | `table:outreach_crm_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 3 |
@@ -1842,6 +1843,19 @@ The home-location pin (2026-09-10) is a direct staff write to `members`, and wha
 
 The home-location pin (2026-09-10) is a direct staff write to `members`, and what stops it lying is not this component: `guard_member_home_location()` forces a staff write to be source='staff_pin', stamps set_at/set_by, and refuses a provenance-only edit. The SOS card labels a staff_pin differently from a member confirmation, so the trigger is what makes that label true. Proven by execution in scripts/rls/isolation.sql.
 
+### `table:member_notification_optin` — 5/10 (arrives, unproven)
+
+- **control** Member edits their emergency contacts, medical information, notification opt-in
+- **promised** this is what an operator will see when you press the pendant
+- **goes to** emergency_contacts / medical_information / member_notification_optin
+- **who is told** self
+- **failure shown to user** no
+- **proof** none — capped at 6
+- **routes** /admin/crm-import, /dashboard/profile
+- **call sites** src/hooks/useMemberNotificationOptin.ts, src/lib/crmImportDb.ts
+
+Life-safety data with no notification owed — the member is the actor. What it DOES need is proof that an operator can read it and a stranger cannot; the RLS harness covers the isolation half, and the end-to-end half is unproven, so 5.
+
 ### `table:members` — 5/10 (arrives, unproven)
 
 - **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin
@@ -2354,19 +2368,6 @@ Split from the gate above: `isabellaGate` proves the hard blocks, not that a pro
 - **call sites** src/hooks/useAIAgents.ts
 
 Split from the gate above: `isabellaGate` proves the hard blocks, not that a prompt saved in this UI reaches the database and is the one she reads. Citing it here would have been the register scoring itself on an adjacent test.
-
-### `table:member_notification_optin` — 6/10 (arrives, unproven)
-
-- **control** Member edits their emergency contacts, medical information, notification opt-in
-- **promised** this is what an operator will see when you press the pendant
-- **goes to** emergency_contacts / medical_information / member_notification_optin
-- **who is told** self
-- **failure shown to user** mutation onError
-- **proof** none — capped at 6
-- **routes** /dashboard/profile
-- **call sites** src/hooks/useMemberNotificationOptin.ts
-
-Life-safety data with no notification owed — the member is the actor. What it DOES need is proof that an operator can read it and a stranger cannot; the RLS harness covers the isolation half, and the end-to-end half is unproven, so 5.
 
 ### `table:payments` — 6/10 (arrives, unproven)
 

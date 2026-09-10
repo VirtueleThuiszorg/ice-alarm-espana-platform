@@ -1419,6 +1419,9 @@ export type Database = {
           department: string | null
           groups: string[] | null
           industry: string | null
+          legacy_date_joined: string | null
+          legacy_membership_type: string | null
+          legacy_payment_type: string | null
           member_id: string
           referral_source: string | null
           stage: string | null
@@ -1431,6 +1434,9 @@ export type Database = {
           department?: string | null
           groups?: string[] | null
           industry?: string | null
+          legacy_date_joined?: string | null
+          legacy_membership_type?: string | null
+          legacy_payment_type?: string | null
           member_id: string
           referral_source?: string | null
           stage?: string | null
@@ -1443,6 +1449,9 @@ export type Database = {
           department?: string | null
           groups?: string[] | null
           industry?: string | null
+          legacy_date_joined?: string | null
+          legacy_membership_type?: string | null
+          legacy_payment_type?: string | null
           member_id?: string
           referral_source?: string | null
           stage?: string | null

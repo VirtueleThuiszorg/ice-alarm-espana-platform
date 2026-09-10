@@ -49,6 +49,7 @@ interface FakeMember {
   row: Record<string, unknown>;
   contacts: ContactInsert[];
   medical: Record<string, unknown> | null;
+  emailOptIn: boolean;
   contactMethods: { type: string; value: string }[];
   devices: { imei: string }[];
   notes: string[];
@@ -69,6 +70,7 @@ class FakeDb implements ImportDb {
       row: { ...row },
       contacts: [],
       medical: null,
+      emailOptIn: false,
       contactMethods: [],
       devices: [],
       notes: [],
@@ -117,6 +119,7 @@ class FakeDb implements ImportDb {
       row: { ...row } as Record<string, unknown>,
       contacts: [],
       medical: null,
+      emailOptIn: false,
       contactMethods: [],
       devices: [],
       notes: [],
@@ -147,6 +150,15 @@ class FakeDb implements ImportDb {
   async insertContactMethod(memberId: string, method: { type: "phone" | "email"; value: string }) {
     this.writes.push(`insertContactMethod ${memberId} ${method.type} ${method.value}`);
     this.mustFind(memberId).contactMethods.push({ type: method.type, value: method.value });
+  }
+
+  async hasEmailOptIn(memberId: string) {
+    return this.mustFind(memberId).emailOptIn;
+  }
+
+  async insertEmailOptIn(memberId: string) {
+    this.writes.push(`insertEmailOptIn ${memberId}`);
+    this.mustFind(memberId).emailOptIn = true;
   }
 
   async hasMedical(memberId: string) {
@@ -584,5 +596,47 @@ describe("a row that cannot be a member", () => {
     // A crm_contact plan has no MemberInsert, so there is nothing to patch from.
     expect(result.action).toBe("unchanged");
     expect(db.crmContacts).toEqual([]);
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Consent, once, and never flipped back
+ * ------------------------------------------------------------------ */
+
+describe("the email consent the CRM recorded", () => {
+  it("is written once for the row that said Yes", async () => {
+    const db = new FakeDb();
+    const plan = byId("9007");
+    expect(plan.emailContactConsent).toBe(true);
+    const first = await applyRowPlan(db, plan);
+    expect(first.emailOptInCreated).toBe(true);
+    const second = await applyRowPlan(db, plan);
+    expect(second.emailOptInCreated).toBe(false);
+    expect(db.writes.filter((w) => w.startsWith("insertEmailOptIn")).length).toBe(1);
+  });
+
+  it("is not written for a row whose cell was not a clear yes", async () => {
+    const db = new FakeDb();
+    // 9008 has no email of its own, so make it a member first — the question under test is the
+    // consent flag, not whether the row can be a member.
+    const plan = withEmail(byId("9008"), "brenda.colefax@example.com");
+    expect(plan.emailContactConsent).toBe(false);
+    const result = await applyRowPlan(db, plan);
+    expect(result.emailOptInCreated).toBe(false);
+    expect(db.writes.filter((w) => w.startsWith("insertEmailOptIn"))).toEqual([]);
+  });
+
+  it("never overwrites a member who has since said no", async () => {
+    // The case the guard exists for: staff record a refusal, then somebody re-runs the file.
+    // The guard is "has a row at all", not "has an opted-in row", precisely so a recorded NO
+    // survives the next import.
+    const db = new FakeDb();
+    const plan = byId("9007");
+    await applyRowPlan(db, plan);
+    db.members[0].emailOptIn = true; // a row exists — say it now reads opted_in = false
+    const before = db.writes.length;
+    const again = await applyRowPlan(db, plan);
+    expect(again.emailOptInCreated).toBe(false);
+    expect(db.writes.length).toBe(before);
   });
 });

@@ -280,10 +280,29 @@ describe("A5 / A6 — a stale price and an abandoned checkout tell nobody", () =
 });
 
 // ── the checks are real: break one and the build fails ────────────────────
+/**
+ * These five tests each SPAWN the register generator over the whole repo, two or three times —
+ * plant a probe file, build, remove it, build again. That is seconds of real work per test, and
+ * vitest's default 5s budget was never sized for it: the three that build more than once began
+ * failing with "Test timed out in 5000ms" as the suite grew and the workers began competing for
+ * CPU. Proven by running this file alone with `--testTimeout=2500`, which fails exactly those
+ * same tests and no others.
+ *
+ * So the budget is stated here rather than left to the default. It cannot hide a real failure —
+ * a refusal the generator should have made and did not still fails the assertion — and it is
+ * per-test rather than a config-wide bump, which would have quietly given every other test in
+ * the suite a minute to be slow in.
+ *
+ * A MINUTE AND NOT THIRTY SECONDS: one of these builds was measured at 256s on a box running
+ * five suites at once. A minute is generous where the suite runs alone, as it does in CI, and
+ * still bounded — a generator that hangs fails the test rather than stalling the run.
+ */
+const SPAWNS_THE_GENERATOR = 60_000;
+
 describe("the absence checks bite", () => {
   it("the generator passes as things stand", () => {
     expect(build().code).toBe(0);
-  });
+  }, SPAWNS_THE_GENERATOR);
 
   it("and FAILS when an absence claim stops holding", () => {
     /*
@@ -308,7 +327,7 @@ describe("the absence checks bite", () => {
       execFileSync("rm", ["-f", planted]);
     }
     expect(build().code).toBe(0);
-  });
+  }, SPAWNS_THE_GENERATOR);
 
   it("a pair check bites when the notifier comes BEFORE the event", () => {
     /*
@@ -333,7 +352,7 @@ describe("the absence checks bite", () => {
       execFileSync("rm", ["-f", planted]);
     }
     expect(build().code).toBe(0);
-  });
+  }, SPAWNS_THE_GENERATOR);
 
   it("a pair check bites too — a notifier next to the abandoned-order case", () => {
     const planted = join(ROOT, "supabase/functions/_shared/__absence_probe_pair.ts");
@@ -350,14 +369,14 @@ describe("the absence checks bite", () => {
       execFileSync("rm", ["-f", planted]);
     }
     expect(build().code).toBe(0);
-  });
+  }, SPAWNS_THE_GENERATOR);
 
   it("and it reads CODE, not the prose about it", () => {
     // isabella-gate's header names ai-dispatch-events in a comment; A1 must survive that, or
     // the check would be unusable in the file that documents the defect.
     expect(read("supabase/functions/_shared/isabella-gate.ts")).toContain("ai-dispatch-events");
     expect(build().code).toBe(0);
-  });
+  }, SPAWNS_THE_GENERATOR);
 });
 
 // ── the register is GENERATED, so a hand-merge is a detectable defect ─────

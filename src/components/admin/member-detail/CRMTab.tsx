@@ -22,6 +22,9 @@ interface CRMProfile {
   groups: string[] | null;
   updated_at: string;
   assigned_to_staff_id: string | null;
+  legacy_membership_type: string | null;
+  legacy_payment_type: string | null;
+  legacy_date_joined: string | null;
 }
 
 interface ImportRow {
@@ -260,6 +263,44 @@ export function CRMTab({ memberId }: CRMTabProps) {
                 </div>
               )}
             </div>
+
+            {/* What KARMA billed them, which is not what this platform charges. Shown as its own
+                block with that said on it, because a membership type beside a stage reads like a
+                plan this system owns — and acting on it as one is how somebody gets treated as
+                paying for a subscription that does not exist here. Rendered only when there is
+                something to show: an empty "Legacy billing" heading on 300 records is noise. */}
+            {(profile.legacy_membership_type ||
+              profile.legacy_payment_type ||
+              profile.legacy_date_joined) && (
+              <>
+                <Separator />
+                <div data-testid="crm-legacy-membership">
+                  <p className="text-sm font-medium mb-1">From KarmaCRM</p>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    What Karma recorded, verbatim. Not a subscription this platform charges — see
+                    Payments for that.
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Membership type</p>
+                      <p className="font-medium">{profile.legacy_membership_type || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Payment type</p>
+                      <p className="font-medium">{profile.legacy_payment_type || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Joined</p>
+                      <p className="font-medium">
+                        {profile.legacy_date_joined
+                          ? new Date(profile.legacy_date_joined).toLocaleDateString()
+                          : "-"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
 
             {profile.tags && profile.tags.length > 0 && (
               <>

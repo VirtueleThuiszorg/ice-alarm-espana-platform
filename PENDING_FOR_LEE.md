@@ -36,24 +36,84 @@
 > ```
 >
 > **Nothing was applied** — `db push` was skipped, the manifest was not touched, and the job went
-> red, which is what it is supposed to do. Run #2 (9 Sep) linked and pushed fine with the same
-> workflow, so this is the CREDENTIAL, not the code: `SUPABASE_ACCESS_TOKEN` has expired, been
-> revoked, or belongs to an account that no longer has access to `crpsuhoixfdhjugprbuc`.
+> red, which is what it is supposed to do.
 >
-> **THE FIX, and only you can do it.** Create a new personal access token at
-> <https://supabase.com/dashboard/account/tokens> from an account with access to that project,
-> then replace the repository secret `SUPABASE_ACCESS_TOKEN` (Settings → Secrets and variables →
-> Actions). Check `SUPABASE_PROJECT_REF` is `crpsuhoixfdhjugprbuc` while you are there. Then
-> re-run the failed run from the Actions tab — it is idempotent, so re-running is safe.
+> ### ⚠️ CORRECTED 2026-09-10, 13:55 — the token is NOT dead, and the earlier diagnosis was wrong
+>
+> This section first said `SUPABASE_ACCESS_TOKEN` had "expired, been revoked, or belongs to an
+> account that no longer has access to `crpsuhoixfdhjugprbuc`". **The evidence contradicts that**,
+> and it was there to be read at the time:
+>
+> | run | time | step | secret used | result |
+> |---|---|---|---|---|
+> | #3 | 12:06 | `supabase link --project-ref "$SUPABASE_PROJECT_REF"` | `SUPABASE_ACCESS_TOKEN` | **failed** — "Authorization failed for the access token and project ref pair" |
+> | #6 | 12:52 | `supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"` | the **same** `SUPABASE_ACCESS_TOKEN`, the **same** `SUPABASE_PROJECT_REF` | **succeeded** — every edge function deployed to that project |
+>
+> Forty-six minutes apart, one token, one project ref: one endpoint refused it and the other
+> accepted it and wrote to production. So the token is live and the account does reach the
+> project. What is refused is specific to the endpoint `supabase link` calls — a scope or an
+> organisation-level privilege that `functions deploy` does not need.
+>
+> (Runs #4, #5 and #6 all show "success" for the same reason and it means less than it looks:
+> their **Apply migrations** job was *skipped* because those pushes touched no migration file.
+> A green Migrate Production run is not evidence that migrating works.)
+>
+> ### THE FIX — two routes, and the choice is yours
+>
+> **A. A token with the missing privilege.** Create a new personal access token at
+> <https://supabase.com/dashboard/account/tokens> from an account that owns the project's
+> organisation, and replace the secret (Settings → Secrets and variables → Actions). Then re-run
+> run #3 from the Actions tab — it is idempotent, so re-running is safe.
+>
+> **B. BUILT — the workflow no longer depends on that endpoint.** `migrate.yml` now tries
+> `supabase link` first and, when it is refused, writes the two files `link` would have written
+> (the project ref and the IPv4 **pooler** connection string) into the gitignored
+> `supabase/.temp/`, probes the pooler READ-ONLY, and then runs the rest of the job exactly as
+> before — still `--linked`, still reading the password from the environment, never on a command
+> line. It emits a loud `::warning::` whenever the fallback is used, because a fallback that
+> quietly rescues a broken credential is how a broken credential stays broken.
+>
+> Established rather than assumed, since the first version of this note was a guess:
+> `db.crpsuhoixfdhjugprbuc.supabase.co` has **no A record** (direct connections are IPv6-only and
+> GitHub runners are IPv4), which is exactly why `link` is what fetches the pooler URL; both
+> `aws-0-` and `aws-1-eu-west-1.pooler.supabase.com` resolve, so the workflow probes each rather
+> than betting on one; and `SUPABASE_DB_URL` is **not** read from the environment by the CLI, so
+> the connection genuinely has to come from either the API or those files.
+>
+> **A is still wanted.** B gets migrations flowing again; it does not restore the Management API,
+> which `supabase link` and anything else API-shaped still needs. Please do A when you can.
+>
+> Either way, check `SUPABASE_PROJECT_REF` is `crpsuhoixfdhjugprbuc` while you are in there.
 >
 > **What is stranded, and what it means until then:**
 >
 > | Migration | Effect of it not being applied |
 > |---|---|
 > | `20260910120000_holidays_2026_backfill_before_cut.sql` | The 2026 holidays taken **before** 2026-09-10 are missing from every balance. Mary reads 4 days used instead of 18, Carmen 9 instead of 28, Albert 4 instead of 16 — so a supervisor approving November sees roughly 21 days left for Carmen when she has **2**. It also has not set the four entitlements to 30 explicitly. Rehearsed on a local PostgreSQL 16 before merge: 16 ranges imported, 2 entitlements lifted, and the year then reads Albert 16/30, Carmen 28/30, Mary 18/30 — remaining **14 / 2 / 12** |
+> | `20260910130000_shift_swap_apply_and_bell.sql` **(not merged — PR #306)** | The swap/cover flow's schema: `apply_shift_swap`, the bell trigger, the `wants_exchange` column and the three router events. Written and proven (558 RLS assertions on a local PostgreSQL 16), and **not merged**, because the drift gate refuses to stack a second unapplied migration on the one above — see the note under this table |
+> | `20260910130100_shift_swap_router_emit.sql` **(not merged — PR #306)** | The pg_net trigger that queues the swap events to `notify-staff`, so the push leaves the building. Same PR, same reason |
 >
 > `main`'s **drift gate is legitimately RED** until the token is replaced and the run re-run. That
 > is the gate doing its job: production trails `main` by one migration.
+>
+> **AND IT IS NOW HOLDING A SECOND PR SHUT — deliberately.** The gate has two halves: on `main`
+> any pending migration fails it, while on a PR it fails only when the PR STACKS a migration on
+> top of a pending one. **PR #306** (the swap and cover flow, rota brief §3) does exactly that, so
+> its drift gate is red with:
+>
+> ```
+> ✗ MIGRATION STACKING
+> 1 migration(s) are already pending, and this PR adds 2 more on top
+> Merge that first, then this. Stacking a second unapplied migration is how production fell 24 behind.
+> ```
+>
+> Everything else on #306 is green — tests, lint, type check, build, wiring register, security
+> audit — and the RLS harness passes 558 assertions locally. It has **not been merged**, because
+> the one gate that is red is the gate whose entire purpose is to stop this, and both July outages
+> came from pressing merge on a PR whose guard test was already red.
+>
+> **So replacing the token now unblocks two things, in this order:** the holiday balances go
+> right, and #306 becomes mergeable. Nothing else is needed from you for either.
 >
 > **One honest limitation this exposed.** `scripts/ci/require-secrets.mjs` checks a secret is
 > PRESENT, not that it still works — so the run got as far as the CLI before failing. A cheap

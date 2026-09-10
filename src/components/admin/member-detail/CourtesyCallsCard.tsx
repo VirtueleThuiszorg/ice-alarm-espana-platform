@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Phone, Calendar, Clock, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { EditableCard } from "@/components/admin/member-detail/EditableCard";
+import { EditableCard } from "@/components/EditableCard";
 import { logMemberActivity } from "@/lib/auditLog";
 import { dbMessage } from "@/lib/dbMessage";
 import { Switch } from "@/components/ui/switch";

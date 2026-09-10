@@ -4486,6 +4486,193 @@ SELECT pg_temp.check(
 
 
 -- ============================================================
+--  Legacy members: pending_review, and the THIRD route to active
+-- ============================================================
+--
+-- The CRM import writes 431 people who wear pendants and pay outside Stripe. They arrive
+-- `pending_review` + `billing_source = 'legacy'`, and a supervisor confirms them. So `active`
+-- now has three routes and this section asserts that it has exactly those three:
+--
+--   the payment webhook            (no auth.uid())          — asserted above
+--   staff, WITH a paid subscription (a reinstatement)        — asserted above
+--   confirm_legacy_member()         (a supervisor's decision) — asserted here
+--
+-- and that a plain UPDATE to active by staff is still refused for a member with no payment,
+-- which is the whole point: the import must not be able to activate anybody, and neither must a
+-- dropdown.
+
+INSERT INTO auth.users (id, email) VALUES
+  ('d1000000-0000-0000-0000-00000000000a', 'legacy-admin@example.com'),
+  ('d1000000-0000-0000-0000-00000000000b', 'legacy-super@example.com'),
+  ('d1000000-0000-0000-0000-00000000000c', 'legacy-operator@example.com');
+
+INSERT INTO public.staff (id, user_id, email, first_name, last_name, role) VALUES
+  ('d1a00000-0000-0000-0000-00000000000a', 'd1000000-0000-0000-0000-00000000000a',
+   'legacy-admin@example.com', 'Lena', 'Admin', 'admin'),
+  ('d1a00000-0000-0000-0000-00000000000b', 'd1000000-0000-0000-0000-00000000000b',
+   'legacy-super@example.com', 'Sue', 'Pervisor', 'call_centre_supervisor'),
+  ('d1a00000-0000-0000-0000-00000000000c', 'd1000000-0000-0000-0000-00000000000c',
+   'legacy-operator@example.com', 'Olu', 'Erator', 'call_centre');
+
+-- Two imported members, exactly as the import leaves them: no subscription anywhere.
+INSERT INTO public.members
+  (id, first_name, last_name, email, phone, date_of_birth, address_line_1, city, province,
+   postal_code, status, billing_source)
+VALUES
+  ('d1e00000-0000-0000-0000-00000000000a', 'Imported', 'One', 'legacy-one@example.com',
+   '+34600200001', '1938-05-05', '1 Calle Legacy', 'Malaga', 'Malaga', '29001',
+   'pending_review', 'legacy'),
+  ('d1e00000-0000-0000-0000-00000000000b', 'Imported', 'Two', 'legacy-two@example.com',
+   '+34600200002', '1939-06-06', '2 Calle Legacy', 'Malaga', 'Malaga', '29001',
+   'pending_review', 'legacy');
+
+SELECT pg_temp.check(
+  'an imported member arrives pending_review with billing_source legacy, NOT active',
+  (SELECT status::text = 'pending_review' AND billing_source = 'legacy'
+     FROM public.members WHERE id = 'd1e00000-0000-0000-0000-00000000000a'),
+  'golden rule 4: the import has witnessed no payment, so it may not activate anybody');
+
+SELECT pg_temp.check(
+  'a NEW member defaults to billing_source stripe, so nothing is exempted from renewal by accident',
+  (SELECT billing_source = 'stripe' FROM public.members
+    WHERE id = 'b1e00000-0000-0000-0000-00000000000a'),
+  'a default of legacy would quietly stop renewal firing for every member created by checkout');
+
+-- ── who may confirm ───────────────────────────────────────────────────────────
+
+SELECT pg_temp.check(
+  'a CALL-CENTRE OPERATOR CANNOT confirm a legacy member',
+  pg_temp.raises_as('d1000000-0000-0000-0000-00000000000c',
+    'SELECT public.confirm_legacy_member(''d1e00000-0000-0000-0000-00000000000a'')'),
+  'an operator can see somebody is waiting; deciding that they pay us outside Stripe is not theirs');
+
+SELECT pg_temp.check(
+  'nor can a MEMBER, on their own record',
+  pg_temp.raises_as('b1000000-0000-0000-0000-00000000000a',
+    'SELECT public.confirm_legacy_member(''d1e00000-0000-0000-0000-00000000000a'')'));
+
+SELECT pg_temp.check(
+  'CONTROL: the refusals left the member pending_review',
+  (SELECT status::text FROM public.members
+    WHERE id = 'd1e00000-0000-0000-0000-00000000000a') = 'pending_review',
+  'a guard that raises and still writes is worse than no guard');
+
+-- ── the plain UPDATE, which is the route this must close ──────────────────────
+
+SELECT pg_temp.check(
+  'a SUPERVISOR cannot set a legacy member active by a plain UPDATE',
+  pg_temp.raises_as('d1000000-0000-0000-0000-00000000000b',
+    'UPDATE public.members SET status = ''active''
+      WHERE id = ''d1e00000-0000-0000-0000-00000000000a'''),
+  'the confirm function exists so the act is recorded; a bare UPDATE records nothing');
+
+SELECT pg_temp.check(
+  'nor an ADMIN',
+  pg_temp.raises_as('d1000000-0000-0000-0000-00000000000a',
+    'UPDATE public.members SET status = ''active''
+      WHERE id = ''d1e00000-0000-0000-0000-00000000000a'''));
+
+-- ── and the one route that works ──────────────────────────────────────────────
+
+DO $legacy$
+DECLARE
+  v_status text;
+  v_source text;
+  v_logs   int;
+BEGIN
+  PERFORM set_config('request.jwt.claims',
+    json_build_object('sub', 'd1000000-0000-0000-0000-00000000000b', 'role', 'authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  PERFORM public.confirm_legacy_member('d1e00000-0000-0000-0000-00000000000a',
+                                       'pays Mary by standing order');
+  RESET ROLE;
+
+  SELECT status::text, billing_source INTO v_status, v_source
+    FROM public.members WHERE id = 'd1e00000-0000-0000-0000-00000000000a';
+
+  PERFORM pg_temp.check(
+    'a SUPERVISOR confirming leaves the member active + legacy',
+    v_status = 'active' AND v_source = 'legacy',
+    format('got status=%s billing_source=%s', v_status, v_source));
+
+  SELECT count(*) INTO v_logs FROM public.activity_logs
+   WHERE entity_id = 'd1e00000-0000-0000-0000-00000000000a'
+     AND action = 'member.legacy_confirmed'
+     AND staff_id = 'd1a00000-0000-0000-0000-00000000000b';
+
+  PERFORM pg_temp.check(
+    'and writes an activity_logs row naming WHO did it',
+    v_logs = 1,
+    'an activation with nobody''s name against it is the thing the confirm function exists to prevent');
+END $legacy$;
+
+SELECT pg_temp.check(
+  'the confirmation records the reason it was given',
+  (SELECT reason FROM public.activity_logs
+    WHERE entity_id = 'd1e00000-0000-0000-0000-00000000000a'
+      AND action = 'member.legacy_confirmed') = 'pays Mary by standing order');
+
+SELECT pg_temp.check(
+  'the bell reaches admins and supervisors and NOT the operator',
+  (SELECT count(*) FROM public.notification_log n
+     JOIN public.staff s ON s.user_id = n.admin_user_id
+    WHERE n.entity_id = 'd1e00000-0000-0000-0000-00000000000a'
+      AND n.event_type = 'member.legacy_confirmed'
+      AND s.role = 'call_centre') = 0
+  AND (SELECT count(*) FROM public.notification_log
+        WHERE entity_id = 'd1e00000-0000-0000-0000-00000000000a'
+          AND event_type = 'member.legacy_confirmed') > 0,
+  'targeted rows only: a broadcast row is cleared for everybody by the first person to read it');
+
+SELECT pg_temp.check(
+  'confirming a SECOND time is refused — the member is no longer pending_review',
+  pg_temp.raises_as('d1000000-0000-0000-0000-00000000000b',
+    'SELECT public.confirm_legacy_member(''d1e00000-0000-0000-0000-00000000000a'')'),
+  'idempotent by refusal rather than by writing the same row twice, so a double click cannot '
+  'produce two audit rows claiming two decisions');
+
+-- ── the permission slip does not leak ─────────────────────────────────────────
+--
+-- The GUC carries the member id, not a boolean. So a confirmation of member B in a transaction
+-- must not let a bare UPDATE activate member A in the same transaction. This is the assertion
+-- that makes the id-not-a-flag choice worth making.
+
+DO $leak$
+DECLARE
+  v_raised boolean := false;
+BEGIN
+  PERFORM set_config('request.jwt.claims',
+    json_build_object('sub', 'd1000000-0000-0000-0000-00000000000b', 'role', 'authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  PERFORM public.confirm_legacy_member('d1e00000-0000-0000-0000-00000000000b');
+  BEGIN
+    UPDATE public.members SET status = 'active'
+     WHERE id = 'd1e00000-0000-0000-0000-00000000000a' AND status <> 'active';
+    -- Nothing matched is not a pass: force a row so the guard has to run.
+    UPDATE public.members SET status = 'suspended'
+     WHERE id = 'd1e00000-0000-0000-0000-00000000000a';
+    UPDATE public.members SET status = 'active'
+     WHERE id = 'd1e00000-0000-0000-0000-00000000000a';
+  EXCEPTION WHEN OTHERS THEN
+    v_raised := true;
+  END;
+  RESET ROLE;
+
+  PERFORM pg_temp.check(
+    'confirming ONE member does not unlock a plain UPDATE on ANOTHER in the same transaction',
+    v_raised,
+    'the GUC carries the member id rather than a boolean, and this is why');
+END $leak$;
+
+SELECT pg_temp.check(
+  'the guard still names the paid-subscription route, which this migration must not have lost',
+  (SELECT regexp_replace(prosrc, '--[^' || chr(10) || ']*', '', 'g') LIKE '%past_due%'
+      AND regexp_replace(prosrc, '--[^' || chr(10) || ']*', '', 'g') LIKE '%confirming_legacy_member%'
+     FROM pg_proc WHERE proname = 'guard_member_status_self_write'),
+  'replacing a function body is how a rule written three migrations ago disappears');
+
+
+-- ============================================================
 --  notify-staff: preferences, routes, devices, and the log's channel
 -- ============================================================
 --
@@ -4513,14 +4700,27 @@ INSERT INTO public.staff (id, user_id, email, first_name, last_name, role, perso
 -- ── the seed is a set of ROWS, and the right ones ──────────────────────────
 -- The counts below compare against `notification_routes` rather than a literal, so extending
 -- the event list does not redden the suite for a reason nobody can act on. THIS assertion is
--- what stops that being vacuous: the routes table has to be the real 22 x 4.
+-- what stops that being vacuous: the routes table has to be the real 23 x 4.
 SELECT pg_temp.check(
-  'the routes table carries every event type x every channel — 22 x 4',
-  (SELECT count(*) FROM public.notification_routes) = 88
-  AND (SELECT count(DISTINCT event_type) FROM public.notification_routes) = 22
+  'the routes table carries every event type x every channel — 23 x 4',
+  (SELECT count(*) FROM public.notification_routes) = 92
+  AND (SELECT count(DISTINCT event_type) FROM public.notification_routes) = 23
   AND (SELECT count(DISTINCT channel) FROM public.notification_routes) = 4,
   'the eight this router was built for, the eleven notify-admin already sends, the three swap '
-  'events, and `test`');
+  'events, member.legacy_confirmed, and `test`');
+
+-- And the new one has a row per channel rather than a hole, for the same reason the swap events
+-- are named below: 92 rows and 23 distinct events would also be satisfied by one event missing a
+-- channel and another having it twice.
+SELECT pg_temp.check(
+  'member.legacy_confirmed has all four channels, push on and the paid three off',
+  (SELECT count(*) FROM public.notification_routes
+    WHERE event_type = 'member.legacy_confirmed') = 4
+  AND (SELECT bool_and(enabled) FROM public.notification_routes
+        WHERE event_type = 'member.legacy_confirmed' AND channel = 'push')
+  AND NOT (SELECT bool_or(enabled) FROM public.notification_routes
+            WHERE event_type = 'member.legacy_confirmed' AND channel <> 'push'),
+  'a confirmation is not worth a per-message bill; the bell and push are where it belongs');
 
 -- A ROW PER CHANNEL FOR THE SWAP EVENTS, not a hole. The count above would be satisfied by 22
 -- distinct events and 88 rows even if one event were missing a channel and another had it twice,

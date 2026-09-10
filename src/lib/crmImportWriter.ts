@@ -50,7 +50,8 @@ export interface MemberInsert {
   postal_code: string;
   country: string;
   address_line_2: string | null;
-  status: "inactive";
+  status: "pending_review";
+  billing_source: "legacy";
   special_instructions: string | null;
   nie_dni: string | null;
   gender: string | null;
@@ -165,29 +166,29 @@ const REQUIRED_MEMBER_FIELDS: { key: string; label: string }[] = [
 ];
 
 /**
- * MEMBERS IMPORTED FROM THE CRM ARE `inactive`, AND THAT IS DELIBERATE.
+ * AN IMPORTED MEMBER IS `pending_review` + `billing_source = 'legacy'`.
  *
- * The goal asks for "the fulfilment model's legacy-member state". There is no such state:
- * `member_status` is ('active','inactive','suspended') and `fulfilment_state` is about a pendant
- * order, not a person. So a choice had to be made, and it is documented here rather than buried.
+ * They were `inactive` until Lee's ruling of 2026-09-10 (PENDING_FOR_LEE D-19 item 2), because
+ * `member_status` had nothing better and golden rule 4 forbids `active`. `inactive` was honest
+ * about the payment and wrong about the person: an inactive member is one nobody is watching,
+ * and these 431 people are wearing the pendant tonight.
  *
- * `active` is not available. Golden rule 4: a member is activated by the payment webhook and by
- * nothing else. These 431 people have no Stripe or Mollie record in this platform — whatever
- * Karma says about them, this system has never seen them pay it. Writing `active` would be the
- * import asserting a payment it has no evidence for, and `subscriptions.status='active'` with no
- * subscription row is precisely the impossible state production was already found in.
+ * `pending_review` says what is true — a real client, whose billing this platform has never
+ * seen — and `billing_source = 'legacy'` is what lets them become active later without
+ * weakening golden rule 4. An active legacy member is monitored; only `stripe` means there is a
+ * subscription here to renew, dun or cancel, so renewal logic reads the SOURCE and never fires
+ * at somebody who pays Mary in cash.
  *
- * `suspended` would be wrong in the other direction: it means a live member who is on hold.
- *
- * So: `inactive`, plus the verbatim Karma status on the CRM profile, so nothing is lost and a
- * human can see "Active Member in Karma" beside "inactive here". They become active when a
- * payment arrives, which is the only thing that has ever been allowed to do it.
- *
- * The better long-term answer is a `legacy` value on `member_status`, so these are visibly
- * neither new nor cancelled. That needs a migration, and three are already unapplied — adding a
- * fourth would fail the drift gate's stacking rule. Recorded for Lee instead.
+ * WHAT THIS DOES NOT DO, AND MUST NOT: it does not set anybody active. `active` is reachable
+ * only through the payment webhook, a staff reinstatement of a member who already has a paid
+ * subscription, or `confirm_legacy_member()` — a supervisor's decision, recorded with their
+ * name against it. `guard_member_status_self_write` refuses everything else, including this
+ * import, and `scripts/rls/isolation.sql` asserts the refusal.
  */
-const IMPORTED_MEMBER_STATUS = "inactive" as const;
+const IMPORTED_MEMBER_STATUS = "pending_review" as const;
+
+/** Paid outside Stripe. Never `stripe`: this platform has no record of any of them paying it. */
+const IMPORTED_BILLING_SOURCE = "legacy" as const;
 
 export function planRowWrites(row: MappedRow): RowPlan {
   const warnings = [...row.warnings];
@@ -342,6 +343,7 @@ export function planRowWrites(row: MappedRow): RowPlan {
             country: m.country || "Spain",
             address_line_2: m.address_line_2,
             status: IMPORTED_MEMBER_STATUS,
+            billing_source: IMPORTED_BILLING_SOURCE,
             special_instructions: m.special_instructions,
             nie_dni: m.nie_dni,
             gender: m.gender,
@@ -571,6 +573,14 @@ export function computeEmptyOnlyPatch(
 const NEVER_PATCH = new Set([
   "id",
   "status",
+  /*
+    `billing_source` belongs here for the same reason as `status`, and the omission was caught by
+    a test rather than by reading it: filling it on a member the platform ALREADY HOLDS would
+    flip a Stripe-paying member to `legacy` — and a legacy member is exempt from renewal and
+    dunning, so the platform would quietly stop chasing money it is owed. The CRM knows what
+    Karma billed; it knows nothing about what this platform bills.
+  */
+  "billing_source",
   "created_at",
   "updated_at",
   "user_id",

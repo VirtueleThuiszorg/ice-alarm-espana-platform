@@ -122,6 +122,66 @@ become invisible in 1-B. It should be a flag or a queue, and the order should st
 
 ---
 
+## 2-A. `pending_review` and `billing_source` — the members who were never in this funnel
+
+Added 2026-09-10 by Lee's ruling on `PENDING_FOR_LEE.md` D-19 item 2. Everything above this
+section describes a member who **paid this platform**: an order, a webhook, a pendant, a test
+call. The 431 people in the KarmaCRM export went through none of it. They wear pendants that were
+posted years ago and they pay Mary directly.
+
+They used to be imported `inactive`, because `member_status` had nothing better and golden rule 4
+forbids `active`. That was honest about the payment and **wrong about the person**: an inactive
+member is one nobody is watching, and these people are wearing the pendant tonight.
+
+### The three states a member's billing can be in
+
+| `status` | `billing_source` | what it means |
+|---|---|---|
+| `pending_review` | `legacy` | imported from Karma. A real client; nobody here has looked yet. **Not** monitored. |
+| `active` | `legacy` | confirmed by a supervisor. **Monitored**, billed outside Stripe. |
+| `active` | `stripe` | paid through this platform. Monitored, and there is a subscription to renew. |
+
+`billing_source` defaults to **`stripe`**, deliberately: every member created by checkout is a
+Stripe member, and a default of `legacy` would quietly exempt new members from renewal.
+
+### Why a second column rather than a fourth status
+
+Because two different questions are being asked, and one column answering both is how they get
+confused:
+
+- **Is an operator watching?** `status`. A legacy member and a Stripe member are both `active`
+  and both monitored — the SOS path must not care which.
+- **Is there a billing relationship this platform can act on?** `billing_source`. Renewal,
+  dunning and payment-failed logic read this, not the status, so they never fire at somebody who
+  pays in cash. `hasPlatformBilling()` in `src/lib/membershipCondition.ts` is the one place that
+  decides it.
+
+### And there are now exactly three routes to `active`
+
+1. **The payment webhook** — no `auth.uid()`. Unchanged, and golden rule 4 as a code path.
+2. **Staff reinstating a member who already has an `active` or `past_due` subscription** — added
+   by `20260909110000`. The subscription that unlocks it was written by the webhook, so the
+   activation still originates from a payment.
+3. **`confirm_legacy_member()`** — admin or supervisor only, `pending_review` only, writes an
+   `activity_logs` row with their name on it, and raises the `member.legacy_confirmed` bell.
+
+`guard_member_status_self_write()` refuses everything else, **including the import itself**. It
+recognises route 3 by a transaction-local GUC carrying **the member's own id** rather than a
+boolean, so one confirmation cannot unlock a second row. `scripts/rls/isolation.sql` asserts all
+of it: who may confirm, that a plain `UPDATE ... SET status='active'` by an admin or a supervisor
+is refused, that confirming member B does not unlock member A in the same transaction, and that
+route 2 survived the guard being replaced.
+
+### What a legacy member does not get
+
+No renewal date, no payment method to fix, no plan name. `MembershipCondition` gains
+`legacy_billing` for exactly that reason: folding it into `active` would send the membership page
+looking for a subscription row that does not exist, and folding it into `never_joined` would show
+the plans to somebody who has been a member since 2014 and tell them nobody is watching. The
+badge reads **"Legacy billing"**.
+
+---
+
 ## 3. Why this is a new column and not a reuse of `orders.status`
 
 `orders.status` is load-bearing for money. `delivered` **creates a €50 partner commission**

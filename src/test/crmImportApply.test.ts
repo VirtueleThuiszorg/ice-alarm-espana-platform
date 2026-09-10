@@ -254,10 +254,11 @@ describe("importing into an empty platform", () => {
     expect(db.members[0].medical).not.toBeNull();
   });
 
-  it("writes status 'inactive' and never 'active' — golden rule 4", async () => {
+  it("writes status 'pending_review' + billing_source 'legacy', never 'active' — golden rule 4", async () => {
     const db = new FakeDb();
     await applyRowPlan(db, byId("9001"));
-    expect(db.members[0].row.status).toBe("inactive");
+    expect(db.members[0].row.status).toBe("pending_review");
+    expect(db.members[0].row.billing_source).toBe("legacy");
     expect(db.snapshot()).not.toContain('"status":"active"');
   });
 
@@ -284,7 +285,8 @@ describe("importing into an empty platform", () => {
     const db = new FakeDb();
     await applyRowPlan(db, byId("9001"));
     expect(db.members[0].crmProfile?.status).toBe("Active Member");
-    expect(db.members[0].row.status).toBe("inactive");
+    expect(db.members[0].row.status).toBe("pending_review");
+    expect(db.members[0].row.billing_source).toBe("legacy");
   });
 
   it("makes no database call at all for an excluded row", async () => {
@@ -317,7 +319,8 @@ function withEmail(plan: RowPlan, email: string): RowPlan {
       postal_code: plan.parsedMember.postal_code ?? "29620",
       country: "Spain",
       address_line_2: null,
-      status: "inactive",
+      status: "pending_review",
+      billing_source: "legacy",
       special_instructions: null,
       // No pin on this fixture row: the CRM cell is empty, so all four stay null together.
       home_lat: null,

@@ -72,16 +72,16 @@ describe("nothing is invented to satisfy a NOT NULL column", () => {
 });
 
 describe("golden rule 4: an import never activates anybody", () => {
-  it("plans every member as inactive", () => {
+  it("plans every member as pending_review, never active", () => {
     const statuses = new Set(plans.filter((p) => p.member).map((p) => p.member!.status));
-    expect([...statuses]).toEqual(["inactive"]);
+    expect([...statuses]).toEqual(["pending_review"]);
   });
 
   it("puts the verbatim Karma status on the CRM profile instead of losing it", () => {
     const p = byId("9001");
     expect(p.crmProfile.status).toBe("Active Member");
     // …and that string is nowhere near members.status.
-    expect(p.member?.status).toBe("inactive");
+    expect(p.member?.status).toBe("pending_review");
   });
 
   it("plans no subscription at all", () => {

@@ -135,7 +135,10 @@ export default function MembersPage() {
       }
 
       if (statusFilter !== "all") {
-        query = query.eq("status", statusFilter as "active" | "inactive" | "suspended");
+        query = query.eq(
+          "status",
+          statusFilter as "active" | "inactive" | "pending_review" | "suspended"
+        );
       }
 
       /* Filtered in the DATABASE, not client-side after the page was cut. The plan filter above
@@ -313,6 +316,10 @@ export default function MembersPage() {
               <SelectContent>
                 <SelectItem value="all">{t("common.all")} {t("common.status")}</SelectItem>
                 <SelectItem value="active">{t("common.active")}</SelectItem>
+                {/* The state the CRM import leaves a member in: a real client whose billing this
+                    platform has never seen. Offered as a filter because "who is still waiting to
+                    be confirmed" is the queue this state creates. */}
+                <SelectItem value="pending_review">Pending review</SelectItem>
                 <SelectItem value="inactive">{t("common.inactive")}</SelectItem>
                 <SelectItem value="suspended">{t("membership.suspended")}</SelectItem>
               </SelectContent>

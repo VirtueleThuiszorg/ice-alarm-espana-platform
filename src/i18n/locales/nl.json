@@ -6462,5 +6462,39 @@
       "alreadyApplied": "Was al goedgekeurd — er is niets verplaatst",
       "approveFailed": "Kon het niet goedkeuren"
     }
+  },
+  "homeLocation": {
+    "row": {
+      "title": "Locatie van uw woning",
+      "purpose": "Hier sturen wij hulp naartoe als uw hanger niet kan doorgeven waar u bent.",
+      "setButton": "Locatie van mijn woning instellen",
+      "openInMaps": "Openen in Maps",
+      "change": "Wijzigen",
+      "setOn": "Ingesteld op {{date}}",
+      "setDateUnknown": "Wij hebben geen datum voor deze speld.",
+      "mapLabel": "Kaart met de opgeslagen locatie van uw woning"
+    },
+    "dialog": {
+      "title": "Stel de locatie van uw woning in",
+      "purpose": "Hier sturen wij hulp naartoe als uw hanger niet kan doorgeven waar u bent.",
+      "useCurrent": "Mijn huidige locatie gebruiken",
+      "accuracyOk": "Nauwkeurig tot ongeveer {{metres}} meter.",
+      "accuracyTooLow": "Uw telefoon kon u slechts tot ongeveer {{metres}} meter nauwkeurig bepalen, en dat is niet nauwkeurig genoeg — gaat u bij uw voordeur staan en probeert u het opnieuw.",
+      "permissionDenied": "Uw apparaat heeft ons niet toegestaan uw locatie te lezen. U kunt de speld hieronder zelf op de kaart zetten.",
+      "gpsError": "Wij konden uw locatie niet lezen. U kunt de speld hieronder zelf op de kaart zetten.",
+      "dragHelp": "Zet de speld op uw voordeur. Tik op de kaart waar uw deur is, of gebruik de pijlen.",
+      "mapLabel": "Kaart met de speld voor de locatie van uw woning",
+      "noStartingPoint": "Wij konden uw adres niet op de kaart vinden. Gebruikt u de knop hierboven terwijl u bij uw voordeur staat.",
+      "nudgeGroup": "De speld in kleine stappen verplaatsen",
+      "nudge": {
+        "north": "Naar het noorden",
+        "south": "Naar het zuiden",
+        "east": "Naar het oosten",
+        "west": "Naar het westen"
+      },
+      "save": "Locatie van mijn woning opslaan"
+    },
+    "saved": "Locatie van de woning opgeslagen",
+    "saveFailed": "Wij konden de locatie van uw woning niet opslaan."
   }
 }

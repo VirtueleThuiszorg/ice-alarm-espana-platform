@@ -176,6 +176,46 @@ export function formatDistance(metres: number): { value: string; unit: "m" | "km
   return { value: (Math.round(metres / 100) / 10).toFixed(1), unit: "km" };
 }
 
+/**
+ * Metres the pin moves per nudge press. Roughly the width of a Spanish town house, which is the
+ * unit that matters when the question is "is the pin on my door or my neighbour's".
+ */
+export const NUDGE_METRES = 5;
+
+/** Degrees of latitude per metre — constant. Longitude is scaled by cos(lat) below. */
+const DEG_PER_METRE_LAT = 1 / 111_320;
+
+/** Six decimals — ~11 cm, and exactly what `numeric(9,6)` stores. Anything beyond it is noise. */
+export function round6(n: number): number {
+  return Math.round(n * 1e6) / 1e6;
+}
+
+/**
+ * Move a pin a fixed step in one direction.
+ *
+ * WHY THIS LIVES HERE AND NOT IN THE MAP COMPONENT. It was in `HomeLocationMap.tsx`, and the
+ * dialog imported it — which meant the dialog statically imported the module it was also trying
+ * to `lazy()`, and rollup said so: *"dynamic import will not move module into another chunk"*.
+ * Leaflet then shipped in the main bundle, which is the opposite of the intent. Pure arithmetic
+ * belongs beside the rest of the pure arithmetic; the component keeps only the Leaflet.
+ */
+export function nudgeCoords(
+  from: Coords,
+  direction: "north" | "south" | "east" | "west",
+  metres: number = NUDGE_METRES,
+): Coords {
+  const dLat = metres * DEG_PER_METRE_LAT;
+  // A degree of longitude shrinks towards the poles. At Almería's latitude it is ~88 km, so
+  // ignoring the cosine would make an "east" press move noticeably further than a "north" one.
+  const dLng = dLat / Math.max(0.01, Math.cos((from.lat * Math.PI) / 180));
+  switch (direction) {
+    case "north": return { lat: round6(from.lat + dLat), lng: from.lng };
+    case "south": return { lat: round6(from.lat - dLat), lng: from.lng };
+    case "east":  return { lat: from.lat, lng: round6(from.lng + dLng) };
+    case "west":  return { lat: from.lat, lng: round6(from.lng - dLng) };
+  }
+}
+
 /** The dialog's refusal, as a function so the dialog and the server agree on the number. */
 export function isAcceptableMemberGpsAccuracy(accuracyM: unknown): boolean {
   return typeof accuracyM === "number" && Number.isFinite(accuracyM) && accuracyM > 0

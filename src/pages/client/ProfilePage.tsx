@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import i18n from "@/i18n";
 import { PageHeader } from "@/components/client/PageHeader";
 import { LockedIdentityField } from "@/components/client/LockedIdentityField";
+import { HomeLocationRow } from "@/components/client/HomeLocationRow";
 import {
   MEMBER_LANGUAGES,
   MEMBER_LANGUAGE_CODES,
@@ -474,6 +475,22 @@ export default function ProfilePage() {
                 </div>
 
                 <p className="text-xs text-muted-foreground mt-4">{t("profile.addressEmergencyNote")}</p>
+
+                {/*
+                  THE MAP PIN, BELOW THE TYPED ADDRESS AND SEPARATE FROM IT.
+
+                  It belongs in this card because it is the same question — where do you live —
+                  but it is deliberately NOT a form field: it saves on its own, through
+                  member-self-service, and it must not be swept up by this page's Save button.
+                  A typed address in rural Almería is regularly a property a driver cannot find
+                  at night; the pin is the member's answer to that, and only they can give it.
+                */}
+                <div className="mt-6 border-t pt-6">
+                  <HomeLocationRow
+                    profile={profile}
+                    onSaved={() => queryClient.invalidateQueries({ queryKey: ["member-profile"] })}
+                  />
+                </div>
               </CardContent>
             </Card>
 

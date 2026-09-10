@@ -177,15 +177,47 @@ ON FILE; ONE emergency contact, not two, because the readiness view, the queue a
 card all say one. **Lee's to check:** the list itself, in that file's `MEMBER_REQUIRED_FIELDS`.
 Proof: `memberRequiredFields.test.ts` (26).
 
-### ✅ Locked until Edit (#301, #304)
+### ✅ Locked until Edit — the WHOLE record (#301, #304, #310, #314, #317, #319)
 `EditableCard` — one shell, and the lock is a single `<fieldset disabled>` rather than a
 `disabled` prop on forty inputs, because the forty-first is the one somebody forgets and the
-forgetting is invisible. ProfileTab, MedicalTab and CourtesyCallsCard converted; a refused save
-keeps the card open with what was typed in it; unsaved changes are warned about in-app and by the
-browser. MedicalTab now writes an audit row (it wrote to `medical_information` and left none).
-Contacts / Notes / Tasks / Device / Subscription needed no change — every field on them already
-sits inside a dialog behind an explicit Add or Edit, checked by sweeping for fields outside a
-dialog rather than assumed. Proof: `memberLockedUntilEdit.test.tsx` (9), `courtesyCallsLocked.test.tsx` (5).
+forgetting is invisible. A refused save keeps the card open with what was typed in it; unsaved
+changes are warned about in-app and by the browser. MedicalTab now writes an audit row (it wrote
+to `medical_information` and left none).
+
+**Every card on the record, in one of three modes:**
+
+| mode | cards | behaviour |
+| --- | --- | --- |
+| `form` | Profile, Medical, Courtesy calls | Edit → Save / Cancel, unsaved-change warning |
+| `manage` | Contacts, Notes, Tasks, Device ×3 | Edit → Done; each row commits itself |
+| `locked` | Subscription details, CRM profile, CRM import | padlock, no Edit, reason on screen |
+
+**CORRECTION to what this section said on 2026-09-10.** It read *"Contacts / Notes / Tasks /
+Device / Subscription needed no change — every field on them already sits inside a dialog"*.
+That was true about FIELDS and missed the point: Add, Edit, Delete, Unassign and Mark Faulty
+were all live the moment those tabs opened. Deleting a member's only emergency contact by a
+stray click on a screen being read down the phone is a life-safety event, not a typo. They are
+now `manage` cards, where Edit arms those controls and Done disarms them — there is no Save,
+because each row already wrote itself and a Save that saves nothing is the same lie as an Edit
+that unlocks nothing.
+
+Three cards hold values NO screen may set (a subscription's plan and price are the payment
+webhook's; an imported CRM profile is what the import saw). They are `locked` with a REQUIRED
+reason — `MEMBER_UX_RULES` R7's rule for fields, applied at card level.
+
+**What stays usable while locked is asserted as hard as what does not:** ringing or WhatsApping
+a contact, searching the notes (moved into the card header so a locked card is still
+searchable), the device links, View Batch. A lock that stops people reading is a lock they turn
+off and leave off.
+
+`EditableCard` moved to `src/components/EditableCard.tsx` (#310) because the member-portal work
+needs the same behaviour; a guard fails the suite if a second implementation appears anywhere
+under `src`. The header's Edit button opens the Profile card rather than landing on a locked one
+(#319) — and that `editSignal` is what finally made the `!locked && wantsEdit` invariant
+killable by a mutation, which it had not been.
+
+Proof: `memberLockedUntilEdit.test.tsx` (14), `courtesyCallsLocked.test.tsx` (5),
+`lockedCards.test.tsx` (6), `manageModeCards.test.tsx` (7).
 
 ### ✅ Overview and Missing-info pop-ups (#293, #299)
 Overview shows only what we HAVE, in eight groups, empty fields omitted rather than rendered as

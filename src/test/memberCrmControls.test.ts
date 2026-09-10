@@ -25,6 +25,7 @@
 // this record actually had.
 
 import { describe, it, expect } from "vitest";
+import { dbMessage } from "@/lib/dbMessage";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
@@ -239,9 +240,22 @@ describe("what the record writes to a money table from the browser", () => {
       "src/components/admin/member-detail/ProfileTab.tsx",
       "src/pages/admin/MemberDetailPage.tsx",
     ]);
+    /*
+      THE OLD ASSERTION WAS `/error\.message/` — a substring, and the code it was passing on
+      read `error instanceof Error ? error.message : String(error)`. That is FALSE for a
+      PostgrestError, which supabase-js returns as a plain object: both surfaces rendered
+      "[object Object]" and the guard could not tell. Both now go through `dbMessage`, and the
+      property is asserted by EXECUTION on the shape supabase actually returns.
+    */
     for (const file of writers) {
-      expect(code(file), file).toMatch(/error\.message|err\.message|e\.message/);
+      expect(code(file), file).toMatch(/dbMessage\(\s*error/);
     }
+    expect(dbMessage({ message: "activation is the payment webhook's job" }, "Failed")).toContain(
+      "payment webhook",
+    );
+    expect(dbMessage(new Error("boom"), "Failed")).toBe("boom");
+    expect(dbMessage({}, "Failed")).toBe("Failed");
+    expect(dbMessage(null, "Failed")).toBe("Failed");
   });
 });
 

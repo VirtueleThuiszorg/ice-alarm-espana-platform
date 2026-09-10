@@ -4,11 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EditableCard } from "@/components/admin/member-detail/EditableCard";
 import {
   Form,
   FormControl,
@@ -25,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { logMemberActivity } from "@/lib/auditLog";
+import { dbMessage } from "@/lib/dbMessage";
 import { PartnerAttributionCard } from "./PartnerAttributionCard";
 
 const profileSchema = z.object({
@@ -95,7 +94,12 @@ export function ProfileTab({ member, onUpdate }: ProfileTabProps) {
     },
   });
 
-  const onSubmit = async (data: ProfileFormValues) => {
+  /*
+    RETURNS whether the write actually happened. `EditableCard` closes on true and stays open
+    on false: the guard trigger refuses `status = active` for an unpaid member, and closing the
+    card on that refusal would show the old value back and imply it had been saved.
+  */
+  const onSubmit = async (data: ProfileFormValues): Promise<boolean> => {
     setIsLoading(true);
     try {
       const oldValues = {
@@ -123,6 +127,8 @@ export function ProfileTab({ member, onUpdate }: ProfileTabProps) {
 
       toast.success("Profile updated successfully");
       onUpdate();
+      form.reset(data);
+      return true;
     } catch (error) {
       console.error("Error updating profile:", error);
       /*
@@ -131,8 +137,8 @@ export function ProfileTab({ member, onUpdate }: ProfileTabProps) {
         with no active or past_due subscription — naming the remedy ("send them a payment link").
         A staff member who reads "Failed to update profile" instead goes looking for a bug.
       */
-      const message = error instanceof Error ? error.message : String(error);
-      toast.error(message || "Failed to update profile");
+      toast.error(dbMessage(error, "Failed to update profile"));
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -143,14 +149,24 @@ export function ProfileTab({ member, onUpdate }: ProfileTabProps) {
       {/* Partner Attribution Card */}
       <PartnerAttributionCard memberId={member.id} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Member Profile</CardTitle>
-          <CardDescription>Update member personal information and preferences.</CardDescription>
-        </CardHeader>
-      <CardContent>
+      <EditableCard
+        testId="profile-card"
+        title="Member Profile"
+        description="Read-only until you press Edit."
+        isDirty={form.formState.isDirty}
+        saving={isLoading}
+        onSave={() => new Promise<boolean>((resolve) => {
+          // handleSubmit resolves nothing on a validation failure, so the card is told `false`
+          // and stays open with the errors visible.
+          void form.handleSubmit(
+            async (values) => resolve(await onSubmit(values)),
+            () => resolve(false),
+          )();
+        })}
+        onCancel={() => form.reset()}
+      >
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="space-y-6">
             {/* Personal Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
@@ -384,14 +400,9 @@ export function ProfileTab({ member, onUpdate }: ProfileTabProps) {
               )}
             />
 
-            <Button type="submit" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
-            </Button>
-          </form>
+          </div>
         </Form>
-      </CardContent>
-    </Card>
+      </EditableCard>
     </div>
   );
 }

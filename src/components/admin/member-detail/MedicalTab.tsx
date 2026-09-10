@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EditableCard } from "@/components/admin/member-detail/EditableCard";
+import { logMemberActivity } from "@/lib/auditLog";
 import {
   Form,
   FormControl,
@@ -52,6 +53,18 @@ export function MedicalTab({ memberId }: MedicalTabProps) {
   const [newMedication, setNewMedication] = useState("");
   const [newAllergy, setNewAllergy] = useState("");
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  /*
+    THE CHIP LISTS ARE STATE, NOT FORM FIELDS, so react-hook-form's `isDirty` cannot see them.
+    Without this baseline, adding an allergy and pressing Cancel would discard it with no
+    warning at all — the one field on this tab where losing an edit is dangerous.
+  */
+  const [baseline, setBaseline] = useState<{ c: string[]; m: string[]; a: string[] }>({
+    c: [],
+    m: [],
+    a: [],
+  });
+  const listsDirty =
+    JSON.stringify({ c: conditions, m: medications, a: allergies }) !== JSON.stringify(baseline);
 
   const form = useForm<MedicalFormValues>({
     resolver: zodResolver(medicalSchema),
@@ -90,6 +103,11 @@ export function MedicalTab({ memberId }: MedicalTabProps) {
         setConditions(data.medical_conditions || []);
         setMedications(data.medications || []);
         setAllergies(data.allergies || []);
+        setBaseline({
+          c: data.medical_conditions || [],
+          m: data.medications || [],
+          a: data.allergies || [],
+        });
         setLastUpdated(data.updated_at);
       }
     } catch (error) {
@@ -100,7 +118,7 @@ export function MedicalTab({ memberId }: MedicalTabProps) {
     }
   };
 
-  const onSubmit = async (data: MedicalFormValues) => {
+  const onSubmit = async (data: MedicalFormValues): Promise<boolean> => {
     setIsLoading(true);
     try {
       const medicalData = {
@@ -124,11 +142,31 @@ export function MedicalTab({ memberId }: MedicalTabProps) {
         if (error) throw error;
       }
 
+      /*
+        WHO CHANGED A MEDICAL RECORD AND WHEN. This tab wrote to `medical_information` and left
+        no audit row at all — so an allergy that changed between one alert and the next had no
+        answer to "who did that". Values are NOT copied into the log: activity_logs is read by
+        more people than the medical tab is, and a list of somebody's conditions does not
+        belong in it. What changed is named; what it changed to lives on the record.
+      */
+      await logMemberActivity("update", memberId, undefined, {
+        table: "medical_information",
+        fields: [
+          ...Object.keys(data),
+          ...(conditions.length ? ["medical_conditions"] : []),
+          ...(medications.length ? ["medications"] : []),
+          ...(allergies.length ? ["allergies"] : []),
+        ],
+      });
+
       toast.success("Medical information saved successfully");
       fetchMedicalInfo();
+      form.reset(data);
+      return true;
     } catch (error) {
       console.error("Error saving medical info:", error);
       toast.error("Failed to save medical information");
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -166,21 +204,37 @@ export function MedicalTab({ memberId }: MedicalTabProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Medical Information</CardTitle>
-        <CardDescription>
-          Manage medical conditions, medications, and emergency medical details.
-          {lastUpdated && (
-            <span className="block mt-1 text-xs">
-              Last updated: {format(new Date(lastUpdated), "PPpp")}
-            </span>
-          )}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <EditableCard
+      testId="medical-card"
+      title="Medical Information"
+      description="Read-only until you press Edit."
+      headerExtra={
+        lastUpdated ? (
+          <p className="text-xs text-muted-foreground">
+            Last updated: {format(new Date(lastUpdated), "PPpp")}
+          </p>
+        ) : null
+      }
+      isDirty={form.formState.isDirty || listsDirty}
+      saving={isLoading}
+      onSave={() => new Promise<boolean>((resolve) => {
+        void form.handleSubmit(
+          async (values) => resolve(await onSubmit(values)),
+          () => resolve(false),
+        )();
+      })}
+      onCancel={() => {
+        form.reset();
+        setConditions(baseline.c);
+        setMedications(baseline.m);
+        setAllergies(baseline.a);
+        setNewCondition("");
+        setNewMedication("");
+        setNewAllergy("");
+      }}
+    >
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="space-y-6">
             {/* Medical Conditions */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Medical Conditions</label>
@@ -188,10 +242,20 @@ export function MedicalTab({ memberId }: MedicalTabProps) {
                 {conditions.map((condition, index) => (
                   <Badge key={index} variant="secondary" className="gap-1">
                     {condition}
-                    <X 
-                      className="h-3 w-3 cursor-pointer" 
+                    {/*
+                      A REAL BUTTON, not a click handler on an icon. A disabled fieldset makes
+                      buttons inert; it does nothing to an <svg onClick>, so in read-only mode
+                      the old version still removed the chip on a stray click. It is also the
+                      only version a keyboard can reach.
+                    */}
+                    <button
+                      type="button"
+                      aria-label={`Remove ${condition}`}
+                      className="rounded-sm disabled:cursor-not-allowed"
                       onClick={() => removeItem("condition", index)}
-                    />
+                    >
+                      <X className="h-3 w-3 cursor-pointer" />
+                    </button>
                   </Badge>
                 ))}
               </div>
@@ -202,7 +266,13 @@ export function MedicalTab({ memberId }: MedicalTabProps) {
                   onChange={(e) => setNewCondition(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addItem("condition"))}
                 />
-                <Button type="button" variant="outline" size="icon" onClick={() => addItem("condition")}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Add condition"
+                  onClick={() => addItem("condition")}
+                >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -215,10 +285,20 @@ export function MedicalTab({ memberId }: MedicalTabProps) {
                 {medications.map((medication, index) => (
                   <Badge key={index} variant="outline" className="gap-1">
                     {medication}
-                    <X 
-                      className="h-3 w-3 cursor-pointer" 
+                    {/*
+                      A REAL BUTTON, not a click handler on an icon. A disabled fieldset makes
+                      buttons inert; it does nothing to an <svg onClick>, so in read-only mode
+                      the old version still removed the chip on a stray click. It is also the
+                      only version a keyboard can reach.
+                    */}
+                    <button
+                      type="button"
+                      aria-label={`Remove ${medication}`}
+                      className="rounded-sm disabled:cursor-not-allowed"
                       onClick={() => removeItem("medication", index)}
-                    />
+                    >
+                      <X className="h-3 w-3 cursor-pointer" />
+                    </button>
                   </Badge>
                 ))}
               </div>
@@ -229,7 +309,13 @@ export function MedicalTab({ memberId }: MedicalTabProps) {
                   onChange={(e) => setNewMedication(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addItem("medication"))}
                 />
-                <Button type="button" variant="outline" size="icon" onClick={() => addItem("medication")}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Add medication"
+                  onClick={() => addItem("medication")}
+                >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -242,10 +328,20 @@ export function MedicalTab({ memberId }: MedicalTabProps) {
                 {allergies.map((allergy, index) => (
                   <Badge key={index} variant="destructive" className="gap-1">
                     {allergy}
-                    <X 
-                      className="h-3 w-3 cursor-pointer" 
+                    {/*
+                      A REAL BUTTON, not a click handler on an icon. A disabled fieldset makes
+                      buttons inert; it does nothing to an <svg onClick>, so in read-only mode
+                      the old version still removed the chip on a stray click. It is also the
+                      only version a keyboard can reach.
+                    */}
+                    <button
+                      type="button"
+                      aria-label={`Remove ${allergy}`}
+                      className="rounded-sm disabled:cursor-not-allowed"
                       onClick={() => removeItem("allergy", index)}
-                    />
+                    >
+                      <X className="h-3 w-3 cursor-pointer" />
+                    </button>
                   </Badge>
                 ))}
               </div>
@@ -256,7 +352,13 @@ export function MedicalTab({ memberId }: MedicalTabProps) {
                   onChange={(e) => setNewAllergy(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addItem("allergy"))}
                 />
-                <Button type="button" variant="outline" size="icon" onClick={() => addItem("allergy")}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Add allergy"
+                  onClick={() => addItem("allergy")}
+                >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -352,13 +454,8 @@ export function MedicalTab({ memberId }: MedicalTabProps) {
               )}
             />
 
-            <Button type="submit" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Medical Information
-            </Button>
-          </form>
+          </div>
         </Form>
-      </CardContent>
-    </Card>
+    </EditableCard>
   );
 }

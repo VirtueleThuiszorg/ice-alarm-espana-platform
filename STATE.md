@@ -209,7 +209,7 @@ would have been handed mid-SOS**. Now: nine required columns really present or i
 with the reason attached; no device row without a real SIM (the IMEI becomes a note); no contact
 without a dialable number (the name becomes a note); `status: 'inactive'`, never `active` (golden
 rule 4, D-19).
-Proof: `crmImportWriter.test.ts` (33), `crmImportApply.test.ts` (25).
+Proof: `crmImportWriter.test.ts` (33), `crmImportApply.test.ts` (26).
 
 ### ✅ Re-running the import changes nothing (#308, #316)
 Matched on NIE (punctuation- and case-insensitive), then email (lower-cased), then phone — in that
@@ -217,7 +217,7 @@ order, because NIE is a government identifier and a phone is the most shared. Ex
 patched **empty fields only**: a street a human corrected is never overwritten, and `status` is
 never patched even when empty. The whole database, snapshotted after run one, is byte-identical
 after run two. Lee's one-row test then the full file leaves **one** David Evans.
-Proof: `crmImportDedupe.test.ts` (20), `crmImportApply.test.ts` (25).
+Proof: `crmImportDedupe.test.ts` (20), `crmImportApply.test.ts` (26).
 
 ### ✅ The screen shows the plan before anything is written (#316)
 Per row: member / CRM contact / skipped and **why**, with the parsed date of birth, phones,
@@ -225,7 +225,7 @@ emergency contacts and IMEI beside it — shown for the *blocked* rows above all
 must not look like "no data". Reasons totalled across the file. Discarded sensitive columns counted
 per column. Preview exportable as CSV. **The batch row is created when Import is pressed, not on
 file drop.**
-Proof: `crmImportPage.test.tsx` (25), every assertion on the recorded write rather than a toast.
+Proof: `crmImportPage.test.tsx` (26), every assertion on the recorded write rather than a toast.
 
 ### ✅ Where all 147 columns go, derived rather than asserted (#318)
 `ICE_IMPORT_COLUMN_MAP.md` — 92 mapped, 4 read only as a fallback, 47 kept in raw only, 4 discarded.

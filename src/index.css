@@ -624,4 +624,25 @@
   .transition-smooth {
     @apply transition-all duration-300 ease-in-out;
   }
+
+  /*
+    THE HOME-LOCATION PIN — drawn in CSS, on purpose.
+
+    Leaflet's default marker resolves its icon relative to the stylesheet, which every bundler
+    breaks in its own way; the classic symptom is a map with no marker at all. A divIcon has no
+    asset to lose. It is also DELIBERATELY BIGGER than Leaflet's 25x41 default, with a white ring
+    and a shadow so it survives a satellite-grey roof: a 78-year-old looking for their own front
+    door should not have to hunt for the dot.
+
+    Sized in rem so the A/A text-size control scales it with everything else.
+  */
+  .home-location-pin__dot {
+    display: block;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 9999px;
+    background-color: hsl(var(--primary));
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.35), 0 2px 6px hsl(var(--foreground) / 0.45);
+  }
 }

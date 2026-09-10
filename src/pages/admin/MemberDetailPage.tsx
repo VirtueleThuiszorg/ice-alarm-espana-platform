@@ -6,6 +6,10 @@ import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  MEMBER_TAB_LIST_CLASS,
+  MEMBER_TAB_TRIGGER_CLASS,
+} from "@/components/admin/member-detail/memberRecordTabs";
 import { MemberHeader } from "@/components/admin/member-detail/MemberHeader";
 import { ProfileTab } from "@/components/admin/member-detail/ProfileTab";
 import { MedicalTab } from "@/components/admin/member-detail/MedicalTab";
@@ -233,19 +237,22 @@ export default function MemberDetailPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="flex flex-wrap h-auto gap-1 bg-muted p-1">
-          <TabsTrigger value="profile">{t("adminMemberDetail.tabs.profile", "Profile")}</TabsTrigger>
-          <TabsTrigger value="medical">{t("adminMemberDetail.tabs.medical", "Medical")}</TabsTrigger>
-          <TabsTrigger value="contacts">{t("adminMemberDetail.tabs.contacts", "Contacts")}</TabsTrigger>
-          <TabsTrigger value="device">{t("adminMemberDetail.tabs.device", "Device")}</TabsTrigger>
-          <TabsTrigger value="subscription">{t("adminMemberDetail.tabs.subscription", "Subscription")}</TabsTrigger>
-          <TabsTrigger value="payments">{t("adminMemberDetail.tabs.payments", "Payments")}</TabsTrigger>
-          <TabsTrigger value="messages">{t("adminMemberDetail.tabs.messages", "Messages")}</TabsTrigger>
-          <TabsTrigger value="notes">{t("adminMemberDetail.tabs.notes", "Notes")}</TabsTrigger>
-          <TabsTrigger value="activity">{t("adminMemberDetail.tabs.activity", "Activity")}</TabsTrigger>
-          <TabsTrigger value="alerts">{t("adminMemberDetail.tabs.alerts", "Alerts")}</TabsTrigger>
-          <TabsTrigger value="tasks">{t("adminMemberDetail.tabs.tasks", "Tasks")}</TabsTrigger>
-          <TabsTrigger value="crm">{t("adminMemberDetail.tabs.crm", "CRM")}</TabsTrigger>
+        {/* The red variant, scoped to this page — see memberRecordTabs.ts for why the global
+            <Tabs> component is not touched and why `bg-primary` is not the answer on
+            .theme-admin. */}
+        <TabsList className={MEMBER_TAB_LIST_CLASS}>
+          <TabsTrigger value="profile" className={MEMBER_TAB_TRIGGER_CLASS}>{t("adminMemberDetail.tabs.profile", "Profile")}</TabsTrigger>
+          <TabsTrigger value="medical" className={MEMBER_TAB_TRIGGER_CLASS}>{t("adminMemberDetail.tabs.medical", "Medical")}</TabsTrigger>
+          <TabsTrigger value="contacts" className={MEMBER_TAB_TRIGGER_CLASS}>{t("adminMemberDetail.tabs.contacts", "Contacts")}</TabsTrigger>
+          <TabsTrigger value="device" className={MEMBER_TAB_TRIGGER_CLASS}>{t("adminMemberDetail.tabs.device", "Device")}</TabsTrigger>
+          <TabsTrigger value="subscription" className={MEMBER_TAB_TRIGGER_CLASS}>{t("adminMemberDetail.tabs.subscription", "Subscription")}</TabsTrigger>
+          <TabsTrigger value="payments" className={MEMBER_TAB_TRIGGER_CLASS}>{t("adminMemberDetail.tabs.payments", "Payments")}</TabsTrigger>
+          <TabsTrigger value="messages" className={MEMBER_TAB_TRIGGER_CLASS}>{t("adminMemberDetail.tabs.messages", "Messages")}</TabsTrigger>
+          <TabsTrigger value="notes" className={MEMBER_TAB_TRIGGER_CLASS}>{t("adminMemberDetail.tabs.notes", "Notes")}</TabsTrigger>
+          <TabsTrigger value="activity" className={MEMBER_TAB_TRIGGER_CLASS}>{t("adminMemberDetail.tabs.activity", "Activity")}</TabsTrigger>
+          <TabsTrigger value="alerts" className={MEMBER_TAB_TRIGGER_CLASS}>{t("adminMemberDetail.tabs.alerts", "Alerts")}</TabsTrigger>
+          <TabsTrigger value="tasks" className={MEMBER_TAB_TRIGGER_CLASS}>{t("adminMemberDetail.tabs.tasks", "Tasks")}</TabsTrigger>
+          <TabsTrigger value="crm" className={MEMBER_TAB_TRIGGER_CLASS}>{t("adminMemberDetail.tabs.crm", "CRM")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">

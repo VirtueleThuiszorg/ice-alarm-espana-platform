@@ -69,6 +69,19 @@ export interface ContactInsert {
   contact_type: "emergency" | "key_holder";
 }
 
+/**
+ * A second number or address for the member themselves — not an emergency contact.
+ *
+ * 338 rows hold several numbers in one cell. Only the first dialable one can be `members.phone`,
+ * and the rest are the ones an operator tries when it does not answer, so dropping them is
+ * dropping exactly the numbers that get used when the first fails.
+ */
+export interface ContactMethodInsert {
+  type: "phone" | "email";
+  value: string;
+  label: string;
+}
+
 export interface DeviceInsert {
   imei: string;
   sim_phone_number: string;
@@ -271,6 +284,28 @@ export function planRowWrites(row: MappedRow): RowPlan {
     }
   }
 
+  /* Membership type, payment type and date joined.
+     The goal asks for these as CRM profile fields, and `crm_profiles` has no column for any of
+     them — it holds stage, status, referral_source, assigned_to_staff_id, department, industry,
+     tags and groups, and that is all. Three new columns is a migration, and three migrations are
+     already unapplied: the drift gate refuses a fourth stacked on top.
+     So they are written where they fit today — one note, verbatim, with a stable prefix so a
+     re-run recognises it rather than adding a second copy — and `crm_import_rows` keeps them in
+     `parsed_membership_type` and in `raw` besides. Nothing is lost; it is simply not yet a
+     column. Recorded for Lee rather than forced. */
+  const membershipFacts = [
+    row.subscription?.legacy_membership_label
+      ? `membership type ${row.subscription.legacy_membership_label}`
+      : null,
+    row.subscription?.payment_arrangement
+      ? `payment type ${row.subscription.payment_arrangement}`
+      : null,
+    row.subscription?.start_date ? `joined ${row.subscription.start_date}` : null,
+  ].filter(Boolean);
+  if (membershipFacts.length > 0) {
+    notes.push(`Karma CRM membership: ${membershipFacts.join("; ")}`);
+  }
+
   if (row.notes) notes.push(row.notes);
 
   const outcome: RowOutcome = blockers.length === 0 ? "member" : "crm_contact";
@@ -328,6 +363,8 @@ export function planRowWrites(row: MappedRow): RowPlan {
     extraPhones: row.extraPhones,
     extraEmails: row.extraEmails,
     notes,
+    /* Exactly the columns `crm_profiles` has. A key with no column fails the whole insert,
+       and PostgREST reports it as the row failing rather than as the key being wrong. */
     crmProfile: {
       stage: row.crmProfile.stage,
       // The verbatim Karma status. This is the ONLY place it lands: it never becomes
@@ -336,9 +373,6 @@ export function planRowWrites(row: MappedRow): RowPlan {
       referral_source: row.crmProfile.referral_source,
       tags: row.crmProfile.tags,
       groups: row.crmProfile.groups,
-      legacy_membership_label: row.subscription?.legacy_membership_label ?? null,
-      payment_arrangement: row.subscription?.payment_arrangement ?? null,
-      joined_date: row.subscription?.start_date ?? null,
     },
   };
 }
@@ -405,6 +439,34 @@ export function plansToCsv(plans: RowPlan[]): string {
     ].map((v) => cell(String(v)))
   );
   return [header.join(","), ...rows.map((r) => r.join(","))].join("\r\n") + "\r\n";
+}
+
+/* ------------------------------------------------------------------ *
+ * The admin's one choice
+ * ------------------------------------------------------------------ */
+
+/**
+ * Whether rows that cannot become members are kept as CRM contacts.
+ *
+ * The default is to keep them, and the reason is the 317 rows that hold an address but no email:
+ * dropping them loses the record of WHY they are not members, which is the only thing that makes
+ * the gap fixable. `members_only` exists for the admin who wants a first pass of the complete
+ * records and nothing else.
+ */
+export type ImportMode = "members_only" | "members_and_contacts";
+
+/**
+ * Applied to the plan rather than to the writer, so THE PREVIEW SHOWS THE MODE. A mode read
+ * only at write time means the preview says "CRM contact" for a row the import then skips, and
+ * the whole point of item 4 is that the screen and the write cannot disagree.
+ */
+export function applyMode(plan: RowPlan, mode: ImportMode): RowPlan {
+  if (mode !== "members_only" || plan.outcome !== "crm_contact") return plan;
+  return {
+    ...plan,
+    outcome: "skip",
+    blockers: [...plan.blockers, "import mode is members only"],
+  };
 }
 
 /* ------------------------------------------------------------------ *
@@ -521,6 +583,9 @@ export interface ImportDb {
   patchMember(id: string, patch: Record<string, unknown>): Promise<void>;
   /** Phones already on this member's contact list, normalised, so a re-run adds none twice. */
   existingContactPhones(memberId: string): Promise<string[]>;
+  /** Every value already in `member_contact_methods` for this member, phone or email. */
+  existingContactMethodValues(memberId: string): Promise<string[]>;
+  insertContactMethod(memberId: string, method: ContactMethodInsert): Promise<void>;
   insertContact(memberId: string, contact: ContactInsert): Promise<void>;
   hasMedical(memberId: string): Promise<boolean>;
   insertMedical(memberId: string, medical: Record<string, unknown>): Promise<void>;
@@ -530,7 +595,12 @@ export interface ImportDb {
   insertNote(memberId: string, content: string): Promise<void>;
   upsertCrmProfile(memberId: string, profile: Record<string, unknown>): Promise<void>;
   insertCrmContact(plan: RowPlan): Promise<string>;
-  crmContactExists(keys: DedupeKeys): Promise<boolean>;
+  /**
+   * Takes the whole plan rather than the dedupe keys: `crm_contacts` also carries `source_id`,
+   * which is the strongest re-run guard there is for a row with no email and no NIE — the
+   * majority of them. Keys alone would let the same Karma row in twice.
+   */
+  crmContactExists(plan: RowPlan): Promise<boolean>;
 }
 
 export type AppliedAction = "created" | "updated" | "unchanged" | "crm_contact" | "skipped";
@@ -541,6 +611,7 @@ export interface AppliedResult {
   memberId: string | null;
   contactsCreated: number;
   contactsSkippedAlreadyPresent: number;
+  contactMethodsCreated: number;
   deviceCreated: boolean;
   medicalCreated: boolean;
   notesCreated: number;
@@ -563,6 +634,7 @@ export async function applyRowPlan(db: ImportDb, plan: RowPlan): Promise<Applied
     memberId: null,
     contactsCreated: 0,
     contactsSkippedAlreadyPresent: 0,
+    contactMethodsCreated: 0,
     deviceCreated: false,
     medicalCreated: false,
     notesCreated: 0,
@@ -589,7 +661,7 @@ export async function applyRowPlan(db: ImportDb, plan: RowPlan): Promise<Applied
       result.memberId = existing.id;
       return result;
     }
-    if (await db.crmContactExists(keys)) {
+    if (await db.crmContactExists(plan)) {
       result.action = "unchanged";
       return result;
     }
@@ -626,6 +698,24 @@ export async function applyRowPlan(db: ImportDb, plan: RowPlan): Promise<Applied
     await db.insertContact(memberId, c);
     already.add(c.phone);
     result.contactsCreated += 1;
+  }
+
+  /* The member's own other numbers and addresses. Deduped on the VALUE: a re-run of the same
+     file must not give somebody the same second number twice, and an operator reading three
+     copies of one number down the escalation list wastes the seconds this product exists to
+     save. */
+  const heldMethods = new Set(await db.existingContactMethodValues(memberId));
+  for (const value of plan.extraPhones) {
+    if (heldMethods.has(value)) continue;
+    await db.insertContactMethod(memberId, { type: "phone", value, label: "CRM import" });
+    heldMethods.add(value);
+    result.contactMethodsCreated += 1;
+  }
+  for (const value of plan.extraEmails) {
+    if (heldMethods.has(value)) continue;
+    await db.insertContactMethod(memberId, { type: "email", value, label: "CRM import" });
+    heldMethods.add(value);
+    result.contactMethodsCreated += 1;
   }
 
   if (plan.medical && !(await db.hasMedical(memberId))) {

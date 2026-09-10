@@ -188,6 +188,32 @@ describe("the device", () => {
   });
 });
 
+describe("the CRM profile", () => {
+  it("carries only columns crm_profiles actually has", () => {
+    // A key with no column fails the WHOLE insert, and PostgREST reports it as the row failing
+    // rather than as the key being wrong — so this would have looked like bad data.
+    // crm_profiles: member_id, stage, status, referral_source, tags, groups,
+    //               assigned_to_staff_id, department, industry, updated_at.
+    const allowed = new Set([
+      "stage", "status", "referral_source", "tags", "groups",
+      "assigned_to_staff_id", "department", "industry",
+    ]);
+    for (const p of plans) {
+      for (const key of Object.keys(p.crmProfile)) {
+        expect(allowed.has(key), `crm_profiles has no column "${key}"`).toBe(true);
+      }
+    }
+  });
+
+  it("keeps membership type, payment type and date joined as a note instead", () => {
+    // The goal asks for these as CRM profile fields and there are no such columns. They are kept
+    // verbatim rather than dropped, and the gap is recorded for Lee rather than forced through a
+    // fourth stacked migration.
+    const p = byId("9005"); // the duplicate-header row, whose first Membership Type is real
+    expect(p.notes.join(" ")).toContain("membership type FIRST-OCCURRENCE");
+  });
+});
+
 describe("the address comes from the Home* block", () => {
   it("joins House Number and Home Street", () => {
     const p = byId("9001");

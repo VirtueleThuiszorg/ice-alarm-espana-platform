@@ -49,6 +49,7 @@ interface FakeMember {
   row: Record<string, unknown>;
   contacts: ContactInsert[];
   medical: Record<string, unknown> | null;
+  contactMethods: { type: string; value: string }[];
   devices: { imei: string }[];
   notes: string[];
   crmProfile: Record<string, unknown> | null;
@@ -68,6 +69,7 @@ class FakeDb implements ImportDb {
       row: { ...row },
       contacts: [],
       medical: null,
+      contactMethods: [],
       devices: [],
       notes: [],
       crmProfile: null,
@@ -115,6 +117,7 @@ class FakeDb implements ImportDb {
       row: { ...row } as Record<string, unknown>,
       contacts: [],
       medical: null,
+      contactMethods: [],
       devices: [],
       notes: [],
       crmProfile: null,
@@ -135,6 +138,15 @@ class FakeDb implements ImportDb {
   async insertContact(memberId: string, contact: ContactInsert) {
     this.writes.push(`insertContact ${memberId} ${contact.phone}`);
     this.mustFind(memberId).contacts.push(contact);
+  }
+
+  async existingContactMethodValues(memberId: string) {
+    return this.mustFind(memberId).contactMethods.map((m) => m.value);
+  }
+
+  async insertContactMethod(memberId: string, method: { type: "phone" | "email"; value: string }) {
+    this.writes.push(`insertContactMethod ${memberId} ${method.type} ${method.value}`);
+    this.mustFind(memberId).contactMethods.push({ type: method.type, value: method.value });
   }
 
   async hasMedical(memberId: string) {
@@ -175,9 +187,11 @@ class FakeDb implements ImportDb {
     return `crm-${++this.seq}`;
   }
 
-  async crmContactExists(keys: DedupeKeys) {
+  async crmContactExists(plan: RowPlan) {
+    const keys = dedupeKeysFor(plan);
     return this.crmContacts.some(
       (c) =>
+        c.sourceId === plan.sourceId ||
         (keys.nie !== null && c.keys.nie === keys.nie) ||
         (keys.email !== null && c.keys.email === keys.email) ||
         (keys.phone !== null && c.keys.phone === keys.phone)
@@ -372,6 +386,19 @@ describe("running the same import twice", () => {
     const result = await applyRowPlan(db, renamed);
     expect(result.contactsCreated).toBe(0);
     expect(db.members[0].contacts.length).toBe(3);
+  });
+
+  it("adds the member's other numbers once, not once per run", async () => {
+    const db = new FakeDb();
+    // 9002 is the multi-phone cell: several numbers separated by ";" with free text after.
+    const plan = withEmail(byId("9002"), "multi.phone@example.com");
+    expect(plan.extraPhones.length).toBeGreaterThan(0);
+    const first = await applyRowPlan(db, plan);
+    expect(first.contactMethodsCreated).toBe(plan.extraPhones.length + plan.extraEmails.length);
+    const second = await applyRowPlan(db, plan);
+    // Three copies of one number is three lines an operator reads before reaching a new one.
+    expect(second.contactMethodsCreated).toBe(0);
+    expect(db.members[0].contactMethods.length).toBe(first.contactMethodsCreated);
   });
 
   it("writes the medical record once, not once per run", async () => {

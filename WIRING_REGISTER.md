@@ -28,7 +28,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   1  
 ```
 
-189 distinct wires across 643 call sites and 110 routes.
+189 distinct wires across 642 call sites and 110 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
@@ -63,7 +63,7 @@ things, and a control with no wire cannot do anything:
 
 | kind | what it is | call sites |
 |---|---|---:|
-| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 344 |
+| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 343 |
 | `fn` | `supabase.functions.invoke(f)` — an edge function | 86 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 4 |
 | `channel` | `postgres_changes` — a realtime subscription | 51 |
@@ -1614,7 +1614,7 @@ The person who typed is the person watching. No notification owed.
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /admin/crm-contacts/:id, /admin/crm-import
-- **call sites** src/pages/admin/CRMContactDetailPage.tsx, src/pages/admin/CRMImportPage.tsx
+- **call sites** src/lib/crmImportDb.ts, src/pages/admin/CRMContactDetailPage.tsx
 
 Migrated subscriptions are written `pending` on purpose — golden rule 4 — and nothing here activates anyone. The single-member import UI is a separate brief item (§3c), not this goal.
 
@@ -1666,7 +1666,7 @@ Migrated subscriptions are written `pending` on purpose — golden rule 4 — an
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /admin/crm-contacts/:id, /admin/crm-import
-- **call sites** src/pages/admin/CRMContactDetailPage.tsx, src/pages/admin/CRMImportPage.tsx
+- **call sites** src/lib/crmImportDb.ts, src/pages/admin/CRMContactDetailPage.tsx
 
 Migrated subscriptions are written `pending` on purpose — golden rule 4 — and nothing here activates anyone. The single-member import UI is a separate brief item (§3c), not this goal.
 
@@ -1692,7 +1692,7 @@ Device state feeds the operator card, so this is adjacent to the SOS path withou
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /admin/crm-import, /admin/members/:id, /call-centre/members/:id, /dashboard/contacts
-- **call sites** src/components/admin/member-detail/ContactsTab.tsx, src/pages/admin/CRMImportPage.tsx, src/pages/client/EmergencyContactsPage.tsx
+- **call sites** src/components/admin/member-detail/ContactsTab.tsx, src/lib/crmImportDb.ts, src/pages/client/EmergencyContactsPage.tsx
 
 Life-safety data with no notification owed — the member is the actor. What it DOES need is proof that an operator can read it and a stranger cannot; the RLS harness covers the isolation half, and the end-to-end half is unproven, so 5.
 
@@ -1796,7 +1796,7 @@ publish-scheduled writes a notification_log row on failure, so a post that does 
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /admin/crm-import, /admin/members/:id, /call-centre/members/:id
-- **call sites** src/components/admin/member-detail/MedicalTab.tsx, src/pages/admin/CRMImportPage.tsx
+- **call sites** src/components/admin/member-detail/MedicalTab.tsx, src/lib/crmImportDb.ts
 
 Life-safety data with no notification owed — the member is the actor. What it DOES need is proof that an operator can read it and a stranger cannot; the RLS harness covers the isolation half, and the end-to-end half is unproven, so 5.
 
@@ -1809,7 +1809,7 @@ Life-safety data with no notification owed — the member is the actor. What it 
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /admin/crm-import
-- **call sites** src/pages/admin/CRMImportPage.tsx
+- **call sites** src/lib/crmImportDb.ts
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
 
@@ -1822,7 +1822,7 @@ Life-safety data with no notification owed — the member is the actor. What it 
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /admin/crm-contacts/:id, /admin/crm-import, /admin/members/:id, /call-centre/members/:id
-- **call sites** src/components/admin/member-detail/NotesTab.tsx, src/pages/admin/CRMContactDetailPage.tsx, src/pages/admin/CRMImportPage.tsx
+- **call sites** src/components/admin/member-detail/NotesTab.tsx, src/lib/crmImportDb.ts, src/pages/admin/CRMContactDetailPage.tsx
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
 
@@ -1835,7 +1835,7 @@ Life-safety data with no notification owed — the member is the actor. What it 
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +91
-- **call sites** src/components/admin/member-detail/CourtesyCallsCard.tsx, src/components/admin/member-detail/ProfileTab.tsx, src/components/LanguageSelector.tsx, src/pages/admin/AddMemberWizard.tsx +5
+- **call sites** src/components/admin/member-detail/CourtesyCallsCard.tsx, src/components/admin/member-detail/ProfileTab.tsx, src/components/LanguageSelector.tsx, src/lib/crmImportDb.ts +5
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
 

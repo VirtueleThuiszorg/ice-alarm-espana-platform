@@ -68,6 +68,7 @@ vi.mock("@/components/admin/member-detail/MemberUpdateRequestModal", () => ({
   MemberUpdateRequestModal: () => null,
 }));
 
+import { EditableCard } from "@/components/EditableCard";
 import { SubscriptionTab } from "@/components/admin/member-detail/SubscriptionTab";
 import { CRMTab } from "@/components/admin/member-detail/CRMTab";
 
@@ -165,5 +166,50 @@ describe("the CRM cards", () => {
     expect(viewBatch.matches(":disabled")).toBe(false);
     viewBatch.click();
     expect(navigate).toHaveBeenCalledWith("/admin/crm-import/batches");
+  });
+});
+
+
+describe("a locked card ignores an outside request to edit", () => {
+  /*
+    THIS IS THE TEST THE INVARIANT WAS WAITING FOR.
+
+    `EditableCard` carries one line — `const editing = !locked && wantsEdit` — that no mutation
+    could kill while nothing outside the component could set `wantsEdit`. `editSignal` is now
+    exactly that: the member header uses it to open the profile card, and a locked card must
+    refuse it. Flip the `!locked &&` and this fails, which is what a guard is supposed to do.
+  */
+  it("stays locked when the signal is bumped", () => {
+    const { rerender } = render(
+      <EditableCard
+        testId="locked-probe"
+        mode="locked"
+        title="Set by the payment path"
+        lockedReason="Nothing on this screen changes it."
+        editSignal={0}
+      >
+        <input aria-label="probe" />
+      </EditableCard>,
+    );
+    const fieldset = () => screen.getByTestId("locked-probe-fields") as HTMLFieldSetElement;
+    expect(fieldset().disabled).toBe(true);
+
+    rerender(
+      <EditableCard
+        testId="locked-probe"
+        mode="locked"
+        title="Set by the payment path"
+        lockedReason="Nothing on this screen changes it."
+        editSignal={1}
+      >
+        <input aria-label="probe" />
+      </EditableCard>,
+    );
+
+    expect(fieldset().disabled).toBe(true);
+    expect(screen.getByLabelText("probe").matches(":disabled")).toBe(true);
+    // And no Done/Save/Cancel appeared with it.
+    expect(screen.queryByTestId("locked-probe-done")).toBeNull();
+    expect(screen.queryByTestId("locked-probe-save")).toBeNull();
   });
 });

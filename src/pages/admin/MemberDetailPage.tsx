@@ -82,6 +82,11 @@ export default function MemberDetailPage() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [device, setDevice] = useState<Device | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  /*
+    The header's Edit button switches to the Profile tab AND opens its card. Switching alone
+    left the operator looking at a locked card, having pressed a button that says Edit.
+  */
+  const [profileEditSignal, setProfileEditSignal] = useState(0);
   // Honour deep links like ?tab=messages (e.g. MembersPage "Send message"),
   // read once on mount; invalid values fall back to the profile tab.
   const [activeTab, setActiveTab] = useState<string>(() => {
@@ -230,7 +235,10 @@ export default function MemberDetailPage() {
         member={member}
         subscription={subscription}
         hasDevice={!!device}
-        onEdit={() => setActiveTab("profile")}
+        onEdit={() => {
+          setActiveTab("profile");
+          setProfileEditSignal((n) => n + 1);
+        }}
         onSuspend={handleSuspend}
         onDelete={handleDelete}
       />
@@ -256,7 +264,7 @@ export default function MemberDetailPage() {
         </TabsList>
 
         <TabsContent value="profile">
-          <ProfileTab member={member} onUpdate={fetchMember} />
+          <ProfileTab member={member} onUpdate={fetchMember} editSignal={profileEditSignal} />
         </TabsContent>
 
         <TabsContent value="medical">

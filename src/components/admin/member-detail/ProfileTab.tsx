@@ -68,9 +68,15 @@ interface ProfileTabMember {
 interface ProfileTabProps {
   member: ProfileTabMember;
   onUpdate: () => void;
+  /**
+   * Bumped by the member header's Edit button, which switches to this tab. Without it that
+   * button lands the operator on a locked card — a control labelled Edit that produces a
+   * read-only view, which is the lie this whole lock was meant to remove.
+   */
+  editSignal?: number;
 }
 
-export function ProfileTab({ member, onUpdate }: ProfileTabProps) {
+export function ProfileTab({ member, onUpdate, editSignal }: ProfileTabProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<ProfileFormValues>({
@@ -151,6 +157,7 @@ export function ProfileTab({ member, onUpdate }: ProfileTabProps) {
 
       <EditableCard
         testId="profile-card"
+        editSignal={editSignal}
         title="Member Profile"
         description="Read-only until you press Edit."
         isDirty={form.formState.isDirty}

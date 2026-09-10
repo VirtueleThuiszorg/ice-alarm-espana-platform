@@ -28,6 +28,9 @@ const AUTH_MOD = "../../supabase/functions/_shared/member-auth.ts";
 const { ensureSecondStageToken, secondStageLink, SECOND_STAGE_FIELDS, SECOND_STAGE_TOKEN_DAYS } =
   (await import(/* @vite-ignore */ STAGE_MOD)) as any;
 const { ensureMemberAuthUser } = (await import(/* @vite-ignore */ AUTH_MOD)) as any;
+/* eslint-enable @typescript-eslint/no-explicit-any */
+import { requestedIncludesContacts, updateFormFields } from "@/lib/memberUpdateForm";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 function code(relative: string): string {
   return readFileSync(join(process.cwd(), relative), "utf8")
@@ -107,12 +110,25 @@ describe("the second-stage token is minted by the payment path", () => {
     expect(fields).not.toContain("nie_dni");
   });
 
-  it("uses the vocabulary MemberUpdatePage actually switches on", () => {
-    // A typo here renders a form with a silently missing section rather than an error, which
-    // is how a member ends up submitting a "complete" second stage with no contacts on it.
-    const page = code("src/pages/MemberUpdatePage.tsx");
+  it("uses the vocabulary MemberUpdatePage actually renders", () => {
+    /*
+      A typo here renders a form with a silently missing section rather than an error, which is
+      how a member ends up submitting a "complete" second stage with no contacts on it.
+
+      This was a substring scan of the page. The page is now driven from `memberUpdateForm.ts`
+      — it no longer names any token itself — so the property is asserted by EXECUTION instead:
+      every second-stage token must resolve to a control the member can actually answer. That
+      is what the scan was standing in for, and it survives the page being rewritten again.
+    */
+    const rendered = updateFormFields([...SECOND_STAGE_FIELDS]).map((f) => f.key);
     for (const field of SECOND_STAGE_FIELDS) {
-      expect(page, `MemberUpdatePage never mentions "${field}"`).toContain(`"${field}"`);
+      if (field === "contacts_count" || field === "contacts_email") {
+        expect(requestedIncludesContacts([field]), `"${field}" renders no contact editor`).toBe(
+          true,
+        );
+        continue;
+      }
+      expect(rendered, `"${field}" renders no control`).toContain(field);
     }
   });
 

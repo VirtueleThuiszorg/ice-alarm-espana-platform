@@ -7653,6 +7653,14 @@ export type Database = {
           staff_name: string
         }[]
       }
+      confirm_legacy_member: {
+        Args: { _member_id: string; _reason?: string }
+        Returns: {
+          billing_source: string
+          member_id: string
+          status: string
+        }[]
+      }
       expire_pending_covers: { Args: never; Returns: number }
       get_admin_dashboard_stats: { Args: never; Returns: Json }
       get_member_id: { Args: { _user_id: string }; Returns: string }

@@ -177,6 +177,41 @@ describe("what the dialog asks for", () => {
     const link = await screen.findByTestId("complete-contacts-link");
     expect(link).toHaveAttribute("href", "/dashboard/contacts");
   });
+
+  it("asks for the contact gap ONCE — the link, and no text box beside it", async () => {
+    /*
+      IT ASKED TWICE, and the first ask was a plain text box.
+
+      `updateFormFields` answers for the emailed update PAGE, which has a real repeated-block
+      contact editor and renders `control: "contacts"` with it. This dialog has no such arm, so
+      the field fell through to the generic `<Input>` — leaving the same gap asked as a line
+      ("At least one emergency contact") directly above the link, under a duplicated group
+      heading.
+
+      The text box was worse than the duplication. It accepted text, which enabled Save, and
+      `buildUpdateSubmission` then correctly ignored it because a contacts field has no column —
+      so a member who typed their daughter's name into it was told they had typed nothing.
+    */
+    await renderComplete([field("emergency_contact"), field("emergency_contact_phone")]);
+    await screen.findByTestId("complete-contacts-link");
+
+    expect(screen.queryByTestId("complete-field-emergency_contact")).toBeNull();
+    expect(screen.queryByTestId("complete-field-emergency_contact_phone")).toBeNull();
+    // Nothing to type at all: every gap here is handled by the page the link goes to.
+    expect(screen.queryAllByRole("textbox")).toHaveLength(0);
+    // And the group is announced once, not once per ask.
+    expect(screen.queryAllByTestId("complete-group-contacts")).toHaveLength(1);
+  });
+
+  it("keeps the typed fields when a contact gap is in the same list", async () => {
+    // The filter must remove the contact CONTROL without removing anything else in the dialog.
+    await renderComplete([field("emergency_contact"), field("first_name")]);
+
+    expect(await screen.findByTestId("complete-field-first_name")).toBeVisible();
+    expect(screen.getByTestId("complete-contacts-link")).toBeVisible();
+    expect(screen.queryByTestId("complete-field-emergency_contact")).toBeNull();
+    expect(screen.queryAllByRole("textbox")).toHaveLength(1);
+  });
 });
 
 // ── 2. what it writes, and where ────────────────────────────────────────────

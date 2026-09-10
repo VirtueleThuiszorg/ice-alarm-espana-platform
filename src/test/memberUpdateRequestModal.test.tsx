@@ -6,24 +6,31 @@
  * to be read it over the phone rather than sent it.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 
 let invoked: Array<{ name: string; body: unknown }> = [];
+let rows: Record<string, unknown> = {};
 let response: { data: unknown; error: unknown } = { data: null, error: null };
 
 vi.mock("@/integrations/supabase/client", () => {
-  const chain = () => {
+  const chain = (table: string) => {
+    const answer = () => ({ data: rows[table] ?? null, error: null });
     const q: Record<string, unknown> = {};
     const self = () => q;
     q.select = self;
     q.eq = self;
-    q.order = () => ({ then: (r: (v: unknown) => unknown) => r({ data: [], error: null }) });
-    q.maybeSingle = async () => ({ data: null, error: null });
+    q.in = self;
+    q.limit = self;
+    q.order = self;
+    q.maybeSingle = async () => answer();
+    q.then = (r: (v: unknown) => unknown) => r(answer());
     return q;
   };
   return {
     supabase: {
-      from: () => chain(),
+      from: (table: string) => chain(table),
       functions: {
         invoke: async (name: string, opts: { body: unknown }) => {
           invoked.push({ name, body: opts.body });
@@ -63,6 +70,14 @@ const LINK = "https://icealarm.es/member-update?token=abc123";
 
 beforeEach(() => {
   invoked = [];
+  rows = {
+    members: { id: "m1", first_name: "Mary", last_name: "Quinn", email: "mary@example.com" },
+    medical_information: {},
+    emergency_contacts: [],
+    devices: null,
+    member_monitoring_readiness: null,
+    subscriptions: null,
+  };
   toastError.mockClear();
   toastSuccess.mockClear();
   response = {
@@ -78,9 +93,20 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-function open() {
+function wrapper({ children }: { children: ReactNode }) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
+
+function open(preselectedFields?: string[]) {
   return render(
-    <MemberUpdateRequestModal open onOpenChange={() => {}} member={MEMBER} />,
+    <MemberUpdateRequestModal
+      open
+      onOpenChange={() => {}}
+      member={MEMBER}
+      preselectedFields={preselectedFields}
+    />,
+    { wrapper },
   );
 }
 
@@ -92,7 +118,7 @@ async function send() {
 
 describe("the member's update link", () => {
   it("is shown even when every channel failed to deliver it", async () => {
-    open();
+    open(["nie_dni", "blood_type"]);
     await send();
     expect(screen.getByTestId<HTMLInputElement>("update-request-link").value).toBe(LINK);
     // And the truth about delivery beside it, not instead of it.
@@ -103,7 +129,7 @@ describe("the member's update link", () => {
   it("is copyable", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
-    open();
+    open(["nie_dni", "blood_type"]);
     await send();
     fireEvent.click(screen.getByLabelText("Copy"));
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(LINK));
@@ -113,7 +139,7 @@ describe("the member's update link", () => {
     Object.assign(navigator, {
       clipboard: { writeText: vi.fn().mockRejectedValue(new Error("no")) },
     });
-    open();
+    open(["nie_dni", "blood_type"]);
     await send();
     fireEvent.click(screen.getByLabelText("Copy"));
     await waitFor(() => expect(toastError).toHaveBeenCalled());
@@ -122,7 +148,7 @@ describe("the member's update link", () => {
   });
 
   it("sends the ticked fields and the chosen recipient", async () => {
-    open();
+    open(["nie_dni", "blood_type"]);
     await send();
     expect(invoked[0].name).toBe("send-member-update-request");
     const body = invoked[0].body as { requestedFields: string[]; recipientEmail: string };
@@ -130,9 +156,18 @@ describe("the member's update link", () => {
     expect(body.recipientEmail).toBe("mary@example.com");
   });
 
+  it("refuses to forward a field only WE can supply, whatever the caller ticked", async () => {
+    // The dialog will not tick these, but this modal is the thing that talks to the endpoint,
+    // and a token asking a member for their pendant's IMEI is a page they cannot complete.
+    open(["nie_dni", "device_tested", "device_imei", "active_subscription"]);
+    await send();
+    const body = invoked[0].body as { requestedFields: string[] };
+    expect(body.requestedFields).toEqual(["nie_dni"]);
+  });
+
   it("a refused request shows the failure and no link", async () => {
     response = { data: null, error: { message: "boom" } };
-    open();
+    open(["nie_dni"]);
     await waitFor(() => expect(screen.getByText("Send Update Request")).toBeTruthy());
     fireEvent.click(screen.getByText("Send Update Request"));
     await waitFor(() => expect(toastError).toHaveBeenCalled());

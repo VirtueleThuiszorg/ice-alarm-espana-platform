@@ -1,17 +1,53 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Send, Loader2, Check, AlertCircle, Copy, Link2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Send, Loader2, Check, AlertCircle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { functionError } from "@/lib/functionError";
+import { useMemberMissingInfo } from "@/hooks/useMemberMissingInfo";
+import {
+  REQUIRED_REASON_LABELS,
+  requestableFields,
+  requiredFieldByKey,
+} from "@/lib/memberRequiredFields";
+import {
+  UpdateLinkResult,
+  type UpdateRequestResult,
+} from "@/components/admin/member-detail/UpdateLinkResult";
 
+/**
+ * ASK THE MEMBER FOR WHAT IS MISSING — off ONE definition of missing.
+ *
+ * THIS COMPONENT USED TO CARRY THE FIFTH OPINION. It had its own inline list — NIE/DNI, six
+ * medical fields, "fewer than two emergency contacts", "contacts missing email" — written
+ * nowhere else and reconciled with nothing, while the readiness queue, the protection
+ * checklist, the registration schema and `medicalFields.ts` each had their own. It now reads
+ * `memberRequiredFields.ts` like every other surface, so the number here, the badge in the
+ * header and the column in the members list cannot disagree.
+ *
+ * Only what a MEMBER can supply is offered. Asking somebody for their pendant's IMEI, to test
+ * their own pendant, or to activate their own subscription is asking for something they cannot
+ * give on a link whose whole promise is "fill this in and you are done".
+ */
 interface MemberData {
   id: string;
   first_name: string;
@@ -21,15 +57,6 @@ interface MemberData {
   nie_dni: string | null;
   address_line_2: string | null;
   preferred_language: string | null;
-}
-
-interface MedicalData {
-  blood_type: string | null;
-  doctor_name: string | null;
-  doctor_phone: string | null;
-  hospital_preference: string | null;
-  allergies: string[] | null;
-  medications: string[] | null;
 }
 
 interface EmergencyContact {
@@ -42,100 +69,61 @@ interface MemberUpdateRequestModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   member: MemberData;
+  /**
+   * A selection made elsewhere — the Missing-info dialog ticks the items with the reasons in
+   * front of it and hands them over. Absent, this modal offers everything currently missing.
+   */
+  preselectedFields?: string[];
+  /** Called after a link is created, so a badge showing the count can re-read. */
+  onSent?: () => void;
 }
 
-/**
- * WHAT CAME BACK — the link above all.
- *
- * `send-member-update-request` used to throw when the email bounced, so a staff member was told
- * the request had failed while an unexpired token sat in the table. It now returns the URL and
- * a named outcome per channel, and this panel shows both: the link is what the person on the
- * phone actually needs, whether or not anything was delivered.
- */
-interface RequestResult {
-  updateLink: string;
-  expiresAt?: string;
-  delivery?: Array<{ channel: string; to: string | null; outcome: string; detail?: string }>;
-}
-
-const DELIVERY_TEXT: Record<string, string> = {
-  sent: "sent",
-  failed: "could not be sent",
-  skipped_channel_off: "channel switched off",
-  skipped_not_configured: "not set up yet",
-  skipped_no_address: "nowhere to send it",
-};
-
-interface MissingField {
-  key: string;
-  label: string;
-  category: "profile" | "medical" | "contacts";
-}
-
-export function MemberUpdateRequestModal({ open, onOpenChange, member }: MemberUpdateRequestModalProps) {
+export function MemberUpdateRequestModal({
+  open,
+  onOpenChange,
+  member,
+  preselectedFields,
+  onSent,
+}: MemberUpdateRequestModalProps) {
   const { t } = useTranslation();
-  const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const [_medicalData, setMedicalData] = useState<MedicalData | null>(null);
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
-  const [missingFields, setMissingFields] = useState<MissingField[]>([]);
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [recipientEmail, setRecipientEmail] = useState(member.email);
-  const [result, setResult] = useState<RequestResult | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [result, setResult] = useState<UpdateRequestResult | null>(null);
+
+  const { data, isLoading } = useMemberMissingInfo(member.id, open && !preselectedFields);
+
+  // Only the askable ones, and only while there is no selection handed in.
+  const askable = requestableFields(data?.missing ?? []);
+  const offered = preselectedFields
+    ? preselectedFields
+        .map((key) => requiredFieldByKey(key))
+        .filter((f): f is NonNullable<typeof f> => !!f && f.memberCanSupply)
+    : askable;
 
   useEffect(() => {
-    if (open) {
-      fetchMemberData();
-    }
-  }, [open, member.id]);
+    if (!open) return;
+    setSelectedFields(offered.map((f) => f.key));
+    // Re-tick when the offer changes, not on every render: `offered` is rebuilt each pass.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, offered.map((f) => f.key).join(",")]);
 
-  const fetchMemberData = async () => {
-    setLoading(true);
-    try {
-      // Fetch medical info
-      const { data: medical } = await supabase
-        .from("medical_information")
-        .select("blood_type, doctor_name, doctor_phone, hospital_preference, allergies, medications")
-        .eq("member_id", member.id)
-        .maybeSingle();
-      setMedicalData(medical);
-
-      // Fetch emergency contacts
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
       const { data: contactsData } = await supabase
         .from("emergency_contacts")
         .select("id, contact_name, email")
         .eq("member_id", member.id)
         .order("priority_order");
-      setContacts(contactsData || []);
-
-      // Detect missing fields
-      const missing: MissingField[] = [];
-
-      // Profile fields
-      if (!member.nie_dni) missing.push({ key: "nie_dni", label: t("common.nieDni", "NIE/DNI"), category: "profile" });
-
-      // Medical fields
-      if (!medical?.blood_type) missing.push({ key: "blood_type", label: t("medical.bloodType", "Blood Type"), category: "medical" });
-      if (!medical?.doctor_name) missing.push({ key: "doctor_name", label: t("medical.doctorName", "Doctor Name"), category: "medical" });
-      if (!medical?.doctor_phone) missing.push({ key: "doctor_phone", label: t("medical.doctorPhone", "Doctor Phone"), category: "medical" });
-      if (!medical?.hospital_preference) missing.push({ key: "hospital_preference", label: t("medical.hospitalPreference", "Hospital Preference"), category: "medical" });
-      if (!medical?.allergies || medical.allergies.length === 0) missing.push({ key: "allergies", label: t("medical.allergies", "Allergies"), category: "medical" });
-      if (!medical?.medications || medical.medications.length === 0) missing.push({ key: "medications", label: t("medical.medications", "Medications"), category: "medical" });
-
-      // Emergency contacts
-      if ((contactsData?.length || 0) < 2) missing.push({ key: "contacts_count", label: t("crm.lessThan2Contacts", "Less than 2 emergency contacts"), category: "contacts" });
-      const contactsMissingEmail = contactsData?.filter(c => !c.email) || [];
-      if (contactsMissingEmail.length > 0) missing.push({ key: "contacts_email", label: t("crm.contactsMissingEmail", "Emergency contacts missing email"), category: "contacts" });
-
-      setMissingFields(missing);
-      setSelectedFields(missing.map(f => f.key));
-    } catch (error) {
-      console.error("Error fetching member data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (!cancelled) setContacts(contactsData ?? []);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, member.id]);
 
   const handleSend = async () => {
     if (!recipientEmail || selectedFields.length === 0) {
@@ -145,21 +133,25 @@ export function MemberUpdateRequestModal({ open, onOpenChange, member }: MemberU
 
     setSending(true);
     try {
-      const { data, error } = await supabase.functions.invoke("send-member-update-request", {
-        body: {
-          memberId: member.id,
-          recipientEmail,
-          requestedFields: selectedFields,
-          memberName: `${member.first_name} ${member.last_name}`,
-          preferredLanguage: member.preferred_language || "en",
+      const { data: sendData, error } = await supabase.functions.invoke(
+        "send-member-update-request",
+        {
+          body: {
+            memberId: member.id,
+            recipientEmail,
+            requestedFields: selectedFields,
+            memberName: `${member.first_name} ${member.last_name}`,
+            preferredLanguage: member.preferred_language || "en",
+          },
         },
-      });
+      );
 
       if (error) throw await functionError(error);
 
       // The dialog deliberately STAYS OPEN. Closing it on success would throw away the link,
       // which is the one thing a staff member ringing the member actually needs.
-      setResult(data as RequestResult);
+      setResult(sendData as UpdateRequestResult);
+      onSent?.();
       toast.success(t("crm.updateRequestSent", "Update link created"));
     } catch (error) {
       console.error("Error sending update request:", error);
@@ -169,39 +161,15 @@ export function MemberUpdateRequestModal({ open, onOpenChange, member }: MemberU
     }
   };
 
-  const copyLink = async () => {
-    if (!result) return;
-    try {
-      await navigator.clipboard.writeText(result.updateLink);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // A clipboard refusal must not read as a failure to create the link.
-      toast.error(t("crm.copyFailed", "Could not copy — select the link and copy it"));
-    }
-  };
-
   const close = (next: boolean) => {
     if (!next) setResult(null);
     onOpenChange(next);
   };
 
-  const toggleField = (fieldKey: string) => {
-    setSelectedFields(prev =>
-      prev.includes(fieldKey)
-        ? prev.filter(f => f !== fieldKey)
-        : [...prev, fieldKey]
+  const toggleField = (key: string) =>
+    setSelectedFields((prev) =>
+      prev.includes(key) ? prev.filter((f) => f !== key) : [...prev, key],
     );
-  };
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case "profile": return "bg-blue-500/10 text-blue-600 dark:text-blue-400";
-      case "medical": return "bg-red-500/10 text-red-600 dark:text-red-400";
-      case "contacts": return "bg-green-500/10 text-green-600 dark:text-green-400";
-      default: return "bg-muted text-muted-foreground";
-    }
-  };
 
   return (
     <Dialog open={open} onOpenChange={close}>
@@ -209,119 +177,83 @@ export function MemberUpdateRequestModal({ open, onOpenChange, member }: MemberU
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Send className="h-5 w-5" />
-            {t("crm.requestMemberUpdate", "Request Member Update")}
+            {t("crm.requestMemberUpdate", "Ask the member for what is missing")}
           </DialogTitle>
           <DialogDescription>
-            {t("crm.requestUpdateDescription", "Send an email to the member with a link to update their missing information.")}
+            {t(
+              "crm.requestUpdateDescription",
+              "Creates a one-time link. We send it, and you also get it here to read out or send yourself.",
+            )}
           </DialogDescription>
         </DialogHeader>
 
         {result ? (
-          <div className="space-y-4" data-testid="update-request-result">
-            <div className="rounded-lg border p-3 space-y-2">
-              <Label className="flex items-center gap-2 text-sm font-medium">
-                <Link2 className="h-4 w-4" />
-                {t("crm.updateLink", "The member's link")}
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  readOnly
-                  value={result.updateLink}
-                  onFocus={(e) => e.currentTarget.select()}
-                  data-testid="update-request-link"
-                />
-                <Button variant="outline" size="icon" onClick={copyLink} aria-label={t("common.copy", "Copy")}>
-                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {t(
-                  "crm.updateLinkHint",
-                  "Works once, for 7 days. Read it out or send it yourself if nothing below was delivered.",
-                )}
-              </p>
-            </div>
-            <div className="space-y-1">
-              {(result.delivery ?? []).map((d) => (
-                <p key={d.channel} className="text-sm">
-                  <span className="capitalize">{d.channel}</span>:{" "}
-                  <span
-                    className={
-                      d.outcome === "sent" ? "text-alert-resolved" : "text-muted-foreground"
-                    }
-                  >
-                    {DELIVERY_TEXT[d.outcome] ?? d.outcome}
-                  </span>
-                  {d.to ? <span className="text-muted-foreground"> → {d.to}</span> : null}
-                </p>
-              ))}
-            </div>
-          </div>
-        ) : loading ? (
+          <UpdateLinkResult result={result} />
+        ) : isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ) : missingFields.length === 0 ? (
+        ) : offered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <Check className="h-12 w-12 text-green-500 mb-4" />
-            <p className="font-medium">{t("crm.noMissingFields", "No missing fields detected")}</p>
+            <Check className="h-12 w-12 text-alert-resolved mb-4" />
+            <p className="font-medium">
+              {t("crm.noMissingFields", "There is nothing to ask them for")}
+            </p>
             <p className="text-sm text-muted-foreground mt-1">
-              {t("crm.allFieldsComplete", "This member's profile appears to be complete.")}
+              {t(
+                "crm.allFieldsComplete",
+                "Everything a member can supply is already on their record.",
+              )}
             </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Missing Fields */}
             <div>
               <Label className="text-sm font-medium mb-2 flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-amber-500" />
-                {t("crm.missingFields", "Missing Fields Detected")} ({missingFields.length})
+                <AlertCircle className="h-4 w-4 text-alert-battery" />
+                {t("crm.missingFields", "We will ask for")} ({offered.length})
               </Label>
               <div className="space-y-2 max-h-48 overflow-y-auto border rounded-lg p-3">
-                {missingFields.map(field => (
+                {offered.map((field) => (
                   <div key={field.key} className="flex items-center gap-2">
                     <Checkbox
-                      id={field.key}
+                      id={`ask-${field.key}`}
                       checked={selectedFields.includes(field.key)}
                       onCheckedChange={() => toggleField(field.key)}
                     />
-                    <label htmlFor={field.key} className="text-sm flex-1 cursor-pointer">
-                      {field.label}
+                    <label htmlFor={`ask-${field.key}`} className="text-sm flex-1 cursor-pointer">
+                      {t(field.label.key, field.label.fallback)}
                     </label>
-                    <Badge variant="secondary" className={`text-xs ${getCategoryColor(field.category)}`}>
-                      {field.category}
+                    <Badge variant="secondary" className="text-xs">
+                      {t(
+                        REQUIRED_REASON_LABELS[field.why].key,
+                        REQUIRED_REASON_LABELS[field.why].fallback,
+                      )}
                     </Badge>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Email Selection */}
             <div>
-              <Label htmlFor="recipient">{t("crm.selectRecipient", "Select Email Recipient")}</Label>
+              <Label htmlFor="recipient">{t("crm.selectRecipient", "Send the email to")}</Label>
               <Select value={recipientEmail} onValueChange={setRecipientEmail}>
                 <SelectTrigger id="recipient" className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={member.email}>{member.email} ({t("common.primary", "Primary")})</SelectItem>
-                  {contacts.filter(c => c.email).map(contact => (
-                    <SelectItem key={contact.id} value={contact.email!}>
-                      {contact.email} ({contact.contact_name})
-                    </SelectItem>
-                  ))}
+                  <SelectItem value={member.email}>
+                    {member.email} ({t("common.primary", "Primary")})
+                  </SelectItem>
+                  {contacts
+                    .filter((c) => c.email)
+                    .map((contact) => (
+                      <SelectItem key={contact.id} value={contact.email!}>
+                        {contact.email} ({contact.contact_name})
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            {/* Summary */}
-            <div className="bg-muted rounded-lg p-3">
-              <p className="text-sm">
-                <strong>{t("crm.fieldsToUpdate", "The member will be asked to provide:")}</strong>
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {selectedFields.length} {t("common.fields", "field(s)")} → {recipientEmail}
-              </p>
             </div>
           </div>
         )}
@@ -331,25 +263,25 @@ export function MemberUpdateRequestModal({ open, onOpenChange, member }: MemberU
             <Button onClick={() => close(false)}>{t("common.done", "Done")}</Button>
           ) : (
             <>
-          <Button variant="outline" onClick={() => close(false)}>
-            {t("common.cancel", "Cancel")}
-          </Button>
-          <Button 
-            onClick={handleSend} 
-            disabled={sending || loading || missingFields.length === 0 || selectedFields.length === 0}
-          >
-            {sending ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                {t("common.sending", "Sending...")}
-              </>
-            ) : (
-              <>
-                <Send className="h-4 w-4 mr-2" />
-                {t("crm.sendUpdateRequest", "Send Update Request")}
-              </>
-            )}
-          </Button>
+              <Button variant="outline" onClick={() => close(false)}>
+                {t("common.cancel", "Cancel")}
+              </Button>
+              <Button
+                onClick={handleSend}
+                disabled={sending || isLoading || selectedFields.length === 0}
+              >
+                {sending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {t("common.sending", "Sending...")}
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    {t("crm.sendUpdateRequest", "Send Update Request")}
+                  </>
+                )}
+              </Button>
             </>
           )}
         </DialogFooter>

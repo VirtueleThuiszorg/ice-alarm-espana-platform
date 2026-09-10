@@ -56,12 +56,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMembersMissingCounts } from "@/hooks/useMemberMissingInfo";
 
 const ITEMS_PER_PAGE = 20;
 
 type MemberRow = Tables<"members"> & {
-  subscriptions: Pick<Tables<"subscriptions">, "plan_type" | "status">[];
-  devices: Pick<Tables<"devices">, "id" | "status">[];
+  subscriptions: Pick<Tables<"subscriptions">, "plan_type" | "status" | "has_pendant">[];
+  devices: Pick<Tables<"devices">, "id" | "status" | "imei">[];
 };
 
 export default function MembersPage() {
@@ -110,8 +111,8 @@ export default function MembersPage() {
         .from("members")
         .select(`
           *,
-          subscriptions (plan_type, status),
-          devices (id, status)
+          subscriptions (plan_type, status, has_pendant),
+          devices (id, status, imei)
         `, { count: "exact" })
         .order("created_at", { ascending: false })
         .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
@@ -139,6 +140,13 @@ export default function MembersPage() {
       return { members: filteredMembers, totalCount: count || 0 };
     },
   });
+
+  /*
+    FIVE BATCHED READS FOR THE WHOLE PAGE, not six per row. Twenty members done one at a time
+    would be a hundred and twenty round trips, which is how a column like this gets added,
+    gets blamed for the list being slow, and gets deleted again.
+  */
+  const { data: missingCounts } = useMembersMissingCounts(data?.members);
 
   const totalPages = Math.ceil((data?.totalCount || 0) / ITEMS_PER_PAGE);
 
@@ -293,13 +301,19 @@ export default function MembersPage() {
                 <TableHead>{t("admin.table.plan")}</TableHead>
                 <TableHead>{t("admin.table.status")}</TableHead>
                 <TableHead>{t("admin.table.device")}</TableHead>
+                {/*
+                  HOW MUCH OF THE RECORD IS ACTUALLY THERE. Until now the only way to find out
+                  was to open a member and read twelve tabs, so nobody did it for the ones
+                  nobody had complained about.
+                */}
+                <TableHead>{t("admin.table.missing", "Missing")}</TableHead>
                 <TableHead className="w-[70px]">{t("admin.table.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     {t("admin.members.loading")}
                   </TableCell>
                 </TableRow>
@@ -324,6 +338,22 @@ export default function MembersPage() {
                         </Badge>
                       ) : (
                         <Badge variant="outline">{t("admin.members.none")}</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {missingCounts?.[member.id] === undefined ? (
+                        // Not "0". A count we have not worked out yet must not read as a
+                        // complete record — that is the false all-clear this whole model
+                        // exists to avoid (READINESS_MODEL.md §1-A).
+                        <span className="text-muted-foreground">…</span>
+                      ) : missingCounts[member.id] === 0 ? (
+                        <Badge variant="outline" className="bg-alert-resolved/10 text-alert-resolved border-alert-resolved/20">
+                          {t("admin.members.complete", "Complete")}
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive" data-testid={`missing-count-${member.id}`}>
+                          {missingCounts[member.id]}
+                        </Badge>
                       )}
                     </TableCell>
                     <TableCell>
@@ -382,7 +412,7 @@ export default function MembersPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     {t("admin.members.noResults")}
                   </TableCell>
                 </TableRow>

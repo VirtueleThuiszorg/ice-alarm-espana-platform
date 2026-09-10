@@ -41,6 +41,14 @@ import {
  * WHAT IT DOES NOT DO. It is not a permission. Anyone who can open this page can press Edit;
  * the lock is against accident, not against intent. What may actually be written is RLS's job
  * and the guard triggers', and neither of them can see this component.
+ *
+ * WHY IT LIVES AT THE TOP OF `src/components` rather than under `admin/member-detail`, where it
+ * was written: the member's own pages need the same behaviour, for the same reason. A member
+ * reading their medical record to a relative should not be one keypress from rewriting it
+ * either. Leaving it in an admin folder would have meant a second copy on the client surface,
+ * and the two would have disagreed within a month about what Cancel does with an unsaved
+ * change. It knows nothing about members, staff or Supabase — it takes a title, a dirty flag
+ * and an onSave.
  */
 export interface EditableCardProps {
   title: ReactNode;

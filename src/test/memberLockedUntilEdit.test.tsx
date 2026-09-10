@@ -12,6 +12,8 @@
  * like one they remembered.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 
 let updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
@@ -237,5 +239,64 @@ describe("the medical card", () => {
     expect(logged[0].newValues!.fields).toContain("allergies");
     // activity_logs is read by more people than this tab is.
     expect(JSON.stringify(logged[0].newValues)).not.toContain("Penicillin");
+  });
+});
+
+
+describe("one shell, and it is not the admin's", () => {
+  const ROOT = process.cwd();
+
+  /** Every .tsx under src, so a second copy anywhere is visible. */
+  function walk(dir: string, out: string[] = []): string[] {
+    for (const name of readdirSync(dir)) {
+      const p = join(dir, name);
+      if (statSync(p).isDirectory()) walk(p, out);
+      else if (p.endsWith(".tsx") || p.endsWith(".ts")) out.push(p);
+    }
+    return out;
+  }
+
+  /*
+    The APP tree, not the tests. A suite that scans itself finds its own patterns: both checks
+    below matched this very file on their first run, which is a false positive that would have
+    to be worked around forever after.
+  */
+  const files = walk(join(ROOT, "src")).filter((f) => !f.includes(`${join("src", "test")}`));
+
+  it("there is exactly one EditableCard implementation", () => {
+    /*
+      THE FAILURE THIS PREVENTS is not a duplicate file appearing by accident — it is somebody
+      needing this behaviour on the member's own pages, finding it under `admin/member-detail`,
+      and copying it rather than importing across surfaces. Two shells disagree within a month
+      about what Cancel does with an unsaved change, and the disagreement is invisible because
+      each one is self-consistent.
+    */
+    const implementations = files.filter((f) => /export function EditableCard\b/.test(readFileSync(f, "utf8")));
+    expect(implementations.map((f) => f.slice(ROOT.length + 1))).toEqual([
+      "src/components/EditableCard.tsx",
+    ]);
+  });
+
+  it("it lives where both surfaces can reach it, not inside one of them", () => {
+    // Under `admin/` or `client/` it is one surface's property, and the other copies it.
+    const home = "src/components/EditableCard.tsx";
+    expect(home).not.toMatch(/\/(admin|client|call-centre|staff|partner)\//);
+    for (const f of files) {
+      const src = readFileSync(f, "utf8");
+      expect(src, f).not.toContain("admin/member-detail/EditableCard");
+    }
+  });
+
+  it("every editable card on the member record uses it", () => {
+    const cards = [
+      "src/components/admin/member-detail/ProfileTab.tsx",
+      "src/components/admin/member-detail/MedicalTab.tsx",
+      "src/components/admin/member-detail/CourtesyCallsCard.tsx",
+    ];
+    for (const card of cards) {
+      const src = readFileSync(join(ROOT, card), "utf8");
+      expect(src, card).toContain('from "@/components/EditableCard"');
+      expect(src, card).toContain("<EditableCard");
+    }
   });
 });

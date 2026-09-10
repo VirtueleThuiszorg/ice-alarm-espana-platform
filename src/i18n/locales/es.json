@@ -6462,5 +6462,39 @@
       "alreadyApplied": "Ya estaba aprobado: no se ha movido nada",
       "approveFailed": "No se ha podido aprobar"
     }
+  },
+  "homeLocation": {
+    "row": {
+      "title": "Ubicación de su domicilio",
+      "purpose": "El lugar al que enviamos ayuda si su colgante no puede indicarnos dónde está.",
+      "setButton": "Marcar la ubicación de mi domicilio",
+      "openInMaps": "Abrir en Maps",
+      "change": "Cambiar",
+      "setOn": "Marcada el {{date}}",
+      "setDateUnknown": "No tenemos fecha para esta marca.",
+      "mapLabel": "Mapa con la ubicación guardada de su domicilio"
+    },
+    "dialog": {
+      "title": "Marque la ubicación de su domicilio",
+      "purpose": "Este es el lugar al que enviamos ayuda si su colgante no puede indicarnos dónde está.",
+      "useCurrent": "Usar mi ubicación actual",
+      "accuracyOk": "Precisión de unos {{metres}} metros.",
+      "accuracyTooLow": "Su teléfono solo ha podido situarle con unos {{metres}} metros de precisión, y no es suficiente: colóquese en la puerta de su casa e inténtelo de nuevo.",
+      "permissionDenied": "Su dispositivo no nos ha permitido leer su ubicación. Puede colocar la marca en el mapa de abajo.",
+      "gpsError": "No hemos podido leer su ubicación. Puede colocar la marca en el mapa de abajo.",
+      "dragHelp": "Mueva la marca hasta la puerta de su casa. Toque el mapa donde está su puerta o use las flechas.",
+      "mapLabel": "Mapa con la marca de la ubicación de su domicilio",
+      "noStartingPoint": "No hemos encontrado su dirección en el mapa. Use el botón de arriba mientras está en la puerta de su casa.",
+      "nudgeGroup": "Mover la marca en pasos pequeños",
+      "nudge": {
+        "north": "Mover al norte",
+        "south": "Mover al sur",
+        "east": "Mover al este",
+        "west": "Mover al oeste"
+      },
+      "save": "Guardar la ubicación de mi domicilio"
+    },
+    "saved": "Ubicación del domicilio guardada",
+    "saveFailed": "No hemos podido guardar la ubicación de su domicilio."
   }
 }

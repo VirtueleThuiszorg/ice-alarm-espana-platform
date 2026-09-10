@@ -62,6 +62,14 @@ const RED_BUTTONS: Record<string, string[]> = {
     "the new-message dialog's Send. A dialog is its own surface",
     "the empty state's 'send your first message' — R8, and mutually exclusive with the header one",
   ],
+  /*
+    `HomeLocationRow` keeps its red button (#323). `ProfilePage` does NOT: its page-level Save
+    is gone, because each card now owns its own Save and those are `variant="ink"`. The two
+    entries arrived in the same merge and only one of them survives it.
+  */
+  "src/components/client/HomeLocationRow.tsx": [
+    "'Set my home location' — the empty state's one action, and mutually exclusive with the Change button that replaces it once a pin exists (R8). Change is `secondary` and Open in Maps is `outline`, so neither competes with it",
+  ],
   "src/pages/client/SubscriptionPage.tsx": [
     "'switch to annual', the page's one action; add-a-pendant and change-to-couple are outline",
   ],

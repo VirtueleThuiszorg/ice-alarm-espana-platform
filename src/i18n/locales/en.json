@@ -6462,5 +6462,39 @@
       "alreadyApplied": "Already approved — nothing moved",
       "approveFailed": "Could not approve it"
     }
+  },
+  "homeLocation": {
+    "row": {
+      "title": "Home location",
+      "purpose": "Where we send help if your pendant cannot tell us where you are.",
+      "setButton": "Set my home location",
+      "openInMaps": "Open in Maps",
+      "change": "Change",
+      "setOn": "Set on {{date}}",
+      "setDateUnknown": "We do not have a date for this pin.",
+      "mapLabel": "Map showing your saved home location"
+    },
+    "dialog": {
+      "title": "Set your home location",
+      "purpose": "This is where we send help if your pendant cannot tell us where you are.",
+      "useCurrent": "Use my current location",
+      "accuracyOk": "Accurate to about {{metres}} metres.",
+      "accuracyTooLow": "Your phone could only place you to about {{metres}} metres, which is not close enough — please stand at your front door and try again.",
+      "permissionDenied": "Your device did not allow us to read your location. You can still place the pin on the map below.",
+      "gpsError": "We could not read your location. You can still place the pin on the map below.",
+      "dragHelp": "Move the pin onto your front door. Tap the map where your door is, or use the arrows.",
+      "mapLabel": "Map showing your home location pin",
+      "noStartingPoint": "We could not find your address on the map. Please use the button above while standing at your front door.",
+      "nudgeGroup": "Move the pin in small steps",
+      "nudge": {
+        "north": "Move north",
+        "south": "Move south",
+        "east": "Move east",
+        "west": "Move west"
+      },
+      "save": "Save my home location"
+    },
+    "saved": "Home location saved",
+    "saveFailed": "We could not save your home location."
   }
 }

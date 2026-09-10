@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, Loader2, Lock, Pencil, Plus, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useUnsavedChanges } from "@/components/UnsavedChanges";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -211,6 +212,31 @@ export function EditableCard(props: EditableCardProps) {
   const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   /*
+    AND THE ONE THE BROWSER CANNOT SEE: a tab change. Radix unmounts the inactive panel, so
+    clicking "Medical" half-way through editing the address destroyed the edit silently. The
+    card cannot guard a control that lives somewhere else on the page, so it registers itself
+    and whatever owns the navigation asks. Null outside a provider — a card on a page with no
+    tabs needs no registration.
+  */
+  const unsaved = useUnsavedChanges();
+  const cardId = useId();
+  /*
+    DEPEND ON `setDirty`, NEVER ON THE CONTEXT OBJECT. `setDirty` is stable; a dependency on
+    the context VALUE would re-run this effect whenever the registry changed, and its cleanup
+    unregisters while its body re-registers. Together with a provider that re-rendered on every
+    change, that locked the event loop on the first keystroke — see UnsavedChanges.tsx for the
+    other half of that story.
+  */
+  const setDirty = unsaved?.setDirty;
+  useEffect(() => {
+    if (!setDirty) return;
+    setDirty(cardId, editing && isDirty);
+    // Unmounting IS the loss this guards against, so the registration must go with it —
+    // otherwise a card that has been navigated away from keeps the page permanently "dirty".
+    return () => setDirty(cardId, false);
+  }, [setDirty, cardId, editing, isDirty]);
+
+  /*
     THE BROWSER'S OWN WARNING, for the ways out this component cannot see: the back button, a
     closed tab, a link to another page. The in-app Cancel is guarded below; this covers
     everything else, and it is removed the moment the card is clean so a reader never meets it.
@@ -371,26 +397,34 @@ export function EditableCard(props: EditableCardProps) {
         </CardHeader>
         <CardContent>
           {/*
-            THE BODY, AND THE LOCK IT IS UNDER.
+            ONE fieldset, not a disabled prop per input. `min-w-0` because a disabled fieldset
+            establishes a new layout context that otherwise refuses to shrink inside a grid.
 
-            The state goes out through a context as well, so a FIELD can render itself as text
-            while locked (`FieldControl`, MEMBER_UX_RULES R6) rather than as a greyed input. It
-            is a context and not a prop for the reason the fieldset exists at all: a per-field
-            flag is a flag somebody forgets on the forty-first field, and the forgetting is
-            invisible — the field looks the same and simply stays as it was.
+            `editable-card-fields` is what turns READ MODE INTO PLAIN TEXT (#328). A disabled
+            input is still an input: it has a border, a box, a placeholder and a chevron, so a
+            locked card still reads as a form somebody has switched off rather than as a
+            record. The rule lives in index.css because it must reach every descendant of the
+            fieldset — and because doing it there means twelve tabs get it at once, instead of
+            twelve hand-written read views that drift.
 
-            `startEditing` is exposed too, for R6's inline Add beside an empty value.
+            THE CONTEXT IS THE OTHER HALF, and it is what CSS cannot do. R6 asks for two things:
+            *"Fields as label / value"* — which the rule above delivers — and *"Empty = 'Not
+            added' + inline Add"*, which is a different STRING and a BUTTON, neither of which a
+            stylesheet can invent. `FieldControl` reads this context to supply them, and
+            `MedicalFieldRow` reads it to render a stored phone number as a real `tel:` link
+            rather than a flattened input. A context and not a prop for the same reason the
+            fieldset is one container: a per-field flag is a flag somebody forgets on the
+            forty-first field, and the forgetting is invisible.
+
+            `disableFieldsWhenLocked={false}` is for a card whose every field renders its own
+            read view (the member's Medical page): there is no input left to disable, and a
+            disabled group wrapped around plain text is announced as unavailable for nothing.
           */}
           <EditableCardContext.Provider value={{ editing, startEditing }}>
             {disableFieldsWhenLocked ? (
-              /*
-                ONE fieldset, not a disabled prop per input. `min-w-0` because a disabled
-                fieldset establishes a new layout context that otherwise refuses to shrink
-                inside a grid.
-              */
               <fieldset
                 disabled={!editing}
-                className="min-w-0 disabled:opacity-100"
+                className="editable-card-fields min-w-0 disabled:opacity-100"
                 data-testid={testId ? `${testId}-fields` : undefined}
                 data-editing={editing ? "true" : "false"}
               >

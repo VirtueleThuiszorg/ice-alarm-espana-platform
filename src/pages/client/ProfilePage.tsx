@@ -24,6 +24,7 @@ import { PageHeader } from "@/components/client/PageHeader";
 import { LockedIdentityField } from "@/components/client/LockedIdentityField";
 import { EditableCard } from "@/components/EditableCard";
 import { FieldControl, FieldLabel } from "@/components/FieldControl";
+import { HomeLocationRow } from "@/components/client/HomeLocationRow";
 import {
   MEMBER_LANGUAGES,
   MEMBER_LANGUAGE_CODES,
@@ -621,6 +622,32 @@ export default function ProfilePage() {
               <p className="mt-4 text-[0.8125rem] text-muted-foreground">
                 {t("profile.addressEmergencyNote")}
               </p>
+
+              {/*
+                THE MAP PIN, BELOW THE TYPED ADDRESS AND SEPARATE FROM IT (#323).
+
+                It belongs in this card because it is the same question — where do you live —
+                but it is deliberately NOT a form field: it saves on its own, through
+                member-self-service, and it must not be swept up by a Save button. A typed
+                address in rural Almería is regularly a property a driver cannot find at night;
+                the pin is the member's answer to that, and only they can give it.
+
+                STILL NOT SWEPT UP, now that the card saves per-card: `CARD_COLUMNS.address`
+                names the nine columns this card writes and the location columns are not among
+                them, so Save cannot touch the pin either way.
+
+                It sits INSIDE the card and therefore outside the lock only when the card is
+                unlocked — the same arrangement the staff record's `manage` cards use for Add
+                and Delete: Edit arms the controls, and a control that writes on its own is
+                exactly the kind a stray click should not reach on a page somebody is reading
+                down the phone.
+              */}
+              <div className="mt-6 border-t pt-6">
+                <HomeLocationRow
+                  profile={profile}
+                  onSaved={() => queryClient.invalidateQueries({ queryKey: ["member-profile"] })}
+                />
+              </div>
             </EditableCard>
 
             {/*

@@ -230,3 +230,4 @@
 20260910120000_holidays_2026_backfill_before_cut.sql
 20260910130000_shift_swap_apply_and_bell.sql
 20260910130100_shift_swap_router_emit.sql
+20260910140000_member_home_location.sql

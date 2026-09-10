@@ -72,6 +72,14 @@ export interface StubScenario {
   registerResponse?: { status: number; body: unknown };
   /** Override the `partner-verify` response. */
   verifyResponse?: { status: number; body: unknown };
+  /**
+   * Override the `member-self-service` response — e.g. to force the accuracy refusal the
+   * function performs server-side. Named rather than folded into a generic
+   * "any edge function succeeds" branch on purpose: an UNRECOGNISED function must keep failing
+   * loudly (the 501 at the bottom of this router), because a journey that silently succeeds
+   * against a function nobody stubbed is the defect this stub exists to catch.
+   */
+  memberSelfServiceResponse?: { status: number; body: unknown };
   /** Fail the password grant, as GoTrue does on bad credentials. */
   signInError?: { status: number; body: unknown };
   /**
@@ -249,6 +257,12 @@ export async function installSupabaseStub(page: Page, initial: StubScenario = {}
       });
     }
 
+    if (url.pathname === "/functions/v1/member-self-service") {
+      const r = scenario.memberSelfServiceResponse;
+      if (r) return json(route, r.body, r.status);
+      return json(route, { success: true });
+    }
+
     // ── GoTrue ────────────────────────────────────────────────────────────
     if (url.pathname === "/auth/v1/token") {
       if (scenario.signInError) {
@@ -326,7 +340,46 @@ export async function installSupabaseStub(page: Page, initial: StubScenario = {}
     // queries render their empty state instead of hanging. Still recorded in `calls`.
     if (url.pathname.startsWith("/rest/v1/")) {
       const table = url.pathname.slice("/rest/v1/".length);
-      return json(route, scenario.tables?.[table] ?? []);
+      const rows = scenario.tables?.[table] ?? [];
+
+      /*
+        `.single()` / `.maybeSingle()` GET A SINGLE OBJECT, because that is what PostgREST sends.
+        Both set `Accept: application/vnd.pgrst.object+json`, and PostgREST then answers with a
+        BARE OBJECT (or 406 / PGRST116 when there is no row) rather than an array.
+
+        This stub answered every read with an array, and supabase-js does not check: it hands the
+        array straight back as `data`. So a page doing `.select("*").eq("id", …).single()` got
+        `[{…}]`, every field read off it was `undefined`, and the page rendered its "we have no
+        value for that" state while looking completely healthy. Measured: the member profile page
+        showed the Home location row correctly and then could not geocode the member's address,
+        because `profile.address_line_1` was undefined — two Playwright failures with no visible
+        cause, in a spec whose fixtures were right all along.
+
+        DELIBERATELY NOT APPLIED to the `staff` and `partners` branches above. Those have their
+        own hand-written shaping that the four existing specs are calibrated against, and
+        changing what a staff lookup returns is a change to how every one of them logs in. Worth
+        doing separately, with those specs in front of you; not worth smuggling into a fix for
+        an unrelated table.
+      */
+      const wantsObject = (request.headers()["accept"] ?? "").includes("application/vnd.pgrst.object+json");
+      if (wantsObject) {
+        if (rows.length === 0) {
+          // Exactly what PostgREST says, and what supabase-js turns into `data: null` for
+          // maybeSingle and into an error for single.
+          return json(
+            route,
+            {
+              code: "PGRST116",
+              details: "The result contains 0 rows",
+              hint: null,
+              message: "JSON object requested, multiple (or no) rows returned",
+            },
+            406,
+          );
+        }
+        return json(route, rows[0]);
+      }
+      return json(route, rows);
     }
 
     // Deliberately not a silent pass-through: an unrecognised Supabase call is a

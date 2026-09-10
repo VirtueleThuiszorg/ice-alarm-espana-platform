@@ -5815,6 +5815,197 @@ SELECT pg_temp.check(
   'returned ' || (SELECT result FROM _apply_partial)
   || ' — covers=2 would mean the count includes a row the NOT EXISTS guard refused to write');
 
+-- ============================================================
+--  THE ROUTER EMITS — the two triggers CI never used to compile
+-- ============================================================
+--
+-- WHY THIS SECTION EXISTS AT ALL. `emit_lead_new_to_router` (20260909130000) and
+-- `emit_shift_swap_to_router` (20260910130100) were SKIPPED by this harness, because they open
+-- with `CREATE EXTENSION pg_net` and a stock PostgreSQL cannot install it. Skipping the file
+-- skips the function, so no CI job on any PR ever compiled either body — and one of them shipped
+-- a real defect: every swap request announced itself to the person being asked as a request for
+-- COVER, because the title was decided from `offered_shift_id`, which is NULL until they answer.
+-- It was found by hand, on a throwaway database, AFTER it had merged.
+--
+-- run.sh now applies both files with only that one statement commented out, and bootstrap.sql's
+-- `net.http_post` RECORDS its arguments into `net.sent`. So "what did the trigger ask the router
+-- to send?" is a question this suite can answer, and the answer is asserted below.
+--
+-- NO NEW FIXTURES for most of it, deliberately. The emits below were produced by the swap
+-- fixtures ABOVE, going through the real INSERT and the real accept and the real
+-- `apply_shift_swap`. An emit assertion driven by a bespoke fixture proves the function works
+-- when called the way the test calls it; these prove it worked on the flow the suite already
+-- exercises.
+
+SELECT pg_temp.check(
+  'CONTROL: pg_net is the RECORDING stub, and both emit triggers exist',
+  to_regclass('net.sent') IS NOT NULL
+  AND (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'net' AND p.proname = 'http_post') = 1
+  AND (SELECT count(*) FROM pg_trigger
+        WHERE tgname IN ('emit_lead_new_to_router', 'emit_shift_swap_to_router')
+          AND NOT tgisinternal) = 2,
+  'without all three, every assertion in this section is vacuous — which is exactly the state '
+  'this suite was in until the pg_net files stopped being skipped');
+
+-- ── lead.new ────────────────────────────────────────────────────────────────
+-- The lead inserted earlier in this file (the bell/channel section) went through the same
+-- trigger. Scoped by entity id rather than counted, because leads are inserted in more than one
+-- place and a count would be answering a different question.
+SELECT pg_temp.check(
+  'EMIT: a new lead reaches the router as lead.new, with the bell marked already-written',
+  (SELECT count(*) FROM net.sent
+    WHERE body->'event'->>'type' = 'lead.new') >= 1
+  AND (SELECT bool_and((body->'event'->>'bellWrittenElsewhere')::boolean) FROM net.sent
+        WHERE body->'event'->>'type' = 'lead.new')
+  AND (SELECT bool_and(body->'audience'->'roles' ? 'super_admin') FROM net.sent
+        WHERE body->'event'->>'type' = 'lead.new'),
+  'bellWrittenElsewhere is load-bearing: notify_staff_of_new_lead has already written one bell '
+  'row per active staff member, and without the flag every enquiry would appear twice');
+
+-- ── THE REGRESSION THAT SHIPPED: swap vs cover ─────────────────────────────
+--
+-- Two requests were opened above. `…010` asked for an exchange (`wants_exchange = true`) and
+-- `…00b` asked for cover. If the title is ever again decided from `offered_shift_id` — NULL on
+-- both at request time — the two lines below stop disagreeing and this goes red in CI, which is
+-- the whole point of teaching the harness to apply these files.
+SELECT pg_temp.check(
+  'EMIT: a SWAP request is announced as a swap',
+  (SELECT body->'event'->>'title' FROM net.sent
+    WHERE body->'event'->>'type' = 'shift.swap_requested'
+      AND body->'event'->'entity'->>'id' = 'dddddddd-0000-0000-0000-000000000010')
+    LIKE '%swap a shift%',
+  'the requester ticked "swap"; the person being asked must be told that, not "cover"');
+
+-- `…00b` is the sharper of the two controls, and by accident rather than design: it was created
+-- with an offered shift already named (a supervisor writing up something agreed in the office)
+-- while `wants_exchange` stayed false. So the two sources of truth DISAGREE on that row — read
+-- `offered_shift_id` and it looks like a swap, read the column that recorded the question and it
+-- is cover. Reintroducing the bug therefore fails this assertion as well as the one above,
+-- which is how the mutation run found it flipping both.
+SELECT pg_temp.check(
+  'EMIT: a COVER request is announced as cover',
+  (SELECT body->'event'->>'title' FROM net.sent
+    WHERE body->'event'->>'type' = 'shift.swap_requested'
+      AND body->'event'->'entity'->>'id' = 'dddddddd-0000-0000-0000-00000000000b')
+    LIKE '%cover a shift%',
+  'and the two must DISAGREE — one title for both is the bug that shipped');
+
+-- ── who each transition is addressed to ────────────────────────────────────
+SELECT pg_temp.check(
+  'EMIT: the request goes to the counterparty alone, by id, with no role broadcast',
+  (SELECT body->'audience' FROM net.sent
+    WHERE body->'event'->>'type' = 'shift.swap_requested'
+      AND body->'event'->'entity'->>'id' = 'dddddddd-0000-0000-0000-000000000010')
+  = jsonb_build_object('staffIds', jsonb_build_array(
+      (SELECT id::text FROM public.staff WHERE email = 'asoares@icealarm.es'))),
+  'a request is a question between two people — the supervisor hears about it on accept');
+
+SELECT pg_temp.check(
+  'EMIT: the accept reaches the requester AND everybody who can approve it',
+  (SELECT body->'audience'->'staffIds' FROM net.sent
+    WHERE body->'event'->>'type' = 'shift.swap_accepted'
+      AND body->'event'->'entity'->>'id' = 'dddddddd-0000-0000-0000-000000000010')
+    ? (SELECT id::text FROM public.staff WHERE email = 'mbonner@icealarm.es')
+  AND (SELECT body->'audience'->'roles' FROM net.sent
+        WHERE body->'event'->>'type' = 'shift.swap_accepted'
+          AND body->'event'->'entity'->>'id' = 'dddddddd-0000-0000-0000-000000000010')
+    ? 'call_centre_supervisor',
+  'the supervisor by ROLE, because approving is hers — an admins-only audience would leave the '
+  'person whose job it is out of it');
+
+SELECT pg_temp.check(
+  'EMIT: once applied, BOTH people are told, by id',
+  (SELECT count(*) FROM net.sent
+    WHERE body->'event'->>'type' = 'shift.swap_approved'
+      AND body->'event'->'entity'->>'id' = 'dddddddd-0000-0000-0000-000000000010'
+      AND jsonb_array_length(body->'audience'->'staffIds') = 2) = 1,
+  'the rota they turn up to has changed, so neither of them may be left to find out on the day');
+
+SELECT pg_temp.check(
+  'EMIT: every swap event opens My shifts, not an admin screen',
+  (SELECT bool_and(body->'event'->>'link' = '/call-centre/my-shifts') FROM net.sent
+    WHERE body->'event'->>'type' LIKE 'shift.swap_%'),
+  'an operator following the push has to land somewhere they are allowed to be');
+
+-- Asserted for the swap events as well as for lead.new, and it was missing here until a mutant
+-- walked through the gap: dropping the flag from the SWAP emit changed nothing in this suite
+-- while doubling every swap in everybody's bell, because `bell_on_shift_swap` has already
+-- written the targeted rows and the router would add a second set.
+SELECT pg_temp.check(
+  'EMIT: every swap event says the bell is already written',
+  (SELECT count(*) FROM net.sent WHERE body->'event'->>'type' LIKE 'shift.swap_%') >= 3
+  AND (SELECT bool_and((body->'event'->>'bellWrittenElsewhere')::boolean) FROM net.sent
+        WHERE body->'event'->>'type' LIKE 'shift.swap_%'),
+  'without it the router writes a second bell row for every transition, on top of the targeted '
+  'ones the trigger in 20260910130000 already wrote');
+
+-- ── and an UPDATE that is not a transition must say nothing ────────────────
+-- The trigger is AFTER UPDATE OF status, and it also re-checks the status itself. Editing the
+-- reason on a swap must not buzz two people again.
+CREATE TEMP TABLE _emit_before AS SELECT count(*) AS n FROM net.sent;
+
+UPDATE public.staff_shift_swaps
+SET reason = 'reason edited, nobody should hear about it'
+WHERE id = 'dddddddd-0000-0000-0000-000000000010';
+
+SELECT pg_temp.check(
+  'EMIT: editing a swap without changing its status emits nothing',
+  (SELECT count(*) FROM net.sent) = (SELECT n FROM _emit_before),
+  'was ' || (SELECT n FROM _emit_before)::text || ', now '
+         || (SELECT count(*)::text FROM net.sent));
+
+-- AND THE HARDER HALF, which the assertion above cannot reach. The trigger is
+-- `AFTER INSERT OR UPDATE OF status`, so an edit to `reason` never fires it — meaning that
+-- assertion passes even if the branch guards inside the function are removed. A mutant proved
+-- exactly that. This one WRITES THE STATUS, with the value it already has, so the trigger does
+-- fire and the `OLD.status IS DISTINCT FROM …` guards are what has to stop it. Not a contrived
+-- case: an UPSERT or a bulk update rewriting a row's own status is ordinary, and re-announcing
+-- an approval would tell two people their rota changed when nothing had.
+UPDATE public.staff_shift_swaps
+SET status = status
+WHERE id = 'dddddddd-0000-0000-0000-000000000010';
+
+SELECT pg_temp.check(
+  'EMIT: re-writing a swap''s status with the value it already has emits nothing',
+  (SELECT count(*) FROM net.sent) = (SELECT n FROM _emit_before),
+  'the trigger fires on this one — the guards inside it are what has to be right');
+
+-- ── no service_role_key: a warning, and the swap still saves ──────────────
+--
+-- The emit reads the key from Vault and returns early when it is absent. That branch is the one
+-- that runs on a project where the secret was never set, and it must not cost somebody their
+-- swap: the row commits, the bell (which needs no key) still rings, and only the push is lost.
+DELETE FROM vault.decrypted_secrets WHERE name = 'service_role_key';
+
+INSERT INTO public.staff_shifts (id, staff_id, shift_date, shift_type, start_time, end_time)
+VALUES ('e1000000-0000-0000-0000-00000000000d',
+        (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+        '2027-03-13', 'morning', '07:00', '15:00');
+
+CREATE TEMP TABLE _emit_no_key AS SELECT count(*) AS n FROM net.sent;
+
+INSERT INTO public.staff_shift_swaps (id, requested_shift_id, requested_by, counterparty_id)
+VALUES ('dddddddd-0000-0000-0000-000000000012',
+        'e1000000-0000-0000-0000-00000000000d',
+        (SELECT id FROM public.staff WHERE email = 'mbonner@icealarm.es'),
+        (SELECT id FROM public.staff WHERE email = 'asoares@icealarm.es'));
+
+SELECT pg_temp.check(
+  'EMIT: with no service_role_key the swap still saves and the bell still rings — only the push '
+  'is lost',
+  (SELECT count(*) FROM public.staff_shift_swaps
+    WHERE id = 'dddddddd-0000-0000-0000-000000000012') = 1
+  AND (SELECT count(*) FROM net.sent) = (SELECT n FROM _emit_no_key)
+  AND (SELECT count(*) FROM public.notification_log
+        WHERE entity_id = 'dddddddd-0000-0000-0000-000000000012') = 1,
+  'losing somebody''s swap is strictly worse than not announcing it, and the trigger says so '
+  'with a RAISE WARNING rather than by failing the write');
+
+INSERT INTO vault.decrypted_secrets (name, decrypted_secret)
+VALUES ('service_role_key', 'stub-service-role-key-for-the-harness')
+ON CONFLICT (name) DO NOTHING;
+
 SELECT pg_temp.check(
   'ROTA: RLS is enabled on both new tables',
   (SELECT count(*) FROM pg_class
@@ -5822,6 +6013,242 @@ SELECT pg_temp.check(
       AND relnamespace = 'public'::regnamespace
       AND relrowsecurity) = 2,
   'golden rule 2');
+
+-- ============================================================
+--  members home location — the front door, and who may claim it
+-- ============================================================
+--
+-- The pin is the fallback an operator is sent to when a pendant indoors has no fix, so two
+-- things have to hold and both are asserted by execution here:
+--   1. member A cannot read member B's pin. It is where a vulnerable person sleeps.
+--   2. the PROVENANCE cannot be forged. "36.83, -2.46" is worthless unless the card can say
+--      whether the member stood at their own door and pressed Save. guard_member_home_location()
+--      is what makes the label true, so every way of lying about it is tried below.
+
+-- Seed: B has a member-confirmed pin, A has none. The asymmetry is what makes the read
+-- assertions mean something — "A sees no pins" would pass vacuously if nobody had one.
+UPDATE public.members
+   SET home_lat = 37.388000, home_lng = -2.148000,
+       home_location_source = 'member_pin',
+       home_location_set_at = now() - interval '10 days',
+       home_location_set_by = '22222222-2222-2222-2222-222222222222'
+ WHERE id = 'bbbbbbbb-0000-0000-0000-000000000002';
+
+SELECT pg_temp.check(
+  'CONTROL: member B really has a home pin (else every read check below is vacuous)',
+  (SELECT count(*) FROM public.members
+    WHERE id = 'bbbbbbbb-0000-0000-0000-000000000002' AND home_lat IS NOT NULL) = 1);
+
+SELECT pg_temp.check(
+  'MEMBER A CANNOT READ MEMBER B''S HOME PIN',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT home_lat FROM public.members
+      WHERE id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 0,
+  'where a vulnerable person sleeps, in the row of somebody they have never met');
+
+SELECT pg_temp.check(
+  'member A sees NO home pins at all — not even unattributed coordinates',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT home_lat FROM public.members WHERE home_lat IS NOT NULL') = 0,
+  'A has no pin of their own at this point, so any row returned here is B''s');
+
+SELECT pg_temp.check(
+  'member A cannot OVERWRITE member B''s home pin',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_lat = 0.1, home_lng = 0.1,
+       home_location_source = ''member_pin''
+      WHERE id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 0);
+
+SELECT pg_temp.check(
+  'a partner sees no home pins',
+  pg_temp.count_as('33333333-3333-3333-3333-333333333333',
+    'SELECT home_lat FROM public.members WHERE home_lat IS NOT NULL') = 0);
+
+SELECT pg_temp.check(
+  'a signed-in user with no member/partner/staff row sees no home pins',
+  pg_temp.count_as('66666666-6666-6666-6666-666666666666',
+    'SELECT home_lat FROM public.members WHERE home_lat IS NOT NULL') = 0);
+
+-- The call-centre operator used from here on is `asoares` (c0000001), seeded with the rota
+-- fixtures. NOT the suite's original callcentre@example.com (55555555): the staff-delete-FK
+-- block earlier in this file DELETEs that staff row, so by this point is_staff() is false for
+-- it and every staff assertion below would fail for a reason that has nothing to do with the
+-- policies. Asserted rather than assumed, so a future edit that removes this operator too
+-- fails loudly here instead of turning three checks vacuous.
+SELECT pg_temp.check(
+  'CONTROL: the operator used below really is active staff at this point in the suite',
+  public.is_staff('c0000001-0000-0000-0000-000000000001'),
+  'if this fails the three staff checks that follow are meaningless, not passing');
+
+SELECT pg_temp.check(
+  'CALL CENTRE STAFF CAN READ IT — the whole point of storing it',
+  pg_temp.count_as('c0000001-0000-0000-0000-000000000001',
+    'SELECT home_lat FROM public.members
+      WHERE id = ''bbbbbbbb-0000-0000-0000-000000000002''
+        AND home_lat IS NOT NULL') = 1,
+  'an operator with no access to the fallback location is the feature not existing');
+
+-- ── the member's own write ─────────────────────────────────────────────────
+SELECT pg_temp.check(
+  'a member CAN set their own home pin as member_pin',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members
+        SET home_lat = 37.390000, home_lng = -2.150000,
+            home_location_source = ''member_pin''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111''') = 1,
+  'if this fails the guard is too wide and the feature is dead');
+
+SELECT pg_temp.check(
+  'set_by is STAMPED with the writer''s own id, not accepted from the write',
+  (SELECT home_location_set_by FROM public.members
+    WHERE id = 'aaaaaaaa-0000-0000-0000-000000000001')
+    = '11111111-1111-1111-1111-111111111111'::uuid);
+
+SELECT pg_temp.check(
+  'set_at is STAMPED with now(), so a fresh guess cannot pose as a long-standing confirmation',
+  (SELECT home_location_set_at FROM public.members
+    WHERE id = 'aaaaaaaa-0000-0000-0000-000000000001') > now() - interval '1 minute');
+
+-- A member submitting a backdated timestamp and somebody else's id gets neither.
+--
+-- THE WRITE AND THE READ ARE SEPARATE STATEMENTS, and that is not style. Written as
+-- `exec_as(...) = 1 AND (SELECT ...) = x` the planner is free to evaluate the sublink as an
+-- InitPlan BEFORE the volatile function that does the write, so the assertion reads the row as
+-- it was beforehand. Measured here: it made a genuinely passing staff check report FAIL. Any
+-- assertion in this file that writes and then reads its own effect must be split like this.
+SELECT pg_temp.check(
+  'a member''s write is accepted even when it carries a backdated timestamp and a borrowed id',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members
+        SET home_lat = 37.391000, home_lng = -2.151000,
+            home_location_source = ''member_pin'',
+            home_location_set_at = ''2020-01-01T00:00:00Z'',
+            home_location_set_by = ''22222222-2222-2222-2222-222222222222''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111''') = 1,
+  'refusing it would break an honest client that sends the fields back unchanged');
+
+SELECT pg_temp.check(
+  'and the LIE IS DISCARDED — neither the backdate nor the borrowed id survives',
+  (SELECT home_location_set_at FROM public.members
+    WHERE id = 'aaaaaaaa-0000-0000-0000-000000000001') > now() - interval '1 minute'
+  AND (SELECT home_location_set_by FROM public.members
+        WHERE id = 'aaaaaaaa-0000-0000-0000-000000000001')
+      = '11111111-1111-1111-1111-111111111111'::uuid,
+  'a three-year-old import must not be able to describe itself as confirmed this morning');
+
+SELECT pg_temp.check(
+  'A MEMBER CANNOT RECORD THEIR OWN PIN AS A STAFF CORRECTION',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members
+        SET home_lat = 37.392000, home_lng = -2.152000,
+            home_location_source = ''staff_pin''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''),
+  'the SOS card labels a staff_pin differently; a member who could claim it could lie to an operator');
+
+SELECT pg_temp.check(
+  'a member cannot claim geocoded or imported either',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_lat = 37.3, home_lng = -2.1,
+       home_location_source = ''geocoded''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111''')
+  AND pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_lat = 37.3, home_lng = -2.1,
+       home_location_source = ''imported''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''));
+
+-- ── the provenance-only rewrite ────────────────────────────────────────────
+-- The subtle one: leave the coordinates alone and rewrite only WHEN and BY WHOM. That turns a
+-- three-year-old import into "confirmed by the member this morning" without moving the pin.
+SELECT pg_temp.check(
+  'set_at / set_by are NOT independently writable — history cannot be rewritten in place',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_location_set_at = now()
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111''')
+  AND pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_location_set_by = ''22222222-2222-2222-2222-222222222222''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''));
+
+SELECT pg_temp.check(
+  'an ordinary profile update is untouched by the guard',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET phone = ''+34600007777''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111''') = 1,
+  'the guard must cost an unrelated save nothing — the same property asserted for the status guard');
+
+-- ── the staff write ────────────────────────────────────────────────────────
+SELECT pg_temp.check(
+  'STAFF CANNOT CLAIM A CORRECTION WAS THE MEMBER STANDING AT THEIR DOOR',
+  pg_temp.raises_as('c0000001-0000-0000-0000-000000000001',
+    'UPDATE public.members SET home_lat = 37.4, home_lng = -2.2,
+       home_location_source = ''member_pin''
+      WHERE id = ''bbbbbbbb-0000-0000-0000-000000000002'''),
+  'the label "set by member" must mean a member set it');
+
+-- Split for the same reason as the backdate pair above.
+SELECT pg_temp.check(
+  'staff CAN correct a pin as staff_pin',
+  pg_temp.exec_as('c0000001-0000-0000-0000-000000000001',
+    'UPDATE public.members SET home_lat = 37.401000, home_lng = -2.201000,
+       home_location_source = ''staff_pin''
+      WHERE id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 1);
+
+SELECT pg_temp.check(
+  'and the correction is attributed to the OPERATOR who made it, not to the member',
+  (SELECT home_location_set_by FROM public.members
+    WHERE id = 'bbbbbbbb-0000-0000-0000-000000000002')
+    = 'c0000001-0000-0000-0000-000000000001'::uuid,
+  'the member record has to be able to answer "who moved this pin, and when"');
+
+-- ── the shape of a stored location ─────────────────────────────────────────
+SELECT pg_temp.check(
+  'half a coordinate is refused — a latitude with no longitude is not a place',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_lat = 37.5, home_lng = NULL,
+       home_location_source = ''member_pin''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''));
+
+SELECT pg_temp.check(
+  'coordinates with no source are refused — an unlabelled pin cannot be shown honestly',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_lat = 37.5, home_lng = -2.3,
+       home_location_source = NULL
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''));
+
+SELECT pg_temp.check(
+  'an out-of-range coordinate is refused',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_lat = 137.5, home_lng = -2.3,
+       home_location_source = ''member_pin''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''));
+
+SELECT pg_temp.check(
+  'A member_gps FIX WORSE THAN 100 m IS REFUSED BY THE DATABASE, not just by the dialog',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_lat = 37.5, home_lng = -2.3,
+       home_location_source = ''member_gps'', home_location_accuracy_m = 800
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''),
+  'a wifi-grade fix is a fix on the wrong street; a confident pin there is worse than no pin');
+
+SELECT pg_temp.check(
+  'a member_gps fix with NO accuracy figure at all is refused',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_lat = 37.5, home_lng = -2.3,
+       home_location_source = ''member_gps'', home_location_accuracy_m = NULL
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''));
+
+SELECT pg_temp.check(
+  'a member_gps fix of 100 m or better is accepted — the limit is inclusive',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET home_lat = 37.393000, home_lng = -2.153000,
+       home_location_source = ''member_gps'', home_location_accuracy_m = 100
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111''') = 1);
+
+SELECT pg_temp.check(
+  'the members.status guard still holds with the location guard beside it',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET status = ''active''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''),
+  'two BEFORE UPDATE triggers on one table — this fails if either stops running');
 
 -- ============================================================
 --  Report

@@ -153,6 +153,97 @@ migrating works.**
 
 ---
 
+## Member home location — 2026-09-10 · **the member's front door, and who is allowed to claim it**
+
+Five PRs — #312, #315, #323, #327 and the import one. What is claimed here is what a test presses;
+what is not done is named as not done at the bottom.
+
+### ✅ The rule for which location the SOS card leads with (#312)
+`src/lib/homeLocation.ts` — five outcomes from three inputs (a fix or not, fresh or not, a pin or
+not), and it returns which block is PRIMARY rather than "the location". Two of the five are the
+ones worth arguing about and both are recorded in the module: a stale fix stays on screen when
+home takes over (it is where the pendant *was*), and a stale fix with NO pin stays primary
+(replacing the only location we have with nothing is worse). Threshold 30 minutes.
+Proof: `homeLocation.test.ts` (31), negative-first — home is not primary while the fix is fresh,
+and the card does not claim to be showing home when there is no home.
+
+### ✅ The schema, IN PRODUCTION (#315)
+Six columns on `members` (`home_lat`, `home_lng`, `home_location_accuracy_m`,
+`home_location_source`, `home_location_set_at`, `home_location_set_by`), the
+`home_location_source` enum, three CHECK constraints and `guard_member_home_location()`.
+Applied by
+[Migrate Production run #10](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34502495922)
+and recorded: repo 189, manifest 189, `20260910140000_member_home_location.sql` on the list.
+
+**Written up here because the blockage was real for two hours and the reason it cleared matters.**
+This PR was opened with the drift gate legitimately red: `Migrate Production` could not
+`supabase link` at all, so `20260910120000_holidays_2026_backfill_before_cut.sql` was stranded and
+the stacking gate held every schema PR in the repo. #313 (another session) reached production
+through the IPv4 pooler instead, which cleared the backlog. The migration was then renumbered
+from `20260910130000` to `20260910140000` because `20260910130000_shift_swap_apply_and_bell.sql`
+landed on the same version in the meantime — two migrations sharing a version is the case
+`migrationDrift.test.ts` fails on, and it fails on it because the CLI runs at most one of them and
+records the other as applied without it having been.
+`supabase link` is **still** refused; the fallback shouts every time it runs, and the main-only
+"Manifest matches production" job stays red. That is `PENDING_FOR_LEE.md` §1, not this feature.
+
+Proof: `scripts/rls/isolation.sql` +25 checks (551 total) — member A cannot READ
+or OVERWRITE member B's pin; a member cannot record their guess as a staff correction; staff
+cannot claim the member confirmed it; a backdated timestamp and a borrowed id are discarded; a
+provenance-only rewrite raises; a >100 m `member_gps` fix raises and exactly 100 m is accepted;
+`members.status` guard still holds beside the new trigger. Plus
+`memberHomeLocationWrite.test.ts` (24) holding the three copies of the 100 m rule in step.
+
+### ✅ The member marks their own front door (#323)
+"Home location" row on `/dashboard/profile`; a dialog with the browser's own fix or a draggable
+pin; the date it was set on screen, because that is what the operator sees too. A fix worse than
+100 m is REFUSED and the pin does not move to it. Leaflet + OpenStreetMap for the picker and the
+preview — `LocationMap` is a Google **iframe** and an iframe cannot carry a draggable pin;
+the Google links are unchanged. Code-split, so Leaflet is not on the first paint.
+Proof: `memberHomeLocation.test.tsx` (29) and `e2e/memberHomeLocation.spec.ts` (2, real Chromium,
+real Geolocation API): a 20 m fix saves as `member_gps` through `member-self-service` and the
+member sees it on their next visit; a 640 m fix is refused with **nothing sent**.
+
+### ✅ The SOS card, display only
+`SOSSituationPanel` and `AlertDetailPanel` gained a READ and a labelled block. The home pin is
+never merged with the pendant's fix and never shown in its place: whenever a usable fix exists
+the map is the fix, however old. When there is no recent one the card says
+*"No recent pendant location — showing home"* in words, and the distance between the two is on
+screen when both exist — the one line that answers "do I send help to the house?" on its own.
+The label is derived from the provenance, in ONE component, so the two cards cannot disagree:
+`geocoded` and `imported` read *"from our records — not confirmed by the member"*.
+Proof: `sosHomeLocation.test.tsx` (20) and `e2e/sosHomeLocation.spec.ts` (3). The existing SOS
+suites were re-run unchanged and are green (159 assertions across sosDrill, sosEscalation,
+escalationLoop, escalationOutcome, alertOwnership, alertResolution, operatorQueue,
+operatorCardNoContacts).
+
+### ✅ The imported pin, and "recommended" meaning something
+`parseGps` is exported and reused for the `Google Map Link` column — 90 rows have a link and no
+coordinates. Anything written to `home_lat`/`home_lng` must pass a Spain bounding box, because
+"the first decimal pair in a URL" occasionally finds a zoom level. Source is always `imported`
+and the date is always NULL: the import knows when IT ran, not when anybody stood at that door.
+`MEMBER_RECOMMENDED_FIELDS` is a SEPARATE list from `MEMBER_REQUIRED_FIELDS` — a member without a
+pin is not an incomplete record, the missing count does not move, and it cannot travel on the
+member's update link, which needs no login.
+Proof: `memberHomeLocationRecommended.test.ts`.
+
+### What is NOT done, named as undone
+- **No member or staff member has actually set a pin on production.** The columns are there and
+  every path is proven against a real PostgreSQL and a real browser, but the first live one will
+  be the first live one. The honest first test is one member record, set from the staff card
+  during a courtesy call, then read back on a test alert.
+- **No screenshot of the LIVE app.** Every Playwright run here is against the production BUNDLE
+  with Supabase's HTTP surface stubbed. That is what those specs claim and no more: they cannot
+  prove a policy, a constraint or a trigger, which is why the RLS harness exists beside them.
+- `home_location_source = 'geocoded'` is in the enum and **nothing writes it**. Deliberate: the
+  forward geocoder centres the pin picker and its answer is never saved on its own, because a
+  geocoded rooftop in rural Almería is routinely a hundred metres from the gate. The value exists
+  so a future backfill has an honest label to use.
+- The imported pin is **create-only**. A re-import fills it on a member being created and never
+  on one the platform already holds — the guard trigger refuses a staff-authenticated write
+  claiming `imported`, and filling an empty pin from a three-year-old spreadsheet on a live
+  record is the wrong direction anyway. Backfilling those is a deliberate service-role job.
+
 ## CI — 2026-09-09 · **one gate per job; a missing secret fails**
 
 Four gates shared one job — drift, wiring register, typecheck, build, in that order. A failing step

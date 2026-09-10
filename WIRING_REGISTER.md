@@ -28,7 +28,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   1  
 ```
 
-191 distinct wires across 650 call sites and 110 routes.
+191 distinct wires across 653 call sites and 110 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
@@ -70,7 +70,7 @@ things, and a control with no wire cannot do anything:
 | `auth` | `supabase.auth.*` — sign in, sign out, register, password reset | 20 |
 | `storage` | `supabase.storage.from(b).upload/remove/…` — a file put somewhere | 14 |
 | `link` | `mailto:` / `tel:` / `wa.me` — a hand-off off the platform | 65 |
-| `open` | `window.open` / `window.location` — the SPA being left | 61 |
+| `open` | `window.open` / `window.location` — the SPA being left | 64 |
 
 Routes come from an import graph over `src/App.tsx`, so a wire in a shared hook is
 attributed to every page that can reach it, and a wire in a **layout** (the notification
@@ -127,7 +127,7 @@ The checks, verified on every build:
 | **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
 | **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 19 |
-| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 32 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 34 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:conversation_messages` | Isabella conversation turns — the assistant's reply appears as it is produced | conversation_messages | self | — | none | 2 |
 | **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
@@ -157,7 +157,7 @@ The checks, verified on every build:
 | **5** | `fn:submit-member-update` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | toast | none | 1 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
 | **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 19 |
-| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 32 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 34 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
 | **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 10 |
@@ -188,7 +188,7 @@ The checks, verified on every build:
 | **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
 | **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
 | **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 19 |
-| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 32 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 34 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:conversation_messages` | Isabella conversation turns — the assistant's reply appears as it is produced | conversation_messages | self | — | none | 2 |
 | **5** | `table:documentation` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | toast | none | 1 |
@@ -250,7 +250,7 @@ The checks, verified on every build:
 | **5** | `fn:twilio-whatsapp` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | toast | none | 1 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
 | **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 19 |
-| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 32 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 34 |
 | **5** | `rpc:get_todays_birthdays` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:conversation_messages` | Isabella conversation turns — the assistant's reply appears as it is produced | conversation_messages | self | — | none | 2 |
@@ -353,7 +353,7 @@ The checks, verified on every build:
 | **5** | `fn:youtube-publish` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
 | **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 19 |
-| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 32 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 34 |
 | **5** | `rpc:get_admin_dashboard_stats` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `rpc:get_sales_command_stats` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
@@ -466,7 +466,7 @@ The checks, verified on every build:
 | **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 13 |
 | **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 19 |
-| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 32 |
+| **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 34 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
 | **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 10 |
@@ -1522,7 +1522,7 @@ Reaches the dialler, and `telHref()` returns null when the number is unset so a 
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +104
-- **call sites** src/components/admin/media/PublishedPostCard.tsx, src/components/admin/member-detail/MemberQuickContact.tsx, src/components/admin/video-hub/ExportArtifactButtons.tsx, src/components/admin/video-hub/VideoPreviewDialog.tsx +28
+- **call sites** src/components/admin/media/PublishedPostCard.tsx, src/components/admin/member-detail/MemberQuickContact.tsx, src/components/admin/member-detail/StaffHomeLocationCard.tsx, src/components/admin/video-hub/ExportArtifactButtons.tsx +30
 
 The counterpart to `link:*`, and originally invisible to the scanner: a `tel:` in an href was counted while the same number handed to window.location.href was not. 59 call sites. This is also how the checkout redirect leaves the app, which is why the join→pay goal owns that part and this row does not re-prove it.
 

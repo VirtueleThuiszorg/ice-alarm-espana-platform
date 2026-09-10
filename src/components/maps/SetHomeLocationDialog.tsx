@@ -246,18 +246,33 @@ export function SetHomeLocationDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <MapPin className="h-5 w-5 text-primary" aria-hidden="true" />
-            {t("homeLocation.dialog.title", "Set your home location")}
+            {actor === "member"
+              ? t("homeLocation.dialog.title", "Set your home location")
+              : t("homeLocation.dialog.titleStaff", "Set the member's home location")}
           </DialogTitle>
           <DialogDescription className="text-base">
-            {t(
-              "homeLocation.dialog.purpose",
-              "This is where we send help if your pendant cannot tell us where you are.",
-            )}
+            {actor === "member"
+              ? t(
+                  "homeLocation.dialog.purpose",
+                  "This is where we send help if your pendant cannot tell us where you are.",
+                )
+              : t(
+                  "homeLocation.dialog.purposeStaff",
+                  "Where an operator sends help when the pendant cannot say. Recorded as a correction by our team, not as the member's own confirmation.",
+                )}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* (a) the browser's own fix */}
+          {/*
+            (a) the browser's own fix — THE MEMBER'S ONLY.
+
+            An operator pressing this from the office would place the pin on the office, and the
+            trigger would happily record it as a staff correction of the member's front door,
+            because that is exactly what it would be. So the control does not exist for staff:
+            they place the pin on the map, from what the member is telling them on the phone.
+          */}
+          {actor === "member" && (
           <div className="space-y-2">
             <Button
               type="button"
@@ -321,14 +336,20 @@ export function SetHomeLocationDialog({
               </p>
             )}
           </div>
+          )}
 
           {/* (b) the pin */}
           <div className="space-y-2">
             <p className="text-base">
-              {t(
-                "homeLocation.dialog.dragHelp",
-                "Move the pin onto your front door. Tap the map where your door is, or use the arrows.",
-              )}
+              {actor === "member"
+                ? t(
+                    "homeLocation.dialog.dragHelp",
+                    "Move the pin onto your front door. Tap the map where your door is, or use the arrows.",
+                  )
+                : t(
+                    "homeLocation.dialog.dragHelpStaff",
+                    "Move the pin onto the member's front door. Tap the map, or use the arrows.",
+                  )}
             </p>
 
             {centring && !coords ? (
@@ -411,7 +432,9 @@ export function SetHomeLocationDialog({
             ) : (
               <Save className="mr-2 h-5 w-5" aria-hidden="true" />
             )}
-            {t("homeLocation.dialog.save", "Save my home location")}
+            {actor === "member"
+              ? t("homeLocation.dialog.save", "Save my home location")
+              : t("homeLocation.dialog.saveStaff", "Save this location")}
           </Button>
         </DialogFooter>
       </DialogContent>

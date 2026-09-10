@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, Loader2, Lock, Pencil, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useUnsavedChanges } from "@/components/UnsavedChanges";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -174,6 +175,31 @@ export function EditableCard(props: EditableCardProps) {
   */
   const editing = !locked && wantsEdit;
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+
+  /*
+    AND THE ONE THE BROWSER CANNOT SEE: a tab change. Radix unmounts the inactive panel, so
+    clicking "Medical" half-way through editing the address destroyed the edit silently. The
+    card cannot guard a control that lives somewhere else on the page, so it registers itself
+    and whatever owns the navigation asks. Null outside a provider — a card on a page with no
+    tabs needs no registration.
+  */
+  const unsaved = useUnsavedChanges();
+  const cardId = useId();
+  /*
+    DEPEND ON `setDirty`, NEVER ON THE CONTEXT OBJECT. `setDirty` is stable; a dependency on
+    the context VALUE would re-run this effect whenever the registry changed, and its cleanup
+    unregisters while its body re-registers. Together with a provider that re-rendered on every
+    change, that locked the event loop on the first keystroke — see UnsavedChanges.tsx for the
+    other half of that story.
+  */
+  const setDirty = unsaved?.setDirty;
+  useEffect(() => {
+    if (!setDirty) return;
+    setDirty(cardId, editing && isDirty);
+    // Unmounting IS the loss this guards against, so the registration must go with it —
+    // otherwise a card that has been navigated away from keeps the page permanently "dirty".
+    return () => setDirty(cardId, false);
+  }, [setDirty, cardId, editing, isDirty]);
 
   /*
     THE BROWSER'S OWN WARNING, for the ways out this component cannot see: the back button, a

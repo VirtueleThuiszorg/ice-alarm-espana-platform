@@ -99,13 +99,18 @@ async function renderProfile() {
 }
 
 /**
- * EVERY card, unlocked and saved — and the payload of each.
+ * EVERY card, and the payload each one sends — ONE TEST PER CARD.
  *
- * These two assertions used to fire one `submit` at the page's single form and inspect the one
+ * These assertions used to fire one `submit` at the page's single form and inspect the one
  * payload it produced. R6 split that into five cards with five writes, so a check that only
  * looked at the first would stop covering the other four: the address card could start sending
- * `country` and nothing here would notice. Saving all five and asserting over the union is the
- * same claim, made about the whole page instead of a quarter of it.
+ * `country` and nothing here would notice.
+ *
+ * WHY PER CARD AND NOT ALL FIVE IN ONE TEST. The first version of this did save all five and
+ * assert over the union. It passed locally and TIMED OUT on CI at the 5s default — five save
+ * cycles is ten `waitFor`s, and a loaded runner is enough slower to cross it. Raising the
+ * timeout would have hidden that a single test was doing five tests' work; a test per card is
+ * five fast tests, and a failure names the card instead of the loop.
  */
 const EDITABLE_CARDS = [
   "profile-card-personal",
@@ -115,18 +120,32 @@ const EDITABLE_CARDS = [
   "away-card",
 ] as const;
 
-async function saveEveryCard(): Promise<Record<string, unknown>[]> {
+/** Unlock one card, save it, and hand back the single payload it wrote. */
+async function saveCard(card: string): Promise<Record<string, unknown>> {
   const { fireEvent } = await import("@testing-library/react");
-  for (const card of EDITABLE_CARDS) {
-    const before = updatePayloads.length;
-    fireEvent.click(screen.getByTestId(`${card}-edit`));
-    await waitFor(() => expect(screen.getByTestId(`${card}-save`)).toBeVisible());
-    fireEvent.click(screen.getByTestId(`${card}-save`));
-    await waitFor(() => expect(updatePayloads.length).toBe(before + 1));
-  }
-  expect(updatePayloads.length).toBe(EDITABLE_CARDS.length);
-  return updatePayloads;
+  fireEvent.click(screen.getByTestId(`${card}-edit`));
+  await waitFor(() => expect(screen.getByTestId(`${card}-save`)).toBeVisible());
+  fireEvent.click(screen.getByTestId(`${card}-save`));
+  await waitFor(() => expect(updatePayloads.length).toBe(1));
+  return updatePayloads[0];
 }
+
+/** Columns no card may ever send, and why each one matters. */
+const NEVER_SENT = [
+  // R7's locked identity fields. The padlock is a label; this is what the page actually does.
+  "date_of_birth",
+  "nie_dni",
+  "email",
+  "country",
+  // Guarded server-side (20260904180000) and would be REFUSED, not ignored — a payload carrying
+  // it would make every profile save fail.
+  "status",
+  // Re-parents the member record.
+  "user_id",
+  // Written by the photo upload alone. A text card carrying it could only clear a photo
+  // somebody had just set.
+  "photo_url",
+] as const;
 
 afterEach(() => {
   cleanup();
@@ -210,31 +229,17 @@ describe("every locked field carries a reason", () => {
 });
 
 describe("what the page actually sends — the padlock is not the enforcement", () => {
-  it("no card's payload contains a locked column", async () => {
-    await renderProfile();
-    const payloads = await saveEveryCard();
-    const sent = payloads.flatMap((p) => Object.keys(p));
-
-    for (const column of ["date_of_birth", "nie_dni", "email", "country"]) {
-      expect(sent, `${column} must not be sent by any card`).not.toContain(column);
-    }
-  });
-
-  it("and no card sends `status`, `user_id` or `photo_url`", async () => {
-    /*
-      `status` is guarded server-side (20260904180000) and would be REFUSED, not ignored — a
-      payload carrying it would make every profile save fail. `user_id` re-parents the member
-      record. `photo_url` is written by the photo upload alone, never by a text card, so a
-      profile card carrying it could only clear a photo somebody had just set.
-    */
-    await renderProfile();
-    const payloads = await saveEveryCard();
-    const sent = payloads.flatMap((p) => Object.keys(p));
-
-    for (const column of ["status", "user_id", "photo_url"]) {
-      expect(sent, `${column} must not be sent by any card`).not.toContain(column);
-    }
-  });
+  for (const card of EDITABLE_CARDS) {
+    it(`${card} sends none of the columns it must never send`, async () => {
+      await renderProfile();
+      const payload = await saveCard(card);
+      const sent = Object.keys(payload);
+      expect(sent.length, "the card wrote nothing at all").toBeGreaterThan(0);
+      for (const column of NEVER_SENT) {
+        expect(sent, `${card} must not send ${column}`).not.toContain(column);
+      }
+    });
+  }
 
   it("a card writes ONLY its own columns — a second open card cannot ride along", async () => {
     /*

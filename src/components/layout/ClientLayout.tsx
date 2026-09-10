@@ -56,6 +56,7 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { MemberReadinessNotice } from "@/components/client/MemberReadinessNotice";
 import { TextSizeControl } from "@/components/client/TextSizeControl";
 import { useMemberUnread } from "@/hooks/useMemberUnread";
+import { useMemberAvatarUrl } from "@/hooks/useMemberAvatar";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { telHref } from "@/lib/phone";
 
@@ -162,7 +163,9 @@ export function ClientLayout() {
       if (!memberId) return null;
       const { data, error } = await supabase
         .from("members")
-        .select("first_name, last_name, email")
+        // `photo_url` so the header can show the member's own photograph, which is the whole
+        // point of letting them upload one (R7). Signed on demand — the bucket is private.
+        .select("first_name, last_name, email, photo_url")
         .eq("id", memberId)
         .maybeSingle();
       
@@ -188,6 +191,17 @@ export function ClientLayout() {
     memberInfo?.first_name && memberInfo?.last_name
       ? `${memberInfo.first_name[0]}${memberInfo.last_name[0]}`.toUpperCase()
       : null;
+
+  /*
+    THE MEMBER'S OWN PHOTOGRAPH IN THE HEADER, when they have added one.
+
+    R3 calls this slot the "initials avatar", and initials remain the fallback — a photo is
+    better than initials, initials are better than a generic icon, and each step down says
+    something honestly less specific. The URL is signed on demand because the bucket is
+    private; a failed sign returns null and the initials show, which is a perfectly good thing
+    to see rather than something to report.
+  */
+  const { data: avatarUrl } = useMemberAvatarUrl(memberId, memberInfo?.photo_url);
 
   // Find group containing active route and auto-expand it
   useEffect(() => {
@@ -628,10 +642,17 @@ export function ClientLayout() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="gap-2" data-testid="member-account-trigger">
                   <div
-                    className="h-8 w-8 rounded-full bg-primary flex items-center justify-center"
+                    className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-primary"
                     data-testid="member-initials"
                   >
-                    {initials ? (
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                        data-testid="member-header-photo"
+                      />
+                    ) : initials ? (
                       <span className="text-xs font-semibold text-primary-foreground">
                         {initials}
                       </span>

@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MemberOverviewDialog } from "@/components/admin/member-detail/MemberOverviewDialog";
+import { useMemberAvatarUrl } from "@/hooks/useMemberAvatar";
 import { MemberMissingInfoDialog } from "@/components/admin/member-detail/MemberMissingInfoDialog";
 
 interface MemberHeaderProps {
@@ -60,14 +61,30 @@ export function MemberHeader({
   };
 
   const initials = `${member.first_name[0]}${member.last_name[0]}`.toUpperCase();
+  const { data: avatarUrl } = useMemberAvatarUrl(member.id, member.photo_url);
 
   return (
     <div className="space-y-4">
       {/* Member Info Card */}
       <div className="flex flex-col md:flex-row md:items-start gap-4 p-4 bg-card rounded-lg border">
-        {/* Photo */}
+        {/*
+          THE MEMBER'S PHOTOGRAPH, SIGNED.
+
+          `photo_url` was passed straight to `<AvatarImage src>`, which worked for the absolute
+          URLs the old CRM import wrote and shows NOTHING for a photo a member uploaded
+          themselves: the `member-avatars` bucket is private (20260910150000), so the column
+          holds an object PATH and the only URL that renders it is a short-lived signed one.
+          Staff have a read policy over the whole bucket, so signing here is theirs to do.
+
+          `useMemberAvatarUrl` passes an absolute URL through untouched, so an imported photo
+          keeps working — the column legitimately holds two shapes and `avatarUrlIsPath` is
+          what tells them apart.
+        */}
         <Avatar className="h-24 w-24">
-          <AvatarImage src={member.photo_url ?? undefined} alt={`${member.first_name} ${member.last_name}`} />
+          <AvatarImage
+            src={avatarUrl ?? undefined}
+            alt={`${member.first_name} ${member.last_name}`}
+          />
           <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
         </Avatar>
 

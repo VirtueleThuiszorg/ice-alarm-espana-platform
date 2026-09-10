@@ -5833,6 +5833,13 @@
     "escalationHelp": "Si no se configura una cadena, el sistema de escalamiento recurre al personal de guardia ordenado por prioridad."
   },
   "holidays": {
+    "perPerson": "Por persona, {{year}}",
+    "downloadCsv": "Descargar CSV",
+    "entitlement": "Derecho",
+    "prorated": "prorrateado",
+    "noHireDate": "sin fecha de alta",
+    "shortNotice": "Empieza en {{days}} días — menos de los {{threshold}} días que exige el art. 38.3 ET",
+    "shortNoticeStarted": "Ya ha empezado — hace {{days}} días",
     "title": "Vacaciones del Personal",
     "subtitle": "Gestiona solicitudes de vacaciones y saldos de permisos.",
     "staffSubtitle": "Solicita días libres y consulta tu saldo de vacaciones.",

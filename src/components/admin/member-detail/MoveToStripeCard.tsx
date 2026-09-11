@@ -14,6 +14,13 @@ import {
   type SendPaymentLinkResult,
 } from "@/hooks/useSendPaymentLink";
 
+/** What each channel is CALLED to the person reading the report — "Text", not "sms". */
+const CHANNEL_LABEL: Record<string, string> = {
+  sms: "Text",
+  whatsapp: "WhatsApp",
+  email: "Email",
+};
+
 /**
  * "Move to Stripe billing" — the one control that starts a legacy member's migration.
  *
@@ -247,7 +254,7 @@ export function MoveToStripeCard({
             <ul className="space-y-1 text-sm text-muted-foreground">
               {result.delivery.map((d) => (
                 <li key={d.channel}>
-                  {d.channel === "sms" ? "Text" : "Email"}:{" "}
+                  {CHANNEL_LABEL[d.channel] ?? d.channel}:{" "}
                   {d.outcome === "sent" ? `sent to ${d.to}` : d.outcome.replace(/_/g, " ")}
                   {d.detail ? ` — ${d.detail}` : ""}
                 </li>

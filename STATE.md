@@ -667,6 +667,17 @@ that is, so it records it there, through `firstRenewalAfterPayment`. Not a local
 `setUTCMonth(+1)`: a member who pays on 31 January is next billed on 28 February, and the naive
 version produces 3 March.
 
+### 🟡 WhatsApp on the switch link
+Lee's brief names the delivery — "SMS/WhatsApp, email when live, link always on screen for staff"
+— and only SMS and email were attempted. WhatsApp is now a third channel on the switch link, with
+its own three-rung reason (switch off → no sender configured → no number), reported separately so
+"sent" never covers for a channel that did nothing. **On the switch link only**: a
+business-initiated WhatsApp message outside a 24-hour window needs an approved template at Meta,
+and attempting one without it produces a Twilio rejection that reads as "failed" for something
+that was never possible. `twilioConfigured` moved into its own module so this could ask the
+question without importing the staff notifier's whole world. **It is switched off** and there is
+no template yet — PENDING_FOR_LEE S40.
+
 ### ✅ The progress view (#369)
 Counters, the two otherwise-silent queues (no billing date; a link that lapsed unused), and the
 **Santander CSV** — which is not a report but an instruction, and excludes anybody with a link

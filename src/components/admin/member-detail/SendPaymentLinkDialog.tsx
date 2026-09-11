@@ -55,7 +55,9 @@ interface SendPaymentLinkDialogProps {
 
 type PayerMode = "member" | "other";
 
-const CHANNEL_ICON = { sms: MessageSquare, email: Mail } as const;
+/* `whatsapp` only ever appears on a switch link, which this dialog does not send — but the type
+   allows it, and an undefined icon would crash the row rather than degrade. */
+const CHANNEL_ICON = { sms: MessageSquare, whatsapp: MessageSquare, email: Mail } as const;
 
 export function SendPaymentLinkDialog({ memberId, memberName, trigger }: SendPaymentLinkDialogProps) {
   const { t } = useTranslation();

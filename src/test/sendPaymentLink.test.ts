@@ -776,3 +776,99 @@ describe("the member CRM Subscriptions tab", () => {
     expect(en.admin.paymentLink.payerNote).toMatch(/no access/i);
   });
 });
+
+/*
+  ── WHATSAPP, AND ONLY WHERE IT WAS ASKED FOR ──────────────────────────────────
+
+  Lee's brief names the delivery for the legacy switch link: "SMS/WhatsApp, email when live, link
+  always on screen for staff". The reason it is worth a second channel is the cohort — these
+  members are in their seventies and eighties, many read WhatsApp and ignore a text from a number
+  they do not recognise, and a text about money from an unrecognised number is what a scam looks
+  like, so ignoring it is the sensible thing for them to do.
+
+  IT IS OPTIONAL IN THE MODULE, and that is the whole design. A business-initiated WhatsApp
+  message outside a 24-hour conversation window needs an approved template at Meta. A surface
+  with no template must not attempt one: Twilio rejects it and the operator reads "failed" for
+  something that was never possible. So a caller that does not ask for WhatsApp gets exactly the
+  two decisions it always got.
+*/
+describe("planDelivery — WhatsApp", () => {
+  const base = {
+    smsChannelOn: true,
+    emailConfigured: true,
+    payerPhone: "+34600111222",
+    payerEmail: "p@x.es",
+  };
+  const on = { channelOn: true, configured: true };
+  const byChannel = (input: Parameters<typeof planDelivery>[0]) =>
+    Object.fromEntries(planDelivery(input).map((d) => [d.channel, d]));
+
+  it("is absent entirely for a caller that does not offer it", () => {
+    expect(planDelivery(base).map((d) => d.channel)).toEqual(["sms", "email"]);
+  });
+
+  it("is attempted, to the same number as the text, when the caller offers it", () => {
+    const d = byChannel({ ...base, whatsapp: on });
+    expect(planDelivery({ ...base, whatsapp: on }).map((c) => c.channel)).toEqual([
+      "sms",
+      "whatsapp",
+      "email",
+    ]);
+    expect(d.whatsapp.attempt).toBe(true);
+    expect(d.whatsapp.to).toBe("+34600111222");
+  });
+
+  /*
+    THE THREE REASONS, IN THIS ORDER, for the same reason the SMS decision has two: the answer
+    has to name the ACTION. "Turn the channel on" and "add a WhatsApp number in Settings" send
+    somebody to different screens, and reporting the address first would send them hunting for a
+    phone number that would not have been used anyway.
+  */
+  it("names the switch before the sender, and the sender before the address", () => {
+    expect(byChannel({ ...base, whatsapp: { channelOn: false, configured: false }, payerPhone: null })
+      .whatsapp.outcome).toBe("skipped_channel_off");
+
+    expect(byChannel({ ...base, whatsapp: { channelOn: true, configured: false }, payerPhone: null })
+      .whatsapp.outcome).toBe("skipped_not_configured");
+
+    expect(byChannel({ ...base, whatsapp: on, payerPhone: null }).whatsapp.outcome).toBe(
+      "skipped_no_address",
+    );
+  });
+
+  it("does not change what the OTHER channels decide", () => {
+    const without = byChannel(base);
+    const with_ = byChannel({ ...base, whatsapp: on });
+    expect(with_.sms).toEqual(without.sms);
+    expect(with_.email).toEqual(without.email);
+  });
+});
+
+describe("the switch link's delivery, in the function itself", () => {
+  const fn = code(FN);
+
+  it("offers WhatsApp on a switch and on nothing else", () => {
+    expect(fn).toMatch(/whatsapp: isSwitch/);
+    expect(fn).toMatch(/const twilio = isSwitch\s*\?\s*await twilioConfigured\(admin\)/);
+  });
+
+  /*
+    THROUGH THE ONE READINESS CHECK the staff notifier already uses, rather than a second reading
+    of the three Twilio settings. Two copies of "is WhatsApp configured" is how one screen reports
+    "not configured" while another queues Twilio 400s — PENDING_FOR_LEE S15 is that lesson, on
+    this exact setting.
+  */
+  it("asks the shared readiness check, not the settings table directly", () => {
+    expect(fn).toMatch(/from "\.\.\/_shared\/twilio-configured\.ts"/);
+    expect(fn).not.toMatch(/settings_twilio_whatsapp_number/);
+  });
+
+  it("sends the same message down either pipe, naming both functions as literals", () => {
+    expect(fn).toContain('functions.invoke("twilio-sms"');
+    expect(fn).toContain('functions.invoke("twilio-whatsapp"');
+  });
+
+  it("reports each channel separately, so 'sent' never covers for a channel that did nothing", () => {
+    expect(fn).toMatch(/channel: decision\.channel,[\s\S]{0,120}outcome: error \? "failed" : "sent"/);
+  });
+});

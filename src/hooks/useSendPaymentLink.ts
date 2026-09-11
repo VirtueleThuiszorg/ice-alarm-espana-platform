@@ -27,7 +27,13 @@ export type DeliveryOutcome =
   | "failed";
 
 export interface DeliveryReport {
-  channel: "sms" | "email";
+  /**
+   * `whatsapp` appears on a legacy SWITCH link only. The ordinary signup link does not attempt
+   * it: a business-initiated WhatsApp message outside a 24-hour window needs an approved
+   * template at Meta, and a rejected attempt would read as "failed" for something that was never
+   * possible (`_shared/delivery.ts`).
+   */
+  channel: "sms" | "whatsapp" | "email";
   to: string | null;
   outcome: DeliveryOutcome;
   detail?: string;

@@ -151,7 +151,7 @@ serve(async (req) => {
     // ── the member ───────────────────────────────────────────────────────────
     const { data: member, error: memberError } = await admin
       .from("members")
-      .select("id, first_name, last_name, email, phone, preferred_language, status, billing_source")
+      .select("id, first_name, last_name, email, phone, preferred_language, status, billing_source, switch_session_expires_at")
       .eq("id", body.memberId)
       .maybeSingle();
     if (memberError || !member) return json(404, { error: "Member not found" });
@@ -189,12 +189,35 @@ serve(async (req) => {
       // Only somebody Santander is actually collecting from. `start_legacy_switch` refuses the
       // rest too; refusing here means no Stripe session is created for a member who cannot use
       // one, and no orphan pending order is left behind.
-      if (member.billing_source !== "legacy") {
+      /*
+        A RE-ISSUE IS ALLOWED ONCE STRIPE HAS EXPIRED THE PREVIOUS SESSION, and the annual ladder
+        depends on it: the notice at 14 days puts the member into `switch_pending`, and Stripe
+        kills that Checkout Session after 24 HOURS — its own ceiling — so the reminder at 7 days
+        has nothing payable to point at unless it can issue a fresh one.
+
+        What is refused is two LIVE sessions at once, which is how somebody gets charged twice.
+        An expired one is not live. `start_legacy_switch` applies the same rule in the database,
+        so this check is the friendly message and not the guarantee.
+      */
+      // An UNKNOWN expiry counts as live: "I cannot tell whether their link still works" must
+      // not resolve to "issue another one". The 14-day sweep unsticks them either way.
+      const sessionStillLive =
+        member.billing_source === "switch_pending" &&
+        (member.switch_session_expires_at === null ||
+          new Date(member.switch_session_expires_at as string).getTime() > Date.now());
+
+      const canSwitch =
+        member.billing_source === "legacy" ||
+        (member.billing_source === "switch_pending" && !sessionStillLive);
+
+      if (!canSwitch) {
         return json(409, {
-          error:
-            `${member.first_name} ${member.last_name} is not on legacy billing ` +
-            `(billing_source = ${member.billing_source}), so there is nothing to switch.`,
-          code: "NOT_LEGACY",
+          error: sessionStillLive
+            ? `${member.first_name} ${member.last_name} already has a switch link that has not ` +
+              "expired yet. Sending a second one would give them two ways to pay for the same month."
+            : `${member.first_name} ${member.last_name} is not on legacy billing ` +
+              `(billing_source = ${member.billing_source}), so there is nothing to switch.`,
+          code: sessionStillLive ? "SWITCH_ALREADY_LIVE" : "NOT_LEGACY",
         });
       }
 

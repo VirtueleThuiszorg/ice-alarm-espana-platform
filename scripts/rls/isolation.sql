@@ -95,6 +95,49 @@ EXCEPTION WHEN OTHERS THEN
   RETURN true;
 END $$;
 
+-- Did this statement raise WHEN RUN AS A NAMED DATABASE ROLE — `service_role`, the way
+-- PostgREST runs an edge function's request?
+--
+-- `exec_as`/`raises_as` above both `SET LOCAL ROLE authenticated`, which is right for a browser
+-- and WRONG for the one caller that is not one. A SECURITY DEFINER function revoked from PUBLIC
+-- is callable by its owner — and this suite runs as the owner — so a function the service role
+-- cannot execute passes every assertion written with those two helpers and fails in production
+-- on the first call. That is not hypothetical: it is what these assertions caught.
+-- Was this statement refused FOR PERMISSIONS, as opposed to refused on its own business rules?
+--
+-- `raises_as_role` below answers "did it raise", which is the wrong question for a function that
+-- legitimately refuses: `bootstrap_first_admin` raises when admins already exist, and this suite
+-- seeds several. Asserting "it did not raise" would have demanded that a guard stop guarding.
+-- 42501 is insufficient_privilege and nothing else.
+CREATE OR REPLACE FUNCTION pg_temp.denied_as_role(p_role text, p_sql text)
+RETURNS boolean LANGUAGE plpgsql AS $$
+BEGIN
+  EXECUTE format('SET LOCAL ROLE %I', p_role);
+  EXECUTE p_sql;
+  RESET ROLE;
+  RETURN false;
+EXCEPTION
+  WHEN insufficient_privilege THEN
+    RESET ROLE;
+    RETURN true;
+  WHEN OTHERS THEN
+    -- Refused on its own terms, which is the function working.
+    RESET ROLE;
+    RETURN false;
+END $$;
+
+CREATE OR REPLACE FUNCTION pg_temp.raises_as_role(p_role text, p_sql text)
+RETURNS boolean LANGUAGE plpgsql AS $$
+BEGIN
+  EXECUTE format('SET LOCAL ROLE %I', p_role);
+  EXECUTE p_sql;
+  RESET ROLE;
+  RETURN false;
+EXCEPTION WHEN OTHERS THEN
+  RESET ROLE;
+  RETURN true;
+END $$;
+
 -- ============================================================
 --  Seed: two unrelated tenants of each kind
 -- ============================================================
@@ -6925,6 +6968,51 @@ BEGIN
     'two live sessions means two ways to be charged for the same month');
 END $$;
 
+-- ── the re-issue, which the annual ladder depends on ─────────────────────────
+--
+-- The notice at 14 days puts an annual member into `switch_pending`; Stripe expires that session
+-- after 24 HOURS, its own ceiling. The reminder at 7 days therefore has nothing payable to point
+-- at unless it can issue a fresh link — and the first version of this refused it outright, so
+-- the middle rung of the ladder failed for every annual member.
+
+-- Backdate only the SESSION, not the switch window: this is a member mid-ladder.
+UPDATE public.members SET switch_session_expires_at = now() - interval '1 hour'
+ WHERE id = 'd1e00000-0000-0000-0000-00000000000a';
+
+SELECT pg_temp.check(
+  'a fresh link IS issued once Stripe has expired the previous session',
+  (SELECT billing_source FROM public.start_legacy_switch(
+     'd1e00000-0000-0000-0000-00000000000a', 'cs_reissue', now() + interval '14 days',
+     NULL, 'https://checkout.stripe.com/cs_reissue', now() + interval '24 hours')) = 'switch_pending',
+  'without this the annual reminder cannot reach a member whose notice link has died');
+
+SELECT pg_temp.check(
+  'and the record now points at the new session, not the dead one',
+  (SELECT switch_checkout_session_id = 'cs_reissue'
+     FROM public.members WHERE id = 'd1e00000-0000-0000-0000-00000000000a'));
+
+SELECT pg_temp.check(
+  'the re-issue is recorded AS a re-issue, so "why two links" is answerable',
+  (SELECT count(*) FROM public.activity_logs
+    WHERE action = 'member.switch_link_sent'
+      AND entity_id = 'd1e00000-0000-0000-0000-00000000000a'
+      AND new_values->>'reissued' = 'true') = 1);
+
+-- And the rule it must not lose: while that new session IS live, a second is still refused.
+DO $$
+DECLARE ok boolean := false;
+BEGIN
+  BEGIN
+    PERFORM public.start_legacy_switch('d1e00000-0000-0000-0000-00000000000a', 'cs_third',
+                                       now() + interval '14 days');
+  EXCEPTION WHEN OTHERS THEN ok := true;
+  END;
+  PERFORM pg_temp.check(
+    'but a third link is refused while the second is still payable',
+    ok,
+    'two LIVE sessions is the thing being prevented — an expired one was never the point');
+END $$;
+
 -- ── the lapse ────────────────────────────────────────────────────────────────
 
 SELECT pg_temp.check(
@@ -6963,6 +7051,60 @@ SELECT pg_temp.check(
   (SELECT count(*) FROM public.notification_routes
     WHERE event_type IN ('member.switch_link_sent', 'member.switch_expired')) = 8,
   'an event missing from notification_routes_event_type_check is an event nobody hears');
+
+-- ── and the ONE caller that is not a browser ──────────────────────────────────
+--
+-- Both functions are revoked from PUBLIC, which is the point: a member must not be able to take
+-- themselves out of the Santander run. But the runner and the switch link are edge functions,
+-- and PostgREST executes those as `service_role` — so a revoke with no matching grant does not
+-- harden them, it breaks them, and nothing above would have noticed: this suite runs as the
+-- database owner, who can execute anything.
+
+SELECT pg_temp.check(
+  'the SERVICE ROLE can start a switch — it is the only caller that ever does',
+  NOT pg_temp.raises_as_role('service_role',
+    'SELECT public.start_legacy_switch(''d1e00000-0000-0000-0000-00000000000b'', ''cs_svc'',
+       now() + interval ''14 days'')'),
+  'revoked from PUBLIC with no grant to service_role is not hardened, it is broken');
+
+SELECT pg_temp.check(
+  'and it took effect, rather than merely not raising',
+  (SELECT billing_source = 'switch_pending' AND switch_checkout_session_id = 'cs_svc'
+     FROM public.members WHERE id = 'd1e00000-0000-0000-0000-00000000000b'));
+
+-- THE SAME DEFECT, FOUND BY THE SAME QUESTION, in code this goal never touched.
+-- `bootstrap_first_admin` is how the first admin account is created when no staff exist, and
+-- `bootstrap-admin` is the only thing that calls it — as the service role. It was revoked from
+-- PUBLIC, anon and authenticated in 20260616120000 and granted to nobody, so the one path that
+-- can recover an account-less installation would have failed with permission denied. Latent
+-- rather than live (there are admins), and worth exactly one GRANT.
+SELECT pg_temp.check(
+  'the SERVICE ROLE is not locked OUT of bootstrapping the first admin',
+  NOT pg_temp.denied_as_role('service_role',
+    'SELECT public.bootstrap_first_admin(''66666666-6666-6666-6666-666666666666'',
+       ''boot@example.com'', ''Boot'', ''Strap'')'),
+  'revoked from PUBLIC with no grant to service_role: the only caller cannot call it');
+
+-- AND IT STILL REFUSES ON ITS OWN TERMS. The grant restores who may ask; it must not change the
+-- answer. This suite seeds admins, so the function is right to say no — and a `denied_as_role`
+-- that quietly passed a function which had stopped guarding would be worse than the defect.
+SELECT pg_temp.check(
+  'and it still refuses to run when admins already exist',
+  pg_temp.raises_as_role('service_role',
+    'SELECT public.bootstrap_first_admin(''66666666-6666-6666-6666-666666666666'',
+       ''boot@example.com'', ''Boot'', ''Strap'')'),
+  'the grant restores who may ASK; the guard decides the answer');
+
+SELECT pg_temp.check(
+  'the SERVICE ROLE can run the expiry sweep',
+  NOT pg_temp.raises_as_role('service_role', 'SELECT public.expire_legacy_switches()'),
+  'the daily runner calls this; without it a lapsed link never returns anybody to legacy billing');
+
+-- Put that member back, so the assertions below read the state they expect.
+UPDATE public.members
+   SET billing_source = 'legacy', switch_started_at = NULL, switch_expires_at = NULL,
+       switch_checkout_session_id = NULL
+ WHERE id = 'd1e00000-0000-0000-0000-00000000000b';
 
 -- ============================================================
 --  Report

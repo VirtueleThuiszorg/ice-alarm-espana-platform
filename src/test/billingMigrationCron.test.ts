@@ -84,9 +84,20 @@ describe("it arrives switched off", () => {
     expect(settings).toMatch(/ON CONFLICT \(key\) DO NOTHING/);
   });
 
-  it("and the function refuses to do anything while it is off", () => {
+  it("and the function sends nothing while it is off", () => {
+    /*
+      ASSERTED AGAINST THE SENDING, not against reading the table. This read "the enabled check
+      comes before `from("members")`", which was the same thing while the runner only sent — it
+      now also SWEEPS: it expires lapsed links and rolls passed renewal dates forward, and both
+      of those have to happen whether or not anybody is being written to. Pausing the migration
+      must not strand a member in `switch_pending`, out of the Santander collection, for the
+      length of the pause.
+
+      So the line the switch governs is the one that plans and sends.
+    */
     expect(fn).toMatch(/if \(!settings\.enabled\)/);
-    expect(fn.indexOf("if (!settings.enabled)")).toBeLessThan(fn.indexOf('from("members")'));
+    expect(fn.indexOf("if (!settings.enabled)")).toBeLessThan(fn.indexOf("planTodaysRun("));
+    expect(fn.indexOf("if (!settings.enabled)")).toBeLessThan(fn.indexOf("await sendSwitchLink("));
   });
 
   /*
@@ -207,5 +218,121 @@ describe("the failure nobody else would notice", () => {
     expect(settings).toContain("'billing.migration_run_failed'");
     expect(settings).toMatch(/\('billing\.migration_run_failed',\s*'push',\s*true\)/);
     expect(read("supabase/functions/_shared/notify-staff.ts")).toContain('"billing.migration_run_failed"');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// THE RUNNER ONLY EVER FIRED ONCE — three defects found by reviewing the merged work, all of
+// which left the migration inert rather than wrong. Each of the three is pinned here.
+describe("the two sweeps, which are not part of the migration", () => {
+  /*
+    1. `expire_legacy_switches()` WAS DEAD CODE. It was written, tested against real PostgreSQL,
+    and called by nothing — so a member who ignored their link stayed `switch_pending` forever:
+    excluded from the Santander export, billed by nobody, permanently. Exactly the "permanent
+    hole in the collection" its own comment says it exists to prevent.
+  */
+  it("the runner actually calls the expiry sweep", () => {
+    expect(fn).toMatch(/rpc\("expire_legacy_switches"\)/);
+  });
+
+  /*
+    2. `legacy_next_renewal` WAS NEVER ROLLED FORWARD. It is one date, written once by the import;
+    Santander collects again next month regardless, but `plannedActionFor` returns null for a date
+    in the past. With 431 dates scattered across a month, most would already have passed by the
+    time the runner was switched on, and those members would never have been written to at all.
+  */
+  it("and rolls a passed renewal date forward, through the one implementation of the rule", () => {
+    expect(fn).toMatch(/rolledForwardRenewal\(/);
+    expect(fn).toMatch(/from "\.\.\/_shared\/legacy-billing-schedule\.ts"/);
+    expect(fn).toMatch(/legacy_next_renewal: next/);
+  });
+
+  /*
+    BOTH RUN WHETHER OR NOT SENDING IS SWITCHED ON. The switch governs writing to members; it does
+    not govern bookkeeping. If the expiry waited on it, pausing the migration with links out would
+    leave those members in neither collection for the length of the pause.
+  */
+  it("both run BEFORE the enabled check, not after it", () => {
+    const enabledCheck = fn.indexOf("if (!settings.enabled)");
+    expect(fn.indexOf('rpc("expire_legacy_switches")')).toBeLessThan(enabledCheck);
+    expect(fn.indexOf("rolledForwardRenewal(")).toBeLessThan(enabledCheck);
+  });
+
+  // A preview is not a decision. It reports what the sweeps would do and writes nothing.
+  it("and neither writes during a dry run", () => {
+    expect(fn).toMatch(/if \(!settings\.dryRun\) \{[\s\S]{0,120}expire_legacy_switches/);
+    expect(fn).toMatch(/if \(!settings\.dryRun\) \{[\s\S]{0,200}legacy_next_renewal: next/);
+  });
+
+  it("reports what each swept, so a silent no-op is visible", () => {
+    expect(fn).toMatch(/expired,/);
+    expect(fn).toMatch(/rolledForward: rolled,/);
+  });
+
+  // A sweep that fails silently is the same class of defect as one that never runs.
+  it("rings the bell when either sweep fails", () => {
+    expect(fn).toMatch(/expire_legacy_switches failed/);
+    expect(fn).toMatch(/kept a renewal date that has already passed/);
+  });
+});
+
+describe("the callers the revokes forgot", () => {
+  const GRANTS = "20260911160000_billing_runner_grants.sql";
+  const grants = strip(read(`supabase/migrations/${GRANTS}`));
+
+  /*
+    3. AND THE WORST OF THE THREE. 20260911130000 revoked both functions from PUBLIC and from
+    `authenticated` — right in intent — and granted them to nobody. PostgREST runs an edge
+    function's request as `service_role`, and EXECUTE is an ordinary privilege: once revoked from
+    PUBLIC, only the owner has it. So every "Move to Stripe billing" press hit permission denied
+    and refused to hand out the link. The whole feature was inert.
+
+    It failed SAFE, which is the one consolation: the refusal is the same branch that exists so a
+    member is never left in the Santander run with a payable Stripe session.
+  */
+  it("grants both functions to the one role that actually calls them", () => {
+    expect(grants).toMatch(/GRANT EXECUTE ON FUNCTION public\.start_legacy_switch[\s\S]*?TO service_role/);
+    expect(grants).toMatch(/GRANT EXECUTE ON FUNCTION public\.expire_legacy_switches\(\)[\s\S]*?TO service_role/);
+  });
+
+  it("and does NOT re-open them to a browser", () => {
+    expect(grants).not.toMatch(/TO authenticated/);
+    expect(grants).not.toMatch(/TO PUBLIC/);
+    expect(grants).not.toMatch(/TO anon/);
+  });
+
+  /*
+    WHY NOTHING CAUGHT IT: the harness proved at length who may NOT call these, with helpers that
+    `SET LOCAL ROLE authenticated`, and never called them as the role that does — while the suite
+    itself runs as the database owner, who can execute anything. So the positive assertions passed
+    for the wrong reason. These three run as `service_role`, and FAILED against the schema as
+    merged.
+  */
+  it("is executed as service_role in the isolation harness", () => {
+    const iso = read("scripts/rls/isolation.sql");
+    expect(iso).toContain("pg_temp.raises_as_role");
+    expect(iso).toContain("the SERVICE ROLE can start a switch");
+    expect(iso).toContain("the SERVICE ROLE can run the expiry sweep");
+    // Not merely "it did not raise" — that a revoked function is callable proves nothing unless
+    // the call also did its work.
+    expect(iso).toContain("and it took effect, rather than merely not raising");
+  });
+
+  it("carries a rollback that says what reverting costs", () => {
+    expect(read(`supabase/migrations/${GRANTS}`)).toMatch(/ROLLBACK:/);
+  });
+});
+
+describe("the candidate set the ladder needs", () => {
+  /*
+    The planner can only choose from what the query returns. `.eq("billing_source", "legacy")`
+    excluded every member their own 14-day notice had moved to `switch_pending`, so the reminder
+    and the phone call were unreachable however the planner was written — the two fixes are only
+    a fix together.
+  */
+  it("includes members the notice has already moved to switch_pending", () => {
+    expect(fn).toMatch(/\.in\("billing_source", \["legacy", "switch_pending"\]\)/);
+    expect(fn).not.toMatch(/\.eq\("billing_source", "legacy"\)/);
   });
 });

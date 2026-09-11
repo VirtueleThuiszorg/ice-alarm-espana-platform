@@ -623,11 +623,12 @@ const NEVER_PATCH = new Set([
   /*
     THE HOME PIN IS CREATE-ONLY, and this is not caution for its own sake — the database refuses
     the alternative.
-    `guard_member_home_location()` (20260910140000) constrains the source by ACTOR: a write with
-    an `auth.uid()` that is staff may claim `staff_pin` or `geocoded` and nothing else. This
-    import runs in the browser as the signed-in admin, so a patch carrying
-    `home_location_source = 'imported'` RAISES. Measured against the real trigger in the RLS
-    harness, not guessed.
+    `guard_member_home_location()` (20260910140000, extended to INSERT by 20260911102350)
+    constrains the source by ACTOR AND BY VERB: a staff UPDATE of the pin may claim `staff_pin`
+    or `geocoded` and nothing else, while a staff INSERT may additionally claim `imported` —
+    which is this path, and the only path, creating the row. So the CREATE below succeeds and a
+    patch carrying `home_location_source = 'imported'` RAISES. Measured against the real trigger
+    in the RLS harness, not guessed.
     And the rule the trigger is expressing is the right one for this path anyway. Filling an
     empty pin on a member the platform ALREADY HOLDS, from a spreadsheet, is putting an
     unconfirmed coordinate on a record an operator will be sent to — while

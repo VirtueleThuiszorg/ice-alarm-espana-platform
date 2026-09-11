@@ -142,8 +142,16 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
 // Component
 // ------------------------------------------------------------------
 
-export function GlobalSearch() {
-  const [open, setOpen] = useState(false);
+export function GlobalSearch({ defaultOpen = false }: { defaultOpen?: boolean } = {}) {
+  /*
+    `defaultOpen` exists for one caller: `GlobalSearchMount`, which keeps this
+    whole component out of the entry chunk until somebody actually presses the
+    shortcut. The mount owns the FIRST Cmd+K (this component does not exist yet
+    to hear it) and hands the palette over already open; every press after that
+    is handled by the effect below, as it always was. Default false, so any other
+    caller behaves exactly as before.
+  */
+  const [open, setOpen] = useState(defaultOpen);
   const [query, setQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [memberResults, setMemberResults] = useState<SearchResult[]>([]);

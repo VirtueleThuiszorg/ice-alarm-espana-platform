@@ -127,9 +127,28 @@ for (const f of files) {
 const appTsx = text.get(APP) ?? "";
 const routeOf = new Map(); // page file -> route path(s)
 {
-  // const Name = lazyWithRetry(() => import("./pages/x/Y"));
+  // Two shapes of lazy route component, and the second one matters:
+  //
+  //   const Name = lazyWithRetry(() => import("./pages/x/Y"));
+  //   const Name = lazyWithRetry(() =>
+  //     import("@/components/layout/X").then((m) => ({ default: m.X })),
+  //   );
+  //
+  // The `.then` unwrap is needed for any module with a NAMED export, which is
+  // every layout. The pattern used to end at `import("…"))` and so matched only
+  // the first, which meant that when the layouts stopped being statically
+  // imported this walker stopped seeing them at all — and every wire reachable
+  // only through a layout silently vanished from that surface's section of the
+  // register. A register that loses rows when code is split is worse than no
+  // register, because the rows it still shows look complete.
+  //
+  // Matching stops at the closing paren of `import("…")`, so both shapes are
+  // covered and anything after it (a `.then`, a `.catch`, a trailing comma) is
+  // irrelevant. The `s` flag is what lets the multi-line form match.
   const compFile = new Map();
-  for (const m of appTsx.matchAll(/const (\w+) = lazyWithRetry\(\(\) => import\("([^"]+)"\)\)/g)) {
+  for (const m of appTsx.matchAll(
+    /const (\w+) = lazyWithRetry\(\s*\(\)\s*=>\s*import\("([^"]+)"\)/gs,
+  )) {
     const r = resolveImport(m[2], APP);
     if (r) compFile.set(m[1], r);
   }

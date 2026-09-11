@@ -67,10 +67,30 @@ export function SOSAlertBar() {
   const alarmPlayedRef = useRef<Set<string>>(new Set());
   const alarmTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
+  /*
+    KEYED ON THE IDS, NOT THE ARRAY — belt to the braces in useSOSTakeover.
+
+    `pendingAlerts` is derived with a `.filter()`, so before it was memoised it
+    had a new identity on every render and this effect re-ran on every render:
+    fetch names, `setMemberNames` with a fresh object, re-render, new array, fetch
+    again. It issued the same members query ~130 times a second and never stopped.
+
+    The root cause is fixed where the array is built. This makes the loop
+    unreachable from here as well, because a string of ids is compared BY VALUE:
+    a future caller that forgets to memoise can no longer re-open it. It also
+    stops a legitimate refetch that was never needed — when an alert's status
+    changes but the set of members does not, the names are already correct.
+  */
+  const memberIdKey = pendingAlerts
+    .map((a) => a.member_id)
+    .filter(Boolean)
+    .sort()
+    .join(",");
+
   // Fetch member names for alerts
   useEffect(() => {
     const fetchNames = async () => {
-      const ids = pendingAlerts.map((a) => a.member_id).filter(Boolean);
+      const ids = memberIdKey ? memberIdKey.split(",") : [];
       if (ids.length === 0) return;
 
       const { data } = await supabase
@@ -90,12 +110,16 @@ export function SOSAlertBar() {
       }
     };
     fetchNames();
-  }, [pendingAlerts]);
+  }, [memberIdKey]);
+
+  // Same hazard, same shape: this effect also depends on the derived array and
+  // also calls setState with a fresh object. Keyed by value for the same reason.
+  const alertIdKey = pendingAlerts.map((a) => a.id).sort().join(",");
 
   // Fetch latest Isabella note for each alert
   useEffect(() => {
     const fetchIsabella = async () => {
-      const alertIds = pendingAlerts.map((a) => a.id);
+      const alertIds = alertIdKey ? alertIdKey.split(",") : [];
       if (alertIds.length === 0) return;
 
       const { data } = await supabase
@@ -132,7 +156,7 @@ export function SOSAlertBar() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [pendingAlerts.map((a) => a.id).join(",")]);
+  }, [alertIdKey]);
 
   // Audio alarm at 15 seconds
   useEffect(() => {

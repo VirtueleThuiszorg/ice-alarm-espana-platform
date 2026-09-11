@@ -104,12 +104,12 @@
       "lands before or after first paint."
     ],
     "public.home": {
-      "dbQueriesPerLoad": 9,
-      "routeJsGzBytes": 389120
+      "routeJsGzBytes": 389120,
+      "dbQueriesPerLoad": 10
     },
     "public.pricing": {
-      "clsBelow": 0.191,
-      "routeJsGzBytes": 366592
+      "routeJsGzBytes": 366592,
+      "clsBelow": 0.19
     },
     "join.wizard": {
       "routeJsGzBytes": 374784
@@ -118,22 +118,17 @@
       "routeJsGzBytes": 372736
     },
     "member.dashboard": {
-      "dbQueriesPerLoad": 27,
+      "routeJsGzBytes": 379904,
       "nPlusOneTables": [
-        "members",
-        "notification_log"
-      ],
-      "routeJsGzBytes": 379904
+        "members"
+      ]
     },
     "cc.alerts": {
-      "clsBelow": 0.963,
-      "dbQueriesPerLoad": 28,
+      "routeJsGzBytes": 384000,
       "nPlusOneTables": [
         "alerts",
-        "notification_log",
         "staff"
-      ],
-      "routeJsGzBytes": 384000
+      ]
     },
     "public.how-it-works": {
       "routeJsGzBytes": 373760

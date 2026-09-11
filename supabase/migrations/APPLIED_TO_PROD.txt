@@ -237,3 +237,4 @@
 20260910180000_member_avatars_bucket.sql
 20260910190000_member_alert_history_setting.sql
 20260911102350_member_home_location_insert_guard.sql
+20260911100000_drop_orphan_checkout_settings.sql

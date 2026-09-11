@@ -31,10 +31,45 @@ vi.mock("@/integrations/supabase/client", () => {
       if (table === "member_notes") return notes;
       return [];
     };
+    /*
+      The fake honours the filters rather than ignoring them, because NotesTab now searches
+      and pages in Postgres instead of in JS — a fake that returned every row whatever was
+      asked would make the search assertion below pass while proving nothing.
+
+      A filter on a column the fixture does not define is a no-op: these fixtures carry the
+      fields the cards render, not a whole row, and `member_id` is not among them.
+    */
+    const filters: Array<(row: Record<string, unknown>) => boolean> = [];
+    let from = 0;
+    let to = Number.MAX_SAFE_INTEGER;
+    const known = (col: string, test: (v: unknown) => boolean) =>
+      (row: Record<string, unknown>) => !(col in row) || test(row[col]);
+
     const q: Record<string, unknown> = {};
     const self = () => q;
     q.select = self;
-    q.eq = self;
+    q.eq = (col: string, value: unknown) => {
+      filters.push(known(col, (v) => v === value));
+      return q;
+    };
+    q.is = (col: string, value: unknown) => {
+      filters.push(known(col, (v) => (v ?? null) === value));
+      return q;
+    };
+    q.not = (col: string, _op: string, value: unknown) => {
+      filters.push(known(col, (v) => (v ?? null) !== value));
+      return q;
+    };
+    q.ilike = (col: string, pattern: string) => {
+      const needle = String(pattern).replace(/%/g, "").toLowerCase();
+      filters.push(known(col, (v) => String(v ?? "").toLowerCase().includes(needle)));
+      return q;
+    };
+    q.range = (start: number, end: number) => {
+      from = start;
+      to = end;
+      return q;
+    };
     q.in = self;
     // Chainable: NotesTab orders twice (pinned, then created_at), and a fake that only
     // survives one `.order()` silently returns nothing.
@@ -50,7 +85,10 @@ vi.mock("@/integrations/supabase/client", () => {
         return { error: null };
       },
     });
-    q.then = (r: (v: unknown) => unknown) => r({ data: list(), error: null });
+    q.then = (r: (v: unknown) => unknown) => {
+      const matched = list().filter((row) => filters.every((f) => f(row)));
+      return r({ data: matched.slice(from, to + 1), count: matched.length, error: null });
+    };
     return q;
   };
   return {
@@ -181,12 +219,19 @@ describe("notes", () => {
     */
     const search = screen.getByLabelText("Search notes") as HTMLInputElement;
     expect(search.matches(":disabled")).toBe(false);
+
+    /*
+      The results now come back from Postgres rather than from a JS filter over every note
+      the member has, because the karmaCRM migration puts up to 773 of them behind this box.
+      So the search is debounced and the assertions wait: the typed value is immediate, the
+      result is one request later.
+    */
     fireEvent.change(search, { target: { value: "afternoon" } });
     expect(search.value).toBe("afternoon");
-    expect(screen.getByText("Prefers afternoon calls")).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("Prefers afternoon calls")).toBeTruthy());
 
     fireEvent.change(search, { target: { value: "nothing matches this" } });
-    expect(screen.queryByText("Prefers afternoon calls")).toBeNull();
+    await waitFor(() => expect(screen.queryByText("Prefers afternoon calls")).toBeNull());
   });
 });
 

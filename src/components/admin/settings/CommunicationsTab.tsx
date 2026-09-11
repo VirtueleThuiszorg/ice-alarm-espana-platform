@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Phone, Mail, Share2, MessageCircle, Map, Check, AlertCircle } from "lucide-react";
+import { Phone, Mail, Share2, MessageCircle, Check, AlertCircle } from "lucide-react";
 import { PhoneSmsSection, type TwilioKeys } from "./PhoneSmsSection";
 import { WhatsAppSection } from "./WhatsAppSection";
 import { SocialMediaSection } from "./SocialMediaSection";
-import { MapsSection } from "./MapsSection";
 import { EmailSettingsTab } from "./EmailSettingsTab";
 import { EmailTemplatesTab } from "./EmailTemplatesTab";
 
@@ -32,11 +31,6 @@ interface CommunicationsTabProps {
   setShowFacebookToken: React.Dispatch<React.SetStateAction<boolean>>;
   handleSaveFacebook: () => void;
 
-  // Google Maps
-  googleMapsKey: string;
-  setGoogleMapsKey: React.Dispatch<React.SetStateAction<string>>;
-  handleSaveGoogleMaps: () => void;
-
   // WhatsApp save handler
   handleSaveWhatsApp: () => void;
 
@@ -45,7 +39,6 @@ interface CommunicationsTabProps {
   twilioConfigured: boolean;
   whatsappConfigured: boolean;
   facebookConfigured: boolean;
-  mapsConfigured: boolean;
 }
 
 export function CommunicationsTab({
@@ -68,15 +61,11 @@ export function CommunicationsTab({
   showFacebookToken,
   setShowFacebookToken,
   handleSaveFacebook,
-  googleMapsKey,
-  setGoogleMapsKey,
-  handleSaveGoogleMaps,
   handleSaveWhatsApp,
   isSaving,
   twilioConfigured,
   whatsappConfigured,
   facebookConfigured,
-  mapsConfigured,
 }: CommunicationsTabProps) {
   const [subTab, setSubTab] = useState("phone");
 
@@ -87,7 +76,7 @@ export function CommunicationsTab({
       const tabMatch = hash.match(/communications\/(\w+)/);
       if (tabMatch && tabMatch[1]) {
         const targetTab = tabMatch[1];
-        if (["phone", "email", "social", "whatsapp", "maps"].includes(targetTab)) {
+        if (["phone", "email", "social", "whatsapp"].includes(targetTab)) {
           setSubTab(targetTab);
         }
       }
@@ -142,11 +131,6 @@ export function CommunicationsTab({
             <span className="hidden sm:inline">WhatsApp</span>
             <StatusBadge configured={whatsappConfigured} />
           </TabsTrigger>
-          <TabsTrigger value="maps" className="flex items-center gap-1.5">
-            <Map className="h-4 w-4" />
-            <span className="hidden sm:inline">Maps</span>
-            {mapsConfigured && <Check className="h-3 w-3 text-alert-resolved ml-1" />}
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="phone" className="mt-6">
@@ -196,16 +180,6 @@ export function CommunicationsTab({
             handleSave={handleSaveWhatsApp}
             isSaving={isSaving}
             isConfigured={whatsappConfigured}
-          />
-        </TabsContent>
-
-        <TabsContent value="maps" className="mt-6">
-          <MapsSection
-            googleMapsKey={googleMapsKey}
-            setGoogleMapsKey={setGoogleMapsKey}
-            handleSaveGoogleMaps={handleSaveGoogleMaps}
-            isSaving={isSaving}
-            isConfigured={mapsConfigured}
           />
         </TabsContent>
       </Tabs>

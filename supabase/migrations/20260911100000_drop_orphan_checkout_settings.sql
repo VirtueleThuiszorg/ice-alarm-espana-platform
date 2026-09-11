@@ -1,0 +1,40 @@
+-- Delete the two `settings_checkout_*` rows nothing has ever read.
+--
+-- WHERE THEY CAME FROM. `CheckoutPaymentMethodsCard` saved under `service: "settings"` while its
+-- keys already began `checkout_`, and `save-api-keys` stores
+-- `key.startsWith(`${service}_`) ? key : `${service}_${key}`` — so every Save the card ever
+-- performed wrote `settings_checkout_payment_methods` and
+-- `settings_checkout_async_events_confirmed`. #340 fixed the card (`service: "checkout"`), which
+-- stopped new rows being written but left behind whatever an admin had already saved.
+--
+-- WHY THEY MUST GO RATHER THAN BE MIGRATED ACROSS, which is the opposite of what P5
+-- (20260908120000) did for the registration fee. P5 copied the prefixed values onto the
+-- canonical rows first, because those values were the admin's real intent and the canonical rows
+-- might never have been set. Here that would be WRONG:
+--
+--   * The card has been reading the unprefixed rows all along. Whatever is in the canonical rows
+--     today is what the card has been showing an admin, and what `loadCheckoutPaymentMethods`
+--     has been giving `create-checkout` and `send-payment-link`.
+--   * The prefixed values are a stale snapshot of a dialog nobody could see the effect of —
+--     quite possibly months old, possibly toggled once and abandoned.
+--   * And one of them is `async_events_confirmed`, the acknowledgement that
+--     `checkout.session.async_payment_succeeded` is subscribed on the webhook destination.
+--     Copying a stale `true` onto the live row would switch SEPA on off the back of a tick
+--     somebody made in a dialog that did nothing — and a SEPA checkout with that event
+--     unsubscribed is a customer who pays and is NEVER ACTIVATED. Carrying that value forward is
+--     the one outcome worth actively preventing.
+--
+-- So: delete, do not copy. The live rows are untouched and remain the source of truth.
+--
+-- SAFE BY CONSTRUCTION, and asserted rather than asserted-about: `src/test/settingsKeyParity.test.ts`
+-- fails if any file in `src/` or `supabase/functions/` reads a key under these names. Nothing
+-- does, so this deletes rows with no reader. If the rows were never written (no admin ever
+-- pressed Save on that card before #340), this deletes nothing and is a no-op — which is why it
+-- carries no guard and needs none.
+--
+-- ROLLBACK: there is nothing to restore. The values were unreachable by any code path, and the
+-- canonical rows they shadow are not modified here. If a selection is ever lost, it is re-made
+-- on Admin → Settings → Payments in one click, and THAT save now lands where it is read.
+
+DELETE FROM public.system_settings
+ WHERE key IN ('settings_checkout_payment_methods', 'settings_checkout_async_events_confirmed');

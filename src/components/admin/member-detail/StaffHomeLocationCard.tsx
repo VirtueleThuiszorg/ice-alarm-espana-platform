@@ -48,7 +48,7 @@ export function StaffHomeLocationCard({
 }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const { data: home, isLoading } = useMemberHomeLocation(memberId);
+  const { data: home, isLoading, isError } = useMemberHomeLocation(memberId);
 
   const hasPin =
     !!home && typeof home.lat === "number" && typeof home.lng === "number"
@@ -70,6 +70,26 @@ export function StaffHomeLocationCard({
       <CardContent className="space-y-3">
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : isError ? (
+          /*
+            A FAILED READ IS NOT "NO PIN", AND THIS CARD USED TO SAY IT WAS.
+
+            `useMemberHomeLocation` throws rather than returning null precisely so a caller
+            cannot render "there is no home location" over a read that did not happen — its own
+            comment says so. This card destructured only `data` and `isLoading`, so a failed
+            read fell through to the empty state and told an operator, as a fact, that this
+            member has no pin and the SOS card will use the postal address. That is the one
+            sentence that must never be guessed: it is what somebody decides against at three in
+            the morning.
+
+            The Set/Correct button goes with it. Offering to set a pin whose existence we could
+            not establish invites an operator to overwrite a member's own confirmation with a
+            guess off the phone — and `staff_pin` would then replace `member_pin` on the card.
+          */
+          <p className="text-sm text-destructive" role="alert" data-testid="staff-home-location-error">
+            We could not load this member&apos;s home location. This does not mean there is none —
+            reload the record before setting a pin.
+          </p>
         ) : hasPin ? (
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
@@ -118,6 +138,7 @@ export function StaffHomeLocationCard({
               Open in Maps
             </Button>
           )}
+          {!isError && (
           <Button
             type="button"
             variant="secondary"
@@ -128,6 +149,7 @@ export function StaffHomeLocationCard({
             <Pencil className="mr-2 h-4 w-4" aria-hidden="true" />
             {hasPin ? "Correct the pin" : "Set the pin"}
           </Button>
+          )}
         </div>
       </CardContent>
 

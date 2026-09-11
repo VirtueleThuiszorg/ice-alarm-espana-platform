@@ -47,6 +47,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMembersMissingCounts } from "@/hooks/useMemberMissingInfo";
+import { cn } from "@/lib/utils";
+import { memberStatusPresentation } from "@/lib/statusLabel";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -223,19 +225,19 @@ export default function MembersPage() {
 
   const totalPages = Math.ceil((data?.totalCount || 0) / ITEMS_PER_PAGE);
 
-  // Every status column in this schema is nullable; a row with no status
-  // should render as unknown rather than crash the switch.
+  /*
+    THE SAME MAPPING AS THE RECORD'S HEADER, and the one-line spillover outside this goal's
+    stated scope, on purpose.
+
+    This switch had the identical defect: no case for `pending_review` — the status the CRM
+    import writes, so all 431 imported members carry it — and a `default` that renders the raw
+    enum. Every one of them read `pending_review` in the list. Leaving it while the record next
+    door says "Pending review" is exactly the drift `statusLabel.ts` exists to stop, and the fix
+    is importing a function rather than writing one.
+  */
   const getStatusBadge = (status: string | null) => {
-    switch (status) {
-      case "active":
-        return <Badge className="bg-alert-resolved text-alert-resolved-foreground">{t("common.active")}</Badge>;
-      case "inactive":
-        return <Badge variant="secondary">{t("common.inactive")}</Badge>;
-      case "suspended":
-        return <Badge variant="destructive">{t("membership.suspended")}</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
+    const p = memberStatusPresentation(status);
+    return <Badge className={cn(p.className, "font-medium")}>{t(p.key, p.fallback)}</Badge>;
   };
 
   const getPlanBadge = (subscriptions: MemberRow["subscriptions"]) => {

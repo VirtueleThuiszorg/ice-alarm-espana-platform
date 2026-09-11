@@ -65,3 +65,32 @@ export function tokensFor(selector: string): Record<string, string> {
   }
   return out;
 }
+
+/**
+ * "#d1fae5" -> "160 84% 90%", so a Tailwind palette class can be checked by the SAME contrast
+ * maths as a design token.
+ *
+ * A CONVERSION, NOT A SECOND CONTRAST FUNCTION. The member record's status chips use Tailwind's
+ * emerald/amber/slate scales rather than tokens — they are three chips on one header, and
+ * minting six tokens for them would put more names in the palette than the feature is worth.
+ * They still have to clear AA, and the only honest way to check that is with the function
+ * everything else is checked with, so the hex is converted rather than the maths duplicated.
+ */
+export function hexToHsl(hex: string): string {
+  const m = hex.replace("#", "");
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(m.slice(i, i + 2), 16) / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  const d = max - min;
+  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+  let h = 0;
+  if (d !== 0) {
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  return `${h.toFixed(1)} ${(s * 100).toFixed(1)}% ${(l * 100).toFixed(1)}%`;
+}

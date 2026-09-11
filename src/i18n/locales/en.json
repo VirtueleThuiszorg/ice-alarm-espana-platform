@@ -2275,6 +2275,15 @@
     "chargeSoon": "⚠ Please charge your device soon",
     "connectionLost": "⚠ Device connection lost - Contact support"
   },
+  "memberStatus": {
+    "active": "Active",
+    "pendingReview": "Pending review",
+    "inactive": "Inactive",
+    "suspended": "Suspended",
+    "unknown": "Unknown status",
+    "hasPendant": "Has pendant",
+    "noPendant": "No pendant"
+  },
   "adminDashboard": {
     "title": "Dashboard",
     "welcome": "Welcome back! Here's an overview of ICE Alarm España.",

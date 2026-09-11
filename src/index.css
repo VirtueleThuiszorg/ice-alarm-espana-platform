@@ -109,6 +109,19 @@
        made this look like a change of mind. */
     --member-record-page: 220 16% 94%;
 
+    /* THE MEMBER'S INITIALS DISC, when there is no photograph.
+
+       WHY NOT `bg-accent`, which is what this obviously wants: on .theme-staff and
+       .theme-admin --accent is a warm SAND (32 34% 90%) with near-black ink, so the disc came
+       out beige on exactly the two surfaces this component renders on. That is #291's mistake
+       in a new place — reaching for a shared token whose value the surface has replaced — and
+       it survived the first version of the test because the test read :root.
+
+       Own tokens, defined only at :root and deliberately NOT redefined by either theme block,
+       so the disc is the same red wash everywhere. 8.15:1. */
+    --member-avatar: 353 68% 95%;
+    --member-avatar-foreground: 351 85% 30%;
+
     --brand-teal: 351 85% 34%;
     --brand-teal-foreground: 0 0% 100%;
     --brand-teal-soft: 353 68% 95%;

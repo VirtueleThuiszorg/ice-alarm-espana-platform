@@ -1,4 +1,7 @@
-import { Edit, MoreHorizontal, Phone, Mail, MapPin } from "lucide-react";
+import { Edit, MoreHorizontal, Phone, Mail, MapPin, ShieldCheck } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
+import { memberStatusPresentation } from "@/lib/statusLabel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -47,18 +50,23 @@ export function MemberHeader({
   onSuspend, 
   onDelete 
 }: MemberHeaderProps) {
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return <Badge className="bg-alert-resolved text-alert-resolved-foreground">Active</Badge>;
-      case "inactive":
-        return <Badge variant="secondary">Inactive</Badge>;
-      case "suspended":
-        return <Badge variant="destructive">Suspended</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
+  const { t } = useTranslation();
+
+  /*
+    THE STATUS CHIP. This was a switch with
+
+        default: return <Badge variant="outline">{status}</Badge>;
+
+    and `pending_review` — the status the CRM import writes, so all 431 imported members carry
+    it — fell straight through to it. Their chips read `pending_review`, a database value shown
+    to staff. `statusLabel.ts` has no default and is keyed on the enum, so the build fails
+    rather than the screen degrading if a status is ever added.
+
+    `suspended` also stopped being red. It was `variant="destructive"`, and a suspended member
+    is a business state — an operator who sees red on a member record should be looking at an
+    emergency (MEMBER_UX_RULES R1).
+  */
+  const status = memberStatusPresentation(member.status);
 
   const initials = `${member.first_name[0]}${member.last_name[0]}`.toUpperCase();
   const { data: avatarUrl } = useMemberAvatarUrl(member.id, member.photo_url);
@@ -66,7 +74,10 @@ export function MemberHeader({
   return (
     <div className="space-y-4">
       {/* Member Info Card */}
-      <div className="flex flex-col md:flex-row md:items-start gap-4 p-4 bg-card rounded-lg border">
+      <div
+        data-testid="member-header"
+        className="flex flex-col gap-4 rounded-lg border bg-card p-4 md:flex-row md:items-start"
+      >
         {/*
           THE MEMBER'S PHOTOGRAPH, SIGNED.
 
@@ -85,12 +96,30 @@ export function MemberHeader({
             src={avatarUrl ?? undefined}
             alt={`${member.first_name} ${member.last_name}`}
           />
-          <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
+          {/*
+            BRAND-TINTED INITIALS. The default fallback is the same grey as everything else, so
+            a member with no photograph had a grey disc where their face goes — the emptiest
+            part of the emptiest version of this page.
+
+            NOT `bg-accent`, which is what this obviously wants and what the first version used:
+            on .theme-staff and .theme-admin --accent is a warm SAND with near-black ink, so the
+            disc came out beige on both of the surfaces this actually renders on. Own tokens,
+            unshadowed by either theme, 8.15:1.
+          */}
+          <AvatarFallback className="bg-[hsl(var(--member-avatar))] text-2xl font-semibold text-[hsl(var(--member-avatar-foreground))]">
+            {initials}
+          </AvatarFallback>
         </Avatar>
 
         {/* Details */}
         <div className="flex-1 space-y-2">
-          <div className="flex items-start justify-between">
+          {/*
+            WRAP, and this is a fix rather than a tidy-up. This row was `flex items-start
+            justify-between` with a four-button action group that could not wrap, so at 390px
+            the buttons pushed the whole document 325px wide and the member record scrolled
+            sideways on a phone. Found by photographing it at 390 while doing the tabs.
+          */}
+          <div className="flex flex-col items-start justify-between gap-3 lg:flex-row">
             <div>
               <h1 className="text-2xl font-bold">{member.first_name} {member.last_name}</h1>
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-1">
@@ -110,7 +139,7 @@ export function MemberHeader({
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {/*
                 Overview before Edit: the commonest thing somebody does on this page is read it,
                 and until now reading it meant clicking through twelve tabs.
@@ -149,19 +178,31 @@ export function MemberHeader({
 
           {/* Badges */}
           <div className="flex flex-wrap gap-2 pt-2">
-            {getStatusBadge(member.status)}
+            <Badge data-testid="member-status-chip" className={cn(status.className, "font-medium")}>
+              {t(status.key, status.fallback)}
+            </Badge>
             {subscription && subscription.status === "active" && (
               <Badge variant="secondary" className="capitalize">
                 {subscription.plan_type} Plan
               </Badge>
             )}
-            {hasDevice ? (
-              <Badge variant="outline" className="bg-alert-resolved/10 text-alert-resolved border-alert-resolved/20">
-                Has Pendant
-              </Badge>
-            ) : (
-              <Badge variant="outline">No Device</Badge>
-            )}
+            {/*
+              NEUTRAL, WITH AN ICON. "Has Pendant" was green — the same green as an active
+              membership, on a different kind of fact — which made two unrelated chips look like
+              one status. Whether a pendant is on file is inventory, not health, so it is grey
+              and the icon carries the meaning. The icon is ShieldCheck, the one
+              PendantFulfilmentCard already uses for the same device.
+            */}
+            <Badge
+              data-testid="member-pendant-chip"
+              variant="outline"
+              className="gap-1 font-medium text-slate-700"
+            >
+              <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+              {hasDevice
+                ? t("memberStatus.hasPendant", "Has pendant")
+                : t("memberStatus.noPendant", "No pendant")}
+            </Badge>
           </div>
         </div>
       </div>

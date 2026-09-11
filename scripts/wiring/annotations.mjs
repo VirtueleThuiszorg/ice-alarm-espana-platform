@@ -824,7 +824,10 @@ export const FAMILIES = [
   },
   {
     wires: ["fn:send-payment-link"],
-    control: "Staff send a member a Stripe payment link (CRM → member → Subscription)",
+    control:
+      "Staff send a member a Stripe payment link (CRM → member → Subscription); and, in " +
+      "legacy_switch mode, MOVE A LEGACY MEMBER ONTO STRIPE BILLING — on the record and as a " +
+      "bulk action on the members list filtered to legacy billing",
     promise:
       "a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are " +
       "switched on, and always shown on screen to copy",
@@ -840,7 +843,24 @@ export const FAMILIES = [
       "Stripe Price id created from pricing_plans/pricing_settings, and the request schema has " +
       "no amount field. Refuses rather than guessing when a Price is unsynced or stale. " +
       "REQUIRES 20260909110000 in production (the SQL function it calls); until that is applied " +
-      "the button returns a 409 naming the missing function.",
+      "the button returns a 409 naming the missing function.\n\n" +
+      "LEGACY_SWITCH MODE (2026-09-11) is the same builder with the registration fee and the " +
+      "pendant removed and the plan read off the member's OWN subscription row rather than the " +
+      "request — a request that could name the plan could move somebody from couple to single " +
+      "at whatever price that implies. The state is the safety argument: somebody is still " +
+      "running the Santander collection while the migration happens, so a member who pays " +
+      "Stripe and is still in that run is charged twice in one month for the same monitoring. " +
+      "start_legacy_switch() takes them out of the export the moment a session exists, and a " +
+      "failure to record that REFUSES the link rather than handing it out, because the reverse " +
+      "order is the double charge. Nothing here moves anybody onto Stripe: billing_source " +
+      "becomes `stripe` in the webhook's post-payment path and nowhere else, and that write " +
+      "clears the switch columns so the 14-day lapse cannot later pull a member who HAS paid " +
+      "back into the Santander run. No trial, no billing_cycle_anchor, no proration — an anchor " +
+      "set to their Santander date gives a €0 first invoice, a €0 invoice does not pay a " +
+      "session, so the webhook would never activate somebody the export had already dropped. " +
+      "SEPA is offered beside card only once an admin has confirmed the destination listens for " +
+      "the async events. Proof: src/test/legacySwitchToStripe.test.ts, " +
+      "src/test/switchToStripeCards.test.tsx, and 18 assertions in scripts/rls/isolation.sql.",
   },
   {
     wires: ["fn:admin-subscription-action", "fn:cancel-mollie-subscription"],

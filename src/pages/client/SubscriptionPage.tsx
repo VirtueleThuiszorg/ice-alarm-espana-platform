@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useMemberSubscriptions, useMemberPayments } from "@/hooks/useMemberProfile";
+import { useMemberSubscriptions, useMemberPayments, useMemberProfile } from "@/hooks/useMemberProfile";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,7 @@ import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/client/PageHeader";
 import { MembershipConditionCard } from "@/components/client/MembershipConditionCard";
+import { SwitchToStripeCard } from "@/components/client/SwitchToStripeCard";
 import { membershipCondition } from "@/lib/membershipCondition";
 import { supportActionPath } from "@/lib/supportActions";
 import { subscriptionPrice, taxRatePercent } from "@/lib/subscriptionPrice";
@@ -36,6 +37,16 @@ export default function SubscriptionPage() {
   const navigate = useNavigate();
   const { data: subscriptions, isLoading: subLoading } = useMemberSubscriptions();
   const { data: payments, isLoading: paymentsLoading } = useMemberPayments();
+  /*
+    THE MEMBER ROW, because the subscription cannot answer the question this page asks.
+
+    A legacy member — and a member mid-migration — has no subscription of their own, so
+    `membershipCondition` read from the subscription alone answers "never joined" for somebody an
+    operator is watching tonight. `billing_source` is the authority on who bills them; the
+    subscription is the authority on what this platform has charged, and for these people that is
+    nothing yet.
+  */
+  const { data: profile } = useMemberProfile();
   // Hydrates the module-level pricing config from `pricing_plans`, so the IVA rate applied to
   // this member's net is the one an admin set rather than a literal. Unconditional and above
   // the early returns, because it is a hook.
@@ -75,8 +86,21 @@ export default function SubscriptionPage() {
       <div className="space-y-6 animate-fade-in">
         <PageHeader title={t("subscription.title")} subtitle={t("subscription.subtitle")} />
         <MembershipConditionCard
-          condition={membershipCondition(subscriptions === undefined ? undefined : subscriptions.latest)}
+          condition={membershipCondition(
+            subscriptions === undefined ? undefined : subscriptions.latest,
+            profile ? { status: profile.status, billing_source: profile.billing_source } : null,
+          )}
         />
+
+        {/* Their own copy of the link, because "I've lost the text" is the commonest reason a
+            migration stalls. Renders only mid-switch; absent for everybody else. */}
+        {profile?.billing_source === "switch_pending" && (
+          <SwitchToStripeCard
+            checkoutUrl={profile.switch_checkout_url}
+            sessionExpiresAt={profile.switch_session_expires_at}
+            switchExpiresAt={profile.switch_expires_at}
+          />
+        )}
       </div>
     );
   }

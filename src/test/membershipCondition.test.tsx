@@ -166,12 +166,31 @@ describe("R8 — the plans are shown to exactly one of them", () => {
 });
 
 describe("what the copy is and is not allowed to say", () => {
-  it("exactly two conditions claim somebody is monitoring, and both are true", () => {
-    // `active` and `legacy_billing`, and nothing else. Named as a closed list rather than a
-    // count, because the failure this guards against is a condition added later inheriting
-    // "yes, you are covered" from nobody having thought about it.
+  it("exactly three conditions claim somebody is monitoring, and all three are true", () => {
+    // `active`, `legacy_billing` and `switching_to_stripe`, and nothing else. Named as a closed
+    // list rather than a count, because the failure this guards against is a condition added
+    // later inheriting "yes, you are covered" from nobody having thought about it.
+    //
+    // `switching_to_stripe` joined the list on 2026-09-11 and is the one worth being sure of: a
+    // member mid-migration has an unpaid Stripe link and no subscription row, and it would be
+    // easy to read that as "not paying". They are wearing the pendant and the alarm has not
+    // changed — which is also the first sentence of their copy.
     const monitored = MEMBERSHIP_CONDITIONS.filter((c) => c.monitored).map((c) => c.condition);
-    expect([...monitored].sort()).toEqual(["active", "legacy_billing"]);
+    expect([...monitored].sort()).toEqual(["active", "legacy_billing", "switching_to_stripe"]);
+  });
+
+  it("a member mid-migration is monitored, is not shown the plans, and is offered a human", () => {
+    const spec = membershipConditionSpec("switching_to_stripe");
+    expect(spec.monitored).toBe(true);
+    // Showing prices to somebody who already has an unpaid link out is inviting a second payment.
+    expect(spec.showsPlans).toBe(false);
+    /* NO action of its own, like `active` — the page renders `SwitchToStripeCard`, which
+       carries the member's live link or, once Stripe has expired it, the route to a person.
+       A second button beside it would be two actions for one job on one screen. */
+    expect(spec.action).toBeNull();
+    // The alarm, first. A message about money from the company holding your emergency button
+    // reads as a threat to the button unless it says otherwise.
+    expect(spec.body.fallback.toLowerCase()).toContain("alarm has not changed");
   });
 
   it("a legacy member is monitored, is not shown the plans, and is not treated as new", () => {
@@ -231,9 +250,25 @@ describe("what the copy is and is not allowed to say", () => {
   });
 
   it("every other condition offers a route to a human", () => {
+    /*
+      TWO EXCEPTIONS, AND BOTH FOR THE SAME REASON: the page renders the thing itself, so the
+      card would be a second button for one job.
+
+        `active`              the record is on the page — the plan, the renewal date, the
+                              payment method.
+        `switching_to_stripe` SwitchToStripeCard is on the page, carrying the member's own live
+                              link or, once Stripe has expired it, the route to a person. R1
+                              allows one red button per surface and that card owns it.
+    */
+    const rendersItsOwnAction = ["active", "switching_to_stripe"];
     for (const c of MEMBERSHIP_CONDITIONS) {
-      if (c.condition !== "active") expect(c.action).not.toBeNull();
+      if (!rendersItsOwnAction.includes(c.condition)) expect(c.action, c.condition).not.toBeNull();
     }
+  });
+
+  it("and the two that carry no action are exactly those two", () => {
+    const actionless = MEMBERSHIP_CONDITIONS.filter((c) => c.action === null).map((c) => c.condition);
+    expect([...actionless].sort()).toEqual(["active", "switching_to_stripe"]);
   });
 });
 

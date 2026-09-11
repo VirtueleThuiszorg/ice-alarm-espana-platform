@@ -86,6 +86,18 @@ const RED_BUTTONS: Record<string, string[]> = {
   "src/components/client/MembershipConditionCard.tsx": [
     "the empty state's single action, and the only red button on the Membership page's empty branch",
   ],
+  /*
+    ONE ENTRY FOR TWO BRANCHES, and they are mutually exclusive. A member mid-migration sees
+    either their live Stripe link or — once Stripe has expired the session, which it does after
+    24 hours while the switch window runs 14 days — the route to a person. Never both.
+
+    The condition card beside it carries NO action for `switching_to_stripe`, deliberately, for
+    exactly this reason: the two together would be two red buttons doing one job on one screen.
+  */
+  "src/components/client/SwitchToStripeCard.tsx": [
+    "'Set up my payment', shown only while the Stripe session is live",
+    "'Ask us for a new link', shown only once it has expired. MUTUALLY EXCLUSIVE with the one above — the two branches of a single ternary, so a member ever sees one of them and never both",
+  ],
 };
 
 /**

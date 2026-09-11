@@ -3310,6 +3310,11 @@ export type Database = {
           billing_source: string
           legacy_billing_day: number | null
           legacy_next_renewal: string | null
+          switch_started_at: string | null
+          switch_expires_at: string | null
+          switch_checkout_session_id: string | null
+          switch_checkout_url: string | null
+          switch_session_expires_at: string | null
           bloque: string | null
           portal: string | null
           escalera: string | null
@@ -3376,6 +3381,11 @@ export type Database = {
           billing_source?: string
           legacy_billing_day?: number | null
           legacy_next_renewal?: string | null
+          switch_started_at?: string | null
+          switch_expires_at?: string | null
+          switch_checkout_session_id?: string | null
+          switch_checkout_url?: string | null
+          switch_session_expires_at?: string | null
           bloque?: string | null
           portal?: string | null
           escalera?: string | null
@@ -3442,6 +3452,11 @@ export type Database = {
           billing_source?: string
           legacy_billing_day?: number | null
           legacy_next_renewal?: string | null
+          switch_started_at?: string | null
+          switch_expires_at?: string | null
+          switch_checkout_session_id?: string | null
+          switch_checkout_url?: string | null
+          switch_session_expires_at?: string | null
           bloque?: string | null
           portal?: string | null
           escalera?: string | null

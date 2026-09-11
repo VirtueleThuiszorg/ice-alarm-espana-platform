@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { MemberActionsCard } from "@/components/admin/member-detail/MemberActionsCard";
 import { ConfirmLegacyMemberCard } from "@/components/admin/member-detail/ConfirmLegacyMemberCard";
 import { LegacyBillingDateCard } from "@/components/admin/member-detail/LegacyBillingDateCard";
+import { MoveToStripeCard } from "@/components/admin/member-detail/MoveToStripeCard";
 import { EditableCard } from "@/components/EditableCard";
 import { SendPaymentLinkDialog } from "@/components/admin/member-detail/SendPaymentLinkDialog";
 import { FieldGrid, FieldRow } from "@/components/FieldGrid";
@@ -44,6 +45,8 @@ interface SubscriptionTabProps {
   /** The Santander schedule, for the card that records it and the line that states it. */
   legacyBillingDay?: number | null;
   legacyNextRenewal?: string | null;
+  /** When an unpaid Stripe switch link lapses back to Santander billing. */
+  switchExpiresAt?: string | null;
   /** Refetch the member after the billing date is written, so the line below updates. */
   onMemberChanged?: () => void;
 }
@@ -61,6 +64,7 @@ export function SubscriptionTab({
   billingSource,
   legacyBillingDay = null,
   legacyNextRenewal = null,
+  switchExpiresAt = null,
   onMemberChanged,
 }: SubscriptionTabProps) {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -208,6 +212,16 @@ export function SubscriptionTab({
             </CardContent>
           </Card>
         )}
+
+        <MoveToStripeCard
+          memberId={memberId}
+          memberName={memberName ?? "This member"}
+          status={memberStatus ?? null}
+          billingSource={billingSource ?? null}
+          switchExpiresAt={switchExpiresAt}
+          nextRenewal={legacyNextRenewal}
+          onChanged={onMemberChanged}
+        />
 
         <LegacyBillingDateCard
           memberId={memberId}

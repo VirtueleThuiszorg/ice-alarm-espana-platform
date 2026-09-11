@@ -110,7 +110,12 @@ export const registrationSchema = z.object({
  * `pendantCount` is capped at 2 for the same reason the SQL function caps it: two people, two
  * pendants, and a quantity typo is money.
  */
-export const sendPaymentLinkSchema = z.object({
+/**
+ * The ordinary staff-sent link: a new member, a plan, a pendant and whoever pays.
+ */
+const sendPaymentLinkSignupSchema = z.object({
+  /** Optional so every existing caller keeps working without a body change. */
+  mode: z.literal("signup").optional(),
   memberId: z.string().uuid(),
   membershipType: z.enum(["single", "couple"]),
   billingFrequency: z.enum(["monthly", "annual"]),
@@ -131,6 +136,32 @@ export const sendPaymentLinkSchema = z.object({
   ]),
 });
 
+/**
+ * Moving a legacy member onto Stripe — A MEMBER ID AND NOTHING ELSE.
+ *
+ * The plan is NOT taken from the request. These members already have a plan: the one the CRM
+ * import recorded from Karma, on their existing subscription row. Letting the browser name it
+ * would mean a switch link could quietly move somebody from a couple plan to a single one, or
+ * from annual to monthly, at whatever price that implies — the F7 defect with a different
+ * field. The server reads what they are on and charges that.
+ *
+ * There is no `payer` either: these people have been paying Santander themselves for years. If
+ * somebody else is to pay, that is an ordinary payment link with a payer on it, chosen
+ * deliberately, not a side effect of a bulk migration.
+ */
+const sendPaymentLinkSwitchSchema = z.object({
+  mode: z.literal("legacy_switch"),
+  memberId: z.string().uuid(),
+});
+
+/**
+ * Switch first: `z.union` takes the first branch that parses, and a `legacy_switch` body would
+ * otherwise fail the signup branch on its missing plan fields and report THAT as the error.
+ */
+export const sendPaymentLinkSchema = z.union([
+  sendPaymentLinkSwitchSchema,
+  sendPaymentLinkSignupSchema,
+]);
 /**
  * create-checkout — the ids of an order that already exists, and nothing else.
  *

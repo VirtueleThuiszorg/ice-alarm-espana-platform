@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { santanderExportCsv, summariseMigration, type MigrationRow } from "@/lib/billingMigrationProgress";
+import { resolveLegacyPlan } from "../../../../supabase/functions/_shared/legacy-plan";
 
 /**
  * HOW FAR THROUGH THE MIGRATION WE ARE, and — the part the office actually needs — WHO THE BANK
@@ -33,18 +34,30 @@ export function BillingMigrationProgress() {
       const { data: rows, error } = await supabase
         .from("members")
         .select(
-          "id, first_name, last_name, email, phone, billing_source, legacy_billing_day, legacy_next_renewal, switch_expires_at, subscriptions (amount, billing_frequency, created_at)",
+          // ONE STRING LITERAL, not a concatenation: supabase-js types the result FROM this
+          // literal, and `a + b` erases that — every field below becomes an error on
+          // `GenericStringError`. Long line on purpose.
+          "id, first_name, last_name, email, phone, billing_source, legacy_billing_day, legacy_next_renewal, switch_expires_at, subscriptions (plan_type, amount, billing_frequency, created_at), crm_profiles (legacy_membership_type, legacy_payment_type)",
         )
         .in("billing_source", ["legacy", "switch_pending", "stripe"]);
       if (error) throw error;
 
       return (rows ?? []).map((r): MigrationRow => {
         const subs = (r.subscriptions ?? []) as Array<{
+          plan_type: string | null;
           amount: number | null;
           billing_frequency: string | null;
           created_at: string;
         }>;
         const newest = [...subs].sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
+        /* PostgREST returns an embedded one-to-one as an object and a one-to-many as an array,
+           depending on whether the FK carries a unique index. Reading it wrong would put every
+           legacy member in the "needs a plan" queue and blank the plan column for all of them. */
+        const profileRaw = r.crm_profiles;
+        const profile = (Array.isArray(profileRaw) ? profileRaw[0] : profileRaw) as
+          | { legacy_membership_type: string | null; legacy_payment_type: string | null }
+          | null
+          | undefined;
         return {
           id: r.id as string,
           name: `${r.first_name} ${r.last_name}`,
@@ -56,6 +69,16 @@ export function BillingMigrationProgress() {
           switchExpiresAt: (r.switch_expires_at as string | null) ?? null,
           amount: newest?.amount ?? null,
           billingFrequency: (newest?.billing_frequency as "monthly" | "annual" | null) ?? null,
+          legacyPlanLabel: profile?.legacy_membership_type ?? null,
+          /* The SAME decision the switch link and the runner make, from the same module — so the
+             number on this card is the number of members the runner will refuse to price, and
+             not a second opinion about them. */
+          planConfirmed: resolveLegacyPlan({
+            label: profile?.legacy_membership_type ?? null,
+            paymentType: profile?.legacy_payment_type ?? null,
+            storedPlanType: newest?.plan_type ?? null,
+            storedBillingFrequency: newest?.billing_frequency ?? null,
+          }).confirmed,
         };
       });
     },
@@ -129,11 +152,12 @@ export function BillingMigrationProgress() {
             </div>
 
             {/*
-              THE TWO QUEUES A PERSON HAS TO EMPTY. Both are silent failures otherwise: a member
-              with no billing date is one the runner can never reach, and a lapsed link is
-              somebody back in the bank collection whom nobody has moved.
+              THE THREE QUEUES A PERSON HAS TO EMPTY. All three are silent failures otherwise: a
+              member with no billing date is one the runner can never reach, a member with no
+              establishable plan is one it will not price, and a lapsed link is somebody back in
+              the bank collection whom nobody has moved.
             */}
-            {(summary.needsDate > 0 || summary.lapsed > 0) && (
+            {(summary.needsDate > 0 || summary.needsPlan > 0 || summary.lapsed > 0) && (
               <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
                 {summary.needsDate > 0 && (
                   <p className="flex items-start gap-2 text-sm" data-testid="migration-needs-date">
@@ -144,6 +168,17 @@ export function BillingMigrationProgress() {
                       </Link>{" "}
                       — the runner cannot time a link for them, so they will never be moved
                       automatically.
+                    </span>
+                  </p>
+                )}
+                {summary.needsPlan > 0 && (
+                  <p className="flex items-start gap-2 text-sm" data-testid="migration-needs-plan">
+                    <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                    <span>
+                      {summary.needsPlan} member(s) have no plan anybody can read off Karma's
+                      record — the import stored its defaults for them, so the runner will not
+                      price a link and rings the office instead. Confirm the plan on their record,
+                      under <strong>Move to Stripe billing</strong>.
                     </span>
                   </p>
                 )}

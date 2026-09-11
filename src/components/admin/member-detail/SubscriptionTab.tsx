@@ -10,6 +10,7 @@ import { MemberActionsCard } from "@/components/admin/member-detail/MemberAction
 import { ConfirmLegacyMemberCard } from "@/components/admin/member-detail/ConfirmLegacyMemberCard";
 import { EditableCard } from "@/components/EditableCard";
 import { SendPaymentLinkDialog } from "@/components/admin/member-detail/SendPaymentLinkDialog";
+import { FieldGrid, FieldRow } from "@/components/FieldGrid";
 
 interface Subscription {
   id: string;
@@ -249,38 +250,41 @@ export function SubscriptionTab({
       >
         <div className="space-y-6">
           {/* Plan Details */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-4 bg-muted/30 rounded-lg text-center">
-              <p className="text-sm text-muted-foreground">Plan Type</p>
-              <p className="text-2xl font-bold capitalize">{subscription.plan_type}</p>
-            </div>
-            <div className="p-4 bg-muted/30 rounded-lg text-center">
-              <p className="text-sm text-muted-foreground">Billing</p>
-              <p className="text-2xl font-bold capitalize">{subscription.billing_frequency}</p>
-            </div>
-            <div className="p-4 bg-muted/30 rounded-lg text-center">
-              <p className="text-sm text-muted-foreground">Amount</p>
-              <p className="text-2xl font-bold">€{Number(subscription.amount).toFixed(2)}</p>
-            </div>
-          </div>
+          {/*
+            THE THREE HEADLINE FIGURES stay bigger than an ordinary row — what the member pays
+            and how often is what somebody opens this tab for — but they are FieldRows, so the
+            caption above them is the same caption as everywhere else. They were three centred
+            tinted panels, which is a fourth card treatment on a record that now has one.
+          */}
+          <FieldGrid className="md:grid-cols-3">
+            <FieldRow label="Plan Type">
+              <span className="text-xl font-semibold capitalize">{subscription.plan_type}</span>
+            </FieldRow>
+            <FieldRow label="Billing">
+              <span className="text-xl font-semibold capitalize">{subscription.billing_frequency}</span>
+            </FieldRow>
+            <FieldRow label="Amount">
+              <span className="text-xl font-semibold">€{Number(subscription.amount).toFixed(2)}</span>
+            </FieldRow>
+          </FieldGrid>
 
           {/* Dates */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center gap-3 p-4 border rounded-lg">
-              <Calendar className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">Start Date</p>
-                <p className="font-medium">{format(new Date(subscription.start_date), "PPP")}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-4 border rounded-lg">
-              <Calendar className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">Next Renewal</p>
-                <p className="font-medium">{subscription.renewal_date ? format(new Date(subscription.renewal_date), "PPP") : "-"}</p>
-              </div>
-            </div>
-          </div>
+          {/* The two dates were bordered boxes with their own icons — a third card treatment on
+              a record that now has one. They are rows like every other fact here. */}
+          <FieldGrid>
+            <FieldRow label="Start Date">
+              <span className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                {format(new Date(subscription.start_date), "PPP")}
+              </span>
+            </FieldRow>
+            <FieldRow label="Next Renewal" empty={!subscription.renewal_date}>
+              <span className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                {subscription.renewal_date ? format(new Date(subscription.renewal_date), "PPP") : null}
+              </span>
+            </FieldRow>
+          </FieldGrid>
 
           {/* Additional Info */}
           <div className="flex flex-wrap gap-4">

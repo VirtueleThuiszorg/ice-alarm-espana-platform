@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 /**
@@ -107,5 +108,80 @@ export function FieldSection({
       </h4>
       {children}
     </section>
+  );
+}
+
+/**
+ * 13px uppercase Slate — R6's label, and R10's floor for a label specifically. In rem, not px,
+ * so R10's A/A control moves it: `text-[13px]` would leave every label on the member's account
+ * at 13px while the values around them grew.
+ *
+ * Lives here rather than in FieldControl because FieldRow needs it and FieldGrid cannot import
+ * from FieldControl without a cycle. Re-exported there so the member portal's imports are
+ * unchanged.
+ */
+export function FieldLabel({ children }: { children: ReactNode }) {
+  return <span className={FIELD_LABEL_CLASS}>{children}</span>;
+}
+
+/**
+ * EMPTY IS NOT BLANK. A field with nothing in it says so, rather than rendering an empty line —
+ * an empty line is indistinguishable from a field that failed to load, and on a medical record
+ * the difference is whether an operator has somebody's allergies.
+ */
+export function NotAdded() {
+  const { t } = useTranslation();
+  return (
+    <span data-testid="not-added" className="text-base italic text-muted-foreground">
+      {t("common.notAdded", "Not added")}
+    </span>
+  );
+}
+
+/**
+ * A READ-ONLY label/value pair, for the tabs that display facts nobody edits in place.
+ *
+ * WHAT IT REPLACES: three tabs had hand-rolled the same two lines —
+ *
+ *     <p className="text-sm text-muted-foreground">IMEI</p>
+ *     <p className="font-mono">{device.imei}</p>
+ *
+ * — each with its own idea of the label's size and colour, and each rendering a blank line when
+ * the value was missing. Three copies of a pattern is how the record ended up looking like
+ * three products; and a blank line where a value should be is the failure `NotAdded` exists
+ * for, reinvented as nothing at all.
+ *
+ * `mono` for identifiers a human reads aloud digit by digit — an IMEI, a SIM number. Proportional
+ * digits are the wrong tool for a number somebody is checking against a label on a device.
+ */
+export function FieldRow({
+  label,
+  children,
+  empty,
+  mono,
+  className,
+  testId,
+}: {
+  label: ReactNode;
+  children?: ReactNode;
+  /** Force the empty state — for a value the caller knows is absent before rendering it. */
+  empty?: boolean;
+  mono?: boolean;
+  className?: string;
+  testId?: string;
+}) {
+  const blank =
+    empty ||
+    children === null ||
+    children === undefined ||
+    (typeof children === "string" && children.trim().length === 0);
+
+  return (
+    <div className={cn("min-w-0", className)} data-testid={testId}>
+      <FieldLabel>{label}</FieldLabel>
+      <div className={cn("mt-1 text-sm font-medium text-foreground", mono && "font-mono")}>
+        {blank ? <NotAdded /> : children}
+      </div>
+    </div>
   );
 }

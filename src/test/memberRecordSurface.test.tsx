@@ -11,15 +11,24 @@
 // These tests hold both, and hold the one coupling the page fix introduced.
 
 import { describe, it, expect, afterEach } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { render, screen, cleanup } from "@testing-library/react";
 
-import { FieldGrid, FieldSection, FIELD_LABEL_CLASS } from "@/components/FieldGrid";
+import { FieldGrid, FieldRow, FieldSection, FIELD_LABEL_CLASS } from "@/components/FieldGrid";
 import { contrast, tokensFor, css } from "./helpers/contrast";
 import { stripComments } from "./helpers/stripComments";
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
+
+/** Every .ts/.tsx under src, so "exactly one definition" is checked against the tree. */
+function globSrc(dir = "src"): string[] {
+  return readdirSync(join(process.cwd(), dir), { withFileTypes: true }).flatMap((e) => {
+    const p = `${dir}/${e.name}`;
+    if (e.isDirectory()) return globSrc(p);
+    return /\.tsx?$/.test(e.name) ? [p] : [];
+  });
+}
 const tokens = tokensFor(":root");
 
 afterEach(() => cleanup());
@@ -141,10 +150,17 @@ describe("the field treatment", () => {
       both import — and the alternative, two copies that look identical today, is exactly how
       the record and the portal would have stopped matching within a month.
     */
-    const control = read("src/components/FieldControl.tsx");
-    expect(control).toContain("FIELD_LABEL_CLASS");
-    // FieldLabel must not have kept a hand-written copy of the same declarations.
-    expect(control).not.toMatch(/className="text-\[0\.8125rem\] font-medium uppercase/);
+    /*
+      Asserted as a COUNT over the whole tree rather than as "this file imports that constant".
+      FieldLabel has since moved from FieldControl into FieldGrid (FieldRow needs it, and
+      FieldGrid cannot import from FieldControl without a cycle) — an import-shaped assertion
+      would have broken on the move while the invariant it was protecting was untouched. What
+      actually matters is that the declarations exist once.
+    */
+    const declarations = globSrc().filter((f) =>
+      /text-\[0\.8125rem\] font-medium uppercase tracking-wide text-muted-foreground/.test(read(f)),
+    );
+    expect(declarations).toEqual(["src/components/FieldGrid.tsx"]);
 
     for (const tab of [
       "src/components/admin/member-detail/ProfileTab.tsx",
@@ -221,5 +237,66 @@ describe("the field treatment", () => {
     // differently.
     expect(section.className).toContain("pt-6");
     expect(section.className).toContain("first:pt-0");
+  });
+});
+
+describe("the walk — every tab that shows facts uses the one primitive", () => {
+  /*
+    THE POINT OF A PRIMITIVE IS THAT THERE IS ONE. Three tabs had hand-rolled the same two
+    lines — `<p className="text-sm text-muted-foreground">Label</p>` over a value — each with
+    its own idea of the label's size and colour, and each rendering a BLANK LINE when the value
+    was missing. That last part is the failure `NotAdded` exists for, reinvented as nothing at
+    all: on the Device tab an unassigned SIM and a SIM that failed to load looked identical.
+  */
+  const TABS = [
+    "src/components/admin/member-detail/DeviceTab.tsx",
+    "src/components/admin/member-detail/CRMTab.tsx",
+    "src/components/admin/member-detail/SubscriptionTab.tsx",
+  ];
+
+  it("leaves no hand-rolled label/value pair on the record", () => {
+    for (const tab of TABS) {
+      const src = stripComments(read(tab));
+      expect(src, tab).toContain("FieldRow");
+      // The shape that was there before: a muted <p> immediately followed by the value.
+      expect(src, tab).not.toMatch(
+        /<p className="text-sm text-muted-foreground">[^<]+<\/p>\s*<p/,
+      );
+    }
+  });
+
+  it("renders the empty state rather than a blank line", () => {
+    render(
+      <FieldGrid>
+        <FieldRow label="SIM Number" testId="sim">{null}</FieldRow>
+        <FieldRow label="IMEI" mono testId="imei">357812093471203</FieldRow>
+      </FieldGrid>,
+    );
+    // Not an empty div — "Not added", the same words the member portal uses.
+    expect(screen.getByTestId("sim").textContent).toContain("Not added");
+    expect(screen.getByTestId("imei").textContent).toContain("357812093471203");
+    expect(screen.getByTestId("imei").querySelector(".font-mono")).toBeTruthy();
+  });
+
+  it("treats a whitespace-only value as empty, and 0 as a value", () => {
+    /*
+      `0` is a fact — a battery reading, a row index of zero — and falsiness would swallow it.
+      The same distinction FieldControl already makes, and the reason emptiness is TESTED here
+      rather than inferred from truthiness.
+    */
+    render(
+      <FieldGrid>
+        <FieldRow label="a" testId="blank">{"   "}</FieldRow>
+        <FieldRow label="b" testId="zero">{0}</FieldRow>
+      </FieldGrid>,
+    );
+    expect(screen.getByTestId("blank").textContent).toContain("Not added");
+    expect(screen.getByTestId("zero").textContent).not.toContain("Not added");
+    expect(screen.getByTestId("zero").textContent).toContain("0");
+  });
+
+  it("lets a caller force the empty state for a value it knows is absent", () => {
+    render(<FieldGrid><FieldRow label="x" empty testId="forced"><span>ignored</span></FieldRow></FieldGrid>);
+    expect(screen.getByTestId("forced").textContent).toContain("Not added");
   });
 });

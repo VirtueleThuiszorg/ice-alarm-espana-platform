@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CourtesyCallsCard } from "./CourtesyCallsCard";
 import { EditableCard } from "@/components/EditableCard";
 import { MemberUpdateRequestModal } from "./MemberUpdateRequestModal";
+import { FieldGrid, FieldRow } from "@/components/FieldGrid";
 
 interface CRMProfile {
   member_id: string;
@@ -231,38 +232,24 @@ export function CRMTab({ memberId }: CRMTabProps) {
           lockedReason="Comes from the CRM import. Changing it here would not change the source it came from — edit the member's own fields on the other tabs instead."
         >
           <div className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Stage</p>
-                {/* A <div>, not a <p>: Badge renders a div, and a div inside a p is invalid
-                    HTML that React warns about and browsers silently reparent. */}
-                <div className="font-medium">
-                  {profile.stage ? <Badge variant="secondary">{profile.stage}</Badge> : "-"}
-                </div>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Status</p>
-                <div className="font-medium">
-                  {profile.status ? <Badge variant="outline">{profile.status}</Badge> : "-"}
-                </div>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Referral Source</p>
-                <p className="font-medium">{profile.referral_source || "-"}</p>
-              </div>
-              {profile.industry && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Industry</p>
-                  <p className="font-medium">{profile.industry}</p>
-                </div>
-              )}
-              {profile.department && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Department</p>
-                  <p className="font-medium">{profile.department}</p>
-                </div>
-              )}
-            </div>
+            {/*
+              The "-" that stood in for a missing value is gone with these rows. It was the
+              record's fourth way of saying "nothing here" (beside a blank line, "Not assigned"
+              and "Not added"), and FieldRow's empty state is the one the member portal already
+              uses. Industry and Department stop being conditionally absent for the same reason:
+              a field that vanishes when empty cannot be told from a field nobody thought of.
+            */}
+            <FieldGrid className="md:grid-cols-3">
+              <FieldRow label="Stage" empty={!profile.stage}>
+                {profile.stage ? <Badge variant="secondary">{profile.stage}</Badge> : null}
+              </FieldRow>
+              <FieldRow label="Status" empty={!profile.status}>
+                {profile.status ? <Badge variant="outline">{profile.status}</Badge> : null}
+              </FieldRow>
+              <FieldRow label="Referral Source">{profile.referral_source}</FieldRow>
+              <FieldRow label="Industry">{profile.industry}</FieldRow>
+              <FieldRow label="Department">{profile.department}</FieldRow>
+            </FieldGrid>
 
             {/* What KARMA billed them, which is not what this platform charges. Shown as its own
                 block with that said on it, because a membership type beside a stage reads like a
@@ -280,24 +267,15 @@ export function CRMTab({ memberId }: CRMTabProps) {
                     What Karma recorded, verbatim. Not a subscription this platform charges — see
                     Payments for that.
                   </p>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Membership type</p>
-                      <p className="font-medium">{profile.legacy_membership_type || "-"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Payment type</p>
-                      <p className="font-medium">{profile.legacy_payment_type || "-"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Joined</p>
-                      <p className="font-medium">
-                        {profile.legacy_date_joined
-                          ? new Date(profile.legacy_date_joined).toLocaleDateString()
-                          : "-"}
-                      </p>
-                    </div>
-                  </div>
+                  <FieldGrid className="md:grid-cols-3">
+                    <FieldRow label="Membership type">{profile.legacy_membership_type}</FieldRow>
+                    <FieldRow label="Payment type">{profile.legacy_payment_type}</FieldRow>
+                    <FieldRow label="Joined" empty={!profile.legacy_date_joined}>
+                      {profile.legacy_date_joined
+                        ? new Date(profile.legacy_date_joined).toLocaleDateString()
+                        : null}
+                    </FieldRow>
+                  </FieldGrid>
                 </div>
               </>
             )}
@@ -383,20 +361,16 @@ export function CRMTab({ memberId }: CRMTabProps) {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Row Index</p>
-                <p className="font-medium">{importRow.row_index + 1}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Import Status</p>
+            <FieldGrid>
+              <FieldRow label="Row Index">{importRow.row_index + 1}</FieldRow>
+              <FieldRow label="Import Status">
                 <Badge
                   variant={importRow.import_status === "imported" ? "default" : "destructive"}
                 >
                   {importRow.import_status}
                 </Badge>
-              </div>
-            </div>
+              </FieldRow>
+            </FieldGrid>
 
             <Separator />
 

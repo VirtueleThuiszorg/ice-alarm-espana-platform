@@ -40,6 +40,7 @@ import { Package } from "lucide-react";
 
 import { usePendantOrderForMember } from "@/hooks/usePendantOrder";
 import { supportActionPath } from "@/lib/supportActions";
+import { FieldLabel } from "@/components/FieldGrid";
 export default function DevicePage() {
   const { t } = useTranslation();
   const { memberId } = useAuth();
@@ -158,9 +159,12 @@ export default function DevicePage() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-1">
-          <p className="text-[0.8125rem] font-medium uppercase tracking-wide text-muted-foreground">
-            {t("support.emergencyNumber")}
-          </p>
+          {/*
+            FieldLabel, not a hand-written copy of its declarations. This page had the same six
+            classes typed out — found by the "exactly one definition" count in
+            memberRecordSurface.test.tsx, which is what that assertion is for.
+          */}
+          <FieldLabel>{t("support.emergencyNumber")}</FieldLabel>
           <a
             href={phoneHref}
             className="text-lg font-semibold text-foreground underline underline-offset-4"

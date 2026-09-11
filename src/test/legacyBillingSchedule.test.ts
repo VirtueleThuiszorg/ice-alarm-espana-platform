@@ -17,6 +17,7 @@ import {
   nextRenewalFrom,
   nextAnniversaryFrom,
   deriveLegacySchedule,
+  firstRenewalAfterPayment,
   needsBillingDate,
 } from "../../supabase/functions/_shared/legacy-billing-schedule";
 
@@ -293,5 +294,60 @@ describe("rolling a renewal forward once it has passed", () => {
         utc("2026-09-11"),
       ),
     ).toBeNull();
+  });
+});
+
+
+/*
+  ── THE SETUP DAY BECOMES THE BILLING DAY ──────────────────────────────────────
+
+  Lee's rule: "a member pays the month's fee the moment they set up (join or switch) and again
+  exactly one month later — the setup day becomes their billing day."
+
+  The platform did not record that day. `create_payment_link_order` writes `renewal_date` when
+  the ORDER is created — the day the link was SENT — and the join path does the same when the
+  wizard is submitted. The member pays later: a switch link stands for up to 24 hours, and a SEPA
+  debit settles days after the mandate is signed. So the first recorded renewal was the
+  anniversary of a day nothing happened on, and nothing corrected it until the SECOND invoice.
+
+  `firstRenewalAfterPayment` is the date the webhook now writes when the money actually arrives.
+*/
+describe("the first renewal after a first payment", () => {
+  const on = (iso: string) => new Date(`${iso}T12:00:00.000Z`);
+
+  it("is one month later, on the same day of the month", () => {
+    expect(firstRenewalAfterPayment(on("2026-09-15"), "monthly")).toBe("2026-10-15");
+  });
+
+  it("is one year later for an annual member", () => {
+    expect(firstRenewalAfterPayment(on("2026-09-15"), "annual")).toBe("2027-09-15");
+  });
+
+  /*
+    THE ONE THE NAIVE VERSION GETS WRONG. `setUTCMonth(+1)` on 31 January overflows to 3 March —
+    a date in the wrong MONTH, on a record that decides when somebody is chased for money. Stripe
+    clamps to the last day of the short month, and so does this, because it is the same
+    `nextRenewalFrom` the Santander dates use rather than a second implementation of the clamp.
+  */
+  it("clamps a month-end payment to the short month, rather than overflowing into the next", () => {
+    expect(firstRenewalAfterPayment(on("2026-01-31"), "monthly")).toBe("2026-02-28");
+    expect(firstRenewalAfterPayment(on("2028-01-31"), "monthly")).toBe("2028-02-29");
+    expect(firstRenewalAfterPayment(on("2026-08-31"), "monthly")).toBe("2026-09-30");
+  });
+
+  it("clamps a leap-day annual member to the 28th in the years that have no 29th", () => {
+    expect(firstRenewalAfterPayment(on("2028-02-29"), "annual")).toBe("2029-02-28");
+  });
+
+  /*
+    STRICTLY AFTER THE PAYMENT. The underlying rule is "on or after", which is right for a
+    Santander date — somebody due today is due today — and wrong here: it would say the member
+    renews the moment they have just paid.
+  */
+  it("is never the day of the payment itself", () => {
+    for (const day of ["2026-01-01", "2026-02-28", "2026-06-30", "2026-12-31"]) {
+      expect(firstRenewalAfterPayment(on(day), "monthly") > day, day).toBe(true);
+      expect(firstRenewalAfterPayment(on(day), "annual") > day, day).toBe(true);
+    }
   });
 });

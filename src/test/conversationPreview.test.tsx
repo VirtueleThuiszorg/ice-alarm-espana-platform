@@ -218,23 +218,70 @@ describe("every conversation list, in source", () => {
     expect(offenders).toEqual([]);
   });
 
+  const LISTS = [
+    "src/pages/client/MessagesPage.tsx",
+    "src/pages/client/SupportPage.tsx",
+    "src/pages/call-centre/MessagesPage.tsx",
+    "src/pages/admin/MessagesPage.tsx",
+    "src/components/call-centre/MessagesPanel.tsx",
+  ];
+
   it("the five lists go through the shared preview", () => {
-    const LISTS = [
-      "src/pages/client/MessagesPage.tsx",
-      "src/pages/client/SupportPage.tsx",
-      "src/pages/call-centre/MessagesPage.tsx",
-      "src/pages/admin/MessagesPage.tsx",
-      "src/components/call-centre/MessagesPanel.tsx",
-    ];
+    /*
+      THE INTENT IS UNCHANGED; WHERE IT IS SATISFIED MOVED.
+
+      This used to require every one of the five to call `conversationPreview(`
+      and `fetchLastIsabellaTurn(` itself. They now go through
+      `fetchConversationSummaries`, which calls the preview in ONE place and gets
+      Isabella's last turn from the `conversation_summaries` view — that is what
+      removed the per-row query each list was issuing (66 requests to render the
+      member's Messages page).
+
+      So the assertion is the same rule expressed against the new shape: a list
+      either calls the shared preview directly, or reaches it through the shared
+      fetcher. What is still forbidden is a list building a preview by hand,
+      which the test above enforces for the whole tree.
+    */
     for (const file of LISTS) {
       const src = stripComments(readFileSync(join(ROOT, file), "utf8"));
-      expect(src, file).toContain("conversationPreview(");
-      expect(src, file).toContain("fetchLastIsabellaTurn(");
-      // `.single()` reports "no rows" as an error, which is the ORDINARY case for an
-      // Isabella-only conversation — and in two of these lists it threw into a catch that
-      // returned a zeroed unread count with it. `.limit(1).single()` is the shape it took.
-      expect(src, file).not.toMatch(/\.limit\(1\)\s*\.single\(\)/);
+      const viaFetcher = src.includes("fetchConversationSummaries(");
+      const viaDirectCall = src.includes("conversationPreview(");
+      expect(
+        viaFetcher || viaDirectCall,
+        `${file} builds a conversation list without the shared preview`,
+      ).toBe(true);
     }
+  });
+
+  it("no list fetches a preview or an unread count PER ROW any more", () => {
+    /*
+      The defect this whole change removed, pinned by its shape rather than by a
+      number. Each of these lists mapped over the conversations and awaited a
+      Supabase call inside the map — one for the last message, one for the count,
+      and a third for Isabella when the thread had none.
+
+      `conversation_summaries` (migration 20260911190000) does that work in the
+      database with a LATERAL and a LIMIT 1, so the list costs one round trip
+      whatever its length. A `supabase` call inside a per-row `map` is the
+      signature of the regression coming back.
+    */
+    for (const file of LISTS) {
+      const src = stripComments(readFileSync(join(ROOT, file), "utf8"));
+      expect(
+        src,
+        `${file} awaits a Supabase call inside a per-row map — that is the N+1 again`,
+      ).not.toMatch(/\.map\(\s*async[^)]*\)?[\s\S]{0,600}?await\s+supabase/);
+    }
+  });
+
+  it("the shared fetcher is the only client of the view", () => {
+    // Five lists reading the view directly would be five places to keep in step.
+    const readers = walk(join(ROOT, "src")).filter((p) =>
+      stripComments(readFileSync(p, "utf8")).includes('from("conversation_summaries")'),
+    );
+    expect(readers.map((p) => p.slice(p.indexOf("src/")))).toEqual([
+      "src/lib/conversationSummaries.ts",
+    ]);
   });
 
   it("the dashboard card shows the thread, not only a count", () => {

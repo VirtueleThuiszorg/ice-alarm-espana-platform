@@ -7628,6 +7628,48 @@ export type Database = {
       }
     }
     Views: {
+      conversation_summaries: {
+        Row: {
+          assigned_to: string | null
+          conversation_type: string | null
+          created_at: string | null
+          id: string | null
+          language: string | null
+          last_channel: string | null
+          last_isabella_content: string | null
+          last_isabella_created_at: string | null
+          last_message_at: string | null
+          last_message_content: string | null
+          last_message_created_at: string | null
+          last_message_is_read: boolean | null
+          last_message_sender_type: string | null
+          lead_id: string | null
+          member_email: string | null
+          member_first_name: string | null
+          member_id: string | null
+          member_last_name: string | null
+          member_phone: string | null
+          member_preferred_language: string | null
+          priority: string | null
+          source: string | null
+          staff_participants: string[] | null
+          status: string | null
+          subject: string | null
+          unread_from_member: number | null
+          unread_from_staff: number | null
+          unread_not_from_staff: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_monitoring_readiness: {
         Row: {
           device_tested_at: string | null

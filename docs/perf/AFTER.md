@@ -18,8 +18,8 @@ AFTER, and a comparison that ignores that is worse than no comparison.
 
 ### LCP is higher than the baseline, and most of it is real
 
-`public.home` went 4352 ms → ~5000 ms on the mobile profile. Three things are
-mixed into that, and only the first is the application:
+`public.home` went 4352 ms → ~5000 ms on the mobile profile. Four things were
+considered; two are real, one is ruled out, and one was wrong and is withdrawn:
 
 1. **The fonts now load.** They did not before. `index.html` linked
    fonts.googleapis.com, which this site's own CSP forbids, so every page rendered
@@ -28,14 +28,34 @@ mixed into that, and only the first is the application:
    measured **+336 ms on `/` and +276 ms on `/pricing`** against a control arm
    with `/fonts/*` aborted. The AFTER number is the first honest measurement of
    this site as designed; the BEFORE number is a site with no webfonts.
-2. **Sandbox load.** These runs share a container with a Postgres holding 60,000
-   seeded rows and, at times, a build. Desktop LCP moved the same way, which an
-   application change would not necessarily do.
-3. **Not the measurement point.** This was checked rather than assumed: moving the
-   vitals read back to exactly where BASELINE took it (at settle, before waiting
-   for query quiescence) changed `public.home` from 5036 ms to 5016 ms. The
-   reading point is not the cause, and both tables now read vitals at the same
-   moment.
+2. **Twice the requests for the same bytes.** Splitting the shell and making the
+   four authenticated layouts lazy (#397) took 102 KB gz off every route — and
+   roughly doubled the number of chunks fetched. On the mobile profile's 150 ms
+   RTT, round trips cost time that fewer, larger files did not:
+
+   | route | requests | bytes | LCP |
+   |---|---|---|---|
+   | `public.home` | 43 → **79** | 621 → 625 KB | 4352 → 5016 ms |
+   | `public.pricing` | 25 → **52** | 604 → 593 KB | 3684 → 4144 ms |
+   | `join.wizard` | 37 → **67** | 625 → 609 KB | 3140 → **2828 ms** |
+   | `auth.login` | 20 → **32** | 623 → 593 KB | 3720 → 3740 ms |
+
+   This is an observation, not a proven cause: `join.wizard` gained 30 requests
+   and got FASTER, so the effect is not uniform and has not been isolated the way
+   the font cost was. It is recorded because it is the largest unexplained change
+   and because the brief's "preload the shell chunks" — not done — is the obvious
+   thing to test against it.
+3. **Not the measurement point.** Checked rather than assumed: moving the vitals
+   read back to exactly where BASELINE took it (at settle, before waiting for
+   query quiescence) changed `public.home` from 5036 ms to 5016 ms. The reading
+   point is not the cause, and both tables now read vitals at the same moment.
+4. **Not sandbox load, and this was tested.** An earlier draft of this document
+   blamed contention on the shared container. A runaway busy-wait loop was then
+   found to have been pegging one of the four cores for the whole AFTER run; with
+   it killed, the six gated routes re-measured at `public.home` 5036 ms,
+   `public.pricing` 4128, `join.wizard` 2836, `auth.login` 3748,
+   `member.dashboard` 5904, `cc.alerts` 6436 — every one inside normal run-to-run
+   variance of the published numbers. **The claim was wrong and is withdrawn.**
 
 ### DB queries per load counts more than it used to
 

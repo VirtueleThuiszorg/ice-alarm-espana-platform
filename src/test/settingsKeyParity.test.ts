@@ -419,57 +419,40 @@ const hasWriter = (key: string) =>
 // ── the known orphans, listed on purpose ───────────────────────────────────────────────────────
 
 /**
- * Keys the page's own constants name unprefixed while the save stores them prefixed. Left alone
- * DELIBERATELY: for two of them the prefixed row is the one the live system reads, so "fixing"
- * the constant would move a working credential. What is wrong here is the `KEY` entry and the
- * page's masked display, not the write — and choosing a family for the other two means moving a
- * live value, which is a migration and Lee's call.
+ * Keys a save would rename on the way in.
+ *
+ * EMPTY, AND IT IS MEANT TO STAY EMPTY. It held four entries until Lee ruled on them (11 Sep),
+ * and all four are now closed in code rather than described here:
+ *
+ *   stripe_secret_key / stripe_webhook_secret  the PREFIXED family wins — it is what the money
+ *     path reads and what the save has always written — so `KEY` names the prefixed rows and
+ *     only the page's masked display changed. No migration, no data moved.
+ *   stripe_publishable_key / google_maps_api_key  nothing read either family, so both FIELDS are
+ *     gone from the Settings page. A control that takes a credential and drops it is not a
+ *     control, and the honest fix for one is deletion rather than a better-aimed write.
+ *
+ * A new entry here is a settings control that does nothing. There is no good reason to add one.
  */
-const RENAMED_ON_THE_WAY_IN: Record<string, string> = {
-  stripe_secret_key:
-    "Stored as `settings_stripe_secret_key`, which create-checkout, stripe-webhook, " +
-    "stripe-sync-prices, send-payment-link and admin-subscription-action all read. The WRITE IS " +
-    "CORRECT; the page's masked display reads the unprefixed row, so a live key shows as unset.",
-  stripe_webhook_secret:
-    "Same: stored and consumed as `settings_stripe_webhook_secret`, displayed from the " +
-    "unprefixed row. The write is right, the read is not.",
-  stripe_publishable_key:
-    "Stored as `settings_stripe_publishable_key` and read by nothing at all — the page writes " +
-    "one row and reads another, and no function consumes either.",
-  google_maps_api_key:
-    "Stored as `settings_google_maps_api_key`; nothing reads that, and the page reads the " +
-    "unprefixed row. A key typed into this field reaches nothing.",
-};
+const RENAMED_ON_THE_WAY_IN: Record<string, string> = {};
 
 /**
- * A card writes this row and nothing reads it. Each one needs a ruling on which family wins and,
- * where a live value already exists, a P5-style migration to move it — so they are listed rather
- * than renamed here.
+ * A card writes this row and nothing reads it.
+ *
+ * Also empty now: both former entries were the write halves of the two fields deleted above.
  */
-const WRITER_ORPHANS: Record<string, string> = {
-  settings_stripe_publishable_key:
-    "SettingsPage saves it here and reads `stripe_publishable_key`; nothing else reads either. " +
-    "Publishable, so not a leak — but the field shows blank after saving.",
-  settings_google_maps_api_key:
-    "Same shape: written prefixed, read unprefixed by the page alone. Nothing on the map path " +
-    "reads a settings row at all, so a key typed here reaches nothing.",
-};
+const WRITER_ORPHANS: Record<string, string> = {};
 
 /**
  * A reader looks this row up and no card, upsert or migration writes it. Every one is a value
  * somebody set by hand in the SQL editor or in Edge secrets; the row is real, the screen for it
  * is not.
+ *
+ * These four are LEFT ALONE deliberately (Lee, 11 Sep): each needs its own decision about
+ * whether it deserves a screen, and inventing four admin fields nobody asked for would be the
+ * same mistake as the Maps field in the other direction. They are listed with their readers in
+ * PENDING_FOR_LEE §2b so the decision can be made per row.
  */
 const READER_ORPHANS: Record<string, string> = {
-  stripe_secret_key:
-    "SettingsPage's masked display reads the unprefixed row while the page writes — and five " +
-    "functions correctly read — `settings_stripe_secret_key`. The WRITE is right; this read " +
-    "shows the live key as unset.",
-  stripe_publishable_key: "The read half of settings_stripe_publishable_key above.",
-  stripe_webhook_secret:
-    "Same again: written and consumed as `settings_stripe_webhook_secret`, displayed from the " +
-    "unprefixed row.",
-  google_maps_api_key: "The read half of settings_google_maps_api_key above.",
   admin_whatsapp_number: "Read by ai-execute-action. Set by hand; no screen offers it.",
   settings_call_centre_phone: "Read by voice-handler. Set by hand; no screen offers it.",
   settings_email_provider:
@@ -502,6 +485,25 @@ describe("what an admin settings card writes is what something reads", () => {
     }
   });
 
+  it("the orphan lists may shrink, never grow — both write-side lists stay EMPTY", () => {
+    // A RATCHET, and it is the only thing making the two assertions below mean anything.
+    //
+    // Every check in this file compares a computed set against a hand-written list, which makes
+    // the list the weak point: the cheapest way to turn this suite green is to paste the new
+    // orphan into the list and move on, and the diff for that looks like documentation. It is
+    // how a guard becomes a ledger of defects nobody intends to fix.
+    //
+    // So the two WRITE-side lists are pinned at zero. A card writing a row nothing reads, or
+    // sending a key its service renames, is a control that does nothing — there is no version of
+    // that worth recording instead of fixing, and this fails on the attempt rather than on the
+    // defect. (READER_ORPHANS is not pinned: those are rows with no screen at all, which is a
+    // per-row product decision, not a defect in code somebody just wrote.)
+    expect(Object.keys(RENAMED_ON_THE_WAY_IN)).toEqual([]);
+    expect(Object.keys(WRITER_ORPHANS)).toEqual([]);
+    // And the reader side may not grow past what Lee has actually been handed.
+    expect(Object.keys(READER_ORPHANS).length).toBeLessThanOrEqual(4);
+  });
+
   it("no save sends a key that the service it passes would rename", () => {
     // THE DEFECT, DIRECTLY. B3 and D-17 are both this: the key was right, the service was not,
     // and `save-api-keys` renamed the row on the way in.
@@ -511,8 +513,7 @@ describe("what an admin settings card writes is what something reads", () => {
     for (const g of groups) {
       for (const key of g.keys) if (storedAs(key, g.service) !== key) renamed.add(key);
     }
-    // The four that remain are listed above with what each one actually does today. Anything new
-    // joining them is a settings control that does nothing, and fails here.
+    // Nothing is listed any more. Anything joining is a settings control that does nothing.
     expect([...renamed].sort()).toEqual(Object.keys(RENAMED_ON_THE_WAY_IN).sort());
   });
 

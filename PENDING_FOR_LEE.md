@@ -735,11 +735,17 @@ code, so they flip without a deploy):
 > unprefixed one, so a live key shows as unset), `stripe_publishable_key` and
 > `google_maps_api_key` (dead both ways; a Maps key typed into that field reaches nothing).
 >
-> **Still open, and small:** the row tidy-up below. If anybody ever pressed Save on that card
-> before the fix, `settings_checkout_payment_methods` / `settings_checkout_async_events_confirmed`
-> exist in production holding a stale selection. Nothing reads them — the parity test asserts
-> that — so they are litter rather than a defect, and deleting them is a P5-style one-liner
-> whenever somebody is in there anyway.
+> **✅ And the row tidy-up is done too** (11 Sep, `20260911100000_drop_orphan_checkout_settings.sql`).
+> `settings_checkout_payment_methods` / `settings_checkout_async_events_confirmed` are deleted,
+> **not copied across** — the opposite of what P5 did for the registration fee, and deliberately.
+> The card has been reading the canonical rows all along, so those are the admin's live intent;
+> the prefixed pair is a stale snapshot of a dialog whose effect nobody could see. One of them is
+> `async_events_confirmed`, and carrying a stale `true` forward would switch SEPA on off the back
+> of a tick made in a dialog that did nothing — a customer who pays and is never activated. That
+> is the one outcome worth actively preventing.
+>
+> **Nothing about D-17 is outstanding.** The four orphan pairs it raised were ruled on 11 Sep and
+> are closed in code; what is left of that review is D-20 below, which is a different question.
 
 Found while building the holiday-policy card on the same pattern, and **not fixed here** because
 it is the payment path and it is its own concern. It is a real defect, so it is written down
@@ -902,6 +908,32 @@ reads like a consent flag and consent is not something to guess at.
 
 **Nothing is blocked on any of these four.** The import works, and each is a decision you can take
 whenever you have read the table.
+
+### D-20 — four `system_settings` rows that code reads and no screen writes (2026-09-11)
+
+Your ruling of 11 Sep closed the settings-key orphans, and **the write side is now empty**: no
+admin card writes a row nothing reads, and no save renames a key on the way in. Both lists in
+`src/test/settingsKeyParity.test.ts` are pinned at zero, so neither can grow back — a new one
+fails the suite instead of joining a list.
+
+**These four are what is left, and they are the opposite problem:** something in production reads
+the row, and there is no screen anywhere that writes it. Each is set by hand in the SQL editor
+today. None is broken; each is a per-row decision about whether it deserves a field, which is why
+they are listed rather than guessed at — inventing four admin fields nobody asked for would be
+the Google Maps mistake pointed the other way.
+
+| Row | Read by | What it does there |
+| --- | --- | --- |
+| `admin_whatsapp_number` | `ai-execute-action` | The number Isabella sends an admin WhatsApp to. Unset means that action does nothing. |
+| `settings_call_centre_phone` | `voice-handler` | The number an inbound call is transferred to. This one is worth a look soonest — it is on the voice path. |
+| `settings_email_provider` | `send-member-update-request`, `send-payment-link` | Which provider sends transactional email. |
+| `settings_twilio_api_key_sid` | `notify-staff-whatsapp` | Its sibling `settings_twilio_api_key_secret` IS on the notification matrix; the sid is not, so the pair cannot be set from one place. **Of the four, this is the odd one** — half a credential has a screen and half does not, which is a gap rather than a decision. |
+
+**What a "yes" costs, per row:** a field on the relevant existing card, saved through
+`save-api-keys` with the `service` matching the key's own prefix — which the parity test then
+holds in place automatically. No migration, and no new pattern.
+
+**Nothing is blocked on any of these.** Every one of them works today if the row is set.
 
 ---
 

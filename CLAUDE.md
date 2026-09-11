@@ -73,6 +73,10 @@ What this replaces, so the change is not mistaken for drift: until this date the
 - **Never merge red.** Unchanged, and now the single line of defence rather than one of two.
 - **A check that cannot fail is not a check.** No `continue-on-error` on a gate, no job that skips its work and reports success, and no gate sharing a job with another — a failing step marks every later step `skipped`, and `skipped` is not red. Enforced by `src/test/ciJobIsolation.test.ts`.
 
+**Merges are to be gated by the branch ruleset, so that a red required check cannot be merged past by anyone** — no human, no session, no bot. The six required checks are Tests, Lint/Type Check & Build, Wiring register, Cross-tenant isolation, Security Audit and Migration drift gate.
+
+**⚠️ As of 11 Sep 2026 that ruleset is NOT active, so this paragraph describes the intent and not the state of the repository.** Ruleset `main` (id 19055263) exists and is `enforcement: disabled`; it also targets no branch, requires no status checks, and would block merge commits if switched on unchanged. Enabling it needs the browser — the REST write path is refused to agent sessions by the proxy. The exact values, the four traps in the current object, and the three verifications to run afterwards are in `PENDING_FOR_LEE.md` §2 S16. **Until it is switched on, "never merge red" is enforced by discipline alone, and that has now failed three times: 23 July, 25 July and 11 September — every time with the guard test already red on the PR.**
+
 Golden rules 1–10 above are **not** affected. Merge authority changed; what the code may do did not. A missing RLS policy or a client-writable role is still a defect that must not merge, and CI failing is still what stops it.
 
 ## Quality gates (CI, must be green to merge)

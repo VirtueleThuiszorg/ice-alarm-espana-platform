@@ -253,6 +253,158 @@ its version appeared in the remote list *after* a push and was absent *before* i
 
 ## 2. Secrets, settings and approvals only Lee can do
 
+### S16 — 🔴 **Enforce "never merge red" with a branch ruleset** (2026-09-11) — *I could not do this one; the API path is blocked for me*
+
+**Why this is top of the list now.** Twice in July a red guard test was merged past and took production
+down. It happened again today, 11 Sep: #366 merged with `WIRING_REGISTER.md` resolved by keeping both
+sides, the test named `"WIRING_REGISTER.md was generated, not hand-merged > states its totals exactly
+once"` was **already red on that PR**, and main stayed broken until #372. "Never merge red" is written in
+CLAUDE.md three times and has now failed three times, because nothing enforces it. A rule that depends on
+everyone remembering is not a rule.
+
+**What stopped me.** `PUT /repos/.../rulesets/19055263` returns **403 — but from the Anthropic agent proxy,
+not from GitHub**:
+
+```
+HTTP 403
+{"message":"Write access to this GitHub API path is not permitted through this proxy.",
+ "documentation_url":"https://docs.anthropic.com/en/docs/claude-code/github-actions"}
+```
+
+So this is **not** "Claude lacks admin". Reads of the endpoint work fine; the proxy allows no REST write to
+this path at all, and the GitHub MCP server has no ruleset tool. Nothing I can do from a session changes
+that — it needs you, in the browser, for about two minutes.
+
+#### FIRST, THE PROOF THAT NOTHING PROTECTS `main` TODAY
+
+Not an inference — three read-only endpoints, all run 2026-09-11:
+
+```
+GET /repos/.../rules/branches/main        →  []          ← nothing applies to main, at all
+GET /repos/.../branches/main              →  "protected": false
+                                             "protection": { "enabled": false,
+                                               "required_status_checks": {
+                                                 "enforcement_level": "off", "contexts": [] } }
+```
+
+`/rules/branches/main` is the endpoint that answers *"what rules actually apply to this branch right
+now"*, and it returns an empty list. **Any commit can be force-pushed to main, main can be deleted, and
+any PR can be merged with every check red.** That is the state the three outages happened in.
+
+(`GET /branches/main/protection` returns 403 *"Resource not accessible by integration"* — classic branch
+protection is readable only by a token with admin, which is a second confirmation that this needs you and
+not me.)
+
+#### THERE IS ALREADY A RULESET, AND IT IS DISABLED
+
+`GET /rulesets` — ruleset **id 19055263**, named `main`, **`"enforcement": "disabled"`**, created
+**2026-07-16**. That is a week before the outages of 23 and 25 July. It was set up and never switched on.
+
+It also would not have protected anything if it had been, which is the part worth reading before you touch
+it. **Four traps, all live in the current object:**
+
+1. **It targets nothing.** `"conditions": {"ref_name": {"include": [], "exclude": []}}` — an empty include
+   list matches no branch. Enabling it as-is protects nothing while looking like it does. It needs
+   `"include": ["~DEFAULT_BRANCH"]`.
+2. **It would block the way this repo actually merges.** Its `pull_request` rule has
+   `"allowed_merge_methods": ["squash", "rebase"]`, and every PR on main lands as a **merge commit**
+   (`Merge pull request #366 from …`). Enable it unchanged and the next merge is refused for the wrong
+   reason. `"merge"` must be in that list.
+3. **It has no status-check rule at all.** `rules` holds only `deletion`, `non_fast_forward` and
+   `pull_request`. The whole point — a red check blocking a merge — is the one thing missing.
+4. **`github-actions[bot]` must be able to bypass, or migrations stop being recorded.** `migrate.yml`
+   pushes `chore(prod): record N migrations applied by CI` **directly to main**, authored by
+   `github-actions[bot]`. With a `pull_request` rule and no bypass, that push is refused,
+   `APPLIED_TO_PROD.txt` stops tracking production, and the drift gate starts failing for a reason that has
+   nothing to do with the code. This is the one setting that can turn a safety improvement into an outage.
+
+#### AND ONE CHECK THAT MUST **NOT** BE REQUIRED
+
+**`Manifest matches production` is `if: github.event_name == 'push'`, so on a pull request it reports
+`skipped`** — confirmed on #337, #340, #341, #353, #356 and #375. A required check that never reports on a
+PR leaves every PR permanently pending and **nothing can ever merge**. It is deliberately absent from the
+list below; please do not add it in the UI because it looks like it belongs. `Audit public pages` does run
+on PRs and is green, but it is not in your list, so it is not included either.
+
+#### The exact values — Settings → Rules → Rulesets → `main`
+
+| Field | Value |
+|---|---|
+| Name | `main` |
+| Enforcement | **Active** |
+| Target | Default branch (`~DEFAULT_BRANCH`) |
+| Bypass | **Repository admin**, and **GitHub Actions** (the app) — both `always` |
+| Rules | Restrict deletions · Block force pushes · Require a pull request before merging (0 approvals, **allow merge commits**) · **Require status checks to pass** |
+
+Required status checks — **exact names, copied from #375's check runs**, case and punctuation included:
+
+```
+Tests
+Lint, Type Check & Build
+Wiring register
+Cross-tenant isolation
+Security Audit
+Migration drift gate
+```
+
+The equivalent API body, if you would rather `PUT` it than click (it is what I tried to send):
+
+```json
+{
+  "name": "main",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": { "ref_name": { "include": ["~DEFAULT_BRANCH"], "exclude": [] } },
+  "bypass_actors": [
+    { "actor_id": 5,     "actor_type": "RepositoryRole", "bypass_mode": "always" },
+    { "actor_id": 15368, "actor_type": "Integration",    "bypass_mode": "always" }
+  ],
+  "rules": [
+    { "type": "deletion" },
+    { "type": "non_fast_forward" },
+    { "type": "pull_request", "parameters": {
+        "required_approving_review_count": 0,
+        "dismiss_stale_reviews_on_push": false,
+        "require_code_owner_review": false,
+        "require_last_push_approval": false,
+        "required_review_thread_resolution": false,
+        "allowed_merge_methods": ["merge", "squash", "rebase"] } },
+    { "type": "required_status_checks", "parameters": {
+        "strict_required_status_checks_policy": false,
+        "do_not_enforce_on_create": false,
+        "required_status_checks": [
+          { "context": "Tests" },
+          { "context": "Lint, Type Check & Build" },
+          { "context": "Wiring register" },
+          { "context": "Cross-tenant isolation" },
+          { "context": "Security Audit" },
+          { "context": "Migration drift gate" } ] } }
+  ]
+}
+```
+
+⚠️ **The two `actor_id`s above are the only values in this section I could not verify.** `/apps/github-actions`
+returns nulls under this session's auth, so 15368 (GitHub Actions) and 5 (repository admin) are from
+documentation, not from your repo. **Pick them from the dropdowns in the UI instead** — the names are
+unambiguous there, and a wrong id in the bypass list is trap 4.
+
+#### Verification, none of which I could run — please do these three after enabling
+
+1. **Read it back:** `GET /repos/VirtueleThuiszorg/ice-alarm-espana-platform/rulesets/19055263` and confirm
+   `enforcement: active`, the include list, all six checks, and both bypass actors.
+2. **Prove it refuses a red merge:** open a throwaway PR that breaks one required check on purpose (a one-line
+   edit to `WIRING_REGISTER.md` fails `Wiring register` in about 15 seconds), confirm the merge button is
+   blocked, then close it. **A gate nobody has seen refuse anything is not known to work** — that is the same
+   argument `ciJobIsolation.test.ts` makes about checks that cannot fail.
+3. **Prove the bot still writes:** the next `Migrate Production` run must land its
+   `chore(prod): record …` commit on main. If none is due, dispatch one — it applies nothing when production
+   is level. **If that commit stops appearing, the bypass is wrong: fix it before merging anything else**,
+   because production and `APPLIED_TO_PROD.txt` will be drifting apart silently.
+
+**Until this is active, "never merge red" is enforced by discipline alone** — and the record of 23 July,
+25 July and 11 September is what discipline alone achieves.
+
+
 | # | Action | Where | Why it matters | Status |
 |---|---|---|---|---|
 | S1 | **Rotate the `sb_secret_` key** that was pasted into chat | Supabase → Project Settings → API Keys | A service-role key in a chat log is a live credential | ⬜ |

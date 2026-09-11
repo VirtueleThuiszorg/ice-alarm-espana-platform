@@ -67,9 +67,13 @@ import {
 const SITE_URL = (Deno.env.get("PUBLIC_SITE_URL") || "https://icealarm.es").replace(/\/+$/, "");
 
 /**
- * 24 hours. The join wizard sends the customer straight to Stripe, so a session that outlives
- * the prices it was built from is a charge nobody can reconcile; `send-payment-link` allows 72
- * because a family needs time to talk over a link that arrived by email.
+ * 24 hours, which is also Stripe's maximum: a Checkout Session may expire anywhere from
+ * 30 minutes to 24 hours after creation, and anything else is a 400.
+ *
+ * This comment used to end "`send-payment-link` allows 72 because a family needs time to talk
+ * over a link that arrived by email". It did allow 72, and Stripe refused every one of those
+ * sessions. Recorded here rather than quietly deleted: the sentence read like a decision, which
+ * is exactly why nobody checked it.
  */
 const SESSION_TTL_SECONDS = 24 * 60 * 60;
 

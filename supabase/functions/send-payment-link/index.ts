@@ -54,6 +54,13 @@ type Json = Record<string, unknown>;
 
 const STAFF_ROLES = ["call_centre", "call_centre_supervisor", "admin", "super_admin"];
 
+/**
+ * Stripe's own ceiling: a Checkout Session may expire between 30 minutes and 24 hours after it
+ * is created, and a request outside that range is a 400. Named rather than inlined so the next
+ * person to want "just a bit longer" finds the reason instead of the number.
+ */
+const SESSION_TTL_SECONDS = 24 * 60 * 60;
+
 /** Redirects are built HERE, never taken from the request — an open redirect on a payment page. */
 const SITE_URL = (Deno.env.get("PUBLIC_SITE_URL") || "https://icealarm.es").replace(/\/+$/, "");
 
@@ -242,7 +249,7 @@ serve(async (req) => {
       destination, the customer pays and is never activated, silently. Card only until an admin
       confirms the destination is listening (Admin → Settings → Payments).
     */
-    const { methods: paymentMethodTypes } = await loadCheckoutPaymentMethods(supabase);
+    const { methods: paymentMethodTypes } = await loadCheckoutPaymentMethods(admin);
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -256,9 +263,20 @@ serve(async (req) => {
       // The subscription Stripe creates carries the same ids, so `customer.subscription.*`
       // events are attributable without a lookup.
       subscription_data: { metadata },
-      // 72 hours: long enough for a family to talk it over, short enough that a stale link
-      // cannot be paid weeks later against a price that has since changed.
-      expires_at: Math.floor(Date.now() / 1000) + 72 * 60 * 60,
+      /*
+        24 HOURS, BECAUSE STRIPE ALLOWS NOTHING LONGER — this said 72 and Stripe rejects it.
+
+        From the SDK this function imports (stripe@14.21.0,
+        types/Checkout/SessionsResource.d.ts): "The Epoch time in seconds at which the Checkout
+        Session will expire. It can be anywhere from 30 minutes to 24 hours after Checkout
+        Session creation."
+
+        So the old value was not a generous choice, it was a 400 on every call — the session was
+        never created, after the pending order rows had already been written. The reasoning
+        behind it (a family needs time to talk over a link that arrived by email) is real and
+        simply is not available: past 24 hours, staff send another link.
+      */
+      expires_at: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
     });
 
     if (!session.url) {

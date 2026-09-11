@@ -203,7 +203,20 @@ describe("both functions pass it to Stripe, from the one module", () => {
 
   for (const [name, src] of [["create-checkout", create], ["send-payment-link", link]] as const) {
     it(`${name} sets payment_method_types from the shared loader`, () => {
-      expect(src, name).toContain("loadCheckoutPaymentMethods(supabase)");
+      /*
+        THE CLIENT'S NAME IS NOT THE POINT, AND ASSERTING IT CAUSED THE OUTAGE THIS LINE NOW
+        AVOIDS. This read `toContain("loadCheckoutPaymentMethods(supabase)")` for BOTH files.
+        `create-checkout` calls its client `supabase`; `send-payment-link` calls its `admin` —
+        so the only way to make this assertion pass in the second file was to write an
+        identifier that file does not have, and somebody did. Every staff-sent payment link then
+        threw a ReferenceError at that line, after the pending order rows had been written.
+
+        What matters is that the loader is called at all, and with something real. The second
+        half is now ESLint's `no-undef`, switched on for supabase/functions/** and pinned by
+        src/test/edgeFunctionClients.test.ts — a scope rule catches an undefined identifier;
+        a substring match can only ever guess at one.
+      */
+      expect(src, name).toMatch(/loadCheckoutPaymentMethods\(\s*[A-Za-z_$][\w$]*\s*\)/);
       expect(src, name).toMatch(/payment_method_types: paymentMethodTypes/);
       // Read per session rather than cached: ticking a box in Settings should change the next
       // checkout, not the next cold start.

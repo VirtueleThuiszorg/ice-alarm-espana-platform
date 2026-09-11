@@ -30,6 +30,8 @@ const row = (over: Record<string, unknown> = {}) => ({
 });
 
 let homeRow: Record<string, unknown> | null = null;
+/** Set to make the read fail, so the card can be asked what it claims when it does not know. */
+let readError: { message: string } | null = null;
 let memberUpdates: Array<Record<string, unknown>> = [];
 let audit: Array<{ action: string; newValues: unknown }> = [];
 
@@ -37,7 +39,12 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: () => ({
       select: () => ({
-        eq: () => ({ maybeSingle: () => Promise.resolve({ data: homeRow, error: null }) }),
+        eq: () => ({
+          maybeSingle: () =>
+            Promise.resolve(
+              readError ? { data: null, error: readError } : { data: homeRow, error: null },
+            ),
+        }),
       }),
       update: (values: Record<string, unknown>) => {
         memberUpdates.push(values);
@@ -98,6 +105,7 @@ async function renderCard() {
 
 beforeEach(() => {
   homeRow = null;
+  readError = null;
   memberUpdates = [];
   audit = [];
 });
@@ -212,5 +220,31 @@ describe("the dialog knows which surface it is on", () => {
     expect(
       screen.getByText(/where we send help if your pendant cannot tell us where you are/i),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+  WHAT THE CARD CLAIMS WHEN IT DOES NOT KNOW.
+
+  `useMemberHomeLocation` throws on a read error rather than returning null, so that no caller
+  can render "there is no home location" over a read that never happened. This card destructured
+  only `data` and `isLoading`, so a failed read fell straight through to the empty state and told
+  an operator, as a fact, that the member has no pin and the SOS card will use the postal address.
+*/
+describe("a failed read", () => {
+  it("is never reported as 'no pin on this record'", async () => {
+    readError = { message: "network" };
+    await renderCard();
+    expect(await screen.findByTestId("staff-home-location-error")).toBeInTheDocument();
+    expect(screen.queryByTestId("staff-home-location-none")).not.toBeInTheDocument();
+  });
+
+  it("does not offer to set a pin whose existence we could not establish", async () => {
+    readError = { message: "network" };
+    await renderCard();
+    await screen.findByTestId("staff-home-location-error");
+    // Setting one here would let a guess off the phone overwrite the member's own confirmation.
+    expect(screen.queryByTestId("staff-home-location-edit")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("staff-home-location-map")).not.toBeInTheDocument();
   });
 });

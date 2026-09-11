@@ -226,9 +226,32 @@ export function CallCentreHeader() {
   const displayEmail = staffInfo?.email || user?.email || "";
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
+    /*
+      THE BAR WRAPS, AND THAT IS THE FIX.
+
+      It was `flex h-16 items-center justify-between … px-6`: two groups, neither able to wrap
+      and neither able to shrink — a duty toggle on the left and six icon buttons on the right.
+      Their intrinsic width is 444px, so at 390 the whole DOCUMENT was 54px too wide and every
+      call-centre page scrolled sideways on a phone. Found by photographing the member record at
+      390 during the visual pass; it is the shell's, not that record's.
+
+      WHY WRAPPING RATHER THAN HIDING CONTROLS. The two ends of this bar are the duty toggle —
+      which decides whether the escalation ladder rings this operator's mobile — and the
+      notification bell. Pushing either off-screen behind a swipe, or into a menu, on the device
+      an on-call supervisor actually carries is the wrong trade. A second row costs 40px of
+      height and keeps every control reachable.
+
+      `h-auto min-h-16` rather than `h-16`: a fixed height with wrapped content clips the second
+      row. The header is `sticky`, not `fixed`, so it is in normal flow and a taller bar pushes
+      the page down instead of sitting on top of it.
+
+      `min-w-0` on both groups because a flex child defaults to `min-width: auto` and will not
+      shrink below its content — which is how the overflow escaped the container in the first
+      place.
+    */
+    <header className="sticky top-0 z-30 flex h-auto min-h-16 flex-wrap items-center justify-between gap-x-2 gap-y-2 border-b bg-background/95 px-3 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:h-16 md:flex-nowrap md:px-6 md:py-0">
       {/* Left side - Shift Status (search lives in GlobalSearch, Cmd+K) */}
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         {/* Shift Status & Toggle */}
         <div className="flex items-center gap-2">
           {/*
@@ -326,7 +349,7 @@ export function CallCentreHeader() {
       </div>
 
       {/* Right side actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
         {/* Language Selector */}
         <LanguageSelector variant="icon-only" />
 

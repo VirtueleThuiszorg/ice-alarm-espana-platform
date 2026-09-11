@@ -103,8 +103,18 @@ export default function CallCentreDashboard() {
   return (
     <div className="h-[calc(100vh-3.5rem)] flex flex-col">
       {/* Status Bar */}
-      <div className="bg-accent/50 border-b px-4 py-2 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      {/*
+        WRAPS. The tab switcher plus its count badges on one side and the clock on the other,
+        in a `justify-between` row that could not wrap: 172px past a 390px viewport, so the
+        ALERTS page — the one an operator opens when something is happening — scrolled sideways
+        on a phone.
+
+        LAYOUT ONLY. Same elements, same order, same handlers, same queries. Nothing here
+        touches which alerts are shown, their counts, or escalation; the SOS suites are
+        unchanged and green.
+      */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b bg-accent/50 px-4 py-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
           {/* Main Tab Switcher */}
           <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as MainTab)}>
             <TabsList>
@@ -147,7 +157,7 @@ export default function CallCentreDashboard() {
             </>
           )}
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex min-w-0 items-center gap-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Clock className="w-4 h-4" />
             <span>

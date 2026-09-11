@@ -155,8 +155,8 @@ export function DeviceOfflineAlertsCard() {
       hasAlerts && "border-destructive/50"
     )}>
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="min-w-0 flex-1">
             <CardTitle className="flex items-center gap-2">
               <WifiOff className={cn(
                 "h-5 w-5",

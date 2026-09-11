@@ -201,9 +201,10 @@ export function CheckoutPaymentMethodsCard({ canEdit }: { canEdit: boolean }) {
                 <p className="text-sm">
                   Tick this only once the Stripe webhook destination is subscribed to{" "}
                   <code>checkout.session.async_payment_succeeded</code> and{" "}
-                  <code>checkout.session.failed</code>. Until then an asynchronous method means a
-                  customer who pays and is <strong>never activated</strong>, with no error
-                  anywhere.
+                  <code>checkout.session.async_payment_failed</code>. Until then an asynchronous
+                  method means a customer who pays and is <strong>never activated</strong>, with
+                  no error anywhere — and a legacy member whose direct debit BOUNCES stays out of
+                  the Santander collection instead of going back into it.
                 </p>
               </div>
             </div>

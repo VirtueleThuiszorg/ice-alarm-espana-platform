@@ -7100,6 +7100,70 @@ SELECT pg_temp.check(
   NOT pg_temp.raises_as_role('service_role', 'SELECT public.expire_legacy_switches()'),
   'the daily runner calls this; without it a lapsed link never returns anybody to legacy billing');
 
+-- ── the OTHER way a switch ends without money ─────────────────────────────────
+--
+-- SEPA completes a Checkout Session `unpaid` and Stripe presents the debit days later. When it
+-- bounces, `checkout.session.async_payment_failed` fires — and nothing handled it, so the member
+-- sat in `switch_pending` (out of the Santander export, billed by nobody) until the 14-day sweep
+-- found them. `abandon_legacy_switch` is the one implementation both paths now use.
+
+SELECT pg_temp.check(
+  'nobody with a browser session can end a switch — members and staff alike are `authenticated`',
+  pg_temp.denied_as_role('authenticated',
+    'SELECT public.abandon_legacy_switch(''d1e00000-0000-0000-0000-00000000000b'', ''lapsed'')'),
+  'who collects a member''s money is not the member''s to decide from a browser');
+
+-- ...b is `switch_pending` with session cs_svc from the service-role check above — but that call
+-- passed three arguments, so `switch_checkout_url` and `switch_session_expires_at` are still
+-- NULL. Setting them is not decoration: an assertion that "every switch column is cleared" over
+-- columns that were already NULL passes whether or not the function clears them, and the first
+-- version of the check below did exactly that — it survived a mutation that removed
+-- `switch_session_expires_at = NULL` from the function altogether.
+UPDATE public.members
+   SET switch_checkout_url       = 'https://checkout.stripe.com/c/pay/cs_svc',
+       switch_session_expires_at = now() + interval '24 hours'
+ WHERE id = 'd1e00000-0000-0000-0000-00000000000b';
+
+SELECT pg_temp.check(
+  'the SERVICE ROLE can end a switch, which is how a bounced debit is handled at all',
+  NOT pg_temp.raises_as_role('service_role',
+    'SELECT public.abandon_legacy_switch(''d1e00000-0000-0000-0000-00000000000b'', ''debit_bounced'')'),
+  'revoked from PUBLIC with no grant to service_role is not hardened, it is broken');
+
+SELECT pg_temp.check(
+  'and it took effect: back on legacy with EVERY switch column cleared',
+  (SELECT billing_source = 'legacy'
+      AND switch_started_at IS NULL AND switch_expires_at IS NULL
+      AND switch_checkout_session_id IS NULL AND switch_checkout_url IS NULL
+      AND switch_session_expires_at IS NULL
+     FROM public.members WHERE id = 'd1e00000-0000-0000-0000-00000000000b'),
+  'a session expiry left set would let the sweep later find a member who HAS paid and put them back on Santander');
+
+SELECT pg_temp.check(
+  'the bell says the debit BOUNCED, not that they ignored a link',
+  (SELECT count(*) FROM public.notification_log
+    WHERE entity_id = 'd1e00000-0000-0000-0000-00000000000b'
+      AND event_type = 'member.switch_expired'
+      AND message LIKE '%BOUNCED%') >= 2,
+  'the member believes they have moved — an office ringing them has to know that');
+
+SELECT pg_temp.check(
+  'a second delivery of the same Stripe event changes nothing and tells nobody again',
+  public.abandon_legacy_switch('d1e00000-0000-0000-0000-00000000000b', 'debit_bounced') = false,
+  'Stripe retries; a bell per retry is how an office learns to ignore bells');
+
+SELECT pg_temp.check(
+  'and it rang exactly once',
+  (SELECT count(DISTINCT message) FROM public.notification_log
+    WHERE entity_id = 'd1e00000-0000-0000-0000-00000000000b'
+      AND event_type = 'member.switch_expired') = 1);
+
+SELECT pg_temp.check(
+  'an unrecognised reason is refused rather than written as one',
+  pg_temp.raises_as_role('service_role',
+    'SELECT public.abandon_legacy_switch(''d1e00000-0000-0000-0000-00000000000b'', ''because'')'),
+  'the reason chooses what the office is told; a typo must not become a sentence');
+
 -- Put that member back, so the assertions below read the state they expect.
 UPDATE public.members
    SET billing_source = 'legacy', switch_started_at = NULL, switch_expires_at = NULL,

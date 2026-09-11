@@ -38,6 +38,11 @@ import {
  *    had moved a cent. `payment_status === "paid"` is now required, and
  *    `checkout.session.async_payment_succeeded` is handled as the event that means paid.
  *
+ *    AND ITS TWIN, `checkout.session.async_payment_failed`, is handled as the event that means
+ *    the debit BOUNCED — which it was not, until a legacy member's switch could hang on it. A
+ *    member mid-switch is out of the Santander export; a bounce that nothing handled left them
+ *    billed by nobody until the 14-day lapse sweep found them.
+ *
  * 3. NOTHING COMPARED THE MONEY (REVIEW_JOIN_PATH.md F9). Whatever Stripe said had been paid
  *    was accepted, which is what made F7 — the browser naming its own price — a live hole
  *    rather than merely a bad shape: a session for one cent completed and a full member was
@@ -213,6 +218,9 @@ async function handleEvent(
     case "checkout.session.completed":
     case "checkout.session.async_payment_succeeded":
       return await onCheckoutSession(supabase, event, object as unknown as Stripe.Checkout.Session);
+
+    case "checkout.session.async_payment_failed":
+      return await onAsyncPaymentFailed(supabase, object as unknown as Stripe.Checkout.Session);
 
     case "payment_intent.succeeded":
     case "payment_intent.payment_failed":
@@ -426,6 +434,76 @@ async function onPaymentIntent(
   }
 
   return { handled: true, matched: count };
+}
+
+/**
+ * A DIRECT DEBIT THAT BOUNCED — the other way a switch ends without money.
+ *
+ * SEPA completes a Checkout Session `unpaid`: the member signs the mandate on Stripe's page, the
+ * session says "completed", and Stripe presents the debit days later. When it clears,
+ * `checkout.session.async_payment_succeeded` activates them. When it does not, THIS event fires,
+ * and until now nothing handled it.
+ *
+ * WHAT THAT COST. `switch_pending` takes a member OUT of the Santander export — that is what
+ * stops them being collected from twice in the month they move. A bounce left them there:
+ * no Stripe subscription, no Santander collection, for up to the fourteen days until the lapse
+ * sweep found them. Lee's rule says it plainly: "if not completed within 14 days, OR THE FIRST
+ * DEBIT BOUNCES, they return to legacy with a staff bell so the missed payment is collected the
+ * old way."
+ *
+ * AND THE MEMBER BELIEVES THEY HAVE MOVED, which is why the bell says so and why nobody is left
+ * to work it out from a log line. Their monitoring is untouched throughout — they are `active`
+ * before this and `active` after it.
+ *
+ * NOT A SECOND IMPLEMENTATION of "return them to legacy": `abandon_legacy_switch` is the same
+ * function the 14-day sweep calls, and it writes nothing for a member who is not
+ * `switch_pending`, so a Stripe retry of this event and the sweep cannot both announce it.
+ */
+async function onAsyncPaymentFailed(
+  supabase: ReturnType<typeof createClient>,
+  session: Stripe.Checkout.Session,
+): Promise<Json> {
+  const metadata = session.metadata ?? {};
+  const memberId = metadata.member_id!;
+  const paymentId = metadata.payment_id!;
+
+  // The payment row first: it is what the member's record shows, and a bounced debit that still
+  // reads `pending` is a charge somebody will go looking for in Stripe.
+  const { error: paymentError } = await supabase
+    .from("payments")
+    .update({
+      status: "failed",
+      notes: `SEPA debit failed — Stripe session ${session.id}`,
+    })
+    .eq("id", paymentId);
+  if (paymentError) console.error("Failed to mark payment failed:", paymentError.message);
+
+  const { data: returned, error: abandonError } = await supabase.rpc("abandon_legacy_switch", {
+    p_member_id: memberId,
+    p_reason: "debit_bounced",
+  });
+
+  if (abandonError) {
+    /*
+      THROWN, NOT SWALLOWED. Every other failure in this file is logged and stepped over because
+      the money has already arrived and the record is merely behind. Here the opposite is true:
+      the money did NOT arrive, and a member left in `switch_pending` is in NEITHER collection.
+      Throwing leaves `processed_at` null, so Stripe retries the event — which is exactly what
+      should happen.
+    */
+    throw new Error(`abandon_legacy_switch failed for ${memberId}: ${abandonError.message}`);
+  }
+
+  console.log(
+    `checkout.session.async_payment_failed ${session.id}: member ${memberId} ` +
+      (returned ? "returned to legacy billing." : "was not mid-switch — nothing to return."),
+  );
+
+  return {
+    handled: true,
+    returnedToLegacy: returned === true,
+    paymentRecorded: !paymentError,
+  };
 }
 
 /** Subscription lifecycle. Only statuses we have an enum value for are written. */

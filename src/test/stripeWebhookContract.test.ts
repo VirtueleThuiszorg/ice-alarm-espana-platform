@@ -557,3 +557,88 @@ describe("no PII in the webhook's logs", () => {
     }
   });
 });
+
+/*
+  ── A DIRECT DEBIT THAT BOUNCED ────────────────────────────────────────────────
+
+  SEPA completes a Checkout Session `unpaid`; Stripe presents the debit days later. Success
+  arrives as `checkout.session.async_payment_succeeded`, which this file has always covered.
+  FAILURE arrives as `checkout.session.async_payment_failed`, and nothing handled it.
+
+  For an ordinary signup that was untidy — a payment row stuck on `pending`. For a LEGACY MEMBER
+  MID-SWITCH it was a hole in the money: `switch_pending` takes them OUT of the Santander export,
+  so a bounce left them with no Stripe subscription and no bank collection until the 14-day lapse
+  sweep found them. Lee's rule says it in as many words — "if not completed within 14 days, or
+  the first debit bounces, they return to legacy with a staff bell so the missed payment is
+  collected the old way".
+*/
+describe("a bounced direct debit returns the member to the old collection", () => {
+  it("the event is routed at all", () => {
+    expect(WEBHOOK).toMatch(/case "checkout\.session\.async_payment_failed":/);
+    expect(WEBHOOK).toMatch(/onAsyncPaymentFailed\(/);
+  });
+
+  /*
+    AND IT IS NOT REFUSED BY THE API-VERSION GATE. `missingEventFields` runs before the switch
+    and answers a refusal for anything missing a required field. Requiring `amount_total` here —
+    as the two success events do — would refuse every bounce, because nothing was paid, and the
+    member would stay in neither collection. The absence is the assertion.
+  */
+  it("requires only what the handler uses, and NOT an amount that was never paid", () => {
+    expect(REQUIRED_EVENT_FIELDS["checkout.session.async_payment_failed"]).toEqual([
+      "id",
+      "metadata.order_id",
+      "metadata.payment_id",
+      "metadata.member_id",
+    ]);
+    expect(REQUIRED_EVENT_FIELDS["checkout.session.async_payment_failed"]).not.toContain(
+      "amount_total",
+    );
+  });
+
+  it("a real bounce passes the gate; one with no member on it does not", () => {
+    const session = {
+      id: "cs_1",
+      metadata: { order_id: "o1", payment_id: "p1", member_id: "m1" },
+    };
+    expect(missingEventFields("checkout.session.async_payment_failed", session)).toEqual([]);
+    expect(
+      missingEventFields("checkout.session.async_payment_failed", {
+        ...session,
+        metadata: { ...session.metadata, member_id: "" },
+      }),
+    ).toEqual(["metadata.member_id"]);
+  });
+
+  it("marks the payment failed, so it does not sit reading 'pending' forever", () => {
+    const handler = WEBHOOK.slice(WEBHOOK.indexOf("async function onAsyncPaymentFailed"));
+    expect(handler).toMatch(/status: "failed"/);
+  });
+
+  /*
+    ONE IMPLEMENTATION OF "RETURN THEM TO LEGACY". The 14-day sweep already does this in SQL,
+    clearing five columns, writing an activity_logs row and ringing a targeted bell. A copy here
+    would drift on WHICH columns get cleared — and a `switch_session_expires_at` left behind is
+    how the sweep later finds a member who HAS paid and puts them back on Santander. So both
+    callers go through `abandon_legacy_switch`, proven against real PostgreSQL in the RLS harness.
+  */
+  it("goes through the one shared function rather than writing the columns itself", () => {
+    expect(WEBHOOK).toMatch(/rpc\("abandon_legacy_switch"/);
+    expect(WEBHOOK).toMatch(/p_reason: "debit_bounced"/);
+    // Not a single `billing_source` write anywhere in this file except the post-payment path's,
+    // which lives in `_shared/post-payment.ts` — so none here at all.
+    expect(WEBHOOK).not.toMatch(/billing_source:/);
+  });
+
+  /*
+    AND THIS ONE FAILURE IS THROWN, NOT LOGGED. Everywhere else in this file a failed write is
+    logged and stepped over, because the money has arrived and only the record is behind. Here
+    the money did NOT arrive: a member left in `switch_pending` is in neither collection, so the
+    right outcome is a 500, a null `processed_at`, and Stripe retrying.
+  */
+  it("throws when the return fails, so Stripe retries instead of losing it", () => {
+    const handler = WEBHOOK.slice(WEBHOOK.indexOf("async function onAsyncPaymentFailed"));
+    const upTo = handler.slice(0, handler.indexOf("return {"));
+    expect(upTo).toMatch(/if \(abandonError\) \{[\s\S]{0,200}throw new Error/);
+  });
+});

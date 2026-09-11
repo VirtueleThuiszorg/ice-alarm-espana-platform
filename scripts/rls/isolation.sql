@@ -7171,6 +7171,90 @@ UPDATE public.members
  WHERE id = 'd1e00000-0000-0000-0000-00000000000b';
 
 -- ============================================================
+--  Every policy resolves the current user ONCE PER QUERY
+-- ============================================================
+--
+-- Not an isolation check — a PERFORMANCE check, and it lives here because this
+-- is the only job that builds the real policy set on a real PostgreSQL.
+--
+-- A policy expression is evaluated for every row the planner considers. A bare
+-- `auth.uid()` in one makes that a per-row function call; a bare
+-- `get_staff_role(auth.uid())` makes it a per-row QUERY AGAINST `staff`.
+-- Wrapping the call in a scalar sub-select hoists it to an InitPlan, evaluated
+-- once before the scan. Measured on 20,000 rows (docs/perf/RLS_INITPLAN.md):
+-- members 82.7ms -> 3.3ms, alerts 82.5 -> 3.0, staff_shifts 77.8 -> 3.3,
+-- notification_log 85.6 -> 3.3.
+--
+-- Migration 20260911180000 rewrote every policy that existed then. THIS is what
+-- stops the next one arriving unwrapped: a new policy written the natural way
+-- turns this red, on the PR that adds it, instead of quietly costing 25x on a
+-- table that will only get bigger.
+--
+-- HOW IT ASKS THE QUESTION. It cannot be "does the text contain auth.uid()" —
+-- the correct answer contains it, inside a sub-select — and PostgreSQL's regex
+-- has no lookbehind. So every WRAPPED occurrence is deleted from a copy of the
+-- expression and what survives is examined. A bare call survives; a wrapped one
+-- does not. Helper wrappers are removed first because they CONTAIN a uid wrapper.
+DO $$
+DECLARE
+  helpers text[];
+  fn      text;
+  bare    text;
+BEGIN
+  -- The same discovery rule as the migration: one uuid argument, not VOLATILE.
+  -- Not a hardcoded list, so a helper added next month is covered without anyone
+  -- remembering to add it here.
+  SELECT array_agg(p.proname ORDER BY p.proname)
+  INTO helpers
+  FROM pg_proc p
+  JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND p.pronargs = 1
+    AND p.proargtypes[0] = 'uuid'::regtype
+    AND p.provolatile IN ('s', 'i');
+  helpers := coalesce(helpers, ARRAY[]::text[]);
+
+  CREATE TEMP TABLE _initplan_residue AS
+  SELECT tablename, policyname,
+         coalesce(qual, '') || ' ' || coalesce(with_check, '') AS residue
+  FROM pg_policies
+  WHERE schemaname = 'public';
+
+  FOREACH fn IN ARRAY helpers LOOP
+    UPDATE _initplan_residue SET residue = replace(
+      replace(residue, 'SELECT public.' || fn || '(', ''), 'SELECT ' || fn || '(', '');
+  END LOOP;
+  UPDATE _initplan_residue SET residue = replace(residue, 'SELECT auth.uid()', '');
+
+  -- The failure NAMES THE TEXT, not just the policy. "system_settings/Staff can
+  -- view non-credential settings is still per-row" sends the next reader to
+  -- pg_policies to work out which of ten helpers is unwrapped; the residue tells
+  -- them in the log.
+  SELECT string_agg(format('%s/%s [%s]', tablename, policyname, left(residue, 160)),
+                    E'\n                 ' ORDER BY tablename, policyname)
+  INTO bare
+  FROM _initplan_residue
+  WHERE residue LIKE '%auth.uid()%'
+     OR EXISTS (SELECT 1 FROM unnest(helpers) h WHERE _initplan_residue.residue LIKE '%' || h || '(%');
+
+  PERFORM pg_temp.check(
+    'EVERY policy resolves the current user once per QUERY, not once per ROW',
+    bare IS NULL,
+    coalesce('still per-row: ' || bare,
+             'wrap it as (select auth.uid()) / (select is_staff((select auth.uid())))'));
+
+  -- A sweep that finds nothing passes everything after it. This one is over
+  -- hundreds of policies, so "found no bare calls" is only meaningful if it was
+  -- looking at policies at all.
+  PERFORM pg_temp.check(
+    'CONTROL: the sweep above actually examined policies',
+    (SELECT count(*) FROM _initplan_residue) > 100,
+    'if this fails the check above is vacuous, not passing');
+
+  DROP TABLE _initplan_residue;
+END $$;
+
+-- ============================================================
 --  Report
 -- ============================================================
 

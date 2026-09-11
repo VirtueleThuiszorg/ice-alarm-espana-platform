@@ -99,12 +99,28 @@ DROP POLICY IF EXISTS "Staff can view all settings" ON public.system_settings;
 DROP POLICY IF EXISTS "Staff can view settings" ON public.system_settings;
 DROP POLICY IF EXISTS "Staff can view non-credential settings" ON public.system_settings;
 
+-- `(select public.is_staff((select auth.uid())))`, NOT `public.is_staff(auth.uid())`.
+--
+-- Same condition, same rows, evaluated once per QUERY instead of once per ROW. A
+-- bare call here makes PostgreSQL run `is_staff` — itself a query against `staff`
+-- — for every row the scan considers. Measured on 20,000 rows, that difference is
+-- 80ms against 3ms (docs/perf/RLS_INITPLAN.md).
+--
+-- EDITED AFTER THIS MIGRATION HAD BEEN APPLIED, which is normally the wrong thing
+-- to do, and here is why it is not. 20260911180000 rewrote every policy in the
+-- database into this form, so production already reads this way; changing the file
+-- only changes what a FRESH database gets. But `scripts/rls/isolation.sql` RE-RUNS
+-- this file to prove its idempotency — twice — and each re-run recreated the
+-- policy in the old per-row form, AFTER the rewrite had been applied. The
+-- isolation suite's new "once per QUERY" check caught exactly that, which is what
+-- it is for. Leaving the file as it was would mean the repository's own source of
+-- truth for this policy disagreed with every database built from it.
 CREATE POLICY "Staff can view non-credential settings"
 ON public.system_settings
 FOR SELECT
 TO authenticated
 USING (
-  public.is_staff(auth.uid())
+  (SELECT public.is_staff((SELECT auth.uid())))
   AND key !~* '(secret|token|password|api_key|_key)'
 );
 

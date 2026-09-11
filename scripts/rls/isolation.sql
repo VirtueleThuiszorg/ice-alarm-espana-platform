@@ -7035,6 +7035,18 @@ SELECT pg_temp.check(
      FROM public.members WHERE id = 'd1e00000-0000-0000-0000-00000000000a'),
   'a member left in switch_pending forever is a permanent hole in the Santander collection');
 
+-- AND THEY ARE STILL MONITORED. The same assertion is made when the switch STARTS ("a switch is
+-- not a lapse in monitoring"), and it matters more at the end than at the beginning: a link
+-- expiring is the platform noticing that a payment DID NOT HAPPEN, which is exactly the shape of
+-- event that elsewhere deactivates somebody. Lee's rule 3 is "nobody pays twice OR LOSES
+-- MONITORING", and this is the path where losing it would be silent — the office is told the
+-- billing moved, not that the pendant stopped.
+SELECT pg_temp.check(
+  'a lapsed link leaves the member ACTIVE — they never stopped wearing the pendant',
+  (SELECT status::text FROM public.members
+    WHERE id = 'd1e00000-0000-0000-0000-00000000000a') = 'active',
+  'an unpaid Stripe link is a billing question; monitoring is not on the table');
+
 SELECT pg_temp.check(
   'the bell went to the supervisors, targeted rather than broadcast',
   (SELECT count(*) FROM public.notification_log
@@ -7138,6 +7150,19 @@ SELECT pg_temp.check(
       AND switch_session_expires_at IS NULL
      FROM public.members WHERE id = 'd1e00000-0000-0000-0000-00000000000b'),
   'a session expiry left set would let the sweep later find a member who HAS paid and put them back on Santander');
+
+-- THE CLAUSE OF THE BRIEF THAT NOTHING CHECKED: "bounced debit -> retry once -> bell + SMS,
+-- MONITORED STATE UNCHANGED". Every other half of that sentence is asserted — the bell above,
+-- the SMS and the single retry in src/test/stripeWebhookExecuted.test.ts — and the last half was
+-- a sentence in this migration's header ("NOTHING HERE ACTIVATES OR DEACTIVATES ANYBODY")
+-- rather than a check. A failed direct debit is the most plausible reason anybody would ever
+-- reach for members.status here, and the member it would switch off is an eighty-year-old whose
+-- bank bounced one debit.
+SELECT pg_temp.check(
+  'a BOUNCED first debit leaves the member ACTIVE — the alarm is not collateral for the payment',
+  (SELECT status::text FROM public.members
+    WHERE id = 'd1e00000-0000-0000-0000-00000000000b') = 'active',
+  'the bell already tells the office to ring them; deactivating is never how we chase money');
 
 SELECT pg_temp.check(
   'the bell says the debit BOUNCED, not that they ignored a link',

@@ -42,6 +42,7 @@ import {
   type ImportMode, type RowPlan, type AppliedAction,
 } from "@/lib/crmImportWriter";
 import { createSupabaseImportDb, importRowPayload } from "@/lib/crmImportDb";
+import CRMHistoryImportCard from "@/components/admin/CRMHistoryImportCard";
 
 const PREVIEW_ROWS = 50;
 
@@ -247,7 +248,7 @@ export default function CRMImportPage() {
               onClick={() => document.getElementById("file-input")?.click()}
             >
               <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">Drop CSV file here</h3>
+              <h3 className="text-lg font-medium mb-2">Step 1 — drop the contacts CSV here</h3>
               <p className="text-muted-foreground mb-4">
                 or click to browse. Nothing is written until you press Import.
               </p>
@@ -537,6 +538,10 @@ export default function CRMImportPage() {
           </Button>
         </div>
       )}
+
+      {/* Always visible, and not gated on step 1 having a file loaded in THIS session:
+          the contacts import is usually run once, days before the history file arrives. */}
+      <CRMHistoryImportCard />
     </div>
   );
 }

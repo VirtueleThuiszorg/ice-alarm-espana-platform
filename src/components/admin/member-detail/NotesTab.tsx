@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { 
   Loader2, Plus, Pin, PinOff, Edit, Trash2, Search,
   FileText, Stethoscope, CreditCard, HeadphonesIcon, 
-  CalendarCheck, AlertCircle, Lock
+  CalendarCheck, AlertCircle, Lock, Phone
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,8 +42,32 @@ import {
 } from "@/components/ui/select";
 import { format, formatDistanceToNow } from "date-fns";
 
+/**
+ * PAGINATION EXISTS BECAUSE OF THE KARMACRM MIGRATION.
+ *
+ * This tab used to fetch every note a member had, unpaginated, and filter them in the
+ * browser. At a dozen hand-typed notes that was invisible. The karmaCRM history brings
+ * 6,228 notes across 314 people — the largest single file has 773 of them, and the
+ * longest note is 19,340 characters — so "fetch them all and filter in JS" would have
+ * meant several megabytes down the wire before the tab could paint.
+ *
+ * So: the search box and the type filter now go to Postgres, and the notes arrive a page
+ * at a time, newest first, with a Load more. Pinned notes are fetched separately and in
+ * full — there are only ever a handful, and half a pinned note is worse than none.
+ */
+const PAGE_SIZE = 25;
+
+/**
+ * The search term reaches PostgREST as a filter value, so the characters that mean
+ * something to PostgREST or to LIKE are taken out rather than escaped. CLAUDE.md is
+ * explicit about not building filter strings out of user input.
+ */
+function sanitiseSearch(raw: string): string {
+  return raw.replace(/[%_,()\\*]/g, " ").trim();
+}
+
 const noteSchema = z.object({
-  note_type: z.enum(["general", "medical", "payment", "support", "followup", "complaint"]),
+  note_type: z.enum(["general", "medical", "payment", "support", "followup", "complaint", "call"]),
   content: z.string().min(1, "Note content is required"),
   is_pinned: z.boolean().default(false),
   is_private: z.boolean().default(false),
@@ -61,6 +85,8 @@ interface Note {
   followup_date: string | null;
   followup_completed: boolean | null;
   created_at: string;
+  /** 'karmacrm' on an imported note, null on one somebody typed here. */
+  source: string | null;
   staff: {
     first_name: string;
     last_name: string;
@@ -74,6 +100,7 @@ const noteTypeConfig: Record<string, { icon: LucideIcon; label: string; color: s
   support: { icon: HeadphonesIcon, label: "Support", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
   followup: { icon: CalendarCheck, label: "Follow-up", color: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400" },
   complaint: { icon: AlertCircle, label: "Complaint", color: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
+  call: { icon: Phone, label: "Call", color: "bg-purple-500/10 text-purple-600 dark:text-purple-400" },
 };
 
 interface NotesTabProps {
@@ -82,10 +109,15 @@ interface NotesTabProps {
 
 export function NotesTab({ memberId }: NotesTabProps) {
   const [notes, setNotes] = useState<Note[]>([]);
+  const [pinnedNotes, setPinnedNotes] = useState<Note[]>([]);
+  const [unpinnedTotal, setUnpinnedTotal] = useState(0);
+  const [page, setPage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [editingNote, setEditingNote] = useState<Note | null>(null);
 
@@ -100,29 +132,92 @@ export function NotesTab({ memberId }: NotesTabProps) {
     },
   });
 
+  /* The typed value drives the input; the debounced one drives the query, so a search
+     across 773 notes is one request rather than one per keystroke. */
   useEffect(() => {
-    fetchNotes();
-  }, [memberId]);
+    const id = setTimeout(() => setDebouncedQuery(searchQuery), 300);
+    return () => clearTimeout(id);
+  }, [searchQuery]);
 
-  const fetchNotes = async () => {
+  const search = sanitiseSearch(debouncedQuery);
+
+  /** One page of unpinned notes, plus the whole (short) pinned list on the first page. */
+  const fetchPage = useCallback(
+    async (pageIndex: number) => {
+      const base = () => {
+        let q = supabase
+          .from("member_notes")
+          .select("*, staff:staff_id (first_name, last_name)", { count: "exact" })
+          .eq("member_id", memberId);
+        if (search) q = q.ilike("content", `%${search}%`);
+        if (typeFilter !== "all") q = q.eq("note_type", typeFilter);
+        return q;
+      };
+
+      /* `.not("is_pinned", "is", true)` rather than `.eq(..., false)`: the column is
+         nullable, and an equality filter silently drops every NULL row. */
+      const page = await base()
+        .not("is_pinned", "is", true)
+        .order("created_at", { ascending: false })
+        .range(pageIndex * PAGE_SIZE, pageIndex * PAGE_SIZE + PAGE_SIZE - 1);
+      if (page.error) throw page.error;
+
+      const rows = (page.data || []) as unknown as Note[];
+      setNotes((prev) => (pageIndex === 0 ? rows : [...prev, ...rows]));
+      setUnpinnedTotal(page.count ?? rows.length);
+
+      if (pageIndex === 0) {
+        // Pinned notes are never paged: a member has a handful at most, and they are
+        // pinned precisely so nobody has to go looking for them.
+        const pinnedResult = await base()
+          .is("is_pinned", true)
+          .order("created_at", { ascending: false });
+        if (pinnedResult.error) throw pinnedResult.error;
+        setPinnedNotes((pinnedResult.data || []) as unknown as Note[]);
+      }
+    },
+    [memberId, search, typeFilter]
+  );
+
+  /* Any change of member, search or filter starts again at page 0. */
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setPage(0);
+    fetchPage(0)
+      .catch((error) => {
+        if (cancelled) return;
+        console.error("Error fetching notes:", error);
+        toast.error("Failed to load notes");
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchPage]);
+
+  const loadMore = async () => {
+    const next = page + 1;
+    setIsLoadingMore(true);
     try {
-      const { data, error } = await supabase
-        .from("member_notes")
-        .select(`
-          *,
-          staff:staff_id (first_name, last_name)
-        `)
-        .eq("member_id", memberId)
-        .order("is_pinned", { ascending: false })
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setNotes((data || []) as Note[]);
+      await fetchPage(next);
+      setPage(next);
     } catch (error) {
-      console.error("Error fetching notes:", error);
-      toast.error("Failed to load notes");
+      console.error("Error fetching more notes:", error);
+      toast.error("Failed to load more notes");
     } finally {
-      setIsLoading(false);
+      setIsLoadingMore(false);
+    }
+  };
+
+  /** After a write, re-read what is on screen rather than only the first page. */
+  const refresh = async () => {
+    try {
+      for (let i = 0; i <= page; i++) await fetchPage(i);
+    } catch (error) {
+      console.error("Error refreshing notes:", error);
     }
   };
 
@@ -190,7 +285,7 @@ export function NotesTab({ memberId }: NotesTabProps) {
       }
 
       setIsDialogOpen(false);
-      fetchNotes();
+      await refresh();
     } catch (error) {
       console.error("Error saving note:", error);
       toast.error("Failed to save note");
@@ -206,7 +301,7 @@ export function NotesTab({ memberId }: NotesTabProps) {
         .update({ is_pinned: !note.is_pinned })
         .eq("id", note.id);
       if (error) throw error;
-      fetchNotes();
+      await refresh();
     } catch (error) {
       console.error("Error toggling pin:", error);
       toast.error("Failed to update note");
@@ -223,21 +318,19 @@ export function NotesTab({ memberId }: NotesTabProps) {
         .eq("id", noteId);
       if (error) throw error;
       toast.success("Note deleted");
-      fetchNotes();
+      await refresh();
     } catch (error) {
       console.error("Error deleting note:", error);
       toast.error("Failed to delete note");
     }
   };
 
-  const filteredNotes = notes.filter((note) => {
-    const matchesSearch = note.content.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = typeFilter === "all" || note.note_type === typeFilter;
-    return matchesSearch && matchesType;
-  });
-
-  const pinnedNotes = filteredNotes.filter((n) => n.is_pinned);
-  const unpinnedNotes = filteredNotes.filter((n) => !n.is_pinned);
+  /* Both lists come back already searched and filtered by Postgres; `notes` is the
+     unpinned page set and `pinnedNotes` is the whole pinned list. Nothing is filtered
+     again here — a second, client-side filter over a page is how a Load more starts
+     silently dropping rows. */
+  const unpinnedNotes = notes;
+  const hasMore = unpinnedNotes.length < unpinnedTotal;
 
   if (isLoading) {
     return (
@@ -443,6 +536,22 @@ export function NotesTab({ memberId }: NotesTabProps) {
               />
             ))
           )}
+          {hasMore && (
+            <div className="pt-2 text-center">
+              <Button
+                variant="outline"
+                onClick={loadMore}
+                disabled={isLoadingMore}
+                data-testid="notes-load-more"
+              >
+                {isLoadingMore && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Load more
+              </Button>
+              <p className="mt-2 text-xs text-muted-foreground tabular-nums">
+                Showing {unpinnedNotes.length} of {unpinnedTotal}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </EditableCard>
@@ -516,7 +625,16 @@ function NoteCard({
       </div>
       <p className="text-sm whitespace-pre-wrap">{note.content}</p>
       <p className="text-xs text-muted-foreground">
-        By: {note.staff?.first_name} {note.staff?.last_name} • {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
+        {/* An imported note has no staff row — karmaCRM's API reports the account, not the
+            person, so the author is genuinely unknown. Saying so beats "By:  •". */}
+        {note.staff
+          ? `By: ${note.staff.first_name} ${note.staff.last_name}`
+          : note.source === "karmacrm"
+            ? "Imported from karmaCRM"
+            : "Author not recorded"}
+        {" • "}
+        {format(new Date(note.created_at), "d MMM yyyy")} (
+        {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })})
       </p>
     </div>
   );

@@ -635,8 +635,35 @@ describe("nothing in this path activates anybody", () => {
 
   it("it refuses a caller who is not active staff", () => {
     expect(fn).toContain('.eq("is_active", true)');
-    expect(fn).toContain("STAFF_ROLES.includes(staff.role)");
+    // `staffRow` since the runner branch below: the staff record is read into a local and only
+    // then assigned, because one caller legitimately has no staff record at all.
+    expect(fn).toContain("STAFF_ROLES.includes(staffRow.role)");
     expect(fn).toContain("Staff access required");
+  });
+
+  /*
+    THE ONE CALLER WITH NO PERSON BEHIND IT, and why it is not a hole.
+
+    `billing-migration-run` paces the legacy→Stripe migration over months and calls this function
+    for each member due today. There is no staff session behind a cron job, and inventing one — a
+    service account with a staff row — would be a login that can send payment links and that
+    nobody would ever rotate.
+
+    So the branch is as narrow as it can be: an exact match on the service role key, and even
+    then ONLY for `legacy_switch`, the mode that takes no plan, no amount and no payer from the
+    request. There is nothing for such a caller to choose. An ordinary payment link is unchanged.
+  */
+  it("admits the scheduled runner, by service key and for the switch mode only", () => {
+    expect(fn).toMatch(/isRunner = serviceKey\.length > 0 && bearer === serviceKey/);
+    expect(fn).toMatch(/if \(isRunner && body\.mode !== "legacy_switch"\)/);
+    expect(fn).toContain("RUNNER_SCOPE");
+  });
+
+  it("and records those as nobody's doing rather than inventing an actor", () => {
+    // A NULL staff id on the audit row and on start_legacy_switch is the honest answer: nobody
+    // pressed anything. `source: legacy-switch` in the Stripe metadata says which path made it.
+    expect(fn).toMatch(/_staff_id: staff\?\.id \?\? null/);
+    expect(fn).toMatch(/staff_id: staff\?\.id \?\? null/);
   });
 
   it("create-checkout now shares this price-id module — one implementation, not two", () => {

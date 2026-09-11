@@ -437,14 +437,19 @@ export default function StaffDashboard() {
   return (
     <div className="p-4 md:p-6 space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      {/*
+        WRAPS. The greeting and the two modal buttons were a `justify-between` row that could
+        not wrap, and the buttons' intrinsic width put this page 147px past a 390px viewport.
+        Layout only — same elements, same order, same handlers.
+      */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">
             {t('staffDashboard.welcomeBack')}, {staffName || t('common.staff')}
           </h1>
           <p className="text-sm text-muted-foreground capitalize">{currentDate}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <PendantLiveStatusModal />
           <ShiftReportModal />
         </div>

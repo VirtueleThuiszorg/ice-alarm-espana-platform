@@ -69,6 +69,8 @@ export const EVENT_SPECS: readonly EventSpec[] = [
   { event: "member.legacy_confirmed", group: "people", label: "A legacy member was confirmed", detail: "Somebody the CRM import left pending review is now monitored, billed outside Stripe. The one activation that did not come from a payment." },
   { event: "member.switch_link_sent", group: "people", label: "A Stripe switch link went out", detail: "A legacy member has been asked to move onto Stripe billing. They have left the Santander export from this moment, so nobody collects twice." },
   { event: "member.switch_expired", group: "people", label: "A Stripe switch link lapsed", detail: "They never used it. They are back on Santander billing and nobody has moved them — this is the one that needs somebody to ring." },
+  { event: "billing.annual_switch_due", group: "people", label: "An annual member is three days from renewal", detail: "They have not used their Stripe link and their yearly payment is about to be taken by the bank. Somebody needs to ring them — miss it and they wait twelve months for another chance." },
+  { event: "billing.migration_run_failed", group: "system", label: "The billing migration did not run", detail: "The daily runner failed or refused to start. Nobody is being moved off the bank collection and nothing else will say so." },
 
   // ── the safety machinery itself ───────────────────────────────────────────
   { event: "system.runner_failure", group: "safety", label: "A safety runner has failed", detail: "The escalation or monitoring runner is not running. The SOS ladder may be down." },

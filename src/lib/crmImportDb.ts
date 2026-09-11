@@ -25,6 +25,13 @@ import {
   type MemberInsert,
   type RowPlan,
 } from "./crmImportWriter";
+import {
+  HISTORY_SOURCE,
+  type HistoryDb,
+  type HistoryOwner,
+  type NoteRow,
+  type TaskRow,
+} from "./karmaHistoryWriter";
 
 type Client = SupabaseClient<Database>;
 
@@ -388,6 +395,85 @@ export function createSupabaseImportDb(client: Client): ImportDb {
         if ((data ?? []).length > 0) return true;
       }
       return false;
+    },
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * History (notes and courtesy calls)
+ * ------------------------------------------------------------------ */
+
+/**
+ * `HistoryDb`, over Supabase. Same division as above: `karmaHistoryWriter.ts` holds every
+ * decision, this holds the queries.
+ *
+ * The one thing worth saying here is why `resolveOwners` is two queries rather than a join.
+ * A karmaCRM contact id can be on `members.crm_source_id` or on `crm_contacts.source_id` —
+ * the contacts import puts the 121 live files in the first and the other 310 in the second —
+ * and PostgREST has no union. Members are read second and overwrite, which is the precedence
+ * `HistoryOwner` documents: once a contact has been converted the member row is the live file.
+ */
+export function createSupabaseHistoryDb(client: Client): HistoryDb {
+  return {
+    async resolveOwners(crmContactIds: string[]) {
+      const owners = new Map<string, HistoryOwner>();
+      if (crmContactIds.length === 0) return owners;
+
+      const contacts = await client
+        .from("crm_contacts")
+        .select("id, source_id")
+        .eq("source", HISTORY_SOURCE)
+        .in("source_id", crmContactIds);
+      if (contacts.error) throw contacts.error;
+      for (const row of contacts.data ?? []) {
+        if (row.source_id) owners.set(row.source_id, { kind: "crm_contact", id: row.id });
+      }
+
+      const members = await client
+        .from("members")
+        .select("id, crm_source_id")
+        .eq("crm_source", HISTORY_SOURCE)
+        .in("crm_source_id", crmContactIds);
+      if (members.error) throw members.error;
+      for (const row of members.data ?? []) {
+        if (row.crm_source_id) owners.set(row.crm_source_id, { kind: "member", id: row.id });
+      }
+
+      return owners;
+    },
+
+    async existingNoteSourceIds(sourceIds: string[]) {
+      if (sourceIds.length === 0) return new Set<string>();
+      const { data, error } = await client
+        .from("member_notes")
+        .select("source_id")
+        .eq("source", HISTORY_SOURCE)
+        .in("source_id", sourceIds);
+      if (error) throw error;
+      return new Set((data ?? []).map((r) => r.source_id).filter((v): v is string => !!v));
+    },
+
+    async existingTaskSourceIds(sourceIds: string[]) {
+      if (sourceIds.length === 0) return new Set<string>();
+      const { data, error } = await client
+        .from("tasks")
+        .select("source_id")
+        .eq("source", HISTORY_SOURCE)
+        .in("source_id", sourceIds);
+      if (error) throw error;
+      return new Set((data ?? []).map((r) => r.source_id).filter((v): v is string => !!v));
+    },
+
+    async insertNotes(rows: NoteRow[]) {
+      if (rows.length === 0) return;
+      const { error } = await client.from("member_notes").insert(rows);
+      if (error) throw error;
+    },
+
+    async insertTasks(rows: TaskRow[]) {
+      if (rows.length === 0) return;
+      const { error } = await client.from("tasks").insert(rows);
+      if (error) throw error;
     },
   };
 }

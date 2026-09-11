@@ -428,6 +428,81 @@ names what is missing. Proven by `src/test/ciJobIsolation.test.ts` (23 assertion
 killed — including a duplicate gate re-added inside the shared job, which the first version of the
 test missed).
 
+## Legacy members onto Stripe — 2026-09-11 · **all five items on main; the runner is OFF**
+
+Five PRs (#360, #362, #364, #368, #369, #370) moving the 431 imported members off the Santander
+collection and onto Stripe billing, by renewal date, over months.
+
+**Nothing has been run against Stripe.** This environment has no Stripe key, so no Checkout
+Session was ever created and no test clock was ever advanced. Everything below is proven by unit
+tests, contract tests and 664 RLS assertions against real PostgreSQL 16 — which covers the
+decisions and the database, and cannot cover Stripe's behaviour. `PENDING_FOR_LEE` S37–S39 is
+the dashboard half.
+
+### The one failure everything is shaped around
+
+Somebody is still running the Santander collection while the migration happens. A member who
+pays Stripe and is **still in that run** is charged twice in one month, by us, for the same
+monitoring, out of the account of somebody in their eighties.
+
+`billing_source` carries three states, and the asymmetry between them is deliberate:
+
+| state | who collects | in the Santander export |
+|---|---|---|
+| `legacy` | Santander | yes |
+| `switch_pending` | a Stripe link is out and unpaid | **no** |
+| `stripe` | Stripe | no |
+
+Excluding somebody who then does not pay costs one month and is recoverable next month.
+Including somebody who has paid is a phone call, a refund and a lost trust. So the state is
+recorded the moment a Stripe session exists, and **a failure to record it refuses the link**
+rather than handing it out — the reverse order is the double charge.
+
+### ✅ The Santander date (#360)
+`members.legacy_billing_day` (1–31) and `legacy_next_renewal`. The day is **never clamped in
+storage**: a 31st member's February debit is the 28th, but clamping the day on write would turn
+them into a 28th member forever after one February. No SQL backfill — parsing Karma's free-text
+column in Postgres would be a second implementation of the date rule, and the two would disagree
+on exactly the rows nobody checks. The import derives it; everybody else lands in a **"needs a
+billing date"** queue, which is a person's job.
+
+### ✅ The switch link (#364)
+`send-payment-link` in `legacy_switch` mode — the same builder, with the registration fee and the
+pendant removed and the plan read off the member's **own** subscription row rather than the
+request. No trial, no `billing_cycle_anchor`, no proration: an anchor set to their Santander date
+gives a €0 first invoice, a €0 invoice does not pay a Checkout Session, so the webhook would
+never activate somebody the export had already dropped. `billing_source` becomes `stripe` in the
+webhook's post-payment path and **nowhere else**.
+
+### ✅ The runner (#368)
+Daily pg_cron. Monthly members get one link three days out; annual members get a ladder — notice
+at 14, reminder at 7, and at 3 a bell for somebody to **ring** them, because missing it costs
+them a year. **Never twice is a unique index, not a check**: every send claims itself by
+INSERTing a `notification_log` row carrying `billing-switch:<member>:<renewal>:<kind>`, so a
+re-run, an overlapping run and a crash halfway through 431 members all resolve to the same
+outcome. It arrives **switched off**.
+
+### ✅ The progress view (#369)
+Counters, the two otherwise-silent queues (no billing date; a link that lapsed unused), and the
+**Santander CSV** — which is not a report but an instruction, and excludes anybody with a link
+out.
+
+### ✅ A failed debit (#370)
+One Stripe smart retry, then a staff bell and a friendly text — and the timing is the design.
+`invoice.payment_failed` fires on every attempt; most direct-debit failures clear on their own.
+The member is told only when Stripe has given up. Monitoring never stops, and the staff message
+says so in as many words.
+
+### 🔴 Two live defects found on the way, fixed in their own PR (#362)
+`send-payment-link` read its settings off `supabase`, an identifier declared nowhere in the file,
+and asked Stripe for a session expiring in 72 hours when Stripe's own ceiling is 24. Either one
+was enough: **no staff-sent payment link had been able to succeed**, and both failed *after* the
+pending order rows were written. Neither could be caught — CI typechecks nothing under
+`supabase/functions/**` — and one was *required* by a test that asserted the wrong client name.
+`no-undef` is now on for the edge functions.
+
+---
+
 ## KarmaCRM import, Lee's four rulings — 2026-09-10 · **all four built; two migrations applied**
 
 Five PRs (#334, #339, #342, #344, #346) answering `PENDING_FOR_LEE.md` D-19. The section below

@@ -4812,14 +4812,15 @@ INSERT INTO public.staff (id, user_id, email, first_name, last_name, role, perso
 -- ── the seed is a set of ROWS, and the right ones ──────────────────────────
 -- The counts below compare against `notification_routes` rather than a literal, so extending
 -- the event list does not redden the suite for a reason nobody can act on. THIS assertion is
--- what stops that being vacuous: the routes table has to be the real 25 x 4.
+-- what stops that being vacuous: the routes table has to be the real 27 x 4.
 SELECT pg_temp.check(
-  'the routes table carries every event type x every channel — 25 x 4',
-  (SELECT count(*) FROM public.notification_routes) = 100
-  AND (SELECT count(DISTINCT event_type) FROM public.notification_routes) = 25
+  'the routes table carries every event type x every channel — 27 x 4',
+  (SELECT count(*) FROM public.notification_routes) = 108
+  AND (SELECT count(DISTINCT event_type) FROM public.notification_routes) = 27
   AND (SELECT count(DISTINCT channel) FROM public.notification_routes) = 4,
   'the eight this router was built for, the eleven notify-admin already sends, the three swap '
-  'events, member.legacy_confirmed, the two billing-switch events, and `test`');
+  'events, member.legacy_confirmed, the two billing-switch events, the two the migration runner '
+  'raises, and `test`');
 
 -- And the new one has a row per channel rather than a hole, for the same reason the swap events
 -- are named below: 92 rows and 23 distinct events would also be satisfied by one event missing a

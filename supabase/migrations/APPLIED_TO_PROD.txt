@@ -240,3 +240,7 @@
 20260911100000_drop_orphan_checkout_settings.sql
 20260911110000_legacy_billing_date.sql
 20260911130000_legacy_switch_to_stripe.sql
+20260911140000_crm_history_notes.sql
+20260911140100_crm_history_tasks.sql
+20260911150000_billing_migration_settings.sql
+20260911150100_billing_migration_cron.sql

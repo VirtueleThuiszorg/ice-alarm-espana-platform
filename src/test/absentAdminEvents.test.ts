@@ -168,9 +168,17 @@ describe("A2 / A3 — a failed payment and a cancellation NOW tell somebody", ()
     const handler = webhook.slice(webhook.indexOf("async function onInvoiceFailed"));
     expect(handler).toMatch(/status:\s*"past_due"/);
     expect(handler).toContain("notifyAdmins");
-    // P4, and it is not my opinion — monitoring continues. Somebody whose card expired is still
-    // somebody who may press an SOS button tonight.
-    expect(handler).not.toMatch(/from\("members"\)/);
+    /*
+      P4, and it is not my opinion — monitoring continues. Somebody whose card expired is still
+      somebody who may press an SOS button tonight.
+
+      ASSERTED AS "NO WRITE", not "no mention". This read `not.toMatch(/from\("members"\)/)`,
+      which was the same thing while the handler told nobody but the office. It now texts the
+      member once Stripe has stopped retrying, and that means reading their name, phone and
+      language — so the old form would have forbidden a message rather than a status change.
+    */
+    expect(handler).not.toMatch(/from\("members"\)[\s\S]{0,200}\.update\(/);
+    expect(handler).not.toMatch(/from\("members"\)[\s\S]{0,200}\.delete\(/);
   });
 
   it("and for the cancellation", () => {

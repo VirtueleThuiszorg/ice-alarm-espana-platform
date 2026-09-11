@@ -568,6 +568,41 @@ export const FAMILIES = [
       "card says so rather than offering a button that does nothing.",
   },
   {
+    wires: ["fn:billing-migration-run"],
+    control:
+      "Admin → Settings → Billing: the migration's on/off switch, its four lead times, and " +
+      "\"Preview today's list\"",
+    promise:
+      "legacy members move off the Santander collection a few each day, timed to their own " +
+      "payment date — and you can see exactly who would be written to before switching it on",
+    dest:
+      "system_settings (billing_migration_*) via save-api-keys; the preview calls " +
+      "billing-migration-run with dryRun, which plans the day and sends none of it. pg_cron " +
+      "calls the same function at 06:00 UTC daily with the service role key",
+    told: "self, and the bell when a run fails",
+    proof: "src/test/billingMigrationCron.test.ts",
+    note:
+      "IT ARRIVES OFF. Turning it on is not a configuration change — it is the decision to start " +
+      "writing to several hundred elderly people about money, a few each day, for months. The " +
+      "seed is 'false' with ON CONFLICT DO NOTHING, and the function reads the switch before it " +
+      "reads a single member.\n\n" +
+      "THE PREVIEW IS THE RUN, minus the sending — the same module, the same settings, the same " +
+      "day. A preview written separately would one day disagree with what happens, and this is " +
+      "the screen where somebody has to be able to believe it. It also distinguishes 'switched " +
+      "off' from 'nobody due today', which otherwise look identical.\n\n" +
+      "NEVER TWICE IS A UNIQUE INDEX, not a check: every send claims itself by INSERTing a " +
+      "notification_log row carrying billing-switch:<member>:<renewal>:<kind>, and no row back " +
+      "means somebody already did it. That is what makes re-running it safe — a daily cron will " +
+      "be re-run by hand, will overlap itself, and will one day crash halfway through 431 " +
+      "members. The log row is written BEFORE the send, deliberately: a failure then leaves a " +
+      "record and no link, which somebody can see, rather than a link and no record, which the " +
+      "next run would send again.\n\n" +
+      "The real run is reachable only by something holding the service role key; a person may " +
+      "only preview. A failed run rings billing.migration_run_failed, because nothing else on " +
+      "the platform would notice: these members are active and monitored whether or not anybody " +
+      "ever moves them, so no alert, no dunning and no renewal will ever mention them.",
+  },
+  {
     wires: ["rpc:confirm_legacy_member"],
     control: "Confirm as legacy member — on the member's record, and as a bulk action on the members list filtered to pending_review",
     promise:

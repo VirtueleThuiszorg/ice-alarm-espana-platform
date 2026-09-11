@@ -70,3 +70,46 @@ export async function quiesce(
     }
   }
 }
+
+/**
+ * HOW MUCH THE PAGE ASKS FOR AFTER IT HAS FINISHED LOADING.
+ *
+ * ── WHY QUIESCENCE ALONE IS NOT ENOUGH ──────────────────────────────────────
+ *
+ * `quiesce` answers "has the load finished". It cannot answer "does this page
+ * ever stop", and the difference is not academic — it is how the runaway loop on
+ * /call-centre/alerts stayed invisible to the gate that was supposed to catch it.
+ *
+ * Measured, on a build with the loop present, mobile profile:
+ *
+ *     4x CPU throttled:   17 calls at quiescence, quiet declared,
+ *                         390 calls ten seconds later
+ *     unthrottled:        1,729 calls at quiescence, never quiet
+ *
+ * Under throttling the page is slow enough to reach a genuine 600 ms of quiet
+ * BEFORE the alerts land and the loop starts. The gate then photographed a
+ * perfectly ordinary 17-query load and passed a page that went on to issue
+ * hundreds. The slower the machine, the more likely the gate misses it — the
+ * exact opposite of what a performance gate should do.
+ *
+ * ── WHAT THIS MEASURES, AND WHY A RATE ──────────────────────────────────────
+ *
+ * After the load settles, watch for a fixed window and count what arrives. A
+ * page at rest is not silent — a realtime event, a window refocus or a
+ * background refresh is legitimate and occasional. A render loop is not
+ * occasional: the one above ran at roughly 30 queries a second throttled and 130
+ * unthrottled. Those two live orders of magnitude apart, so a rate separates them
+ * without needing to know the right number for any particular page.
+ *
+ * It is machine-independent for the same reason: a loop is a loop on fast and
+ * slow hardware alike, while the COUNT of a page's load is not.
+ */
+export async function idleQueryRate(
+  page: Page,
+  stub: { calls: RecordedCall[] },
+  { windowMs = 5_000 } = {},
+): Promise<{ queries: number; windowMs: number }> {
+  const before = stub.calls.length;
+  await page.waitForTimeout(windowMs);
+  return { queries: stub.calls.length - before, windowMs };
+}

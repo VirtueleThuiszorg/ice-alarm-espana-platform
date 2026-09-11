@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { installSupabaseStub, type RecordedCall } from "../helpers/supabaseStub";
 import { settle } from "../helpers/settle";
-import { quiesce } from "./quiesce";
+import { idleQueryRate, quiesce } from "./quiesce";
 import { INSTALL_OBSERVERS, READ_VITALS } from "./observers";
 import {
   restoreSessionStorage,
@@ -109,6 +109,18 @@ const HEADROOM: Record<string, number> = {
 */
 const QUERY_SLACK = 1;
 
+/*
+  QUERIES ALLOWED IN THE FIVE SECONDS AFTER A PAGE HAS FINISHED LOADING.
+
+  Generous on purpose. A page at rest legitimately does the occasional background
+  read — a realtime event arriving, a react-query refetch on focus — and this
+  must not flag those. What it must flag is a render loop, and the one this gate
+  missed ran at ~30 queries a second under throttling: 150 in this window against
+  a budget of 5. Three decimal orders apart, so the number does not need to be
+  tuned per route and is not a ratchet.
+*/
+const IDLE_QUERY_BUDGET = 5;
+
 const recorded: Record<string, Record<string, number | string[]>> = {};
 
 /**
@@ -214,11 +226,6 @@ test.describe("performance budgets", () => {
         // that it stopped fetching — and counting there made `cc.alerts` report
         // 17, 28 and 36 on three runs of identical code.
         const { calls, timedOut } = await quiesce(page, stub);
-        if (timedOut) {
-          console.warn(
-            `${id}: still issuing queries after 15s — the count below is a floor, not the load`,
-          );
-        }
 
         const vitals = (await page.evaluate(READ_VITALS)) as {
           lcpMs: number;
@@ -238,7 +245,13 @@ test.describe("performance budgets", () => {
           // LCP and long tasks are deliberately NOT recorded: they are reported,
           // never gated, so a ratchet for them would be a number nothing reads.
           record(id, "clsBelow", vitals.cls, thresholdFor(route, "clsBelow", budgets));
-          record(id, "dbQueriesPerLoad", queries, thresholdFor(route, "dbQueriesPerLoad", budgets));
+          // Same reason LCP is not recorded: a route whose count is reported
+          // rather than gated (see below — it reads a table once per row) would
+          // get a ceiling nothing reads, and a stale number in this file reads as
+          // a budget somebody chose.
+          if (nPlusOne.length === 0) {
+            record(id, "dbQueriesPerLoad", queries, thresholdFor(route, "dbQueriesPerLoad", budgets));
+          }
           if (nPlusOne.length) {
             recorded[id] ??= {};
             recorded[id].nPlusOneTables = nPlusOne;
@@ -277,18 +290,99 @@ test.describe("performance budgets", () => {
           ships (the other job), and CLS — which is a property of the layout, not
           of the clock.
         */
+        // The per-table breakdown, always — not only on failure. A bare total
+        // says a route got slower; this says WHICH read multiplied, which is the
+        // difference between a number to argue about and a defect to fix.
+        const perTable = new Map<string, number>();
+        for (const c of calls) {
+          if (!c.path.startsWith("/rest/v1/") && !c.path.startsWith("/functions/v1/")) continue;
+          const t = c.path.split("?")[0].replace("/rest/v1/", "").replace("/functions/v1/", "fn:");
+          perTable.set(t, (perTable.get(t) ?? 0) + 1);
+        }
+        const breakdown = [...perTable.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .map(([t, n]) => `${t}=${n}`)
+          .join(" ");
+
         console.log(
           `${id}: lcp=${Math.round(vitals.lcpMs)}ms longestTask=${Math.round(longest)}ms ` +
             `cls=${vitals.cls.toFixed(3)} queries=${queries} ` +
-            `nPlusOne=[${nPlusOne.join(",")}]`,
+            `nPlusOne=[${nPlusOne.join(",")}]\n    ${breakdown}`,
         );
+
+        /*
+          A PAGE THAT NEVER STOPS QUERYING IS A DEFECT AT ANY COUNT, and this is
+          the assertion that says so.
+
+          It matters most exactly where the count gate below does not apply. The
+          loop this gate was blind to issued ~130 `members` reads a second on
+          /call-centre/alerts and never went quiet; a ceiling of 16 or 24 or 40
+          would all have been "too low" against 2,566, but the number was never
+          the point — the page not finishing was.
+
+          Unlike a count, this is machine-independent: a fast runner and a slow
+          one both reach a quiet 600 ms eventually, or neither does. So it is
+          gated everywhere, on every route, with no ratchet and no headroom.
+        */
+        expect
+          .soft(
+            timedOut,
+            `${id}: still issuing Supabase queries 15s after load — the page never goes quiet`,
+          )
+          .toBe(false);
+
+        // …and then does it STAY quiet. See idleQueryRate: under 4x CPU
+        // throttling the alerts loop began AFTER quiescence, so the check above
+        // passed a page that went on to issue hundreds of queries. This is the
+        // one that catches it, and it gets slacker, not tighter, on slow hardware.
+        const idle = await idleQueryRate(page, stub);
+        expect
+          .soft(
+            idle.queries,
+            `${id}: ${idle.queries} Supabase queries in the ${idle.windowMs}ms AFTER the page ` +
+              `finished loading — a page at rest may do the occasional background read, but ` +
+              `this rate is a render loop`,
+          )
+          .toBeLessThanOrEqual(IDLE_QUERY_BUDGET);
 
         expect
           .soft(vitals.cls, `${id}: CLS`)
           .toBeLessThan(gateCeilingFor(route, "clsBelow", budgets));
-        expect
-          .soft(queries, `${id}: Supabase queries on one load`)
-          .toBeLessThanOrEqual(gateCeilingFor(route, "dbQueriesPerLoad", budgets) + QUERY_SLACK);
+
+        /*
+          A ROUTE WITH A KNOWN N+1 HAS ITS COUNT REPORTED, NOT GATED — and that is
+          a statement about what the number means, not a way round a red build.
+
+          Once a page reads a table once per ROW, its query count stops being a
+          property of the page and becomes a property of how many rows got
+          rendered before the load finished. `cc.alerts` reads `alerts` and
+          `staff` per row. It counts 16, 16, 17 on this machine and 24 on a GitHub
+          runner — the same code, the same seeded 50-row stub, different hardware.
+          Every other gated route matches its recorded number exactly on both.
+
+          Picking a ceiling that holds on both would mean picking one loose enough
+          to hide the thing the budget exists to catch. So for these routes the
+          count is printed with its breakdown and the N+1 LIST is what is gated: a
+          new table read once per row still fails, immediately and everywhere.
+
+          This is not permanent. The ratchet's `nPlusOneTables` is the work queue;
+          when a route's last per-row read is gone its entry disappears, this
+          branch stops applying to it, and its count is gated again — by then a
+          stable number, because that is what removing the N+1 makes it.
+        */
+        const hasKnownNPlusOne = knownNPlusOne(route, budgets).length > 0;
+        if (hasKnownNPlusOne) {
+          console.log(
+            `    ${id}: query count REPORTED not gated — reads ` +
+              `${knownNPlusOne(route, budgets).join(", ")} once per row, so the total ` +
+              `tracks rows rendered rather than the page. Gate returns when that is fixed.`,
+          );
+        } else {
+          expect
+            .soft(queries, `${id}: Supabase queries on one load`)
+            .toBeLessThanOrEqual(gateCeilingFor(route, "dbQueriesPerLoad", budgets) + QUERY_SLACK);
+        }
+
         // A NEW table read once per row fails; the ones already known are listed
         // in the ratchet with the work that will remove them.
         expect

@@ -156,6 +156,16 @@ export function DeviceOfflineAlertsCard() {
     )}>
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
+          {/*
+            `min-w-0`, and it is the difference between `truncate` working and doing nothing.
+
+            A flex child defaults to `min-width: auto`, so this div's base size is its
+            max-content width — the full nowrap width of the description below. The truncation
+            then has nothing to truncate TO, and the card pushed the page sideways instead.
+
+            Font-dependent, which is why it was invisible locally and red in CI: the runner's
+            default font is wider, so the same string crossed 390px there and not here.
+          */}
           <div className="min-w-0 flex-1">
             <CardTitle className="flex items-center gap-2">
               <WifiOff className={cn(

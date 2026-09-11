@@ -33,6 +33,108 @@ What did **not** change: golden rules 1–10 in `CLAUDE.md`, and **never merge r
 moved; the standard for what may merge did not. Green is now the only gate, which is why the CI
 gates were split one-per-job the same day (below).
 
+## Member record, visually — 2026-09-11 · **six PRs on main; one reported defect did not exist**
+
+Lee, on the live page: *"too much white-on-white, and twelve solid red tabs spend the alarm
+colour on navigation."* Four PRs for that (#357, #358, #359, #361) and two for the phone-width
+defects the work turned up (#363, #367).
+
+### ✅ Red appears once on the tab bar (#357)
+#291 painted all twelve triggers solid brand red. Every state passed AA and every test was
+green — which is the part worth keeping: the defect was not contrast, it was spending the alarm
+colour on navigation, against MEMBER_UX_RULES R1. Red is now a 2px underline on the active tab,
+asserted as a COUNT rather than described.
+
+Two numbers decided the design. `--muted-foreground` on the strip is **4.45:1** — under AA by
+five hundredths, and the obvious thing to alias; the test asserts both that ours passes and that
+the obvious alias fails. The active tab's white surface against the strip is **1.10:1**, so the
+underline, the shadow and the weight change are the signal rather than redundancy, pinned with
+the number in front of them.
+
+### ✅ A ground, and a field with a shape (#358, #361)
+A card on the page was **1.05:1** — for practical purposes the same colour — so nothing on the
+record had an edge. `--member-record-page` puts it at 1.15:1. Fields were label and value at the
+same size, weight and nearly the same colour: fifteen fields read as thirty lines of grey.
+
+`FIELD_LABEL_CLASS` is imported by the member portal's `FieldLabel` AND by every `FormLabel` in a
+`FieldGrid`, so the two surfaces cannot drift on a constant they both import. The uppercase was
+not a fresh choice — R6 specifies it and the portal had shipped it.
+
+**Four ways of saying "nothing here" became one.** A blank line, a "-", "Not assigned" and "Not
+added" are all `NotAdded` now. The brief asked for "—"; it is the one place the letter of the
+brief was not followed, because the portal already had a tested answer to the same question and
+this grid is shared with it.
+
+The "one label definition" test was rewritten from *"this file imports the constant"* into a
+COUNT over the tree, and immediately found a real duplicate: `DevicePage` had the six classes
+typed out by hand. An import-shaped assertion could never have found that.
+
+### ✅ The header stopped showing staff a database value (#359)
+The status switch ended `default: return <Badge>{status}</Badge>`, and `pending_review` is what
+the CRM import writes — so all 431 imported members had a chip reading a database value.
+`statusLabel.ts` has no default: keyed on the enum, so the BUILD fails if a status is added and
+not named. The members list had the identical switch and got the same mapping.
+
+The avatar tint nearly repeated #291's mistake: `bg-accent` is a red wash at `:root` and BOTH
+theme blocks replace it with warm sand, so the disc came out beige — and the first test was green
+because it read `:root`. Dedicated tokens now, and the test checks the surfaces the component is
+on rather than the block the token is declared in.
+
+### ✅ The call-centre surface stopped scrolling sideways (#363)
+Found by photographing the record at 390. Worse than first reported: 54px from the shell on every
+call-centre page, 147 on Dashboard, 172 on Alerts, ~30 worse at 360. Five instances of ONE
+defect — a flex row whose groups can neither wrap nor shrink, because a flex child defaults to
+`min-width: auto`. On Alerts the in-progress count and the clock were entirely off-screen.
+
+Two of the five were found by the new spec **in CI**, passing locally at every width down to 330:
+the runner's fonts are wider. Their test is font-independent instead — stretch the description
+absurdly and the card must still fit.
+
+### 🔴 The "dimming overlay" did not exist (#367)
+I reported that the portal's Profile page renders with a dimming overlay over its content. It
+does not: no fixed or absolute layer, body opacity 1, no filter. `ProfilePage` is wrapped in
+`animate-fade-in` and the screenshot fired partway through it. **A photograph of a state no human
+ever sees, reported as a rendering fault.**
+
+Fixed the mechanism instead: `settle()` asks the browser whether anything is still animating
+rather than guessing with a sleep (infinite animations excluded — this product pulses an
+incoming-SOS badge). The overlay guard is built anyway, because a stuck Radix backdrop is real
+and looks identical, and a third test injects one and asserts the helper sees it, then stops.
+
+### 🔴 The wiring register was hiding two live subscriptions
+Chased down from a symptom that looked like nothing: adding an explanatory comment to a card
+changed the register's derived output.
+
+`stripComments` ran its BLOCK pass first, on raw source, so a `/*` inside a LINE comment opened a
+block that was never meant to exist —
+
+    // Device admin routes (/admin/*) bounce non-admin operators to /unauthorized,
+
+— and it paired with the next terminator anywhere below, blanking every line between. Silent, and
+in the direction of claiming LESS exists than does.
+
+**`EV07BLiveStatusCard`'s two realtime subscriptions (`devices`, `alerts`) were absent from
+WIRING_REGISTER.md entirely** — the register asserting that a control which exists does not, which
+is the one thing it is for. `DeviceOfflineAlertsCard` and `DeviceIssuesQueue` carry the same line
+comment and were spared only because nothing below them closed the phantom block.
+
+Fixed in both strippers (the scanner's and `src/test/helpers/stripComments.ts`, which had it
+too). Register 667 → **669** call sites, `channel:alerts` 7 → 8, `channel:devices` 5 → 6 — a
+correction, not a regression. `wiringScannerComments.test.ts` (8) pins it, including the two
+recovered subscriptions asserted against the real file.
+
+**Screenshots** for all of the above: `docs/visual/member-record/`, `docs/visual/member-portal/`,
+`docs/visual/call-centre-shell/`.
+
+### 🟡 Not done, and not claimed
+- The **`care-conneqt-platform` Vercel project fails on every PR** in this repo. Not a code
+  failure; if it is dead, disconnecting it would stop a permanently red check sitting beside
+  every PR — which is how people learn to scroll past a failing one, and green is now the only
+  gate.
+- `lockedIdentityFields.test.tsx` failed **once** under full-suite load and passed in isolation
+  and on re-run. Recorded rather than re-run until green and forgotten.
+- Nobody has looked at any of this on a real screen.
+
 ## Member portal — 2026-09-10 · **all six concerns on main; three defects found by screenshot after**
 
 Lee's brief: *"Locked-until-Edit cards, profile photo, 'Complete my details' and 'Review my

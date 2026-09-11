@@ -28,7 +28,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   1  
 ```
 
-193 distinct wires across 666 call sites and 110 routes.
+193 distinct wires across 668 call sites and 110 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
@@ -66,7 +66,7 @@ things, and a control with no wire cannot do anything:
 | `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 354 |
 | `fn` | `supabase.functions.invoke(f)` — an edge function | 93 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 6 |
-| `channel` | `postgres_changes` — a realtime subscription | 51 |
+| `channel` | `postgres_changes` — a realtime subscription | 53 |
 | `auth` | `supabase.auth.*` — sign in, sign out, register, password reset | 20 |
 | `storage` | `supabase.storage.from(b).upload/remove/…` — a file put somewhere | 14 |
 | `link` | `mailto:` / `tel:` / `wa.me` — a hand-off off the platform | 64 |
@@ -177,7 +177,7 @@ The checks, verified on every build:
 | score | wire | control · what is promised | where it goes | who is told | failure shown | proof | sites |
 |---:|---|---|---|---|---|---|---:|
 | **4** | `channel:conversations` | Live arrival of a message on either Messages screen; the member-side notify, mark-read and home-location calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff, mark_read, save_medical_info and save_home_location | bell | — | none | 6 |
-| **4** | `channel:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 5 |
+| **4** | `channel:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 6 |
 | **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify, mark-read and home-location calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff, mark_read, save_medical_info and save_home_location | bell | — | none | 8 |
 | **4** | `fn:member-self-service` | Live arrival of a message on either Messages screen; the member-side notify, mark-read and home-location calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff, mark_read, save_medical_info and save_home_location | bell | — | none | 5 |
 | **4** | `fn:twilio-call-me` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
@@ -211,11 +211,11 @@ The checks, verified on every build:
 | score | wire | control · what is promised | where it goes | who is told | failure shown | proof | sites |
 |---:|---|---|---|---|---|---|---:|
 | **4** | `channel:alert_escalations` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 1 |
-| **4** | `channel:alerts` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 7 |
+| **4** | `channel:alerts` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 8 |
 | **4** | `channel:conference_participants` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
 | **4** | `channel:conference_rooms` | SOS takeover — join the call, invite a contact, leave — the operator is speaking to the member, and to whoever else is needed | sos-conference-* edge functions → Twilio; conference_rooms / conference_participants | screen | — | none | 1 |
 | **4** | `channel:conversations` | Live arrival of a message on either Messages screen; the member-side notify, mark-read and home-location calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff, mark_read, save_medical_info and save_home_location | bell | — | none | 6 |
-| **4** | `channel:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 5 |
+| **4** | `channel:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 6 |
 | **4** | `channel:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
 | **4** | `channel:isabella_assessment_notes` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 2 |
 | **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 4 |
@@ -297,9 +297,9 @@ The checks, verified on every build:
 
 | score | wire | control · what is promised | where it goes | who is told | failure shown | proof | sites |
 |---:|---|---|---|---|---|---|---:|
-| **4** | `channel:alerts` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 7 |
+| **4** | `channel:alerts` | Operator alert queue and SOS takeover screen — live alert arrival — a pendant press reaches an operator screen in under a second | postgres_changes on alerts / alert_escalations / isabella_assessment_notes (all three published) | screen | — | none | 8 |
 | **4** | `channel:conversations` | Live arrival of a message on either Messages screen; the member-side notify, mark-read and home-location calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff, mark_read, save_medical_info and save_home_location | bell | — | none | 6 |
-| **4** | `channel:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 5 |
+| **4** | `channel:devices` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | — | none | 6 |
 | **4** | `channel:internal_tickets` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 1 |
 | **4** | `channel:leads` | Leads list and dashboard leads widget — live arrival of a new enquiry — a new enquiry appears without a reload | postgres_changes on leads (published), refetching the list on /admin, /admin/leads, /call-centre, /call-centre/leads | screen | — | none | 4 |
 | **4** | `channel:messages` | Live arrival of a message on either Messages screen; the member-side notify, mark-read and home-location calls — a new message appears, and the team is told | postgres_changes on messages / conversations (both published); member-self-service for notify_staff, mark_read, save_medical_info and save_home_location | bell | — | none | 8 |
@@ -524,7 +524,7 @@ The one path golden rule 8 forbids mocking. Published and subscribed, and the op
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /admin, /admin/devices, /admin/ev07b, /call-centre, /call-centre/alerts, /call-centre/documents +15
-- **call sites** src/components/call-centre/DeviceOfflineAlertsCard.tsx, src/components/layout/CallCentreSidebar.tsx, src/hooks/useAlerts.ts, src/hooks/useAlertsRealtime.ts +3
+- **call sites** src/components/call-centre/DeviceOfflineAlertsCard.tsx, src/components/call-centre/EV07BLiveStatusCard.tsx, src/components/layout/CallCentreSidebar.tsx, src/hooks/useAlerts.ts +4
 
 The one path golden rule 8 forbids mocking. Published and subscribed, and the operator is by definition watching the queue, so `screen` is the right audience here rather than a notification. Score is capped below 10 by this register's own rule that a proof must be named and end-to-end; see the proof column and §Proofs.
 
@@ -578,7 +578,7 @@ Split from the tables above, which cite `inboundMessages`. That suite proves an 
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /admin, /admin/devices, /admin/devices/:id, /admin/ev07b, /admin/members/:id, /call-centre +2
-- **call sites** src/components/call-centre/DeviceIssuesQueue.tsx, src/components/call-centre/PendantLiveStatusModal.tsx, src/hooks/useDeviceRealtime.ts, src/hooks/useOpsRealtime.ts +1
+- **call sites** src/components/call-centre/DeviceIssuesQueue.tsx, src/components/call-centre/EV07BLiveStatusCard.tsx, src/components/call-centre/PendantLiveStatusModal.tsx, src/hooks/useDeviceRealtime.ts +2
 
 Device state feeds the operator card, so this is adjacent to the SOS path without being on it.
 

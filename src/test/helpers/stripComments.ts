@@ -15,6 +15,15 @@
 //
 // (Line comments rather than a block, deliberately: a block comment describing a comment stripper
 // cannot quote a comment terminator without closing itself. That cost a parse error once.)
+// LINE COMMENTS GO FIRST, and the order is load-bearing. Run the block pass on raw source and a
+// `/*` living inside a LINE comment opens a block that was never meant to exist:
+//
+//     // Device admin routes (/admin/[*]) bounce non-admin operators to /unauthorized,
+//
+// which then pairs with the next terminator anywhere below and deletes every line between —
+// real code, silently. That is not hypothetical: the same bug in the wiring scanner
+// (scripts/wiring/inventory.mjs) hid two realtime subscriptions in `EV07BLiveStatusCard` from
+// the register entirely. Blanking `//` lines first means the stray opener is already gone.
 export function stripComments(src: string): string {
-  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/.*$/gm, "");
+  return src.replace(/^[ \t]*\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
 }

@@ -5,6 +5,11 @@
  * Google Fonts <link> in index.html cost two DNS lookups, two TLS handshakes
  * and two round trips before the first byte of CSS arrived.
  *
+ * ONE VARIABLE FILE PER FAMILY. The first version of this shipped static
+ * weights, and every page then downloaded six of them (190 KB) because the
+ * design uses three Archivo weights and three Source Sans weights. A variable
+ * face carries the whole 100-900 axis in one file.
+ *
  * Only the latin and latin-ext subsets are shipped. This platform serves Spain
  * in Spanish, English and Dutch, all of which are written in latin script;
  * latin-ext carries the accented characters Spanish names and places need.
@@ -12,184 +17,54 @@
  * in that script and re-running it.
  */
 
-/* Archivo 500 — latin-ext */
+/* Archivo variable 100 900 — latin-ext */
 @font-face {
   font-family: 'Archivo';
   font-style: normal;
-  font-weight: 500;
+  font-weight: 100 900;
   /* swap, not block: text is readable in the fallback immediately and
      reflows once the webfont lands. For a product read by people with
      failing eyesight, invisible text is the worse trade. */
   font-display: swap;
-  src: url('/fonts/archivo-500-latin-ext.woff2') format('woff2');
+  src: url('/fonts/archivo-var-latin-ext.woff2') format('woff2');
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
-/* Archivo 500 — latin */
+/* Archivo variable 100 900 — latin */
 @font-face {
   font-family: 'Archivo';
   font-style: normal;
-  font-weight: 500;
+  font-weight: 100 900;
   /* swap, not block: text is readable in the fallback immediately and
      reflows once the webfont lands. For a product read by people with
      failing eyesight, invisible text is the worse trade. */
   font-display: swap;
-  src: url('/fonts/archivo-500-latin.woff2') format('woff2');
+  src: url('/fonts/archivo-var-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* Archivo 600 — latin-ext */
-@font-face {
-  font-family: 'Archivo';
-  font-style: normal;
-  font-weight: 600;
-  /* swap, not block: text is readable in the fallback immediately and
-     reflows once the webfont lands. For a product read by people with
-     failing eyesight, invisible text is the worse trade. */
-  font-display: swap;
-  src: url('/fonts/archivo-600-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-
-/* Archivo 600 — latin */
-@font-face {
-  font-family: 'Archivo';
-  font-style: normal;
-  font-weight: 600;
-  /* swap, not block: text is readable in the fallback immediately and
-     reflows once the webfont lands. For a product read by people with
-     failing eyesight, invisible text is the worse trade. */
-  font-display: swap;
-  src: url('/fonts/archivo-600-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-/* Archivo 700 — latin-ext */
-@font-face {
-  font-family: 'Archivo';
-  font-style: normal;
-  font-weight: 700;
-  /* swap, not block: text is readable in the fallback immediately and
-     reflows once the webfont lands. For a product read by people with
-     failing eyesight, invisible text is the worse trade. */
-  font-display: swap;
-  src: url('/fonts/archivo-700-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-
-/* Archivo 700 — latin */
-@font-face {
-  font-family: 'Archivo';
-  font-style: normal;
-  font-weight: 700;
-  /* swap, not block: text is readable in the fallback immediately and
-     reflows once the webfont lands. For a product read by people with
-     failing eyesight, invisible text is the worse trade. */
-  font-display: swap;
-  src: url('/fonts/archivo-700-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-/* Archivo 800 — latin-ext */
-@font-face {
-  font-family: 'Archivo';
-  font-style: normal;
-  font-weight: 800;
-  /* swap, not block: text is readable in the fallback immediately and
-     reflows once the webfont lands. For a product read by people with
-     failing eyesight, invisible text is the worse trade. */
-  font-display: swap;
-  src: url('/fonts/archivo-800-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-
-/* Archivo 800 — latin */
-@font-face {
-  font-family: 'Archivo';
-  font-style: normal;
-  font-weight: 800;
-  /* swap, not block: text is readable in the fallback immediately and
-     reflows once the webfont lands. For a product read by people with
-     failing eyesight, invisible text is the worse trade. */
-  font-display: swap;
-  src: url('/fonts/archivo-800-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-/* Source Sans 3 400 — latin-ext */
+/* Source Sans 3 variable 200 900 — latin-ext */
 @font-face {
   font-family: 'Source Sans 3';
   font-style: normal;
-  font-weight: 400;
+  font-weight: 200 900;
   /* swap, not block: text is readable in the fallback immediately and
      reflows once the webfont lands. For a product read by people with
      failing eyesight, invisible text is the worse trade. */
   font-display: swap;
-  src: url('/fonts/source-sans-3-400-latin-ext.woff2') format('woff2');
+  src: url('/fonts/source-sans-3-var-latin-ext.woff2') format('woff2');
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
-/* Source Sans 3 400 — latin */
+/* Source Sans 3 variable 200 900 — latin */
 @font-face {
   font-family: 'Source Sans 3';
   font-style: normal;
-  font-weight: 400;
+  font-weight: 200 900;
   /* swap, not block: text is readable in the fallback immediately and
      reflows once the webfont lands. For a product read by people with
      failing eyesight, invisible text is the worse trade. */
   font-display: swap;
-  src: url('/fonts/source-sans-3-400-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-/* Source Sans 3 500 — latin-ext */
-@font-face {
-  font-family: 'Source Sans 3';
-  font-style: normal;
-  font-weight: 500;
-  /* swap, not block: text is readable in the fallback immediately and
-     reflows once the webfont lands. For a product read by people with
-     failing eyesight, invisible text is the worse trade. */
-  font-display: swap;
-  src: url('/fonts/source-sans-3-500-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-
-/* Source Sans 3 500 — latin */
-@font-face {
-  font-family: 'Source Sans 3';
-  font-style: normal;
-  font-weight: 500;
-  /* swap, not block: text is readable in the fallback immediately and
-     reflows once the webfont lands. For a product read by people with
-     failing eyesight, invisible text is the worse trade. */
-  font-display: swap;
-  src: url('/fonts/source-sans-3-500-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-/* Source Sans 3 600 — latin-ext */
-@font-face {
-  font-family: 'Source Sans 3';
-  font-style: normal;
-  font-weight: 600;
-  /* swap, not block: text is readable in the fallback immediately and
-     reflows once the webfont lands. For a product read by people with
-     failing eyesight, invisible text is the worse trade. */
-  font-display: swap;
-  src: url('/fonts/source-sans-3-600-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-
-/* Source Sans 3 600 — latin */
-@font-face {
-  font-family: 'Source Sans 3';
-  font-style: normal;
-  font-weight: 600;
-  /* swap, not block: text is readable in the fallback immediately and
-     reflows once the webfont lands. For a product read by people with
-     failing eyesight, invisible text is the worse trade. */
-  font-display: swap;
-  src: url('/fonts/source-sans-3-600-latin.woff2') format('woff2');
+  src: url('/fonts/source-sans-3-var-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }

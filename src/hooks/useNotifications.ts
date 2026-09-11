@@ -42,10 +42,21 @@ function mapRow(row: Record<string, unknown>): NotificationRecord {
 interface UseNotificationsOptions {
   pageSize?: number;
   userId?: string | null;
+  /**
+   * Whether to read at all. Defaults to true.
+   *
+   * `userId` alone cannot answer this, and that ambiguity was costing two
+   * requests a page. An ABSENT `userId` legitimately means "unscoped" — the admin
+   * mobile home wants every notification — while a NULL one can mean either
+   * "signed out" or "the identity has not resolved yet". The bell was in the
+   * second case on its first render and read the table for a user it already knew
+   * was nobody. The caller is the only one that can tell the two apart, so it says.
+   */
+  enabled?: boolean;
 }
 
 export function useNotifications(options: UseNotificationsOptions = {}) {
-  const { pageSize = 20, userId } = options;
+  const { pageSize = 20, userId, enabled = true } = options;
 
   const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -58,6 +69,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
 
   // Fetch unread count
   const fetchUnreadCount = useCallback(async () => {
+    if (!enabled) return;
     try {
       let query = supabase.from("notification_log")
         .select("id", { count: "exact", head: true })
@@ -73,11 +85,17 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     } catch (error) {
       console.error("Error fetching unread count:", error);
     }
-  }, [userId]);
+  }, [userId, enabled]);
 
   // Fetch notifications with filters and pagination
   const fetchNotifications = useCallback(
     async (pageNum: number = 0, append: boolean = false) => {
+      if (!enabled) {
+        // Not "no notifications yet" — "do not ask". The list stays empty and the
+        // spinner stops, which is what a caller with no identity should render.
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(true);
       try {
         let query = supabase.from("notification_log")
@@ -117,7 +135,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
         setIsLoading(false);
       }
     },
-    [userId, typeFilter, readFilter, pageSize]
+    [userId, typeFilter, readFilter, pageSize, enabled]
   );
 
   // Mark a single notification as read

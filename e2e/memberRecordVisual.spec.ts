@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { installSupabaseStub, type StaffRow } from "./helpers/supabaseStub";
+import { settle } from "./helpers/settle";
 
 /**
  * THE MEMBER RECORD, PHOTOGRAPHED — the visual pass, at the two widths it is used at.
@@ -159,10 +160,19 @@ for (const [label, width, height] of [
   test(`the member record at ${label}px`, async ({ page }) => {
     await openRecord(page, width, height);
 
-    const shot = (name: string) =>
-      page.screenshot({ path: `e2e/.report/member-record-${name}-${label}.png`, fullPage: false });
+    /*
+      SETTLE BEFORE EVERY CAPTURE. Without it these screenshots are taken partway through the
+      page's entrance animation, and this file has already produced one false defect that way —
+      the portal shot below was reported as "renders with a dimming overlay" when it was
+      `animate-fade-in` caught mid-opacity. See e2e/helpers/settle.ts.
+    */
+    const shot = async (name: string) => {
+      await settle(page);
+      await page.screenshot({ path: `e2e/.report/member-record-${name}-${label}.png`, fullPage: false });
+    };
 
     await shot("profile");
+    await settle(page);
     await page.getByRole("tablist").screenshot({
       path: `e2e/.report/member-record-tabstrip-${label}.png`,
     });
@@ -299,6 +309,12 @@ test("the member's own profile page still reads properly", async ({ page }) => {
 
   await page.goto("/dashboard/profile");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  /*
+    THE CAPTURE THAT INVENTED A DEFECT. Without `settle`, this fires during ProfilePage's
+    `animate-fade-in` and every card comes out uniformly darkened — which was reported as a
+    dimming overlay and investigated as a stuck dialog backdrop that never existed.
+  */
+  await settle(page);
   await page.screenshot({ path: "e2e/.report/member-portal-profile-1280.png", fullPage: false });
 
   // The empty state is the shared one, not a blank line or a dash — the thing the staff record

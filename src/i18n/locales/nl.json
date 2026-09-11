@@ -6521,6 +6521,18 @@
       "setDateUnknown": "Wij hebben geen datum voor deze speld.",
       "mapLabel": "Kaart met de opgeslagen locatie van uw woning"
     },
+    "staff": {
+      "title": "Woninglocatie",
+      "purpose": "Waar een operator hulp naartoe stuurt als de hanger niet kan doorgeven waar het lid is.",
+      "loadFailed": "Wij konden de woninglocatie van dit lid niet laden. Dat betekent niet dat er geen is \u2014 laad de kaart opnieuw voordat u een speld zet.",
+      "confirmedByMember": "Bevestigd door het lid",
+      "setByTeam": "Ingesteld door ons team",
+      "fromAddress": "Afgeleid van het adres \u2014 niet bevestigd",
+      "fromImport": "Uit de CRM-import \u2014 niet bevestigd",
+      "none": "Geen speld op deze kaart. Het SOS-scherm valt terug op het postadres.",
+      "correctPin": "De speld corrigeren",
+      "setPin": "De speld zetten"
+    },
     "dialog": {
       "title": "Stel de locatie van uw woning in",
       "purpose": "Hier sturen wij hulp naartoe als uw hanger niet kan doorgeven waar u bent.",

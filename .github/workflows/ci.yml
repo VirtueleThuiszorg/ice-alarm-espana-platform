@@ -227,6 +227,46 @@ jobs:
 
           echo "::error title=Register not repaired::WIRING_REGISTER.md is stale on main and the repair commit could not be pushed. Run: node scripts/wiring/build.mjs"
           exit 1
+  # IS THE MERGE GATE ITSELF ON?
+  #
+  # Ruleset `main` was created 2026-07-16 and left `enforcement: disabled`. It stayed off through
+  # the outages of 23 and 25 July and the broken main of 11 September — every one of them a red
+  # guard merged past — and NOTHING went red to say so, because an unprotected branch looks exactly
+  # like a branch nobody has protected yet. This job is the thing that would have said so.
+  #
+  # It reads `/rules/branches/main`, which answers "what applies to this branch right now" rather
+  # than "does a ruleset exist": a disabled ruleset, or one targeting no branch, returns an empty
+  # list, and both were true here.
+  #
+  # Its own job, per the rule below: a failing step marks every later step `skipped`, and `skipped`
+  # is not red.
+  merge-gate:
+    name: Merge gate is enforced
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Uniform with every other job that maps a secret into env, and `ciJobIsolation.test.ts`
+      # caught this job for skipping it. `GITHUB_TOKEN` is supplied by Actions rather than
+      # configured, so it should never be absent — but "should never be absent" is exactly the
+      # assumption that turns into a job doing nothing and reporting green.
+      - name: Require the token
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/ci/require-secrets.mjs GITHUB_TOKEN
+
+      - name: Merge gate is enforced
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/ci/check-merge-gate.mjs
 
   lint-typecheck-build:
     name: Lint, Type Check & Build

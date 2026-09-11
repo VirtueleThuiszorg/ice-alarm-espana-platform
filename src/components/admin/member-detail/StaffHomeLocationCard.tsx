@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ExternalLink, MapPin, Pencil } from "lucide-react";
@@ -46,6 +47,7 @@ export function StaffHomeLocationCard({
   } | null;
   onUpdate?: () => void;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const { data: home, isLoading, isError } = useMemberHomeLocation(memberId);
@@ -61,15 +63,18 @@ export function StaffHomeLocationCard({
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <MapPin className="h-4 w-4" aria-hidden="true" />
-          Home location
+          {t("homeLocation.staff.title", "Home location")}
         </CardTitle>
         <CardDescription>
-          Where an operator sends help when the pendant cannot say where the member is.
+          {t(
+            "homeLocation.staff.purpose",
+            "Where an operator sends help when the pendant cannot say where the member is.",
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <p className="text-sm text-muted-foreground">{t("common.loading", "Loading...")}</p>
         ) : isError ? (
           /*
             A FAILED READ IS NOT "NO PIN", AND THIS CARD USED TO SAY IT WAS.
@@ -87,20 +92,22 @@ export function StaffHomeLocationCard({
             guess off the phone — and `staff_pin` would then replace `member_pin` on the card.
           */
           <p className="text-sm text-destructive" role="alert" data-testid="staff-home-location-error">
-            We could not load this member&apos;s home location. This does not mean there is none —
-            reload the record before setting a pin.
+            {t(
+              "homeLocation.staff.loadFailed",
+              "We could not load this member's home location. This does not mean there is none — reload the record before setting a pin.",
+            )}
           </p>
         ) : hasPin ? (
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={confirmed ? "secondary" : "outline"} data-testid="staff-home-location-source">
                 {home?.source === "member_pin" || home?.source === "member_gps"
-                  ? "Confirmed by the member"
+                  ? t("homeLocation.staff.confirmedByMember", "Confirmed by the member")
                   : home?.source === "staff_pin"
-                    ? "Set by our team"
+                    ? t("homeLocation.staff.setByTeam", "Set by our team")
                     : home?.source === "geocoded"
-                      ? "From the address — not confirmed"
-                      : "From the CRM import — not confirmed"}
+                      ? t("homeLocation.staff.fromAddress", "From the address — not confirmed")
+                      : t("homeLocation.staff.fromImport", "From the CRM import — not confirmed")}
               </Badge>
               {setAt && (
                 <span className="text-sm text-muted-foreground" data-testid="staff-home-location-date">
@@ -115,7 +122,10 @@ export function StaffHomeLocationCard({
           </div>
         ) : (
           <p className="text-sm text-muted-foreground" data-testid="staff-home-location-none">
-            No pin on this record. The SOS card will fall back to the postal address.
+            {t(
+              "homeLocation.staff.none",
+              "No pin on this record. The SOS card will fall back to the postal address.",
+            )}
           </p>
         )}
 
@@ -135,7 +145,7 @@ export function StaffHomeLocationCard({
               data-testid="staff-home-location-map"
             >
               <ExternalLink className="mr-2 h-4 w-4" aria-hidden="true" />
-              Open in Maps
+              {t("homeLocation.row.openInMaps", "Open in Maps")}
             </Button>
           )}
           {!isError && (
@@ -147,7 +157,9 @@ export function StaffHomeLocationCard({
             data-testid="staff-home-location-edit"
           >
             <Pencil className="mr-2 h-4 w-4" aria-hidden="true" />
-            {hasPin ? "Correct the pin" : "Set the pin"}
+            {hasPin
+              ? t("homeLocation.staff.correctPin", "Correct the pin")
+              : t("homeLocation.staff.setPin", "Set the pin")}
           </Button>
           )}
         </div>

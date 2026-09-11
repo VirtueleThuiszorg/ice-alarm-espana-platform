@@ -492,6 +492,41 @@ checks in `scripts/rls/isolation.sql` (636 total) — the forge, the import that
 an ordinary Add-a-member that must stay free, and a forged `set_at`/`set_by` on an INSERT being
 overwritten rather than stored. `memberHomeLocationWrite.test.ts` 24 → 32.
 
+### 🔧 A review of the merged feature, and the four defects it found (#371, #376, #377, #378)
+Read after the fact, not while writing it — which is why these are here rather than in the PRs
+above. In order of what they would have cost somebody:
+
+- **#371 — a parent re-render threw away the member's pin.** Both callers build the prop inline
+  (`existing={hasPin ? { lat, lng } : null}`), so every parent render handed the dialog a NEW
+  object holding the SAME coordinate, and the seeding effect re-ran on identity. The visible half
+  was a pin that jumped back mid-nudge. The invisible half: after "Use my current location" the
+  coordinates snapped back to the OLD stored pin while `acceptedFix` still said "GPS reading", so
+  Save went out as `member_gps` with a real accuracy figure for a coordinate the GPS never
+  produced — 1.3 km away in the reproduction. Nothing downstream catches that, because
+  `member_gps` inside 100 m is what an honest reading looks like. Same failure #336 fixed, through
+  a different door. Fixed by depending on the two numbers rather than the object.
+- **#376 — the staff card reported a failed read as "no pin on this record".**
+  `useMemberHomeLocation` throws rather than returning null precisely so no caller can say that;
+  the card destructured only `data` and `isLoading` and said it anyway, plus "the SOS card will
+  fall back to the postal address". The Set/Correct button went with it: offering to set a pin
+  whose existence we could not establish invites a `staff_pin` over a member's own confirmation.
+- **#378 — the card was also the only part of the feature left in English**, while the STAFF
+  strings in the shared dialog were translated. It also turned up that `homeLocation` was missing
+  from localeParse's MEMBER_FACING list, so nothing would have caught an English string in a
+  member-facing namespace. Added, `staff.*` included.
+- **#377 — the preview map announced itself as `role="application"`**, the same as the picker. On
+  a still image with dragging, zoom and keyboard all off, that costs a screen-reader user their
+  browse mode and gives them nothing to reach.
+
+Every one is mutation-checked: each test fails against the code as it was. 229 test files, 4404
+passing; 664 RLS checks, 0 failures.
+
+Worth recording beside them: fixing these needed **#372**, because `main` was red. #366's
+`Merge branch 'main' into commission-fix` resolved the WIRING_REGISTER.md conflict by keeping
+both sides — two adjacent totals and a duplicated pair of kind rows — which is the outage shape
+CLAUDE.md describes, in a file that is not a locale JSON. The register is generated, so it was
+regenerated rather than picked between.
+
 ### What is NOT done, named as undone
 - **No member or staff member has actually set a pin on production.** The columns are there and
   every path is proven against a real PostgreSQL and a real browser, but the first live one will

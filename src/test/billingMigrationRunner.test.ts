@@ -138,8 +138,8 @@ describe("who is not written to at all", () => {
     expect(plannedActionFor(member(), { ...ON, enabled: false }, TODAY)).toBeNull();
   });
 
-  // A second link is a second way to be charged for the same month.
-  it("a member who already has a link out", () => {
+  // A second FIRST link is a second way to be charged for the same month.
+  it("a monthly member who already has a link out", () => {
     expect(plannedActionFor(member({ billing_source: "switch_pending" }), ON, TODAY)).toBeNull();
   });
 
@@ -151,6 +151,60 @@ describe("who is not written to at all", () => {
   // link in front of somebody on a day nobody chose.
   it("a member with no Santander date on file", () => {
     expect(plannedActionFor(member({ legacy_next_renewal: null }), ON, TODAY)).toBeNull();
+  });
+});
+
+describe("the ladder has to reach a member it has already written to", () => {
+  /*
+    THE DEFECT, found by reviewing the merged runner. `plannedActionFor` said `legacy` only — and
+    the annual NOTICE is what puts a member into `switch_pending`. So from 14 days onward they
+    were excluded from the candidate set entirely: the reminder at 7 days and the phone call at 3
+    were never planned at all. The ladder was one rung, for exactly the people a missed switch
+    costs a whole year.
+
+    The refusal these tests protect is about a FIRST link — nobody should be given two payable
+    sessions — and the chase is not a first link.
+  */
+  const midSwitch = (renewal: string) =>
+    member({ billing_source: "switch_pending", billing_frequency: "annual", legacy_next_renewal: renewal });
+
+  it("reminds a member who is mid-switch because the notice put them there", () => {
+    expect(plannedActionFor(midSwitch("2026-09-18"), ON, TODAY)).toBe("annual_reminder");
+  });
+
+  it("and rings the office about them at three days, which is when it matters most", () => {
+    expect(plannedActionFor(midSwitch("2026-09-14"), ON, TODAY)).toBe("staff_bell");
+  });
+
+  // The opening message is for somebody who has not had one.
+  it("but never sends the NOTICE twice", () => {
+    expect(plannedActionFor(midSwitch("2026-09-25"), ON, TODAY)).toBeNull();
+  });
+
+  it("and still leaves a member Stripe bills, or one with no arrangement, alone", () => {
+    for (const source of ["stripe", "none", null]) {
+      expect(
+        plannedActionFor(
+          member({ billing_source: source, billing_frequency: "annual", legacy_next_renewal: "2026-09-18" }),
+          ON,
+          TODAY,
+        ),
+        String(source),
+      ).toBeNull();
+    }
+  });
+
+  it("a whole day's run picks up the mid-switch members too", () => {
+    const plan = planTodaysRun(
+      [
+        member({ id: "legacy-notice", billing_frequency: "annual", legacy_next_renewal: "2026-09-25" }),
+        { ...midSwitch("2026-09-18"), id: "mid-reminder" },
+        { ...midSwitch("2026-09-14"), id: "mid-bell" },
+      ],
+      ON,
+      TODAY,
+    );
+    expect(plan.map((p) => p.member.id).sort()).toEqual(["legacy-notice", "mid-bell", "mid-reminder"]);
   });
 });
 

@@ -67,6 +67,12 @@ beforeAll(() => {
     /* not needed for build.mjs, which is dependency-free */
   }
 
+  /*
+    A BRANCH TO STAND ON. CI checks out a detached HEAD, so a clone of it has no branch either
+    and every `git commit` fails with "Not currently on any branch." Locally this passed because
+    a developer's checkout is on one. Found by CI.
+  */
+  git("checkout", "--quiet", "-B", "lab-trunk");
   git("config", "user.email", "merge-lab@example.test");
   git("config", "user.name", "merge lab");
 
@@ -79,8 +85,13 @@ beforeAll(() => {
   for (const f of [".gitattributes", "scripts/wiring/merge-driver.mjs", "scripts/setup-repo.sh"]) {
     writeFileSync(join(lab, f), readFileSync(join(REPO, f), "utf8"));
   }
+  /*
+    `--allow-empty` because in CI these files are ALREADY committed on the PR branch, so copying
+    them changes nothing and a plain commit fails with "nothing to commit". Locally they differed
+    (uncommitted work in the tree), which is why this only ever broke on the runner.
+  */
   git("add", "-A");
-  git("commit", "--quiet", "-m", "driver under test");
+  git("commit", "--quiet", "--allow-empty", "-m", "driver under test");
   git("branch", "-f", "lab-base");
 });
 
@@ -269,6 +280,28 @@ describe("what the repo declares", () => {
     expect(job).toContain("contents: write");
     // It must actually commit, not merely warn.
     expect(job).toMatch(/git commit -m "chore\(wiring\)/);
+  });
+
+  it("checks out a real branch on main, with history, and the default on a PR", () => {
+    /*
+      TWO TRAPS, BOTH FOUND THE HARD WAY AND NEITHER VISIBLE IN A GREEN RUN.
+
+      1. `ref: ${{ github.ref_name }}` is `<number>/merge` on a pull_request — not a branch, so
+         checkout fails outright. That one at least went red.
+      2. `fetch-depth: ${{ ... && 0 || 1 }}` silently yields 1 on main, because the NUMBER 0 is
+         FALSY in GitHub expressions. A shallow main is fine until the push races and the
+         rebase-and-retry has no history to rebase onto — i.e. exactly when it matters, and
+         never in a normal run. The quoted '0' is truthy.
+    */
+    const ci = readFileSync(join(REPO, ".github/workflows/ci.yml"), "utf8");
+    const job = ci.slice(ci.indexOf("  wiring-register:"), ci.indexOf("  lint-typecheck-build:"));
+
+    expect(job, "github.ref_name is <n>/merge on a PR and breaks checkout")
+      .not.toMatch(/ref: \$\{\{ github\.ref_name \}\}/);
+    expect(job).toMatch(/ref: \$\{\{ \(github\.event_name == 'push' && github\.ref_name\) \|\| '' \}\}/);
+    expect(job, "an unquoted 0 is falsy in a GitHub expression — main would get a shallow clone")
+      .not.toMatch(/fetch-depth: \$\{\{[^}]*&& 0\b/);
+    expect(job).toMatch(/fetch-depth: \$\{\{[^}]*'0'/);
   });
 });
 

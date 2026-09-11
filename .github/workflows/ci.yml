@@ -177,9 +177,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # The self-heal commits and pushes; the default detached checkout cannot.
-          ref: ${{ github.ref_name }}
-          fetch-depth: 0
+          # ON MAIN ONLY. The self-heal commits and pushes, and the default detached checkout
+          # cannot — but on a PULL REQUEST `github.ref_name` is `<number>/merge`, which is not a
+          # branch and makes checkout fail outright. An empty string means "the default", which
+          # is what a PR wants. Found by CI, not by reading.
+          ref: ${{ (github.event_name == 'push' && github.ref_name) || '' }}
+          # '0' AS A STRING, and that is not a style choice. In GitHub expressions the NUMBER 0
+          # is falsy, so `(push && 0) || 1` evaluates to 1 — a shallow clone on main, which is
+          # where the rebase-and-retry below needs history. The quoted form is truthy.
+          fetch-depth: ${{ (github.event_name == 'push' && '0') || '1' }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

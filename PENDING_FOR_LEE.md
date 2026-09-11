@@ -388,6 +388,23 @@ returns nulls under this session's auth, so 15368 (GitHub Actions) and 5 (reposi
 documentation, not from your repo. **Pick them from the dropdowns in the UI instead** — the names are
 unambiguous there, and a wrong id in the bypass list is trap 4.
 
+#### AND WHEN YOU HAVE ENABLED IT, MERGE THE DRAFT PR THAT WATCHES IT
+
+There is a draft PR waiting: **"ci: a gate that watches the merge gate"**. It adds
+`scripts/ci/check-merge-gate.mjs` and a CI job, `Merge gate is enforced`, which reads
+`/rules/branches/main` on every push and **fails if the gate is not on** — no required check
+missing, no force-push allowed, no deletion allowed.
+
+**It is a draft on purpose: merging it before you enable the ruleset would turn main red**, because
+the gate really is off. Enable the ruleset first, then merge it, and the July situation cannot
+repeat — a ruleset silently disabled, or narrowed, or missing a check, goes red on the next push
+instead of going unnoticed for two months.
+
+It is already proven to refuse the real thing: run against this repository as it stands today it
+exits 1 with *"Nothing applies to this branch"*. 18 unit tests cover every way the gate can be
+wrong, including dropping each of the six checks in turn, and including somebody adding
+`Manifest matches production` to the required list — which would stop all merging.
+
 #### Verification, none of which I could run — please do these three after enabling
 
 1. **Read it back:** `GET /repos/VirtueleThuiszorg/ice-alarm-espana-platform/rulesets/19055263` and confirm

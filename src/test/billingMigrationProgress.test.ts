@@ -16,6 +16,8 @@
 // The rule is tested here rather than through the component for the same reason: a component
 // test exercises it only when somebody clicks, and this has to be right every month.
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   santanderExportCsv,
   summariseMigration,
@@ -35,6 +37,10 @@ const row = (over: Partial<MigrationRow> = {}): MigrationRow => ({
   switchExpiresAt: null,
   amount: 29.95,
   billingFrequency: "monthly",
+  // The ordinary case: Karma's label named a plan, so the import read one. The tests that care
+  // about the other case say so explicitly.
+  legacyPlanLabel: "Single",
+  planConfirmed: true,
   ...over,
 });
 
@@ -186,5 +192,112 @@ describe("who is due this month", () => {
       TODAY,
     );
     expect(s.dueThisMonth).toEqual([]);
+  });
+});
+
+/*
+  ── WHAT EACH PERSON ON THE SHEET IS ON ────────────────────────────────────────
+
+  Lee's brief asks for the Santander export "with day, amount, plan". The plan was missing, and
+  adding it is not cosmetic: a household of two and one person on the same sheet are collected
+  from differently, and the office reads this list to do it.
+
+  IT IS KARMA'S VERBATIM LABEL, not `subscriptions.plan_type`. That column holds the CRM import's
+  `single` default for every row whose label named no plan (`_shared/legacy-plan.ts`), so it says
+  "single" about people nobody ever established a plan for. On a sheet somebody collects money
+  from, a made-up answer is worse than a blank one.
+*/
+describe("the plan on the Santander list", () => {
+  it("prints Karma's own words", () => {
+    const csv = santanderExportCsv([row({ legacyPlanLabel: "Couple Annual" })], TODAY);
+    expect(csv.split("\r\n")[0].split(",")).toContain("plan");
+    expect(csv).toContain("Couple Annual");
+  });
+
+  it("leaves it BLANK rather than guessing when Karma said nothing", () => {
+    const csv = santanderExportCsv([row({ legacyPlanLabel: null, planConfirmed: false })], TODAY);
+    const cells = csv.split("\r\n")[1].split(",");
+    const planColumn = csv.split("\r\n")[0].split(",").indexOf("plan");
+    expect(cells[planColumn]).toBe("");
+  });
+
+  it("quotes a label with a comma in it rather than splitting the row", () => {
+    const csv = santanderExportCsv([row({ legacyPlanLabel: "Couple, 2 pendants" })], TODAY);
+    expect(csv).toContain('"Couple, 2 pendants"');
+    // One header row and one body row — the comma did not become a column.
+    expect(csv.split("\r\n")).toHaveLength(2);
+  });
+});
+
+/*
+  ── AND THE QUEUE THAT WOULD OTHERWISE BE SILENT ───────────────────────────────
+
+  A legacy member whose plan cannot be established is one the runner will NOT send a link to: it
+  bells the office and moves on. Nothing else on the platform would notice — they are `active`,
+  monitored, and Santander goes on collecting — so without a counter the migration just stops for
+  them, invisibly, the way "needs a billing date" would have.
+*/
+describe("the members nobody can price", () => {
+  it("counts them, separately from the ones missing a date", () => {
+    const summary = summariseMigration(
+      [
+        row({ id: "a" }),
+        row({ id: "b", planConfirmed: false }),
+        row({ id: "c", billingDay: null }),
+      ],
+      TODAY,
+    );
+    expect(summary.needsPlan).toBe(1);
+    expect(summary.needsDate).toBe(1);
+    expect(summary.legacy).toBe(3);
+  });
+
+  it("counts only LEGACY members — a Stripe member's Karma label is nobody's problem", () => {
+    const summary = summariseMigration(
+      [
+        row({ id: "a", billingSource: "stripe", planConfirmed: false }),
+        row({ id: "b", billingSource: "switch_pending", planConfirmed: false }),
+      ],
+      TODAY,
+    );
+    expect(summary.needsPlan).toBe(0);
+  });
+});
+
+/*
+  ── THE CARD ASKS THE SAME QUESTION THE RUNNER DOES ────────────────────────────
+
+  The counter above is only worth reading if it names the SAME members the runner will refuse to
+  price. A second opinion computed in the component — "no label means no plan", say — would put a
+  different number on the screen from the one the office is bell about, and the difference would
+  only show up as members quietly not moving.
+*/
+describe("the dashboard card's wiring", () => {
+  const card = readFileSync(
+    join(process.cwd(), "src/components/admin/dashboard/BillingMigrationProgress.tsx"),
+    "utf8",
+  );
+
+  it("decides through the one shared module, not its own rule", () => {
+    expect(card).toMatch(/from "\.\.\/\.\.\/\.\.\/\.\.\/supabase\/functions\/_shared\/legacy-plan"/);
+    expect(card).toMatch(/planConfirmed: resolveLegacyPlan\(\{/);
+  });
+
+  it("loads Karma's label, which is what the plan is read from", () => {
+    expect(card).toContain("crm_profiles (legacy_membership_type, legacy_payment_type)");
+  });
+
+  /*
+    PostgREST returns an embedded one-to-one as an object and a one-to-many as an array. Reading
+    it wrong would put EVERY legacy member in the queue and blank the plan column for all of them
+    — a card that looks alarming and a sheet that has lost a field.
+  */
+  it("handles both shapes PostgREST can return the embedded profile in", () => {
+    expect(card).toMatch(/Array\.isArray\(profileRaw\) \? profileRaw\[0\] : profileRaw/);
+  });
+
+  it("shows the queue rather than leaving it to the runner's bell", () => {
+    expect(card).toContain("migration-needs-plan");
+    expect(card).toMatch(/summary\.needsPlan > 0/);
   });
 });

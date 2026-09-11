@@ -22,6 +22,25 @@ export interface MigrationRow {
   switchExpiresAt: string | null;
   amount: number | null;
   billingFrequency: "monthly" | "annual" | null;
+  /**
+   * Karma's VERBATIM membership label (`crm_profiles.legacy_membership_type`) — 'Single',
+   * 'Couple Annual', 'FOC — Ayuntamiento'.
+   *
+   * NOT `subscriptions.plan_type`, and that is the whole point. The CRM import stores
+   * COALESCE(..., 'single') for every row whose label named no plan, so that column says
+   * "single" about people nobody has ever established a plan for. On a sheet somebody collects
+   * money from, a made-up answer is worse than a blank one.
+   */
+  legacyPlanLabel: string | null;
+  /**
+   * Whether a plan can be established for them at all (`_shared/legacy-plan.ts`).
+   *
+   * These are the members the runner will NOT send a switch link to — it bells the office
+   * instead — so they need a queue of their own beside "needs a billing date". Without one the
+   * migration simply stops for them, and stopping is invisible: they are `active`, monitored,
+   * and Santander goes on collecting.
+   */
+  planConfirmed: boolean;
 }
 
 export interface MigrationSummary {
@@ -30,6 +49,8 @@ export interface MigrationSummary {
   stripe: number;
   /** Legacy members with no Santander date — the runner can never reach them. */
   needsDate: number;
+  /** Legacy members whose plan nobody has established — the runner will not price them. */
+  needsPlan: number;
   /** Links that ran out and have not yet been swept back. Somebody has to ring these people. */
   lapsed: number;
   /** Still on Santander and renewing between today and the end of this month. */
@@ -51,6 +72,7 @@ export function summariseMigration(rows: MigrationRow[], today: Date): Migration
     switchPending: rows.filter((r) => r.billingSource === "switch_pending").length,
     stripe: rows.filter((r) => r.billingSource === "stripe").length,
     needsDate: legacyRows.filter((r) => r.billingDay === null).length,
+    needsPlan: legacyRows.filter((r) => !r.planConfirmed).length,
     /*
       A LAPSED LINK THAT IS STILL `switch_pending` is a member the daily sweep has not yet put
       back — so right now they are in neither collection. Counted separately from "link out"
@@ -96,6 +118,9 @@ export function santanderExportCsv(rows: MigrationRow[], today: Date): string {
     "phone",
     "billing_day",
     "next_collection",
+    // Karma's own words, beside the frequency. Lee's brief asks for "day, amount, plan", and the
+    // plan is what tells the office a household of two apart from one person on the same sheet.
+    "plan",
     "amount_eur",
     "frequency",
   ];
@@ -115,6 +140,9 @@ export function santanderExportCsv(rows: MigrationRow[], today: Date): string {
         // Only this month's collection: a date in a later month on a sheet headed "this month"
         // is a payment somebody takes early.
         r.nextRenewal && r.nextRenewal.startsWith(month) ? r.nextRenewal : "",
+        // Blank rather than guessed. A member whose Karma label named no plan is exactly the one
+        // nobody should read a plan off this sheet for.
+        r.legacyPlanLabel ?? "",
         r.amount === null ? "" : r.amount.toFixed(2),
         r.billingFrequency ?? "",
       ]

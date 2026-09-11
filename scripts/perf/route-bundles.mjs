@@ -120,23 +120,39 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   // stripping (--experimental-strip-types, in the shebang) runs it directly. An
   // earlier version scraped the list with a regex and silently fell to zero routes
   // the first time the formatting changed — a bundle gate that checks nothing.
-  const { ROUTES } = await import(
+  const { ROUTES, gateCeilingFor, loadBudgets } = await import(
     new URL("../../src/test/perf/scorecard.ts", import.meta.url).href
   );
   const routes = ROUTES;
   if (routes.length === 0) die("the route catalogue is empty");
+  const loaded = loadBudgets();
 
   const PUBLIC_SURFACES = new Set(["public", "join", "auth"]);
   const rows = routes.map((route) => {
     const measured = measureRoute(route.module);
-    const override = budgets.overrides?.[route.id]?.routeJsGzBytes;
-    const budget =
-      typeof override === "number"
-        ? override
-        : PUBLIC_SURFACES.has(route.surface)
-          ? budgets.thresholds.publicRouteJsGzBytes
-          : budgets.thresholds.routeJsGzBytes;
-    return { ...route, ...measured, budget, over: measured.totalGzBytes > budget };
+    /*
+      THE GATE ENFORCES THE RATCHET; THE TABLE SHOWS THE TARGET.
+
+      `gateCeilingFor` is the same function the browser gate uses, so a route's
+      ceiling is defined once. A route with no ratchet entry is held to the
+      finished number — which is how deleting an entry graduates it.
+
+      The `target` column stays in the printed table either way: a reader needs
+      to see how far a route still is from where it must end up, not only that it
+      is inside today's allowance.
+    */
+    const target = PUBLIC_SURFACES.has(route.surface)
+      ? loaded.thresholds.publicRouteJsGzBytes
+      : loaded.thresholds.routeJsGzBytes;
+    const budget = gateCeilingFor(route, "routeJsGzBytes", loaded);
+    return {
+      ...route,
+      ...measured,
+      budget,
+      target,
+      over: measured.totalGzBytes > budget,
+      aboveTarget: measured.totalGzBytes > target,
+    };
   });
 
   const jsonFlag = process.argv.indexOf("--json");
@@ -153,12 +169,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
   console.log(`\nRoute JS, gzipped (shell + page), from ${path.relative(REPO_ROOT, MANIFEST)}\n`);
   console.log(
-    `${"route".padEnd(width)}  ${"total".padStart(9)}  ${"shell".padStart(9)}  ${"page".padStart(9)}  ${"budget".padStart(9)}`,
+    `${"route".padEnd(width)}  ${"total".padStart(9)}  ${"shell".padStart(9)}  ${"page".padStart(9)}` +
+      `  ${"ceiling".padStart(9)}  ${"target".padStart(9)}`,
   );
   for (const r of [...rows].sort((a, b) => b.totalGzBytes - a.totalGzBytes)) {
+    const verdict = r.over ? "OVER" : r.aboveTarget ? "above target" : "ok";
     console.log(
       `${r.id.padEnd(width)}  ${kb(r.totalGzBytes).padStart(9)}  ${kb(r.shellGzBytes).padStart(9)}  ` +
-        `${kb(r.pageGzBytes).padStart(9)}  ${kb(r.budget).padStart(9)}  ${r.over ? "OVER" : "ok"}`,
+        `${kb(r.pageGzBytes).padStart(9)}  ${kb(r.budget).padStart(9)}  ${kb(r.target).padStart(9)}` +
+        `  ${verdict}`,
     );
   }
 
@@ -170,6 +189,35 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     );
   }
 
+  /*
+    `--record` writes today's measurements into `perf/budgets.json` as the ratchet,
+    the same way the browser gate does. Bytes are DETERMINISTIC — the same build
+    produces the same number on any machine — so the headroom here is 2%, just
+    enough to absorb a dependency patch release, rather than the 50% the
+    wall-clock metrics need.
+  */
+  if (process.argv.includes("--record")) {
+    const raw = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, "perf/budgets.json"), "utf8"));
+    raw.ratchet ??= {};
+    for (const r of rows) {
+      if (!r.aboveTarget) {
+        // Inside the target: no entry, so it is held to the finished number.
+        if (raw.ratchet[r.id]) delete raw.ratchet[r.id].routeJsGzBytes;
+        continue;
+      }
+      raw.ratchet[r.id] ??= {};
+      raw.ratchet[r.id].routeJsGzBytes = Math.ceil((r.totalGzBytes * 1.02) / 1024) * 1024;
+    }
+    for (const [id, entry] of Object.entries(raw.ratchet)) {
+      if (!id.startsWith("_") && Object.keys(entry).length === 0) delete raw.ratchet[id];
+    }
+    fs.writeFileSync(
+      path.join(REPO_ROOT, "perf/budgets.json"),
+      `${JSON.stringify(raw, null, 2)}\n`,
+    );
+    console.log(`\nroute-bundles: recorded the JS ratchet for ${rows.filter((r) => r.aboveTarget).length} route(s).`);
+  }
+
   if (process.argv.includes("--check")) {
     const over = rows.filter((r) => r.over);
     if (missing.length || over.length) {
@@ -177,7 +225,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         `\nroute-bundles: FAILED — ${over.length} route(s) over budget, ${missing.length} unresolved.`,
       );
       for (const r of over) {
-        console.error(`  ${r.id}: ${kb(r.totalGzBytes)} > ${kb(r.budget)}`);
+        console.error(`  ${r.id}: ${kb(r.totalGzBytes)} > ${kb(r.budget)} (target ${kb(r.target)})`);
       }
       process.exit(1);
     }

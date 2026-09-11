@@ -1,0 +1,137 @@
+name: Performance
+
+# THE BUDGETS, ENFORCED. `docs/perf/BASELINE.md` measured where the platform was;
+# this is what stops it going back.
+#
+# TWO JOBS, AND THEY ARE SEPARATE ON PURPOSE — the same rule ci.yml is built
+# around, for the same reason. A failing step ends its job and marks every step
+# after it `skipped`, and `skipped` is not red. Folding the byte check and the
+# browser check into one job would mean the second only ever runs while the first
+# is happy, which is how main went a full day with no signal for typecheck, build
+# or the wiring register (see ci.yml's header). Neither job `needs:` the other,
+# and neither is `continue-on-error`, which `src/test/ciJobIsolation.test.ts`
+# enforces across every workflow in this directory.
+#
+# NO SECRETS. Both jobs build against the same placeholder Supabase values ci.yml
+# uses; nothing here reaches a real backend, so there is nothing that could
+# silently skip for want of a credential.
+#
+# WHAT THEY CHECK, AND WHY THAT SPLIT:
+#
+#   Route JS budgets   — deterministic. Reads the build manifest and totals the
+#                        gzipped bytes each route ships. Same answer on any
+#                        machine, so it is gated exactly, with no headroom.
+#
+#   Route budgets      — wall-clock and behavioural: LCP, CLS, long tasks, and
+#   (browser)            the number of Supabase queries a page issues. Measured in
+#                        a real Chromium under CPU and network throttling.
+#
+# Both read `perf/budgets.json`, which is the only place a threshold is written
+# down — so a budget cannot be widened inside the check that enforces it.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Superseding is safe for PR pushes; every verdict on main has to survive.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # The same placeholders ci.yml builds with. Not secrets: the app is never
+  # pointed at a real project by this workflow, and the Supabase surface is
+  # answered by e2e/helpers/supabaseStub.ts.
+  VITE_SUPABASE_PROJECT_ID: "ci-test"
+  VITE_SUPABASE_PUBLISHABLE_KEY: "ci-test-key"
+  VITE_SUPABASE_URL: "http://127.0.0.1:54321"
+
+jobs:
+  # ── how much JavaScript each route ships ───────────────────────────────────
+  #
+  # Totalled from `dist/.vite/manifest.json`: the entry chunk and everything it
+  # statically imports, plus the route's own chunk and everything IT statically
+  # imports. Dynamic imports are excluded — that is what makes them lazy, and
+  # counting them would erase the difference between a split bundle and a
+  # monolith.
+  #
+  # GZIPPED, because that is what crosses the wire. `vite preview` serves
+  # uncompressed, so a number scraped from a running server would be ~3.5x the
+  # truth and every budget would look broken.
+  route-js-budgets:
+    name: Route JS budgets
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          # 22, not 20: the check imports the route catalogue from TypeScript
+          # directly via --experimental-strip-types, rather than re-parsing it
+          # with a regex that goes stale the first time the formatting changes.
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Route JS budgets
+        run: npm run perf:bundles -- --check
+
+  # ── what a browser actually experiences ────────────────────────────────────
+  #
+  # Six routes, one per surface, on the mobile profile: 4x CPU slowdown and Slow
+  # 4G through CDP. Measures LCP, CLS, the longest long task, how many Supabase
+  # queries the page issues, and whether any table is read once per row.
+  #
+  # NOT LIGHTHOUSE CI, deliberately. Lighthouse takes its budgets from its own
+  # `budget.json`, which would put a threshold in a second file — and a threshold
+  # that exists twice is a threshold that will disagree with itself. This reads
+  # `perf/budgets.json` directly, and it can also see the two things Lighthouse
+  # cannot: the query count and the N+1.
+  route-budgets-browser:
+    name: Route budgets (browser)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      # PERF_RECORD is deliberately NOT set here. It rewrites the ratchet from
+      # what the run measured, and a gate that can rewrite its own budget is not
+      # a gate — recorded numbers only ever arrive through a reviewed commit.
+      - name: Route budgets (browser)
+        run: npm run perf:budgets
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+          if-no-files-found: ignore

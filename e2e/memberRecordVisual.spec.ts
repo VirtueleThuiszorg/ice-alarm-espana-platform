@@ -176,6 +176,14 @@ for (const [label, width, height] of [
     await openTab(page, /subscription/i);
     await shot("subscription-locked");
 
+    // The two other tabs the field primitive reaches, so the walk is photographed rather than
+    // asserted only in class names.
+    await openTab(page, /device/i);
+    await shot("device");
+
+    await openTab(page, /crm/i);
+    await shot("crm");
+
     /*
       THE ONE THING THE PICTURE CANNOT BE TRUSTED ON, and the reason it is asserted about the
       STRIP rather than the document.
@@ -217,3 +225,84 @@ for (const [label, width, height] of [
     expect(escapes, "nothing on the record may run past its own right edge").toEqual([]);
   });
 }
+
+/**
+ * THE OTHER SURFACE, photographed for the same reason.
+ *
+ * `EditableCard`, `FieldLabel` and `NotAdded` are shared with the member's own pages, so every
+ * change in this series reached them whether or not anybody looked. A class-name test proves
+ * the constant is imported; it cannot prove the member's profile still reads properly with a
+ * caption style that was retuned for a dense staff screen.
+ */
+test("the member's own profile page still reads properly", async ({ page }) => {
+  const MEMBER_ID = "22222222-2222-2222-2222-222222222222";
+  const EMAIL = "member@example.com";
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await installSupabaseStub(page, {
+    staff: null,
+    partner: null,
+    roleInfo: {
+      is_staff: false,
+      staff_role: null,
+      is_partner: false,
+      partner_id: null,
+      member_id: MEMBER_ID,
+    },
+    tables: {
+      members: [
+        {
+          id: MEMBER_ID,
+          user_id: "f330e208-3648-4c99-8e04-79876d204e50",
+          first_name: "Rosa",
+          last_name: "Beta",
+          email: EMAIL,
+          phone: "+34600000009",
+          date_of_birth: "1946-02-20",
+          nie_dni: null,
+          address_line_1: "Calle Real 3",
+          address_line_2: null,
+          city: "Mojácar",
+          province: "Almería",
+          postal_code: "04638",
+          country: "Spain",
+          status: "active",
+          preferred_language: "es",
+          photo_url: null,
+          home_lat: null,
+          home_lng: null,
+          home_location_source: null,
+          home_location_set_at: null,
+        },
+      ],
+      subscriptions: [],
+      system_settings: [{ key: "settings_emergency_phone", value: "+34 950 473 199" }],
+      devices: [],
+      orders: [],
+      order_items: [],
+      alerts: [],
+      emergency_contacts: [],
+      medical_information: [],
+      member_access: [],
+      member_notification_optin: [],
+      member_monitoring_readiness: [],
+      pricing_plans: [],
+      pricing_settings: [],
+    },
+  });
+
+  await page.goto("/login");
+  await page.locator('input[type="email"]').fill(EMAIL);
+  await page.locator('input[type="password"]').fill("Member123");
+  await page.getByRole("button", { name: /sign in|log in/i }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+
+  await page.goto("/dashboard/profile");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await page.screenshot({ path: "e2e/.report/member-portal-profile-1280.png", fullPage: false });
+
+  // The empty state is the shared one, not a blank line or a dash — the thing the staff record
+  // now also uses, so a regression on either surface shows up on both.
+  const notAdded = page.getByTestId("not-added");
+  expect(await notAdded.count()).toBeGreaterThan(0);
+});

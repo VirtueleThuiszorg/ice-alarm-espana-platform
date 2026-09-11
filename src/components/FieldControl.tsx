@@ -4,7 +4,15 @@ import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useEditableCard } from "@/components/editableCardContext";
-import { FIELD_LABEL_CLASS } from "@/components/FieldGrid";
+/*
+ * FieldLabel and NotAdded MOVED to FieldGrid, and are re-exported here so the member portal's
+ * imports keep working. They had to move: FieldRow needs both, FieldGrid cannot import from this
+ * file without a cycle, and a second copy of "what an empty field says" is the exact drift these
+ * primitives exist to prevent.
+ */
+import { FieldLabel, NotAdded } from "@/components/FieldGrid";
+
+export { FieldLabel, NotAdded };
 
 /**
  * R6 IN ONE COMPONENT: a field is its label and its value until its card is unlocked.
@@ -21,32 +29,6 @@ import { FIELD_LABEL_CLASS } from "@/components/FieldGrid";
  * `disableFieldsWhenLocked={false}`, because a disabled fieldset wrapped around plain text is a
  * group assistive technology announces as unavailable for nothing.
  */
-
-/**
- * 13px uppercase Slate — R6's label, and R10's floor for a label specifically.
- *
- * In rem, not px, so R10's A/A control moves it. `text-[13px]` would have left every label on
- * the member's account at 13px while the values around them grew.
- */
-export function FieldLabel({ children }: { children: ReactNode }) {
-  // The class moved to FieldGrid so the staff record's FormLabels can import the same string.
-  // Two surfaces cannot drift apart on a constant they both import.
-  return <span className={FIELD_LABEL_CLASS}>{children}</span>;
-}
-
-/**
- * EMPTY IS NOT BLANK. A field with nothing in it renders "Not added" rather than an empty line,
- * because an empty line is indistinguishable from a field that failed to load — and on a
- * member's medical page the difference is whether an operator has their allergies.
- */
-export function NotAdded() {
-  const { t } = useTranslation();
-  return (
-    <span data-testid="not-added" className="text-base italic text-muted-foreground">
-      {t("common.notAdded", "Not added")}
-    </span>
-  );
-}
 
 export interface FieldControlProps {
   /**

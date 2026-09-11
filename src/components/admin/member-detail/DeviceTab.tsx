@@ -39,6 +39,7 @@ import {
 import { FULFILMENT_LABEL } from "@/lib/fulfilmentState";
 import { PendantFulfilmentCard } from "@/components/admin/member-detail/PendantFulfilmentCard";
 import { EditableCard } from "@/components/EditableCard";
+import { FieldGrid, FieldRow } from "@/components/FieldGrid";
 
 interface Device {
   id: string;
@@ -566,35 +567,32 @@ export function DeviceTab({ memberId }: DeviceTabProps) {
           )}
 
           {/* Device Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">IMEI</p>
-              <p className="font-mono">{device.imei}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">SIM Number</p>
-              <p className="font-mono">{device.sim_phone_number || <span className="text-muted-foreground italic text-sm">Not assigned</span>}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Configuration Status</p>
-              <Badge 
+          <FieldGrid>
+            {/* `mono` because an IMEI and a SIM number are read aloud digit by digit against a
+                label on the device — proportional digits are the wrong tool for that. */}
+            <FieldRow label="IMEI" mono testId="device-imei">
+              {device.imei}
+            </FieldRow>
+            <FieldRow label="SIM Number" mono testId="device-sim">
+              {device.sim_phone_number}
+            </FieldRow>
+            <FieldRow label="Configuration Status">
+              <Badge
                 variant={device.configuration_status === "complete" ? "default" : "outline"}
                 className="capitalize"
               >
                 {device.configuration_status}
               </Badge>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Last Check-in</p>
-              <p className="flex items-center gap-1">
+            </FieldRow>
+            <FieldRow label="Last Check-in">
+              <span className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
-                {device.last_checkin_at 
+                {device.last_checkin_at
                   ? formatDistanceToNow(new Date(device.last_checkin_at), { addSuffix: true })
-                  : "Never"
-                }
-              </p>
-            </div>
-          </div>
+                  : "Never"}
+              </span>
+            </FieldRow>
+          </FieldGrid>
 
           {/* Battery Level */}
           <div className="space-y-2">

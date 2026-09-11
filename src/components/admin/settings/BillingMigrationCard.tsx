@@ -235,14 +235,17 @@ export function BillingMigrationCard({ canEdit }: { canEdit: boolean }) {
               </p>
             ) : preview.data.planned.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Nobody is due today. {preview.data.consideredMembers ?? 0} legacy member(s) have a
-                billing date on file.
+                {/* "still moving" rather than "legacy": the count includes members already
+                    part-way through, whose reminder and phone call are still to come. */}
+                Nobody is due today. {preview.data.consideredMembers ?? 0} member(s) are still
+                moving across and have a billing date on file.
               </p>
             ) : (
               <>
                 <p className="text-sm font-medium">
                   {preview.data.planned.length} member(s) would be written to today, out of{" "}
-                  {preview.data.consideredMembers ?? 0} with a billing date on file.
+                  {preview.data.consideredMembers ?? 0} still moving across with a billing date on
+                  file.
                 </p>
                 <ul className="space-y-1 text-sm">
                   {preview.data.planned.map((p, i) => (

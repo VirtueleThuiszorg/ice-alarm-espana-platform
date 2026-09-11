@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { firstRenewalAfterPayment } from "../_shared/legacy-billing-schedule.ts";
 import { handleSuccessfulPayment } from "../_shared/post-payment.ts";
 import { notifyAdmins } from "../_shared/staff-bell.ts";
 import {
@@ -330,10 +331,51 @@ async function onCheckoutSession(
   const subscriptionIds = [subscriptionId, ...(partnerSubscriptionId ? [partnerSubscriptionId] : [])];
   const activatedSubscriptions: string[] = [];
 
+  /*
+    THE DAY THEY PAID IS THE DAY THEY PAY — recorded HERE, because this is the first moment the
+    platform knows it.
+
+    `renewal_date` was written when the ORDER was created: the day the link was sent, or the day
+    the join wizard was submitted. The member pays later — a switch link stands up to 24 hours,
+    and a SEPA debit settles days after the mandate is signed — so the date on the record was the
+    anniversary of a day nothing happened on, and nothing corrected it until their SECOND invoice.
+
+    Lee's rule is explicit: "the setup day becomes their billing day". There is no trial and no
+    `billing_cycle_anchor` on any session this platform creates, so Stripe's own cycle starts at
+    this payment too, and the two agree.
+
+    THROUGH `firstRenewalAfterPayment`, not a local `setUTCMonth(+1)`: a member who pays on 31
+    January is next billed on 28 February, and the naive version produces 3 March.
+
+    `new Date()` rather than a timestamp off the event, because there is none: a Checkout Session
+    carries when it was CREATED, and for SEPA the money moves days later. The webhook is the
+    moment we learn of the payment, so it is the closest thing to the payment's own day. The one
+    way they diverge is a retry after a handler that died part-way through — `webhook_events`
+    skips an event already stamped `processed_at`, so a re-delivery of a COMPLETED run writes
+    nothing — and the cost there is a renewal date one day late, not a month.
+  */
+  const { data: existingSubs } = await supabase
+    .from("subscriptions")
+    .select("id, billing_frequency")
+    .in("id", subscriptionIds);
+
+  const paidOn = new Date();
+  const frequencyById = new Map(
+    (existingSubs ?? []).map((row) => [row.id as string, row.billing_frequency as string | null]),
+  );
+
   for (const id of subscriptionIds) {
+    const frequency = frequencyById.get(id);
+    // Only when the row says which cycle it is on. A guess here would put a renewal a year out
+    // for somebody who pays monthly, and the order-time date is wrong by days rather than months.
+    const renewalDate =
+      frequency === "monthly" || frequency === "annual"
+        ? { renewal_date: firstRenewalAfterPayment(paidOn, frequency) }
+        : {};
+
     const { data: updated, error } = await supabase
       .from("subscriptions")
-      .update(stripeFields)
+      .update({ ...stripeFields, ...renewalDate })
       .eq("id", id)
       .select("id");
 

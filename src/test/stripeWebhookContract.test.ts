@@ -642,3 +642,61 @@ describe("a bounced direct debit returns the member to the old collection", () =
     expect(upTo).toMatch(/if \(abandonError\) \{[\s\S]{0,200}throw new Error/);
   });
 });
+
+/*
+  ── THE DAY THEY PAID IS THE DAY THEY PAY ──────────────────────────────────────
+
+  `renewal_date` was written when the ORDER was created — the day a staff payment link was SENT,
+  or the day the join wizard was submitted. The member pays later: a switch link stands for up to
+  24 hours and a SEPA debit settles days after the mandate is signed. So the first recorded
+  renewal was the anniversary of a day nothing happened on, and `onInvoicePaid` skips the signup
+  invoice, so nothing corrected it until the member's SECOND invoice a whole cycle later.
+
+  Lee's rule is explicit — "the setup day becomes their billing day" — and this is the first
+  moment the platform knows which day that is.
+*/
+describe("the renewal date is recorded when the money arrives", () => {
+  const ACTIVATION = WEBHOOK.slice(
+    WEBHOOK.indexOf("const subscriptionIds = ["),
+    POST_PAYMENT_CALL,
+  );
+
+  it("is written in the same place the subscription is activated", () => {
+    expect(ACTIVATION).toMatch(/renewal_date: firstRenewalAfterPayment\(paidOn, frequency\)/);
+  });
+
+  /*
+    THROUGH THE SHARED RULE, NOT A LOCAL `setUTCMonth(+1)`. A member who pays on 31 January is
+    next billed on 28 February; the naive version produces 3 March, a date in the wrong month, on
+    the record that decides when somebody is chased for money.
+  */
+  it("uses the one implementation of the month-end clamp", () => {
+    expect(WEBHOOK).toMatch(/from "\.\.\/_shared\/legacy-billing-schedule\.ts"/);
+    expect(ACTIVATION).not.toMatch(/setUTCMonth/);
+  });
+
+  /*
+    AND IT DOES NOT GUESS A CYCLE. A row whose `billing_frequency` is unreadable keeps the
+    order-time date, which is wrong by DAYS. Inventing a cycle would make it wrong by MONTHS —
+    a monthly member given a renewal a year out is a member nobody dunns.
+  */
+  it("leaves the date alone rather than guessing when the row does not say which cycle", () => {
+    expect(ACTIVATION).toMatch(/frequency === "monthly" \|\| frequency === "annual"/);
+    expect(ACTIVATION).toMatch(/:\s*\{\}/);
+  });
+
+  it("reads the cycle off the rows it is about to activate, by id", () => {
+    expect(ACTIVATION).toMatch(/select\("id, billing_frequency"\)/);
+    expect(ACTIVATION).toMatch(/\.in\("id", subscriptionIds\)/);
+  });
+
+  /*
+    ONE CLOCK READING FOR THE WHOLE PAYMENT. A couple is two rows; taking `new Date()` inside the
+    loop could put the two halves of one household on different dates if the write straddles
+    midnight.
+  */
+  it("takes the payment day once, not once per subscription row", () => {
+    expect(ACTIVATION).toMatch(/const paidOn = new Date\(\);/);
+    expect(ACTIVATION.match(/new Date\(\)/g) ?? []).toHaveLength(1);
+  });
+});

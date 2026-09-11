@@ -656,6 +656,17 @@ The bell's wording differs by reason, because the two situations do: a member wh
 believes they have moved, and the person ringing them has to know that. The settings card also
 told admins to subscribe to `checkout.session.failed`, which is not a Stripe event at all.
 
+### 🔴 The billing day nobody recorded
+`renewal_date` was written when the ORDER was created — the day a payment link was **sent**, or
+the day the join wizard was submitted — because that is the only day those paths know about. The
+member pays later: a switch link stands for up to 24 hours and a SEPA debit settles days after the
+mandate is signed. And `onInvoicePaid` skips the signup invoice, so nothing corrected it until
+the member's **second** invoice, a whole cycle later. Lee's rule is explicit — "the setup day
+becomes their billing day" — and the webhook is the first moment the platform knows which day
+that is, so it records it there, through `firstRenewalAfterPayment`. Not a local
+`setUTCMonth(+1)`: a member who pays on 31 January is next billed on 28 February, and the naive
+version produces 3 March.
+
 ### ✅ The progress view (#369)
 Counters, the two otherwise-silent queues (no billing date; a link that lapsed unused), and the
 **Santander CSV** — which is not a report but an instruction, and excludes anybody with a link

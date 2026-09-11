@@ -119,6 +119,44 @@ export function nextAnniversaryFrom(startDate: string, from: Date): string | nul
   return null;
 }
 
+/**
+ * THE DAY THE MEMBER PAID BECOMES THE DAY THEY PAY — the first renewal after a first payment.
+ *
+ * Lee's rule, in his words: "a member pays the month's fee the moment they set up (join or
+ * switch) and again exactly one month later, and so on — the setup day becomes their billing
+ * day. No €0 setups, no future anchors, no proration."
+ *
+ * WHAT THIS REPLACES. `create_payment_link_order` and the join path both write `renewal_date`
+ * when the ORDER is created — the day the link was sent, or the day the wizard was submitted —
+ * because that is the only day they know about. The member pays later: a switch link stands for
+ * up to 24 hours, and a SEPA debit settles days after the mandate is signed. So every member's
+ * first recorded renewal was the anniversary of a day nothing happened on, and nothing corrected
+ * it until their SECOND invoice.
+ *
+ * WHY IT LIVES IN THIS MODULE rather than beside the webhook: month-end. A member who pays on
+ * 31 January is next billed on 28 February, and the naive `setUTCMonth(+1)` gives 3 March — a
+ * date in the wrong month. `nextRenewalFrom` already clamps exactly as Stripe does, and this
+ * file's header says in as many words that a second implementation of the clamp is the thing to
+ * avoid. So this is a use of the rule, not a copy of it.
+ *
+ * It reads the day off the payment and asks for the next occurrence strictly AFTER it: "on or
+ * after" would return the payment day itself, which would say the member renews the moment they
+ * have just paid.
+ */
+export function firstRenewalAfterPayment(
+  paidOn: Date,
+  billingFrequency: "monthly" | "annual",
+): string {
+  const dayAfter = new Date(
+    Date.UTC(paidOn.getUTCFullYear(), paidOn.getUTCMonth(), paidOn.getUTCDate() + 1),
+  );
+  if (billingFrequency === "annual") {
+    // Non-null: `iso()` always produces the YYYY-MM-DD shape `nextAnniversaryFrom` parses.
+    return nextAnniversaryFrom(iso(paidOn), dayAfter) as string;
+  }
+  return nextRenewalFrom(paidOn.getUTCDate(), dayAfter);
+}
+
 export interface ScheduleInputs {
   /** Karma's `Monthly Payment Date`, verbatim. */
   monthlyPaymentDate: string | null;

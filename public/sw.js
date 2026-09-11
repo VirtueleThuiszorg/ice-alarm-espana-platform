@@ -1,11 +1,18 @@
 /* ================================================================== */
 /*  ICE Alarm España  -  Service Worker                               */
-/*  Cache-first for statics, network-first for API, offline fallback  */
+/*  Statics cached. THE API IS NEVER CACHED. Offline page for pages.  */
 /* ================================================================== */
 
-const CACHE_VERSION = "ice-alarm-espana-v7";
+/*
+  v8, and the bump is load-bearing rather than routine: v7 and everything before
+  it wrote Supabase RESPONSES into a cache on the device's disk — members' medical
+  records, their emergency contacts, their alert history. Activation below now
+  deletes every cache this worker does not use, which includes every `-api` cache
+  any previous version created. Keeping the name in an allow-list, as v7 did,
+  would have left that data sitting on every device that ever loaded the app.
+*/
+const CACHE_VERSION = "ice-alarm-espana-v8";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
-const API_CACHE = `${CACHE_VERSION}-api`;
 
 /* ---- Assets to pre-cache during install ---- */
 const PRE_CACHE = [
@@ -51,14 +58,25 @@ self.addEventListener("install", (event) => {
 /* ================================================================== */
 
 self.addEventListener("activate", (event) => {
+  /*
+    DELETE EVERYTHING THIS WORKER DOES NOT USE — which is now the whole point.
+
+    `STATIC_CACHE` is the only cache written from here on, so every other key goes,
+    and that deliberately includes `ice-alarm-espana-v*-api`: the caches earlier
+    versions filled with members' medical records, emergency contacts and alert
+    history. An allow-list that named the API cache, as v7 had, would preserve
+    exactly the data this change exists to remove.
+  */
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((key) => key !== STATIC_CACHE && key !== API_CACHE)
-          .map((key) => caches.delete(key))
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(keys.filter((key) => key !== STATIC_CACHE).map((key) => caches.delete(key))),
       )
-    )
+      .catch(() => {
+        // A CacheStorage we cannot enumerate is one we cannot clean. Never let
+        // that stop the worker activating — an inactive worker serves nothing.
+      }),
   );
   // Start controlling all open tabs immediately
   self.clients.claim();
@@ -75,15 +93,47 @@ self.addEventListener("fetch", (event) => {
   // Only handle GET requests
   if (request.method !== "GET") return;
 
-  // --- API calls (Supabase): network-first, fall back to cache ---
+  /*
+    --- API calls (Supabase): NOT HANDLED AT ALL, and that is the fix ---
+
+    This used to be `networkFirst(request, API_CACHE)`. Two things were wrong with
+    that, and both were observed rather than theorised:
+
+    1. IT CACHED THE API. A member's medical records, their emergency contacts and
+       their alert history were written into CacheStorage on the device's disk.
+       On a shared or lost phone that is exactly the data this product exists to
+       protect, and nothing ever evicted it.
+
+    2. ON ANY FAILURE IT ANSWERED WITH `offline.html`. A data call got back an
+       HTML document with status 503, so `supabase-js` tried to parse a web page
+       as JSON. A network error is something the client already handles; an HTML
+       page pretending to be a response is not.
+
+    Returning nothing from the fetch handler lets the request go to the network
+    untouched — which is what an API call should always do. The app's own
+    react-query cache is the right place for freshness decisions about data,
+    because it knows what the data MEANS.
+  */
   if (url.hostname.includes(SUPABASE_HOST)) {
-    event.respondWith(networkFirst(request, API_CACHE));
     return;
   }
 
-  // --- Hashed JS/CSS chunks: network-first (ensures fresh after deploys) ---
+  /*
+    --- Hashed JS/CSS chunks: CACHE-FIRST, revalidating in the background ---
+
+    These filenames contain a hash of their own contents, so a given URL can
+    never legitimately change: `index-C06uHvj9.js` is that file for ever, and a
+    deploy produces new NAMES rather than new bytes at the same name. Going to
+    the network first for something immutable is a round trip that can only ever
+    return what is already held.
+
+    Cache-first makes a warm route transition cost no network at all, which is
+    the "returning to a page is instant" half of the performance work. The
+    background refresh keeps the entry from going stale if a cache was ever
+    populated with a truncated or error response.
+  */
   if (/\/assets\/.*-[a-zA-Z0-9]{8,}\.(js|css)$/i.test(url.pathname)) {
-    event.respondWith(networkFirst(request, STATIC_CACHE));
+    event.respondWith(staleWhileRevalidate(request, STATIC_CACHE));
     return;
   }
 
@@ -122,18 +172,82 @@ self.addEventListener("fetch", (event) => {
  * from network and cache the result.
  */
 async function cacheFirst(request, cacheName) {
-  const cached = await caches.match(request);
+  const cached = await safeMatch(request);
   if (cached) return cached;
 
+  const response = await fetch(request);
+  void store(cacheName, request, response);
+  return response;
+}
+
+/**
+ * Answer from cache immediately, and refresh the entry in the background.
+ *
+ * For a content-hashed asset the cached copy is by definition the right bytes,
+ * so this is cache-first with a safety net rather than a freshness compromise.
+ */
+async function staleWhileRevalidate(request, cacheName) {
+  const cached = await safeMatch(request);
+
+  const refresh = fetch(request)
+    .then((response) => {
+      void store(cacheName, request, response);
+      return response;
+    })
+    .catch(() => null);
+
+  if (cached) {
+    // Do not await the refresh — that would make this network-first again.
+    void refresh;
+    return cached;
+  }
+
+  const fresh = await refresh;
+  if (fresh) return fresh;
+  // Nothing cached and the network failed: let the caller see a real failure.
+  return fetch(request);
+}
+
+/**
+ * PUT INTO THE CACHE WITHOUT EVER BREAKING THE RESPONSE.
+ *
+ * THE BUG THIS EXISTS TO STOP: the cache write used to sit inside the same `try`
+ * as the fetch —
+ *
+ *     const response = await fetch(request);
+ *     if (response.ok) {
+ *       const cache = await caches.open(cacheName);   // <- can reject
+ *       cache.put(request, response.clone());
+ *     }
+ *     return response;
+ *     } catch { return offlineFallback(); }
+ *
+ * — so when CacheStorage was unavailable (a private window, blocked site data, a
+ * full quota) a request THE NETWORK HAD ANSWERED PERFECTLY was thrown away and
+ * the caller got `offline.html` with status 503 instead. For a lazily-loaded
+ * chunk that means the app cannot load its own code.
+ *
+ * Observed, not theorised: in the performance harness every Supabase read and the
+ * `GlobalSearch` chunk came back as 503 offline pages with the worker registered.
+ *
+ * Storing is now strictly best-effort and strictly separate from answering.
+ */
+async function store(cacheName, request, response) {
+  if (!response || !response.ok) return;
   try {
-    const response = await fetch(request);
-    if (response.ok) {
-      const cache = await caches.open(cacheName);
-      cache.put(request, response.clone());
-    }
-    return response;
+    const cache = await caches.open(cacheName);
+    await cache.put(request, response.clone());
   } catch {
-    return offlineFallback();
+    // A cache we cannot write to is a cache we do without.
+  }
+}
+
+/** `caches.match` throws in the same situations `caches.open` does. */
+async function safeMatch(request) {
+  try {
+    return await caches.match(request);
+  } catch {
+    return undefined;
   }
 }
 
@@ -146,14 +260,16 @@ async function cacheFirst(request, cacheName) {
 async function networkFirst(request, cacheName, { revalidate = false } = {}) {
   try {
     const response = await fetch(request, revalidate ? { cache: "no-cache" } : undefined);
-    if (response.ok) {
-      const cache = await caches.open(cacheName);
-      cache.put(request, response.clone());
-    }
+    // Storing is best-effort and CANNOT fail the response — see `store`.
+    void store(cacheName, request, response);
     return response;
   } catch {
-    const cached = await caches.match(request);
-    return cached || offlineFallback();
+    const cached = await safeMatch(request);
+    if (cached) return cached;
+    // No HTML fallback for a sub-resource: an icon or a font that answers with a
+    // web page is a broken image, not a helpful message. Only a NAVIGATION gets
+    // the offline page, and `networkFirstNavigation` is where that happens.
+    throw new Error("offline and not cached");
   }
 }
 
@@ -163,16 +279,20 @@ async function networkFirst(request, cacheName, { revalidate = false } = {}) {
 async function networkFirstNavigation(request) {
   try {
     const response = await fetch(request);
-    if (response.ok) {
-      const cache = await caches.open(STATIC_CACHE);
-      cache.put(request, response.clone());
-    }
+    // Best-effort, and OUTSIDE the try's failure path: this function had the same
+    // defect as the other two — a rejecting `caches.open` sent a page the network
+    // had served perfectly into the catch below, and the visitor was told they
+    // were offline while they were not.
+    void store(STATIC_CACHE, request, response);
     return response;
   } catch {
-    // Try to return cached index.html for SPA routing
-    const cached = await caches.match("/index.html");
+    // SPA routing: any path is served by the same document, so a cached
+    // index.html is a real answer rather than a consolation.
+    const cached = await safeMatch("/index.html");
     if (cached) return cached;
 
+    // A NAVIGATION is a person looking at a screen, so this is the one place the
+    // offline page belongs.
     return offlineFallback();
   }
 }

@@ -143,6 +143,14 @@ webhook activates on payment — it is simply harder for the people it is for.
 - **~4,550 unit and contract tests**, including the date rule at month ends and leap days, the
   runner's whole daily plan, the dedupe key, the Santander CSV's exclusion rule, and the refusals
   `send-payment-link` makes before it asks Stripe for anything.
+- **"Monitored state unchanged", which is a clause of Lee's item 5 and of his rule 3, is now
+  asserted on BOTH paths that end a switch without money** — the 14-day lapse and the bounced
+  first debit. It was previously a sentence in the migration's header ("NOTHING HERE ACTIVATES OR
+  DEACTIVATES ANYBODY") and an assertion on the path that *starts* a switch, with nothing on
+  either ending. Measured, not assumed: adding `status = 'inactive'` to `abandon_legacy_switch`
+  passed the entire harness before this, and now fails it twice. A failed direct debit is the
+  most plausible reason anybody would ever reach for `members.status` there, and the member it
+  would switch off is somebody in their eighties whose bank bounced one payment.
 - Several of the assertions above were **mutation-checked** — broken on purpose to see them fail.
   One did not fail, and that is recorded rather than glossed: the "every switch column is cleared"
   assertion passed over columns that were already NULL in the harness seed. The seed now sets them.

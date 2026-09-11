@@ -69,6 +69,11 @@ export const NOTIFY_EVENTS = [
   //    nobody has moved them ──
   "member.switch_link_sent",
   "member.switch_expired",
+  // ── the daily runner that paces the migration: the annual ladder's last rung, which is a
+  //    phone call rather than another text, and the run itself failing — a migration that
+  //    quietly stops is 431 people nobody is moving and nobody knows it ──
+  "billing.annual_switch_due",
+  "billing.migration_run_failed",
   "system.runner_failure",
   "escalation.call_failed",
   "escalation.no_emergency_contacts",

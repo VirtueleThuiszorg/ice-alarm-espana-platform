@@ -92,21 +92,45 @@ serve(async (req) => {
     // ── who is asking ────────────────────────────────────────────────────────
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return json(401, { error: "Unauthorized" });
+    const bearer = authHeader.replace("Bearer ", "");
 
-    const { data: userData, error: authError } = await admin.auth.getUser(
-      authHeader.replace("Bearer ", ""),
-    );
-    if (authError || !userData.user) return json(401, { error: "Invalid token" });
+    /*
+      THE DAILY RUNNER IS NOT A PERSON, and it must not need one.
 
-    const { data: staff } = await admin
-      .from("staff")
-      .select("id, role, first_name, last_name")
-      .eq("user_id", userData.user.id)
-      .eq("is_active", true)
-      .maybeSingle();
+      `billing-migration-run` paces the legacy→Stripe migration over months and calls this
+      function for each member due today. It holds the service role key and nothing else — there
+      is no staff session behind a cron job, and inventing one (a service account with a staff
+      row) would be a login that can send payment links and that nobody would ever rotate.
 
-    if (!staff || !STAFF_ROLES.includes(staff.role)) {
-      return json(403, { error: "Staff access required" });
+      SO THE BRANCH IS AS NARROW AS IT CAN BE. Only an exact match on the service role key, and
+      even then only for `legacy_switch` — the mode that takes no plan, no amount and no payer
+      from the request, so there is nothing for a caller to choose. An ordinary payment link
+      still requires a real, active staff member with a role on the list, unchanged.
+
+      The audit row and `start_legacy_switch` both take a NULL staff id for these, which is
+      honest: nobody pressed anything. The activity_logs row says what happened and when, and
+      `source: legacy-switch` in the Stripe metadata says which path created it.
+    */
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const isRunner = serviceKey.length > 0 && bearer === serviceKey;
+
+    let staff: { id: string; role: string } | null = null;
+
+    if (!isRunner) {
+      const { data: userData, error: authError } = await admin.auth.getUser(bearer);
+      if (authError || !userData.user) return json(401, { error: "Invalid token" });
+
+      const { data: staffRow } = await admin
+        .from("staff")
+        .select("id, role, first_name, last_name")
+        .eq("user_id", userData.user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (!staffRow || !STAFF_ROLES.includes(staffRow.role)) {
+        return json(403, { error: "Staff access required" });
+      }
+      staff = staffRow;
     }
 
     // ── what they asked for (no amounts, by schema) ──────────────────────────
@@ -114,6 +138,15 @@ serve(async (req) => {
     const validated = validateRequest(sendPaymentLinkSchema, raw, corsHeaders);
     if (validated.error) return validated.error;
     const body = validated.data;
+
+    // The service role may ONLY take the switch path. Anything else from a keyholder with no
+    // person behind it is refused here rather than being quietly allowed by the branch above.
+    if (isRunner && body.mode !== "legacy_switch") {
+      return json(403, {
+        error: "The service role may only create legacy-switch links.",
+        code: "RUNNER_SCOPE",
+      });
+    }
 
     // ── the member ───────────────────────────────────────────────────────────
     const { data: member, error: memberError } = await admin
@@ -246,7 +279,7 @@ serve(async (req) => {
             email: payerChoice.email,
             phone: payerChoice.phone ?? null,
             relationship: payerChoice.relationship ?? null,
-            created_by: staff.id,
+            created_by: staff?.id ?? null,
           })
           .select("id")
           .single();
@@ -271,7 +304,7 @@ serve(async (req) => {
         pendantCount: selection.pendantCount,
         payerId,
         paymentMethod: "stripe",
-        createdByStaffId: staff.id,
+        createdByStaffId: staff?.id ?? null,
         amounts,
       },
     });
@@ -306,7 +339,7 @@ serve(async (req) => {
       subscription_id: ids.subscriptionId,
       order_number: ids.orderNumber,
       payer_id: payerId ?? "",
-      sent_by_staff_id: staff.id,
+      sent_by_staff_id: staff?.id ?? "",
       // The webhook reads this to decide whether a paid session also ENDS a legacy billing
       // arrangement. `post-payment.ts` flips billing_source to `stripe` on it, which is the one
       // write of that value anywhere — golden rule 4 applied to who bills, not just to who is
@@ -417,7 +450,7 @@ serve(async (req) => {
         _member_id: member.id,
         _session_id: session.id,
         _expires_at: switchExpiresAt,
-        _staff_id: staff.id,
+        _staff_id: staff?.id ?? null,
         // THE URL IS STORED so the member's own portal can show it. A Checkout URL is not a
         // credential — it pays one order and Stripe expires it — and the alternative is telling
         // an 82-year-old to go and find the text message we sent them.
@@ -538,7 +571,7 @@ serve(async (req) => {
     // saying "a link was created" without saying whether it reached anybody is the shape of
     // failure this whole item is about.
     await admin.from("activity_logs").insert({
-      staff_id: staff.id,
+      staff_id: staff?.id ?? null,
       action: isSwitch ? "legacy_switch_link_sent" : "payment_link_sent",
       entity_type: "order",
       entity_id: ids.orderId,

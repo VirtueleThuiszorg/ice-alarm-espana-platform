@@ -34,6 +34,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { EnablePushCard } from "@/components/notifications/EnablePushCard";
 import { FirebaseConfigCard } from "@/components/admin/settings/FirebaseConfigCard";
 import { NotificationMatrix } from "@/components/admin/settings/NotificationMatrix";
+import { BillingMigrationCard } from "@/components/admin/settings/BillingMigrationCard";
 import { CheckoutPaymentMethodsCard } from "@/components/admin/settings/CheckoutPaymentMethodsCard";
 import { ImagesSettingsTab } from "@/components/admin/settings/ImagesSettingsTab";
 import { DocumentationSettingsTab } from "@/components/admin/settings/DocumentationSettingsTab";
@@ -133,7 +134,7 @@ const KEY = {
 // to when it blocks an admin for having no verified TOTP factor. Without it in this
 // list the param is dropped and the tab falls back to "company" — which is how the
 // gate came to redirect somewhere that did not offer enrolment.
-const SETTINGS_TABS = ["company", "pricing", "payments", "communications", "notifications", "members", "devices", "images", "documentation", "security"] as const;
+const SETTINGS_TABS = ["company", "pricing", "payments", "billing", "communications", "notifications", "members", "devices", "images", "documentation", "security"] as const;
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -552,10 +553,14 @@ export default function SettingsPage() {
         {/* Nine tabs never fitted in `grid-cols-7` — eight already did not, so two were
             clipped before this added one. Three columns on a phone, five from `sm`, all nine
             from `lg`. */}
-        <TabsList className="grid h-auto w-full grid-cols-3 sm:grid-cols-5 lg:grid-cols-9">
+        {/* ELEVEN NOW, and the column count follows. It read `lg:grid-cols-9` while ten
+            triggers were already declared, so two were clipped at large widths before this
+            added one — the exact failure the comment above was written about, repeated. */}
+        <TabsList className="grid h-auto w-full grid-cols-3 sm:grid-cols-4 lg:grid-cols-11">
           <TabsTrigger value="company">{t("adminSettings.company", "Company")}</TabsTrigger>
           <TabsTrigger value="pricing">{t("adminSettings.pricing", "Pricing")}</TabsTrigger>
           <TabsTrigger value="payments">{t("adminSettings.payments", "Payments")}</TabsTrigger>
+          <TabsTrigger value="billing">{t("adminSettings.billing", "Billing")}</TabsTrigger>
           <TabsTrigger value="communications">{t("adminSettings.communications", "Communications")}</TabsTrigger>
           <TabsTrigger value="notifications">{t("adminSettings.notifications", "Notifications")}</TabsTrigger>
           <TabsTrigger value="members">{t("adminSettings.members", "Members")}</TabsTrigger>
@@ -775,6 +780,12 @@ export default function SettingsPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Billing Tab — the legacy→Stripe migration's own switch, which is a decision about
+            writing to several hundred elderly people rather than a configuration change. */}
+        <TabsContent value="billing">
+          <BillingMigrationCard canEdit={canEditNotifications} />
         </TabsContent>
 
         {/* Payments Tab */}

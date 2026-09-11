@@ -177,8 +177,19 @@ for (const [file, text] of TEXT) {
   for (const m of text.matchAll(/\.in\(\s*"key"\s*,\s*\[?([^\])]*)/g)) {
     for (const part of m[1].split(",")) for (const k of resolveKeys(part)) note(readers, k, file);
   }
-  // `.in("key", VOICE_KEYS)` / `.in("key", Object.values(DEVICE_KEYS))`
+  // `.in("key", VOICE_KEYS)`
   for (const m of text.matchAll(/\.in\(\s*"key"\s*,\s*([^[)][^)]*)\)/g)) {
+    for (const k of resolveKeys(m[1])) note(readers, k, file);
+  }
+  /*
+    `.in("key", Object.values(SOME_KEYS))` — its own pattern, because the one above stops at the
+    FIRST `)`, which for this shape is the one closing `Object.values(`. `resolveKeys` then sees
+    an unbalanced expression and returns nothing, so a real reader was invisible: the billing
+    migration runner reads its five rows exactly this way and was reported as having no reader at
+    all. A scanner blind to a shape reports the absence of a reader, which is the one answer this
+    file must never give wrongly.
+  */
+  for (const m of text.matchAll(/\.in\(\s*"key"\s*,\s*Object\.values\(\s*([A-Z][A-Z0-9_]*)\s*\)\s*\)/g)) {
     for (const k of resolveKeys(m[1])) note(readers, k, file);
   }
   // `settingsMap[KEY.X]` — SettingsPage reads every row and looks them up by constant.
@@ -220,6 +231,13 @@ const CARD_KEY_SOURCES: Record<string, string[]> = {
     rename assertion further down is what keeps that honest.
   */
   "src/components/admin/settings/MemberPortalSettingsTab.tsx": ["MEMBER_ALERT_HISTORY_KEY"],
+  /*
+    The billing migration's switch and its four lead times. `service: "billing_migration"` with
+    keys already prefixed `billing_migration_`, so `save-api-keys` stores them verbatim — the
+    same arrangement HolidayPolicyCard uses, and the reason the rename assertion below passes.
+    The readers are the daily runner edge function and this card itself.
+  */
+  "src/components/admin/settings/BillingMigrationCard.tsx": ["RUNNER_SETTING_KEYS"],
 };
 
 const cardCallers = SOURCES.filter((f) => TEXT.get(f)!.includes('invoke("save-api-keys"'));

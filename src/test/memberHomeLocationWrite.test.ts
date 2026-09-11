@@ -13,7 +13,7 @@
  * function's handler that no unit test can reach because it runs on Deno.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   HOME_LOCATION_SOURCES,
@@ -26,6 +26,9 @@ const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
 
 const fn = read("supabase/functions/member-self-service/index.ts");
 const migration = read("supabase/migrations/20260910140000_member_home_location.sql");
+const insertGuard = read(
+  "supabase/migrations/20260911102350_member_home_location_insert_guard.sql",
+);
 const isolation = read("scripts/rls/isolation.sql");
 
 /** The six columns the migration adds. Parsed, not retyped, so a renamed column fails here. */
@@ -87,10 +90,15 @@ describe("the migration", () => {
     expect(migration).toMatch(/members_home_location_bounds/);
   });
 
-  it("runs BEFORE UPDATE on members, beside the status guard rather than instead of it", () => {
-    expect(migration).toMatch(
-      /CREATE TRIGGER guard_member_home_location\s*\n\s*BEFORE UPDATE ON public\.members/,
-    );
+  it("runs on members beside the status guard rather than instead of it", () => {
+    /*
+      THE SHAPE THAT MATTERS IS THE LAST ONE WRITTEN, not this file's. 20260910140000 attached
+      the guard to BEFORE UPDATE, which left the INSERT path open (see the block at the foot of
+      this suite); 20260911102350 replaces the trigger. Asserting this file alone would have
+      gone on passing while the rule it describes was half-enforced, so the effective definition
+      is read out of the newest migration that declares one.
+    */
+    expect(migration).toMatch(/CREATE TRIGGER guard_member_home_location/);
     // The status guard is a separate trigger and must survive. Asserted by execution in the
     // isolation suite; named here so a rewrite of this migration cannot quietly drop it.
     expect(isolation).toMatch(/the members\.status guard still holds with the location guard beside it/);
@@ -100,6 +108,76 @@ describe("the migration", () => {
     expect(migration).toMatch(/ROLLBACK/);
     expect(migration).toMatch(/DROP TRIGGER IF EXISTS guard_member_home_location ON public\.members/);
     expect(migration).toMatch(/DROP TYPE IF EXISTS public\.home_location_source/);
+  });
+});
+
+/*
+  THE INSERT HALF OF THE SAME RULE (20260911102350).
+
+  The original guard was BEFORE UPDATE, and `Staff can manage members` is FOR ALL — so a staff
+  INSERT carrying `home_location_source = 'member_pin'` put "set by member on <today>" on an
+  operator's SOS card for a pin no member had ever seen. It was found by review after the
+  feature merged and proven by execution in the isolation suite before it was fixed.
+
+  What is asserted here is the agreement between the copies, as above. The behaviour itself is
+  proven against a real Postgres in `scripts/rls/isolation.sql`, which is the only place the
+  trigger actually runs.
+*/
+describe("the INSERT guard", () => {
+  /** The trigger as the database will end up with it: the newest migration that declares one. */
+  const effectiveTrigger = (() => {
+    const dir = join(ROOT, "supabase/migrations");
+    const declaring = readdirSync(dir)
+      .filter((f) => f.endsWith(".sql"))
+      .sort()
+      .filter((f) => readFileSync(join(dir, f), "utf8").includes("CREATE TRIGGER guard_member_home_location"));
+    expect(declaring.length).toBeGreaterThan(0);
+    return read(`supabase/migrations/${declaring[declaring.length - 1]}`);
+  })();
+
+  it("is what the database ends up with — an INSERT is not a way round an UPDATE rule", () => {
+    expect(effectiveTrigger).toMatch(
+      /CREATE TRIGGER guard_member_home_location\s*\n\s*BEFORE INSERT OR UPDATE ON public\.members/,
+    );
+    expect(effectiveTrigger).toMatch(
+      /DROP TRIGGER IF EXISTS guard_member_home_location ON public\.members/,
+    );
+  });
+
+  it("branches on TG_OP, because OLD does not exist in a BEFORE INSERT row trigger", () => {
+    expect(insertGuard).toMatch(/IF TG_OP = 'INSERT' THEN/);
+  });
+
+  it("lets staff create a row carrying an imported pin — that is the CRM import", () => {
+    expect(insertGuard).toMatch(
+      /NEW\.home_location_source NOT IN \('staff_pin', 'geocoded', 'imported'\)/,
+    );
+  });
+
+  it("still refuses a member confirmation claimed by anybody but the member", () => {
+    expect(insertGuard).toMatch(/NEW\.home_location_source NOT IN \('member_pin', 'member_gps'\)/);
+  });
+
+  it("gives an imported coordinate no confirmation date, because nobody confirmed it", () => {
+    expect(insertGuard).toMatch(
+      /CASE WHEN NEW\.home_location_source = 'imported' THEN NULL ELSE now\(\) END/,
+    );
+  });
+
+  it("costs an ordinary Add-a-member nothing", () => {
+    expect(insertGuard).toMatch(/IF NEW\.home_location_source IS NULL THEN\s*\n\s*RETURN NEW;/);
+  });
+
+  it("is proven by execution, not only by the text above", () => {
+    expect(isolation).toMatch(
+      /STAFF CANNOT CREATE A MEMBER WITH A PIN THAT CLAIMS THE MEMBER CONFIRMED IT/,
+    );
+    expect(isolation).toMatch(/A FORGED set_at \/ set_by ON AN INSERT IS OVERWRITTEN, NOT STORED/);
+    expect(isolation).toMatch(/AN IMPORTED PIN GETS NO CONFIRMATION DATE/);
+  });
+
+  it("documents its own rollback, like every migration in this repo", () => {
+    expect(insertGuard).toMatch(/ROLLBACK/);
   });
 });
 

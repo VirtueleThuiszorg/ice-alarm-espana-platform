@@ -6667,6 +6667,80 @@ SELECT pg_temp.check(
       WHERE name = ''aaaaaaaa-0000-0000-0000-000000000001/avatar.jpg''') = 0,
   'staff get SELECT and nothing else. The ABSENCE of the other three policies is the enforcement, so this fails the moment somebody adds a convenience policy');
 
+-- ── the INSERT half of the same rule ───────────────────────────────────────
+-- The guard is BEFORE UPDATE. `Staff can manage members` is FOR ALL, so staff can INSERT a
+-- members row — and an INSERT that claims `member_pin` would put "set by member on <today>" on
+-- the SOS card for a pin no member has ever seen. Same lie, different verb.
+SELECT pg_temp.check(
+  'STAFF CANNOT CREATE A MEMBER WITH A PIN THAT CLAIMS THE MEMBER CONFIRMED IT',
+  pg_temp.raises_as('c0000001-0000-0000-0000-000000000001',
+    'INSERT INTO public.members
+       (first_name, last_name, email, phone, date_of_birth,
+        address_line_1, city, province, postal_code,
+        home_lat, home_lng, home_location_source)
+     VALUES (''Forged'', ''Pin'', ''forged-pin@example.com'', ''+34600000099'', ''1950-01-01'',
+             ''Calle F 1'', ''Albox'', ''Almeria'', ''04800'',
+             37.4, -2.2, ''member_pin'')'),
+  'the SOS card labels a member confirmation differently from a staff pin; an INSERT must not '
+  'be the way round the rule the UPDATE path enforces');
+
+SELECT pg_temp.check(
+  'but staff CAN create a member carrying an imported pin — that is the CRM import',
+  pg_temp.exec_as('c0000001-0000-0000-0000-000000000001',
+    'INSERT INTO public.members
+       (first_name, last_name, email, phone, date_of_birth,
+        address_line_1, city, province, postal_code,
+        home_lat, home_lng, home_location_source)
+     VALUES (''Imported'', ''Pin'', ''imported-pin@example.com'', ''+34600000098'', ''1950-01-01'',
+             ''Calle I 1'', ''Albox'', ''Almeria'', ''04800'',
+             37.4, -2.2, ''imported'')') = 1,
+  'if this fails the CRM import cannot create a member with the coordinates it parsed');
+
+SELECT pg_temp.check(
+  'and a staff INSERT with no pin at all is untouched',
+  pg_temp.exec_as('c0000001-0000-0000-0000-000000000001',
+    'INSERT INTO public.members
+       (first_name, last_name, email, phone, date_of_birth,
+        address_line_1, city, province, postal_code)
+     VALUES (''No'', ''Pin'', ''no-pin@example.com'', ''+34600000097'', ''1950-01-01'',
+             ''Calle N 1'', ''Albox'', ''Almeria'', ''04800'')') = 1,
+  'the guard must cost an ordinary Add-a-member nothing');
+
+-- Provenance on an INSERT is stamped, not accepted — the same rule as on UPDATE, and the
+-- reason the label on the SOS card is evidence rather than decoration. Asserted in two
+-- statements rather than one: `exec_as(...) = 1 AND (SELECT ...)` lets the planner run the
+-- sublink as an InitPlan BEFORE the volatile write, and the read then sees no row.
+SELECT pg_temp.check(
+  'a staff pin INSERT is accepted',
+  pg_temp.exec_as('c0000001-0000-0000-0000-000000000001',
+    'INSERT INTO public.members
+       (first_name, last_name, email, phone, date_of_birth,
+        address_line_1, city, province, postal_code,
+        home_lat, home_lng, home_location_source,
+        home_location_set_at, home_location_set_by)
+     VALUES (''Stamped'', ''Pin'', ''stamped-pin@example.com'', ''+34600000096'', ''1950-01-01'',
+             ''Calle S 1'', ''Albox'', ''Almeria'', ''04800'',
+             37.4, -2.2, ''staff_pin'',
+             ''2001-01-01T00:00:00Z'', ''11111111-1111-1111-1111-111111111111'')') = 1,
+  'setup for the stamping assertion below');
+
+SELECT pg_temp.check(
+  'A FORGED set_at / set_by ON AN INSERT IS OVERWRITTEN, NOT STORED',
+  (SELECT home_location_set_at::date = now()::date
+          AND home_location_set_by = 'c0000001-0000-0000-0000-000000000001'::uuid
+     FROM public.members WHERE email = 'stamped-pin@example.com'),
+  'the row above asked to be dated 2001 and attributed to member A. A backdated set_at makes '
+  'a fresh guess look like a long-standing confirmation, and a borrowed set_by blames somebody '
+  'else for it');
+
+SELECT pg_temp.check(
+  'AN IMPORTED PIN GETS NO CONFIRMATION DATE',
+  (SELECT home_location_set_at IS NULL
+          AND home_location_set_by = 'c0000001-0000-0000-0000-000000000001'::uuid
+     FROM public.members WHERE email = 'imported-pin@example.com'),
+  'a coordinate off a KarmaCRM export was never confirmed by anyone, so it must carry no date '
+  'that an operator could read as one — while still being attributed to whoever ran the import');
+
 -- ============================================================
 --  Report
 -- ============================================================

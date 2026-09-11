@@ -133,7 +133,21 @@ export default function HomeLocationMap({
   return (
     <div
       ref={containerRef}
-      role="application"
+      /*
+        THE PREVIEW IS A PICTURE; ONLY THE PICKER IS A WIDGET.
+
+        Both were `role="application"`, which tells a screen reader to stop interpreting keys
+        and hand every one of them to the page. That is the right trade for the picker: it is a
+        custom control whose whole job is to move a pin under arrow keys and taps. It is the
+        wrong trade for the preview on a member's account page, which has no interaction at all
+        — dragging, zoom and keyboard are all off. There, application mode costs a member their
+        browse-mode navigation and gives them nothing back: the pin is not reachable, because
+        there is nothing to reach.
+
+        `role="img"` is what the preview actually is. The same `aria-label` is then read as a
+        described image the member can move past, instead of an application they are trapped in.
+      */
+      role={interactive ? "application" : "img"}
       aria-label={ariaLabel}
       className={`w-full ${heightClass} overflow-hidden rounded-lg border`}
       data-testid="home-location-map"

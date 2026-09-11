@@ -12,17 +12,10 @@ function memberSiteUrl(): string {
   return (Deno.env.get("PUBLIC_SITE_URL") || "https://icealarm.es").replace(/\/+$/, "");
 }
 
-interface PostPaymentParams {
-  orderId: string;
-  paymentId: string;
-  memberId: string;
-  subscriptionId?: string;
-  partnerMemberId?: string;
-  partnerSubscriptionId?: string;
-  amountPaid: number;
-  gatewayPaymentId: string;
-  gateway: "stripe" | "mollie";
-}
+/* Declared in `post-payment-params.ts` and imported here, so the webhook's handlers can name
+   this call without importing THIS module — which reaches `npm:nodemailer` and would be
+   unloadable from a test. One declaration, so the two cannot drift. */
+import type { PostPaymentParams } from "./post-payment-params.ts";
 
 /**
  * Shared post-payment processing used by both stripe-webhook and mollie-webhook.

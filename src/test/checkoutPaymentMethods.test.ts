@@ -35,6 +35,7 @@ import {
 } from "../../supabase/functions/_shared/checkout-payment-methods";
 import { isSessionPaid } from "../../supabase/functions/_shared/stripe-events";
 import { stripComments } from "./helpers/stripComments";
+import { webhookSource } from "./helpers/webhookSource";
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
 
@@ -250,7 +251,7 @@ describe("an unpaid session does not activate anybody", () => {
   });
 
   it("the webhook checks it BEFORE it looks at the money or the order", () => {
-    const webhook = stripComments(read("supabase/functions/stripe-webhook/index.ts"));
+    const webhook = stripComments(webhookSource());
     const gate = webhook.indexOf("isSessionPaid(session.payment_status)");
     expect(gate).toBeGreaterThan(-1);
     // Before the amount check and before any activation write.
@@ -262,7 +263,7 @@ describe("an unpaid session does not activate anybody", () => {
     // The refusal above is only safe BECAUSE this event is handled: without it, a SEPA customer
     // pays and is never activated. That is why the async methods are locked behind an
     // acknowledgement that the destination is subscribed to it.
-    const webhook = stripComments(read("supabase/functions/stripe-webhook/index.ts"));
+    const webhook = stripComments(webhookSource());
     expect(webhook).toContain("checkout.session.async_payment_succeeded");
     expect(webhook).toContain("checkout.session.completed");
   });

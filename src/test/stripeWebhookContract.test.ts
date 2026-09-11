@@ -19,6 +19,8 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { webhookSource } from "./helpers/webhookSource";
+import { stripComments } from "./helpers/stripComments";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const EVENTS_MOD = "../../supabase/functions/_shared/stripe-events.ts";
@@ -44,7 +46,19 @@ function code(relative: string): string {
     .replace(/(^|[^:])\/\/.*$/gm, "$1");
 }
 
-const WEBHOOK = code("supabase/functions/stripe-webhook/index.ts");
+/*
+  BOTH FILES, TRANSPORT FIRST — the webhook was split so its handlers could be RUN
+  (`src/test/stripeWebhookExecuted.test.ts`) instead of only read. Concatenated in the order the
+  single file had them, so every `indexOf(a) < indexOf(b)` below still means what it meant.
+
+  The source scans are kept rather than replaced. They say what the money path must NOT contain —
+  no `members.status` write, no `mode: "payment"`, no `billing_source:` — and an absence is the
+  one thing an executed test cannot assert.
+*/
+const WEBHOOK = stripComments(webhookSource());
+
+/** Just the transport half, for the assertions that are about idempotency rather than decisions. */
+const TRANSPORT = code("supabase/functions/stripe-webhook/index.ts");
 
 /**
  * Where the post-payment handler is CALLED.
@@ -53,8 +67,18 @@ const WEBHOOK = code("supabase/functions/stripe-webhook/index.ts");
  * before everything — so an ordering assertion written against it passes no matter what the
  * code does, and a slice ending at it is empty. Both of those went unnoticed until these
  * tests first ran.
+ *
+ * It reads `deps.postPayment` now: the handler takes the post-payment step as an injected
+ * dependency defaulting to the real one, so that the activation path can be RUN in
+ * `stripeWebhookExecuted.test.ts` without stubbing devices, email and auth to reach one line.
+ * Asserted rather than assumed — if that seam is ever removed, this const goes to -1 and every
+ * ordering assertion below fails loudly rather than passing vacuously.
  */
-const POST_PAYMENT_CALL = WEBHOOK.indexOf("await handleSuccessfulPayment(");
+const POST_PAYMENT_CALL = WEBHOOK.indexOf("await deps.postPayment(");
+
+it("the post-payment call is findable at all, so the ordering assertions mean something", () => {
+  expect(POST_PAYMENT_CALL).toBeGreaterThan(0);
+});
 
 describe("checkout.session.completed does not mean paid", () => {
   it("only 'paid' counts", () => {
@@ -330,31 +354,39 @@ describe("the API version contract is checked, not assumed", () => {
   });
 });
 
+/*
+  ── THE TRANSPORT HALF ─────────────────────────────────────────────────────────
+
+  Asserted against `index.ts` ALONE, not the concatenation. Idempotency is the one thing that
+  lives entirely in the file that holds `serve()`, and reading it out of both files would let an
+  assertion pass because a matching string happened to sit in the handlers instead — which is the
+  same class of mistake as `indexOf("handleSuccessfulPayment")` finding the import.
+*/
 describe("idempotency: claimed on arrival, stamped on success", () => {
   it("only a STAMPED row counts as a duplicate", () => {
     // The old code inserted the row before processing, so a run that threw left a row that
     // made every Stripe retry answer "duplicate, skipping" — the money had arrived and the
     // member was never activated.
-    expect(WEBHOOK).toMatch(/if \(existingEvent\?\.processed_at\)/);
+    expect(TRANSPORT).toMatch(/if \(existingEvent\?\.processed_at\)/);
   });
 
   it("the claim is written with processed_at explicitly null", () => {
     // The column DEFAULTS to now(), which is what made the old behaviour the default.
-    expect(WEBHOOK).toMatch(/processed_at:\s*null/);
+    expect(TRANSPORT).toMatch(/processed_at:\s*null/);
   });
 
   it("the stamp happens after the handler, not before", () => {
-    expect(WEBHOOK.indexOf("await handleEvent(")).toBeLessThan(
-      WEBHOOK.indexOf("processed_at: new Date().toISOString()"),
+    expect(TRANSPORT.indexOf("await handleEvent(")).toBeLessThan(
+      TRANSPORT.indexOf("processed_at: new Date().toISOString()"),
     );
   });
 
   it("an unfinished row is reprocessed rather than skipped", () => {
-    expect(WEBHOOK).toContain("Re-processing a previously unfinished event");
+    expect(TRANSPORT).toContain("Re-processing a previously unfinished event");
   });
 
   it("a thrown handler returns 500 so Stripe retries", () => {
-    const catchBlock = WEBHOOK.slice(WEBHOOK.lastIndexOf("} catch (error) {"));
+    const catchBlock = TRANSPORT.slice(TRANSPORT.lastIndexOf("} catch (error) {"));
     expect(catchBlock).toMatch(/json\(500/);
   });
 });
@@ -671,7 +703,8 @@ describe("the renewal date is recorded when the money arrives", () => {
     the record that decides when somebody is chased for money.
   */
   it("uses the one implementation of the month-end clamp", () => {
-    expect(WEBHOOK).toMatch(/from "\.\.\/_shared\/legacy-billing-schedule\.ts"/);
+    // The import is now a sibling path — the handlers live in `_shared/` themselves.
+    expect(WEBHOOK).toMatch(/from "\.\/legacy-billing-schedule\.ts"/);
     expect(ACTIVATION).not.toMatch(/setUTCMonth/);
   });
 

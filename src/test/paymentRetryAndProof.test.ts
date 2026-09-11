@@ -22,6 +22,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { webhookSource } from "./helpers/webhookSource";
 import {
   failureStage,
   memberFailureSms,
@@ -30,7 +31,7 @@ import {
 
 const ROOT = process.cwd();
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
-const webhook = read("supabase/functions/stripe-webhook/index.ts");
+const webhook = webhookSource();
 
 describe("which failure this is", () => {
   it("is still retrying while Stripe has another attempt scheduled", () => {

@@ -12,12 +12,13 @@
 import { describe, it, expect } from "vitest";
 import {
   daysInMonth,
+  rolledForwardRenewal,
   parseBillingDay,
   nextRenewalFrom,
   nextAnniversaryFrom,
   deriveLegacySchedule,
   needsBillingDate,
-} from "@/lib/legacyBillingSchedule";
+} from "../../supabase/functions/_shared/legacy-billing-schedule";
 
 const utc = (s: string) => new Date(`${s}T00:00:00.000Z`);
 
@@ -211,5 +212,86 @@ describe("needsBillingDate", () => {
     expect(needsBillingDate({ billing_source: "stripe", legacy_billing_day: null })).toBe(false);
     expect(needsBillingDate({ billing_source: "none", legacy_billing_day: null })).toBe(false);
     expect(needsBillingDate({ billing_source: null, legacy_billing_day: null })).toBe(false);
+  });
+});
+
+describe("rolling a renewal forward once it has passed", () => {
+  /*
+    THE HOLE THIS CLOSES, and it is the one that would have stopped the whole migration.
+
+    `legacy_next_renewal` is ONE DATE, written once by the import. Santander collects again next
+    month regardless — but every reader here treats a date in the past as "nothing due": the
+    runner skips the member for good, the CSV blanks their collection date, and the dashboard's
+    "due this month" empties as the month goes by. With 431 dates scattered across a month, most
+    would already have passed by the time the runner was switched on.
+  */
+  const monthly = (renewal: string, day: number | null = 15) => ({
+    legacy_billing_day: day,
+    legacy_next_renewal: renewal,
+    billing_frequency: "monthly" as const,
+  });
+
+  it("moves a passed monthly date on to the next one", () => {
+    expect(rolledForwardRenewal(monthly("2026-08-15"), utc("2026-09-11"))).toBe("2026-09-15");
+  });
+
+  it("leaves a date that is still ahead alone", () => {
+    expect(rolledForwardRenewal(monthly("2026-09-15"), utc("2026-09-11"))).toBeNull();
+  });
+
+  // Due today is due today — rolling it forward now would skip this month's collection entirely.
+  it("leaves TODAY alone", () => {
+    expect(rolledForwardRenewal(monthly("2026-09-11"), utc("2026-09-11"))).toBeNull();
+  });
+
+  /*
+    ROLLS FROM THE STORED DAY, NEVER FROM THE DATE. The February rule again: a 31st member whose
+    last collection clamped to the 28th would become a 28th member forever if the next one were
+    computed from that date instead of from the 31 on their record.
+  */
+  it("keeps a 31st member on the 31st after a February", () => {
+    expect(rolledForwardRenewal(monthly("2027-02-28", 31), utc("2027-03-01"))).toBe("2027-03-31");
+  });
+
+  it("catches up a date that is months stale, not just one cycle", () => {
+    expect(rolledForwardRenewal(monthly("2026-03-15"), utc("2026-09-11"))).toBe("2026-09-15");
+  });
+
+  // An annual member's anniversary is what repeats, and the day of the month is not enough to
+  // reconstruct it — so this one rolls from the date.
+  it("moves an annual member on by a year, from the date itself", () => {
+    expect(
+      rolledForwardRenewal(
+        { legacy_billing_day: 4, legacy_next_renewal: "2026-03-04", billing_frequency: "annual" },
+        utc("2026-09-11"),
+      ),
+    ).toBe("2027-03-04");
+  });
+
+  it("clamps a leap-day annual member into an ordinary February", () => {
+    expect(
+      rolledForwardRenewal(
+        { legacy_billing_day: 29, legacy_next_renewal: "2028-02-29", billing_frequency: "annual" },
+        utc("2028-03-01"),
+      ),
+    ).toBe("2029-02-28");
+  });
+
+  // Nothing to work from is the "needs a billing date" queue's problem, not this function's to
+  // guess at.
+  it("returns null rather than inventing a date it cannot work out", () => {
+    expect(rolledForwardRenewal(monthly("2026-08-15", null), utc("2026-09-11"))).toBeNull();
+    expect(
+      rolledForwardRenewal(
+        { legacy_billing_day: 15, legacy_next_renewal: null, billing_frequency: "monthly" },
+        utc("2026-09-11"),
+      ),
+    ).toBeNull();
+    expect(
+      rolledForwardRenewal(
+        { legacy_billing_day: 15, legacy_next_renewal: "not a date", billing_frequency: "monthly" },
+        utc("2026-09-11"),
+      ),
+    ).toBeNull();
   });
 });

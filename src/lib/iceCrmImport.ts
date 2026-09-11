@@ -31,7 +31,7 @@
  * Payment columns: never mapped to a structured field
  * ------------------------------------------------------------------ */
 
-import { deriveLegacySchedule } from "@/lib/legacyBillingSchedule";
+import { deriveLegacySchedule } from "../../supabase/functions/_shared/legacy-billing-schedule";
 
 export const SENSITIVE_PAYMENT_HEADERS = [
   "Credit Card Details",

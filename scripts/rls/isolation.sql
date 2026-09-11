@@ -95,6 +95,26 @@ EXCEPTION WHEN OTHERS THEN
   RETURN true;
 END $$;
 
+-- Did this statement raise WHEN RUN AS A NAMED DATABASE ROLE — `service_role`, the way
+-- PostgREST runs an edge function's request?
+--
+-- `exec_as`/`raises_as` above both `SET LOCAL ROLE authenticated`, which is right for a browser
+-- and WRONG for the one caller that is not one. A SECURITY DEFINER function revoked from PUBLIC
+-- is callable by its owner — and this suite runs as the owner — so a function the service role
+-- cannot execute passes every assertion written with those two helpers and fails in production
+-- on the first call. That is not hypothetical: it is what these assertions caught.
+CREATE OR REPLACE FUNCTION pg_temp.raises_as_role(p_role text, p_sql text)
+RETURNS boolean LANGUAGE plpgsql AS $$
+BEGIN
+  EXECUTE format('SET LOCAL ROLE %I', p_role);
+  EXECUTE p_sql;
+  RESET ROLE;
+  RETURN false;
+EXCEPTION WHEN OTHERS THEN
+  RESET ROLE;
+  RETURN true;
+END $$;
+
 -- ============================================================
 --  Seed: two unrelated tenants of each kind
 -- ============================================================
@@ -6963,6 +6983,37 @@ SELECT pg_temp.check(
   (SELECT count(*) FROM public.notification_routes
     WHERE event_type IN ('member.switch_link_sent', 'member.switch_expired')) = 8,
   'an event missing from notification_routes_event_type_check is an event nobody hears');
+
+-- ── and the ONE caller that is not a browser ──────────────────────────────────
+--
+-- Both functions are revoked from PUBLIC, which is the point: a member must not be able to take
+-- themselves out of the Santander run. But the runner and the switch link are edge functions,
+-- and PostgREST executes those as `service_role` — so a revoke with no matching grant does not
+-- harden them, it breaks them, and nothing above would have noticed: this suite runs as the
+-- database owner, who can execute anything.
+
+SELECT pg_temp.check(
+  'the SERVICE ROLE can start a switch — it is the only caller that ever does',
+  NOT pg_temp.raises_as_role('service_role',
+    'SELECT public.start_legacy_switch(''d1e00000-0000-0000-0000-00000000000b'', ''cs_svc'',
+       now() + interval ''14 days'')'),
+  'revoked from PUBLIC with no grant to service_role is not hardened, it is broken');
+
+SELECT pg_temp.check(
+  'and it took effect, rather than merely not raising',
+  (SELECT billing_source = 'switch_pending' AND switch_checkout_session_id = 'cs_svc'
+     FROM public.members WHERE id = 'd1e00000-0000-0000-0000-00000000000b'));
+
+SELECT pg_temp.check(
+  'the SERVICE ROLE can run the expiry sweep',
+  NOT pg_temp.raises_as_role('service_role', 'SELECT public.expire_legacy_switches()'),
+  'the daily runner calls this; without it a lapsed link never returns anybody to legacy billing');
+
+-- Put that member back, so the assertions below read the state they expect.
+UPDATE public.members
+   SET billing_source = 'legacy', switch_started_at = NULL, switch_expires_at = NULL,
+       switch_checkout_session_id = NULL
+ WHERE id = 'd1e00000-0000-0000-0000-00000000000b';
 
 -- ============================================================
 --  Report

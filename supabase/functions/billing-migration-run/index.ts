@@ -10,6 +10,7 @@ import {
   type PlannedSend,
   type RunnerCandidate,
 } from "../_shared/billing-migration-runner.ts";
+import { rolledForwardRenewal } from "../_shared/legacy-billing-schedule.ts";
 
 /**
  * THE DAILY WAKE-UP that paces the legacy→Stripe migration.
@@ -35,8 +36,26 @@ import {
  *
  * `billing_migration_enabled` seeds as `false`. The cron schedule exists from the day the
  * migration lands; the function reads the switch and does nothing until somebody decides.
- * `?dryRun=1` plans the whole day and sends none of it, which is what the settings screen's
+ * A dry run plans the whole day and sends none of it, which is what the settings screen's
  * preview shows — the SAME computation, not a second description of it.
+ *
+ * ── TWO SWEEPS RUN WHETHER OR NOT ANYTHING IS BEING SENT ─────────────────────
+ *
+ * The switch above governs WRITING TO MEMBERS. It does not govern bookkeeping, and conflating
+ * the two would strand people:
+ *
+ *   EXPIRING A LAPSED LINK. A member left in `switch_pending` is excluded from the Santander
+ *   export — so if the migration is paused with links outstanding, and the expiry waited on the
+ *   switch, those members would be collected from by NOBODY for as long as the pause lasted.
+ *   The expiry is a safety sweep, not part of the migration.
+ *
+ *   ROLLING A PASSED RENEWAL FORWARD. `legacy_next_renewal` is one date, not a schedule, and
+ *   every reader treats a past one as "nothing due" — the runner skips the member forever, the
+ *   CSV blanks their collection date, and the dashboard's "due this month" empties. Santander
+ *   collects again next month regardless, so the record has to say so.
+ *
+ * A DRY RUN WRITES NEITHER. It reports what both sweeps would do and touches nothing, because
+ * an admin pressing "preview" has not decided anything yet.
  */
 
 type Json = Record<string, unknown>;
@@ -105,10 +124,99 @@ serve(async (req) => {
 
     const settings = parseRunnerSettings(settingRows ?? [], askedForDryRun);
 
+    const today = new Date();
+
+    /* ── sweep 1: links that have lapsed ──────────────────────────────────────
+       BEFORE anything else, and before the enabled check. A member left in `switch_pending` is
+       out of the Santander export; if the migration is paused with links outstanding and this
+       waited on the switch, nobody would be collecting from them for the length of the pause. */
+    let expired = 0;
+    if (!settings.dryRun) {
+      const { data: expiredCount, error: expireError } = await admin.rpc("expire_legacy_switches");
+      if (expireError) {
+        // Not fatal to the rest of the run: the sends below are still worth doing, and a
+        // stranded member is exactly what the bell is for.
+        console.error("expire_legacy_switches failed:", expireError.message);
+        await bellAdmins(
+          admin,
+          "billing.migration_run_failed",
+          `Lapsed Stripe switch links could not be swept: ${expireError.message}. Any member whose ` +
+            "link has run out is in neither collection until this is fixed.",
+        ).catch(() => undefined);
+      } else {
+        expired = (expiredCount as number | null) ?? 0;
+      }
+    }
+
+    // ── who is on legacy billing ─────────────────────────────────────────────
+    //
+    // `billing_frequency` comes from the member's own subscription row — what Karma billed them —
+    // because an annual member gets a ladder and a monthly member gets one link, and reading the
+    // wrong one writes to somebody eleven months early.
+    const { data: rows, error: loadError } = await admin
+      .from("members")
+      .select("id, first_name, last_name, billing_source, legacy_billing_day, legacy_next_renewal, subscriptions (billing_frequency, created_at)")
+      .eq("billing_source", "legacy")
+      .not("legacy_next_renewal", "is", null);
+
+    if (loadError) throw new Error(`could not load candidates: ${loadError.message}`);
+
+    const frequencyOf = (r: Record<string, unknown>) => {
+      const subs = (r.subscriptions ?? []) as Array<{ billing_frequency: string | null; created_at: string }>;
+      const newest = [...subs].sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
+      return (newest?.billing_frequency as "monthly" | "annual" | null) ?? null;
+    };
+
+    /* ── sweep 2: renewal dates that have gone past ───────────────────────────
+       `legacy_next_renewal` is ONE DATE, not a schedule. Santander collects again next month
+       whatever the record says, but every reader here treats a past date as "nothing due" — the
+       runner would skip the member for good, the CSV would blank their collection date, and the
+       dashboard's "due this month" would empty as the month went by. So the date is moved on the
+       day after it passes, from the member's own stored billing day (monthly) or the anniversary
+       (annual), through the one implementation of the rule. */
+    let rolled = 0;
+    const rollFailures: string[] = [];
+    for (const r of rows ?? []) {
+      const next = rolledForwardRenewal(
+        {
+          legacy_billing_day: (r.legacy_billing_day as number | null) ?? null,
+          legacy_next_renewal: (r.legacy_next_renewal as string | null) ?? null,
+          billing_frequency: frequencyOf(r),
+        },
+        today,
+      );
+      if (!next) continue;
+
+      if (!settings.dryRun) {
+        const { error: rollError } = await admin
+          .from("members")
+          .update({ legacy_next_renewal: next })
+          .eq("id", r.id as string);
+        if (rollError) {
+          rollFailures.push(rollError.message);
+          continue;
+        }
+      }
+      // Kept in step with the database so today's plan reads the date that is now on the record,
+      // rather than the stale one it was loaded with.
+      (r as Record<string, unknown>).legacy_next_renewal = next;
+      rolled += 1;
+    }
+
+    if (rollFailures.length > 0) {
+      await bellAdmins(
+        admin,
+        "billing.migration_run_failed",
+        `${rollFailures.length} legacy member(s) kept a renewal date that has already passed: ` +
+          `${rollFailures[0]}. They will not be written to, and their Santander collection date is blank.`,
+      ).catch(() => undefined);
+    }
+
     /*
-      OFF MEANS OFF, INCLUDING FOR THE PREVIEW — and the preview says so rather than showing an
-      empty list. An empty preview and a switched-off runner look identical, and an admin reading
-      "0 members due today" would conclude the migration had nothing to do.
+      OFF MEANS OFF FOR THE SENDING, and the answer says so rather than showing an empty list. An
+      empty list and a switched-off runner look identical, and an admin reading "0 members due
+      today" would conclude the migration had nothing left to do. The two sweeps above have
+      already run: they are bookkeeping and safety, not part of the migration.
     */
     if (!settings.enabled) {
       return json(200, {
@@ -116,34 +224,18 @@ serve(async (req) => {
         enabled: false,
         dryRun: settings.dryRun,
         reason: "The billing migration is switched off in Admin → Settings → Billing.",
+        expired,
+        rolledForward: rolled,
         planned: [],
       });
     }
 
-    // ── who is due ───────────────────────────────────────────────────────────
-    //
-    // `billing_frequency` comes from the member's own subscription row — what Karma billed them —
-    // because an annual member gets a ladder and a monthly member gets one link, and reading the
-    // wrong one writes to somebody eleven months early.
-    const { data: rows, error: loadError } = await admin
-      .from("members")
-      .select("id, first_name, last_name, billing_source, legacy_next_renewal, subscriptions (billing_frequency, created_at)")
-      .eq("billing_source", "legacy")
-      .not("legacy_next_renewal", "is", null);
-
-    if (loadError) throw new Error(`could not load candidates: ${loadError.message}`);
-
-    const today = new Date();
-    const candidates: RunnerCandidate[] = (rows ?? []).map((r) => {
-      const subs = (r.subscriptions ?? []) as Array<{ billing_frequency: string | null; created_at: string }>;
-      const newest = [...subs].sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
-      return {
-        id: r.id as string,
-        billing_source: r.billing_source as string | null,
-        legacy_next_renewal: r.legacy_next_renewal as string | null,
-        billing_frequency: (newest?.billing_frequency as "monthly" | "annual" | null) ?? null,
-      };
-    });
+    const candidates: RunnerCandidate[] = (rows ?? []).map((r) => ({
+      id: r.id as string,
+      billing_source: r.billing_source as string | null,
+      legacy_next_renewal: (r.legacy_next_renewal as string | null) ?? null,
+      billing_frequency: frequencyOf(r),
+    }));
 
     const planned = planTodaysRun(candidates, settings, today);
     const nameOf = (id: string) => {
@@ -156,6 +248,9 @@ serve(async (req) => {
         ran: false,
         enabled: true,
         dryRun: true,
+        // What the sweeps WOULD have done. A preview writes nothing at all.
+        expired,
+        rolledForward: rolled,
         consideredMembers: candidates.length,
         planned: planned.map((p) => ({
           memberId: p.member.id,
@@ -218,6 +313,8 @@ serve(async (req) => {
       ran: true,
       enabled: true,
       dryRun: false,
+      expired,
+      rolledForward: rolled,
       consideredMembers: candidates.length,
       plannedCount: planned.length,
       sent: sent.length,

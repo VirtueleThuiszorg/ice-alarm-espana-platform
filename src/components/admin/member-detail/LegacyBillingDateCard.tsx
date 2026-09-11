@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EditableCard } from "@/components/EditableCard";
 import { useLegacyBillingDate } from "@/hooks/useLegacyBillingDate";
-import { nextRenewalFrom } from "@/lib/legacyBillingSchedule";
+import { nextRenewalFrom } from "../../../../supabase/functions/_shared/legacy-billing-schedule";
 
 /**
  * WHEN SANTANDER TAKES THIS MEMBER'S MONEY — the only screen that can say so.

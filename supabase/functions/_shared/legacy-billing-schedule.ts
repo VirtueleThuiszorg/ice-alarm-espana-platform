@@ -7,8 +7,14 @@
  * the wrong day either asks somebody to pay twice or lands after Santander has already taken it.
  *
  * This module is the whole of the date rule, and it is PURE: the import derives a schedule from
- * Karma's columns, staff correct it by hand, and the runner reads it — three callers, one rule.
- * A second implementation anywhere is a second answer to "when is this person charged".
+ * Karma's columns, staff correct it by hand, and the daily runner both reads it and ROLLS IT
+ * FORWARD. A second implementation anywhere is a second answer to "when is this person charged".
+ *
+ * IT LIVES UNDER `supabase/functions/_shared` FOR THAT REASON. It began in `src/lib`, which the
+ * edge functions cannot import, and the runner needed it — the alternative being a copy of the
+ * clamp in the runner or in SQL, which is the one thing the paragraph above forbids. Same
+ * arrangement as `_shared/checkout-payment-methods.ts`: the rule lives beside the server that
+ * must obey it, and the browser reaches in.
  *
  * ── THE CLAMP, WHICH IS THE ONLY SUBTLE PART ──────────────────────────────────
  *
@@ -151,6 +157,62 @@ export function deriveLegacySchedule(input: ScheduleInputs, today: Date): Legacy
     frequency,
     source: "monthly_payment_date",
   };
+}
+
+export interface StoredSchedule {
+  legacy_billing_day: number | null;
+  legacy_next_renewal: string | null;
+  billing_frequency: "monthly" | "annual" | null;
+}
+
+/**
+ * THE NEXT DATE, ONCE THE STORED ONE HAS GONE PAST — and the reason the migration does not stop
+ * dead after one month.
+ *
+ * `legacy_next_renewal` is a single date, written once by the import and corrected by hand. It is
+ * not a schedule; it is this cycle's instance of one. Nothing about Santander changes when it
+ * passes — they collect again next month, and next year — but every reader here treats a date in
+ * the past as "nothing due":
+ *
+ *   the runner        `plannedActionFor` returns null for a negative day count, so the member is
+ *                     never written to again. The migration silently stops for them.
+ *   the export        the CSV blanks a date outside this month, so their row loses its
+ *                     collection date and the office has nothing to run from.
+ *   the dashboard     "due this month" quietly empties as the month goes by.
+ *
+ * So the runner rolls each one forward on the day after it passes. Returns the new date, or NULL
+ * when there is nothing to do — either the stored date is still ahead, or there is not enough on
+ * the record to work one out, which is the "needs a billing date" queue's job and not this
+ * function's to guess at.
+ *
+ * MONTHLY ROLLS FROM THE STORED DAY, never from the date. That is the February rule again: a
+ * 31st member rolled from "28 February" would become a 28th member, and rolling from the day
+ * they actually have keeps them on the 31st.
+ *
+ * ANNUAL ROLLS FROM THE DATE ITSELF, because the day of the month is not enough — it is the
+ * anniversary that repeats, and `nextAnniversaryFrom` takes the month and day off the date it is
+ * given. 29 February is clamped by the same code that clamps it anywhere else.
+ */
+export function rolledForwardRenewal(member: StoredSchedule, today: Date): string | null {
+  if (!member.legacy_next_renewal) return null;
+
+  const days = (() => {
+    const m = member.legacy_next_renewal!.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return null;
+    const renewal = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    const from = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+    return Math.round((renewal - from) / 86_400_000);
+  })();
+
+  // Unparseable, or still ahead of us — including TODAY, which is due today and not yet past.
+  if (days === null || days >= 0) return null;
+
+  if (member.billing_frequency === "annual") {
+    return nextAnniversaryFrom(member.legacy_next_renewal, today);
+  }
+
+  if (member.legacy_billing_day === null) return null;
+  return nextRenewalFrom(member.legacy_billing_day, today);
 }
 
 /**

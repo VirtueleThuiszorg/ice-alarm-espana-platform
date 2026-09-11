@@ -23,6 +23,14 @@ export type { DeliveryChannel, DeliveryOutcome, DeliveryDecision } from "./deliv
 export interface DeliveryInputs {
   /** `system_settings.notify_channel_sms` — Lee's switch, and nobody else's (D7). */
   smsChannelOn: boolean;
+  /**
+   * WhatsApp, when the caller offers it. Lee's brief names it for the legacy switch link —
+   * "Delivery: SMS/WhatsApp, email when live, link always on screen for staff" — and these
+   * members answer WhatsApp where they ignore an SMS from a number they do not know.
+   *
+   * Optional so the surfaces that have no WhatsApp template are unchanged; see `delivery.ts`.
+   */
+  whatsapp?: { channelOn: boolean; configured: boolean };
   /** Whether email can actually leave the building (PENDING_FOR_LEE.md S2). */
   emailConfigured: boolean;
   /** The PAYER's contact details — they are the person being asked for money (P3). */
@@ -33,6 +41,7 @@ export interface DeliveryInputs {
 export function planDelivery(input: DeliveryInputs): DeliveryDecision[] {
   return planChannels({
     smsChannelOn: input.smsChannelOn,
+    whatsapp: input.whatsapp,
     emailConfigured: input.emailConfigured,
     phone: input.payerPhone,
     email: input.payerEmail,

@@ -36,10 +36,17 @@ export class PricingNotConfiguredError extends Error {
 }
 
 /** The `system_settings` keys the money path reads. Named once, spelled once. */
+/*
+  Named for the fee, and it has outgrown that: the delivery channel switches are here too,
+  because the caller reads them in the same breath and a second round trip for two booleans is
+  two round trips. Widening the name would touch every caller for no gain; widening the comment
+  is the honest fix.
+*/
 export const FEE_SETTING_KEYS = [
   "registration_fee_enabled",
   "registration_fee_discount",
   "notify_channel_sms",
+  "notify_channel_whatsapp",
 ] as const;
 
 export interface PricingInputs {

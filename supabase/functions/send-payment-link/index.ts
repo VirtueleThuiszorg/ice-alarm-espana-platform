@@ -5,6 +5,7 @@ import Stripe from "https://esm.sh/stripe@14.21.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { sendEmail } from "../_shared/email.ts";
 import { loadCheckoutPaymentMethods } from "../_shared/checkout-payment-methods.ts";
+import { twilioConfigured } from "../_shared/twilio-configured.ts";
 import { loadPricingInputs, PricingNotConfiguredError } from "../_shared/checkout-pricing.ts";
 import { sendPaymentLinkSchema, validateRequest } from "../_shared/validation.ts";
 import {
@@ -588,8 +589,34 @@ serve(async (req) => {
       ).data?.value,
     );
 
+    /*
+      WHATSAPP, FOR THE SWITCH LINK ONLY — Lee's brief names the delivery: "SMS/WhatsApp, email
+      when live, link always on screen for staff".
+
+      Why it is worth a second channel rather than trusting the SMS: these members are in their
+      seventies and eighties and have had this alarm for years. Many of them read WhatsApp and
+      ignore a text from a number they do not recognise — and a text about money from an
+      unrecognised number is exactly what a scam looks like, so ignoring it is the SENSIBLE
+      thing for them to do.
+
+      NOT on the ordinary signup link, and that is deliberate rather than timid: a
+      business-initiated WhatsApp message outside a 24-hour conversation window needs an
+      APPROVED TEMPLATE at Meta, and attempting one without it produces a Twilio rejection that
+      would read as "failed" on the operator's screen for something that was never possible.
+      The switch cohort is the one Lee asked for it on; the rest keeps the behaviour it has.
+    */
+    const twilio = isSwitch
+      ? await twilioConfigured(admin)
+      : { sms: false, whatsapp: false };
+
     const decisions = planDelivery({
       smsChannelOn: setting("notify_channel_sms") === "true",
+      whatsapp: isSwitch
+        ? {
+            channelOn: setting("notify_channel_whatsapp") === "true",
+            configured: twilio.whatsapp,
+          }
+        : undefined,
       emailConfigured,
       payerPhone,
       payerEmail,
@@ -603,21 +630,33 @@ serve(async (req) => {
         continue;
       }
 
-      if (decision.channel === "sms") {
+      if (decision.channel === "sms" || decision.channel === "whatsapp") {
+        /*
+          The same message down either pipe: one text, no shortener, no tracking parameters.
+          `twilio-whatsapp` takes the same {to, message} body as `twilio-sms`.
+
+          BOTH NAMES WRITTEN OUT AS LITERALS, rather than `invoke(fn, …)` with `fn` chosen
+          above. The register only scans `src/`, so this pair is not one of its wires — but the
+          habit is the same one, and for the same reason: a computed function name is invisible
+          to every grep somebody will run when a function is renamed or deleted. The runner's
+          `?dryRun=1` query string was exactly this, and it hid a control from the register.
+        */
+        const body = { to: decision.to, message: smsText, recipientType: "member" };
+        const headers = { Authorization: authHeader };
         try {
-          const { error } = await admin.functions.invoke("twilio-sms", {
-            body: { to: decision.to, message: smsText, recipientType: "member" },
-            headers: { Authorization: authHeader },
-          });
+          const { error } =
+            decision.channel === "sms"
+              ? await admin.functions.invoke("twilio-sms", { body, headers })
+              : await admin.functions.invoke("twilio-whatsapp", { body, headers });
           delivery.push({
-            channel: "sms",
+            channel: decision.channel,
             to: decision.to,
             outcome: error ? "failed" : "sent",
             detail: error?.message,
           });
         } catch (e) {
           delivery.push({
-            channel: "sms",
+            channel: decision.channel,
             to: decision.to,
             outcome: "failed",
             detail: e instanceof Error ? e.message : "unknown",

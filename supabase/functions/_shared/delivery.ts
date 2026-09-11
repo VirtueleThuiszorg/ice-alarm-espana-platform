@@ -8,11 +8,14 @@
  *
  * THE LINK IS ALWAYS SHOWN ON SCREEN. Every channel here can be off, unconfigured or
  * addressless, and the staff member still gets the URL to read out or paste into WhatsApp
- * themselves. A "sent" that silently sent nothing is the contact-form defect (STATE.md W1) in a
- * new costume, so each channel returns a NAMED outcome and the caller reports all of them.
+ * themselves — which is still true now that WhatsApp is one of the channels, because it is the
+ * one most likely to be switched off or without an approved template.
+ *
+ * A "sent" that silently sent nothing is the contact-form defect (STATE.md W1) in a new costume,
+ * so each channel returns a NAMED outcome and the caller reports all of them.
  */
 
-export type DeliveryChannel = "sms" | "email";
+export type DeliveryChannel = "sms" | "whatsapp" | "email";
 
 export type DeliveryOutcome =
   /** Handed to the transport, which accepted it. */
@@ -40,6 +43,24 @@ export interface ChannelInputs {
   /** `system_settings.notify_channel_sms` — Lee's switch, and nobody else's (D7). */
   smsChannelOn: boolean;
   /**
+   * WHATSAPP, WHEN THE CALLER OFFERS IT — omitted entirely by the surfaces that do not.
+   *
+   * Not every message belongs on WhatsApp. A business-initiated WhatsApp message outside a
+   * 24-hour conversation window needs an APPROVED TEMPLATE at Meta, so a surface that has no
+   * template must not attempt one: Twilio would reject it and the report would read "failed"
+   * for something that was never possible.
+   *
+   * So this is optional rather than a third boolean every caller has to answer. Absent means
+   * the decisions come back as they always did — sms, email — and nothing about the other
+   * surfaces changes.
+   */
+  whatsapp?: {
+    /** `system_settings.notify_channel_whatsapp` — the same kind of switch as the SMS one. */
+    channelOn: boolean;
+    /** Twilio account credentials AND a `settings_twilio_whatsapp_number`. */
+    configured: boolean;
+  };
+  /**
    * Whether email can actually leave the building. `email.ts` falls back to Gmail when no
    * provider is configured, which either works or fails loudly; this flag is what the caller
    * knows about the sender being live (PENDING_FOR_LEE.md S2).
@@ -66,11 +87,27 @@ export function planChannels(input: ChannelInputs): DeliveryDecision[] {
       ? { channel: "sms", to: null, attempt: false, outcome: "skipped_no_address" }
       : { channel: "sms", to: phone, attempt: true, outcome: null };
 
+  /*
+    SAME ORDER OF REASONS as the SMS decision: an off channel is reported as off even when there
+    is also no number, because "turn the channel on" is the action. The extra rung is
+    `configured`: WhatsApp needs a sender number of its own, and PENDING_FOR_LEE S15 is the
+    record of what reporting a missing number as anything else cost.
+  */
+  const whatsapp: DeliveryDecision | null = !input.whatsapp
+    ? null
+    : !input.whatsapp.channelOn
+      ? { channel: "whatsapp", to: phone, attempt: false, outcome: "skipped_channel_off" }
+      : !input.whatsapp.configured
+        ? { channel: "whatsapp", to: phone, attempt: false, outcome: "skipped_not_configured" }
+        : !phone
+          ? { channel: "whatsapp", to: null, attempt: false, outcome: "skipped_no_address" }
+          : { channel: "whatsapp", to: phone, attempt: true, outcome: null };
+
   const mail: DeliveryDecision = !input.emailConfigured
     ? { channel: "email", to: email, attempt: false, outcome: "skipped_not_configured" }
     : !email
       ? { channel: "email", to: null, attempt: false, outcome: "skipped_no_address" }
       : { channel: "email", to: email, attempt: true, outcome: null };
 
-  return [sms, mail];
+  return whatsapp ? [sms, whatsapp, mail] : [sms, mail];
 }

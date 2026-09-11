@@ -159,6 +159,16 @@ webhook activates on payment — it is simply harder for the people it is for.
   exhausted one texts them in their own language; and none of it writes to `members` at all —
   golden rule 4, executed rather than asserted about a string. All four of those were
   mutation-checked.
+- **The runner, RUN** (`src/test/billingMigrationRunExecuted.test.ts`), including the one item on
+  Lee's list that could not be checked at all before: **"Runner re-run sends nothing twice."** The
+  claim is an insert against a unique index, and the fake enforces exactly that index — so the
+  second run claims nothing, sends nobody, and reports one skipped. Also executed: the sweeps
+  still run while the migration is switched OFF (a member left mid-switch is out of the Santander
+  export, so pausing must not strand them); a dry run decides everything and writes nothing; a
+  member nobody can price is belled once rather than daily; and a failed run rings the bell rather
+  than stopping silently. Six mutations were tried and six bit — two of them only after a test was
+  strengthened, because the first version of the dry-run case used a member whose renewal had not
+  passed, so there was no write for the guard to prevent.
 
 **Not proven, and it cannot be proven from here:** anything Stripe actually does. No Checkout
 Session has been created, no clock advanced, no `async_payment_succeeded` received. The rehearsal

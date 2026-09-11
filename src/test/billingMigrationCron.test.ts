@@ -15,6 +15,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { runnerSource } from "./helpers/runnerSource";
 
 const ROOT = process.cwd();
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
@@ -27,7 +28,16 @@ const settingsRaw = read(`supabase/migrations/${SETTINGS_FILE}`);
 const settings = strip(settingsRaw);
 const cronRaw = read(`supabase/migrations/${CRON_FILE}`);
 const cron = strip(cronRaw);
-const fn = read("supabase/functions/billing-migration-run/index.ts");
+/*
+  BOTH FILES, TRANSPORT FIRST. The runner was split so its whole run could be EXECUTED
+  (`src/test/billingMigrationRunExecuted.test.ts`) rather than only read — which is how three
+  defects got in and stayed in, each written, each read, none run. Concatenated in the order the
+  single file had them, so every ordering assertion below still means what it meant.
+
+  These scans are kept rather than replaced: they say what the run must NOT do, and an absence
+  is the one thing an executed test cannot assert.
+*/
+const fn = runnerSource();
 
 describe("never twice, as a key rather than a check", () => {
   it("adds the dedupe key to notification_log", () => {
@@ -63,7 +73,11 @@ describe("never twice, as a key rather than a check", () => {
   // see. The other order loses the record when the process dies between them, and the next run
   // sends again.
   it("writes the log row BEFORE sending, which is the safer of the two failures", () => {
-    expect(fn.indexOf("const claimed = await claim(")).toBeLessThan(fn.indexOf("await sendSwitchLink("));
+    /* The send is `deps.sendSwitchLink` now: the call to `send-payment-link` is injected, so the
+       whole run can be executed without a Stripe key and a live edge function to reach. Asserted
+       to be findable, because an ordering assertion against -1 passes for the wrong reason. */
+    expect(fn.indexOf("await deps.sendSwitchLink(")).toBeGreaterThan(0);
+    expect(fn.indexOf("const claimed = await claim(")).toBeLessThan(fn.indexOf("await deps.sendSwitchLink("));
   });
 });
 
@@ -97,7 +111,7 @@ describe("it arrives switched off", () => {
     */
     expect(fn).toMatch(/if \(!settings\.enabled\)/);
     expect(fn.indexOf("if (!settings.enabled)")).toBeLessThan(fn.indexOf("planTodaysRun("));
-    expect(fn.indexOf("if (!settings.enabled)")).toBeLessThan(fn.indexOf("await sendSwitchLink("));
+    expect(fn.indexOf("if (!settings.enabled)")).toBeLessThan(fn.indexOf("await deps.sendSwitchLink("));
   });
 
   /*
@@ -244,7 +258,7 @@ describe("the two sweeps, which are not part of the migration", () => {
   */
   it("and rolls a passed renewal date forward, through the one implementation of the rule", () => {
     expect(fn).toMatch(/rolledForwardRenewal\(/);
-    expect(fn).toMatch(/from "\.\.\/_shared\/legacy-billing-schedule\.ts"/);
+    expect(fn).toMatch(/from "\.\/legacy-billing-schedule\.ts"/);
     expect(fn).toMatch(/legacy_next_renewal: next/);
   });
 
@@ -357,7 +371,7 @@ describe("the plan the runner would be charging", () => {
   });
 
   it("decides through the one shared module", () => {
-    expect(fn).toMatch(/from "\.\.\/_shared\/legacy-plan\.ts"/);
+    expect(fn).toMatch(/from "\.\/legacy-plan\.ts"/);
     expect(fn).toMatch(/resolveLegacyPlan\(\{/);
     expect(fn).toMatch(/planConfirmed: planConfirmedFor\(r\)/);
   });

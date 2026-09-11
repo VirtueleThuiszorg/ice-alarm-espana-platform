@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { conversationPreview } from "@/lib/conversationPreview";
-import { fetchLastIsabellaTurn } from "@/lib/lastIsabellaTurn";
 import { createNotification, getMemberUserId } from "@/utils/notifications";
 import { staffSenderType } from "@/lib/messageSenderType";
 import { withCannedReply } from "@/lib/cannedReplies";
@@ -43,6 +41,7 @@ import {
 import { format, formatDistanceToNow } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { fetchConversationSummaries } from "@/lib/conversationSummaries";
 
 interface Conversation {
   id: string;
@@ -221,79 +220,66 @@ export default function MessagesPage() {
 
   const fetchConversations = async () => {
     try {
-      // Fetch conversations with member info
-      const { data: convData, error: convError } = await supabase
-        .from("conversations")
-        .select(`
-          *,
-          member:members!conversations_member_id_fkey(id, first_name, last_name, email, phone, preferred_language)
-        `)
-        .order("last_message_at", { ascending: false });
+      /*
+        ONE query for the list, plus two BOUNDED lookups for staff names.
 
-      if (convError) throw convError;
+        It used to be one for the list and then two more PER ROW — the unread
+        count and the last message — with a third for Isabella's last turn on any
+        thread that had no ordinary message. This page lists every conversation
+        with no limit, so that grew without bound as the product did.
 
-      // Fetch assigned staff info
-      const assignedStaffIds = convData?.filter(c => c.assigned_to).map(c => c.assigned_to).filter((x): x is string => x !== null) || [];
+        `unread_not_from_staff`, not `unread_from_member`: this list counts anyone
+        other than staff waiting, which also catches `system`. The view carries
+        all three counts precisely so no screen has to settle for a near-enough
+        one. See lib/conversationSummaries.ts.
+      */
+      const rows = await fetchConversationSummaries();
+
+      const assignedStaffIds = rows
+        .map((r) => r.assigned_to)
+        .filter((x): x is string => x !== null);
       const { data: staffData } = await supabase
         .from("staff")
         .select("id, first_name, last_name")
         .in("id", assignedStaffIds);
+      const staffMap = new Map(staffData?.map((st) => [st.id, st]) || []);
 
-      const staffMap = new Map(staffData?.map(s => [s.id, s]) || []);
-
-      // Fetch staff participants info for staff conversations
-      const staffConvs = convData?.filter(c => c.conversation_type === "staff") || [];
-      const allParticipantIds = staffConvs.flatMap(c => (c.staff_participants || []) as string[]);
+      // Staff participants, for staff-to-staff threads. One query for all of
+      // them, not one per thread.
+      const staffConvs = rows.filter((r) => r.conversation_type === "staff");
+      const allParticipantIds = staffConvs.flatMap((r) => r.staff_participants || []);
       const { data: participantsData } = await supabase
         .from("staff")
         .select("id, first_name, last_name")
         .in("id", allParticipantIds);
-      const participantsMap = new Map(participantsData?.map(s => [s.id, s]) || []);
+      const participantsMap = new Map(participantsData?.map((st) => [st.id, st]) || []);
 
-      // Fetch unread counts and last message preview
-      const conversationsWithDetails = await Promise.all(
-        (convData || []).map(async (conv) => {
-          const { count } = await supabase
-            .from("messages")
-            .select("*", { count: "exact", head: true })
-            .eq("conversation_id", conv.id)
-            .eq("is_read", false)
-            .neq("sender_type", "staff");
-
-          const { data: lastMsg } = await supabase
-            .from("messages")
-            .select("content, created_at")
-            .eq("conversation_id", conv.id)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          /*
-            The preview said the literal word "undefined" for a conversation with no
-            `messages` row — `undefined + ""` is the STRING "undefined", which is truthy, so
-            the `|| ""` never fired. Invisible until WP6 G7, because an Isabella-only
-            conversation has no messages and there is one per member who used the chat.
-            The Isabella read happens only when there is nothing ordinary to show.
-          */
-          const preview = conversationPreview(
-            lastMsg,
-            lastMsg ? null : await fetchLastIsabellaTurn(conv.id),
-          );
-
-          return {
-            ...conv,
-            conversation_type: (conv.conversation_type || "member") as "member" | "staff" | "internal",
-            assigned_staff: conv.assigned_to ? staffMap.get(conv.assigned_to) || null : null,
-            participants_info: conv.conversation_type === "staff"
-              ? (conv.staff_participants || []).map((id: string) => participantsMap.get(id)).filter(Boolean)
+      setConversations(
+        rows.map((row) => ({
+          ...row,
+          member: {
+            id: row.member_id,
+            first_name: row.member_first_name,
+            last_name: row.member_last_name,
+            email: row.member_email,
+            phone: row.member_phone,
+            preferred_language: row.member_preferred_language,
+          },
+          conversation_type: (row.conversation_type || "member") as
+            | "member"
+            | "staff"
+            | "internal",
+          assigned_staff: row.assigned_to ? staffMap.get(row.assigned_to) || null : null,
+          participants_info:
+            row.conversation_type === "staff"
+              ? (row.staff_participants || [])
+                  .map((id: string) => participantsMap.get(id))
+                  .filter(Boolean)
               : undefined,
-            unread_count: count || 0,
-            last_message_preview: preview.text,
-          };
-        })
+          unread_count: row.unread_not_from_staff,
+          last_message_preview: row.last_message_preview,
+        })) as unknown as Conversation[],
       );
-
-      setConversations(conversationsWithDetails as Conversation[]);
     } catch (error) {
       console.error("Error fetching conversations:", error);
       toast.error("Failed to load conversations");

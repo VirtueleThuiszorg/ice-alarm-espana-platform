@@ -204,11 +204,22 @@ describe("the operator screen, as shipped", () => {
     expect(src).toContain('value="queue"');
   });
 
-  it("selects the sender of the last message, or `waitingOn` has nothing to read", () => {
-    // The column LIST is not the contract — `created_at` joined it when the preview fix landed.
-    // What must hold is that the last-message query asks for `sender_type` at all.
-    expect(src).toMatch(/\.select\("content[^"]*sender_type[^"]*"\)/);
-    expect(src).toContain("last_message_sender: lastMsg?.sender_type");
+  it("supplies the sender of the last message, or `waitingOn` has nothing to read", () => {
+    /*
+      THE CONTRACT IS THE FIELD, NOT WHERE IT COMES FROM.
+
+      `waitingOn()` is a pure function of `last_message_sender`, and the queue tab
+      is a filter over it — so a row that arrives without it silently reports
+      every thread as waiting on nobody. What must hold is that this page puts a
+      real sender on every row.
+
+      It used to come from a per-row `.select("content, created_at, sender_type")`
+      against `messages`. It now comes from `last_message_sender_type` on the
+      `conversation_summaries` view, which is what removed the per-row query
+      (docs/perf/BASELINE.md). The assertion follows the field.
+    */
+    expect(src).toContain("fetchConversationSummaries(");
+    expect(src).toContain("last_message_sender: row.last_message_sender_type");
   });
 
   it("does not re-derive readiness from source tables", () => {

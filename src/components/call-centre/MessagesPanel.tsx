@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { conversationPreview } from "@/lib/conversationPreview";
-import { fetchLastIsabellaTurn } from "@/lib/lastIsabellaTurn";
 import { toast } from "sonner";
 import { Loader2, MessageSquare, Send, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,6 +13,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { withCannedReply } from "@/lib/cannedReplies";
 import { CannedReplyPicker } from "@/components/messaging/CannedReplyPicker";
+import { fetchConversationSummaries } from "@/lib/conversationSummaries";
 
 interface Conversation {
   id: string;
@@ -120,63 +119,31 @@ export function MessagesPanel() {
   };
 
   const fetchConversations = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("conversations")
-        .select(`
-          *,
-          member:members!conversations_member_id_fkey(first_name, last_name, preferred_language)
-        `)
-        .in("status", ["open", "pending"])
-        .order("last_message_at", { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-
-      // Fetch unread counts
-      const conversationsWithDetails = await Promise.all(
-        (data || []).map(async (conv) => {
-          const { count } = await supabase
-            .from("messages")
-            .select("*", { count: "exact", head: true })
-            .eq("conversation_id", conv.id)
-            .eq("is_read", false)
-            .eq("sender_type", "member");
-
-          const { data: lastMsg } = await supabase
-            .from("messages")
-            .select("content, created_at")
-            .eq("conversation_id", conv.id)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          /*
-            The preview said the literal word "undefined" for a conversation with no
-            `messages` row — `undefined + ""` is the STRING "undefined", which is truthy, so
-            the `|| ""` never fired. Invisible until WP6 G7, because an Isabella-only
-            conversation has no messages and there is one per member who used the chat.
-            The Isabella read happens only when there is nothing ordinary to show.
-          */
-          const preview = conversationPreview(
-            lastMsg,
-            lastMsg ? null : await fetchLastIsabellaTurn(conv.id),
-          );
-
-          return {
-            ...conv,
-            unread_count: count || 0,
-            last_message_preview: preview.text,
-          };
-        })
-      );
-
-      setConversations(conversationsWithDetails);
-    } catch (error) {
-      console.error("Error fetching conversations:", error);
-    } finally {
-      setIsLoading(false);
-    }
+    // ONE query. This used to be one for the list, then two more PER ROW — the
+    // unread count and the last message — plus a third for Isabella's last turn
+    // when the thread had no ordinary message. With the 20-row limit below that
+    // was over 40 requests every time this panel opened.
+    //
+    // `unread_from_member` and not `unread_from_staff`: this list highlights
+    // threads where a MEMBER is waiting on the team, which is the opposite of
+    // what the member's own list highlights. The view carries both counts for
+    // exactly that reason. See lib/conversationSummaries.ts.
+    const rows = await fetchConversationSummaries({
+      statuses: ["open", "pending"],
+      limit: 20,
+    });
+    setConversations(
+      rows.map((row) => ({
+        ...row,
+        unread_count: row.unread_from_member,
+        member: {
+          first_name: row.member_first_name,
+          last_name: row.member_last_name,
+          preferred_language: row.member_preferred_language,
+        },
+      })) as unknown as typeof conversations,
+    );
+    setIsLoading(false);
   };
 
   const fetchMessages = async (conversationId: string) => {

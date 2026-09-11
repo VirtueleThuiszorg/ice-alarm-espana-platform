@@ -49,6 +49,22 @@ RETURNS void LANGUAGE sql AS $$
          ELSE p_detail END);
 $$;
 
+-- Run a query as a given user and return its first column as text. Same identity
+-- mechanism as count_as; needed where the assertion is about a VALUE rather than a
+-- row count — "the preview says the right thing" cannot be counted.
+CREATE OR REPLACE FUNCTION pg_temp.text_as(p_user uuid, p_sql text)
+RETURNS text LANGUAGE plpgsql AS $$
+DECLARE v text;
+BEGIN
+  PERFORM set_config('request.jwt.claims',
+    json_build_object('sub', p_user, 'role', 'authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  EXECUTE p_sql INTO v;
+  RESET ROLE;
+  RETURN v;
+END;
+$$;
+
 -- Run a query as a given user and return the row count. SECURITY INVOKER (the
 -- default) is essential: SET LOCAL ROLE must actually drop us to `authenticated`,
 -- because a superuser bypasses RLS and every test would pass vacuously.
@@ -2859,6 +2875,74 @@ SELECT pg_temp.check(
   'staff DO read the internal note — it is for them',
   pg_temp.count_as('a6000000-0000-0000-0000-00000000000f',
     'SELECT id FROM public.messages WHERE sender_type = ''staff_internal''') = 1);
+
+-- ── conversation_summaries: the list, in one query ────────────────────────
+--
+-- A security_invoker view over conversations + messages + conversation_messages,
+-- added because five screens each fetched the last message and an unread count
+-- ONCE PER ROW — 66 requests to render the member's Messages page. A view cannot
+-- carry RLS of its own, so golden rule 2 is satisfied here the way it is for
+-- `member_monitoring_readiness`: by proving the DELEGATION holds, mechanism first.
+
+-- The MECHANISM, asserted before any read. Without it the negative below could
+-- pass for the wrong reason on a definer view owned by a role that happens to see
+-- little — the assertion would then be about the owner's luck, not about RLS.
+SELECT pg_temp.check(
+  'conversation_summaries really has security_invoker = on (not merely the right answers)',
+  EXISTS (
+    SELECT 1 FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relname = 'conversation_summaries'
+      AND c.reloptions @> ARRAY['security_invoker=on']
+  ),
+  COALESCE((SELECT array_to_string(c.reloptions, ',') FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = 'public' AND c.relname = 'conversation_summaries'),
+           'view missing'));
+
+-- THE load-bearing negative: the view must not become a second way to read
+-- somebody else's conversation.
+SELECT pg_temp.check(
+  'member B cannot see member A''s conversation through the view',
+  pg_temp.count_as('22222222-2222-2222-2222-222222222222',
+    'SELECT id FROM public.conversation_summaries') = 0,
+  'a derived view is still a read path, and this is the one that matters');
+
+SELECT pg_temp.check(
+  'CONTROL: member A DOES see their own, so the negative above is not vacuous',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.conversation_summaries') = 1,
+  'if this is 0 the view returns nothing to anyone and every check here is empty');
+
+SELECT pg_temp.check(
+  'staff read the conversation through the view, as they do the table',
+  pg_temp.count_as('a6000000-0000-0000-0000-00000000000f',
+    'SELECT id FROM public.conversation_summaries') = 1);
+
+-- The view must not leak through its DERIVED columns either. A member may not read
+-- a staff_internal message (asserted above); the preview is built from messages, so
+-- it must not carry one out of the table by another route.
+SELECT pg_temp.check(
+  'the preview a MEMBER sees is never a staff_internal note',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM public.conversation_summaries
+      WHERE last_message_content LIKE ''%do not discuss with member%''') = 0,
+  'the internal note is the NEWEST message in that thread, so a definer view would show it');
+
+SELECT pg_temp.check(
+  'and the member''s preview IS their own newest readable message',
+  (SELECT pg_temp.text_as('11111111-1111-1111-1111-111111111111',
+    'SELECT last_message_content FROM public.conversation_summaries LIMIT 1'))
+    = 'Hello, my pendant is beeping.',
+  'the whole point of the view is that this column is right without a second query');
+
+SELECT pg_temp.check(
+  'the view counts unread messages rather than returning a constant',
+  (SELECT pg_temp.text_as('a6000000-0000-0000-0000-00000000000f',
+    'SELECT unread_not_from_staff::text FROM public.conversation_summaries LIMIT 1'))
+    <> '0',
+  'a count that is always 0 would make every list look read');
 
 SELECT pg_temp.check(
   'the channel vocabulary refuses a value outside chat|voice|whatsapp|sms|email',

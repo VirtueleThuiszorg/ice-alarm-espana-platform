@@ -321,7 +321,7 @@ describe("RULE 2 — a missing secret fails the job, in every workflow", () => {
     }
   });
 
-  it("the migrate job guards ALL THREE of its secrets, in one call", () => {
+  it("the migrate job guards ALL FOUR of its secrets, in one call", () => {
     // Comments are stripped FIRST. The header explains the change and names the script, and the
     // first version of this assertion matched that prose instead of the `run:` line — passing on
     // the strength of a comment, which is the one thing a workflow does not execute.
@@ -332,9 +332,48 @@ describe("RULE 2 — a missing secret fails the job, in every workflow", () => {
       "SUPABASE_ACCESS_TOKEN",
       "SUPABASE_PROJECT_REF",
       "SUPABASE_DB_PASSWORD",
+      // The fourth is MANIFEST_PUSH_TOKEN, and it is the one whose absence is silent without this
+      // guard: the job would apply migrations to production and only then discover it cannot
+      // record them, which is the drift this whole workflow exists to prevent.
+      "MANIFEST_PUSH_TOKEN",
     ]) {
       expect(guard![1], `migrate does not require ${secret}`).toContain(secret);
     }
+  });
+
+  /*
+    THE MANIFEST COMMIT GOES TO A GATED BRANCH.
+
+    main is governed by a repository ruleset: every change to it needs a pull request, and
+    github-actions[bot] is not a bypass actor. So `secrets.GITHUB_TOKEN` can no longer push the
+    APPLIED_TO_PROD.txt commit, and the failure mode if it tries is the bad one — production has
+    already been migrated, and the only record of what landed is a red X in a log.
+  */
+  it("the migrate job checks out with the PAT, so its push to main can land", () => {
+    const body = stripComments(migrateJobs.get("migrate")!);
+    const checkout = /actions\/checkout@v4([\s\S]*?)\n\s{6}- name:/.exec(body);
+    expect(checkout, "the migrate job no longer checks out").not.toBeNull();
+    expect(
+      checkout![1],
+      "checkout does not hand actions/checkout the PAT, so the persisted credential is the " +
+        "job's own token and the manifest push is refused by the ruleset",
+    ).toMatch(/token:\s*\$\{\{\s*secrets\.MANIFEST_PUSH_TOKEN/);
+  });
+
+  it("an absent PAT still fails at the guard, not at checkout", () => {
+    // Without the fallback, an unset secret is the empty string and checkout dies on "Bad
+    // credentials" — a red that reads like a GitHub outage rather than a missing secret. With it,
+    // checkout succeeds on the job's own token and require-secrets names the secret one step
+    // later, still before anything touches production.
+    const body = stripComments(migrateJobs.get("migrate")!);
+    expect(body).toMatch(/secrets\.MANIFEST_PUSH_TOKEN\s*\|\|\s*github\.token/);
+
+    const names = stepNames(migrateJobs.get("migrate")!);
+    const guard = names.findIndex((n) => /Require migrate secrets/i.test(n));
+    const push = names.findIndex((n) => /Apply migrations/i.test(n));
+    expect(guard, "no secrets guard in the migrate job").toBeGreaterThan(-1);
+    expect(push, "no apply step in the migrate job").toBeGreaterThan(-1);
+    expect(guard, "the guard must run before production is touched").toBeLessThan(push);
   });
 
   it("the deploy job guards the two secrets IT needs", () => {

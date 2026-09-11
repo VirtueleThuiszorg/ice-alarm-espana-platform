@@ -242,7 +242,7 @@ serve(async (req) => {
       destination, the customer pays and is never activated, silently. Card only until an admin
       confirms the destination is listening (Admin → Settings → Payments).
     */
-    const { methods: paymentMethodTypes } = await loadCheckoutPaymentMethods(supabase);
+    const { methods: paymentMethodTypes } = await loadCheckoutPaymentMethods(admin);
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",

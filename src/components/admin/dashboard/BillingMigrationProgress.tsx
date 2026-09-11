@@ -8,7 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { santanderExportCsv, summariseMigration, type MigrationRow } from "@/lib/billingMigrationProgress";
+import {
+  santanderExportCsv,
+  summariseMigration,
+  toMigrationRow,
+  type MemberProgressRow,
+} from "@/lib/billingMigrationProgress";
 import { resolveLegacyPlan } from "../../../../supabase/functions/_shared/legacy-plan";
 
 /**
@@ -42,45 +47,17 @@ export function BillingMigrationProgress() {
         .in("billing_source", ["legacy", "switch_pending", "stripe"]);
       if (error) throw error;
 
-      return (rows ?? []).map((r): MigrationRow => {
-        const subs = (r.subscriptions ?? []) as Array<{
-          plan_type: string | null;
-          amount: number | null;
-          billing_frequency: string | null;
-          created_at: string;
-        }>;
-        const newest = [...subs].sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
-        /* PostgREST returns an embedded one-to-one as an object and a one-to-many as an array,
-           depending on whether the FK carries a unique index. Reading it wrong would put every
-           legacy member in the "needs a plan" queue and blank the plan column for all of them. */
-        const profileRaw = r.crm_profiles;
-        const profile = (Array.isArray(profileRaw) ? profileRaw[0] : profileRaw) as
-          | { legacy_membership_type: string | null; legacy_payment_type: string | null }
-          | null
-          | undefined;
-        return {
-          id: r.id as string,
-          name: `${r.first_name} ${r.last_name}`,
-          email: (r.email as string | null) ?? null,
-          phone: (r.phone as string | null) ?? null,
-          billingSource: (r.billing_source as string | null) ?? null,
-          billingDay: (r.legacy_billing_day as number | null) ?? null,
-          nextRenewal: (r.legacy_next_renewal as string | null) ?? null,
-          switchExpiresAt: (r.switch_expires_at as string | null) ?? null,
-          amount: newest?.amount ?? null,
-          billingFrequency: (newest?.billing_frequency as "monthly" | "annual" | null) ?? null,
-          legacyPlanLabel: profile?.legacy_membership_type ?? null,
-          /* The SAME decision the switch link and the runner make, from the same module — so the
-             number on this card is the number of members the runner will refuse to price, and
-             not a second opinion about them. */
-          planConfirmed: resolveLegacyPlan({
-            label: profile?.legacy_membership_type ?? null,
-            paymentType: profile?.legacy_payment_type ?? null,
-            storedPlanType: newest?.plan_type ?? null,
-            storedBillingFrequency: newest?.billing_frequency ?? null,
-          }).confirmed,
-        };
-      });
+      /*
+        THE MAPPING IS NOT DONE HERE. `toMigrationRow` builds the row this screen decides from —
+        including `billingSource`, which is what keeps a member with a live Stripe link out of the
+        bank collection — and it lives in the tested module beside the rule that reads it. While it
+        was a closure in this function the only assertions that could reach it were regexes over
+        this file, so a mapper that read the wrong column would have passed every test and cost a
+        member their second payment of the month.
+      */
+      return (rows ?? []).map((r) =>
+        toMigrationRow(r as unknown as MemberProgressRow, resolveLegacyPlan),
+      );
     },
   });
 

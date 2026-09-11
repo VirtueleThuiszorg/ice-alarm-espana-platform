@@ -9,6 +9,13 @@
  * So the export rule lives here, pure and tested, rather than inside a component where it would
  * be exercised only by somebody clicking a button. It is the single most expensive thing on that
  * screen to get wrong, and the cost lands on the member rather than on us.
+ *
+ * `toMigrationRow` IS HERE FOR THE SAME REASON, and it was not, which made the sentence above
+ * half true. The exclusion rule was tested on rows a test invented; the code that builds a real
+ * row out of what PostgREST returns lived in the card's `queryFn`, where the only assertions
+ * that could reach it were regexes over the file. A mapper that read the wrong column would
+ * hand `santanderExportCsv` a `switch_pending` member labelled `legacy`, and every test here
+ * would still pass while the office collected from somebody who had already paid Stripe.
  */
 
 export interface MigrationRow {
@@ -55,6 +62,109 @@ export interface MigrationSummary {
   lapsed: number;
   /** Still on Santander and renewing between today and the end of this month. */
   dueThisMonth: MigrationRow[];
+}
+
+/**
+ * One row as `supabase.from("members").select(...)` returns it for this card.
+ *
+ * Deliberately loose: PostgREST hands back `unknown`-ish JSON, and the point of this function is
+ * to be the ONE place that narrows it. Anything stricter here would move the casts back into the
+ * component and take the decision with them.
+ */
+export interface MemberProgressRow {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  phone: string | null;
+  billing_source: string | null;
+  legacy_billing_day: number | null;
+  legacy_next_renewal: string | null;
+  switch_expires_at: string | null;
+  subscriptions?: SubscriptionEmbed[] | SubscriptionEmbed | null;
+  crm_profiles?: ProfileEmbed[] | ProfileEmbed | null;
+}
+
+interface SubscriptionEmbed {
+  plan_type: string | null;
+  amount: number | null;
+  billing_frequency: string | null;
+  created_at: string;
+}
+
+interface ProfileEmbed {
+  legacy_membership_type: string | null;
+  legacy_payment_type: string | null;
+}
+
+/**
+ * PostgREST returns an embedded one-to-one as an OBJECT and a one-to-many as an ARRAY, depending
+ * on whether the foreign key carries a unique index — and that index is a property of the
+ * database, not of this query, so the shape can change under us without this file being touched.
+ *
+ * Both are handled for both embeds. Getting it wrong on `crm_profiles` puts EVERY legacy member
+ * in the "needs a plan" queue and blanks the plan column on the collection sheet; getting it
+ * wrong on `subscriptions` blanks the amount, which is the figure the office types into the bank.
+ */
+function firstOf<T>(embed: T[] | T | null | undefined): T | null {
+  if (embed === null || embed === undefined) return null;
+  return Array.isArray(embed) ? (embed[0] ?? null) : embed;
+}
+
+/**
+ * The row the whole screen decides from.
+ *
+ * `billingSource` is the field that matters: `santanderExportCsv` includes `legacy` and excludes
+ * everything else, so this is where a member with a live Stripe link is either kept out of the
+ * bank run or put back into it.
+ */
+export function toMigrationRow(
+  r: MemberProgressRow,
+  resolvePlan: (source: {
+    label: string | null;
+    paymentType: string | null;
+    storedPlanType: string | null;
+    storedBillingFrequency: string | null;
+  }) => { confirmed: boolean },
+): MigrationRow {
+  const subs = Array.isArray(r.subscriptions)
+    ? r.subscriptions
+    : r.subscriptions
+      ? [r.subscriptions]
+      : [];
+  /*
+    NEWEST SUBSCRIPTION WINS. A member who was re-signed carries more than one row, and the older
+    one can hold a price they stopped paying years ago. Sorting descending by `created_at` and
+    taking the first is the difference between collecting this year's fee and last year's.
+  */
+  const newest = [...subs].sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
+  const profile = firstOf(r.crm_profiles);
+
+  return {
+    id: r.id,
+    name: `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim(),
+    email: r.email ?? null,
+    phone: r.phone ?? null,
+    billingSource: r.billing_source ?? null,
+    billingDay: r.legacy_billing_day ?? null,
+    nextRenewal: r.legacy_next_renewal ?? null,
+    switchExpiresAt: r.switch_expires_at ?? null,
+    amount: newest?.amount ?? null,
+    billingFrequency: (newest?.billing_frequency as "monthly" | "annual" | null) ?? null,
+    legacyPlanLabel: profile?.legacy_membership_type ?? null,
+    /*
+      THE SAME DECISION the switch link and the runner make, from the same module — so the number
+      on this card is the number of members the runner will refuse to price, and not a second
+      opinion about them. Injected rather than imported so this file stays free of the edge
+      function tree; the card passes `resolveLegacyPlan` itself.
+    */
+    planConfirmed: resolvePlan({
+      label: profile?.legacy_membership_type ?? null,
+      paymentType: profile?.legacy_payment_type ?? null,
+      storedPlanType: newest?.plan_type ?? null,
+      storedBillingFrequency: newest?.billing_frequency ?? null,
+    }).confirmed,
+  };
 }
 
 export function summariseMigration(rows: MigrationRow[], today: Date): MigrationSummary {

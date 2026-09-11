@@ -293,6 +293,16 @@ export interface RouteMeasurement {
    * the signature of a per-row fetch. Empty is the passing state.
    */
   nPlusOneTables: string[];
+  /**
+   * Every table the route read on one load, in the order first seen.
+   *
+   * Recorded so `dbQueryP95Ms` can be MEASURED rather than asserted: the p95 tool
+   * seeds a real Postgres, times each of these tables under RLS as the worst-case
+   * identity, and writes the route's p95 back here. Without it the tool would have
+   * to guess which tables belong to which page, and a guess is exactly what this
+   * column is supposed to replace.
+   */
+  tablesRead?: string[];
 }
 
 /* ── scoring ─────────────────────────────────────────────────────────────── */

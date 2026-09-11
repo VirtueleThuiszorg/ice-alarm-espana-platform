@@ -87,6 +87,22 @@ function countQueries(calls: RecordedCall[]): number {
  * is a per-row fetch. Two reads of the same table is a legitimate pattern (a list
  * plus a count); three distinct filters is a loop over rows.
  */
+/**
+ * Every table the route touched, first-seen order. Feeds the p95 tool, which
+ * needs to know WHICH tables a page reads before it can time them for real.
+ * RPCs are excluded: an RPC is not a table and cannot be timed as one.
+ */
+function tablesRead(calls: RecordedCall[]): string[] {
+  const seen: string[] = [];
+  for (const call of calls) {
+    if (!call.path.startsWith("/rest/v1/")) continue;
+    const [pathname] = call.path.slice("/rest/v1/".length).split("?");
+    if (pathname.startsWith("rpc/") || !pathname) continue;
+    if (!seen.includes(pathname)) seen.push(pathname);
+  }
+  return seen;
+}
+
 function detectNPlusOne(calls: RecordedCall[]): string[] {
   const byTable = new Map<string, Set<string>>();
   for (const call of calls) {
@@ -280,12 +296,26 @@ async function measureProfile(
     await settle(page).catch(() => {});
     // One frame past settle, so a shift caused by the last paint is in the CLS total.
     await page.waitForTimeout(250);
-    // Then wait for the page to stop QUERYING, which is a different question from
-    // whether it has stopped animating — see e2e/perf/quiesce.ts. Counting at the
-    // animation boundary photographed a partial waterfall, and the same route
-    // reported 17, 28 and 36 queries on three runs of identical code.
-    const quiesced = await quiesce(page, stub);
+
+    /*
+      VITALS FIRST, THEN THE QUERIES — and the order is the whole point.
+
+      LCP, CLS and long tasks keep ACCUMULATING for as long as the page is left
+      open: LCP is not final until the first user input, so every later paint
+      replaces it. Reading them after waiting for quiescence therefore measures a
+      different thing from reading them at settle, and BASELINE.md read them at
+      settle. Doing it the new way made every route's LCP look a second worse than
+      the baseline for no reason but the clock — a regression that existed only in
+      the measurement.
+
+      So the vitals are read exactly where the baseline read them, and the BEFORE
+      and AFTER columns mean the same thing. The QUERY COUNT is the opposite case:
+      at settle it catches a partial waterfall (the same route reported 17, 28 and
+      36 on identical code), so it is taken over the whole load. Two questions,
+      two moments, both stated.
+    */
     vitals = (await page.evaluate(READ_VITALS)) as typeof vitals;
+    const quiesced = await quiesce(page, stub);
     calls = quiesced.calls;
   } finally {
     await loadContext.close();
@@ -383,6 +413,7 @@ test.describe("performance scorecard", () => {
         // the EXPLAIN ANALYZE evidence, and `null` scores as a FAIL until it is.
         dbQueryP95Ms: null,
         nPlusOneTables: detectNPlusOne(calls),
+        tablesRead: tablesRead(calls),
       });
 
       // Written after every route so a run that dies at route 30 still leaves 29

@@ -18,6 +18,7 @@
     "perf:measure": "playwright test --config playwright.perf.config.ts scorecard.spec.ts",
     "perf:bundles": "node --experimental-strip-types scripts/perf/route-bundles.mjs",
     "perf:report": "node --experimental-strip-types scripts/perf/report.mjs",
+    "perf:p95": "node --experimental-strip-types scripts/perf/route-query-p95.mjs",
     "perf:budgets": "playwright test --config playwright.perf.config.ts budgets.spec.ts",
     "perf:budgets:record": "PERF_RECORD=1 playwright test --config playwright.perf.config.ts budgets.spec.ts",
     "perf:bundles:record": "node --experimental-strip-types scripts/perf/route-bundles.mjs --record"

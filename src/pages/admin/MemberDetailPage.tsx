@@ -285,9 +285,9 @@ function MemberRecord() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={requestTab} className="space-y-4">
-        {/* The red variant, scoped to this page — see memberRecordTabs.ts for why the global
-            <Tabs> component is not touched and why `bg-primary` is not the answer on
-            .theme-admin. */}
+        {/* A quiet segmented bar, scoped to this page — see memberRecordTabs.ts for why the
+            global <Tabs> component is not touched, and why red is now one underline rather
+            than twelve rectangles. */}
         <TabsList className={MEMBER_TAB_LIST_CLASS}>
           <TabsTrigger value="profile" className={MEMBER_TAB_TRIGGER_CLASS}>{t("adminMemberDetail.tabs.profile", "Profile")}</TabsTrigger>
           <TabsTrigger value="medical" className={MEMBER_TAB_TRIGGER_CLASS}>{t("adminMemberDetail.tabs.medical", "Medical")}</TabsTrigger>

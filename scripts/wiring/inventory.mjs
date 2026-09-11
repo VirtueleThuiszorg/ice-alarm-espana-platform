@@ -268,13 +268,44 @@ const lineOf = (src, index) => src.slice(0, index).split("\n").length;
  * its own use with `invoke("x", { body })` in a doc comment, and a scanner that
  * reads comments turns that into a wire called `x` that the register would then
  * be required to carry — a phantom control on 90 routes.
+ *
+ * ── LINE COMMENTS ARE BLANKED FIRST, AND THE ORDER IS THE WHOLE FIX ─────────
+ *
+ * It used to run the block pass first, on raw source. A `/*` inside a LINE
+ * comment therefore opened a block comment that was never meant to exist:
+ *
+ *     // Device admin routes (/admin/[*]) bounce non-admin operators to /unauthorized,
+ *
+ * That opener then paired with the next `*` + `/` anywhere below it and blanked
+ * every line in between — real code, silently, with no error.
+ *
+ * IT WAS NOT HYPOTHETICAL. `EV07BLiveStatusCard` has exactly that comment and a
+ * doc block below it, so its TWO realtime subscriptions (devices, alerts) were
+ * invisible to this scanner and absent from the register entirely — a control
+ * the register swore did not exist. `DeviceOfflineAlertsCard` and
+ * `DeviceIssuesQueue` carry the same line comment and were saved only by luck:
+ * neither had a later block comment, so the phantom opener found nothing to
+ * pair with. Adding one ordinary explanatory comment to either file made their
+ * subscriptions vanish too, which is how this was found.
+ *
+ * Blanking line comments first means the stray `/*` is already spaces when the
+ * block pass runs. A `//` inside a block comment is unaffected: the line pass
+ * only blanks a line whose first non-space characters are `//` or `*`, and such
+ * a line is a comment under either reading. A `//` inside a string
+ * (`"https://…"`) is untouched for the same reason — it is never first.
  */
 function stripComments(src) {
   return src
-    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    // `//` lines only. Blanking lines that begin with `*` as well — which this
+    // did — eats the `*/` that closes a JSDoc, leaving its `/**` to pair with
+    // some later block's closer and swallow the real code between them. That
+    // rule only ever mattered for the continuation lines of an UNCLOSED block
+    // comment, which is the very bug above; the block pass below handles a
+    // closed one whole.
     .split("\n")
-    .map((l) => (/^\s*(\/\/|\*)/.test(l) ? " ".repeat(l.length) : l))
-    .join("\n");
+    .map((l) => (/^\s*\/\//.test(l) ? " ".repeat(l.length) : l))
+    .join("\n")
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "));
 }
 
 for (const f of files) {

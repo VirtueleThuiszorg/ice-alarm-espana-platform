@@ -21,8 +21,10 @@ import { join } from "node:path";
 import {
   santanderExportCsv,
   summariseMigration,
+  toMigrationRow,
   type MigrationRow,
 } from "@/lib/billingMigrationProgress";
+import { resolveLegacyPlan } from "../../supabase/functions/_shared/legacy-plan";
 
 const TODAY = new Date("2026-09-11T00:00:00.000Z");
 
@@ -278,26 +280,143 @@ describe("the dashboard card's wiring", () => {
     "utf8",
   );
 
-  it("decides through the one shared module, not its own rule", () => {
+  // STILL A SOURCE SCAN, and rightly so: this asserts WHERE the decision is made, which is not a
+  // value any call can return. Everything the mapper actually DOES is executed below instead.
+  it("builds its rows with the shared mapper rather than a closure of its own", () => {
+    expect(card).toMatch(/toMigrationRow\(r as unknown as MemberProgressRow, resolveLegacyPlan\)/);
+    expect(card).not.toMatch(/legacy_membership_type:/);
+  });
+
+  it("decides the plan through the one shared module, not its own rule", () => {
     expect(card).toMatch(/from "\.\.\/\.\.\/\.\.\/\.\.\/supabase\/functions\/_shared\/legacy-plan"/);
-    expect(card).toMatch(/planConfirmed: resolveLegacyPlan\(\{/);
   });
 
   it("loads Karma's label, which is what the plan is read from", () => {
     expect(card).toContain("crm_profiles (legacy_membership_type, legacy_payment_type)");
   });
 
-  /*
-    PostgREST returns an embedded one-to-one as an object and a one-to-many as an array. Reading
-    it wrong would put EVERY legacy member in the queue and blank the plan column for all of them
-    — a card that looks alarming and a sheet that has lost a field.
-  */
-  it("handles both shapes PostgREST can return the embedded profile in", () => {
-    expect(card).toMatch(/Array\.isArray\(profileRaw\) \? profileRaw\[0\] : profileRaw/);
-  });
-
   it("shows the queue rather than leaving it to the runner's bell", () => {
     expect(card).toContain("migration-needs-plan");
     expect(card).toMatch(/summary\.needsPlan > 0/);
+  });
+});
+
+/*
+  ── THE ROW ITSELF, BUILT AND THEN RUN THROUGH THE RULE ────────────────────────
+
+  Everything above this point tested the exclusion on rows a test invented. That proves the rule
+  and not the wiring, and the wiring is where the money is: `toMigrationRow` is what turns what
+  PostgREST returns into the `billingSource` the export reads. While it was a closure inside the
+  card's queryFn the only assertions that could reach it were regexes over the file, so a mapper
+  that read the wrong column would have passed every test in this suite and put a member who had
+  already paid Stripe back onto the bank sheet.
+
+  So these drive a DATABASE-SHAPED row all the way to the CSV.
+*/
+describe("the row the export decides from", () => {
+  const dbRow = (over: Record<string, unknown> = {}) => ({
+    id: "m-db-1",
+    first_name: "Brenda",
+    last_name: "Colefax",
+    email: "brenda@example.com",
+    phone: "+34600000001",
+    billing_source: "legacy",
+    legacy_billing_day: 15,
+    legacy_next_renewal: "2026-09-15",
+    switch_expires_at: null,
+    subscriptions: [
+      { plan_type: "single", amount: 29.95, billing_frequency: "monthly", created_at: "2024-01-01" },
+    ],
+    crm_profiles: { legacy_membership_type: "Single", legacy_payment_type: "Monthly" },
+    ...over,
+  }) as never;
+
+  const build = (over: Record<string, unknown> = {}) => toMigrationRow(dbRow(over), resolveLegacyPlan);
+
+  // THE ONE THAT COSTS MONEY.
+  it("keeps a switch_pending member OUT of the bank collection, from the database row up", () => {
+    const rows = [build(), build({ id: "m-db-2", billing_source: "switch_pending" })];
+    const csv = santanderExportCsv(rows, TODAY);
+
+    expect(csv).toContain("m-db-1");
+    expect(csv).not.toContain("m-db-2");
+  });
+
+  it("and a legacy member IS on it — so that exclusion is not vacuous", () => {
+    const csv = santanderExportCsv([build()], TODAY);
+    expect(csv).toContain("m-db-1");
+    expect(csv).toContain("29.95");
+    expect(csv).toContain("Single");
+  });
+
+  it("counts a stripe member as moved rather than as still owing the bank", () => {
+    const summary = summariseMigration([build({ billing_source: "stripe" })], TODAY);
+    expect(summary.stripe).toBe(1);
+    expect(summary.legacy).toBe(0);
+    expect(santanderExportCsv([build({ billing_source: "stripe" })], TODAY)).not.toContain("m-db-1");
+  });
+
+  /*
+    PostgREST returns a one-to-one embed as an OBJECT and a one-to-many as an ARRAY, and which one
+    it picks depends on a unique index in the database rather than on anything in this query — so
+    it can change without this file being touched. Both shapes, both embeds, actually run.
+  */
+  it("reads the profile whether PostgREST sends an object or an array", () => {
+    const asObject = build({ crm_profiles: { legacy_membership_type: "Couple", legacy_payment_type: "Monthly" } });
+    const asArray = build({ crm_profiles: [{ legacy_membership_type: "Couple", legacy_payment_type: "Monthly" }] });
+
+    expect(asObject.legacyPlanLabel).toBe("Couple");
+    expect(asArray.legacyPlanLabel).toBe("Couple");
+    expect(asObject.planConfirmed).toBe(true);
+    expect(asArray.planConfirmed).toBe(true);
+  });
+
+  it("reads the subscription whether PostgREST sends an object or an array", () => {
+    const one = { plan_type: "single", amount: 41.5, billing_frequency: "monthly", created_at: "2024-01-01" };
+    expect(build({ subscriptions: one }).amount).toBe(41.5);
+    expect(build({ subscriptions: [one] }).amount).toBe(41.5);
+  });
+
+  // A member who was re-signed carries two rows, and the older one can hold a price they stopped
+  // paying years ago. Collecting it would be the wrong amount out of a real bank account.
+  it("takes the NEWEST subscription, not whichever row arrived first", () => {
+    const row = build({
+      subscriptions: [
+        { plan_type: "single", amount: 19.95, billing_frequency: "monthly", created_at: "2019-04-01" },
+        { plan_type: "couple", amount: 44.95, billing_frequency: "monthly", created_at: "2025-08-01" },
+      ],
+    });
+    expect(row.amount).toBe(44.95);
+    expect(row.billingFrequency).toBe("monthly");
+  });
+
+  it("survives a member with no subscription and no profile, without inventing either", () => {
+    const row = build({ subscriptions: [], crm_profiles: null });
+    expect(row.amount).toBeNull();
+    expect(row.billingFrequency).toBeNull();
+    expect(row.legacyPlanLabel).toBeNull();
+    expect(row.planConfirmed).toBe(false);
+
+    // And the sheet says so rather than guessing a plan for somebody nobody has established one for.
+    const csv = santanderExportCsv([row], TODAY);
+    expect(csv.split("\r\n")[1]).toContain(",,");
+  });
+
+  it("puts a member with no plan into the queue the runner will refuse to price", () => {
+    const summary = summariseMigration([build({ crm_profiles: null, subscriptions: [] })], TODAY);
+    expect(summary.needsPlan).toBe(1);
+  });
+
+  it("does not print the word undefined into a name when half of one is missing", () => {
+    expect(build({ last_name: null }).name).toBe("Brenda");
+    expect(build({ first_name: null, last_name: null }).name).toBe("");
+  });
+
+  it("carries the lapse date through, so a dead link is counted as one", () => {
+    const row = build({
+      billing_source: "switch_pending",
+      switch_expires_at: "2026-09-01T00:00:00.000Z",
+    });
+    expect(summariseMigration([row], TODAY).lapsed).toBe(1);
   });
 });

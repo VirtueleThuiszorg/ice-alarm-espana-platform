@@ -11,6 +11,7 @@ import {
   type RunnerCandidate,
 } from "../_shared/billing-migration-runner.ts";
 import { rolledForwardRenewal } from "../_shared/legacy-billing-schedule.ts";
+import { resolveLegacyPlan } from "../_shared/legacy-plan.ts";
 
 /**
  * THE DAILY WAKE-UP that paces the legacy→Stripe migration.
@@ -158,18 +159,56 @@ serve(async (req) => {
     // `billing_frequency` comes from the member's own subscription row — what Karma billed them —
     // because an annual member gets a ladder and a monthly member gets one link, and reading the
     // wrong one writes to somebody eleven months early.
+    //
+    // `crm_profiles` comes too, because what the member is CHARGED is decided by Karma's verbatim
+    // membership label and not by `subscriptions.plan_type` — that column carries the CRM
+    // import's `single`/`annual` defaults for every row whose label named no plan, and the
+    // defaults look exactly like real answers. `_shared/legacy-plan.ts` tells them apart.
     const { data: rows, error: loadError } = await admin
       .from("members")
-      .select("id, first_name, last_name, billing_source, legacy_billing_day, legacy_next_renewal, subscriptions (billing_frequency, created_at)")
+      .select(
+        "id, first_name, last_name, billing_source, legacy_billing_day, legacy_next_renewal, " +
+          "subscriptions (plan_type, billing_frequency, created_at), " +
+          "crm_profiles (legacy_membership_type, legacy_payment_type)",
+      )
       .in("billing_source", ["legacy", "switch_pending"])
       .not("legacy_next_renewal", "is", null);
 
     if (loadError) throw new Error(`could not load candidates: ${loadError.message}`);
 
-    const frequencyOf = (r: Record<string, unknown>) => {
-      const subs = (r.subscriptions ?? []) as Array<{ billing_frequency: string | null; created_at: string }>;
-      const newest = [...subs].sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
-      return (newest?.billing_frequency as "monthly" | "annual" | null) ?? null;
+    type SubRow = { plan_type: string | null; billing_frequency: string | null; created_at: string };
+
+    /** The member's newest subscription row — what the platform last recorded about their plan. */
+    const newestSub = (r: Record<string, unknown>): SubRow | null => {
+      const subs = (r.subscriptions ?? []) as SubRow[];
+      return [...subs].sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0] ?? null;
+    };
+
+    const frequencyOf = (r: Record<string, unknown>) =>
+      (newestSub(r)?.billing_frequency as "monthly" | "annual" | null) ?? null;
+
+    /* PostgREST returns an embedded one-to-one as an object and a one-to-many as an array, and
+       which one `crm_profiles` is depends on whether its `member_id` carries a unique index.
+       Reading it wrong would silently make every member "unconfirmed" and bell the office 431
+       times, so both shapes are handled rather than assumed. */
+    const profileOf = (r: Record<string, unknown>) => {
+      const p = r.crm_profiles;
+      const row = (Array.isArray(p) ? p[0] : p) as
+        | { legacy_membership_type: string | null; legacy_payment_type: string | null }
+        | null
+        | undefined;
+      return row ?? null;
+    };
+
+    const planConfirmedFor = (r: Record<string, unknown>) => {
+      const sub = newestSub(r);
+      const profile = profileOf(r);
+      return resolveLegacyPlan({
+        label: profile?.legacy_membership_type ?? null,
+        paymentType: profile?.legacy_payment_type ?? null,
+        storedPlanType: sub?.plan_type ?? null,
+        storedBillingFrequency: sub?.billing_frequency ?? null,
+      }).confirmed;
     };
 
     /* ── sweep 2: renewal dates that have gone past ───────────────────────────
@@ -242,6 +281,7 @@ serve(async (req) => {
       billing_source: r.billing_source as string | null,
       legacy_next_renewal: (r.legacy_next_renewal as string | null) ?? null,
       billing_frequency: frequencyOf(r),
+      planConfirmed: planConfirmedFor(r),
     }));
 
     const planned = planTodaysRun(candidates, settings, today);
@@ -354,7 +394,12 @@ async function claim(
     plan.kind === "staff_bell"
       ? `${memberName} renews on ${plan.renewal} and has not moved to Stripe. Ring them — an ` +
         "annual member who misses this waits twelve months for another chance."
-      : `Billing migration: ${memberName} (${plan.kind.replace(/_/g, " ")}, renews ${plan.renewal}).`;
+      : plan.kind === "plan_unconfirmed"
+        ? `${memberName} was due a Stripe switch link on ${plan.renewal}, but nobody can say what ` +
+          "they pay for: the CRM import could not read a plan out of Karma's membership label, and " +
+          "the record is showing its defaults. No link was sent and Santander will collect from them " +
+          "as usual. Confirm their plan on their record, under Move to Stripe billing."
+        : `Billing migration: ${memberName} (${plan.kind.replace(/_/g, " ")}, renews ${plan.renewal}).`;
 
   // A staff-facing bell goes to everybody who can act on it; a member-facing send is recorded
   // once, against the admins, as the audit trail for a message the member receives elsewhere.
@@ -371,7 +416,15 @@ async function claim(
     .from("notification_log")
     .insert({
       admin_user_id: first,
-      event_type: plan.kind === "staff_bell" ? "billing.annual_switch_due" : "member.switch_link_sent",
+      // `plan_unconfirmed` is the migration failing to write to one member, which is what
+      // `billing.migration_run_failed` already routes — a new event type would need a migration to
+      // widen notification_routes' CHECK constraint for no gain in what anybody sees.
+      event_type:
+        plan.kind === "staff_bell"
+          ? "billing.annual_switch_due"
+          : plan.kind === "plan_unconfirmed"
+            ? "billing.migration_run_failed"
+            : "member.switch_link_sent",
       entity_type: "member",
       entity_id: plan.member.id,
       message,
@@ -386,13 +439,14 @@ async function claim(
 
   // The rest of the bell's audience, only once the claim is ours. These carry no dedupe key —
   // one key per SEND, and the claim above is the send.
-  if (claimed && plan.kind === "staff_bell") {
+  if (claimed && (plan.kind === "staff_bell" || plan.kind === "plan_unconfirmed")) {
     const rest = (recipients ?? []).slice(1);
     if (rest.length > 0) {
       await admin.from("notification_log").insert(
         rest.map((r) => ({
           admin_user_id: r.user_id,
-          event_type: "billing.annual_switch_due",
+          event_type:
+            plan.kind === "staff_bell" ? "billing.annual_switch_due" : "billing.migration_run_failed",
           entity_type: "member",
           entity_id: plan.member.id,
           message,

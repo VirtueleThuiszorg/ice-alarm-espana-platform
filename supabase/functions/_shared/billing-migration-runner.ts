@@ -42,7 +42,17 @@ export type RunnerActionKind =
   /** An annual member, 7 days out and still not switched. */
   | "annual_reminder"
   /** An annual member, 3 days out. Not a message to them — a bell for somebody to ring them. */
-  | "staff_bell";
+  | "staff_bell"
+  /**
+   * Due today, but nobody can say what they pay for.
+   *
+   * The CRM import could not read a plan out of Karma's label and stored its `single`/`annual`
+   * defaults, which are indistinguishable from real answers (`_shared/legacy-plan.ts`). Sending
+   * a link anyway would charge a couple the single price, or bill a monthly member for a year.
+   * So the office is told once, on the day the member was due, and the member stays on Santander
+   * — who collects from them next cycle as always. Nobody is written to and nobody pays twice.
+   */
+  | "plan_unconfirmed";
 
 export interface RunnerSettings {
   /** Off by default. A migration that starts itself on deploy is a migration nobody chose. */
@@ -75,6 +85,15 @@ export interface RunnerCandidate {
   legacy_next_renewal: string | null;
   /** From the member's own subscription row — what Karma billed them. */
   billing_frequency: "monthly" | "annual" | null;
+  /**
+   * Whether the plan this member would be CHARGED for is known, as opposed to defaulted.
+   *
+   * `_shared/legacy-plan.ts` decides it. It is on the candidate rather than left to
+   * `send-payment-link` to refuse, because a refusal there would land AFTER the runner had
+   * claimed the send against the dedupe key — one shot, spent on a 409, and the member never
+   * written to for that renewal even once somebody fixed the record.
+   */
+  planConfirmed: boolean;
 }
 
 /** Whole days from `today` to `renewal`. Negative once the renewal has passed. */
@@ -125,12 +144,28 @@ export function plannedActionFor(
   const days = daysUntil(member.legacy_next_renewal, today);
   if (days === null || days < 0) return null;
 
+  /*
+    WHAT THEY PAY FOR HAS TO BE KNOWN BEFORE THEY ARE ASKED TO PAY.
+
+    An unreadable Karma label became `single` / `annual` in the subscription row, and those two
+    values are the import's defaults — so a link built from them could charge a couple the single
+    price, or bill a monthly member for twelve months at once. The office is told instead, once,
+    on the day this member was due; Santander collects from them as usual meanwhile.
+
+    A STAFF BELL IS STILL A STAFF BELL: it asks somebody to ring an annual member three days out,
+    which is worth doing whether or not the plan has been confirmed yet, and it charges nothing.
+  */
+  const planUnknown = !member.planConfirmed;
+
   if (member.billing_frequency === "annual") {
     // The opening message, so only for somebody who has not had one.
-    if (days === settings.annualNoticeDays) return onLegacy ? "annual_notice" : null;
+    if (days === settings.annualNoticeDays) {
+      if (!onLegacy) return null;
+      return planUnknown ? "plan_unconfirmed" : "annual_notice";
+    }
     // The chase, and the phone call. Both are FOR the member who did not act on the notice, so
     // both have to reach somebody already mid-switch — that is the whole point of them.
-    if (days === settings.annualReminderDays) return "annual_reminder";
+    if (days === settings.annualReminderDays) return planUnknown ? "plan_unconfirmed" : "annual_reminder";
     if (days === settings.annualEscalateDays) return "staff_bell";
     return null;
   }
@@ -139,7 +174,8 @@ export function plannedActionFor(
   // comes round again, so it is the safe default for an unclear row. One link only — a monthly
   // member with one out is charged again next month whatever happens, and the 14-day sweep
   // returns them to `legacy` in time for it.
-  return days === settings.monthlyLeadDays && onLegacy ? "switch_link" : null;
+  if (days !== settings.monthlyLeadDays || !onLegacy) return null;
+  return planUnknown ? "plan_unconfirmed" : "switch_link";
 }
 
 /**
@@ -153,9 +189,17 @@ export function sendKey(memberId: string, renewalIso: string, kind: RunnerAction
   return `billing-switch:${memberId}:${renewalIso}:${kind}`;
 }
 
-/** Whether this action writes to the MEMBER, or only rings the office. */
+/**
+ * Whether this action writes to the MEMBER, or only rings the office.
+ *
+ * Listed rather than negated: `kind !== "staff_bell"` meant that every kind added later became
+ * member-facing by default, and the one added next was `plan_unconfirmed` — the kind whose whole
+ * point is that the member must NOT be written to.
+ */
+const STAFF_ONLY: RunnerActionKind[] = ["staff_bell", "plan_unconfirmed"];
+
 export function isMemberFacing(kind: RunnerActionKind): boolean {
-  return kind !== "staff_bell";
+  return !STAFF_ONLY.includes(kind);
 }
 
 export interface PlannedSend {

@@ -611,6 +611,25 @@ gives a €0 first invoice, a €0 invoice does not pay a Checkout Session, so t
 never activate somebody the export had already dropped. `billing_source` becomes `stripe` in the
 webhook's post-payment path and **nowhere else**.
 
+### 🔴 What the switch link actually charged (#381)
+The line above — "the plan read off the member's **own** subscription row" — was wrong about
+which record holds the truth, and it was wrong about money. `subscriptions.plan_type` and
+`billing_frequency` carry the CRM import's **defaults**: `mapMembership` returns NULL when
+Karma's free-text label names no plan, and `ice_import_member` then stores
+`COALESCE(…, 'single')` / `COALESCE(…, 'annual')`, so "Karma said single" and "Karma said
+nothing" are the same value in the same column. A couple whose label did not parse would have
+been sent a link at the **single** price; a monthly member, a link for a **whole year**. Lee's
+brief names the source and it is the other one: the plan comes from `legacy_membership_type`.
+
+`_shared/legacy-plan.ts` is now the one reader of that label, imported by the CRM import too, on
+one rule: **a default cannot confirm itself**. `couple` and `monthly` are never defaulted, so a
+stored one is evidence; `single` and `annual` are not. What is left is UNCONFIRMED and is
+refused — `send-payment-link` answers `PLAN_NOT_CONFIRMED` before it asks Stripe for anything,
+the operator's card turns that into a question with Karma's own words above it, and the runner
+plans `plan_unconfirmed` (a staff bell, no member contact) rather than spending the member's one
+dedupe claim on a 409 they could never be retried after. Santander goes on collecting from them
+meanwhile, which is why doing nothing is safe here and nowhere else.
+
 ### ✅ The runner (#368)
 Daily pg_cron. Monthly members get one link three days out; annual members get a ladder — notice
 at 14, reminder at 7, and at 3 a bell for somebody to **ring** them, because missing it costs

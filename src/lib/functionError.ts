@@ -85,11 +85,29 @@ export async function functionError(
  * Never throws: an unparseable body is simply "no code".
  */
 export async function extractFunctionErrorCode(error: unknown): Promise<string | null> {
+  const body = await extractFunctionErrorBody(error);
+  const code = body?.code;
+  return typeof code === "string" && code ? code : null;
+}
+
+/**
+ * The whole refusal body, or null.
+ *
+ * Some refusals carry more than a code: `send-payment-link` answers PLAN_NOT_CONFIRMED with the
+ * verbatim Karma label and which half of the plan is missing, because the screen has to put both
+ * in front of the person who is going to answer them. Reading each field with its own
+ * `error.context.clone().json()` would parse the same body once per field.
+ *
+ * CLONED, like `extractFunctionErrorCode` was: `extractFunctionError` consumes the real body, so
+ * anything reading it afterwards without a clone gets nothing. Never throws.
+ */
+export async function extractFunctionErrorBody(
+  error: unknown,
+): Promise<Record<string, unknown> | null> {
   if (!(error instanceof FunctionsHttpError)) return null;
   try {
     const body = await error.context.clone().json();
-    const code = (body as Record<string, unknown> | null)?.code;
-    return typeof code === "string" && code ? code : null;
+    return typeof body === "object" && body !== null ? (body as Record<string, unknown>) : null;
   } catch {
     return null;
   }

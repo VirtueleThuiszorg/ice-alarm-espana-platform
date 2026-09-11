@@ -152,6 +152,27 @@ const sendPaymentLinkSignupSchema = z.object({
 const sendPaymentLinkSwitchSchema = z.object({
   mode: z.literal("legacy_switch"),
   memberId: z.string().uuid(),
+  /**
+   * THE ONE EXCEPTION, and it is a decision rather than a convenience.
+   *
+   * The paragraph above is still the rule: the server reads what Karma billed and charges that.
+   * But "what Karma billed" is sometimes unreadable — a label like 'FOC — Ayuntamiento' names
+   * no plan, and the CRM import then wrote its `single` / `annual` DEFAULTS into the
+   * subscription row, where they are indistinguishable from real answers
+   * (`_shared/legacy-plan.ts`). Charging those defaults is how a couple is billed as a single.
+   *
+   * So the server refuses instead, and a member of staff confirms the plan on the record. That
+   * confirmation is this field. It is accepted ONLY when the server could not establish the
+   * plan itself, and NEVER from the runner, which holds the service key and has nobody behind
+   * it — `send-payment-link` enforces both. When the server can read the plan, this is ignored:
+   * a browser cannot overrule Karma.
+   */
+  confirmPlan: z
+    .object({
+      membershipType: z.enum(["single", "couple"]),
+      billingFrequency: z.enum(["monthly", "annual"]),
+    })
+    .optional(),
 });
 
 /**

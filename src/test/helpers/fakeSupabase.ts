@@ -64,6 +64,17 @@ export interface FakeDb {
   failWrite(table: string, message: string): void;
   /** What `rpc(fn)` should return. */
   rpcReturns(fn: string, value: unknown): void;
+  /**
+   * Model a UNIQUE index: a second insert carrying a value this column has already seen fails
+   * the way PostgREST reports one, with a 23505.
+   *
+   * This is what makes "just run it again" assertable rather than described. The billing
+   * migration runner CLAIMS each send by inserting a `notification_log` row carrying
+   * `billing-switch:<member>:<renewal>:<kind>` against exactly such an index; a re-run, an
+   * overlapping run and a crash halfway through 431 members all have to resolve to the same
+   * outcome, and the only way to see that is to make the second insert behave like the database.
+   */
+  uniqueIndex(table: string, column: string): void;
   client: unknown;
 }
 
@@ -74,6 +85,8 @@ export function fakeSupabase(seed: Seed = {}): FakeDb {
   const readFailures = new Map<string, string>();
   const writeFailures = new Map<string, string>();
   const rpcValues = new Map<string, unknown>();
+  const uniqueColumns = new Map<string, string>();
+  const seenUnique = new Map<string, Set<unknown>>();
 
   const db: FakeDb = {
     writes,
@@ -83,6 +96,10 @@ export function fakeSupabase(seed: Seed = {}): FakeDb {
     failRead: (table, message) => readFailures.set(table, message),
     failWrite: (table, message) => writeFailures.set(table, message),
     rpcReturns: (fn, value) => rpcValues.set(fn, value),
+    uniqueIndex: (table, column) => {
+      uniqueColumns.set(table, column);
+      seenUnique.set(table, new Set());
+    },
     client: null,
   };
 
@@ -112,9 +129,33 @@ export function fakeSupabase(seed: Seed = {}): FakeDb {
         writeFailures.delete(table);
         return { data: null, error: { message: failure } };
       }
+
+      const uniqueColumn = uniqueColumns.get(table);
+      if (op === "insert" && uniqueColumn) {
+        const seen = seenUnique.get(table)!;
+        const inserted = Array.isArray(values) ? values : [values];
+        for (const row of inserted as Array<Record<string, unknown>>) {
+          const key = row?.[uniqueColumn];
+          if (key === undefined || key === null) continue;
+          if (seen.has(key)) {
+            // What Postgres says, and what the caller has to cope with: a plain INSERT that hits
+            // a unique index is an ERROR, not an empty result.
+            return {
+              data: null,
+              error: { code: "23505", message: `duplicate key value violates unique constraint on ${table}.${uniqueColumn}` },
+            };
+          }
+          seen.add(key);
+        }
+      }
+
       writes.push({ table, op, values, filters: [...filters] });
-      // An update/insert returns the rows it matched when `.select()` was asked for, which is how
-      // the handlers tell "nothing matched" from "it worked".
+      /* An INSERT returns the row it wrote; an UPDATE returns the rows it matched. That
+         difference is how a caller tells "nothing matched" from "it worked", so the fake has to
+         keep it. */
+      if (op === "insert") {
+        return { data: Array.isArray(values) ? values : [values], error: null };
+      }
       return { data: rows, error: null };
     };
 

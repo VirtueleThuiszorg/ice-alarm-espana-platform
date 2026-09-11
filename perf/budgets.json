@@ -15,7 +15,6 @@
     "reason in the PR. That is the point of the file — a budget nobody can quietly",
     "widen inside the check that enforces it."
   ],
-
   "thresholds": {
     "lcpMobileColdMs": 2500,
     "lcpDesktopColdMs": 2500,
@@ -28,7 +27,6 @@
     "clsBelow": 0.1,
     "longTaskMs": 100
   },
-
   "profiles": {
     "_comment": [
       "The two device profiles every route is measured on. The mobile numbers are",
@@ -45,7 +43,10 @@
       "downloadKbps": 1638.4,
       "uploadKbps": 750,
       "latencyMs": 150,
-      "viewport": { "width": 390, "height": 844 },
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
       "deviceScaleFactor": 3,
       "isMobile": true
     },
@@ -55,12 +56,176 @@
       "downloadKbps": 10240,
       "uploadKbps": 5120,
       "latencyMs": 20,
-      "viewport": { "width": 1440, "height": 900 },
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
       "deviceScaleFactor": 1,
       "isMobile": false
     }
   },
-
+  "ratchet": {
+    "_comment": [
+      "WHAT A ROUTE IS ALLOWED TO BE TODAY, on the way to what `thresholds` says it",
+      "must become. The CI gate enforces THIS; the scorecard reports against",
+      "`thresholds`. Both read this one file.",
+      "",
+      "WHY A RATCHET AND NOT THE TARGETS. A gate set to the 10/10 numbers is red on",
+      "the day it lands, because the platform is not at 10/10 yet — and a gate that",
+      "is red on arrival protects nothing and is deleted within a week. This one is",
+      "green now and can only ever be tightened, so it defends every improvement the",
+      "moment it lands instead of waiting for the last one.",
+      "",
+      "HOW TO CHANGE IT. Down, by running `npm run perf:budgets:record` after an",
+      "improvement and committing the diff. Never up: a number that has to rise is a",
+      "regression, and it belongs in the PR description rather than in this file.",
+      "A route with no entry is held to `thresholds` — which is the finished state,",
+      "so deleting an entry is how a route graduates.",
+      "",
+      "WHAT IS RATCHETED, AND WHAT IS ONLY REPORTED. Only numbers a MACHINE cannot",
+      "change: the query count, the N+1 set, the gzipped bytes, and CLS — which is a",
+      "property of the layout rather than of the clock.",
+      "",
+      "LCP and long tasks are deliberately absent. The first version of the CI gate",
+      "ratcheted them and went red on its own first run: `join.wizard` measured",
+      "2,544 ms where the ratchet was recorded and 4,071 ms on the GitHub runner,",
+      "which is simply a slower machine, with nothing about the application changed.",
+      "A wall-clock ceiling recorded on one machine cannot gate another — widen the",
+      "headroom enough to survive the difference and it catches nothing; leave it",
+      "narrow and it goes red for whoever the noisy neighbour is. They are printed by",
+      "the job instead, and held to account by `npm run perf:measure`, which is run",
+      "deliberately on a known machine.",
+      "",
+      "HEADROOM. A query count gets none: the recorded value is already the high water",
+      "mark of the runs that produced it (cc.alerts measured 28 on one run and 17 on",
+      "the next, as different realtime reads land), and inflating it further would",
+      "hide a real extra query. Bytes get 2%, enough for a dependency patch release.",
+      "CLS gets 20%, for the part of it that is timing-dependent — whether an image",
+      "lands before or after first paint."
+    ],
+    "public.home": {
+      "dbQueriesPerLoad": 9,
+      "routeJsGzBytes": 389120
+    },
+    "public.pricing": {
+      "clsBelow": 0.191,
+      "routeJsGzBytes": 366592
+    },
+    "join.wizard": {
+      "routeJsGzBytes": 374784
+    },
+    "auth.login": {
+      "routeJsGzBytes": 372736
+    },
+    "member.dashboard": {
+      "dbQueriesPerLoad": 27,
+      "nPlusOneTables": [
+        "members",
+        "notification_log"
+      ],
+      "routeJsGzBytes": 379904
+    },
+    "cc.alerts": {
+      "clsBelow": 0.963,
+      "dbQueriesPerLoad": 28,
+      "nPlusOneTables": [
+        "alerts",
+        "notification_log",
+        "staff"
+      ],
+      "routeJsGzBytes": 384000
+    },
+    "public.how-it-works": {
+      "routeJsGzBytes": 373760
+    },
+    "public.pendant": {
+      "routeJsGzBytes": 375808
+    },
+    "public.contact": {
+      "routeJsGzBytes": 368640
+    },
+    "public.help": {
+      "routeJsGzBytes": 412672
+    },
+    "public.blog": {
+      "routeJsGzBytes": 373760
+    },
+    "public.terms": {
+      "routeJsGzBytes": 364544
+    },
+    "public.privacy": {
+      "routeJsGzBytes": 363520
+    },
+    "auth.staff-login": {
+      "routeJsGzBytes": 372736
+    },
+    "partner.join": {
+      "routeJsGzBytes": 379904
+    },
+    "member.profile": {
+      "routeJsGzBytes": 402432
+    },
+    "member.medical": {
+      "routeJsGzBytes": 356352
+    },
+    "member.contacts": {
+      "routeJsGzBytes": 377856
+    },
+    "member.device": {
+      "routeJsGzBytes": 357376
+    },
+    "member.subscription": {
+      "routeJsGzBytes": 364544
+    },
+    "member.support": {
+      "routeJsGzBytes": 424960
+    },
+    "member.messages": {
+      "routeJsGzBytes": 363520
+    },
+    "cc.dashboard": {
+      "routeJsGzBytes": 381952
+    },
+    "cc.members": {
+      "routeJsGzBytes": 349184
+    },
+    "cc.messages": {
+      "routeJsGzBytes": 372736
+    },
+    "cc.tasks": {
+      "routeJsGzBytes": 365568
+    },
+    "cc.my-shifts": {
+      "routeJsGzBytes": 372736
+    },
+    "admin.dashboard": {
+      "routeJsGzBytes": 388096
+    },
+    "admin.members": {
+      "routeJsGzBytes": 361472
+    },
+    "admin.alerts": {
+      "routeJsGzBytes": 368640
+    },
+    "admin.devices": {
+      "routeJsGzBytes": 366592
+    },
+    "admin.finance": {
+      "routeJsGzBytes": 460800
+    },
+    "admin.orders": {
+      "routeJsGzBytes": 368640
+    },
+    "admin.staff": {
+      "routeJsGzBytes": 392192
+    },
+    "admin.settings": {
+      "routeJsGzBytes": 486400
+    },
+    "admin.analytics": {
+      "routeJsGzBytes": 465920
+    }
+  },
   "overrides": {
     "_comment": [
       "Per-route budget exceptions. EVERY entry must carry a `reason`, and the",

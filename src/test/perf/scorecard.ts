@@ -67,11 +67,21 @@ export interface DeviceProfile {
   isMobile: boolean;
 }
 
+/**
+ * What a route is allowed to be TODAY, on the way to what `thresholds` says it
+ * must become. `nPlusOneTables` is the set of tables a route is currently known to
+ * read once per row — listed so the gate catches a NEW one rather than shrugging
+ * at all of them.
+ */
+export type RatchetEntry = Partial<Thresholds> & { nPlusOneTables?: string[] };
+
 export interface Budgets {
   thresholds: Thresholds;
   profiles: Record<"mobile" | "desktop", DeviceProfile>;
   /** Per-route loosenings. Every entry carries a `reason`, printed beside the route. */
   overrides: Record<string, { reason: string } & Partial<Thresholds>>;
+  /** The CI gate's ceiling per route. Tightened only; see budgets.json. */
+  ratchet: Record<string, RatchetEntry>;
 }
 
 let cached: Budgets | null = null;
@@ -80,15 +90,19 @@ let cached: Budgets | null = null;
 export function loadBudgets(): Budgets {
   if (cached) return cached;
   const raw = JSON.parse(fs.readFileSync(BUDGETS_PATH, "utf8")) as Record<string, unknown>;
+  // `_comment` keys are documentation and must not be mistaken for a route id.
+  const withoutComments = (value: unknown) =>
+    Object.fromEntries(
+      Object.entries((value ?? {}) as Record<string, unknown>).filter(
+        ([key]) => !key.startsWith("_"),
+      ),
+    );
+
   cached = {
     thresholds: raw.thresholds as Thresholds,
     profiles: raw.profiles as Budgets["profiles"],
-    // `_comment` keys are documentation and must not be mistaken for a route id.
-    overrides: Object.fromEntries(
-      Object.entries((raw.overrides ?? {}) as Record<string, unknown>).filter(
-        ([key]) => !key.startsWith("_"),
-      ),
-    ) as Budgets["overrides"],
+    overrides: withoutComments(raw.overrides) as Budgets["overrides"],
+    ratchet: withoutComments(raw.ratchet) as Budgets["ratchet"],
   };
   return cached;
 }
@@ -201,7 +215,30 @@ export const ROUTES: RouteSpec[] = [
   { id: "admin.analytics", url: "/admin/analytics", surface: "admin", persona: "admin", module: "pages/admin/AnalyticsPage.tsx", ready: "main" },
 ];
 
-/** The six routes Lighthouse CI runs in the Performance job — one per surface. */
+/**
+ * THE CEILING THE CI GATE ENFORCES for one route and one metric.
+ *
+ * The ratchet where a route has one, the target otherwise — and a route with no
+ * entry is held to the finished number, which is how deleting an entry graduates
+ * a route. `Math.max` rather than a bare lookup so a ratchet can never be set
+ * TIGHTER than the target by accident and then quietly relax when it is removed.
+ */
+export function gateCeilingFor<K extends keyof Thresholds>(
+  route: RouteSpec,
+  key: K,
+  budgets: Budgets = loadBudgets(),
+): number {
+  const target = thresholdFor(route, key, budgets);
+  const ratchet = budgets.ratchet[route.id]?.[key];
+  return typeof ratchet === "number" ? Math.max(target, ratchet) : target;
+}
+
+/** Tables a route is KNOWN to read once per row today. A new one fails the gate. */
+export function knownNPlusOne(route: RouteSpec, budgets: Budgets = loadBudgets()): string[] {
+  return budgets.ratchet[route.id]?.nPlusOneTables ?? [];
+}
+
+/** The six routes the CI budget gate measures — one per surface that has one. */
 export const LIGHTHOUSE_ROUTES = [
   "public.home",
   "public.pricing",

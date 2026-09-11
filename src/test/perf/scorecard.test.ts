@@ -9,7 +9,9 @@ import {
   scoreRoute,
   thresholdFor,
   allRoutesPerfect,
+  gateCeilingFor,
   isPublicSurface,
+  knownNPlusOne,
   type RouteMeasurement,
   type RouteSpec,
 } from "./scorecard";
@@ -259,5 +261,106 @@ describe("allRoutesPerfect — the stop condition", () => {
 
   it("is false for an empty run, so 'measured nothing' never reads as success", () => {
     expect(allRoutesPerfect([])).toBe(false);
+  });
+});
+
+describe("the ratchet — what the CI gate actually enforces", () => {
+  /*
+    A RATCHET IS ONLY HONEST IF IT CAN ONLY TIGHTEN.
+
+    The gate enforces `ratchet` rather than `thresholds`, because a gate set to
+    the finished numbers is red on the day it lands and gets deleted within a
+    week. That trade is only safe while the ratchet cannot be used to excuse a
+    regression, so the invariants that make it a ratchet rather than a waiver are
+    asserted here.
+  */
+  const budgets = loadBudgets();
+
+  it("every entry names a route that exists", () => {
+    for (const id of Object.keys(budgets.ratchet)) {
+      expect(ROUTES.some((r) => r.id === id), `ratchet.${id} names no route`).toBe(true);
+    }
+  });
+
+  it("never claims a route is ALLOWED to be better than the target", () => {
+    // A ratchet tighter than the target is not tighter in practice — the gate
+    // takes the looser of the two, so the entry would do nothing except read as
+    // if the route were held to something it is not. Record only breaches.
+    for (const [id, entry] of Object.entries(budgets.ratchet)) {
+      const route = ROUTES.find((r) => r.id === id)!;
+      for (const [key, value] of Object.entries(entry)) {
+        if (key === "nPlusOneTables" || typeof value !== "number") continue;
+        expect(
+          value,
+          `ratchet.${id}.${key} is tighter than the target — delete it instead`,
+        ).toBeGreaterThan(thresholdFor(route, key as keyof typeof budgets.thresholds, budgets));
+      }
+    }
+  });
+
+  it("only covers metrics the scorecard actually knows about", () => {
+    const known = new Set([...Object.keys(budgets.thresholds), "nPlusOneTables"]);
+    for (const [id, entry] of Object.entries(budgets.ratchet)) {
+      for (const key of Object.keys(entry)) {
+        expect(known.has(key), `ratchet.${id}.${key} is not a budget`).toBe(true);
+      }
+    }
+  });
+
+  it("gateCeilingFor takes the ratchet where there is one, and the target otherwise", () => {
+    const home = ROUTES.find((r) => r.id === "public.home")!;
+    const ratcheted = budgets.ratchet["public.home"]?.lcpMobileColdMs;
+    if (typeof ratcheted === "number") {
+      expect(gateCeilingFor(home, "lcpMobileColdMs", budgets)).toBe(ratcheted);
+    }
+    // A metric with no entry falls through to the finished number, which is what
+    // makes deleting an entry the way a route graduates.
+    expect(gateCeilingFor(home, "transitionWarmMs", budgets)).toBe(
+      budgets.thresholds.transitionWarmMs,
+    );
+  });
+
+  it("a route with no ratchet entry at all is held to every target", () => {
+    /*
+      Asserted against an EMPTY ratchet rather than against whichever route
+      happens to lack an entry today. The first version searched the real file
+      for an unratcheted route and went red the moment every route acquired a JS
+      entry — a test about the function failing because of the data, which is the
+      wrong thing to be sensitive to. The property is: no entry, target applies.
+    */
+    const empty = { ...budgets, ratchet: {} };
+    for (const route of ROUTES.slice(0, 3)) {
+      expect(gateCeilingFor(route, "dbQueriesPerLoad", empty)).toBe(
+        empty.thresholds.dbQueriesPerLoad,
+      );
+      expect(gateCeilingFor(route, "lcpMobileColdMs", empty)).toBe(
+        empty.thresholds.lcpMobileColdMs,
+      );
+    }
+  });
+
+  it("knownNPlusOne lists only what is already there, so a NEW one still fails", () => {
+    for (const [id, entry] of Object.entries(budgets.ratchet)) {
+      const route = ROUTES.find((r) => r.id === id)!;
+      expect(knownNPlusOne(route, budgets)).toEqual(entry.nPlusOneTables ?? []);
+    }
+    // And an unlisted route tolerates nothing at all.
+    expect(knownNPlusOne(ROUTES[0], { ...budgets, ratchet: {} })).toEqual([]);
+  });
+
+  it("the scorecard still scores against the TARGETS, not the ratchet", () => {
+    /*
+      The most important assertion in this block. The gate is allowed to be
+      lenient; the report is not. If `scoreRoute` ever read the ratchet, every
+      route would score 10/10 the moment its current numbers were recorded, and
+      the scorecard would say the work was finished on the day it started.
+    */
+    const route = ROUTES.find((r) => r.id === "public.home")!;
+    const overBudgetButUnderRatchet: RouteMeasurement = {
+      ...perfect(),
+      mobile: { ...perfect().mobile, lcpMs: 4000 },
+    };
+    const score = scoreRoute(route, overBudgetButUnderRatchet, budgets);
+    expect(score.checks.find((c) => c.name === "LCP mobile cold")!.passed).toBe(false);
   });
 });

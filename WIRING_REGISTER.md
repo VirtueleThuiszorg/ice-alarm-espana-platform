@@ -20,15 +20,15 @@ main cannot drift from the code in main. To change a row, change the wire or the
  8 │   0  
  7 │  33  █████████████
  6 │   9  ████
- 5 │  85  ██████████████████████████████████
- 4 │  49  ████████████████████
+ 5 │  84  ██████████████████████████████████
+ 4 │  50  ████████████████████
  3 │   0  
  2 │   0  
  1 │   0  
  0 │   1  
 ```
 
-192 distinct wires across 663 call sites and 110 routes.
+192 distinct wires across 665 call sites and 110 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
@@ -63,7 +63,7 @@ things, and a control with no wire cannot do anything:
 
 | kind | what it is | call sites |
 |---|---|---:|
-| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 353 |
+| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 355 |
 | `fn` | `supabase.functions.invoke(f)` — an edge function | 91 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 6 |
 | `channel` | `postgres_changes` — a realtime subscription | 51 |
@@ -240,6 +240,7 @@ The checks, verified on every build:
 | **4** | `table:partner_invites` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 3 |
 | **4** | `table:staff` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 11 |
 | **4** | `table:staff_presence` | Write a handover note; go on/off duty — the next shift knows what happened | shift_notes / staff_presence | screen | — | none | 1 |
+| **4** | `table:tasks` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 5 |
 | **5** | `auth:setSession` | Accept a staff or partner invite from an emailed link — this link makes your account real | auth.setSession with the tokens in the invite URL, then the *-complete-invite function | self | — | none | 3 |
 | **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
 | **5** | `channel:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | — | none | 2 |
@@ -267,7 +268,6 @@ The checks, verified on every build:
 | **5** | `table:staff_shift_covers` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
 | **5** | `table:staff_shifts` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 2 |
 | **5** | `table:subscriptions` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | — | none | 1 |
-| **5** | `table:tasks` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 4 |
 | **5** | `table:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 1 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
 | **6** | `fn:ai-execute-action` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | mutation onError | none | 1 |
@@ -331,6 +331,7 @@ The checks, verified on every build:
 | **4** | `table:partner_invites` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | — | none | 3 |
 | **4** | `table:social_posts` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | — | none | 3 |
 | **4** | `table:staff` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 11 |
+| **4** | `table:tasks` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | — | none | 5 |
 | **5** | `auth:setSession` | Accept a staff or partner invite from an emailed link — this link makes your account real | auth.setSession with the tokens in the invite URL, then the *-complete-invite function | self | — | none | 3 |
 | **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
 | **5** | `channel:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | — | none | 2 |
@@ -399,7 +400,6 @@ The checks, verified on every build:
 | **5** | `table:staff_shift_covers` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
 | **5** | `table:staff_shifts` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 2 |
 | **5** | `table:subscriptions` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | — | none | 1 |
-| **5** | `table:tasks` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 4 |
 | **5** | `table:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 1 |
 | **5** | `table:video_brand_settings` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
 | **5** | `table:video_outreach_links` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
@@ -1149,6 +1149,19 @@ Roles are assigned by trigger/admin only (golden rule 3) — nothing in this fam
 - **call sites** src/hooks/useStaffHeartbeat.ts
 
 See channel:shift_notes — the note lands, the live update does not.
+
+### `table:tasks` — 4/10 (arrives, unproven)
+
+- **control** Create/assign a task; raise an internal ticket; comment on one
+- **promised** the person it is assigned to picks it up
+- **goes to** tasks / internal_tickets / ticket_comments
+- **who is told** screen
+- **failure shown to user** no
+- **proof** none — capped at 6
+- **routes** /admin/alerts, /admin/crm-import, /admin/members/:id, /admin/tasks, /call-centre, /call-centre/members/:id +1
+- **call sites** src/components/admin/FalseAlarmMonitor.tsx, src/components/admin/member-detail/TasksTab.tsx, src/lib/crmImportDb.ts, src/pages/admin/TasksPage.tsx +1
+
+Tickets and comments ARE published, so they arrive live on an open Tickets screen. `tasks` is not (see channel:tasks above) — assigning a task tells its owner nothing, on any channel. Listed as a red.
 
 ### `auth:resetPasswordForEmail` — 5/10 (arrives, unproven)
 
@@ -2187,19 +2200,6 @@ The existing good pattern: one write path (`notifyUsers`), targeted rows so mark
 The home-location pin (2026-09-10) is a direct staff write to `members`, and what stops it lying is not this component: `guard_member_home_location()` forces a staff write to be source='staff_pin', stamps set_at/set_by, and refuses a provenance-only edit. The SOS card labels a staff_pin differently from a member confirmation, so the trigger is what makes that label true. Proven by execution in scripts/rls/isolation.sql.
 
 The Santander billing date (2026-09-11) is the other direct staff write to `members`: legacy_billing_day and legacy_next_renewal, the two columns the billing migration times a member's Stripe switch link to. Every save carries an activity_logs row with the old and the new value, and a FAILED log row is shown to the operator rather than swallowed — the change is real and unrecorded, which is the state the audit row exists to prevent. guard_member_billing_self_write() refuses the same write from a member: pushing your own next renewal out a year is a year of monitoring nobody bills for, and setting your own billing_source to legacy exempts you from dunning altogether. Ten assertions in scripts/rls/isolation.sql, and the day is deliberately NOT clamped in storage so a 31st member does not become a 28th member after one February.
-
-### `table:tasks` — 5/10 (arrives, unproven)
-
-- **control** Create/assign a task; raise an internal ticket; comment on one
-- **promised** the person it is assigned to picks it up
-- **goes to** tasks / internal_tickets / ticket_comments
-- **who is told** screen
-- **failure shown to user** toast
-- **proof** none — capped at 6
-- **routes** /admin/alerts, /admin/members/:id, /admin/tasks, /call-centre, /call-centre/members/:id, /call-centre/tasks
-- **call sites** src/components/admin/FalseAlarmMonitor.tsx, src/components/admin/member-detail/TasksTab.tsx, src/pages/admin/TasksPage.tsx, src/pages/call-centre/StaffDashboard.tsx
-
-Tickets and comments ARE published, so they arrive live on an open Tickets screen. `tasks` is not (see channel:tasks above) — assigning a task tells its owner nothing, on any channel. Listed as a red.
 
 ### `table:ticket_comments` — 5/10 (arrives, unproven)
 

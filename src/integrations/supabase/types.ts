@@ -3049,43 +3049,59 @@ export type Database = {
         Row: {
           content: string
           created_at: string | null
+          crm_contact_id: string | null
           followup_completed: boolean | null
           followup_date: string | null
           id: string
           is_pinned: boolean | null
           is_private: boolean | null
-          member_id: string
+          member_id: string | null
           note_type: string | null
+          source: string | null
+          source_id: string | null
           staff_id: string | null
           updated_at: string | null
         }
         Insert: {
           content: string
           created_at?: string | null
+          crm_contact_id?: string | null
           followup_completed?: boolean | null
           followup_date?: string | null
           id?: string
           is_pinned?: boolean | null
           is_private?: boolean | null
-          member_id: string
+          member_id?: string | null
           note_type?: string | null
+          source?: string | null
+          source_id?: string | null
           staff_id?: string | null
           updated_at?: string | null
         }
         Update: {
           content?: string
           created_at?: string | null
+          crm_contact_id?: string | null
           followup_completed?: boolean | null
           followup_date?: string | null
           id?: string
           is_pinned?: boolean | null
           is_private?: boolean | null
-          member_id?: string
+          member_id?: string | null
           note_type?: string | null
+          source?: string | null
+          source_id?: string | null
           staff_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "member_notes_crm_contact_id_fkey"
+            columns: ["crm_contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "member_notes_member_id_fkey"
             columns: ["member_id"]
@@ -6900,11 +6916,14 @@ export type Database = {
           completed_at: string | null
           created_at: string | null
           created_by: string | null
+          crm_contact_id: string | null
           description: string | null
           due_date: string | null
           id: string
           member_id: string | null
           priority: string | null
+          source: string | null
+          source_id: string | null
           status: string | null
           task_type: string | null
           title: string
@@ -6915,11 +6934,14 @@ export type Database = {
           completed_at?: string | null
           created_at?: string | null
           created_by?: string | null
+          crm_contact_id?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
           member_id?: string | null
           priority?: string | null
+          source?: string | null
+          source_id?: string | null
           status?: string | null
           task_type?: string | null
           title: string
@@ -6930,11 +6952,14 @@ export type Database = {
           completed_at?: string | null
           created_at?: string | null
           created_by?: string | null
+          crm_contact_id?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
           member_id?: string | null
           priority?: string | null
+          source?: string | null
+          source_id?: string | null
           status?: string | null
           task_type?: string | null
           title?: string
@@ -6974,6 +6999,13 @@ export type Database = {
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_crm_contact_id_fkey"
+            columns: ["crm_contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
             referencedColumns: ["id"]
           },
         ]

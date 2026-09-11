@@ -133,18 +133,36 @@ jobs:
       # Read by the CLI from the environment. Deliberately not passed as `--password`, so it never
       # reaches a command line, a log, or `ps`.
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      # WHY A PAT AND NOT THE JOB'S OWN TOKEN. main is gated by the repository ruleset (S20):
+      # every change to it goes through a pull request, and github-actions[bot] is not a bypass
+      # actor — so the manifest commit at the end of this job can no longer be pushed with
+      # `secrets.GITHUB_TOKEN`. MANIFEST_PUSH_TOKEN is a fine-grained PAT scoped to this
+      # repository with contents read/write, owned by a repository admin, which the ruleset's
+      # bypass list admits. Nothing else in this job uses it.
+      MANIFEST_PUSH_TOKEN: ${{ secrets.MANIFEST_PUSH_TOKEN }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # The manifest commit at the end pushes back to main, so the credentials must persist.
+          # The manifest commit at the end pushes back to main, so the credentials must persist —
+          # and they must be the PAT's, because main is gated and the job's own token cannot push
+          # to it. `actions/checkout` stores this as an auth header and removes it in its post
+          # step; that is why the token is handed here rather than spliced into a remote URL,
+          # which git prints back on some failures and leaves in `git remote -v`.
+          #
+          # The `||` fallback is deliberate. An absent secret is the empty string, so without it
+          # checkout would fail on "Bad credentials" — a confusing red that looks like a GitHub
+          # outage. With it, checkout succeeds on the job's own token and the NEXT step fails with
+          # the secret named. A job that cannot record what it applied must stop BEFORE it applies
+          # anything, which is what that ordering buys.
+          token: ${{ secrets.MANIFEST_PUSH_TOKEN || github.token }}
           ref: main
           fetch-depth: 0
 
       - name: Require migrate secrets
         run: >
           node scripts/ci/require-secrets.mjs
-          SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF SUPABASE_DB_PASSWORD
+          SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF SUPABASE_DB_PASSWORD MANIFEST_PUSH_TOKEN
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -359,6 +377,12 @@ jobs:
 
           git commit -m "chore(prod): record ${APPLIED_COUNT} migrations applied by CI ${RUN_URL}"
 
+          # Pushed with MANIFEST_PUSH_TOKEN, which `actions/checkout` persisted above. A push
+          # with the job's own token is refused by the ruleset on main, and that refusal looks
+          # exactly like the "main moved" case the retry below exists for — so it would burn four
+          # attempts and then report the manifest as unrecordable. Nothing here retries around a
+          # permission failure; the loop is for the race only.
+          #
           # main moves while this runs — other sessions merge constantly. Rebase and retry rather
           # than force anything: this commit only ever ADDS lines to one append-only file.
           for attempt in 1 2 3 4; do

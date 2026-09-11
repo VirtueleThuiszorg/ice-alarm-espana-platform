@@ -247,3 +247,4 @@
 20260911140200_one_commission_per_member.sql
 20260911160000_billing_runner_grants.sql
 20260911170000_abandon_legacy_switch.sql
+20260911180000_rls_initplan.sql

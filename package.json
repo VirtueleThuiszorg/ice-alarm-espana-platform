@@ -14,7 +14,10 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "audit:pages": "playwright test"
+    "audit:pages": "playwright test",
+    "perf:measure": "playwright test --config playwright.perf.config.ts",
+    "perf:bundles": "node --experimental-strip-types scripts/perf/route-bundles.mjs",
+    "perf:report": "node --experimental-strip-types scripts/perf/report.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

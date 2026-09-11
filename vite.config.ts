@@ -51,6 +51,11 @@ export default defineConfig(({ mode }) => ({
     ),
   },
   build: {
+    // The manifest is what `scripts/perf/route-bundles.mjs` walks to total the JS
+    // each route ships. Without it the per-route budget would have to be guessed
+    // from file names, which stops being true the moment a chunk is renamed.
+    // It is a ~40KB JSON file in dist/.vite/ and is never requested by the app.
+    manifest: true,
     // Optimize chunk splitting for better caching
     rollupOptions: {
       output: {

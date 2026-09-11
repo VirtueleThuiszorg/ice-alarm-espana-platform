@@ -68,12 +68,21 @@ export function useOrderActions() {
 }
 
 /**
- * Commission per pendant sold: €50 FLAT (Lee, 2026-07-24) — no volume
- * tiers, no discounts for more. The emailed partner terms state exactly
- * this. (The partner-apply confirmation email that also stated them is retired.)
- * (and vice versa); partnerFlatTerms.test.ts pins them together.
+ * €50 FLAT, once per member, ever (Lee, 2026-07-24, re-confirmed 2026-09-08).
+ *
+ * No volume tiers, no discounts for more, and the same €50 whatever the partner
+ * type — a `care` or `residential` partner earns exactly what a `referral`
+ * partner earns. The signed agreement says "€50 gross for each successful
+ * referral"; pendant delivery is the *trigger*, not the unit.
+ *
+ * It was called COMMISSION_PER_PENDANT_EUR, which invited the reading that a
+ * couple ordering two pendants earns €100. It does not, and must not — the
+ * contract pays per referred member. Renamed so the next person cannot
+ * "fix" it into breaching the agreement.
+ *
+ * partnerFlatTerms.test.ts pins this against the public page and the portal copy.
  */
-const COMMISSION_PER_PENDANT_EUR = 50;
+const COMMISSION_PER_MEMBER_EUR = 50;
 
 async function createCommissionIfAttributed(
   orderId: string,
@@ -98,24 +107,39 @@ async function createCommissionIfAttributed(
       return;
     }
 
-    // Check if commission already exists for this order
-    const { data: existingCommission, error: checkError } = await supabase
+    // ─── ONE MEMBER, ONE COMMISSION, EVER. ─────────────────────────────────
+    // This used to key on `order_id`, which pays per delivered order. A member
+    // who is later sent a replacement pendant — a second order, marked
+    // delivered — earned the referrer another €50, silently. Commission is
+    // payable on joining only (Lee, 2026-09-08), so the question is whether
+    // THIS MEMBER has ever earned one, not whether this order has.
+    //
+    // `cancelled` rows are excluded deliberately. Correcting an order out of
+    // `delivered` cancels its commission; if the pendant is then genuinely
+    // delivered, the partner must still be paid. A cancelled row is not a
+    // payment, so it must not act like one.
+    //
+    // The database enforces the same rule as a partial unique index
+    // (20260911140200), because this check and the insert are two round trips
+    // and two people can mark delivered at the same moment.
+    const { data: existing, error: checkError } = await supabase
       .from("partner_commissions")
       .select("id")
-      .eq("order_id", orderId)
-      .maybeSingle();
+      .eq("member_id", memberId)
+      .neq("status", "cancelled")
+      .limit(1);
 
     if (checkError) {
       console.error("Error checking existing commission:", checkError);
       return;
     }
 
-    if (existingCommission) {
-      // Commission already exists for this order
+    if (existing && existing.length > 0) {
+      // This member has already earned their one commission.
       return;
     }
 
-    const amountEur = COMMISSION_PER_PENDANT_EUR;
+    const amountEur = COMMISSION_PER_MEMBER_EUR;
 
     // Calculate release date (7 days from delivery)
     const releaseAt = new Date(deliveredAt);

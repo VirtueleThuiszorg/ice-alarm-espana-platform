@@ -244,3 +244,4 @@
 20260911140100_crm_history_tasks.sql
 20260911150000_billing_migration_settings.sql
 20260911150100_billing_migration_cron.sql
+20260911140200_one_commission_per_member.sql

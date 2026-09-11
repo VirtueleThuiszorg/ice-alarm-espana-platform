@@ -16,7 +16,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useBrowserNotifications } from "@/hooks/useBrowserNotifications";
 import {
   useNotifications,
@@ -52,17 +52,24 @@ export function NotificationBell({ staffId }: NotificationBellProps) {
   const { t } = useTranslation();
   const isStaff = !!staffId;
   const [isOpen, setIsOpen] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { requestPermission } = useBrowserNotifications();
 
-  // Resolve user_id from the authenticated user
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase.auth.getUser();
-      setUserId(data.user?.id ?? null);
-    })();
-  }, []);
+  /*
+    THE USER ID COMES FROM THE CONTEXT THAT ALREADY HAS IT.
+
+    This used to call `supabase.auth.getUser()` in an effect, which cost a network
+    round trip AND made `userId` null on the first render and the real id on the
+    second. `useNotifications` fires two reads per identity, so the bell — which is
+    mounted in every authenticated layout — issued FOUR `notification_log` requests
+    on every page load, two of them for a user it already knew was nobody.
+
+    `useAuth()` holds the session the app is already running on. No request, no
+    null-then-value flicker, and the hook below never runs against an identity that
+    does not exist.
+  */
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
 
   useEffect(() => {
     if (staffId) {
@@ -75,7 +82,7 @@ export function NotificationBell({ staffId }: NotificationBellProps) {
     unreadCount,
     markAsRead,
     markAllAsRead,
-  } = useNotifications({ userId, pageSize: 5 });
+  } = useNotifications({ userId, pageSize: 5, enabled: !!userId });
 
   // Show only the latest 5 in the dropdown
   const recentNotifications = notifications.slice(0, 5);

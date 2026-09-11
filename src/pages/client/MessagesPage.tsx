@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
-import { conversationPreview } from "@/lib/conversationPreview";
-import { fetchLastIsabellaTurn } from "@/lib/lastIsabellaTurn";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { notifyStaffOfMemberMessage, markMemberConversationRead } from "@/utils/notifications";
@@ -31,6 +29,7 @@ import { PageHeader } from "@/components/client/PageHeader";
 import { useIsabellaThread } from "@/hooks/useIsabellaThread";
 import { IsabellaEpisodeCard } from "@/components/messaging/IsabellaEpisodeCard";
 import { mergeThread } from "@/lib/isabellaThread";
+import { fetchConversationSummaries } from "@/lib/conversationSummaries";
 
 interface Conversation {
   id: string;
@@ -140,64 +139,18 @@ export default function MessagesPage() {
 
   const fetchConversations = async () => {
     if (!memberId) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("conversations")
-        .select("*")
-        .eq("member_id", memberId)
-        .order("last_message_at", { ascending: false });
-
-      if (error) throw error;
-
-      const conversationsWithDetails = await Promise.all(
-        (data || []).map(async (conv) => {
-          try {
-            const { data: lastMsg } = await supabase
-              .from("messages")
-              .select("content, created_at, is_read, sender_type")
-              .eq("conversation_id", conv.id)
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle();
-
-            /*
-              The preview said the literal word "undefined" for a conversation with no
-              `messages` row — `undefined + ""` is the STRING "undefined", which is truthy, so
-              the `|| ""` never fired. Invisible until WP6 G7, because an Isabella-only
-              conversation has no messages and there is one per member who used the chat.
-              The Isabella read happens only when there is nothing ordinary to show.
-            */
-            const preview = conversationPreview(
-              lastMsg,
-              lastMsg ? null : await fetchLastIsabellaTurn(conv.id),
-            );
-
-            const { count } = await supabase
-              .from("messages")
-              .select("*", { count: "exact", head: true })
-              .eq("conversation_id", conv.id)
-              .eq("is_read", false)
-              .eq("sender_type", "staff");
-
-            return {
-              ...conv,
-              last_message_preview: preview.text,
-              has_unread: (count || 0) > 0,
-            };
-          } catch {
-            return { ...conv, last_message_preview: "", has_unread: false };
-          }
-        })
-      );
-
-      setConversations(conversationsWithDetails as Conversation[]);
-    } catch (error) {
-      console.error("Error fetching conversations:", error);
-      toast.error(t("messages.failedToLoad"));
-    } finally {
-      setIsLoading(false);
-    }
+    // ONE query. This used to be one for the list, then two more PER ROW — the
+    // last message and the unread count — plus a third for Isabella's last turn
+    // when the thread had no ordinary message. On a member with twenty threads
+    // that was 66 requests to render one screen. See lib/conversationSummaries.ts.
+    const rows = await fetchConversationSummaries({ memberId });
+    setConversations(
+      rows.map((row) => ({
+        ...row,
+        has_unread: row.unread_from_staff > 0,
+      })) as unknown as Conversation[],
+    );
+    setIsLoading(false);
   };
 
   const fetchMessages = async (conversationId: string) => {

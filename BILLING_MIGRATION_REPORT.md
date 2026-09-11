@@ -182,6 +182,34 @@ worth doing in **test mode**, before live keys:
 4. Fail a SEPA debit, to see `async_payment_failed` put them back on legacy billing with the bell.
 5. Run the runner twice on the same day → the second run sends nothing.
 
+**Steps 1 and 2 are now one command**, not a checklist somebody performs and interprets:
+
+```
+STRIPE_TEST_KEY=sk_test_... node scripts/stripe/test-clock-rehearsal.mjs --amount <cents>
+node scripts/stripe/test-clock-rehearsal.mjs --day 31 --amount <cents>   # the month-end clamp
+```
+
+It creates a test clock, a customer and a subscription carrying the switch link's **exact**
+parameters, then asserts, per step:
+
+| | |
+|---|---|
+| **card, first charge** | the FULL amount — **not €0, not prorated**, the trap a `billing_cycle_anchor` sets |
+| **card, next charge** | the same day of the month, accepting a month-end clamp as the right answer rather than a fault |
+| **SEPA, settles** | the debit is presented for the full amount — `open` is correct, because SEPA settles days later, which is why the webhook must handle `async_payment_succeeded` |
+| **SEPA, bounces** | exactly **one retry scheduled**. Lee's rule 4 is "one Stripe smart retry, then staff bell + friendly SMS", and that is only true if Stripe actually retries — with none, the member is told on the *first* failure, which is several hundred texts about a problem that usually fixes itself |
+
+Pass or fail per step, non-zero exit. It **refuses** without a key rather than skipping, refuses a
+live key outright, and reports `--no-sepa` as a **failure** rather than as silence — skipping the
+path most of these members take must not produce a green run.
+
+Its **judgement** is executed here — 31 tests in `src/test/stripeRehearsal.test.ts`, nine
+mutations, each one made to fail. Its **HTTP** has not been: no key, so the REST shapes come from
+Stripe's documented surface. Every read checks for the field it needs and reports the missing one
+by name, so the first real run is a fixable message rather than a stack trace.
+
+Completing one real Checkout Session still needs a browser. That stays manual, and it is step 0.
+
 Items 1 and 2 are the ones that would embarrass us, and neither can be checked from here — they
 are Stripe charging what its own parameters say. Everything on that list that is OURS is now
 executed (above); what is left is Stripe's own behaviour and the SEPA round trip through a real

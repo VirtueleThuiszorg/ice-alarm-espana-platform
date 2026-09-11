@@ -104,24 +104,42 @@ export function plannedActionFor(
   today: Date,
 ): RunnerActionKind | null {
   if (!settings.enabled) return null;
-  // `legacy` only. A member already mid-switch has a link out — a second one is a second way to
-  // be charged for the same month — and a `stripe` member is finished.
-  if (member.billing_source !== "legacy") return null;
+
+  /*
+    TWO STATES, NOT ONE — and the first version of this said `legacy` only, which broke the
+    annual ladder in a way no test noticed.
+
+    The notice at 14 days puts the member into `switch_pending`. If that excluded them, the
+    reminder at 7 days and the phone call at 3 would never be PLANNED at all — the ladder would
+    be a single rung, for the people it matters most to. An annual member who misses the switch
+    waits twelve months.
+
+    What `switch_pending` does exclude is a FIRST link: the monthly link and the annual notice
+    are for somebody who has none out. `stripe` is finished, and `none` never started.
+  */
+  const onLegacy = member.billing_source === "legacy";
+  const midSwitch = member.billing_source === "switch_pending";
+  if (!onLegacy && !midSwitch) return null;
   if (!member.legacy_next_renewal) return null;
 
   const days = daysUntil(member.legacy_next_renewal, today);
   if (days === null || days < 0) return null;
 
   if (member.billing_frequency === "annual") {
-    if (days === settings.annualNoticeDays) return "annual_notice";
+    // The opening message, so only for somebody who has not had one.
+    if (days === settings.annualNoticeDays) return onLegacy ? "annual_notice" : null;
+    // The chase, and the phone call. Both are FOR the member who did not act on the notice, so
+    // both have to reach somebody already mid-switch — that is the whole point of them.
     if (days === settings.annualReminderDays) return "annual_reminder";
     if (days === settings.annualEscalateDays) return "staff_bell";
     return null;
   }
 
   // Monthly, and anything the record does not call annual: a monthly schedule is the one that
-  // comes round again, so it is the safe default for an unclear row.
-  return days === settings.monthlyLeadDays ? "switch_link" : null;
+  // comes round again, so it is the safe default for an unclear row. One link only — a monthly
+  // member with one out is charged again next month whatever happens, and the 14-day sweep
+  // returns them to `legacy` in time for it.
+  return days === settings.monthlyLeadDays && onLegacy ? "switch_link" : null;
 }
 
 /**

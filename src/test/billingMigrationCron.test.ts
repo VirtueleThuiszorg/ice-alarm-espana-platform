@@ -323,3 +323,16 @@ describe("the callers the revokes forgot", () => {
     expect(read(`supabase/migrations/${GRANTS}`)).toMatch(/ROLLBACK:/);
   });
 });
+
+describe("the candidate set the ladder needs", () => {
+  /*
+    The planner can only choose from what the query returns. `.eq("billing_source", "legacy")`
+    excluded every member their own 14-day notice had moved to `switch_pending`, so the reminder
+    and the phone call were unreachable however the planner was written — the two fixes are only
+    a fix together.
+  */
+  it("includes members the notice has already moved to switch_pending", () => {
+    expect(fn).toMatch(/\.in\("billing_source", \["legacy", "switch_pending"\]\)/);
+    expect(fn).not.toMatch(/\.eq\("billing_source", "legacy"\)/);
+  });
+});

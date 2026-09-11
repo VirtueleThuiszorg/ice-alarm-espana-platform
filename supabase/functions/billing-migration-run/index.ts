@@ -148,7 +148,12 @@ serve(async (req) => {
       }
     }
 
-    // ── who is on legacy billing ─────────────────────────────────────────────
+    // ── who is on legacy billing, or part-way off it ─────────────────────────
+    //
+    // `switch_pending` IS INCLUDED, and that is not an oversight: an annual member is put into it
+    // by their own 14-day notice, and excluding them would mean the reminder at 7 days and the
+    // phone call at 3 were never planned — the ladder reduced to one rung, for the people a
+    // missed switch costs a whole year.
     //
     // `billing_frequency` comes from the member's own subscription row — what Karma billed them —
     // because an annual member gets a ladder and a monthly member gets one link, and reading the
@@ -156,7 +161,7 @@ serve(async (req) => {
     const { data: rows, error: loadError } = await admin
       .from("members")
       .select("id, first_name, last_name, billing_source, legacy_billing_day, legacy_next_renewal, subscriptions (billing_frequency, created_at)")
-      .eq("billing_source", "legacy")
+      .in("billing_source", ["legacy", "switch_pending"])
       .not("legacy_next_renewal", "is", null);
 
     if (loadError) throw new Error(`could not load candidates: ${loadError.message}`);
@@ -173,7 +178,9 @@ serve(async (req) => {
        runner would skip the member for good, the CSV would blank their collection date, and the
        dashboard's "due this month" would empty as the month went by. So the date is moved on the
        day after it passes, from the member's own stored billing day (monthly) or the anniversary
-       (annual), through the one implementation of the rule. */
+       (annual), through the one implementation of the rule. Members mid-switch are rolled too:
+       their ladder for that renewal is over by the time it passes, and a stale date would be
+       waiting for them the moment they lapse back to `legacy`. */
     let rolled = 0;
     const rollFailures: string[] = [];
     for (const r of rows ?? []) {

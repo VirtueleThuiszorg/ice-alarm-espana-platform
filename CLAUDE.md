@@ -55,6 +55,27 @@ the fix PR undid itself the same way.
   array-length parity, no duplicate keys, no English left in member-facing namespaces. If it
   is red, main is broken — fix it, never pin around it.
 
+### WIRING_REGISTER.md: run this once per clone
+
+```
+npm run setup
+```
+
+**Do it before your first merge.** It registers a git merge driver that REGENERATES the register
+instead of merging it, plus a `post-merge` hook that regenerates again once the tree is whole.
+Git will not take either from a committed file — executing code named by a clone is how a clone
+becomes an exploit — so `.gitattributes` can only declare the intent, and each checkout opts in.
+
+**This replaces the old instruction to resolve the register by hand.** That instruction was here
+for weeks, `.gitattributes` said `-merge` so git would raise a conflict and make somebody run the
+generator, and the file was still hand-merged twice in one week. A rule that depends on the
+person holding the conflict doing the right thing fails exactly when it matters. So there is no
+longer a conflict to resolve: the driver regenerates, and if you never ran `npm run setup`, the
+CI job on main regenerates and commits it for you rather than going red over a generated file.
+
+What has NOT changed: on a pull request a stale register is still a hard failure. You are present
+there, and the register is part of what is being reviewed.
+
 ## Stack
 Single Vite + React 18 + TypeScript SPA (npm, **not** a pnpm monorepo) · Tailwind + shadcn/ui in `src/components/ui` · Supabase (Postgres/Auth/Edge Functions/Realtime), one project — **`crpsuhoixfdhjugprbuc`** (care-conneqt-prod, LifeLink Sync org, Pro; LOCKED 2026-07-22, LAUNCH_SCOPE.md §0). The planned `cfwnrcogikjycjcobsay` migration is **CANCELLED** (historical); `qkfvojbcxaptufsepupo` is **DEFERRED** — a possible future migration target, never a deploy target, and **not** to be deleted (correction 2026-08-11). Per-file ref map: `PROJECT_REFS.md`. · Stripe + Mollie (SEPA + cards, webhook-driven) · AI is Isabella on the **Anthropic API** (`claude-opus-4-8` via `_shared/anthropic.ts`, `ISABELLA_MODEL` overridable; core migrated 2026-07-24 — only the archive-candidate growth fns still touch Lovable) · Vercel deploy · Sentry.
 

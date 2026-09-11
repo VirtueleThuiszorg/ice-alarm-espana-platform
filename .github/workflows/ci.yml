@@ -144,22 +144,89 @@ jobs:
   # file differs. So a new control cannot be added without saying what it promises, where it
   # lands, who is told and what proves it — and a wire that is deleted cannot leave a stale row
   # behind claiming it still works.
+  #
+  # ON A PR IT CHECKS. ON MAIN IT REPAIRS, and the difference is deliberate.
+  #
+  # The register is generated, and `.gitattributes` asks git to regenerate rather than merge it
+  # (scripts/wiring/merge-driver.mjs). But git will not run a merge driver a repository merely
+  # names — that is a clone-safety rule, not an oversight — so the driver only exists in a
+  # checkout where somebody ran `npm run setup`. A contributor who has not, or a merge performed
+  # by the GitHub UI, still gets an ordinary textual merge of a generated file: the interleaving
+  # that put a duplicated `table:leads` row, with contradictory scores, onto main.
+  #
+  # A red `Wiring register` on main does not fix that. It reports it, and main stays red until a
+  # human runs one command — which, on a file nobody edits by hand, is pure interruption. So on
+  # main the job runs the generator and COMMITS the result if it differs. One run, self-healed,
+  # same pattern as the migration manifest in migrate.yml.
+  #
+  # THIS CANNOT LOOP: the commit changes only WIRING_REGISTER.md, the next run regenerates,
+  # finds no difference, and commits nothing.
+  #
+  # It stays a HARD FAILURE on pull requests, where the author is present and the register is
+  # part of what is being reviewed. Self-healing there would mean a reviewer reading a diff whose
+  # register belongs to a different commit.
   wiring-register:
     name: Wiring register
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      # To push the regenerated register back to main. Nothing else.
+      contents: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # The self-heal commits and pushes; the default detached checkout cannot.
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
+      # PRs: the gate, unchanged. An author with a stale register regenerates it themselves.
       - name: Wiring register
+        if: github.event_name == 'pull_request'
         run: node scripts/wiring/build.mjs --check
+
+      # main: regenerate and commit the difference rather than going red over a generated file.
+      - name: Regenerate and self-heal on main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          node scripts/wiring/build.mjs
+
+          if git diff --quiet -- WIRING_REGISTER.md; then
+            echo "Register matches the code."
+            exit 0
+          fi
+
+          echo "::warning title=Register was stale on main::A merge landed a WIRING_REGISTER.md that is not the generator's output. Regenerating and committing it. If this fires often, somebody is merging without the driver — see scripts/setup-repo.sh."
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add WIRING_REGISTER.md
+          git commit -m "chore(wiring): regenerate WIRING_REGISTER.md after a merge ${RUN_URL}"
+
+          # main moves while this runs. Rebase and retry rather than force: this commit only ever
+          # rewrites one generated file, so a rebase can never lose somebody else's work.
+          for attempt in 1 2 3 4; do
+            if git push origin HEAD:main; then
+              echo "Register repaired on main."
+              exit 0
+            fi
+            echo "::notice::push rejected (attempt ${attempt}); rebasing on main and retrying."
+            git fetch origin main
+            git rebase origin/main || { git rebase --abort; node scripts/wiring/build.mjs; git add WIRING_REGISTER.md; git commit -q --amend --no-edit; }
+            sleep $((attempt * 3))
+          done
+
+          echo "::error title=Register not repaired::WIRING_REGISTER.md is stale on main and the repair commit could not be pushed. Run: node scripts/wiring/build.mjs"
+          exit 1
 
   lint-typecheck-build:
     name: Lint, Type Check & Build

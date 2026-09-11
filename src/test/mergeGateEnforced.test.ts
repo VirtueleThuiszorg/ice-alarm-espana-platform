@@ -28,7 +28,7 @@ const healthy = () => [
   { type: "pull_request", parameters: { allowed_merge_methods: ["merge", "squash", "rebase"] } },
   {
     type: "required_status_checks",
-    parameters: { required_status_checks: REQUIRED_CHECKS.map((context) => ({ context })) },
+    parameters: { required_status_checks: REQUIRED_CHECKS.map((context: string) => ({ context })) },
   },
 ];
 
@@ -62,13 +62,13 @@ describe("the merge gate checker", () => {
     expect(v.problems.join(" ")).toContain("no required_status_checks");
   });
 
-  it.each(REQUIRED_CHECKS)("fails when %s is dropped from the required list", (dropped) => {
+  it.each(REQUIRED_CHECKS)("fails when %s is dropped from the required list", (dropped: string) => {
     const rules = healthy().map((r) =>
       r.type === "required_status_checks"
         ? {
             ...r,
             parameters: {
-              required_status_checks: REQUIRED_CHECKS.filter((c) => c !== dropped).map((context) => ({
+              required_status_checks: REQUIRED_CHECKS.filter((c: string) => c !== dropped).map((context: string) => ({
                 context,
               })),
             },
@@ -82,7 +82,7 @@ describe("the merge gate checker", () => {
 
   it.each(["pull_request", "non_fast_forward", "deletion"])(
     "fails when the %s rule is removed",
-    (type) => {
+    (type: string) => {
       const v = evaluateMergeGate(healthy().filter((r) => r.type !== type));
       expect(v.ok).toBe(false);
       expect(v.problems.join(" ")).toContain(type);
@@ -100,7 +100,7 @@ describe("the merge gate checker", () => {
             ...r,
             parameters: {
               required_status_checks: [
-                ...REQUIRED_CHECKS.map((context) => ({ context })),
+                ...REQUIRED_CHECKS.map((context: string) => ({ context })),
                 { context: "Manifest matches production" },
               ],
             },

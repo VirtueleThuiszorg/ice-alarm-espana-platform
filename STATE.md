@@ -149,11 +149,14 @@ Recorded because "the tests passed" was not enough twice in one brief.
 - ⬜ The nav still takes two clicks to reach most pages: a group is in the DOM only once a route
   inside it is active. Not a rule violation, the single biggest friction in the portal, and a
   product decision rather than a code one.
-- ⬜ `save-api-keys` silently renames an unprefixed key (`${service}_${key}` unless already
-  prefixed), so the admin checkout payment-methods and registration test-mode switches write keys
+- ✅ `save-api-keys` silently renames an unprefixed key (`${service}_${key}` unless already
+  prefixed), so the admin checkout payment-methods and registration test-mode switches wrote keys
   nothing reads. Found while adding the member-portal settings card, which declares its service
-  explicitly to avoid it. Payments-adjacent and outside this brief's six concerns; #331 addressed
-  part of the class.
+  explicitly to avoid it. **Closed by #340**, which fixed the checkout card (`service: "checkout"`)
+  and the registration family (`service: "registration"`) — the latter being the half #331 missed,
+  so the fee was still charged with the switch off. `src/test/settingsKeyParity.test.ts` now pairs
+  every save with the service it passes and compares STORED names in both directions; four orphan
+  pairs on the Stripe/Maps rows are listed there with reasons rather than renamed.
 - ⬜ Both Vercel checks are red on every PR in this repo today: the account hit its free-tier
   100-deploys-per-day cap. Not caused by this work, and not one of the repo's listed quality gates.
 

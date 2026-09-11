@@ -716,9 +716,34 @@ code, so they flip without a deploy):
 
 ### D-17 — the checkout payment-methods card saves to a key nothing reads (2026-09-10)
 
+> **✅ FIXED 2026-09-10 in #340**, and it was NOT the one-word fix this row predicted. The card
+> now passes `service: "checkout"`, which is the one word — but generalising the check to every
+> settings card found **the same defect still live in the registration fee**, which #331 had
+> reported as closed. That PR fixed the CONSTANT and left the `service`, so the fee row kept
+> landing in `settings_registration_fee_enabled` and the switch still did not reach what a
+> customer is charged. `registration_fee_*` and `registration_test_mode_enabled` now save under
+> `service: "registration"`. The report that B3 was closed was wrong; this is the correction.
+>
+> `src/test/settingsKeyParity.test.ts` is the test this row asked for, generalised: every save is
+> paired with the service IT passes, no key may be renamed on the way in, every stored key needs a
+> reader under that exact name, and every reader needs a writer. Callers are DISCOVERED, so a new
+> settings card cannot skip it, and the prefix arithmetic is read back out of `save-api-keys`.
+>
+> **Four orphan pairs are listed in that test rather than fixed**, because each needs a ruling and
+> two of them hold live values: `stripe_secret_key` and `stripe_webhook_secret` (the WRITE is
+> right — five functions read the prefixed rows — but the page's masked display reads the
+> unprefixed one, so a live key shows as unset), `stripe_publishable_key` and
+> `google_maps_api_key` (dead both ways; a Maps key typed into that field reaches nothing).
+>
+> **Still open, and small:** the row tidy-up below. If anybody ever pressed Save on that card
+> before the fix, `settings_checkout_payment_methods` / `settings_checkout_async_events_confirmed`
+> exist in production holding a stale selection. Nothing reads them — the parity test asserts
+> that — so they are litter rather than a defect, and deleting them is a P5-style one-liner
+> whenever somebody is in there anyway.
+
 Found while building the holiday-policy card on the same pattern, and **not fixed here** because
 it is the payment path and it is its own concern. It is a real defect, so it is written down
-rather than left in a branch nobody reads.
+rather than left in a branch nobody reads. *(The original entry follows, unchanged.)*
 
 `save-api-keys` prefixes every key it is given with `${service}_` **unless the key already starts
 with that prefix**:

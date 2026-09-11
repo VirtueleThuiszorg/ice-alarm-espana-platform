@@ -6,6 +6,11 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { handleSuccessfulPayment } from "../_shared/post-payment.ts";
 import { notifyAdmins } from "../_shared/staff-bell.ts";
 import {
+  failureStage,
+  memberFailureSms,
+  staffFailureMessage,
+} from "../_shared/payment-retry.ts";
+import {
   checkAmount,
   isFirstInvoice,
   isSessionPaid,
@@ -576,6 +581,11 @@ async function onInvoiceFailed(
   supabase: ReturnType<typeof createClient>,
   invoice: Stripe.Invoice,
 ): Promise<Json> {
+  /*
+    PAST_DUE ON THE FIRST FAILURE, AND THE SERVICE STAYS UP. P4 settled this: a member whose
+    payment bounced is still a member, and an operator still answers their alarm. Nothing below
+    suspends anything.
+  */
   const { data: matched, error } = await supabase
     .from("subscriptions")
     .update({ status: "past_due" })
@@ -593,15 +603,93 @@ async function onInvoiceFailed(
     );
   }
 
-  const bell = await notifyAdmins(supabase, {
-    eventType: "system",
-    message:
-      `A membership payment failed${invoice.number ? ` (invoice ${invoice.number})` : ""}. The ` +
-      "subscription is now past due. Monitoring continues — chase the payment, do not suspend " +
-      "the service.",
-    entityType: "subscription",
-    entityId: matched?.[0]?.id,
+  /*
+    WHICH FAILURE THIS IS. `invoice.payment_failed` fires on EVERY attempt; Stripe's smart
+    retries then try again over the following days, and most direct-debit failures clear on
+    their own — a balance short on the 15th is not short on the 18th.
+
+      retrying   Stripe will try again. Say nothing to the member.
+      exhausted  Stripe has stopped. This is the first moment the failure is real.
+
+    Texting on the first failure would mean texting several hundred elderly people about a
+    problem that fixes itself, in a message that arrives from the company holding their
+    emergency button.
+  */
+  const stage = failureStage({
+    next_payment_attempt: invoice.next_payment_attempt,
+    attempt_count: invoice.attempt_count,
+    number: invoice.number,
+    amount_due: invoice.amount_due,
   });
 
-  return { handled: true, pastDue: matched?.length ?? 0, adminsNotified: bell.notified };
+  const memberId = matched?.[0]?.member_id as string | undefined;
+  const { data: member } = memberId
+    ? await supabase
+        .from("members")
+        .select("first_name, last_name, phone, preferred_language")
+        .eq("id", memberId)
+        .maybeSingle()
+    : { data: null };
+
+  const memberName = member ? `${member.first_name} ${member.last_name}` : "A member";
+
+  /*
+    THE BELL: on the FIRST failure and at exhaustion, and silent for the attempts in between.
+    One bell per retry, over 431 members, is a bell nobody reads — and a staff surface nobody
+    reads is the failure mode this platform keeps finding. The first tells them it happened; the
+    last tells them to pick up the phone.
+  */
+  const firstAttempt = (invoice.attempt_count ?? 1) <= 1;
+  let notified = 0;
+  if (stage === "exhausted" || firstAttempt) {
+    const bell = await notifyAdmins(supabase, {
+      eventType: "system",
+      message: staffFailureMessage(
+        memberName,
+        { next_payment_attempt: invoice.next_payment_attempt, number: invoice.number },
+        stage,
+      ),
+      entityType: "subscription",
+      entityId: matched?.[0]?.id,
+    });
+    notified = bell.notified;
+  }
+
+  // ── the member's text, and only once Stripe has given up ──────────────────
+  let smsSent = false;
+  if (stage === "exhausted" && member?.phone) {
+    const { data: phoneRow } = await supabase
+      .from("system_settings")
+      .select("value")
+      .eq("key", "settings_emergency_phone")
+      .maybeSingle();
+
+    // No number, no text. A message telling somebody to ring a number we did not have would
+    // send them looking for one — the same reasoning as the placeholder emergency number.
+    if (phoneRow?.value) {
+      const language = (["en", "es", "nl"].includes(member.preferred_language ?? "")
+        ? member.preferred_language
+        : "en") as "en" | "es" | "nl";
+
+      const { error: smsError } = await supabase.functions.invoke("twilio-sms", {
+        body: {
+          to: member.phone,
+          message: memberFailureSms(member.first_name as string, language, phoneRow.value as string),
+          recipientType: "member",
+        },
+      });
+      smsSent = !smsError;
+      if (smsError) {
+        console.error(`Could not text ${memberId} about a failed payment:`, smsError.message);
+      }
+    }
+  }
+
+  return {
+    handled: true,
+    pastDue: matched?.length ?? 0,
+    stage,
+    adminsNotified: notified,
+    memberTexted: smsSent,
+  };
 }

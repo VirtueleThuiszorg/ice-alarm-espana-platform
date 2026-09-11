@@ -313,8 +313,10 @@ its version appeared in the remote list *after* a push and was absent *before* i
 > **Deviation 1 — no required status checks (trap 3, and the whole point).** Proven twice over,
 > by execution:
 >
-> - A throwaway PR (**#387**, since closed and its branch deleted) with one deliberately failing
->   test. With `Tests` red, GitHub reported `mergeable: true`, **`mergeable_state: "unstable"`** —
+> - A throwaway PR (**#387**, since closed) with one deliberately failing
+>   test. Its branch `claude/ruleset-proof-throwaway` is still on the remote: this session can
+>   neither delete-ref push (the git proxy disconnects) nor `DELETE /git/refs` (the agent proxy
+>   refuses every REST write), so it needs the **Delete branch** button on the closed PR. With `Tests` red, GitHub reported `mergeable: true`, **`mergeable_state: "unstable"`** —
 >   *a check is failing and nothing requires it*. The merge button was available. A gate that was
 >   enforcing would have said `blocked`. Three checks ended up red on it and the merge was still
 >   offered.

@@ -118,13 +118,39 @@ export function SetHomeLocationDialog({
     .filter(Boolean)
     .join(", ");
 
+  /*
+    THE STORED PIN AS TWO NUMBERS, NOT AS AN OBJECT, and that is load-bearing rather than tidy.
+
+    Both callers build `existing` inline — `existing={hasPin ? { lat, lng } : null}` — so every
+    parent render hands this component a NEW object holding the SAME coordinate. With `existing`
+    in the dependency arrays below, each of those renders re-ran the seeding effect and threw
+    away whatever the member had done since opening the dialog.
+
+    The visible half was bad enough: a member nudging the pin onto their door watched it jump
+    back. The invisible half was worse. After "Use my current location" the coordinates snapped
+    back to the OLD stored pin while `acceptedFix` still said "this is a GPS reading" — so Save
+    sent `member_gps` with a real accuracy figure attached to a coordinate the GPS had never
+    produced, 1.3 km away in the reproduction. Nothing downstream can catch that: the source is
+    one a member may claim and the accuracy is inside 100 m, so the edge function, the trigger
+    and the CHECK constraint all accept it, and the SOS card then labels it as the member's own
+    confirmation. Same failure #336 fixed, reached through a different door.
+
+    Depending on the numbers means a re-render carrying an unchanged coordinate is not a change.
+  */
+  const existingLat = existing?.lat ?? null;
+  const existingLng = existing?.lng ?? null;
+
   // Centre on the geocoded postal address the first time the dialog opens without a pin, so the
   // member is nudging a marker that is already outside roughly the right building rather than
   // panning across Spain.
   useEffect(() => {
     if (!open) return;
-    if (existing) {
-      setCoords(existing);
+    if (existingLat !== null && existingLng !== null) {
+      setCoords({ lat: existingLat, lng: existingLng });
+      // Seeding from the record is not a GPS reading. Clearing this here keeps the one invariant
+      // the source depends on: `acceptedFix` is non-null only while `coords` is exactly what
+      // `getCurrentPosition` returned.
+      setAcceptedFix(null);
       return;
     }
     if (!addressLine || geocodedFor.current === addressLine) return;
@@ -134,6 +160,8 @@ export function SetHomeLocationDialog({
     forwardGeocode(addressLine)
       .then((found) => {
         if (cancelled) return;
+        // `current ??` and not a plain set: the member may have pressed "Use my current location"
+        // while Nominatim was still answering, and a centring guess must never win over their fix.
         setCoords((current) => current ?? found ?? FALLBACK_CENTRE);
       })
       .finally(() => {
@@ -142,7 +170,7 @@ export function SetHomeLocationDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, existing, addressLine]);
+  }, [open, existingLat, existingLng, addressLine]);
 
   // Closing puts everything back. A refusal message left on screen from last time, or a fix from
   // a different room, would both be lies the second time the dialog opens.
@@ -151,8 +179,8 @@ export function SetHomeLocationDialog({
     setGps({ kind: "idle" });
     setAcceptedFix(null);
     setSaving(false);
-    setCoords(existing ?? null);
-  }, [open, existing]);
+    setCoords(existingLat !== null && existingLng !== null ? { lat: existingLat, lng: existingLng } : null);
+  }, [open, existingLat, existingLng]);
 
   const useCurrentLocation = useCallback(() => {
     if (!("geolocation" in navigator)) {

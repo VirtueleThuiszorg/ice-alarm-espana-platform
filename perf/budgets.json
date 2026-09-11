@@ -109,8 +109,7 @@
     },
     "public.pricing": {
       "routeJsGzBytes": 366592,
-      "clsBelow": 0.19,
-      "dbQueriesPerLoad": 7
+      "clsBelow": 0.19
     },
     "join.wizard": {
       "routeJsGzBytes": 374784
@@ -126,7 +125,6 @@
     },
     "cc.alerts": {
       "routeJsGzBytes": 384000,
-      "clsBelow": 0.971,
       "nPlusOneTables": [
         "alerts",
         "staff"

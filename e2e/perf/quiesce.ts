@@ -108,8 +108,53 @@ export async function idleQueryRate(
   page: Page,
   stub: { calls: RecordedCall[] },
   { windowMs = 5_000 } = {},
-): Promise<{ queries: number; windowMs: number }> {
+): Promise<{
+  queries: number;
+  windowMs: number;
+  breakdown: string;
+  /** Reads of the single busiest table in the window — a loop's fingerprint. */
+  maxPerTable: number;
+  worstTable: string;
+}> {
   const before = stub.calls.length;
   await page.waitForTimeout(windowMs);
-  return { queries: stub.calls.length - before, windowMs };
+  const arrived = stub.calls.slice(before);
+
+  // WHICH reads arrive at rest, not just how many. A budget on this number is
+  // only defensible if somebody can see what it is allowing, and a loop and a
+  // polling interval look identical until you can name the table.
+  const perTable = new Map<string, number>();
+  for (const c of arrived) {
+    const t = c.path.split("?")[0].replace("/rest/v1/", "").replace("/functions/v1/", "fn:");
+    perTable.set(t, (perTable.get(t) ?? 0) + 1);
+  }
+  const breakdown = [...perTable.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([t, n]) => `${t}=${n}`)
+    .join(" ");
+
+  /*
+    THE SHAPE IS THE SIGNAL, NOT THE TOTAL — and the measurements say so.
+
+    At rest, over five seconds, on the six gated routes:
+
+        public.home / pricing / join.wizard / auth.login   0 queries
+        member.dashboard   5  :: members=2 ai_agents=1 devices=1 conversations=1
+        cc.alerts          7  :: alerts=1 admin_ideas=1 staff_presence=1 members=1
+                                 isabella_assessment_notes=1 ai_agents=1 fn:twilio-token=1
+
+    Seven queries sounds like a lot until you see that it is seven DIFFERENT
+    tables, once each: the tail of lazily-mounted panels finishing their first
+    read. The render loop this gate exists to catch looked like `members=206` —
+    one table, over and over.
+
+    So the gate is on the worst single table, not the sum. A total would have to
+    be set above 7 to let an ordinary call-centre screen through, and 7 is already
+    within a factor of three of a slow loop; the per-table maximum separates them
+    by two orders of magnitude and needs no tuning as panels are added.
+  */
+  const maxPerTable = perTable.size === 0 ? 0 : Math.max(...perTable.values());
+  const worstTable = [...perTable.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "";
+
+  return { queries: arrived.length, windowMs, breakdown, maxPerTable, worstTable };
 }

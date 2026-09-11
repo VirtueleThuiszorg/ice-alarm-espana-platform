@@ -22,6 +22,7 @@ import { tmpdir } from "node:os";
 
 import { ABSENT_ADMIN_EVENTS } from "../../scripts/wiring/annotations.mjs";
 import { stripComments } from "./helpers/stripComments";
+import { webhookSource } from "./helpers/webhookSource";
 
 const ROOT = process.cwd();
 const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
@@ -157,7 +158,7 @@ describe("A2 / A3 — a failed payment and a cancellation NOW tell somebody", ()
     `src/test/stripeWebhookContract.test.ts`; these two assert only that the inventory above and
     the code below still agree about which of the six are done.
   */
-  const webhook = read("supabase/functions/stripe-webhook/index.ts");
+  const webhook = webhookSource();
 
   it("neither is still listed as absent", () => {
     expect(EVENTS.find((e) => e.id === "A2")).toBeUndefined();

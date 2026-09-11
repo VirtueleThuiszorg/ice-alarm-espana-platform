@@ -16,6 +16,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { stripComments } from "./helpers/stripComments";
 
 const ROOT = process.cwd();
 const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
@@ -96,7 +97,16 @@ describe("inheritance — one switch cuts every transactional function over", ()
         if (statSync(p).isDirectory()) walk(p);
         else if (name.endsWith(".ts")) {
           const rel = p.replace(ROOT + "/", "");
-          if (/npm:nodemailer|smtp\.gmail\.com/.test(readFileSync(p, "utf8")) && !known.has(rel)) {
+          /*
+            CODE, NOT THE PROSE ABOUT IT. This scanned raw source, so a COMMENT naming the
+            specifier — "`post-payment.ts` reaches `email.ts`, which imports `npm:nodemailer`,
+            which is why this type is declared separately" — was reported as a function building
+            its own transport. Four files that send no email at all were offenders.
+
+            The same lesson `absentAdminEvents.test.ts` already carries: an absence check that
+            reads comments is an absence check that fires on somebody explaining the absence.
+          */
+          if (/npm:nodemailer|smtp\.gmail\.com/.test(stripComments(readFileSync(p, "utf8"))) && !known.has(rel)) {
             offenders.push(rel);
           }
         }

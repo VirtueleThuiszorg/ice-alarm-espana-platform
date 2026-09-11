@@ -54,6 +54,7 @@ import {
 } from "../../supabase/functions/_shared/stripe-price-sync";
 import { sendPaymentLinkSchema } from "../../supabase/functions/_shared/validation";
 import { stripComments } from "./helpers/stripComments";
+import { webhookSource } from "./helpers/webhookSource";
 
 const ROOT = process.cwd();
 const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
@@ -687,7 +688,7 @@ describe("nothing in this path activates anybody", () => {
     // now destructures it once (`const metadata = session.metadata ?? {}`) instead of
     // repeating `session.metadata?.x` at each use, so the contract is asserted on the fields
     // rather than on the old spelling.
-    const webhook = read("supabase/functions/stripe-webhook/index.ts");
+    const webhook = webhookSource();
     expect(webhook).toContain("checkout.session.completed");
     expect(webhook).toMatch(/const metadata = session\.metadata/);
     for (const key of ["order_id", "payment_id", "member_id", "subscription_id"]) {

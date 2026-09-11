@@ -147,6 +147,19 @@ webhook activates on payment — it is simply harder for the people it is for.
   One did not fail, and that is recorded rather than glossed: the "every switch column is cleared"
   assertion passed over columns that were already NULL in the harness seed. The seed now sets them.
 
+- **The webhook's handlers, RUN rather than read** (`src/test/stripeWebhookExecuted.test.ts`).
+  Until this existed, every assertion about them was a source scan — "the file contains
+  `billing_source: 'stripe'`" — because `stripe-webhook/index.ts` calls `serve()` at import time
+  and its handlers were file-private. They now live in `_shared/stripe-webhook-handlers.ts` and
+  are driven against a fake PostgREST that records every write, so the platform's half of the
+  list above is executed: the subscription activates with a renewal date taken from the PAYMENT;
+  a SEPA session completing `unpaid` activates **nobody**; the later `async_payment_succeeded`
+  does; a bounced debit calls `abandon_legacy_switch(..., 'debit_bounced')` and marks the payment
+  failed; a first failed invoice bells the office and says **nothing** to the member, while an
+  exhausted one texts them in their own language; and none of it writes to `members` at all —
+  golden rule 4, executed rather than asserted about a string. All four of those were
+  mutation-checked.
+
 **Not proven, and it cannot be proven from here:** anything Stripe actually does. No Checkout
 Session has been created, no clock advanced, no `async_payment_succeeded` received. The rehearsal
 worth doing in **test mode**, before live keys:
@@ -159,7 +172,10 @@ worth doing in **test mode**, before live keys:
 4. Fail a SEPA debit, to see `async_payment_failed` put them back on legacy billing with the bell.
 5. Run the runner twice on the same day → the second run sends nothing.
 
-Items 1, 2 and 4 are the ones that would embarrass us, and none of them can be checked from here.
+Items 1 and 2 are the ones that would embarrass us, and neither can be checked from here — they
+are Stripe charging what its own parameters say. Everything on that list that is OURS is now
+executed (above); what is left is Stripe's own behaviour and the SEPA round trip through a real
+bank.
 
 ## 7. One line of the brief that reads two ways — and the setting that settles it
 

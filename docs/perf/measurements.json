@@ -2,1166 +2,1530 @@
   {
     "routeId": "public.home",
     "mobile": {
-      "lcpMs": 4352,
+      "lcpMs": 5016,
       "cls": 0,
       "longTasksMs": [
-        232,
-        166,
-        181,
-        60
+        159,
+        183,
+        178
       ],
-      "requestCount": 43,
-      "totalBytes": 636223,
-      "transitionColdMs": 1053.5,
-      "transitionWarmMs": 255.6000000005588
+      "requestCount": 79,
+      "totalBytes": 640177,
+      "transitionColdMs": 1526.3999999985099,
+      "transitionWarmMs": 243.30000000074506
     },
     "desktop": {
-      "lcpMs": 1248,
+      "lcpMs": 1420,
       "cls": 0,
       "longTasksMs": [],
-      "requestCount": 44,
-      "totalBytes": 678869,
-      "transitionColdMs": 301.59999999962747,
-      "transitionWarmMs": 98.09999999962747
+      "requestCount": 81,
+      "totalBytes": 778957,
+      "transitionColdMs": 305.8999999985099,
+      "transitionWarmMs": 120.80000000074506
     },
     "routeJsGzBytes": 0,
-    "dbQueries": 9,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": []
+    "dbQueries": 10,
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "ai_agents",
+      "pricing_plans",
+      "pricing_settings",
+      "testimonials",
+      "blog_posts"
+    ]
   },
   {
     "routeId": "public.how-it-works",
     "mobile": {
-      "lcpMs": 4024,
+      "lcpMs": 4944,
       "cls": 0,
       "longTasksMs": [
-        248,
-        173,
-        144,
+        192,
+        227,
+        202,
+        56
+      ],
+      "requestCount": 67,
+      "totalBytes": 621857,
+      "transitionColdMs": 902.3000000007451,
+      "transitionWarmMs": 195.89999999850988
+    },
+    "desktop": {
+      "lcpMs": 936,
+      "cls": 0,
+      "longTasksMs": [],
+      "requestCount": 68,
+      "totalBytes": 659161,
+      "transitionColdMs": 269.1000000014901,
+      "transitionWarmMs": 105.80000000074506
+    },
+    "routeJsGzBytes": 0,
+    "dbQueries": 5,
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "ai_agents"
+    ]
+  },
+  {
+    "routeId": "public.pricing",
+    "mobile": {
+      "lcpMs": 4144,
+      "cls": 0.15295119751180514,
+      "longTasksMs": [
+        171,
+        170,
+        53
+      ],
+      "requestCount": 52,
+      "totalBytes": 607561,
+      "transitionColdMs": 310.20000000298023,
+      "transitionWarmMs": 88.60000000149012
+    },
+    "desktop": {
+      "lcpMs": 784,
+      "cls": 0.033848540581597225,
+      "longTasksMs": [
         52
       ],
-      "requestCount": 30,
-      "totalBytes": 626380,
-      "transitionColdMs": 595.7999999998137,
-      "transitionWarmMs": 205.29999999981374
+      "requestCount": 52,
+      "totalBytes": 607561,
+      "transitionColdMs": 170,
+      "transitionWarmMs": 87
+    },
+    "routeJsGzBytes": 0,
+    "dbQueries": 7,
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "ai_agents",
+      "pricing_plans",
+      "pricing_settings"
+    ]
+  },
+  {
+    "routeId": "public.pendant",
+    "mobile": {
+      "lcpMs": 4840,
+      "cls": 0,
+      "longTasksMs": [
+        177,
+        180,
+        207,
+        51,
+        76
+      ],
+      "requestCount": 70,
+      "totalBytes": 623820,
+      "transitionColdMs": 1066.7000000029802,
+      "transitionWarmMs": 1165
+    },
+    "desktop": {
+      "lcpMs": 936,
+      "cls": 0,
+      "longTasksMs": [],
+      "requestCount": 71,
+      "totalBytes": 656162,
+      "transitionColdMs": 200.40000000223517,
+      "transitionWarmMs": 960.3999999985099
+    },
+    "routeJsGzBytes": 0,
+    "dbQueries": 9,
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "ai_agents",
+      "pricing_plans",
+      "pricing_settings",
+      "testimonials"
+    ]
+  },
+  {
+    "routeId": "public.contact",
+    "mobile": {
+      "lcpMs": 4480,
+      "cls": 0,
+      "longTasksMs": [
+        166,
+        169,
+        166
+      ],
+      "requestCount": 55,
+      "totalBytes": 610710,
+      "transitionColdMs": 893.9000000022352,
+      "transitionWarmMs": 171.39999999850988
+    },
+    "desktop": {
+      "lcpMs": 848,
+      "cls": 0,
+      "longTasksMs": [],
+      "requestCount": 55,
+      "totalBytes": 610710,
+      "transitionColdMs": 171.60000000149012,
+      "transitionWarmMs": 112.60000000149012
+    },
+    "routeJsGzBytes": 0,
+    "dbQueries": 5,
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "ai_agents"
+    ]
+  },
+  {
+    "routeId": "public.help",
+    "mobile": {
+      "lcpMs": 4460,
+      "cls": 0.007737921430336245,
+      "longTasksMs": [
+        165,
+        187,
+        60
+      ],
+      "requestCount": 56,
+      "totalBytes": 654989,
+      "transitionColdMs": 959,
+      "transitionWarmMs": 1109.7000000029802
+    },
+    "desktop": {
+      "lcpMs": 828,
+      "cls": 0.008703703703703703,
+      "longTasksMs": [],
+      "requestCount": 56,
+      "totalBytes": 654989,
+      "transitionColdMs": 307.3999999985099,
+      "transitionWarmMs": 988.6999999992549
+    },
+    "routeJsGzBytes": 0,
+    "dbQueries": 6,
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "ai_agents",
+      "documentation"
+    ]
+  },
+  {
+    "routeId": "public.blog",
+    "mobile": {
+      "lcpMs": 4204,
+      "cls": 0,
+      "longTasksMs": [
+        184,
+        200,
+        54
+      ],
+      "requestCount": 51,
+      "totalBytes": 614661,
+      "transitionColdMs": 522.5,
+      "transitionWarmMs": 1054
     },
     "desktop": {
       "lcpMs": 768,
       "cls": 0,
       "longTasksMs": [],
-      "requestCount": 31,
-      "totalBytes": 663684,
-      "transitionColdMs": 205.29999999981374,
-      "transitionWarmMs": 95
-    },
-    "routeJsGzBytes": 0,
-    "dbQueries": 5,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": []
-  },
-  {
-    "routeId": "public.pricing",
-    "mobile": {
-      "lcpMs": 3684,
-      "cls": 0.15913885657675808,
-      "longTasksMs": [
-        290,
-        188
-      ],
-      "requestCount": 25,
-      "totalBytes": 618933,
-      "transitionColdMs": 307.29999999981374,
-      "transitionWarmMs": 92
-    },
-    "desktop": {
-      "lcpMs": 668,
-      "cls": 0.033848540581597225,
-      "longTasksMs": [],
-      "requestCount": 25,
-      "totalBytes": 618933,
-      "transitionColdMs": 115.5,
-      "transitionWarmMs": 74.30000000074506
+      "requestCount": 51,
+      "totalBytes": 614661,
+      "transitionColdMs": 185.80000000074506,
+      "transitionWarmMs": 964.6999999992549
     },
     "routeJsGzBytes": 0,
     "dbQueries": 6,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": []
-  },
-  {
-    "routeId": "public.pendant",
-    "mobile": {
-      "lcpMs": 4180,
-      "cls": 0,
-      "longTasksMs": [
-        223,
-        165,
-        169
-      ],
-      "requestCount": 39,
-      "totalBytes": 664635,
-      "transitionColdMs": 1002,
-      "transitionWarmMs": 1162
-    },
-    "desktop": {
-      "lcpMs": 828,
-      "cls": 0,
-      "longTasksMs": [],
-      "requestCount": 39,
-      "totalBytes": 664635,
-      "transitionColdMs": 189.09999999962747,
-      "transitionWarmMs": 961.5
-    },
-    "routeJsGzBytes": 0,
-    "dbQueries": 8,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": []
-  },
-  {
-    "routeId": "public.contact",
-    "mobile": {
-      "lcpMs": 3576,
-      "cls": 0,
-      "longTasksMs": [
-        240,
-        150,
-        134
-      ],
-      "requestCount": 21,
-      "totalBytes": 617339,
-      "transitionColdMs": 471.3999999994412,
-      "transitionWarmMs": 187.79999999981374
-    },
-    "desktop": {
-      "lcpMs": 688,
-      "cls": 0,
-      "longTasksMs": [],
-      "requestCount": 21,
-      "totalBytes": 617339,
-      "transitionColdMs": 175.20000000018626,
-      "transitionWarmMs": 91.5
-    },
-    "routeJsGzBytes": 0,
-    "dbQueries": 4,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": []
-  },
-  {
-    "routeId": "public.help",
-    "mobile": {
-      "lcpMs": 3860,
-      "cls": 0,
-      "longTasksMs": [
-        236,
-        161,
-        53
-      ],
-      "requestCount": 23,
-      "totalBytes": 653438,
-      "transitionColdMs": 1013.5,
-      "transitionWarmMs": 1116.2000000001863
-    },
-    "desktop": {
-      "lcpMs": 744,
-      "cls": 0.008703703703703703,
-      "longTasksMs": [],
-      "requestCount": 23,
-      "totalBytes": 653438,
-      "transitionColdMs": 189,
-      "transitionWarmMs": 956.6999999992549
-    },
-    "routeJsGzBytes": 0,
-    "dbQueries": 5,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": []
-  },
-  {
-    "routeId": "public.blog",
-    "mobile": {
-      "lcpMs": 3384,
-      "cls": 0,
-      "longTasksMs": [
-        240,
-        51,
-        51,
-        52
-      ],
-      "requestCount": 21,
-      "totalBytes": 479494,
-      "transitionColdMs": 499.40000000037253,
-      "transitionWarmMs": 1198.8999999994412
-    },
-    "desktop": {
-      "lcpMs": 652,
-      "cls": 0,
-      "longTasksMs": [],
-      "requestCount": 22,
-      "totalBytes": 616583,
-      "transitionColdMs": 170.40000000037253,
-      "transitionWarmMs": 989.1999999992549
-    },
-    "routeJsGzBytes": 0,
-    "dbQueries": 5,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": []
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "ai_agents",
+      "blog_posts"
+    ]
   },
   {
     "routeId": "public.terms",
     "mobile": {
-      "lcpMs": 3552,
+      "lcpMs": 4148,
       "cls": 0,
       "longTasksMs": [
-        241,
-        158,
-        110
+        167,
+        169,
+        144
       ],
-      "requestCount": 19,
-      "totalBytes": 615115,
-      "transitionColdMs": 565.4000000003725,
-      "transitionWarmMs": 1172.199999999255
+      "requestCount": 46,
+      "totalBytes": 603356,
+      "transitionColdMs": 491.4000000022352,
+      "transitionWarmMs": 1169.7000000029802
     },
     "desktop": {
-      "lcpMs": 656,
+      "lcpMs": 788,
       "cls": 0,
       "longTasksMs": [],
-      "requestCount": 19,
-      "totalBytes": 615115,
-      "transitionColdMs": 186.19999999925494,
-      "transitionWarmMs": 1000.5
+      "requestCount": 46,
+      "totalBytes": 603356,
+      "transitionColdMs": 202.19999999925494,
+      "transitionWarmMs": 970.8999999985099
     },
     "routeJsGzBytes": 0,
     "dbQueries": 4,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": []
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "ai_agents"
+    ]
   },
   {
     "routeId": "public.privacy",
     "mobile": {
-      "lcpMs": 3572,
+      "lcpMs": 4092,
       "cls": 0,
       "longTasksMs": [
-        244,
         177,
-        124
+        162,
+        131
       ],
-      "requestCount": 19,
-      "totalBytes": 614675,
-      "transitionColdMs": 543.3999999994412,
-      "transitionWarmMs": 1234.7999999998137
+      "requestCount": 45,
+      "totalBytes": 602098,
+      "transitionColdMs": 500.9000000022352,
+      "transitionWarmMs": 1203.3999999985099
     },
     "desktop": {
-      "lcpMs": 668,
+      "lcpMs": 772,
       "cls": 0,
       "longTasksMs": [],
-      "requestCount": 19,
-      "totalBytes": 614675,
-      "transitionColdMs": 174.40000000037253,
-      "transitionWarmMs": 975.8999999994412
+      "requestCount": 45,
+      "totalBytes": 602098,
+      "transitionColdMs": 258,
+      "transitionWarmMs": 943.9000000022352
     },
     "routeJsGzBytes": 0,
-    "dbQueries": 4,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": []
+    "dbQueries": 5,
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "ai_agents"
+    ]
   },
   {
     "routeId": "join.wizard",
     "mobile": {
-      "lcpMs": 3140,
+      "lcpMs": 2828,
       "cls": 0,
       "longTasksMs": [
-        239,
-        208,
-        71
+        164,
+        179,
+        78
       ],
-      "requestCount": 37,
-      "totalBytes": 640496,
-      "transitionColdMs": 930.4000000003725,
-      "transitionWarmMs": 87.90000000037253
+      "requestCount": 67,
+      "totalBytes": 623558,
+      "transitionColdMs": 1051.199999999255,
+      "transitionWarmMs": 110.80000000074506
     },
     "desktop": {
-      "lcpMs": 556,
+      "lcpMs": 532,
       "cls": 0,
-      "longTasksMs": [],
-      "requestCount": 37,
-      "totalBytes": 640496,
-      "transitionColdMs": 287.40000000037253,
-      "transitionWarmMs": 104.79999999981374
+      "longTasksMs": [
+        51
+      ],
+      "requestCount": 67,
+      "totalBytes": 623558,
+      "transitionColdMs": 301,
+      "transitionWarmMs": 108.60000000149012
     },
     "routeJsGzBytes": 0,
     "dbQueries": 4,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": []
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events"
+    ]
   },
   {
     "routeId": "auth.login",
     "mobile": {
-      "lcpMs": 3720,
+      "lcpMs": 3740,
       "cls": 0,
       "longTasksMs": [
-        258,
-        180,
-        71
+        162,
+        150,
+        101
       ],
-      "requestCount": 20,
-      "totalBytes": 638152,
-      "transitionColdMs": 908.7999999998137,
-      "transitionWarmMs": 98.69999999925494
+      "requestCount": 32,
+      "totalBytes": 607002,
+      "transitionColdMs": 889.2000000029802,
+      "transitionWarmMs": 98.39999999850988
     },
     "desktop": {
-      "lcpMs": 700,
+      "lcpMs": 716,
       "cls": 0,
       "longTasksMs": [],
-      "requestCount": 20,
-      "totalBytes": 638152,
-      "transitionColdMs": 150.8999999994412,
-      "transitionWarmMs": 95.90000000037253
+      "requestCount": 32,
+      "totalBytes": 607002,
+      "transitionColdMs": 284.19999999925494,
+      "transitionWarmMs": 85.30000000074506
     },
     "routeJsGzBytes": 0,
     "dbQueries": 3,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": []
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_events",
+      "website_images"
+    ]
   },
   {
     "routeId": "auth.staff-login",
     "mobile": {
-      "lcpMs": 3652,
+      "lcpMs": 3712,
       "cls": 0,
       "longTasksMs": [
-        224,
-        154,
-        87
+        172,
+        168,
+        95
       ],
-      "requestCount": 20,
-      "totalBytes": 638105,
-      "transitionColdMs": 893.6999999992549,
-      "transitionWarmMs": 70.69999999925494
+      "requestCount": 31,
+      "totalBytes": 606222,
+      "transitionColdMs": 894.2000000029802,
+      "transitionWarmMs": 82.10000000149012
     },
     "desktop": {
-      "lcpMs": 684,
+      "lcpMs": 692,
       "cls": 0,
       "longTasksMs": [],
-      "requestCount": 20,
-      "totalBytes": 638105,
-      "transitionColdMs": 128.5,
-      "transitionWarmMs": 24.09999999962747
+      "requestCount": 31,
+      "totalBytes": 606222,
+      "transitionColdMs": 112.19999999925494,
+      "transitionWarmMs": 27.600000001490116
     },
     "routeJsGzBytes": 0,
     "dbQueries": 3,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": []
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events"
+    ]
   },
   {
     "routeId": "partner.join",
     "mobile": {
-      "lcpMs": 3684,
+      "lcpMs": 3912,
       "cls": 0,
       "longTasksMs": [
-        267,
-        173
-      ],
-      "requestCount": 22,
-      "totalBytes": 643740,
-      "transitionColdMs": 936.7999999998137,
-      "transitionWarmMs": 58.59999999962747
-    },
-    "desktop": {
-      "lcpMs": 700,
-      "cls": 0,
-      "longTasksMs": [],
-      "requestCount": 22,
-      "totalBytes": 643740,
-      "transitionColdMs": 163.09999999962747,
-      "transitionWarmMs": 81.3999999994412
-    },
-    "routeJsGzBytes": 0,
-    "dbQueries": 3,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": []
-  },
-  {
-    "routeId": "member.dashboard",
-    "mobile": {
-      "lcpMs": 4284,
-      "cls": 0.053603024559427156,
-      "longTasksMs": [
-        231,
         154,
-        137,
-        116
+        147
       ],
-      "requestCount": 58,
-      "totalBytes": 636047,
-      "transitionColdMs": 1064.9000000003725,
-      "transitionWarmMs": 126.8999999994412
-    },
-    "desktop": {
-      "lcpMs": 816,
-      "cls": 0.0025567677187821503,
-      "longTasksMs": [
-        51
-      ],
-      "requestCount": 58,
-      "totalBytes": 636047,
-      "transitionColdMs": 356.20000000018626,
-      "transitionWarmMs": 73.8999999994412
-    },
-    "routeJsGzBytes": 0,
-    "dbQueries": 27,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": [
-      "members",
-      "notification_log"
-    ]
-  },
-  {
-    "routeId": "member.profile",
-    "mobile": {
-      "lcpMs": 4900,
-      "cls": 0,
-      "longTasksMs": [
-        253,
-        141,
-        127,
-        74,
-        126,
-        60,
-        74
-      ],
-      "requestCount": 46,
-      "totalBytes": 656710,
-      "transitionColdMs": 1156.5,
-      "transitionWarmMs": 360.59999999962747
-    },
-    "desktop": {
-      "lcpMs": 1192,
-      "cls": 0,
-      "longTasksMs": [],
-      "requestCount": 46,
-      "totalBytes": 656710,
-      "transitionColdMs": 254.59999999962747,
-      "transitionWarmMs": 118.8999999994412
-    },
-    "routeJsGzBytes": 0,
-    "dbQueries": 17,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": [
-      "notification_log"
-    ]
-  },
-  {
-    "routeId": "member.medical",
-    "mobile": {
-      "lcpMs": 4516,
-      "cls": 0,
-      "longTasksMs": [
-        247,
-        157,
-        128,
-        67,
-        63
-      ],
-      "requestCount": 41,
-      "totalBytes": 621742,
-      "transitionColdMs": 916.6000000005588,
-      "transitionWarmMs": 194.80000000074506
-    },
-    "desktop": {
-      "lcpMs": 752,
-      "cls": 0,
-      "longTasksMs": [],
-      "requestCount": 41,
-      "totalBytes": 621742,
-      "transitionColdMs": 151.20000000018626,
-      "transitionWarmMs": 86.90000000037253
-    },
-    "routeJsGzBytes": 0,
-    "dbQueries": 18,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": [
-      "notification_log"
-    ]
-  },
-  {
-    "routeId": "member.contacts",
-    "mobile": {
-      "lcpMs": 4248,
-      "cls": 0,
-      "longTasksMs": [
-        255,
-        155,
-        126,
-        73
-      ],
-      "requestCount": 36,
-      "totalBytes": 639683,
-      "transitionColdMs": 922.6000000005588,
-      "transitionWarmMs": 97.70000000018626
-    },
-    "desktop": {
-      "lcpMs": 820,
-      "cls": 0,
-      "longTasksMs": [],
-      "requestCount": 36,
-      "totalBytes": 639683,
-      "transitionColdMs": 133.8999999994412,
-      "transitionWarmMs": 75.8999999994412
-    },
-    "routeJsGzBytes": 0,
-    "dbQueries": 17,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": [
-      "notification_log"
-    ]
-  },
-  {
-    "routeId": "member.device",
-    "mobile": {
-      "lcpMs": 4108,
-      "cls": 0,
-      "longTasksMs": [
-        232,
-        149,
-        145,
-        72
-      ],
-      "requestCount": 52,
-      "totalBytes": 629447,
-      "transitionColdMs": 944,
-      "transitionWarmMs": 128.8999999994412
-    },
-    "desktop": {
-      "lcpMs": 1144,
-      "cls": 0,
-      "longTasksMs": [],
-      "requestCount": 53,
-      "totalBytes": 629447,
-      "transitionColdMs": 136.20000000018626,
-      "transitionWarmMs": 73.79999999981374
-    },
-    "routeJsGzBytes": 0,
-    "dbQueries": 23,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": [
-      "notification_log"
-    ]
-  },
-  {
-    "routeId": "member.subscription",
-    "mobile": {
-      "lcpMs": 4128,
-      "cls": 0,
-      "longTasksMs": [
-        255,
-        183,
-        140,
-        96,
-        63,
-        96
-      ],
-      "requestCount": 45,
-      "totalBytes": 625206,
-      "transitionColdMs": 1012.7999999998137,
-      "transitionWarmMs": 176.40000000037253
-    },
-    "desktop": {
-      "lcpMs": 1144,
-      "cls": 0,
-      "longTasksMs": [],
-      "requestCount": 46,
-      "totalBytes": 625206,
-      "transitionColdMs": null,
-      "transitionWarmMs": null
-    },
-    "routeJsGzBytes": 0,
-    "dbQueries": 20,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": [
-      "notification_log"
-    ]
-  },
-  {
-    "routeId": "member.support",
-    "mobile": {
-      "lcpMs": 4692,
-      "cls": 0,
-      "longTasksMs": [
-        226,
-        121,
-        129,
-        123,
-        62
-      ],
-      "requestCount": 84,
-      "totalBytes": 673756,
-      "transitionColdMs": 960.5999999996275,
-      "transitionWarmMs": 156.3999999994412
-    },
-    "desktop": {
-      "lcpMs": 1132,
-      "cls": 0,
-      "longTasksMs": [],
-      "requestCount": 104,
-      "totalBytes": 673756,
-      "transitionColdMs": 263.59999999962747,
-      "transitionWarmMs": 106.29999999981374
-    },
-    "routeJsGzBytes": 0,
-    "dbQueries": 67,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": [
-      "conversation_messages",
-      "messages",
-      "notification_log"
-    ]
-  },
-  {
-    "routeId": "member.messages",
-    "mobile": {
-      "lcpMs": 3892,
-      "cls": 0,
-      "longTasksMs": [
-        244,
-        147,
-        122,
-        90,
-        65
-      ],
-      "requestCount": 79,
-      "totalBytes": 620525,
-      "transitionColdMs": 509.8999999994412,
-      "transitionWarmMs": 115
+      "requestCount": 40,
+      "totalBytes": 617307,
+      "transitionColdMs": 925.6999999992549,
+      "transitionWarmMs": 53.900000002235174
     },
     "desktop": {
       "lcpMs": 712,
       "cls": 0,
       "longTasksMs": [],
-      "requestCount": 99,
-      "totalBytes": 620525,
-      "transitionColdMs": 166.29999999981374,
-      "transitionWarmMs": 105.29999999981374
+      "requestCount": 40,
+      "totalBytes": 617307,
+      "transitionColdMs": 204.70000000298023,
+      "transitionWarmMs": 68
     },
     "routeJsGzBytes": 0,
-    "dbQueries": 66,
-    "dbQueryP95Ms": null,
+    "dbQueries": 3,
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events"
+    ]
+  },
+  {
+    "routeId": "member.dashboard",
+    "mobile": {
+      "lcpMs": 5792,
+      "cls": 0.05339862663485224,
+      "longTasksMs": [
+        169,
+        150,
+        79,
+        103
+      ],
+      "requestCount": 118,
+      "totalBytes": 670563,
+      "transitionColdMs": 976.6999999992549,
+      "transitionWarmMs": 177.10000000149012
+    },
+    "desktop": {
+      "lcpMs": 1132,
+      "cls": 0.002042676317086763,
+      "longTasksMs": [],
+      "requestCount": 118,
+      "totalBytes": 670563,
+      "transitionColdMs": 286.29999999701977,
+      "transitionWarmMs": 86.30000000074506
+    },
+    "routeJsGzBytes": 0,
+    "dbQueries": 25,
+    "dbQueryP95Ms": 18.02,
     "nPlusOneTables": [
-      "conversation_messages",
-      "messages",
-      "notification_log"
+      "members"
+    ],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "member_monitoring_readiness",
+      "ai_agents",
+      "members",
+      "notification_log",
+      "devices",
+      "subscriptions",
+      "medical_information",
+      "emergency_contacts",
+      "conversations",
+      "messages"
+    ]
+  },
+  {
+    "routeId": "member.profile",
+    "mobile": {
+      "lcpMs": 6316,
+      "cls": 0,
+      "longTasksMs": [
+        170,
+        146,
+        77,
+        72,
+        145,
+        78,
+        62
+      ],
+      "requestCount": 105,
+      "totalBytes": 690762,
+      "transitionColdMs": 1215.1000000014901,
+      "transitionWarmMs": 241.40000000223517
+    },
+    "desktop": {
+      "lcpMs": 1424,
+      "cls": 0,
+      "longTasksMs": [],
+      "requestCount": 105,
+      "totalBytes": 690762,
+      "transitionColdMs": 252.19999999925494,
+      "transitionWarmMs": 96.30000000074506
+    },
+    "routeJsGzBytes": 0,
+    "dbQueries": 17,
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "member_monitoring_readiness",
+      "ai_agents",
+      "members",
+      "notification_log",
+      "conversations",
+      "member_notification_optin",
+      "messages"
+    ]
+  },
+  {
+    "routeId": "member.medical",
+    "mobile": {
+      "lcpMs": 5348,
+      "cls": 0,
+      "longTasksMs": [
+        165,
+        122,
+        62,
+        70,
+        53
+      ],
+      "requestCount": 96,
+      "totalBytes": 653616,
+      "transitionColdMs": 710.1000000014901,
+      "transitionWarmMs": 163.19999999925494
+    },
+    "desktop": {
+      "lcpMs": 1428,
+      "cls": 0,
+      "longTasksMs": [],
+      "requestCount": 97,
+      "totalBytes": 653616,
+      "transitionColdMs": 148.90000000223517,
+      "transitionWarmMs": 102.80000000074506
+    },
+    "routeJsGzBytes": 0,
+    "dbQueries": 16,
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "member_monitoring_readiness",
+      "ai_agents",
+      "members",
+      "notification_log",
+      "medical_information",
+      "member_access",
+      "conversations",
+      "messages"
+    ]
+  },
+  {
+    "routeId": "member.contacts",
+    "mobile": {
+      "lcpMs": 5492,
+      "cls": 0,
+      "longTasksMs": [
+        156,
+        137,
+        64,
+        70
+      ],
+      "requestCount": 94,
+      "totalBytes": 673110,
+      "transitionColdMs": 1030.8999999985099,
+      "transitionWarmMs": 67.10000000149012
+    },
+    "desktop": {
+      "lcpMs": 1048,
+      "cls": 0,
+      "longTasksMs": [],
+      "requestCount": 94,
+      "totalBytes": 673110,
+      "transitionColdMs": 145.5,
+      "transitionWarmMs": 81.69999999925494
+    },
+    "routeJsGzBytes": 0,
+    "dbQueries": 15,
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "member_monitoring_readiness",
+      "ai_agents",
+      "members",
+      "notification_log",
+      "emergency_contacts",
+      "conversations",
+      "messages"
+    ]
+  },
+  {
+    "routeId": "member.device",
+    "mobile": {
+      "lcpMs": 6116,
+      "cls": 0,
+      "longTasksMs": [
+        192,
+        164,
+        85,
+        77
+      ],
+      "requestCount": 108,
+      "totalBytes": 660012,
+      "transitionColdMs": 1046.199999999255,
+      "transitionWarmMs": 112
+    },
+    "desktop": {
+      "lcpMs": 1408,
+      "cls": 0,
+      "longTasksMs": [],
+      "requestCount": 108,
+      "totalBytes": 660012,
+      "transitionColdMs": 138.79999999701977,
+      "transitionWarmMs": 75
+    },
+    "routeJsGzBytes": 0,
+    "dbQueries": 23,
+    "dbQueryP95Ms": 278.88,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "member_monitoring_readiness",
+      "ai_agents",
+      "members",
+      "notification_log",
+      "pricing_plans",
+      "pricing_settings",
+      "devices",
+      "subscriptions",
+      "order_items",
+      "conversations",
+      "messages"
+    ]
+  },
+  {
+    "routeId": "member.subscription",
+    "mobile": {
+      "lcpMs": 6160,
+      "cls": 0,
+      "longTasksMs": [
+        177,
+        146,
+        75,
+        80,
+        53,
+        99
+      ],
+      "requestCount": 100,
+      "totalBytes": 655481,
+      "transitionColdMs": 568.3000000007451,
+      "transitionWarmMs": 220.59999999776483
+    },
+    "desktop": {
+      "lcpMs": 1388,
+      "cls": 0,
+      "longTasksMs": [],
+      "requestCount": 100,
+      "totalBytes": 655481,
+      "transitionColdMs": 171.80000000074506,
+      "transitionWarmMs": 95.30000000074506
+    },
+    "routeJsGzBytes": 0,
+    "dbQueries": 20,
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "member_monitoring_readiness",
+      "ai_agents",
+      "members",
+      "notification_log",
+      "subscriptions",
+      "payments",
+      "pricing_plans",
+      "pricing_settings",
+      "conversations",
+      "messages"
+    ]
+  },
+  {
+    "routeId": "member.support",
+    "mobile": {
+      "lcpMs": 6132,
+      "cls": 0,
+      "longTasksMs": [
+        166,
+        136,
+        63,
+        146,
+        58
+      ],
+      "requestCount": 104,
+      "totalBytes": 708143,
+      "transitionColdMs": 1055.8999999985099,
+      "transitionWarmMs": 148.09999999776483
+    },
+    "desktop": {
+      "lcpMs": 1392,
+      "cls": 0,
+      "longTasksMs": [],
+      "requestCount": 104,
+      "totalBytes": 708143,
+      "transitionColdMs": 248.69999999925494,
+      "transitionWarmMs": 112.69999999925494
+    },
+    "routeJsGzBytes": 0,
+    "dbQueries": 20,
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "member_monitoring_readiness",
+      "ai_agents",
+      "members",
+      "notification_log",
+      "documentation",
+      "conversation_summaries",
+      "conversations",
+      "messages"
+    ]
+  },
+  {
+    "routeId": "member.messages",
+    "mobile": {
+      "lcpMs": 5320,
+      "cls": 0,
+      "longTasksMs": [
+        177,
+        138,
+        66,
+        72
+      ],
+      "requestCount": 94,
+      "totalBytes": 651496,
+      "transitionColdMs": 1622.300000000745,
+      "transitionWarmMs": 95.80000000074506
+    },
+    "desktop": {
+      "lcpMs": 1348,
+      "cls": 0,
+      "longTasksMs": [],
+      "requestCount": 94,
+      "totalBytes": 651496,
+      "transitionColdMs": 154.80000000074506,
+      "transitionWarmMs": 63.5
+    },
+    "routeJsGzBytes": 0,
+    "dbQueries": 15,
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "member_monitoring_readiness",
+      "ai_agents",
+      "members",
+      "notification_log",
+      "conversation_summaries",
+      "conversations",
+      "messages"
     ]
   },
   {
     "routeId": "cc.dashboard",
     "mobile": {
-      "lcpMs": 4364,
-      "cls": 0.8025134908245547,
+      "lcpMs": 6440,
+      "cls": 0,
       "longTasksMs": [
-        234,
-        146,
-        174,
-        71,
-        87,
-        54,
-        79,
-        53,
-        78,
-        147
+        161,
+        126,
+        81,
+        97,
+        97
       ],
-      "requestCount": 53,
-      "totalBytes": 637740,
-      "transitionColdMs": 1207.7000000001863,
-      "transitionWarmMs": 597.9000000003725
+      "requestCount": 123,
+      "totalBytes": 738879,
+      "transitionColdMs": 1603.199999999255,
+      "transitionWarmMs": 508.8999999985099
     },
     "desktop": {
-      "lcpMs": 844,
-      "cls": 0.7759413580246913,
+      "lcpMs": 1192,
+      "cls": 0.7782023533950617,
       "longTasksMs": [],
-      "requestCount": 49,
-      "totalBytes": 637740,
-      "transitionColdMs": 828.5,
-      "transitionWarmMs": 183.59999999962747
+      "requestCount": 160,
+      "totalBytes": 738879,
+      "transitionColdMs": 344.5999999977648,
+      "transitionWarmMs": 205.69999999925494
     },
     "routeJsGzBytes": 0,
-    "dbQueries": 23,
-    "dbQueryP95Ms": null,
+    "dbQueries": 16,
+    "dbQueryP95Ms": 18.02,
     "nPlusOneTables": [
-      "alerts",
       "staff"
+    ],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "alerts",
+      "messages",
+      "ai_agents",
+      "staff",
+      "notification_log",
+      "staff_on_shift_now",
+      "leads"
     ]
   },
   {
     "routeId": "cc.alerts",
     "mobile": {
-      "lcpMs": 4348,
-      "cls": 0.8025134908245547,
+      "lcpMs": 6404,
+      "cls": 0.7997630331753555,
       "longTasksMs": [
-        252,
-        150,
-        160,
-        64,
-        80,
-        81,
-        83,
-        229,
-        73,
-        97
+        169,
+        123,
+        72,
+        70,
+        70,
+        54,
+        82,
+        72
       ],
-      "requestCount": 57,
-      "totalBytes": 637589,
-      "transitionColdMs": 142.09999999962747,
-      "transitionWarmMs": 146.20000000018626
+      "requestCount": 123,
+      "totalBytes": 737897,
+      "transitionColdMs": 1347,
+      "transitionWarmMs": 166.5
     },
     "desktop": {
-      "lcpMs": 820,
-      "cls": 0.7642835460270383,
-      "longTasksMs": [],
-      "requestCount": 47,
-      "totalBytes": 637589,
-      "transitionColdMs": 634.7000000001863,
-      "transitionWarmMs": 131.1000000005588
+      "lcpMs": 1164,
+      "cls": 0.7667914883000042,
+      "longTasksMs": [
+        62
+      ],
+      "requestCount": 130,
+      "totalBytes": 737897,
+      "transitionColdMs": 271.9000000022352,
+      "transitionWarmMs": 80.20000000298023
     },
     "routeJsGzBytes": 0,
-    "dbQueries": 27,
-    "dbQueryP95Ms": null,
+    "dbQueries": 24,
+    "dbQueryP95Ms": 18.02,
     "nPlusOneTables": [
       "alerts",
-      "notification_log",
       "staff"
+    ],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "alerts",
+      "messages",
+      "ai_agents",
+      "staff",
+      "notification_log",
+      "staff_on_shift_now",
+      "conversations",
+      "admin_ideas",
+      "staff_presence",
+      "members",
+      "isabella_assessment_notes"
     ]
   },
   {
     "routeId": "cc.members",
     "mobile": {
-      "lcpMs": 3780,
-      "cls": 0,
+      "lcpMs": 5840,
+      "cls": 0.48578199052132703,
       "longTasksMs": [
-        237,
-        147,
-        138,
-        162
+        171,
+        135,
+        75,
+        119,
+        86,
+        70
       ],
-      "requestCount": 32,
-      "totalBytes": 613147,
-      "transitionColdMs": 240.20000000018626,
-      "transitionWarmMs": 156.8999999994412
+      "requestCount": 107,
+      "totalBytes": 711882,
+      "transitionColdMs": 840.9000000022352,
+      "transitionWarmMs": 287.29999999701977
     },
     "desktop": {
-      "lcpMs": 772,
-      "cls": 0.35021296296296295,
-      "longTasksMs": [
-        69
-      ],
-      "requestCount": 36,
-      "totalBytes": 613147,
-      "transitionColdMs": 667.2999999998137,
-      "transitionWarmMs": 102
+      "lcpMs": 1108,
+      "cls": 0.35247395833333334,
+      "longTasksMs": [],
+      "requestCount": 113,
+      "totalBytes": 711882,
+      "transitionColdMs": null,
+      "transitionWarmMs": null
     },
     "routeJsGzBytes": 0,
-    "dbQueries": 16,
-    "dbQueryP95Ms": null,
+    "dbQueries": 23,
+    "dbQueryP95Ms": 18.02,
     "nPlusOneTables": [
       "staff"
+    ],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "alerts",
+      "messages",
+      "ai_agents",
+      "staff",
+      "notification_log",
+      "staff_on_shift_now",
+      "members",
+      "admin_ideas",
+      "staff_presence",
+      "isabella_assessment_notes"
     ]
   },
   {
     "routeId": "cc.messages",
     "mobile": {
-      "lcpMs": 4044,
-      "cls": 0.4928909952606635,
+      "lcpMs": 6064,
+      "cls": 0.4940988522270389,
       "longTasksMs": [
-        239,
-        156,
-        159,
-        90,
-        80,
-        73
+        180,
+        119,
+        87,
+        89,
+        79,
+        75,
+        53,
+        57
       ],
-      "requestCount": 40,
-      "totalBytes": 624804,
-      "transitionColdMs": 221.40000000037253,
-      "transitionWarmMs": 176.30000000074506
+      "requestCount": 128,
+      "totalBytes": 725550,
+      "transitionColdMs": 802.8999999985099,
+      "transitionWarmMs": 250.19999999925494
     },
     "desktop": {
-      "lcpMs": 752,
-      "cls": 0.3989514022513182,
+      "lcpMs": 1080,
+      "cls": 0.3977050685469179,
       "longTasksMs": [],
-      "requestCount": 101,
-      "totalBytes": 624804,
-      "transitionColdMs": 656.6000000005588,
-      "transitionWarmMs": 105.5
+      "requestCount": 127,
+      "totalBytes": 725550,
+      "transitionColdMs": 125.79999999701977,
+      "transitionWarmMs": 69.30000000074506
     },
     "routeJsGzBytes": 0,
-    "dbQueries": 17,
-    "dbQueryP95Ms": null,
+    "dbQueries": 28,
+    "dbQueryP95Ms": 18.02,
     "nPlusOneTables": [
       "staff"
+    ],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "alerts",
+      "messages",
+      "ai_agents",
+      "staff",
+      "notification_log",
+      "staff_on_shift_now",
+      "conversation_summaries",
+      "members",
+      "admin_ideas",
+      "staff_presence",
+      "isabella_assessment_notes"
     ]
   },
   {
     "routeId": "cc.tasks",
     "mobile": {
-      "lcpMs": 4088,
-      "cls": 0.4928909952606635,
+      "lcpMs": 6000,
+      "cls": 0.4940988522270389,
       "longTasksMs": [
-        259,
-        190,
-        187,
-        54,
-        75
+        165,
+        120,
+        82,
+        87,
+        67
       ],
-      "requestCount": 39,
-      "totalBytes": 618630,
-      "transitionColdMs": 118.59999999962747,
-      "transitionWarmMs": 158.6000000005588
+      "requestCount": 122,
+      "totalBytes": 716768,
+      "transitionColdMs": 892.5999999977648,
+      "transitionWarmMs": 170.60000000149012
     },
     "desktop": {
-      "lcpMs": 752,
-      "cls": 0.3951971262739519,
+      "lcpMs": 1080,
+      "cls": 0.3977050685469179,
       "longTasksMs": [],
-      "requestCount": 43,
-      "totalBytes": 618630,
-      "transitionColdMs": 663.7000000001863,
-      "transitionWarmMs": 149.90000000037253
+      "requestCount": 122,
+      "totalBytes": 716768,
+      "transitionColdMs": null,
+      "transitionWarmMs": null
     },
     "routeJsGzBytes": 0,
-    "dbQueries": 17,
-    "dbQueryP95Ms": null,
+    "dbQueries": 27,
+    "dbQueryP95Ms": 18.02,
     "nPlusOneTables": [
       "staff"
+    ],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "alerts",
+      "messages",
+      "ai_agents",
+      "staff",
+      "notification_log",
+      "staff_on_shift_now",
+      "tasks",
+      "members",
+      "admin_ideas",
+      "staff_presence",
+      "isabella_assessment_notes"
     ]
   },
   {
     "routeId": "cc.my-shifts",
     "mobile": {
-      "lcpMs": 4148,
-      "cls": 0.002593034099724763,
+      "lcpMs": 6100,
+      "cls": 0.438101418233775,
       "longTasksMs": [
-        243,
-        150,
-        152,
-        99,
+        173,
+        130,
+        77,
+        96,
+        77,
+        71,
         56,
-        80
+        59
       ],
-      "requestCount": 40,
-      "totalBytes": 627482,
-      "transitionColdMs": 109.70000000018626,
-      "transitionWarmMs": 133.09999999962747
+      "requestCount": 122,
+      "totalBytes": 725763,
+      "transitionColdMs": 758.9000000022352,
+      "transitionWarmMs": 258.5
     },
     "desktop": {
-      "lcpMs": 788,
-      "cls": 0.29698081101573215,
+      "lcpMs": 1120,
+      "cls": 0.29930648673937976,
       "longTasksMs": [],
-      "requestCount": 49,
-      "totalBytes": 627482,
-      "transitionColdMs": 666.7999999998137,
-      "transitionWarmMs": 141
+      "requestCount": 121,
+      "totalBytes": 725763,
+      "transitionColdMs": 236.69999999925494,
+      "transitionWarmMs": 63.399999998509884
     },
     "routeJsGzBytes": 0,
-    "dbQueries": 16,
-    "dbQueryP95Ms": null,
+    "dbQueries": 25,
+    "dbQueryP95Ms": 18.02,
     "nPlusOneTables": [
       "staff"
+    ],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "alerts",
+      "messages",
+      "ai_agents",
+      "staff",
+      "notification_log",
+      "staff_on_shift_now",
+      "admin_ideas",
+      "staff_presence",
+      "staff_shifts",
+      "staff_shift_covers",
+      "staff_shift_swaps",
+      "members",
+      "isabella_assessment_notes"
     ]
   },
   {
     "routeId": "admin.dashboard",
     "mobile": {
-      "lcpMs": 4524,
+      "lcpMs": 6892,
       "cls": 0.03252187530056401,
       "longTasksMs": [
-        228,
-        152,
-        177,
-        126,
-        115
+        165,
+        127,
+        68,
+        135,
+        108
       ],
-      "requestCount": 66,
-      "totalBytes": 640833,
-      "transitionColdMs": 1232.7999999998137,
-      "transitionWarmMs": 359.90000000037253
+      "requestCount": 148,
+      "totalBytes": 693305,
+      "transitionColdMs": 1543.300000000745,
+      "transitionWarmMs": 318.30000000074506
     },
     "desktop": {
-      "lcpMs": 948,
+      "lcpMs": 1252,
       "cls": 0,
-      "longTasksMs": [
-        52
-      ],
-      "requestCount": 67,
-      "totalBytes": 640833,
-      "transitionColdMs": 317.20000000018626,
-      "transitionWarmMs": 65.09999999962747
+      "longTasksMs": [],
+      "requestCount": 146,
+      "totalBytes": 693305,
+      "transitionColdMs": 303.5,
+      "transitionWarmMs": 135.09999999776483
     },
     "routeJsGzBytes": 0,
     "dbQueries": 31,
-    "dbQueryP95Ms": null,
+    "dbQueryP95Ms": 18.02,
     "nPlusOneTables": [
       "notification_log"
+    ],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "ai_agents",
+      "staff",
+      "notification_log",
+      "ai_runs",
+      "payments",
+      "ai_actions",
+      "devices",
+      "members",
+      "leads",
+      "notification_settings",
+      "staff_on_shift_now",
+      "member_monitoring_readiness",
+      "alerts",
+      "activity_logs",
+      "admin_ideas"
     ]
   },
   {
     "routeId": "admin.members",
     "mobile": {
-      "lcpMs": 4112,
+      "lcpMs": 5988,
       "cls": 0,
       "longTasksMs": [
-        244,
-        154,
+        150,
         137,
-        147
+        96,
+        166,
+        163,
+        110
       ],
-      "requestCount": 36,
-      "totalBytes": 624329,
-      "transitionColdMs": 808.5,
-      "transitionWarmMs": 97.90000000037253
+      "requestCount": 111,
+      "totalBytes": 672633,
+      "transitionColdMs": 1361.199999999255,
+      "transitionWarmMs": 94
     },
     "desktop": {
-      "lcpMs": 768,
-      "cls": 0.0033265295460390945,
-      "longTasksMs": [
-        53
-      ],
-      "requestCount": 44,
-      "totalBytes": 624329,
-      "transitionColdMs": 33.89999999944121,
+      "lcpMs": 1104,
+      "cls": 0.003093930041152264,
+      "longTasksMs": [],
+      "requestCount": 118,
+      "totalBytes": 672633,
+      "transitionColdMs": 36.099999997764826,
       "transitionWarmMs": null
     },
     "routeJsGzBytes": 0,
-    "dbQueries": 14,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": [
-      "notification_log"
+    "dbQueries": 20,
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "ai_agents",
+      "staff",
+      "notification_log",
+      "members",
+      "crm_profiles",
+      "admin_ideas",
+      "medical_information",
+      "emergency_contacts",
+      "devices",
+      "member_monitoring_readiness",
+      "subscriptions"
     ]
   },
   {
     "routeId": "admin.alerts",
     "mobile": {
-      "lcpMs": 4156,
+      "lcpMs": 6092,
       "cls": 0,
       "longTasksMs": [
-        235,
-        136,
-        176,
-        173
+        161,
+        131,
+        83,
+        132,
+        158,
+        94
       ],
-      "requestCount": 36,
-      "totalBytes": 622934,
-      "transitionColdMs": 732.9000000003725,
-      "transitionWarmMs": 118.3999999994412
+      "requestCount": 113,
+      "totalBytes": 671641,
+      "transitionColdMs": 1129.199999999255,
+      "transitionWarmMs": 109.39999999850988
     },
     "desktop": {
-      "lcpMs": 784,
-      "cls": 0.0015008535879629632,
+      "lcpMs": 1092,
+      "cls": 0.0015783572852366258,
       "longTasksMs": [],
-      "requestCount": 39,
-      "totalBytes": 622934,
-      "transitionColdMs": 34.90000000037253,
-      "transitionWarmMs": 78.59999999962747
+      "requestCount": 114,
+      "totalBytes": 671641,
+      "transitionColdMs": 37.30000000074506,
+      "transitionWarmMs": null
     },
     "routeJsGzBytes": 0,
-    "dbQueries": 14,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": [
-      "notification_log"
+    "dbQueries": 13,
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "ai_agents",
+      "staff",
+      "notification_log",
+      "alerts",
+      "admin_ideas"
     ]
   },
   {
     "routeId": "admin.devices",
     "mobile": {
-      "lcpMs": 4208,
+      "lcpMs": 6132,
       "cls": 0,
       "longTasksMs": [
-        265,
-        162,
-        160,
-        185
+        175,
+        128,
+        98,
+        142,
+        147,
+        110
       ],
-      "requestCount": 37,
-      "totalBytes": 622049,
-      "transitionColdMs": 694.7000000001863,
-      "transitionWarmMs": 80.29999999981374
+      "requestCount": 115,
+      "totalBytes": 670716,
+      "transitionColdMs": 597.5999999977648,
+      "transitionWarmMs": 81.89999999850988
     },
     "desktop": {
-      "lcpMs": 752,
-      "cls": 0.0008469393004115227,
+      "lcpMs": 1092,
+      "cls": 0.0008947627314814815,
       "longTasksMs": [],
-      "requestCount": 40,
-      "totalBytes": 622049,
-      "transitionColdMs": 28.40000000037253,
+      "requestCount": 115,
+      "totalBytes": 670716,
+      "transitionColdMs": 32.80000000074506,
       "transitionWarmMs": null
     },
     "routeJsGzBytes": 0,
-    "dbQueries": 14,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": [
-      "notification_log"
+    "dbQueries": 15,
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "ai_agents",
+      "staff",
+      "notification_log",
+      "devices",
+      "admin_ideas"
     ]
   },
   {
     "routeId": "admin.finance",
     "mobile": {
-      "lcpMs": 4596,
+      "lcpMs": 6396,
       "cls": 0,
       "longTasksMs": [
-        255,
-        169,
-        167,
-        104,
-        128,
-        94
+        173,
+        92,
+        88,
+        92,
+        64,
+        68,
+        86
       ],
-      "requestCount": 49,
-      "totalBytes": 719052,
-      "transitionColdMs": 1125.3999999994412,
-      "transitionWarmMs": 88
+      "requestCount": 122,
+      "totalBytes": 765692,
+      "transitionColdMs": 1035.5999999977648,
+      "transitionWarmMs": 92.80000000074506
     },
     "desktop": {
-      "lcpMs": 936,
-      "cls": 0.004845164609053498,
+      "lcpMs": 1276,
+      "cls": 0.00225943072702332,
       "longTasksMs": [],
-      "requestCount": 60,
-      "totalBytes": 719052,
-      "transitionColdMs": 35.700000000186265,
+      "requestCount": 133,
+      "totalBytes": 765692,
+      "transitionColdMs": 36.599999997764826,
       "transitionWarmMs": null
     },
     "routeJsGzBytes": 0,
-    "dbQueries": 23,
-    "dbQueryP95Ms": null,
+    "dbQueries": 33,
+    "dbQueryP95Ms": 18.02,
     "nPlusOneTables": [
+      "orders",
       "payments",
       "subscriptions"
+    ],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "ai_agents",
+      "staff",
+      "notification_log",
+      "operational_costs",
+      "payments",
+      "subscriptions",
+      "orders",
+      "partner_commissions",
+      "admin_ideas"
     ]
   },
   {
     "routeId": "admin.orders",
     "mobile": {
-      "lcpMs": 4260,
-      "cls": 0.0014724441836436737,
+      "lcpMs": 6120,
+      "cls": 0.0011527268678739333,
       "longTasksMs": [
-        254,
-        146,
-        143,
-        163,
-        51,
-        153,
-        111
+        178,
+        130,
+        72,
+        148,
+        119,
+        115
       ],
-      "requestCount": 38,
-      "totalBytes": 625590,
-      "transitionColdMs": 875.4000000003725,
-      "transitionWarmMs": 112
+      "requestCount": 115,
+      "totalBytes": 673469,
+      "transitionColdMs": 756.3000000007451,
+      "transitionWarmMs": 102.40000000223517
     },
     "desktop": {
-      "lcpMs": 756,
-      "cls": 0.0015748175475823046,
+      "lcpMs": 1164,
+      "cls": 0.0015607253086419753,
       "longTasksMs": [],
-      "requestCount": 41,
-      "totalBytes": 625590,
-      "transitionColdMs": 37.799999999813735,
+      "requestCount": 115,
+      "totalBytes": 673469,
+      "transitionColdMs": 36,
       "transitionWarmMs": null
     },
     "routeJsGzBytes": 0,
-    "dbQueries": 13,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": [
-      "notification_log"
+    "dbQueries": 14,
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "ai_agents",
+      "staff",
+      "notification_log",
+      "orders",
+      "admin_ideas"
     ]
   },
   {
     "routeId": "admin.staff",
     "mobile": {
-      "lcpMs": 4180,
+      "lcpMs": 6092,
       "cls": 0,
       "longTasksMs": [
-        226,
-        162,
-        133,
-        159
+        167,
+        124,
+        77,
+        174
       ],
-      "requestCount": 39,
-      "totalBytes": 644894,
-      "transitionColdMs": 844.2000000001863,
-      "transitionWarmMs": 85.3999999994412
+      "requestCount": 112,
+      "totalBytes": 691898,
+      "transitionColdMs": 1005.6999999992549,
+      "transitionWarmMs": 110.90000000223517
     },
     "desktop": {
-      "lcpMs": 788,
-      "cls": 0.004628845968364197,
+      "lcpMs": 1092,
+      "cls": 0.0045168981481481475,
       "longTasksMs": [],
-      "requestCount": 39,
-      "totalBytes": 644894,
-      "transitionColdMs": 32.5,
-      "transitionWarmMs": 31.299999999813735
+      "requestCount": 112,
+      "totalBytes": 691898,
+      "transitionColdMs": 37.400000002235174,
+      "transitionWarmMs": 28.199999999254942
     },
     "routeJsGzBytes": 0,
-    "dbQueries": 16,
-    "dbQueryP95Ms": null,
+    "dbQueries": 14,
+    "dbQueryP95Ms": 18.02,
     "nPlusOneTables": [
-      "notification_log",
       "staff"
+    ],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "ai_agents",
+      "staff",
+      "notification_log",
+      "admin_ideas"
     ]
   },
   {
     "routeId": "admin.settings",
     "mobile": {
-      "lcpMs": 5124,
+      "lcpMs": 7128,
       "cls": 0,
       "longTasksMs": [
-        247,
-        146,
-        186,
-        89
+        171,
+        137,
+        85,
+        98
       ],
-      "requestCount": 68,
-      "totalBytes": 744787,
+      "requestCount": 149,
+      "totalBytes": 797973,
       "transitionColdMs": null,
       "transitionWarmMs": null
     },
     "desktop": {
-      "lcpMs": 924,
+      "lcpMs": 1324,
       "cls": 0,
       "longTasksMs": [],
-      "requestCount": 68,
-      "totalBytes": 744787,
-      "transitionColdMs": 32.40000000037253,
-      "transitionWarmMs": 29.100000000558794
+      "requestCount": 149,
+      "totalBytes": 797973,
+      "transitionColdMs": 34.19999999925494,
+      "transitionWarmMs": 29.100000001490116
     },
     "routeJsGzBytes": 0,
-    "dbQueries": 15,
-    "dbQueryP95Ms": null,
-    "nPlusOneTables": [
-      "notification_log"
+    "dbQueries": 14,
+    "dbQueryP95Ms": 18.02,
+    "nPlusOneTables": [],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "ai_agents",
+      "staff",
+      "notification_log",
+      "admin_ideas"
     ]
   },
   {
     "routeId": "admin.analytics",
     "mobile": {
-      "lcpMs": 4716,
-      "cls": 0.021344810487013043,
+      "lcpMs": 6392,
+      "cls": 0.021315222030053232,
       "longTasksMs": [
-        229,
-        138,
-        142,
-        154,
-        73
+        169,
+        135,
+        79,
+        134,
+        67
       ],
-      "requestCount": 40,
-      "totalBytes": 722889,
-      "transitionColdMs": 1190.8999999994412,
-      "transitionWarmMs": 113.59999999962747
+      "requestCount": 116,
+      "totalBytes": 770992,
+      "transitionColdMs": 1241.800000000745,
+      "transitionWarmMs": 85
     },
     "desktop": {
-      "lcpMs": 972,
-      "cls": 0.017347736625514403,
+      "lcpMs": 1216,
+      "cls": 0.0173433320473251,
       "longTasksMs": [],
-      "requestCount": 41,
-      "totalBytes": 722889,
-      "transitionColdMs": 34.200000000186265,
+      "requestCount": 116,
+      "totalBytes": 770992,
+      "transitionColdMs": 42.30000000074506,
       "transitionWarmMs": null
     },
     "routeJsGzBytes": 0,
-    "dbQueries": 16,
-    "dbQueryP95Ms": null,
+    "dbQueries": 14,
+    "dbQueryP95Ms": 18.02,
     "nPlusOneTables": [
-      "notification_log",
       "website_events"
+    ],
+    "tablesRead": [
+      "system_settings",
+      "website_images",
+      "website_events",
+      "ai_agents",
+      "staff",
+      "notification_log",
+      "admin_ideas"
     ]
   }
 ]

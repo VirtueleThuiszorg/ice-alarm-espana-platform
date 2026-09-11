@@ -46,9 +46,31 @@ BEGIN
     v := NULL;
 
     IF col.typtype = 'e' THEN
-      SELECT e.enumlabel INTO enum_label
-      FROM pg_enum e WHERE e.enumtypid = col.atttypid ORDER BY e.enumsortorder LIMIT 1;
-      v := quote_literal(enum_label) || '::' || col.typ;
+      /*
+        EVERY LABEL, CYCLED PER ROW — not the first one for every row.
+
+        This used to take `ORDER BY e.enumsortorder LIMIT 1`, so every row in the
+        table got the SAME enum value. That is invisible until something filters
+        on the column, and then it is badly misleading: `order_items.item_type`
+        has four labels, every seeded row got the first, and
+        `WHERE item_type = 'pendant'` therefore matched all 60,000 rows. The read
+        measured 321 ms and looked like a missing index. It was a correct
+        sequential scan over a filter that excluded nothing — an artefact of the
+        seed, and one that nearly bought a migration on the strength of it.
+
+        Cycling on `g` gives each label an equal share, so a filtered read
+        touches roughly 1/n of the table and the planner faces the choice it
+        would face in production.
+      */
+      SELECT 'ARRAY[' || string_agg(quote_literal(e.enumlabel), ',' ORDER BY e.enumsortorder)
+             || ']::' || col.typ || '[]'
+      INTO enum_label
+      FROM pg_enum e WHERE e.enumtypid = col.atttypid;
+      -- A single `%`: this string is substituted INTO format() as a %s argument,
+      -- so its contents are not rescanned for format specifiers. `%%` emitted a
+      -- literal `%%` and Postgres had no operator for it.
+      v := '(' || enum_label || ')[1 + (g % ' ||
+           (SELECT count(*) FROM pg_enum e WHERE e.enumtypid = col.atttypid)::text || ')]';
 
     ELSIF col.typ LIKE '%[]' THEN
       v := quote_literal('{}') || '::' || col.typ;

@@ -12,7 +12,7 @@ import { fetchCompanySettings } from "@/hooks/useCompanySettings";
 import { LanguageSelectionModal } from "@/components/LanguageSelectionModal";
 import { CookieConsentBanner } from "@/components/gdpr/CookieConsentBanner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { GlobalSearch } from "@/components/GlobalSearch";
+import { GlobalSearchMount } from "@/components/GlobalSearchMount";
 import { SkipLink } from "@/components/ui/skip-link";
 import { RouteAnnouncer } from "@/components/ui/route-announcer";
 import i18n from "@/i18n";
@@ -47,11 +47,43 @@ function lazyWithRetry(importFn: () => Promise<{ default: React.ComponentType }>
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
-// Layouts - Not lazy loaded (used frequently)
-import { AdminLayout } from "@/components/layout/AdminLayout";
-import { CallCentreLayout } from "@/components/layout/CallCentreLayout";
-import { ClientLayout } from "@/components/layout/ClientLayout";
-import { PartnerLayout } from "@/components/layout/PartnerLayout";
+/*
+  LAYOUTS ARE LAZY — and the comment this replaces ("Not lazy loaded (used
+  frequently)") had the reasoning exactly backwards.
+
+  "Used frequently" is true of each layout WITHIN its own surface and false
+  everywhere else. A visitor reading the pricing page never renders AdminLayout,
+  CallCentreLayout, ClientLayout or PartnerLayout — but importing them here put
+  all four, and everything they reach, into the ENTRY chunk that every single
+  visitor downloads before anything paints.
+
+  What that cost, measured (docs/perf/BASELINE.md): a 428 KB gz shell on all 36
+  routes, against page chunks of 2-115 KB. The worst passenger is the Twilio
+  Voice SDK — `CallCentreLayout` imports `useTwilioDevice`, so a softphone for
+  call-centre operators was being shipped to everybody who opened the home page
+  on their phone. The four admin/staff sidebars, the SOS alert bar and the
+  MedConneqt frame host rode along with it.
+
+  Nothing about the rendering changes: these sit inside the same `<Suspense>`
+  that already wraps `<Routes>`, so a layout resolves exactly where its page
+  chunk already did, behind the same `<PageLoader />`.
+
+  PublicThemeLayout stays EAGER, deliberately. It wraps the public marketing
+  routes — the cold first visit this whole change is for — so lazy-loading it
+  would add a round trip to the one path that must not have one.
+*/
+const AdminLayout = lazyWithRetry(() =>
+  import("@/components/layout/AdminLayout").then((m) => ({ default: m.AdminLayout })),
+);
+const CallCentreLayout = lazyWithRetry(() =>
+  import("@/components/layout/CallCentreLayout").then((m) => ({ default: m.CallCentreLayout })),
+);
+const ClientLayout = lazyWithRetry(() =>
+  import("@/components/layout/ClientLayout").then((m) => ({ default: m.ClientLayout })),
+);
+const PartnerLayout = lazyWithRetry(() =>
+  import("@/components/layout/PartnerLayout").then((m) => ({ default: m.PartnerLayout })),
+);
 import { PublicThemeLayout } from "@/components/layout/PublicThemeLayout";
 
 // Public Pages - Lazy loaded
@@ -314,7 +346,7 @@ const App = () => {
               responder off the alert path. A session now lasts until the browser is closed or
               somebody signs out — `src/lib/authStorage.ts` decides which.
             */}
-            <GlobalSearch />
+            <GlobalSearchMount />
 
             {/* Language Selection Modal for First-Time Visitors */}
             <LanguageSelectionModal

@@ -28,7 +28,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   1  
 ```
 
-193 distinct wires across 668 call sites and 110 routes.
+193 distinct wires across 668 call sites and 111 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
@@ -897,7 +897,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 - **who is told** screen
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +79
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +80
 - **call sites** src/components/chat/CallMeModal.tsx
 
 SOS path — untouched here and flagged. No end-to-end proof was found for the conference leg, and Twilio credentials are a production secret this repo cannot check, so it cannot score above 6 under the rubric. Lee's gate.
@@ -1185,7 +1185,7 @@ THE MOST CONSEQUENTIAL EMAIL IN THE PRODUCT, and the register was not asking abo
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +104
+- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +105
 - **call sites** src/lib/authSessionSync.ts, src/pages/partner/PartnerInvitePage.tsx, src/pages/staff/StaffInvitePage.tsx
 
 Golden rule 3 lives near here: an invite establishes a session, and the ROLE must still come from the trigger/admin path rather than from anything in the link. Nothing here writes a role.
@@ -1211,7 +1211,7 @@ The front door, on three surfaces. Nothing in the repo proves a member can actua
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +104
+- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +105
 - **call sites** src/components/layout/AdminHeader.tsx, src/components/layout/ClientLayout.tsx, src/contexts/AuthContext.tsx, src/pages/auth/ResetPassword.tsx +2
 
 Present on every route because it lives in the layouts and in AuthContext. StaffLogin and PartnerLogin also call it deliberately: signing in on the wrong surface signs you back out rather than leaving a half-authorised session. That is the right behaviour and it is untested.
@@ -1254,7 +1254,7 @@ The Santander billing date (2026-09-11) is the other direct staff write to `memb
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations, /admin/alerts +78
+- **routes** /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations, /admin/alerts +79
 - **call sites** src/components/admin/dashboard/NotificationLog.tsx, src/hooks/useNotifications.ts
 
 The one notification channel this repo can prove is live: published, no secret required, and RLS verified so a member sees only rows addressed to them. Everything scored `bell` depends on this row being right.
@@ -1280,7 +1280,7 @@ outreach-send-email writes notification_log. Suppression and daily-usage caps ar
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +79
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +80
 - **call sites** src/hooks/useAIAgentHealth.ts, src/hooks/useAIAgents.ts, src/hooks/useAIChat.ts
 
 Split from the gate above: `isabellaGate` proves the hard blocks, not that a prompt saved in this UI reaches the database and is the one she reads. Citing it here would have been the register scoring itself on an adjacent test.
@@ -1527,7 +1527,7 @@ mailto: leaves the platform entirely — nothing is recorded and nothing can be.
 - **who is told** external
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /admin, /admin/leads, /admin/members/:id, /admin/messages, /admin/tasks +22
+- **routes** /, /admin, /admin/leads, /admin/members/:id, /admin/members/readiness-queue, /admin/messages +23
 - **call sites** src/components/call-centre/AlertDetailPanel.tsx, src/components/call-centre/DeviceOfflineAlertsCard.tsx, src/components/call-centre/MemberQuickSearch.tsx, src/components/call-centre/PendantLiveStatusModal.tsx +15
 
 Reaches the dialler, and `telHref()` returns null when the number is unset so a “Call us” card with no number in it is not rendered — the right failure. Nothing is recorded: a call placed this way leaves no interaction row (see table:member_interactions, whose logger is dead code), so the platform cannot say a member was ever phoned. On the SOS path the brief already calls for replacing tel: with the Twilio conference; that is Lee's gate, not this goal.
@@ -1540,7 +1540,7 @@ Reaches the dialler, and `telHref()` returns null when the number is unset so a 
 - **who is told** external
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +104
+- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +105
 - **call sites** src/components/admin/media/PublishedPostCard.tsx, src/components/admin/member-detail/MemberQuickContact.tsx, src/components/admin/member-detail/StaffHomeLocationCard.tsx, src/components/admin/video-hub/ExportArtifactButtons.tsx +30
 
 The counterpart to `link:*`, and originally invisible to the scanner: a `tel:` in an href was counted while the same number handed to window.location.href was not. 59 call sites. This is also how the checkout redirect leaves the app, which is why the join→pay goal owns that part and this row does not re-prove it.
@@ -1592,7 +1592,7 @@ Read-only, so nothing to notify. `get_user_role_info` is on the critical path fo
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +104
+- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +105
 - **call sites** src/contexts/AuthContext.tsx
 
 Read-only, so nothing to notify. `get_user_role_info` is on the critical path for every protected route: if it fails, the guard sees no role.
@@ -1631,7 +1631,7 @@ Also missed by the original scanner. Each bucket is used on exactly one admin or
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +79
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +80
 - **call sites** src/hooks/useAgentHandoff.ts, src/hooks/useAIChat.ts
 
 The person who typed is the person watching. No notification owed.
@@ -1886,7 +1886,7 @@ Life-safety data with no notification owed — the member is the actor. What it 
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +91
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +92
 - **call sites** src/components/admin/member-detail/CourtesyCallsCard.tsx, src/components/admin/member-detail/ProfileTab.tsx, src/components/client/CompleteMyDetailsDialog.tsx, src/components/LanguageSelector.tsx +9
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
@@ -1903,7 +1903,7 @@ The Santander billing date (2026-09-11) is the other direct staff write to `memb
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations, /admin/alerts +78
+- **routes** /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations, /admin/alerts +79
 - **call sites** src/hooks/useNotifications.ts, src/lib/staffNotify.ts, src/utils/notifications.ts
 
 The one notification channel this repo can prove is live: published, no secret required, and RLS verified so a member sees only rows addressed to them. Everything scored `bell` depends on this row being right.
@@ -2275,7 +2275,7 @@ Renders and exports are both published, and the webhook notifies. Unproven.
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
-- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +104
+- **routes** /, /*, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey +105
 - **call sites** src/components/analytics/PageTracker.tsx
 
 Analytics. Present on every route because PageTracker is mounted in App.tsx, not on any page.
@@ -2288,7 +2288,7 @@ Analytics. Present on every route because PageTracker is mounted in App.tsx, not
 - **who is told** self
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +79
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +80
 - **call sites** src/hooks/useAIAgents.ts
 
 Golden rule 6: the hard-blocked tools (update_user_role, manage_alert escalate/resolve, admit_resident, discharge_resident, toggle_user_status) are unreachable in code, and `src/test/isabellaGate.test.ts` proves that by executing the real gate — including that it FAILS OPEN on a settings error and is suppressed when no row exists. That is a real and important property, and it is NOT this wire: it proves what she may not do, not that an action she may do is executed and recorded. Cited here at first and withdrawn on reading it. The block is proven; the wire is not.
@@ -2340,7 +2340,7 @@ Also missed by the original scanner. Each bucket is used on exactly one admin or
 - **who is told** self
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +79
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +80
 - **call sites** src/components/admin/dashboard/AISalesDesk.tsx, src/hooks/useAIAgents.ts
 
 Golden rule 6: the hard-blocked tools (update_user_role, manage_alert escalate/resolve, admit_resident, discharge_resident, toggle_user_status) are unreachable in code, and `src/test/isabellaGate.test.ts` proves that by executing the real gate — including that it FAILS OPEN on a settings error and is suppressed when no row exists. That is a real and important property, and it is NOT this wire: it proves what she may not do, not that an action she may do is executed and recorded. Cited here at first and withdrawn on reading it. The block is proven; the wire is not.
@@ -2353,7 +2353,7 @@ Golden rule 6: the hard-blocked tools (update_user_role, manage_alert escalate/r
 - **who is told** self
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +79
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +80
 - **call sites** src/hooks/useAIAgents.ts
 
 Split from the gate above: `isabellaGate` proves the hard blocks, not that a prompt saved in this UI reaches the database and is the one she reads. Citing it here would have been the register scoring itself on an adjacent test.
@@ -2366,7 +2366,7 @@ Split from the gate above: `isabellaGate` proves the hard blocks, not that a pro
 - **who is told** self
 - **failure shown to user** toast
 - **proof** none — capped at 6
-- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +79
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +80
 - **call sites** src/components/admin/ai/AIAvatarUpload.tsx, src/hooks/useAIAgents.ts
 
 Split from the gate above: `isabellaGate` proves the hard blocks, not that a prompt saved in this UI reaches the database and is the one she reads. Citing it here would have been the register scoring itself on an adjacent test.
@@ -2379,7 +2379,7 @@ Split from the gate above: `isabellaGate` proves the hard blocks, not that a pro
 - **who is told** self
 - **failure shown to user** mutation onError
 - **proof** none — capped at 6
-- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +79
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +80
 - **call sites** src/hooks/useAIAgents.ts
 
 Split from the gate above: `isabellaGate` proves the hard blocks, not that a prompt saved in this UI reaches the database and is the one she reads. Citing it here would have been the register scoring itself on an adjacent test.
@@ -2612,7 +2612,7 @@ The database refuses a `member_action` row without a reason and an actor, which 
 - **who is told** self
 - **failure shown to user** mutation onError
 - **proof** `src/test/checkoutPaymentMethods.test.ts`
-- **routes** /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations, /admin/alerts +60
+- **routes** /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations, /admin/alerts +61
 - **call sites** src/hooks/useAdminIdeas.ts
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. THE PAYMENT-METHOD ROWS ARE THE EXCEPTION TO 'cosmetic': neither checkout function set `payment_method_types`, so STRIPE'S DASHBOARD DEFAULTS decided — and in the EEA those include SEPA Direct Debit, which is ASYNCHRONOUS. Its session completes with `payment_status: "unpaid"` and activation depends on `checkout.session.async_payment_succeeded`; unless the webhook destination is subscribed to that, the customer pays and is NEVER ACTIVATED, with no error anywhere. Card is always offered and cannot be unticked; the three async methods are greyed with the reason until an admin confirms the destination listens, and that acknowledgement is re-applied when the setting is READ as well as when it is written.
@@ -2911,7 +2911,7 @@ OWNED HERE AS OF ITEM 5 — this entry previously read 'out of scope by instruct
 - **who is told** bell
 - **failure shown to user** no
 - **proof** `src/test/inboundMessages.test.ts`
-- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +79
+- **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +80
 - **call sites** src/components/admin/member-detail/MessagesTab.tsx, src/components/call-centre/MessagesPanel.tsx, src/hooks/useAgentHandoff.ts, src/hooks/useAIChat.ts +4
 
 This is the wire the platform gets RIGHT, and it is the model for fixing the lead: the member surface cannot write the staff notification itself, so it calls a server function that verifies ownership and then broadcasts. Both tables are published and both screens subscribe. Failure is shown.

@@ -18,7 +18,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
 10 │   9  ████
  9 │   6  ██
  8 │   0  
- 7 │  33  █████████████
+ 7 │  34  ██████████████
  6 │   9  ████
  5 │  84  ██████████████████████████████████
  4 │  50  ████████████████████
@@ -28,12 +28,12 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   1  
 ```
 
-192 distinct wires across 665 call sites and 110 routes.
+193 distinct wires across 667 call sites and 110 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
 | 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 9 | 5% |
-| 7–9 | arrives and proven; notification missing or on a channel not live today | 39 | 20% |
+| 7–9 | arrives and proven; notification missing or on a channel not live today | 40 | 21% |
 | 4–6 | arrives; nobody told; nothing proves it | 143 | 74% |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0% |
 | 0 | dead control | 1 | 1% |
@@ -64,7 +64,7 @@ things, and a control with no wire cannot do anything:
 | kind | what it is | call sites |
 |---|---|---:|
 | `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 355 |
-| `fn` | `supabase.functions.invoke(f)` — an edge function | 91 |
+| `fn` | `supabase.functions.invoke(f)` — an edge function | 93 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 6 |
 | `channel` | `postgres_changes` — a realtime subscription | 51 |
 | `auth` | `supabase.auth.*` — sign in, sign out, register, password reset | 20 |
@@ -280,7 +280,7 @@ The checks, verified on every build:
 | **7** | `channel:tasks` | Call-centre dashboard — courtesy-call list auto-refresh — the courtesy-call list stays current while the operator works | supabase.channel('dashboard-courtesy-calls') → fetchCourtesyCalls() | screen | — | `scripts/rls/wiring.sql` | 1 |
 | **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
 | **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
-| **7** | `fn:save-api-keys` | Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device — your credentials work | save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push | self | toast | `src/test/firebaseConfig.test.ts` | 6 |
+| **7** | `fn:save-api-keys` | Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device — your credentials work | save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push | self | toast | `src/test/firebaseConfig.test.ts` | 7 |
 | **7** | `fn:send-payment-link` | Staff send a member a Stripe payment link (CRM → member → Subscription); and, in legacy_switch mode, MOVE A LEGACY MEMBER ONTO STRIPE BILLING — on the record and as a bulk action on the members list filtered to legacy billing — a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are switched on, and always shown on screen to copy | send-payment-link → create_payment_link_order (pending order + items + subscription + payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms and/or send-email; activation is stripe-webhook's alone | the payer (SMS + email), and activity_logs twice — the order created, and what was sent | mutation onError | `src/test/sendPaymentLink.test.ts` | 1 |
 | **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 5 |
 | **7** | `table:admin_ideas` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | mutation onError | `src/test/checkoutPaymentMethods.test.ts` | 1 |
@@ -418,9 +418,10 @@ The checks, verified on every build:
 | **7** | `channel:social_post_metrics` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
 | **7** | `channel:social_posts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
 | **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
+| **7** | `fn:billing-migration-run` | Admin → Settings → Billing: the migration's on/off switch, its four lead times, and "Preview today's list" — legacy members move off the Santander collection a few each day, timed to their own payment date — and you can see exactly who would be written to before switching it on | system_settings (billing_migration_*) via save-api-keys; the preview calls billing-migration-run with dryRun, which plans the day and sends none of it. pg_cron calls the same function at 06:00 UTC daily with the service role key | self, and the bell when a run fails | toast | `src/test/billingMigrationCron.test.ts` | 1 |
 | **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
 | **7** | `fn:notify-staff` | Admin → Settings → Notifications: the event × channel switches, the per-staff matrix beneath, and "send a test notification" — the person who needs to know is told, on a channel that works | notification_routes (company policy) and staff_notification_prefs (the person), both read by the notify-staff router on every send — so a switch changes the next notification, with no redeploy. Each change writes an activity_logs row carrying the old and new value. | screen | toast | `src/test/notificationMatrix.test.ts` | 2 |
-| **7** | `fn:save-api-keys` | Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device — your credentials work | save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push | self | toast | `src/test/firebaseConfig.test.ts` | 6 |
+| **7** | `fn:save-api-keys` | Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device — your credentials work | save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push | self | toast | `src/test/firebaseConfig.test.ts` | 7 |
 | **7** | `fn:send-payment-link` | Staff send a member a Stripe payment link (CRM → member → Subscription); and, in legacy_switch mode, MOVE A LEGACY MEMBER ONTO STRIPE BILLING — on the record and as a bulk action on the members list filtered to legacy billing — a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are switched on, and always shown on screen to copy | send-payment-link → create_payment_link_order (pending order + items + subscription + payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms and/or send-email; activation is stripe-webhook's alone | the payer (SMS + email), and activity_logs twice — the order created, and what was sent | mutation onError | `src/test/sendPaymentLink.test.ts` | 1 |
 | **7** | `fn:send-test-email` | Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device — your credentials work | save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push | self | toast | `src/test/firebaseConfig.test.ts` | 1 |
 | **7** | `fn:test-twilio` | Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device — your credentials work | save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push | self | mutation onError | `src/test/firebaseConfig.test.ts` | 1 |
@@ -2478,6 +2479,25 @@ WAS DEAD. `tasks` was NOT in the supabase_realtime publication (verified against
 
 Gateway FIRST, record second, and the half-applied case is said out loud rather than swallowed. Note the live drift: `member_action` gained 'resume' in a migration that is in main and NOT yet applied to production, so a resume in production performs the Stripe change and then fails to record it. Flagged to Lee separately; not this goal's to fix.
 
+### `fn:billing-migration-run` — 7/10 (proven; nobody told)
+
+- **control** Admin → Settings → Billing: the migration's on/off switch, its four lead times, and "Preview today's list"
+- **promised** legacy members move off the Santander collection a few each day, timed to their own payment date — and you can see exactly who would be written to before switching it on
+- **goes to** system_settings (billing_migration_*) via save-api-keys; the preview calls billing-migration-run with dryRun, which plans the day and sends none of it. pg_cron calls the same function at 06:00 UTC daily with the service role key
+- **who is told** self, and the bell when a run fails
+- **failure shown to user** toast
+- **proof** `src/test/billingMigrationCron.test.ts`
+- **routes** /admin/settings
+- **call sites** src/components/admin/settings/BillingMigrationCard.tsx
+
+IT ARRIVES OFF. Turning it on is not a configuration change — it is the decision to start writing to several hundred elderly people about money, a few each day, for months. The seed is 'false' with ON CONFLICT DO NOTHING, and the function reads the switch before it reads a single member.
+
+THE PREVIEW IS THE RUN, minus the sending — the same module, the same settings, the same day. A preview written separately would one day disagree with what happens, and this is the screen where somebody has to be able to believe it. It also distinguishes 'switched off' from 'nobody due today', which otherwise look identical.
+
+NEVER TWICE IS A UNIQUE INDEX, not a check: every send claims itself by INSERTing a notification_log row carrying billing-switch:<member>:<renewal>:<kind>, and no row back means somebody already did it. That is what makes re-running it safe — a daily cron will be re-run by hand, will overlap itself, and will one day crash halfway through 431 members. The log row is written BEFORE the send, deliberately: a failure then leaves a record and no link, which somebody can see, rather than a link and no record, which the next run would send again.
+
+The real run is reachable only by something holding the service role key; a person may only preview. A failed run rings billing.migration_run_failed, because nothing else on the platform would notice: these members are active and monitored whether or not anybody ever moves them, so no alert, no dunning and no renewal will ever mention them.
+
 ### `fn:cancel-mollie-subscription` — 7/10 (proven; no notification owed)
 
 - **control** Staff pause / resume / cancel a subscription
@@ -2526,7 +2546,7 @@ The switches are the fix for the schema this replaces: a boolean COLUMN PER EVEN
 - **failure shown to user** toast
 - **proof** `src/test/firebaseConfig.test.ts`
 - **routes** /admin/holidays, /admin/settings, /call-centre/holiday-approvals
-- **call sites** src/components/admin/HolidayPolicyCard.tsx, src/components/admin/settings/CheckoutPaymentMethodsCard.tsx, src/components/admin/settings/FirebaseConfigCard.tsx, src/components/admin/settings/MemberPortalSettingsTab.tsx +2
+- **call sites** src/components/admin/HolidayPolicyCard.tsx, src/components/admin/settings/BillingMigrationCard.tsx, src/components/admin/settings/CheckoutPaymentMethodsCard.tsx, src/components/admin/settings/FirebaseConfigCard.tsx +3
 
 These are the only in-app way to find out whether the email, SMS and push channels are live, which is exactly what this register cannot determine from code. FIREBASE JOINED THEM: push used to need six VITE_FIREBASE_* build-time variables in Vercel plus a FIREBASE_SERVICE_ACCOUNT Edge secret — seven values, two consoles, and a redeploy before any of them did anything. The three paste fields replace that, and the test push's outcome is a notification_log row whichever way it goes. The service account is stored under a key ending `_key` so the staff read policy excludes it; the six web values are public by design and staff-readable because every operator's phone needs them.
 

@@ -1,0 +1,72 @@
+{
+  "_comment": [
+    "THE ONE PLACE THAT KNOWS WHAT 'FAST ENOUGH' MEANS.",
+    "",
+    "Read by all three consumers so a number can never drift between them:",
+    "  - src/test/perf/scorecard.ts   (scoring, and the vitest that proves the scoring)",
+    "  - scripts/perf/route-bundles.mjs (the per-route JS budget check in CI)",
+    "  - e2e/perf/scorecard.spec.ts   (the Playwright + CDP measurement run)",
+    "",
+    "Every threshold is an INCLUSIVE ceiling unless its name says otherwise: a route",
+    "passes at exactly the budget and fails above it. `cls` is the one exclusive bound",
+    "(Core Web Vitals defines 'good' as < 0.1, not <= 0.1).",
+    "",
+    "Raising a number here is a deliberate act that shows up in a diff and needs a",
+    "reason in the PR. That is the point of the file — a budget nobody can quietly",
+    "widen inside the check that enforces it."
+  ],
+
+  "thresholds": {
+    "lcpMobileColdMs": 2500,
+    "lcpDesktopColdMs": 2500,
+    "transitionWarmMs": 300,
+    "transitionColdMs": 1000,
+    "routeJsGzBytes": 256000,
+    "publicRouteJsGzBytes": 153600,
+    "dbQueriesPerLoad": 6,
+    "dbQueryP95Ms": 100,
+    "clsBelow": 0.1,
+    "longTaskMs": 100
+  },
+
+  "profiles": {
+    "_comment": [
+      "The two device profiles every route is measured on. The mobile numbers are",
+      "Lighthouse's 'Slow 4G' shape, which is what the brief calls Fast 3G/4G: a",
+      "throughput and latency pair chosen to be reproducible, not to model one",
+      "carrier. CPU slowdown is applied through CDP Emulation.setCPUThrottlingRate.",
+      "",
+      "This is a retired-expat product bought on a phone. Mobile is the real profile;",
+      "desktop is measured so a regression that only shows on one is still visible."
+    ],
+    "mobile": {
+      "label": "Mobile (4x CPU, Slow 4G)",
+      "cpuThrottlingRate": 4,
+      "downloadKbps": 1638.4,
+      "uploadKbps": 750,
+      "latencyMs": 150,
+      "viewport": { "width": 390, "height": 844 },
+      "deviceScaleFactor": 3,
+      "isMobile": true
+    },
+    "desktop": {
+      "label": "Desktop (no throttle, cable)",
+      "cpuThrottlingRate": 1,
+      "downloadKbps": 10240,
+      "uploadKbps": 5120,
+      "latencyMs": 20,
+      "viewport": { "width": 1440, "height": 900 },
+      "deviceScaleFactor": 1,
+      "isMobile": false
+    }
+  },
+
+  "overrides": {
+    "_comment": [
+      "Per-route budget exceptions. EVERY entry must carry a `reason`, and the",
+      "scorecard prints it beside the route so an exception can never look like a",
+      "pass. An override loosens one named threshold for one route; it never",
+      "switches a check off."
+    ]
+  }
+}

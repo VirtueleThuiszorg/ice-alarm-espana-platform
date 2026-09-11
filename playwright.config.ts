@@ -15,6 +15,10 @@ const executablePath = fs.existsSync(PREINSTALLED_CHROMIUM)
 
 export default defineConfig({
   testDir: "./e2e",
+  // The scorecard run has its own config (playwright.perf.config.ts): it throttles
+  // the CPU and network and takes minutes. Folding it in here would make the page
+  // audit too slow to run casually, which is the fastest way to lose a gate.
+  testIgnore: "**/perf/**",
   timeout: 90_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,

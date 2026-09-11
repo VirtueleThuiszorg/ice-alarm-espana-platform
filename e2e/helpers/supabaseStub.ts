@@ -83,6 +83,12 @@ export interface StubScenario {
   /** Fail the password grant, as GoTrue does on bad credentials. */
   signInError?: { status: number; body: unknown };
   /**
+   * MFA factors the signed-in user owns. Absent means none — see the note on
+   * `fakeUser`. Pass `[STUB_TOTP_FACTOR]` for an admin journey, and then answer
+   * the TOTP prompt StaffLogin will show.
+   */
+  mfaFactors?: unknown[];
+  /**
    * Rows for any other PostgREST table, keyed by table name — `{ staff_shifts: [...] }`.
    *
    * Generic rather than a field per table: a journey that needs a rota, a holiday and a festivo
@@ -122,7 +128,7 @@ function fakeJwt(): string {
   ].join(".");
 }
 
-function fakeUser(email: string) {
+function fakeUser(email: string, factors: unknown[] = []) {
   return {
     id: USER_ID,
     aud: "authenticated",
@@ -138,17 +144,46 @@ function fakeUser(email: string) {
     created_at: "2026-08-01T00:00:00Z",
     updated_at: "2026-08-11T00:00:00Z",
     is_anonymous: false,
+    /*
+      SECOND FACTORS ARE OPT-IN, and the default of NONE is the important half.
+
+      `supabase.auth.mfa.listFactors()` reads this array off the user object rather
+      than calling an endpoint, and two screens branch on what it finds:
+
+        - StaffLogin: any verified factor means the password is not enough, so it
+          stops and asks for a TOTP code.
+        - ProtectedRoute: an ADMIN with no verified factor is bounced to the 2FA
+          setup page, while `null` (the lookup failed) deliberately holds.
+
+      Those pull in opposite directions, so a journey has to say which it wants.
+      Handing every stubbed user a verified factor by default would put the four
+      existing staff journeys on a TOTP prompt they never wrote a step for; handing
+      none to an admin puts them on the enrolment page instead of the page under
+      test. Hence `mfaFactors`: absent means none, which is what every journey
+      written before this option existed assumed.
+    */
+    factors,
   };
 }
 
-function session(email: string) {
+/** The verified TOTP factor an admin journey opts into. */
+export const STUB_TOTP_FACTOR = {
+  id: "0d3aa8a2-6c1f-4a9a-9d3f-0f6f5a5f2f10",
+  friendly_name: "stub-totp",
+  factor_type: "totp",
+  status: "verified",
+  created_at: "2026-08-01T00:00:00Z",
+  updated_at: "2026-08-01T00:00:00Z",
+};
+
+function session(email: string, factors: unknown[] = []) {
   return {
     access_token: fakeJwt(),
     token_type: "bearer",
     expires_in: 3600,
     expires_at: 4102444800,
     refresh_token: "stub-refresh-token",
-    user: fakeUser(email),
+    user: fakeUser(email, factors),
   };
 }
 
@@ -308,11 +343,32 @@ export async function installSupabaseStub(page: Page, initial: StubScenario = {}
       }
       const email =
         (body as { email?: string } | null)?.email ?? "partner@example.com";
-      return json(route, session(email));
+      return json(route, session(email, scenario.mfaFactors ?? []));
     }
 
     if (url.pathname === "/auth/v1/user") {
-      return json(route, fakeUser("partner@example.com"));
+      return json(route, fakeUser("partner@example.com", scenario.mfaFactors ?? []));
+    }
+
+    // TOTP verification. StaffLogin sends the code here when the user owns a
+    // verified factor, and GoTrue answers with an upgraded session — so the stub
+    // answers with a session too. The CODE IS NOT CHECKED: this stub proves the
+    // journey reaches the step, never that six digits were correct, and pretending
+    // otherwise would be a security claim it cannot support.
+    if (/^\/auth\/v1\/factors\/[^/]+\/challenge$/.test(url.pathname)) {
+      return json(route, {
+        id: "9c2f0a1e-77a1-4f62-9b0a-2f1c3d4e5f60",
+        expires_at: 4102444800,
+        type: "totp",
+      });
+    }
+
+    if (/^\/auth\/v1\/factors\/[^/]+\/verify$/.test(url.pathname)) {
+      return json(route, session("staff@example.com", scenario.mfaFactors ?? []));
+    }
+
+    if (url.pathname === "/auth/v1/factors") {
+      return json(route, scenario.mfaFactors ?? []);
     }
 
     if (url.pathname === "/auth/v1/logout") {

@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { installSupabaseStub, type RecordedCall } from "../helpers/supabaseStub";
 import { settle } from "../helpers/settle";
+import { quiesce } from "./quiesce";
 import { INSTALL_OBSERVERS, READ_VITALS, READ_SINCE_MARK } from "./observers";
 import {
   restoreSessionStorage,
@@ -279,8 +280,13 @@ async function measureProfile(
     await settle(page).catch(() => {});
     // One frame past settle, so a shift caused by the last paint is in the CLS total.
     await page.waitForTimeout(250);
+    // Then wait for the page to stop QUERYING, which is a different question from
+    // whether it has stopped animating — see e2e/perf/quiesce.ts. Counting at the
+    // animation boundary photographed a partial waterfall, and the same route
+    // reported 17, 28 and 36 queries on three runs of identical code.
+    const quiesced = await quiesce(page, stub);
     vitals = (await page.evaluate(READ_VITALS)) as typeof vitals;
-    calls = [...stub.calls];
+    calls = quiesced.calls;
   } finally {
     await loadContext.close();
   }

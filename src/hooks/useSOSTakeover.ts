@@ -5,7 +5,7 @@
  * and pendingAlerts (unaccepted SOS alerts), provides accept/resolve actions.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentStaff } from "@/hooks/useCurrentStaff";
 import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
@@ -130,8 +130,26 @@ export function useSOSTakeover(): UseSOSTakeoverReturn {
 
   // Split alerts — shared derivations (see alertOwnership.ts): the SAME fields the
   // queue's claim now writes, so both surfaces agree on ownership by construction.
-  const activeAlert = deriveActiveAlert(alerts, staffId);
-  const pendingAlerts = derivePendingAlerts(alerts);
+  //
+  // MEMOISED, AND THAT IS NOT A MICRO-OPTIMISATION. `derivePendingAlerts` is a
+  // `.filter()`, so it returned a NEW ARRAY on every render even when the alerts
+  // were unchanged. `SOSAlertBar` has `useEffect(..., [pendingAlerts])`, which
+  // therefore re-ran on every render, fetched member names, and called
+  // `setMemberNames` with a fresh object — which re-rendered, which produced a
+  // fresh `pendingAlerts`, which re-ran the effect. A closed loop with a network
+  // call in it.
+  //
+  // Measured on /call-centre/alerts: the same members query issued ~130 TIMES A
+  // SECOND, 2,566 requests in 20 seconds, and it never stopped — for as long as
+  // an operator had the screen open, which is the whole shift. On the one screen
+  // that must be responsive when a pendant is pressed.
+  //
+  // Both derivations are pure functions of `alerts` (and `staffId`), so memoising
+  // on exactly those returns the identical value with a stable identity. No
+  // decision about who owns an alert changes here; only how often the same answer
+  // is recomputed.
+  const activeAlert = useMemo(() => deriveActiveAlert(alerts, staffId), [alerts, staffId]);
+  const pendingAlerts = useMemo(() => derivePendingAlerts(alerts), [alerts]);
 
   const isTakeoverActive = activeAlert !== null;
 

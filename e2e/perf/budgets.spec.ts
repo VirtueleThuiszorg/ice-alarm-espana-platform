@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { installSupabaseStub, type RecordedCall } from "../helpers/supabaseStub";
 import { settle } from "../helpers/settle";
+import { quiesce } from "./quiesce";
 import { INSTALL_OBSERVERS, READ_VITALS } from "./observers";
 import {
   restoreSessionStorage,
@@ -79,18 +80,34 @@ const HEADROOM: Record<string, number> = {
   clsBelow: 1.2,
   /*
     A query count is BEHAVIOURAL rather than wall-clock, so it does not move with
-    the machine — but it is not perfectly fixed either, and the recorded numbers
-    say so: `cc.alerts` measured 28 on one run and 17 on the next. The difference
-    is which realtime and async reads have fired by the time the page settles, not
-    which machine it ran on.
-    
-    So: no headroom multiplier, because the recorded value is already the HIGH
-    water mark of the runs that produced it, and inflating it further would hide a
-    real extra query. A page that genuinely starts issuing more than its worst
-    observed load fails, which is the behaviour wanted.
+    the machine. It used to move anyway — `cc.alerts` measured 17, 28 and 36 on
+    three runs of the same code — and that was the MEASUREMENT, not the page: the
+    count was taken when animations finished, which is unrelated to when the reads
+    finish. It is now taken once the page has gone quiet (e2e/perf/quiesce.ts), so
+    it is the whole load every time.
+
+    So: no headroom MULTIPLIER. A multiplier scales with the count, which would
+    give a 25-query page five queries of slack and a 3-query page none — exactly
+    backwards, since the pages that need watching are the heavy ones.
   */
   dbQueriesPerLoad: 1,
 };
+
+/*
+  ONE QUERY OF SLACK, ADDITIVE, AND ONLY BECAUSE THE PAGES SUBSCRIBE.
+
+  With the count taken at quiescence the numbers are reproducible — six routes,
+  identical on consecutive runs — except that `cc.alerts` measured 17, 17 and 16.
+  That one is not the harness: the alerts screen holds a realtime subscription,
+  and an event delivered while the page is still loading legitimately causes one
+  more read. It is a property of the product, not of the measurement.
+
+  A fixed +1 covers it and nothing else. It is deliberately not 2: the defect this
+  gate exists to catch added HUNDREDS, and the N+1 it is watching for adds one per
+  row. A page that issues two more queries than its recorded load has changed, and
+  should have to say so.
+*/
+const QUERY_SLACK = 1;
 
 const recorded: Record<string, Record<string, number | string[]>> = {};
 
@@ -192,13 +209,24 @@ test.describe("performance budgets", () => {
         await settle(page).catch(() => {});
         await page.waitForTimeout(250);
 
+        // COUNT THE WHOLE LOAD, not a snapshot of it. See e2e/perf/quiesce.ts:
+        // `settle` waits for animations, which says the page stopped moving, not
+        // that it stopped fetching — and counting there made `cc.alerts` report
+        // 17, 28 and 36 on three runs of identical code.
+        const { calls, timedOut } = await quiesce(page, stub);
+        if (timedOut) {
+          console.warn(
+            `${id}: still issuing queries after 15s — the count below is a floor, not the load`,
+          );
+        }
+
         const vitals = (await page.evaluate(READ_VITALS)) as {
           lcpMs: number;
           cls: number;
           longTasksMs: number[];
         };
-        const queries = countQueries(stub.calls);
-        const nPlusOne = detectNPlusOne(stub.calls);
+        const queries = countQueries(calls);
+        const nPlusOne = detectNPlusOne(calls);
         const longest = vitals.longTasksMs.length ? Math.max(...vitals.longTasksMs) : 0;
 
         // An LCP of exactly 0 means the observer never fired, not a page that
@@ -260,7 +288,7 @@ test.describe("performance budgets", () => {
           .toBeLessThan(gateCeilingFor(route, "clsBelow", budgets));
         expect
           .soft(queries, `${id}: Supabase queries on one load`)
-          .toBeLessThanOrEqual(gateCeilingFor(route, "dbQueriesPerLoad", budgets));
+          .toBeLessThanOrEqual(gateCeilingFor(route, "dbQueriesPerLoad", budgets) + QUERY_SLACK);
         // A NEW table read once per row fails; the ones already known are listed
         // in the ratchet with the work that will remove them.
         expect
@@ -276,11 +304,43 @@ test.describe("performance budgets", () => {
 
     if (RECORD) {
       const raw = JSON.parse(fs.readFileSync(BUDGETS_PATH, "utf8"));
-      // The `_comment` explaining the file survives; only route entries are
-      // replaced, and only for the routes this run measured.
-      raw.ratchet = { _comment: raw.ratchet?._comment, ...recorded };
+      /*
+        MERGE, DO NOT REPLACE — the ratchet has TWO writers.
+
+        This used to be `{ _comment, ...recorded }`, which the comment above it
+        described as replacing "only the routes this run measured". It did not: it
+        replaced the whole object. Two things went with it every time somebody
+        re-recorded.
+
+        First, the 30 routes this job does not measure — it gates six — lost their
+        entries entirely. Second, and worse because it is silent, `routeJsGzBytes`
+        is recorded by the OTHER job (scripts/perf/route-bundles.mjs --record), and
+        every one of those ceilings was dropped on the floor. The next Route JS
+        budgets run then measured every route against the 250/150 KB TARGET, which
+        no route meets yet, so a recording of this gate turned the other one red.
+
+        So each writer now touches only the keys it owns, per route, and leaves
+        everything else in the file exactly as it found it.
+      */
+      const OWNED = ["clsBelow", "dbQueriesPerLoad", "nPlusOneTables"] as const;
+      const ratchet: Record<string, Record<string, unknown>> = { ...(raw.ratchet ?? {}) };
+
+      for (const id of LIGHTHOUSE_ROUTES) {
+        const existing = { ...((ratchet[id] as Record<string, unknown>) ?? {}) };
+        // A key this run did NOT record is a metric the route now meets, so its
+        // stale allowance is removed rather than left standing.
+        for (const key of OWNED) delete existing[key];
+        Object.assign(existing, recorded[id] ?? {});
+        if (Object.keys(existing).length > 0) ratchet[id] = existing;
+        else delete ratchet[id];
+      }
+
+      raw.ratchet = ratchet;
       fs.writeFileSync(BUDGETS_PATH, `${JSON.stringify(raw, null, 2)}\n`);
-      console.log(`recorded the ratchet for ${Object.keys(recorded).length} route(s)`);
+      console.log(
+        `recorded ${OWNED.join(", ")} for ${LIGHTHOUSE_ROUTES.length} route(s); ` +
+          `every other key and route left untouched`,
+      );
     }
   });
 });

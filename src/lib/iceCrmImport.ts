@@ -32,6 +32,10 @@
  * ------------------------------------------------------------------ */
 
 import { deriveLegacySchedule } from "../../supabase/functions/_shared/legacy-billing-schedule";
+import {
+  billingFrequencyFromLabel,
+  planTypeFromLabel,
+} from "../../supabase/functions/_shared/legacy-plan";
 
 export const SENSITIVE_PAYMENT_HEADERS = [
   "Credit Card Details",
@@ -570,20 +574,17 @@ export interface MembershipMapping {
 export function mapMembership(row: IceRow, paymentType: string): MembershipMapping {
   const candidates = row.getAll("Membership Type").filter((v) => !/^\d+$/.test(v));
   const label = candidates[0] ?? row.get("Purchased Package") ?? "";
-  const l = label.toLowerCase();
 
-  const planType: PlanType | null = /couple/.test(l)
-    ? "couple"
-    : /single/.test(l)
-      ? "single"
-      : null;
+  /*
+    THE READERS LIVE IN `_shared/legacy-plan.ts`, not here, and that is not tidiness.
 
-  const pay = clean(paymentType).toLowerCase();
-  const billingFrequency: BillingFrequency | null = /annual|yearly/.test(l + " " + pay)
-    ? "annual"
-    : /month/.test(l + " " + pay)
-      ? "monthly"
-      : null;
+    The switch link reads this same Karma label years later to decide what to charge somebody
+    (`send-payment-link`, legacy_switch mode). Two parsers for one label is how the import and
+    the switch link end up disagreeing about whether a member is a couple, and the disagreement
+    is about money.
+  */
+  const planType: PlanType | null = planTypeFromLabel(label);
+  const billingFrequency: BillingFrequency | null = billingFrequencyFromLabel(label, paymentType);
 
   return { planType, billingFrequency, legacyLabel: label || null };
 }

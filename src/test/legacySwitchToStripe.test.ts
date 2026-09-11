@@ -234,8 +234,24 @@ describe("the session a switch asks Stripe for", () => {
     expect(fn).toMatch(/mode:\s*"subscription"/);
   });
 
-  it("reads the plan off the member's own record, not off the request", () => {
-    expect(fn).toMatch(/from\("subscriptions"\)[\s\S]{0,200}plan_type, billing_frequency/);
+  /*
+    RETARGETED. This used to assert only
+
+        from("subscriptions") ... plan_type, billing_frequency
+
+    which was true and still missed the defect it was written to catch. Those two columns are not
+    what Karma said: the CRM import stores COALESCE(..., 'single') / COALESCE(..., 'annual') for
+    every row whose membership label named no plan, so the import's DEFAULT and a real answer are
+    the same value in the same column. The link is now built from the verbatim Karma label on
+    `crm_profiles`, through `_shared/legacy-plan.ts`, which refuses the defaults.
+
+    The full rule and its refusal are proven in `legacyPlanSource.test.ts`; this keeps the
+    contract visible from the file that owns the switch.
+  */
+  it("reads the plan off what Karma recorded, not off the request and not off a default", () => {
+    expect(fn).toMatch(/from\("crm_profiles"\)[\s\S]{0,200}legacy_membership_type, legacy_payment_type/);
+    expect(fn).toMatch(/resolveLegacyPlan\(/);
+    expect(fn).toContain("PLAN_NOT_CONFIRMED");
   });
 
   it("refuses a member who is not on legacy billing before it creates anything", () => {

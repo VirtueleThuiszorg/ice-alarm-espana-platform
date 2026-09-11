@@ -12,7 +12,8 @@
 // the stored URL is dead — and an expired Stripe page is read by many elderly people as a failed
 // payment, or worse, as a successful one.
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 
@@ -158,5 +159,145 @@ describe("the operator's card", () => {
     expect(screen.getByTestId("move-to-stripe-card").textContent).toMatch(
       /No Santander date is recorded/i,
     );
+  });
+});
+
+/*
+  ── THE PLAN THE IMPORT COULD NOT READ ────────────────────────────────────────
+
+  Karma's membership label is free text, and some of it names no plan at all. The CRM import then
+  stored its `single` / `annual` defaults, which are indistinguishable from real answers — so a
+  link built from them charges a couple the single price, or bills a monthly member for a whole
+  year. The server refuses (PLAN_NOT_CONFIRMED) rather than guessing.
+
+  A REFUSAL IS NOT AN ERROR HERE, IT IS A QUESTION. It has to stay on the card with Karma's own
+  words above it, because the operator needs to read them to answer; a red toast that fades while
+  they are still reading is how somebody picks the wrong one.
+*/
+describe("the operator's card when nobody can say what the member pays for", () => {
+  const base = {
+    memberId: "m-1",
+    memberName: "Brenda Colefax",
+    switchExpiresAt: null,
+    nextRenewal: "2026-09-20",
+    status: "active",
+    billingSource: "legacy",
+  };
+
+  const refusal = () =>
+    new FunctionsHttpError(
+      new Response(
+        JSON.stringify({
+          error:
+            "Brenda Colefax: the import could not tell which plan they are on or how often they " +
+            'pay, so there is no price to charge. Karma\'s record says "FOC — Ayuntamiento". ' +
+            "Confirm the plan here and the link will be built from it — do not send an ordinary " +
+            "payment link, which would leave them in the Santander export as well.",
+          code: "PLAN_NOT_CONFIRMED",
+          missing: ["plan", "frequency"],
+          legacyLabel: "FOC — Ayuntamiento",
+        }),
+        { status: 409, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+  const invokeMock = async () => {
+    const { supabase } = await import("@/integrations/supabase/client");
+    return supabase.functions.invoke as ReturnType<typeof vi.fn>;
+  };
+
+  it("asks the question on the card, quoting Karma, instead of a toast that fades", async () => {
+    (await invokeMock()).mockResolvedValue({ data: null, error: refusal() });
+    wrap(<MoveToStripeCard {...base} />);
+
+    fireEvent.click(screen.getByTestId("move-to-stripe-send"));
+
+    const block = await screen.findByTestId("switch-plan-unconfirmed");
+    expect(block.textContent).toContain("FOC — Ayuntamiento");
+    const { toast } = await import("sonner");
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it("will not send anything until both halves are answered", async () => {
+    (await invokeMock()).mockResolvedValue({ data: null, error: refusal() });
+    wrap(<MoveToStripeCard {...base} />);
+    fireEvent.click(screen.getByTestId("move-to-stripe-send"));
+    await screen.findByTestId("switch-plan-unconfirmed");
+
+    const confirm = screen.getByTestId("switch-plan-confirm") as HTMLButtonElement;
+    expect(confirm.disabled).toBe(true);
+
+    // The plan alone is not enough: the frequency is what decides one month or one year.
+    fireEvent.click(screen.getByRole("radio", { name: "Couple" }));
+    expect((screen.getByTestId("switch-plan-confirm") as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.click(screen.getByRole("radio", { name: "Every month" }));
+    expect((screen.getByTestId("switch-plan-confirm") as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("sends exactly what the operator chose, and nothing it made up", async () => {
+    const invoke = await invokeMock();
+    invoke.mockResolvedValue({ data: null, error: refusal() });
+    wrap(<MoveToStripeCard {...base} />);
+    fireEvent.click(screen.getByTestId("move-to-stripe-send"));
+    await screen.findByTestId("switch-plan-unconfirmed");
+
+    fireEvent.click(screen.getByRole("radio", { name: "Couple" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Once a year" }));
+
+    invoke.mockResolvedValue({
+      data: { url: "https://checkout.stripe.com/c/pay/cs_test_2", delivery: [] },
+      error: null,
+    });
+    fireEvent.click(screen.getByTestId("switch-plan-confirm"));
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenLastCalledWith("send-payment-link", {
+        body: {
+          mode: "legacy_switch",
+          memberId: "m-1",
+          confirmPlan: { membershipType: "couple", billingFrequency: "annual" },
+        },
+      }),
+    );
+    // And the first attempt sent no plan at all — the server reads it for itself whenever it can.
+    expect(invoke.mock.calls[0][1]).toEqual({ body: { mode: "legacy_switch", memberId: "m-1" } });
+  });
+
+  it("puts the question away once a link exists", async () => {
+    const invoke = await invokeMock();
+    invoke.mockResolvedValue({ data: null, error: refusal() });
+    wrap(<MoveToStripeCard {...base} />);
+    fireEvent.click(screen.getByTestId("move-to-stripe-send"));
+    await screen.findByTestId("switch-plan-unconfirmed");
+
+    fireEvent.click(screen.getByRole("radio", { name: "Single" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Every month" }));
+    invoke.mockResolvedValue({
+      data: { url: "https://checkout.stripe.com/c/pay/cs_test_3", delivery: [] },
+      error: null,
+    });
+    fireEvent.click(screen.getByTestId("switch-plan-confirm"));
+
+    await screen.findByTestId("switch-link-result");
+    expect(screen.queryByTestId("switch-plan-unconfirmed")).toBeNull();
+  });
+
+  it("leaves every OTHER refusal as a toast, not as a plan question", async () => {
+    (await invokeMock()).mockResolvedValue({
+      data: null,
+      error: new FunctionsHttpError(
+        new Response(JSON.stringify({ error: "Sync prices to Stripe first", code: "STALE_PRICE" }), {
+          status: 409,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    });
+    wrap(<MoveToStripeCard {...base} />);
+    fireEvent.click(screen.getByTestId("move-to-stripe-send"));
+
+    const { toast } = await import("sonner");
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Sync prices to Stripe first"));
+    expect(screen.queryByTestId("switch-plan-unconfirmed")).toBeNull();
   });
 });

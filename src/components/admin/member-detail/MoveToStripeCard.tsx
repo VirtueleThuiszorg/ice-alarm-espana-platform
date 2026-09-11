@@ -6,7 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
+  LegacyPlanNotConfirmedError,
   useLegacySwitchLink,
   type SendPaymentLinkResult,
 } from "@/hooks/useSendPaymentLink";
@@ -28,6 +31,15 @@ import {
  * most of these members are eighty and the delivery that actually works is an operator reading
  * it out or texting it themselves. A "sent" that silently sent nothing is the defect this whole
  * codebase keeps finding.
+ *
+ * ── AND SOMETIMES IT ASKS WHAT THEY ARE ON ────────────────────────────────────
+ *
+ * The plan comes off Karma's verbatim membership label. That label is free text and some of it
+ * names no plan at all ('FOC — Ayuntamiento'), in which case the CRM import stored its `single`
+ * and `annual` DEFAULTS — indistinguishable from real answers, and one of them is the wrong
+ * price while the other is twelve months of monitoring charged at once. The server refuses those
+ * rather than guessing, and this card turns the refusal into a question with Karma's own words
+ * printed above it. Nothing is sent until somebody answers.
  */
 export function MoveToStripeCard({
   memberId,
@@ -49,6 +61,11 @@ export function MoveToStripeCard({
   const send = useLegacySwitchLink();
   const [result, setResult] = useState<SendPaymentLinkResult | null>(null);
   const [copied, setCopied] = useState(false);
+  /* The server's refusal, kept so the question stays on screen rather than in a toast that
+     disappears while the operator is still looking for the answer. */
+  const [needsPlan, setNeedsPlan] = useState<LegacyPlanNotConfirmedError | null>(null);
+  const [membershipType, setMembershipType] = useState<"single" | "couple" | "">("");
+  const [billingFrequency, setBillingFrequency] = useState<"monthly" | "annual" | "">("");
 
   const isLegacy = billingSource === "legacy" && status === "active";
   const isPending = billingSource === "switch_pending";
@@ -57,16 +74,27 @@ export function MoveToStripeCard({
   // yet — confirming them is the card above this one.
   if (!isLegacy && !isPending) return null;
 
-  const onSend = async () => {
+  const onSend = async (confirmPlan?: {
+    membershipType: "single" | "couple";
+    billingFrequency: "monthly" | "annual";
+  }) => {
     try {
-      const r = await send.mutateAsync({ memberId });
+      const r = await send.mutateAsync({ memberId, confirmPlan });
       setResult(r);
+      setNeedsPlan(null);
       onChanged?.();
       toast.success("Switch link created. It is on screen — read it out if the text did not land.");
     } catch (e) {
+      if (e instanceof LegacyPlanNotConfirmedError) {
+        // Not a toast: this one needs an answer, so it stays on the card until it gets one.
+        setNeedsPlan(e);
+        return;
+      }
       toast.error(e instanceof Error ? e.message : "The switch link could not be created.");
     }
   };
+
+  const canConfirm = membershipType !== "" && billingFrequency !== "";
 
   const copy = async () => {
     if (!result?.url) return;
@@ -123,7 +151,11 @@ export function MoveToStripeCard({
                 ? `Their next Santander collection is ${format(new Date(nextRenewal), "PPP")}. The runner times this link to it; sending it by hand now is the same thing, earlier.`
                 : "No Santander date is recorded for this member, so the runner cannot time their link. You can still send one now."}
             </p>
-            <Button onClick={onSend} disabled={send.isPending} data-testid="move-to-stripe-send">
+            <Button
+              onClick={() => onSend()}
+              disabled={send.isPending || needsPlan !== null}
+              data-testid="move-to-stripe-send"
+            >
               {send.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
@@ -132,6 +164,72 @@ export function MoveToStripeCard({
               Create the switch link
             </Button>
           </>
+        )}
+
+        {/* WHAT KARMA SAID, AND THE QUESTION IT DOES NOT ANSWER. Shown instead of a price the
+            import made up. Sending stays blocked until both halves are chosen — the plan decides
+            the amount, and the frequency decides whether it is one month or one year. */}
+        {needsPlan && (
+          <div
+            className="space-y-4 rounded-lg border border-amber-300 bg-amber-50 p-3 dark:bg-amber-950/30"
+            data-testid="switch-plan-unconfirmed"
+          >
+            <p className="flex items-start gap-2 text-sm">
+              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+              <span>{needsPlan.message}</span>
+            </p>
+
+            <RadioGroup
+              value={membershipType}
+              onValueChange={(v) => setMembershipType(v as "single" | "couple")}
+              aria-label="Which plan is this member on?"
+            >
+              <p className="text-sm font-medium">Which plan are they on?</p>
+              {(["single", "couple"] as const).map((v) => (
+                <div key={v} className="flex items-center gap-2">
+                  <RadioGroupItem value={v} id={`switch-plan-${v}`} />
+                  <Label htmlFor={`switch-plan-${v}`} className="font-normal">
+                    {v === "single" ? "Single" : "Couple"}
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+
+            <RadioGroup
+              value={billingFrequency}
+              onValueChange={(v) => setBillingFrequency(v as "monthly" | "annual")}
+              aria-label="How often do they pay?"
+            >
+              <p className="text-sm font-medium">How often do they pay?</p>
+              {(["monthly", "annual"] as const).map((v) => (
+                <div key={v} className="flex items-center gap-2">
+                  <RadioGroupItem value={v} id={`switch-frequency-${v}`} />
+                  <Label htmlFor={`switch-frequency-${v}`} className="font-normal">
+                    {v === "monthly" ? "Every month" : "Once a year"}
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+
+            <Button
+              onClick={() =>
+                canConfirm &&
+                onSend({
+                  membershipType: membershipType as "single" | "couple",
+                  billingFrequency: billingFrequency as "monthly" | "annual",
+                })
+              }
+              disabled={!canConfirm || send.isPending}
+              data-testid="switch-plan-confirm"
+            >
+              {send.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CreditCard className="h-4 w-4" />
+              )}
+              Create the link for this plan
+            </Button>
+          </div>
         )}
 
         {/* NOTHING HERE SAYS "MOVED". They are moved when Stripe says they paid, and the badge

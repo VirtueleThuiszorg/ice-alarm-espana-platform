@@ -336,3 +336,54 @@ describe("the candidate set the ladder needs", () => {
     expect(fn).not.toMatch(/\.eq\("billing_source", "legacy"\)/);
   });
 });
+
+/*
+  ── THE RUNNER KNOWS WHAT IT WOULD BE CHARGING ────────────────────────────────
+
+  The plan comes off Karma's verbatim membership label on `crm_profiles`, not off
+  `subscriptions.plan_type` — that column holds the CRM import's `single` / `annual` defaults for
+  every row whose label named no plan, and a default is indistinguishable from a real answer.
+
+  THE DECISION HAS TO BE MADE BEFORE THE CLAIM. The runner writes the dedupe row first and calls
+  `send-payment-link` second. If the refusal only happened in that call, the member's one claim
+  for that renewal would be spent on a 409 and they would never be written to for it again — not
+  even after somebody fixed the record. So the runner resolves the plan itself and plans a
+  different action for the ones it cannot price.
+*/
+describe("the plan the runner would be charging", () => {
+  it("loads the Karma label alongside the subscription row", () => {
+    expect(fn).toMatch(/crm_profiles \(legacy_membership_type, legacy_payment_type\)/);
+    expect(fn).toMatch(/subscriptions \(plan_type, billing_frequency, created_at\)/);
+  });
+
+  it("decides through the one shared module", () => {
+    expect(fn).toMatch(/from "\.\.\/_shared\/legacy-plan\.ts"/);
+    expect(fn).toMatch(/resolveLegacyPlan\(\{/);
+    expect(fn).toMatch(/planConfirmed: planConfirmedFor\(r\)/);
+  });
+
+  /*
+    PostgREST returns an embedded one-to-one as an object and a one-to-many as an array. Guessing
+    wrong here would make EVERY member unconfirmed — 431 bells, no links, and a migration that
+    looks broken rather than careful.
+  */
+  it("handles both shapes PostgREST can return the embedded profile in", () => {
+    expect(fn).toMatch(/Array\.isArray\(p\) \? p\[0\] : p/);
+  });
+
+  it("tells the office rather than the member, naming what is wrong and what to do", () => {
+    expect(fn).toMatch(/plan_unconfirmed/);
+    // Loose on purpose: the sentence is built by concatenation, so pinning the line breaks would
+    // make this a formatting test rather than a behaviour one.
+    expect(fn).toMatch(/nobody can say what/);
+    expect(fn).toMatch(/Confirm their plan on their record/);
+  });
+
+  // Routed as a migration failure because that is what it is: the run could not write to this
+  // member. A new event type would need a migration to widen notification_routes' CHECK.
+  it("routes it to an event the notification_routes CHECK already allows", () => {
+    const routes = read("supabase/migrations/20260911150000_billing_migration_settings.sql");
+    expect(fn).toMatch(/"billing\.migration_run_failed"/);
+    expect(routes).toContain("'billing.migration_run_failed'");
+  });
+});

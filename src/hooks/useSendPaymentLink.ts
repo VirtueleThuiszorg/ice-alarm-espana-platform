@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { supabase } from "@/integrations/supabase/client";
-import { functionError } from "@/lib/functionError";
+import { extractFunctionErrorBody, functionError } from "@/lib/functionError";
 
 /**
  * Ask the server for a Stripe payment link for a member — item 4.
@@ -94,14 +94,52 @@ export function useSendPaymentLink() {
   });
 }
 
+export interface LegacySwitchInput {
+  memberId: string;
+  /**
+   * A PERSON ANSWERING WHAT THE IMPORT COULD NOT — sent only after the server has said it cannot
+   * read the plan, and ignored by the server whenever it can.
+   *
+   * Karma's membership label is free text ('Single', 'Couple Annual', 'FOC — Ayuntamiento'). When
+   * it named no plan the CRM import stored its `single` / `annual` defaults, which look exactly
+   * like real answers — so the server refuses rather than charging one of them, and staff say
+   * which it is while looking at Karma's own words on the same card.
+   */
+  confirmPlan?: { membershipType: "single" | "couple"; billingFrequency: "monthly" | "annual" };
+}
+
+/**
+ * The server could not establish what this member pays for.
+ *
+ * A distinct class rather than a string match on the message: the card turns this one refusal
+ * into a question with two answers, and every other refusal stays a red toast.
+ */
+export class LegacyPlanNotConfirmedError extends Error {
+  readonly code = "PLAN_NOT_CONFIRMED";
+  constructor(
+    message: string,
+    /** Karma's verbatim membership label, so the person confirming has something to read. */
+    readonly legacyLabel: string | null,
+    /** Which half is unknown: the plan, the frequency, or both. */
+    readonly missing: Array<"plan" | "frequency">,
+  ) {
+    super(message);
+    this.name = "LegacyPlanNotConfirmedError";
+  }
+}
+
 /**
  * Move a legacy member onto Stripe billing — the same edge function, in `legacy_switch` mode.
  *
- * THE BROWSER SENDS A MEMBER ID AND NOTHING ELSE. Not the plan, not the frequency, not a payer:
+ * THE BROWSER SENDS A MEMBER ID. Not the payer, and — for all but one case — not the plan:
  * these people already have a plan, recorded by the CRM import from what Karma billed, and the
- * server reads it off their own record. Letting this screen name it would mean a migration
- * could quietly move somebody from a couple plan to a single one at whatever price that
- * implies.
+ * server reads it off their own record. Letting this screen name it freely would mean a migration
+ * could quietly move somebody from a couple plan to a single one at whatever price that implies.
+ *
+ * THE ONE CASE is a label that named no plan, where the import stored its `single` / `annual`
+ * defaults and they cannot be told from real answers. The server refuses with
+ * PLAN_NOT_CONFIRMED, and `confirmPlan` is a member of staff answering it. The server ignores it
+ * whenever it CAN read the plan, so this is never a way to overrule Karma.
  *
  * THE SIDE EFFECT IS THE POINT, AND IT IS NOT REVERSIBLE FROM HERE. The moment the server has a
  * Stripe session it records `billing_source = 'switch_pending'`, and from then on this member is
@@ -112,12 +150,29 @@ export function useSendPaymentLink() {
 export function useLegacySwitchLink() {
   const queryClient = useQueryClient();
 
-  return useMutation<SendPaymentLinkResult, Error, { memberId: string }>({
-    mutationFn: async ({ memberId }) => {
+  return useMutation<SendPaymentLinkResult, Error, LegacySwitchInput>({
+    mutationFn: async ({ memberId, confirmPlan }) => {
       const { data, error } = await supabase.functions.invoke("send-payment-link", {
-        body: { mode: "legacy_switch", memberId },
+        body: { mode: "legacy_switch", memberId, ...(confirmPlan ? { confirmPlan } : {}) },
       });
-      if (error) throw await functionError(error, "The switch link could not be created");
+      if (error) {
+        /* READ THE CODE BEFORE THE MESSAGE. `extractFunctionError` consumes the response body;
+           `extractFunctionErrorBody` clones, so this order works and the other does not. */
+        const body = await extractFunctionErrorBody(error);
+        const message = await functionError(error, "The switch link could not be created");
+        if (body?.code === "PLAN_NOT_CONFIRMED") {
+          throw new LegacyPlanNotConfirmedError(
+            message.message,
+            typeof body.legacyLabel === "string" ? body.legacyLabel : null,
+            Array.isArray(body.missing)
+              ? (body.missing.filter(
+                  (m): m is "plan" | "frequency" => m === "plan" || m === "frequency",
+                ))
+              : [],
+          );
+        }
+        throw message;
+      }
       if (!data?.url) throw new Error(data?.error ?? "The server returned no switch link");
       return data as SendPaymentLinkResult;
     },

@@ -21,6 +21,10 @@ import {
   type DeliveryOutcome,
 } from "../_shared/payment-link.ts";
 import {
+  planNotConfirmedMessage,
+  resolveLegacyPlan,
+} from "../_shared/legacy-plan.ts";
+import {
   LEGACY_SWITCH_EXPIRY_DAYS,
   legacySwitchPaymentMethods,
   legacySwitchSelection,
@@ -185,6 +189,9 @@ serve(async (req) => {
     const isSwitch = body.mode === "legacy_switch";
 
     let selection;
+    /* Kept for the audit row: WHICH plan the link charges, and whether a person had to say so. */
+    let switchPlan: { membershipType: "single" | "couple"; billingFrequency: "monthly" | "annual" } | null = null;
+    let planConfirmedByStaff = false;
     if (body.mode === "legacy_switch") {
       // Only somebody Santander is actually collecting from. `start_legacy_switch` refuses the
       // rest too; refusing here means no Stripe session is created for a member who cannot use
@@ -222,32 +229,70 @@ serve(async (req) => {
       }
 
       /*
-        THE PLAN COMES FROM THE MEMBER'S OWN RECORD. The CRM import wrote a `pending`
-        subscription row carrying what Karma billed — plan type and billing frequency. Reading
-        it here is what stops a switch link quietly moving somebody from couple to single, or
-        annual to monthly, at whatever price that implies.
-      */
-      const { data: existing } = await admin
-        .from("subscriptions")
-        .select("plan_type, billing_frequency")
-        .eq("member_id", member.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        THE PLAN COMES FROM WHAT KARMA SAID, which is the verbatim label on `crm_profiles` —
+        NOT from `subscriptions.plan_type`, which this function used to read.
 
-      if (!existing?.plan_type || !existing?.billing_frequency) {
+        Those two are not the same fact and the difference is money. The CRM import parses
+        Karma's free-text membership label and hands back NULL when the label names no plan;
+        `ice_import_member` then stores COALESCE(..., 'single') and COALESCE(..., 'annual'), so
+        "Karma said single" and "Karma said nothing" land in the column looking identical. A
+        couple whose label did not parse would have been sent a link for the single price, and a
+        monthly member one for a whole year of monitoring.
+
+        `_shared/legacy-plan.ts` reads the label, accepts a stored `couple`/`monthly` (neither is
+        ever a default, so either can only have come off Karma) and refuses everything else.
+      */
+      const [{ data: profile }, { data: existing }] = await Promise.all([
+        admin
+          .from("crm_profiles")
+          .select("legacy_membership_type, legacy_payment_type")
+          .eq("member_id", member.id)
+          .maybeSingle(),
+        admin
+          .from("subscriptions")
+          .select("plan_type, billing_frequency")
+          .eq("member_id", member.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+
+      const resolution = resolveLegacyPlan({
+        label: (profile?.legacy_membership_type as string | null) ?? null,
+        paymentType: (profile?.legacy_payment_type as string | null) ?? null,
+        storedPlanType: (existing?.plan_type as string | null) ?? null,
+        storedBillingFrequency: (existing?.billing_frequency as string | null) ?? null,
+      });
+
+      /*
+        A PERSON MAY ANSWER WHAT THE IMPORT COULD NOT; the runner may not.
+
+        Staff confirming the plan on the record is the fix path — they are looking at Karma's own
+        words on the same screen. The runner holds the service role key and has nobody behind it,
+        so it gets no say: it bells staff and leaves the member on Santander, which costs one
+        cycle and charges nobody the wrong amount.
+
+        And a confirmation NEVER overrules a plan the server could read. Otherwise this field is
+        just F7 again with a different name: the browser choosing what the member pays.
+      */
+      const confirmation = !resolution.confirmed && !isRunner ? body.confirmPlan : undefined;
+
+      if (!resolution.confirmed && !confirmation) {
         return json(409, {
-          error:
-            "This member has no recorded plan, so there is nothing to charge. Add their plan " +
-            "to the record first, or send an ordinary payment link naming it.",
-          code: "NO_LEGACY_PLAN",
+          error: planNotConfirmedMessage(`${member.first_name} ${member.last_name}`, resolution),
+          code: "PLAN_NOT_CONFIRMED",
+          missing: resolution.missing,
+          legacyLabel: resolution.label,
         });
       }
 
-      selection = legacySwitchSelection({
-        membershipType: existing.plan_type as "single" | "couple",
-        billingFrequency: existing.billing_frequency as "monthly" | "annual",
-      });
+      const plan = resolution.confirmed
+        ? { membershipType: resolution.membershipType, billingFrequency: resolution.billingFrequency }
+        : confirmation!;
+
+      planConfirmedByStaff = !resolution.confirmed;
+      switchPlan = plan;
+      selection = legacySwitchSelection(plan);
     } else {
       selection = {
         membershipType: body.membershipType,
@@ -608,6 +653,11 @@ serve(async (req) => {
         mode: isSwitch ? "legacy_switch" : "signup",
         switch_expires_at: switchExpiresAt,
         payment_method_types: paymentMethodTypes,
+        /* WHICH plan this charged, and whether the server could read it off Karma or a person
+           had to say. A switch that was confirmed by hand is the row somebody will want to find
+           if the member says they were billed for the wrong thing. */
+        switch_plan: switchPlan,
+        switch_plan_confirmed_by_staff: planConfirmedByStaff,
         delivery,
       },
       reason: `payment link sent for ${ids.orderNumber} (${label})`,

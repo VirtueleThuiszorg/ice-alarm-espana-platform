@@ -41,6 +41,9 @@ const member = (over: Partial<RunnerCandidate> = {}): RunnerCandidate => ({
   billing_source: "legacy",
   legacy_next_renewal: "2026-09-14",
   billing_frequency: "monthly",
+  // The default is the ordinary case: the import read a plan off Karma's label. The tests that
+  // care about the other case say so explicitly.
+  planConfirmed: true,
   ...over,
 });
 
@@ -321,5 +324,97 @@ describe("the settings, read out of system_settings", () => {
 
   it("ships switched OFF by default", () => {
     expect(DEFAULT_RUNNER_SETTINGS.enabled).toBe(false);
+  });
+});
+
+/*
+  ── A MEMBER NOBODY CAN PRICE ───────────────────────────────────────────────────
+
+  The plan a switch link charges comes off Karma's verbatim membership label. Some of those
+  labels name no plan ('FOC — Ayuntamiento'), and the CRM import then stored its `single` and
+  `annual` DEFAULTS, which cannot be told from real answers (`_shared/legacy-plan.ts`). Charging
+  one of them is the wrong price in one direction and twelve months at once in the other.
+
+  So the runner does not write to them. It tells the office, once, on the day they were due —
+  and Santander goes on collecting from them meanwhile, which is why doing nothing is safe here
+  and nowhere else.
+
+  WHY THE DECISION IS HERE AND NOT IN `send-payment-link`'s REFUSAL: the runner CLAIMS a send
+  against the dedupe key before it makes the call. A 409 coming back would have spent the
+  member's one claim for that renewal, and they would never be written to again for it even
+  after somebody fixed the record.
+*/
+describe("a member whose plan nobody can confirm", () => {
+  const unpriceable = (over: Partial<RunnerCandidate> = {}) =>
+    member({ planConfirmed: false, ...over });
+
+  it("is not sent a monthly switch link — the office is told instead", () => {
+    expect(plannedActionFor(unpriceable(), ON, TODAY)).toBe("plan_unconfirmed");
+  });
+
+  it("is not sent the annual notice either", () => {
+    const m = unpriceable({ billing_frequency: "annual", legacy_next_renewal: "2026-09-25" });
+    expect(plannedActionFor(m, ON, TODAY)).toBe("plan_unconfirmed");
+  });
+
+  it("nor the annual reminder, part-way through a switch", () => {
+    const m = unpriceable({
+      billing_frequency: "annual",
+      billing_source: "switch_pending",
+      legacy_next_renewal: "2026-09-18",
+    });
+    expect(plannedActionFor(m, ON, TODAY)).toBe("plan_unconfirmed");
+  });
+
+  /*
+    THE PHONE CALL STILL HAPPENS. Three days from an annual renewal, "ring them" is worth doing
+    whether or not anybody has worked out what they pay — it charges nothing, and the person
+    ringing is exactly who can answer the question.
+  */
+  it("still gets the staff bell three days out, because ringing them costs nothing", () => {
+    const m = unpriceable({
+      billing_frequency: "annual",
+      billing_source: "switch_pending",
+      legacy_next_renewal: "2026-09-14",
+    });
+    expect(plannedActionFor(m, ON, TODAY)).toBe("staff_bell");
+  });
+
+  it("is written to normally the moment the plan IS known", () => {
+    expect(plannedActionFor(member(), ON, TODAY)).toBe("switch_link");
+  });
+
+  it("is told about on a day they were due, and not on the other days", () => {
+    expect(plannedActionFor(unpriceable({ legacy_next_renewal: "2026-09-20" }), ON, TODAY)).toBeNull();
+  });
+
+  /*
+    AND NOTHING REACHES THE MEMBER. `isMemberFacing` used to be `kind !== "staff_bell"`, which
+    made every kind added afterwards member-facing by default — and the kind added afterwards is
+    this one, whose entire purpose is that the member must not be written to.
+  */
+  it("is not a member-facing send", () => {
+    expect(isMemberFacing("plan_unconfirmed")).toBe(false);
+    expect(isMemberFacing("staff_bell")).toBe(false);
+    expect(isMemberFacing("switch_link")).toBe(true);
+    expect(isMemberFacing("annual_notice")).toBe(true);
+    expect(isMemberFacing("annual_reminder")).toBe(true);
+  });
+
+  it("has a key of its own, so telling the office once does not block the link later", () => {
+    expect(sendKey("m-1", "2026-09-14", "plan_unconfirmed")).toBe(
+      "billing-switch:m-1:2026-09-14:plan_unconfirmed",
+    );
+    expect(sendKey("m-1", "2026-09-14", "plan_unconfirmed")).not.toBe(
+      sendKey("m-1", "2026-09-14", "switch_link"),
+    );
+  });
+
+  it("appears in a whole day's plan beside the members who can be written to", () => {
+    const planned = planTodaysRun([member({ id: "ok" }), unpriceable({ id: "unknown" })], ON, TODAY);
+    expect(planned.map((p) => [p.member.id, p.kind])).toEqual([
+      ["ok", "switch_link"],
+      ["unknown", "plan_unconfirmed"],
+    ]);
   });
 });

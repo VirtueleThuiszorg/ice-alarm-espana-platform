@@ -255,6 +255,35 @@ its version appeared in the remote list *after* a push and was absent *before* i
 
 ### S16 — 🔴 **Enforce "never merge red" with a branch ruleset** (2026-09-11) — *I could not do this one; the API path is blocked for me*
 
+> **UPDATE, 2026-09-11 16:28 UTC — you switched it on, and it is HALF done. The unfinished half is
+> actively breaking things right now.** Read this before the section below it, which was written
+> while the ruleset was still disabled and is no longer current.
+>
+> `GET /rulesets/19055263` now reports `"enforcement": "active"` and
+> `"conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"]}}`. **Trap 1 is fixed** — it targets
+> the default branch instead of nothing. Traps 2, 3 and 4 are all still live:
+>
+> | Trap | State | What it is doing |
+> |---|---|---|
+> | 2 — `allowed_merge_methods` | ❌ `["squash", "rebase"]` | Merge commits are refused. Merges are landing as squashes today so nothing has broken yet, but the first person to press **Create a merge commit** is refused for a reason that has nothing to do with their code. |
+> | 3 — no status-check rule | ❌ absent | **The whole point is still missing.** `rules` is `deletion`, `non_fast_forward`, `pull_request` — a red check still blocks nothing, and `Merge gate is enforced` is red on main saying exactly that. |
+> | 4 — `bypass_actors` | ❌ `null` | **The damaging one.** A `pull_request` rule with no bypass refuses *every* direct push to main. Two jobs do that: `migrate.yml`'s `chore(prod): record N migrations applied by CI`, so `APPLIED_TO_PROD.txt` stops tracking production and the drift gate starts failing for reasons unrelated to the code; and the `Wiring register` self-heal added in #382. Both now fail rather than doing their work. |
+>
+> **So the remaining ask is smaller than the section below makes it look.** Settings → Rules →
+> Rulesets → `main`, three edits, nothing else:
+>
+> 1. Under *Require a pull request before merging*, tick **Allow merge commits** (trap 2).
+> 2. Add **Require status checks to pass**, with exactly the six names listed further down — and
+>    **not** `Manifest matches production`, which is push-only, reports `skipped` on every PR, and
+>    would leave every pull request pending for ever (trap 3).
+> 3. Under *Bypass list*, add **Repository admin** and the **GitHub Actions** app, both `always`
+>    (trap 4). Do this one first if you only have a minute; it is the one currently costing us.
+>
+> I still cannot do any of it myself. Two separate walls, and it is worth knowing it is both:
+> the Anthropic agent proxy refuses REST writes to this path, *and* this session's token reports
+> `"permissions": {"admin": false, "maintain": false, "push": false}` on the repository. Reads work.
+
+
 **Why this is top of the list now.** Twice in July a red guard test was merged past and took production
 down. It happened again today, 11 Sep: #366 merged with `WIRING_REGISTER.md` resolved by keeping both
 sides, the test named `"WIRING_REGISTER.md was generated, not hand-merged > states its totals exactly

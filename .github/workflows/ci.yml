@@ -231,7 +231,13 @@ jobs:
             sleep $((attempt * 3))
           done
 
-          echo "::error title=Register not repaired::WIRING_REGISTER.md is stale on main and the repair commit could not be pushed. Run: node scripts/wiring/build.mjs"
+          # THE LIKELY REASON, AS OF 2026-09-11 16:28 UTC. Ruleset 19055263 went `active` that
+          # minute with a `pull_request` rule and `bypass_actors: null`, which refuses EVERY direct
+          # push to main — this one and migrate.yml's `chore(prod): record N migrations`. Adding
+          # `GitHub Actions` as a bypass actor is PENDING_FOR_LEE S16 trap 4. Until it is there,
+          # this step cannot repair anything, so it says which of the two things went wrong rather
+          # than leaving somebody to guess from a bare push failure.
+          echo "::error title=Register not repaired::WIRING_REGISTER.md is stale on main and the repair commit could not be pushed. Either main moved four times while this ran, or the branch ruleset refuses this push because GitHub Actions is not a bypass actor (PENDING_FOR_LEE S16, trap 4). Regenerate locally: node scripts/wiring/build.mjs"
           exit 1
   # IS THE MERGE GATE ITSELF ON?
   #

@@ -26,6 +26,7 @@ import { logMemberActivity } from "@/lib/auditLog";
 import { dbMessage } from "@/lib/dbMessage";
 import { PartnerAttributionCard } from "./PartnerAttributionCard";
 import { StaffHomeLocationCard } from "./StaffHomeLocationCard";
+import { FieldGrid, FieldSection, FIELD_LABEL_CLASS } from "@/components/FieldGrid";
 
 const profileSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
@@ -176,13 +177,13 @@ export function ProfileTab({ member, onUpdate, editSignal }: ProfileTabProps) {
         <Form {...form}>
           <div className="space-y-6">
             {/* Personal Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FieldGrid>
               <FormField
                 control={form.control}
                 name="first_name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>First Name</FormLabel>
+                    <FormLabel className={FIELD_LABEL_CLASS}>First Name</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -195,7 +196,7 @@ export function ProfileTab({ member, onUpdate, editSignal }: ProfileTabProps) {
                 name="last_name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Last Name</FormLabel>
+                    <FormLabel className={FIELD_LABEL_CLASS}>Last Name</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -208,7 +209,7 @@ export function ProfileTab({ member, onUpdate, editSignal }: ProfileTabProps) {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel className={FIELD_LABEL_CLASS}>Email</FormLabel>
                     <FormControl>
                       <Input type="email" {...field} />
                     </FormControl>
@@ -221,7 +222,7 @@ export function ProfileTab({ member, onUpdate, editSignal }: ProfileTabProps) {
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone</FormLabel>
+                    <FormLabel className={FIELD_LABEL_CLASS}>Phone</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -234,7 +235,7 @@ export function ProfileTab({ member, onUpdate, editSignal }: ProfileTabProps) {
                 name="date_of_birth"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Date of Birth</FormLabel>
+                    <FormLabel className={FIELD_LABEL_CLASS}>Date of Birth</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -247,7 +248,7 @@ export function ProfileTab({ member, onUpdate, editSignal }: ProfileTabProps) {
                 name="nie_dni"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>NIE/DNI</FormLabel>
+                    <FormLabel className={FIELD_LABEL_CLASS}>NIE/DNI</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -255,18 +256,17 @@ export function ProfileTab({ member, onUpdate, editSignal }: ProfileTabProps) {
                   </FormItem>
                 )}
               />
-            </div>
+            </FieldGrid>
 
             {/* Address */}
-            <div className="space-y-4">
-              <h3 className="font-medium">Address</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FieldSection title="Address">
+              <FieldGrid>
                 <FormField
                   control={form.control}
                   name="address_line_1"
                   render={({ field }) => (
                     <FormItem className="md:col-span-2">
-                      <FormLabel>Address Line 1</FormLabel>
+                      <FormLabel className={FIELD_LABEL_CLASS}>Address Line 1</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -279,7 +279,7 @@ export function ProfileTab({ member, onUpdate, editSignal }: ProfileTabProps) {
                   name="address_line_2"
                   render={({ field }) => (
                     <FormItem className="md:col-span-2">
-                      <FormLabel>Address Line 2</FormLabel>
+                      <FormLabel className={FIELD_LABEL_CLASS}>Address Line 2</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -292,7 +292,7 @@ export function ProfileTab({ member, onUpdate, editSignal }: ProfileTabProps) {
                   name="city"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>City</FormLabel>
+                      <FormLabel className={FIELD_LABEL_CLASS}>City</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -305,7 +305,7 @@ export function ProfileTab({ member, onUpdate, editSignal }: ProfileTabProps) {
                   name="province"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Province</FormLabel>
+                      <FormLabel className={FIELD_LABEL_CLASS}>Province</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -318,7 +318,7 @@ export function ProfileTab({ member, onUpdate, editSignal }: ProfileTabProps) {
                   name="postal_code"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Postal Code</FormLabel>
+                      <FormLabel className={FIELD_LABEL_CLASS}>Postal Code</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -331,7 +331,7 @@ export function ProfileTab({ member, onUpdate, editSignal }: ProfileTabProps) {
                   name="country"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Country</FormLabel>
+                      <FormLabel className={FIELD_LABEL_CLASS}>Country</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -339,17 +339,17 @@ export function ProfileTab({ member, onUpdate, editSignal }: ProfileTabProps) {
                     </FormItem>
                   )}
                 />
-              </div>
-            </div>
+              </FieldGrid>
+            </FieldSection>
 
             {/* Preferences */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FieldGrid>
               <FormField
                 control={form.control}
                 name="preferred_language"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Preferred Language</FormLabel>
+                    <FormLabel className={FIELD_LABEL_CLASS}>Preferred Language</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -370,7 +370,7 @@ export function ProfileTab({ member, onUpdate, editSignal }: ProfileTabProps) {
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Status</FormLabel>
+                    <FormLabel className={FIELD_LABEL_CLASS}>Status</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -387,7 +387,7 @@ export function ProfileTab({ member, onUpdate, editSignal }: ProfileTabProps) {
                   </FormItem>
                 )}
               />
-            </div>
+            </FieldGrid>
 
             {/* Special Instructions */}
             <FormField
@@ -395,7 +395,7 @@ export function ProfileTab({ member, onUpdate, editSignal }: ProfileTabProps) {
               name="special_instructions"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Special Instructions</FormLabel>
+                  <FormLabel className={FIELD_LABEL_CLASS}>Special Instructions</FormLabel>
                   <FormControl>
                     <Textarea 
                       placeholder="Any special instructions for handling alerts or contacting this member..."

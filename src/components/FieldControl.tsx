@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useEditableCard } from "@/components/editableCardContext";
+import { FIELD_LABEL_CLASS } from "@/components/FieldGrid";
 
 /**
  * R6 IN ONE COMPONENT: a field is its label and its value until its card is unlocked.
@@ -28,11 +29,9 @@ import { useEditableCard } from "@/components/editableCardContext";
  * the member's account at 13px while the values around them grew.
  */
 export function FieldLabel({ children }: { children: ReactNode }) {
-  return (
-    <span className="text-[0.8125rem] font-medium uppercase tracking-wide text-muted-foreground">
-      {children}
-    </span>
-  );
+  // The class moved to FieldGrid so the staff record's FormLabels can import the same string.
+  // Two surfaces cannot drift apart on a constant they both import.
+  return <span className={FIELD_LABEL_CLASS}>{children}</span>;
 }
 
 /**

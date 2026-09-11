@@ -1,0 +1,198 @@
+# Moving the legacy members onto Stripe — the report Lee asked for
+
+**As at 11 September 2026.** Everything below is either in `main` or in an open PR that names
+itself. Nothing here has run against Stripe: this environment has no Stripe key, so no Checkout
+Session has ever been created and no test clock has ever been advanced. What that means for the
+"PROVE" half of the brief is set out honestly in §6.
+
+---
+
+## 1. The pull requests
+
+| PR | What it is | State |
+|---|---|---|
+| #360 | **The Santander date.** `members.legacy_billing_day` (1–31) and `legacy_next_renewal`, derived by the CRM import from `Monthly Payment Date` / `Payment Type` / `Date Joined`; staff-editable with `activity_logs`; a "needs a date" queue for everybody the import could not work out | merged |
+| #362 | Two live defects found on the way: `send-payment-link` read its settings off an identifier declared nowhere in the file, and asked Stripe for a 72-hour session when Stripe's ceiling is 24. **No staff-sent payment link had been able to succeed**, and both failed *after* the pending order rows were written | merged |
+| #364 | **The switch link.** `send-payment-link` in `legacy_switch` mode — the same builder, registration fee and pendant removed | merged |
+| #368 | **The runner.** Daily pg_cron; monthly members get one link three days out, annual members a ladder at 14 / 7 / 3 days. Arrives switched **off** | merged |
+| #369 | **The progress view** and the Santander CSV | merged |
+| #370 | **A failed debit:** one Stripe smart retry, then a staff bell and a friendly text | merged |
+| #373 | **Six defects that made the whole thing do nothing.** The worst: `start_legacy_switch` and `expire_legacy_switches` were revoked from `PUBLIC` and granted to nobody, and PostgREST runs an edge function as `service_role` — so every "Move to Stripe billing" press hit permission denied. The feature was inert, and it failed *safe* | merged |
+| #383 | **The switch link charged the import's default plan.** The plan was read from `subscriptions.plan_type` / `billing_frequency`, which hold `COALESCE(…, 'single')` / `COALESCE(…, 'annual')` for every row whose Karma label named no plan. A couple would have been charged the single price; a monthly member, a year at once | merged |
+| #385 | **A bounced direct debit left the member in neither collection.** `checkout.session.async_payment_failed` was handled by nothing, so a failed first SEPA debit kept the member in `switch_pending` — out of the Santander export, billed by nobody — until the 14-day sweep found them | merged |
+| #392 | **The Santander list did not say what each member is on.** The brief asks for "day, amount, plan"; the plan was missing. It is Karma's verbatim label, blank rather than guessed — and the members nobody can price now have a counter on the dashboard beside "needs a billing date", so the migration stopping for them is visible | merged |
+| #393 | `20260911170000` was applied to production and the manifest commit was refused by the new ruleset. Recorded by hand, which is the workflow's own instruction | merged |
+| #395 | **The billing day was the day the link was SENT, not the day they paid.** `renewal_date` is written at ORDER time by both paths; a switch link stands 24 hours and a SEPA debit settles days later, and `onInvoicePaid` skips the signup invoice — so nothing corrected it until the member's second invoice. Now recorded by the webhook, through the same month-end clamp the Santander dates use | merged |
+| #396 | **WhatsApp on the switch link**, which the brief names and only SMS and email did. Off until a template is approved — §5 D | open |
+
+## 2. The migrations, and what production has
+
+Applied to production by CI (`supabase/migrations/APPLIED_TO_PROD.txt`):
+
+| Migration | What it changes |
+|---|---|
+| `20260911110000_legacy_billing_date` | `legacy_billing_day`, `legacy_next_renewal`, two partial indexes, and a trigger that stops a member writing either of them for themselves |
+| `20260911130000_legacy_switch_to_stripe` | `switch_pending` added to the `billing_source` CHECK; the five `switch_*` columns; `start_legacy_switch()`; `expire_legacy_switches()`; the two switch notification routes |
+| `20260911150000_billing_migration_settings` | `notification_log.dedupe_key` + a **partial unique index** — the thing that makes "just run it again" safe; the five runner settings, seeded with `enabled = false` |
+| `20260911150100_billing_migration_cron` | the pg_cron schedule, `0 6 * * *` |
+| `20260911160000_billing_runner_grants` | the `GRANT EXECUTE … TO service_role` that #373 found missing, plus a re-issue rule so the annual ladder's 7-day reminder has something payable to point at |
+| `20260911170000_abandon_legacy_switch` | one implementation of "return them to legacy and ring the bell", called by both the 14-day sweep and the bounced-debit webhook |
+
+**Nothing is pending: production is level with the repo.** One caveat worth knowing about, because it
+will recur: the ruleset now on `main` blocks `github-actions[bot]` from pushing to it, so
+`Migrate Production` **applies** each migration and then cannot record it. The migration is live and
+the manifest line is missing, which is the worse half to lose — the drift gate then reads production
+as behind on something already applied. #393 is that line, appended by hand; #386 is the systemic
+fix and is itself blocked until **Repository admin** is added to the ruleset's bypass list (§5 E).
+
+**No SQL backfill of the Santander date.** Parsing Karma's free-text column in Postgres would be a
+second implementation of the date rule, and the two would disagree on exactly the rows nobody
+checks. The import derives it; everybody else lands in the "needs a date" queue, which is a
+person's job.
+
+## 3. The exact Stripe parameters
+
+From `supabase/functions/send-payment-link/index.ts`, `legacy_switch` mode:
+
+```ts
+stripe.checkout.sessions.create({
+  mode: "subscription",
+  payment_method_types: ["card", "sepa_debit"],   // sepa_debit ONLY once §5 is ticked
+  line_items: [ { price: <synced Stripe Price id>, quantity: 1 } ],
+  customer_email: <the member's own email, or omitted>,
+  success_url: `${PUBLIC_SITE_URL}/payment-success?order=<order number>`,
+  cancel_url:  `${PUBLIC_SITE_URL}/payment-cancelled?order=<order number>`,
+  billing_address_collection: "required",
+  metadata:          { order_id, payment_id, member_id, subscription_id, source: "legacy-switch", … },
+  subscription_data: { metadata: <the same> },
+  expires_at: now + 24 * 60 * 60,
+})
+```
+
+**And, deliberately, nothing else.** No `trial_period_days`, no `billing_cycle_anchor`, no
+`proration_behavior` — asserted as absences in `src/test/legacySwitchToStripe.test.ts`, because the
+defect would be a parameter *appearing*.
+
+The temptation is an anchor set to the member's Santander date so the cycles line up. It is wrong
+twice: it produces a €0 or prorated first invoice, and **a €0 invoice does not pay a Checkout
+Session** — so the webhook would never activate them, while `switch_pending` had already taken them
+out of the Santander run. Nobody would be collecting at all. That is the single worst outcome
+available here, and it is produced by the very parameter that looks like it prevents one.
+
+**24 hours** is not a choice: Stripe allows a session to expire between 30 minutes and 24 hours.
+The switch *window* is 14 days, which is a different thing and lives on the member's record — so
+the member portal can tell "here is your link" from "your link has expired, ring us". Showing a
+dead Stripe page to an 82-year-old who then believes they have paid is worse than showing none.
+
+**The line items.** One membership line, priced from `pricing_plans` / `pricing_settings` through
+the synced `stripe_prices` ids. No registration fee (they joined years ago; charging it again is
+charging somebody to stay) and no pendant line (they are wearing it, and a pendant line would post
+a second one). The browser sends no amount, ever.
+
+## 4. What the member is told
+
+**SMS / WhatsApp**, ≤320 characters, with the link. English then Spanish:
+
+> ICE Alarm España: hello Mary, **your alarm does not change.** We are moving payments to card or
+> direct debit: €29.95 today and the same each month on this date. https://checkout.stripe.com/…
+
+> ICE Alarm España: hola María, **tu alarma no cambia.** Estamos pasando los pagos a tarjeta o
+> domiciliación: 29,95 € hoy y lo mismo cada mes en esta misma fecha. https://checkout.stripe.com/…
+
+**Email** — subject, then the four things in the order the questions actually arrive in:
+
+| | English | Español |
+|---|---|---|
+| Subject | Your service is not changing — only how you pay | Tu servicio no cambia — solo la forma de pago |
+| 1. Nothing changes | Your alarm, your pendant and the number we call stay exactly as they are. This is only about how the payment is taken. | Tu alarma, tu colgante y el número al que llamamos siguen exactamente igual. Esto es solo sobre la forma de pagar. |
+| 2. What is changing | We are moving payments off the bank collection and onto our own payment system. You can pay by card, or give your IBAN so it is taken automatically each time. | Estamos pasando los cobros del banco a nuestro sistema de pagos. Puedes pagar con tarjeta o dar tu IBAN para que se domicilie automáticamente cada vez. |
+| 3. Exactly what and when | €29.95 will be taken today, and the same amount each month on this date. | Se cobrará 29,95 € hoy, y la misma cantidad cada mes en esta fecha. |
+| 4. The old one stops | We will stop the bank collection as soon as this payment has gone through. | Dejaremos de pasar el recibo por el banco en cuanto se complete este pago. |
+| Button | Pay and set up | Pagar y domiciliar |
+| Help | If you would rather talk it over, reply to this email and we will ring you. | Si prefieres hablarlo por teléfono, responde a este correo y te llamamos. |
+
+Dutch is written too, for the members whose record says `nl`.
+
+**The link is always on the operator's screen**, whatever the SMS and email did, and each channel
+reports separately. Most of these members are eighty, and the delivery that actually works is an
+operator reading it out.
+
+## 5. What needs Lee
+
+| | What | Where | Why it blocks |
+|---|---|---|---|
+| **A** | **Enable SEPA Direct Debit**, subscribe the webhook destination to `checkout.session.async_payment_succeeded` **and** `checkout.session.async_payment_failed`, then tick *Async events confirmed* | Stripe → Payments + Developers → Webhooks, then Admin → Settings → Payments | **This decides whether the migration runs or needs 431 phone calls.** Every one of these members has paid by direct debit for years; a card-only link asks a 79-year-old to find a card. The platform refuses to offer SEPA until the box is ticked, so **today every switch link is card-only** |
+| **B** | **Pin the destination to API version `2024-06-20`** | same screen | `invoice.subscription` and `subscription.current_period_end` both moved in later versions. The webhook declares the fields it needs and refuses loudly if one is missing, so a wrong version is visible rather than silent — but it should simply be right |
+| **C** | **Live-mode keys**, once the test-clock rehearsal in §6 has been done | Stripe → Developers → API keys → Supabase secrets | Nothing has been run against Stripe at all |
+| **D** | **WhatsApp: switch the channel on and get a message template approved** | Admin → Settings → Notifications, Twilio → WhatsApp sender, then Meta | The brief names the delivery as "SMS/WhatsApp" and the code now offers both — but the channel is off and no template exists, so today every switch link goes by SMS and email and the WhatsApp row reads "not sent — the channel is switched off". **A business-initiated WhatsApp message outside a 24-hour window needs an approved template**, and that is the long pole rather than the switch. It has to carry the first name, the amount, the cycle and the link |
+| **E** | **Add Repository admin to the `main` ruleset's bypass list** | GitHub → Settings → Rules | The ruleset as configured returns **no bypass actors**, which blocks everyone — a repository admin's PAT included. Until it is changed, `Migrate Production` applies every migration and cannot record it, and each one needs a manual manifest line (§2) |
+| **F** | **Switch the runner on**, after reading its dry-run preview | Admin → Settings → Billing | It ships `enabled = false`. A migration that starts itself on deploy is a migration nobody chose, over 431 people who are all elderly and none of whom asked for it today |
+
+Until **A** is done the whole thing still works — the links go out, they are payable by card, the
+webhook activates on payment — it is simply harder for the people it is for.
+
+## 6. What is proven, and what is not
+
+**Proven, by execution:**
+
+- **680 assertions against real PostgreSQL** (`scripts/rls/run.sh`, a throwaway PG16 with the real
+  migration set): who may call each function and who may not; that a member cannot take themselves
+  out of the Santander run; that a lapsed link returns exactly one member and running the sweep
+  again returns none; that every switch column is cleared; that the bells are targeted rows rather
+  than one shared row somebody else can clear.
+- **~4,550 unit and contract tests**, including the date rule at month ends and leap days, the
+  runner's whole daily plan, the dedupe key, the Santander CSV's exclusion rule, and the refusals
+  `send-payment-link` makes before it asks Stripe for anything.
+- Several of the assertions above were **mutation-checked** — broken on purpose to see them fail.
+  One did not fail, and that is recorded rather than glossed: the "every switch column is cleared"
+  assertion passed over columns that were already NULL in the harness seed. The seed now sets them.
+
+**Not proven, and it cannot be proven from here:** anything Stripe actually does. No Checkout
+Session has been created, no clock advanced, no `async_payment_succeeded` received. The rehearsal
+worth doing in **test mode**, before live keys:
+
+1. A monthly member completes a switch link on the 15th → the **full** fee is taken at once (not
+   €0, not prorated), `billing_source` flips to `stripe` on the first payment, and the Santander
+   export no longer lists them.
+2. Advance the test clock a month → the next charge lands on the 15th.
+3. The same again paying by **SEPA**, to see `async_payment_succeeded` arrive and activate them.
+4. Fail a SEPA debit, to see `async_payment_failed` put them back on legacy billing with the bell.
+5. Run the runner twice on the same day → the second run sends nothing.
+
+Items 1, 2 and 4 are the ones that would embarrass us, and none of them can be checked from here.
+
+## 7. One line of the brief that reads two ways — and the setting that settles it
+
+> The runner times the link to the member's Santander date **so paying on completion lands on
+> their usual day.**
+
+> monthly members — send the switch link **3 days before** their Santander day.
+
+Both are in the brief, and they do not agree. A member who pays the moment the link arrives has a
+Stripe billing day of *(Santander day − 3)*, which is three days earlier than their usual one —
+not the same day. The two only coincide if the link goes out **on** the day.
+
+**Built to the specific number**, because 3 is what the runner section states outright, and because
+a few days' notice is what lets somebody ring their son before the money moves. It is not a guess
+baked into code: `billing_migration_monthly_lead_days` is a setting in **Admin → Settings →
+Billing**, and setting it to **0** makes the link go out on the Santander day, so paying on
+completion lands on the usual day exactly. Zero is handled deliberately — an empty or unreadable
+row falls back to 3 rather than silently becoming 0, which was a defect found and fixed on the way.
+
+Lee's call, and it costs one field on one screen either way.
+
+## 8. The rules this was built to, in one place
+
+1. **Nobody pays twice.** A member is out of the Santander export from the moment a Stripe session
+   exists, and back in it the moment the switch ends without money — whether that is the 14-day
+   lapse or a bounced first debit.
+2. **Nobody loses monitoring.** Nothing in the migration touches `members.status`. Every one of
+   these members is `active` before, during and after; a failed debit says so in as many words to
+   the staff member reading the bell.
+3. **`billing_source = 'stripe'` is written by the payment webhook and nowhere else** — golden
+   rule 4, applied to who bills rather than only to who is active.
+4. **The setup day becomes the billing day.** No €0 setups, no future anchors, no proration.
+5. **Never twice is a unique index, not a check.** Every send claims itself by INSERTing a
+   `notification_log` row carrying `billing-switch:<member>:<renewal>:<kind>`.
+6. **What cannot be established is refused, not guessed.** A member whose Karma label names no plan
+   gets no link and the office gets a bell; Santander goes on collecting from them meanwhile.

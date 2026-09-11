@@ -57,6 +57,12 @@ export type MembershipCondition =
    * them nobody is watching.
    */
   | "legacy_billing"
+  /**
+   * `billing_source = 'switch_pending'` — a Stripe link is out and unpaid. Monitored throughout:
+   * the alarm has not changed and never does. Its own condition rather than `legacy_billing`
+   * because there is one thing for the member to DO, and this is the only screen that can say so.
+   */
+  | "switching_to_stripe"
   /** No subscription row at all. The only condition that shows the plans. */
   | "never_joined"
   /** `pending` — a subscription exists, the payment has not been confirmed. */
@@ -135,6 +141,28 @@ export const MEMBERSHIP_CONDITIONS = [
       key: "subscription.condition.legacyBody",
       fallback:
         "An operator answers your alarm, day and night. Your payments are handled directly with our office rather than online.",
+    },
+  },
+  {
+    condition: "switching_to_stripe",
+    // Monitored, and the wording has to lead with it. A message about money from the company
+    // that holds somebody's emergency button reads as a threat to the button unless it does.
+    monitored: true,
+    showsPlans: false,
+    /* NULL, for the same reason `active` is: the page renders the thing itself. A member
+       mid-switch gets `SwitchToStripeCard` — their own link while it is live, and "ask us for a
+       new one" once Stripe has expired it — so a second button here would be two actions for one
+       job on one screen, and R1 allows one red button per surface. The route to a human is on
+       that card, not duplicated beside it. */
+    action: null,
+    title: {
+      key: "subscription.condition.switchingTitle",
+      fallback: "Your membership is active",
+    },
+    body: {
+      key: "subscription.condition.switchingBody",
+      fallback:
+        "Your alarm has not changed and will not. We have sent you a link to move your payment from your bank to a card or a direct debit set up here.",
     },
   },
   {
@@ -282,8 +310,12 @@ export function membershipCondition(
      `never_joined` (the plans, and "nobody is watching") or `unknown` — for somebody who is
      monitored right now. The member row is the authority on whether an operator is watching;
      the subscription is the authority on billing, and these people have no billing here. */
-  if (member && member.billing_source === "legacy" && member.status === "active") {
-    return "legacy_billing";
+  if (member && member.status === "active") {
+    if (member.billing_source === "legacy") return "legacy_billing";
+    /* Mid-migration. Still no subscription row of their own, so every branch below would answer
+       `never_joined` or `unknown` for somebody an operator is watching right now — the same
+       reasoning as `legacy_billing`, plus one thing for them to do. */
+    if (member.billing_source === "switch_pending") return "switching_to_stripe";
   }
   if (latest === undefined) return "unknown";
   if (latest === null) return "never_joined";

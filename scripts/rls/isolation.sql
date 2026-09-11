@@ -4812,14 +4812,14 @@ INSERT INTO public.staff (id, user_id, email, first_name, last_name, role, perso
 -- ── the seed is a set of ROWS, and the right ones ──────────────────────────
 -- The counts below compare against `notification_routes` rather than a literal, so extending
 -- the event list does not redden the suite for a reason nobody can act on. THIS assertion is
--- what stops that being vacuous: the routes table has to be the real 23 x 4.
+-- what stops that being vacuous: the routes table has to be the real 25 x 4.
 SELECT pg_temp.check(
-  'the routes table carries every event type x every channel — 23 x 4',
-  (SELECT count(*) FROM public.notification_routes) = 92
-  AND (SELECT count(DISTINCT event_type) FROM public.notification_routes) = 23
+  'the routes table carries every event type x every channel — 25 x 4',
+  (SELECT count(*) FROM public.notification_routes) = 100
+  AND (SELECT count(DISTINCT event_type) FROM public.notification_routes) = 25
   AND (SELECT count(DISTINCT channel) FROM public.notification_routes) = 4,
   'the eight this router was built for, the eleven notify-admin already sends, the three swap '
-  'events, member.legacy_confirmed, and `test`');
+  'events, member.legacy_confirmed, the two billing-switch events, and `test`');
 
 -- And the new one has a row per channel rather than a hole, for the same reason the swap events
 -- are named below: 92 rows and 23 distinct events would also be satisfied by one event missing a
@@ -6821,6 +6821,147 @@ SELECT pg_temp.check(
     'UPDATE public.members SET status = ''active'', legacy_billing_day = 4
       WHERE user_id = ''11111111-1111-1111-1111-111111111111'''),
   'three BEFORE UPDATE triggers on one table — this fails if any of them stops running');
+
+-- ============================================================
+--  Moving a legacy member onto Stripe: switch_pending
+-- ============================================================
+--
+-- WHAT `switch_pending` IS FOR. Between the moment we send a Stripe link and the moment Stripe
+-- takes the money, SOMEBODY IS STILL RUNNING THE SANTANDER COLLECTION. A member who has just
+-- paid Stripe and is still in that run is charged twice in one month, by us, for the same
+-- monitoring. `switch_pending` takes them out of the export; the cost of being wrong that way
+-- is one missed month, recoverable next month.
+--
+-- So the state is worth exactly as much as the things that may write it, which is what this
+-- section asserts.
+
+SELECT pg_temp.check(
+  'start_legacy_switch is NOT executable by a member',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'SELECT public.start_legacy_switch(''d1e00000-0000-0000-0000-00000000000a'', ''cs_x'', now() + interval ''14 days'')'),
+  'a browser able to call it could take a member out of the Santander run with no Stripe session behind it');
+
+SELECT pg_temp.check(
+  'nor by an ADMIN — service role only, because the Stripe session is what makes it true',
+  pg_temp.raises_as('d1000000-0000-0000-0000-00000000000a',
+    'SELECT public.start_legacy_switch(''d1e00000-0000-0000-0000-00000000000a'', ''cs_x'', now() + interval ''14 days'')'),
+  'the edge function checks the staff member and creates the session FIRST; this records it');
+
+SELECT pg_temp.check(
+  'expire_legacy_switches is not executable by staff either',
+  pg_temp.raises_as('d1000000-0000-0000-0000-00000000000a',
+    'SELECT public.expire_legacy_switches()'));
+
+-- ── a member may not put themselves out of the collection ─────────────────────
+
+SELECT pg_temp.check(
+  'a MEMBER CANNOT set their own billing_source to switch_pending',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET billing_source = ''switch_pending''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''),
+  'out of the Santander export, exempt from renewal, and paying nobody');
+
+SELECT pg_temp.check(
+  'a MEMBER CANNOT push out their own switch expiry',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET switch_expires_at = ''2099-01-01''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''),
+  'the lapse is what puts an unmoved member back into the collection');
+
+SELECT pg_temp.check(
+  'a MEMBER CANNOT forge the Stripe session id on their own record',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET switch_checkout_session_id = ''cs_forged''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''),
+  'support answers "the link you sent me" from this column');
+
+SELECT pg_temp.check(
+  'CONTROL: none of those three wrote anything',
+  (SELECT billing_source = 'stripe' AND switch_expires_at IS NULL
+      AND switch_checkout_session_id IS NULL
+     FROM public.members WHERE user_id = '11111111-1111-1111-1111-111111111111'),
+  'a guard that raises and still writes is worse than no guard');
+
+-- ── the function itself, run as the service role does ────────────────────────
+
+-- d1e00000-…-000a was confirmed as a legacy member earlier in this file.
+SELECT pg_temp.check(
+  'starting a switch takes a legacy member out of the Santander export',
+  (SELECT billing_source FROM public.start_legacy_switch(
+     'd1e00000-0000-0000-0000-00000000000a', 'cs_test_1', now() + interval '14 days',
+     'd1a00000-0000-0000-0000-00000000000a')) = 'switch_pending');
+
+SELECT pg_temp.check(
+  'and records WHICH session, so support can answer "the link you sent me"',
+  (SELECT switch_checkout_session_id = 'cs_test_1' AND switch_started_at IS NOT NULL
+     FROM public.members WHERE id = 'd1e00000-0000-0000-0000-00000000000a'));
+
+SELECT pg_temp.check(
+  'the member is still ACTIVE throughout — a switch is not a lapse in monitoring',
+  (SELECT status::text FROM public.members
+    WHERE id = 'd1e00000-0000-0000-0000-00000000000a') = 'active',
+  'they are wearing the pendant the whole time; only who bills them is in question');
+
+SELECT pg_temp.check(
+  'it writes an activity_logs row naming the session and the expiry',
+  (SELECT count(*) FROM public.activity_logs
+    WHERE action = 'member.switch_link_sent'
+      AND entity_id = 'd1e00000-0000-0000-0000-00000000000a'
+      AND new_values->>'checkout_session_id' = 'cs_test_1') = 1);
+
+-- A SECOND link is a second charge waiting to happen: two sessions, either of which can be paid.
+DO $$
+DECLARE ok boolean := false;
+BEGIN
+  BEGIN
+    PERFORM public.start_legacy_switch('d1e00000-0000-0000-0000-00000000000a', 'cs_test_2',
+                                       now() + interval '14 days');
+  EXCEPTION WHEN OTHERS THEN ok := true;
+  END;
+  PERFORM pg_temp.check(
+    'a SECOND switch on the same member is refused',
+    ok,
+    'two live sessions means two ways to be charged for the same month');
+END $$;
+
+-- ── the lapse ────────────────────────────────────────────────────────────────
+
+SELECT pg_temp.check(
+  'a switch that has NOT expired is left alone',
+  public.expire_legacy_switches() = 0,
+  'expiring an outstanding link would pull a member back into the run with a payable link out');
+
+-- Backdate it, exactly as fourteen days passing would.
+UPDATE public.members SET switch_expires_at = now() - interval '1 minute'
+ WHERE id = 'd1e00000-0000-0000-0000-00000000000a';
+
+SELECT pg_temp.check(
+  'a lapsed switch returns exactly one member',
+  public.expire_legacy_switches() = 1);
+
+SELECT pg_temp.check(
+  'and puts them back on legacy billing with the session cleared',
+  (SELECT billing_source = 'legacy' AND switch_expires_at IS NULL
+      AND switch_started_at IS NULL AND switch_checkout_session_id IS NULL
+     FROM public.members WHERE id = 'd1e00000-0000-0000-0000-00000000000a'),
+  'a member left in switch_pending forever is a permanent hole in the Santander collection');
+
+SELECT pg_temp.check(
+  'the bell went to the supervisors, targeted rather than broadcast',
+  (SELECT count(*) FROM public.notification_log
+    WHERE event_type = 'member.switch_expired'
+      AND entity_id = 'd1e00000-0000-0000-0000-00000000000a') >= 2,
+  'a shared row is cleared for everybody the moment one person marks it read');
+
+SELECT pg_temp.check(
+  'running it again does nothing — the runner is daily and must be idempotent',
+  public.expire_legacy_switches() = 0);
+
+SELECT pg_temp.check(
+  'the switch events are routable at all',
+  (SELECT count(*) FROM public.notification_routes
+    WHERE event_type IN ('member.switch_link_sent', 'member.switch_expired')) = 8,
+  'an event missing from notification_routes_event_type_check is an event nobody hears');
 
 -- ============================================================
 --  Report

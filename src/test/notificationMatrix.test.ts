@@ -50,7 +50,7 @@ const route = (event: string, channel: string, enabled = true): RouteRow => ({ e
 const pref = (staff: string, event: string, channel: string, enabled = true): PrefRow => ({ staff_id: staff, event_type: event, channel, enabled });
 
 describe("every event is on the screen", () => {
-  it("has a label and a plain-English detail for all nineteen", () => {
+  it("has a label and a plain-English detail for every one of them", () => {
     expect(EVENT_SPECS).toHaveLength(NOTIFY_EVENTS.length);
     for (const type of NOTIFY_EVENTS) {
       const spec = EVENT_SPECS.find((s) => s.event === type);

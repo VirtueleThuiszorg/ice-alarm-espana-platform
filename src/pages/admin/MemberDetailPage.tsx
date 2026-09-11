@@ -51,6 +51,8 @@ interface Member {
   /** When Santander collects from a legacy member. NULL is a queue for staff, not an error. */
   legacy_billing_day: number | null;
   legacy_next_renewal: string | null;
+  /** Set while an unpaid Stripe switch link is outstanding. */
+  switch_expires_at: string | null;
   photo_url: string | null;
   address_line_1: string;
   address_line_2: string | null;
@@ -336,6 +338,7 @@ function MemberRecord() {
             billingSource={member.billing_source}
             legacyBillingDay={member.legacy_billing_day}
             legacyNextRenewal={member.legacy_next_renewal}
+            switchExpiresAt={member.switch_expires_at}
             onMemberChanged={fetchMember}
           />
         </TabsContent>

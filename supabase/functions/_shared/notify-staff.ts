@@ -64,6 +64,11 @@ export const NOTIFY_EVENTS = [
   // ── a legacy member confirmed (D-19 item 2). It changes who the platform considers
   //    monitored, and it is the one activation that did not come from a payment ──
   "member.legacy_confirmed",
+  // ── the billing migration. A link going out matters because the member LEAVES the Santander
+  //    export at that moment; a link lapsing matters more, because they come back into it and
+  //    nobody has moved them ──
+  "member.switch_link_sent",
+  "member.switch_expired",
   "system.runner_failure",
   "escalation.call_failed",
   "escalation.no_emergency_contacts",

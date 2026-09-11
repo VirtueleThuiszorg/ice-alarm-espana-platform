@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useConfirmLegacyMember } from "@/hooks/useConfirmLegacyMember";
+import { useLegacySwitchLink } from "@/hooks/useSendPaymentLink";
 import { useMembersRealtime } from "@/hooks/useMembersRealtime";
 import type { Tables } from "@/integrations/supabase/types";
 import { Link, useNavigate } from "react-router-dom";
@@ -210,6 +211,45 @@ export default function MembersPage() {
     // Named, not counted: "3 failed" tells nobody whether to fetch a supervisor or reload.
     if (refused.length > 0) toast.error(`${refused.length} refused — ${refused[0]}`);
   };
+
+  /* ── the bulk switch ────────────────────────────────────────────────────────
+     Offered ONLY while the list is filtered to legacy billing. Elsewhere it would be offering to
+     send Stripe links to members Stripe already bills.
+
+     ONE CALL PER MEMBER, sequentially, for the same reasons as the bulk confirm — and one more
+     that matters here: each call creates a Stripe Checkout Session and a pending order. A batch
+     that aborted halfway would leave some members in `switch_pending` (out of the Santander
+     export) and the rest not, with nothing on screen saying which. Per member, the successes are
+     already real and the refusals are named. */
+  const switchLink = useLegacySwitchLink();
+  const [switchBusy, setSwitchBusy] = useState(false);
+  const canBulkSwitch = billingFilter === "legacy" && selectedIds.length > 0;
+
+  const runBulkSwitch = async () => {
+    setSwitchBusy(true);
+    let sent = 0;
+    const refused: string[] = [];
+    for (const id of selectedIds) {
+      try {
+        await switchLink.mutateAsync({ memberId: id });
+        sent += 1;
+      } catch (e) {
+        refused.push(e instanceof Error ? e.message : "unknown error");
+      }
+    }
+    setSwitchBusy(false);
+    setSelectedIds([]);
+    if (sent > 0) {
+      toast.success(
+        `${sent} switch link(s) created. Those members are now out of the Santander export.`,
+      );
+    }
+    if (refused.length > 0) toast.error(`${refused.length} refused — ${refused[0]}`);
+  };
+
+  /* The selection column serves both bulk actions, so it shows for either queue. Showing it
+     always would be offering to select rows with nothing to do to them. */
+  const showSelection = statusFilter === "pending_review" || billingFilter === "legacy";
 
   /* The values Karma actually used, for the filter. One read, cached, and independent of the
      page — a filter offering only what happens to be on page one is a filter that lies. */
@@ -450,13 +490,42 @@ export default function MembersPage() {
         </Card>
       )}
 
+      {/* THE SWITCH BAR. Only under the legacy billing filter — anywhere else it would be
+          offering to send Stripe links to members Stripe already bills. */}
+      {billingFilter === "legacy" && (
+        <Card data-testid="bulk-switch-bar">
+          <CardContent className="py-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium">
+                {selectedIds.length === 0 ? "Still billed by Santander" : `${selectedIds.length} selected`}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Each one gets a Stripe link for the plan they are already on — no registration fee
+                and no pendant. They leave the Santander export the moment the link is created, so
+                nobody collects twice; an unused link lapses after 14 days and they go back, with
+                a bell.
+              </p>
+            </div>
+            <Button
+              variant="ink"
+              disabled={!canBulkSwitch || switchBusy}
+              onClick={runBulkSwitch}
+              data-testid="bulk-switch-submit"
+            >
+              {switchBusy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Move {selectedIds.length > 0 ? selectedIds.length : ""} to Stripe billing
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Members Table */}
       <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                {statusFilter === "pending_review" && (
+                {showSelection && (
                   <TableHead className="w-[40px]">
                     <Checkbox
                       aria-label="Select every member on this page"
@@ -500,7 +569,7 @@ export default function MembersPage() {
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => navigate(`/admin/members/${member.id}`)}
                   >
-                    {statusFilter === "pending_review" && (
+                    {showSelection && (
                       /* stopPropagation, because the row navigates. Without it, ticking a box
                          opens the member's record and the tick is lost — the control would be
                          unusable and would look like the list was broken. */

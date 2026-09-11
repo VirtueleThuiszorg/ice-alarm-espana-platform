@@ -20,6 +20,13 @@ import {
   planLabel,
   type DeliveryOutcome,
 } from "../_shared/payment-link.ts";
+import {
+  LEGACY_SWITCH_EXPIRY_DAYS,
+  legacySwitchPaymentMethods,
+  legacySwitchSelection,
+  switchNoticeEmail,
+  switchNoticeSms,
+} from "../_shared/legacy-switch.ts";
 
 /**
  * send-payment-link — staff ask Stripe for a Checkout Session and hand the member (or whoever
@@ -111,7 +118,7 @@ serve(async (req) => {
     // ── the member ───────────────────────────────────────────────────────────
     const { data: member, error: memberError } = await admin
       .from("members")
-      .select("id, first_name, last_name, email, phone, preferred_language, status")
+      .select("id, first_name, last_name, email, phone, preferred_language, status, billing_source")
       .eq("id", body.memberId)
       .maybeSingle();
     if (memberError || !member) return json(404, { error: "Member not found" });
@@ -132,14 +139,69 @@ serve(async (req) => {
     }
     const setting = pricing.setting;
 
-    const selection = {
-      membershipType: body.membershipType,
-      billingFrequency: body.billingFrequency,
-      pendantCount: body.pendantCount,
-      includeShipping: body.pendantCount > 0,
-      registrationFeeEnabled: pricing.registrationFeeEnabled,
-      registrationFeeDiscount: pricing.registrationFeeDiscount,
-    };
+    /*
+      TWO MODES, ONE BUILDER.
+
+      `legacy_switch` is an ordinary payment link with the registration fee and the pendant
+      taken off, and the plan read from the member's own record rather than from the request.
+      Everything downstream — the synced Stripe Prices, the stale-price refusal, the pending
+      order rows, the delivery decisions, the audit row — is the same code, which is the point:
+      a second edge function for the migration would drift from this one inside a month and the
+      drift would be about money.
+    */
+    const isSwitch = body.mode === "legacy_switch";
+
+    let selection;
+    if (body.mode === "legacy_switch") {
+      // Only somebody Santander is actually collecting from. `start_legacy_switch` refuses the
+      // rest too; refusing here means no Stripe session is created for a member who cannot use
+      // one, and no orphan pending order is left behind.
+      if (member.billing_source !== "legacy") {
+        return json(409, {
+          error:
+            `${member.first_name} ${member.last_name} is not on legacy billing ` +
+            `(billing_source = ${member.billing_source}), so there is nothing to switch.`,
+          code: "NOT_LEGACY",
+        });
+      }
+
+      /*
+        THE PLAN COMES FROM THE MEMBER'S OWN RECORD. The CRM import wrote a `pending`
+        subscription row carrying what Karma billed — plan type and billing frequency. Reading
+        it here is what stops a switch link quietly moving somebody from couple to single, or
+        annual to monthly, at whatever price that implies.
+      */
+      const { data: existing } = await admin
+        .from("subscriptions")
+        .select("plan_type, billing_frequency")
+        .eq("member_id", member.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!existing?.plan_type || !existing?.billing_frequency) {
+        return json(409, {
+          error:
+            "This member has no recorded plan, so there is nothing to charge. Add their plan " +
+            "to the record first, or send an ordinary payment link naming it.",
+          code: "NO_LEGACY_PLAN",
+        });
+      }
+
+      selection = legacySwitchSelection({
+        membershipType: existing.plan_type as "single" | "couple",
+        billingFrequency: existing.billing_frequency as "monthly" | "annual",
+      });
+    } else {
+      selection = {
+        membershipType: body.membershipType,
+        billingFrequency: body.billingFrequency,
+        pendantCount: body.pendantCount,
+        includeShipping: body.pendantCount > 0,
+        registrationFeeEnabled: pricing.registrationFeeEnabled,
+        registrationFeeDiscount: pricing.registrationFeeDiscount,
+      };
+    }
 
     let resolved;
     try {
@@ -158,11 +220,20 @@ serve(async (req) => {
     let payerEmail: string | null = member.email;
     let payerPhone: string | null = member.phone;
 
-    if (body.payer.mode === "other") {
+    /*
+      A switch link is always paid by the member. They have been paying Santander themselves for
+      years; if somebody else is to pay, that is a deliberate payment link with a payer chosen on
+      it, not a side effect of a bulk migration. Narrowed into one value so the rest of this
+      function does not have to keep asking which mode it is in.
+    */
+    const payerChoice: { mode: "member" } | Extract<typeof body, { payer: unknown }>["payer"] =
+      body.mode === "legacy_switch" ? { mode: "member" } : body.payer;
+
+    if (payerChoice.mode === "other") {
       const { data: existing } = await admin
         .from("payers")
         .select("id, full_name, email, phone")
-        .eq("email", body.payer.email)
+        .eq("email", payerChoice.email)
         .maybeSingle();
 
       if (existing) {
@@ -171,10 +242,10 @@ serve(async (req) => {
         const { data: created, error: payerError } = await admin
           .from("payers")
           .insert({
-            full_name: body.payer.fullName,
-            email: body.payer.email,
-            phone: body.payer.phone ?? null,
-            relationship: body.payer.relationship ?? null,
+            full_name: payerChoice.fullName,
+            email: payerChoice.email,
+            phone: payerChoice.phone ?? null,
+            relationship: payerChoice.relationship ?? null,
             created_by: staff.id,
           })
           .select("id")
@@ -184,10 +255,10 @@ serve(async (req) => {
         }
         payerId = created.id;
       }
-      payerName = body.payer.fullName;
-      payerFirstName = body.payer.fullName.split(" ")[0] || body.payer.fullName;
-      payerEmail = body.payer.email;
-      payerPhone = body.payer.phone ?? null;
+      payerName = payerChoice.fullName;
+      payerFirstName = payerChoice.fullName.split(" ")[0] || payerChoice.fullName;
+      payerEmail = payerChoice.email;
+      payerPhone = payerChoice.phone ?? null;
     }
 
     // ── the pending rows, in one transaction ─────────────────────────────────
@@ -236,7 +307,11 @@ serve(async (req) => {
       order_number: ids.orderNumber,
       payer_id: payerId ?? "",
       sent_by_staff_id: staff.id,
-      source: "send-payment-link",
+      // The webhook reads this to decide whether a paid session also ENDS a legacy billing
+      // arrangement. `post-payment.ts` flips billing_source to `stripe` on it, which is the one
+      // write of that value anywhere — golden rule 4 applied to who bills, not just to who is
+      // active.
+      source: isSwitch ? "legacy-switch" : "send-payment-link",
     };
 
     /*
@@ -249,7 +324,22 @@ serve(async (req) => {
       destination, the customer pays and is never activated, silently. Card only until an admin
       confirms the destination is listening (Admin → Settings → Payments).
     */
-    const { methods: paymentMethodTypes } = await loadCheckoutPaymentMethods(admin);
+    const { methods: configuredMethods, asyncEventsConfirmed } =
+      await loadCheckoutPaymentMethods(admin);
+
+    /*
+      A SWITCH LINK ASKS FOR SEPA, and gets it only if the destination is listening.
+
+      These people have paid by direct debit for a decade; offering only a card asks a 79-year-old
+      to find one. But a SEPA checkout completes `unpaid` and activates on
+      `checkout.session.async_payment_succeeded` — and a member who signs the mandate while
+      nothing is listening has ALSO left the Santander run (switch_pending), so they would be
+      billed by nobody at all. `legacySwitchPaymentMethods` puts that decision through the same
+      acknowledgement the settings screen uses, and the response says which it got.
+    */
+    const paymentMethodTypes = isSwitch
+      ? legacySwitchPaymentMethods(asyncEventsConfirmed)
+      : configuredMethods;
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -277,6 +367,17 @@ serve(async (req) => {
         simply is not available: past 24 hours, staff send another link.
       */
       expires_at: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
+      /*
+        NOTHING ELSE, AND THAT IS THE DESIGN FOR A SWITCH LINK. No `trial_period_days`, no
+        `billing_cycle_anchor`, no `proration_behavior` — Lee's rule is "a member pays the
+        month's fee the moment they set up and again exactly one month later; the setup day
+        becomes their billing day. No €0 setups, no future anchors, no proration."
+
+        The temptation is an anchor set to their Santander date so the cycles line up. It would
+        be wrong twice: it produces a €0 or prorated first invoice, and a €0 invoice does not
+        pay a session — so the webhook never activates them while switch_pending has already
+        taken them out of the Santander run. Nobody would be collecting at all.
+      */
     });
 
     if (!session.url) {
@@ -293,6 +394,54 @@ serve(async (req) => {
       })
       .eq("id", ids.paymentId);
 
+    /*
+      SWITCH_PENDING IS RECORDED THE MOMENT A SESSION EXISTS, and not one step later.
+
+      From here the member is out of the Santander export. That ordering is the whole safety
+      argument: if this write failed and the member paid Stripe anyway, the next Santander run
+      would still include them and they would be charged twice in one month. Excluding somebody
+      who then never pays costs one month and is recoverable; charging an 80-year-old twice is a
+      phone call, a refund and a lost trust.
+
+      So a failure here is a REFUSAL, not a warning: the link is not handed out. The Stripe
+      session simply expires unused, and the pending order rows are the same ones an unpaid
+      ordinary link leaves behind.
+    */
+    let switchExpiresAt: string | null = null;
+    if (isSwitch) {
+      switchExpiresAt = new Date(
+        Date.now() + LEGACY_SWITCH_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
+      ).toISOString();
+
+      const { error: switchError } = await admin.rpc("start_legacy_switch", {
+        _member_id: member.id,
+        _session_id: session.id,
+        _expires_at: switchExpiresAt,
+        _staff_id: staff.id,
+        // THE URL IS STORED so the member's own portal can show it. A Checkout URL is not a
+        // credential — it pays one order and Stripe expires it — and the alternative is telling
+        // an 82-year-old to go and find the text message we sent them.
+        _checkout_url: session.url,
+        // NOT the same as the switch expiry. Stripe caps a session at 24 hours; the switch
+        // window is 14 days. The portal needs both so it can say "your link has expired, ring
+        // us" instead of showing a dead one.
+        _session_expires_at: session.expires_at
+          ? new Date(session.expires_at * 1000).toISOString()
+          : null,
+      });
+
+      if (switchError) {
+        console.error("start_legacy_switch failed:", switchError.message);
+        return json(409, {
+          error:
+            "The Stripe link was created but this member could not be marked as switching, so " +
+            "it has NOT been sent — they would have stayed in the Santander run and been " +
+            `charged twice. ${switchError.message}`,
+          code: "SWITCH_NOT_RECORDED",
+        });
+      }
+    }
+
     // ── delivery: attempt what is switched on, ALWAYS return the link ────────
     const label = planLabel(selection.membershipType, selection.billingFrequency, selection.pendantCount);
     const language = (["en", "es", "nl"].includes(member.preferred_language ?? "")
@@ -302,12 +451,31 @@ serve(async (req) => {
     const message = {
       payerFirstName,
       memberFullName: `${member.first_name} ${member.last_name}`,
-      payerIsSomeoneElse: body.payer.mode === "other",
+      payerIsSomeoneElse: payerChoice.mode === "other",
       planLabel: label,
       totalEuros: resolved.totalCents / 100,
       url: session.url,
       language,
     };
+
+    /*
+      A SWITCH SAYS SOMETHING DIFFERENT, and the difference is not cosmetic.
+
+      The ordinary link says "here is the link to complete your subscription" — which, sent to
+      somebody who has been a member since 2014 and pays every month, reads as though their
+      membership has lapsed. Worse, a message about money from the company that holds their
+      emergency button reads as a threat to the button unless the first sentence says otherwise.
+      `switchNoticeEmail` leads with "your alarm does not change".
+    */
+    const notice = {
+      memberFirstName: member.first_name,
+      amountEuros: resolved.totalCents / 100,
+      billingFrequency: selection.billingFrequency,
+      url: session.url,
+      language,
+    };
+    const smsText = isSwitch ? switchNoticeSms(notice) : paymentLinkSms(message);
+    const mailText = isSwitch ? switchNoticeEmail(notice) : paymentLinkEmail(message);
 
     const emailConfigured = Boolean(
       (
@@ -337,7 +505,7 @@ serve(async (req) => {
       if (decision.channel === "sms") {
         try {
           const { error } = await admin.functions.invoke("twilio-sms", {
-            body: { to: decision.to, message: paymentLinkSms(message), recipientType: "member" },
+            body: { to: decision.to, message: smsText, recipientType: "member" },
             headers: { Authorization: authHeader },
           });
           delivery.push({
@@ -357,8 +525,7 @@ serve(async (req) => {
         continue;
       }
 
-      const mail = paymentLinkEmail(message);
-      const result = await sendEmail(decision.to!, mail.subject, mail.html);
+      const result = await sendEmail(decision.to!, mailText.subject, mailText.html);
       delivery.push({
         channel: "email",
         to: decision.to,
@@ -372,7 +539,7 @@ serve(async (req) => {
     // failure this whole item is about.
     await admin.from("activity_logs").insert({
       staff_id: staff.id,
-      action: "payment_link_sent",
+      action: isSwitch ? "legacy_switch_link_sent" : "payment_link_sent",
       entity_type: "order",
       entity_id: ids.orderId,
       new_values: {
@@ -382,6 +549,9 @@ serve(async (req) => {
         stripe_session_id: session.id,
         total: resolved.totalCents / 100,
         plan: label,
+        mode: isSwitch ? "legacy_switch" : "signup",
+        switch_expires_at: switchExpiresAt,
+        payment_method_types: paymentMethodTypes,
         delivery,
       },
       reason: `payment link sent for ${ids.orderNumber} (${label})`,
@@ -398,6 +568,11 @@ serve(async (req) => {
       payerId,
       totalEuros: resolved.totalCents / 100,
       planLabel: label,
+      mode: isSwitch ? "legacy_switch" : "signup",
+      switchExpiresAt,
+      // So the screen can say "card only — SEPA is off until the webhook destination is
+      // confirmed" rather than leaving staff to wonder why a direct debit was not offered.
+      paymentMethodTypes,
       delivery,
       lines: resolved.lines.map((l) => ({
         priceKey: l.priceKey,

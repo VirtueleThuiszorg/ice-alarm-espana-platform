@@ -82,10 +82,33 @@ export async function handleSuccessfulPayment(
   }
   await supabase.from("payments").update(paymentUpdate).eq("id", paymentId);
 
-  // 3. Activate member
+  /*
+    3. Activate the member — AND record that Stripe is now the one billing them.
+
+    `billing_source` moves to `stripe` HERE and nowhere else, which is golden rule 4 applied to
+    who bills rather than only to who is active. A legacy member being migrated is
+    `switch_pending` at this point: a Stripe link is out, and the Santander export has already
+    stopped including them. This is the moment that becomes permanent, and it is driven by the
+    webhook seeing the money — not by the screen that sent the link, not by the staff member who
+    pressed the button, and not by a timer.
+
+    The switch columns are cleared in the same write. Leaving `switch_expires_at` set would mean
+    `expire_legacy_switches()` later found a member who HAS paid and put them back on Santander
+    billing — a double collection created by the very mechanism that exists to prevent one.
+
+    Unconditional rather than conditioned on the metadata: a member whose payment Stripe has
+    confirmed is a member Stripe bills, whichever path brought them here. For everybody arriving
+    through the ordinary join it is already `stripe` and this changes nothing.
+  */
   const { error: activateError } = await supabase
     .from("members")
-    .update({ status: "active" })
+    .update({
+      status: "active",
+      billing_source: "stripe",
+      switch_started_at: null,
+      switch_expires_at: null,
+      switch_checkout_session_id: null,
+    })
     .eq("id", memberId);
   if (activateError) {
     console.error("Error activating member:", activateError);
@@ -97,7 +120,13 @@ export async function handleSuccessfulPayment(
   if (partnerMemberId) {
     const { error: partnerErr } = await supabase
       .from("members")
-      .update({ status: "active" })
+      .update({
+        status: "active",
+        billing_source: "stripe",
+        switch_started_at: null,
+        switch_expires_at: null,
+        switch_checkout_session_id: null,
+      })
       .eq("id", partnerMemberId);
     if (partnerErr) {
       console.error("Error activating partner member:", partnerErr);

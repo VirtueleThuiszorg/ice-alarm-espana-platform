@@ -6521,6 +6521,18 @@
       "setDateUnknown": "We do not have a date for this pin.",
       "mapLabel": "Map showing your saved home location"
     },
+    "staff": {
+      "title": "Home location",
+      "purpose": "Where an operator sends help when the pendant cannot say where the member is.",
+      "loadFailed": "We could not load this member's home location. This does not mean there is none \u2014 reload the record before setting a pin.",
+      "confirmedByMember": "Confirmed by the member",
+      "setByTeam": "Set by our team",
+      "fromAddress": "From the address \u2014 not confirmed",
+      "fromImport": "From the CRM import \u2014 not confirmed",
+      "none": "No pin on this record. The SOS card will fall back to the postal address.",
+      "correctPin": "Correct the pin",
+      "setPin": "Set the pin"
+    },
     "dialog": {
       "title": "Set your home location",
       "purpose": "This is where we send help if your pendant cannot tell us where you are.",

@@ -6521,6 +6521,18 @@
       "setDateUnknown": "No tenemos fecha para esta marca.",
       "mapLabel": "Mapa con la ubicación guardada de su domicilio"
     },
+    "staff": {
+      "title": "Ubicaci\u00f3n del domicilio",
+      "purpose": "El lugar al que un operador env\u00eda ayuda cuando el colgante no puede indicar d\u00f3nde est\u00e1 el miembro.",
+      "loadFailed": "No hemos podido cargar la ubicaci\u00f3n del domicilio de este miembro. Eso no significa que no haya ninguna: recargue la ficha antes de marcar una.",
+      "confirmedByMember": "Confirmada por el miembro",
+      "setByTeam": "Marcada por nuestro equipo",
+      "fromAddress": "A partir de la direcci\u00f3n: sin confirmar",
+      "fromImport": "De la importaci\u00f3n del CRM: sin confirmar",
+      "none": "No hay ninguna marca en esta ficha. La tarjeta de SOS recurrir\u00e1 a la direcci\u00f3n postal.",
+      "correctPin": "Corregir la marca",
+      "setPin": "Marcar la ubicaci\u00f3n"
+    },
     "dialog": {
       "title": "Marque la ubicación de su domicilio",
       "purpose": "Este es el lugar al que enviamos ayuda si su colgante no puede indicarnos dónde está.",

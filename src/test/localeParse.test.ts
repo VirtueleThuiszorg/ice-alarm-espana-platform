@@ -39,8 +39,15 @@ const TRANSLATED = ["es", "nl"] as const;
  * here is a real defect — a lost translation. Admin/staff namespaces are
  * excluded: they carry a known ~700-string untranslated backlog (tracked
  * separately, see i18nKeyCoverage.test.ts).
+ *
+ * `homeLocation` joined the list when the staff card that shares the namespace
+ * was translated. The namespace is member-facing — it is the Home location row
+ * and dialog on a member's own account page — and it was missing from here, so
+ * nothing would have caught an English string in it. Its `staff.*` sub-tree is
+ * covered too, deliberately: it is small, it is written, and a namespace that is
+ * half-guarded invites the next string into the unguarded half.
  */
-const MEMBER_FACING = ["support", "legal", "joinWizard", "landing", "pricing"];
+const MEMBER_FACING = ["support", "legal", "joinWizard", "landing", "pricing", "homeLocation"];
 
 /**
  * Values that are legitimately byte-identical to English and must stay so.

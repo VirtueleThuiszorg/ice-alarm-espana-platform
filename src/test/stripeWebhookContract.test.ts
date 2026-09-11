@@ -360,12 +360,35 @@ describe("idempotency: claimed on arrival, stamped on success", () => {
 });
 
 describe("a failed payment never stops the monitoring (P4)", () => {
-  it("invoice.payment_failed sets past_due and nothing else about the member", () => {
+  it("invoice.payment_failed sets past_due and WRITES nothing about the member", () => {
     const handler = WEBHOOK.slice(WEBHOOK.indexOf("async function onInvoiceFailed"));
     expect(handler).toMatch(/status:\s*"past_due"/);
-    // Somebody whose card expired is still somebody who may press an SOS button tonight.
-    expect(handler).not.toMatch(/from\("members"\)/);
+    /*
+      THE RULE IS ABOUT WRITES, and this used to be asserted as `not.toMatch(/from\("members"\)/)`
+      — no mention of the table at all. That was true while the handler told nobody but the
+      office. It now texts the member once Stripe has given up retrying, which means READING
+      their name, phone and language, and the old assertion would have forbidden a message rather
+      than a status change.
+
+      So the assertion moves to what the invariant actually is: somebody whose payment bounced is
+      still somebody who may press an SOS button tonight, and nothing here may change their
+      record. A read is fine; an update is the defect.
+    */
+    expect(handler).not.toMatch(/from\("members"\)[\s\S]{0,200}\.update\(/);
+    expect(handler).not.toMatch(/from\("members"\)[\s\S]{0,200}\.delete\(/);
     expect(handler).toContain("notifyAdmins");
+  });
+
+  /*
+    AND THE MEMBER IS NOT TOLD UNTIL IT IS REAL. `invoice.payment_failed` fires on every attempt;
+    Stripe's smart retries clear most direct-debit failures on their own. A text on the first one
+    is several hundred elderly people frightened about a problem that fixed itself — and it
+    arrives from the company that holds their emergency button.
+  */
+  it("texts the member only once Stripe has stopped retrying", () => {
+    const handler = WEBHOOK.slice(WEBHOOK.indexOf("async function onInvoiceFailed"));
+    expect(handler).toMatch(/stage === "exhausted" && member\?\.phone/);
+    expect(handler).toMatch(/failureStage\(/);
   });
 
   it("no handler in the whole webhook deactivates a member", () => {

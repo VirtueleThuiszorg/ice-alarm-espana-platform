@@ -103,6 +103,29 @@ END $$;
 -- is callable by its owner — and this suite runs as the owner — so a function the service role
 -- cannot execute passes every assertion written with those two helpers and fails in production
 -- on the first call. That is not hypothetical: it is what these assertions caught.
+-- Was this statement refused FOR PERMISSIONS, as opposed to refused on its own business rules?
+--
+-- `raises_as_role` below answers "did it raise", which is the wrong question for a function that
+-- legitimately refuses: `bootstrap_first_admin` raises when admins already exist, and this suite
+-- seeds several. Asserting "it did not raise" would have demanded that a guard stop guarding.
+-- 42501 is insufficient_privilege and nothing else.
+CREATE OR REPLACE FUNCTION pg_temp.denied_as_role(p_role text, p_sql text)
+RETURNS boolean LANGUAGE plpgsql AS $$
+BEGIN
+  EXECUTE format('SET LOCAL ROLE %I', p_role);
+  EXECUTE p_sql;
+  RESET ROLE;
+  RETURN false;
+EXCEPTION
+  WHEN insufficient_privilege THEN
+    RESET ROLE;
+    RETURN true;
+  WHEN OTHERS THEN
+    -- Refused on its own terms, which is the function working.
+    RESET ROLE;
+    RETURN false;
+END $$;
+
 CREATE OR REPLACE FUNCTION pg_temp.raises_as_role(p_role text, p_sql text)
 RETURNS boolean LANGUAGE plpgsql AS $$
 BEGIN
@@ -7003,6 +7026,29 @@ SELECT pg_temp.check(
   'and it took effect, rather than merely not raising',
   (SELECT billing_source = 'switch_pending' AND switch_checkout_session_id = 'cs_svc'
      FROM public.members WHERE id = 'd1e00000-0000-0000-0000-00000000000b'));
+
+-- THE SAME DEFECT, FOUND BY THE SAME QUESTION, in code this goal never touched.
+-- `bootstrap_first_admin` is how the first admin account is created when no staff exist, and
+-- `bootstrap-admin` is the only thing that calls it — as the service role. It was revoked from
+-- PUBLIC, anon and authenticated in 20260616120000 and granted to nobody, so the one path that
+-- can recover an account-less installation would have failed with permission denied. Latent
+-- rather than live (there are admins), and worth exactly one GRANT.
+SELECT pg_temp.check(
+  'the SERVICE ROLE is not locked OUT of bootstrapping the first admin',
+  NOT pg_temp.denied_as_role('service_role',
+    'SELECT public.bootstrap_first_admin(''66666666-6666-6666-6666-666666666666'',
+       ''boot@example.com'', ''Boot'', ''Strap'')'),
+  'revoked from PUBLIC with no grant to service_role: the only caller cannot call it');
+
+-- AND IT STILL REFUSES ON ITS OWN TERMS. The grant restores who may ask; it must not change the
+-- answer. This suite seeds admins, so the function is right to say no — and a `denied_as_role`
+-- that quietly passed a function which had stopped guarding would be worse than the defect.
+SELECT pg_temp.check(
+  'and it still refuses to run when admins already exist',
+  pg_temp.raises_as_role('service_role',
+    'SELECT public.bootstrap_first_admin(''66666666-6666-6666-6666-666666666666'',
+       ''boot@example.com'', ''Boot'', ''Strap'')'),
+  'the grant restores who may ASK; the guard decides the answer');
 
 SELECT pg_temp.check(
   'the SERVICE ROLE can run the expiry sweep',

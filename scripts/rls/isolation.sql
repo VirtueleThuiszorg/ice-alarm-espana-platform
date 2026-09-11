@@ -6968,6 +6968,51 @@ BEGIN
     'two live sessions means two ways to be charged for the same month');
 END $$;
 
+-- ── the re-issue, which the annual ladder depends on ─────────────────────────
+--
+-- The notice at 14 days puts an annual member into `switch_pending`; Stripe expires that session
+-- after 24 HOURS, its own ceiling. The reminder at 7 days therefore has nothing payable to point
+-- at unless it can issue a fresh link — and the first version of this refused it outright, so
+-- the middle rung of the ladder failed for every annual member.
+
+-- Backdate only the SESSION, not the switch window: this is a member mid-ladder.
+UPDATE public.members SET switch_session_expires_at = now() - interval '1 hour'
+ WHERE id = 'd1e00000-0000-0000-0000-00000000000a';
+
+SELECT pg_temp.check(
+  'a fresh link IS issued once Stripe has expired the previous session',
+  (SELECT billing_source FROM public.start_legacy_switch(
+     'd1e00000-0000-0000-0000-00000000000a', 'cs_reissue', now() + interval '14 days',
+     NULL, 'https://checkout.stripe.com/cs_reissue', now() + interval '24 hours')) = 'switch_pending',
+  'without this the annual reminder cannot reach a member whose notice link has died');
+
+SELECT pg_temp.check(
+  'and the record now points at the new session, not the dead one',
+  (SELECT switch_checkout_session_id = 'cs_reissue'
+     FROM public.members WHERE id = 'd1e00000-0000-0000-0000-00000000000a'));
+
+SELECT pg_temp.check(
+  'the re-issue is recorded AS a re-issue, so "why two links" is answerable',
+  (SELECT count(*) FROM public.activity_logs
+    WHERE action = 'member.switch_link_sent'
+      AND entity_id = 'd1e00000-0000-0000-0000-00000000000a'
+      AND new_values->>'reissued' = 'true') = 1);
+
+-- And the rule it must not lose: while that new session IS live, a second is still refused.
+DO $$
+DECLARE ok boolean := false;
+BEGIN
+  BEGIN
+    PERFORM public.start_legacy_switch('d1e00000-0000-0000-0000-00000000000a', 'cs_third',
+                                       now() + interval '14 days');
+  EXCEPTION WHEN OTHERS THEN ok := true;
+  END;
+  PERFORM pg_temp.check(
+    'but a third link is refused while the second is still payable',
+    ok,
+    'two LIVE sessions is the thing being prevented — an expired one was never the point');
+END $$;
+
 -- ── the lapse ────────────────────────────────────────────────────────────────
 
 SELECT pg_temp.check(

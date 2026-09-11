@@ -383,3 +383,57 @@ describe("the window", () => {
     expect(card).toContain("member-switch-expired");
   });
 });
+
+describe("the annual ladder's middle rung, which always failed", () => {
+  /*
+    THE DEFECT, found by reviewing the merged work. Lee's rule gives an annual member a notice at
+    14 days, a reminder at 7 and a staff phone call at 3, because one who misses the switch waits
+    TWELVE MONTHS for another chance.
+
+    The notice put them into `switch_pending`. The reminder then asked for another link and was
+    refused — `billing_source` is no longer `legacy` — so the runner bells a failure and the
+    member is left holding the notice's link, which STRIPE KILLED AFTER 24 HOURS. That is Stripe's
+    own ceiling for a Checkout Session, against a switch window of 14 days, so for thirteen of
+    those days the only link they have is dead.
+
+    What the refusal is actually for is two LIVE sessions at once, which is how somebody is
+    charged twice. An expired one is not live.
+  */
+  it("re-issues once Stripe has expired the previous session", () => {
+    expect(fn).toMatch(/const canSwitch =/);
+    expect(fn).toMatch(/member\.billing_source === "switch_pending" && !sessionStillLive/);
+  });
+
+  it("still refuses while the previous session is payable", () => {
+    expect(fn).toContain("SWITCH_ALREADY_LIVE");
+    expect(fn).toMatch(/two ways to pay for the same month/);
+  });
+
+  /*
+    AND AN UNKNOWN EXPIRY COUNTS AS LIVE. "I cannot tell whether their link still works" must not
+    resolve to "issue another one" — the safe direction is refusing, and it costs nothing
+    permanent because the 14-day sweep returns them to `legacy` either way.
+  */
+  it("treats a missing session expiry as still live, not as expired", () => {
+    expect(fn).toMatch(/member\.switch_session_expires_at === null \|\|/);
+  });
+
+  it("the database applies the same rule, so the check above is the message and not the guarantee", () => {
+    const grants = read("supabase/migrations/20260911160000_billing_runner_grants.sql")
+      .replace(/^\s*--.*$/gm, "");
+    expect(grants).toMatch(/v_session_expires IS NULL OR v_session_expires > now\(\)/);
+    expect(grants).toMatch(/already has a live switch link/);
+  });
+
+  it("and records a re-issue AS one, so 'why did they get two links' is answerable", () => {
+    const grants = read("supabase/migrations/20260911160000_billing_runner_grants.sql");
+    expect(grants).toMatch(/'reissued', v_source = 'switch_pending'/);
+  });
+
+  it("is executed against real PostgreSQL, in both directions", () => {
+    const iso = read("scripts/rls/isolation.sql");
+    expect(iso).toContain("a fresh link IS issued once Stripe has expired the previous session");
+    expect(iso).toContain("but a third link is refused while the second is still payable");
+    expect(iso).toContain("the re-issue is recorded AS a re-issue");
+  });
+});

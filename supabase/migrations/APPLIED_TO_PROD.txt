@@ -248,3 +248,4 @@
 20260911160000_billing_runner_grants.sql
 20260911170000_abandon_legacy_switch.sql
 20260911180000_rls_initplan.sql
+20260911190000_conversation_summaries.sql

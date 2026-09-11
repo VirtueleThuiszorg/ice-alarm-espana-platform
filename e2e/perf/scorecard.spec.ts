@@ -87,6 +87,22 @@ function countQueries(calls: RecordedCall[]): number {
  * is a per-row fetch. Two reads of the same table is a legitimate pattern (a list
  * plus a count); three distinct filters is a loop over rows.
  */
+/**
+ * Every table the route touched, first-seen order. Feeds the p95 tool, which
+ * needs to know WHICH tables a page reads before it can time them for real.
+ * RPCs are excluded: an RPC is not a table and cannot be timed as one.
+ */
+function tablesRead(calls: RecordedCall[]): string[] {
+  const seen: string[] = [];
+  for (const call of calls) {
+    if (!call.path.startsWith("/rest/v1/")) continue;
+    const [pathname] = call.path.slice("/rest/v1/".length).split("?");
+    if (pathname.startsWith("rpc/") || !pathname) continue;
+    if (!seen.includes(pathname)) seen.push(pathname);
+  }
+  return seen;
+}
+
 function detectNPlusOne(calls: RecordedCall[]): string[] {
   const byTable = new Map<string, Set<string>>();
   for (const call of calls) {
@@ -383,6 +399,7 @@ test.describe("performance scorecard", () => {
         // the EXPLAIN ANALYZE evidence, and `null` scores as a FAIL until it is.
         dbQueryP95Ms: null,
         nPlusOneTables: detectNPlusOne(calls),
+        tablesRead: tablesRead(calls),
       });
 
       // Written after every route so a run that dies at route 30 still leaves 29

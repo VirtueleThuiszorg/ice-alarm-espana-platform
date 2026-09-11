@@ -80,7 +80,19 @@ beforeAll(() => {
     writeFileSync(join(lab, f), readFileSync(join(REPO, f), "utf8"));
   }
   git("add", "-A");
-  git("commit", "--quiet", "-m", "driver under test");
+  /*
+    `--allow-empty`, and it is the whole point of the loop above rather than a nicety.
+
+    The three files are copied in "in case HEAD predates them" — which was true on the branch
+    this suite was written on, and false the moment that branch merged. From then on the copy is
+    byte-identical to HEAD, `git add -A` stages nothing, and a plain `git commit` exits 1 with
+    "nothing to commit, working tree clean". So the suite passed on its own PR and turned main
+    red on the merge: a fixture that breaks as soon as its own change lands.
+
+    This commit exists to give `lab-base` something to point at, not to record a change, so
+    empty is a perfectly good outcome for it.
+  */
+  git("commit", "--quiet", "--allow-empty", "-m", "driver under test");
   git("branch", "-f", "lab-base");
 });
 

@@ -176,6 +176,43 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ success: true }), { status: 200, headers: jh });
       }
 
+      case "details_completed": {
+        /*
+          THE MEMBER HAS FILLED IN WHAT WE ASKED FOR — tell somebody.
+
+          WHY THIS IS AN EVENT AND NOT JUST A SAVE. The point of chasing a member's details is
+          that a record becomes usable in an emergency; the moment it does is worth a staff
+          member knowing, because it is the moment a readiness queue entry can be cleared and a
+          courtesy call can be made. Without it the writes land silently and the chase carries
+          on — somebody rings a member who has already answered.
+
+          NO CLIENT-SUPPLIED IDENTITY. The member id comes from `member` above, resolved from the
+          caller's own `user_id`, so this cannot be used to emit an event about somebody else.
+          The COUNT is client-supplied and is therefore treated as a hint for the message text
+          only: it is clamped and never used to decide anything.
+        */
+        const filled = Number(body.filled);
+        const remaining = Number(body.remaining);
+        const clamp = (n: number) => (Number.isFinite(n) ? Math.max(0, Math.min(99, Math.trunc(n))) : 0);
+        const memberName =
+          [member.first_name, member.last_name].filter(Boolean).join(" ") || "A member";
+
+        const { error } = await admin.from("notification_log").insert({
+          admin_user_id: null, // staff broadcast, like `notify_staff` below
+          event_type: "member.details_completed",
+          message:
+            clamp(remaining) > 0
+              ? `${memberName} filled in ${clamp(filled)} of their missing details — ${clamp(remaining)} still outstanding`
+              : `${memberName} completed their details`,
+          entity_type: "member",
+          entity_id: member.id,
+          status: "pending",
+        });
+        if (error) throw new Error(`notification insert failed: ${error.message}`);
+
+        return new Response(JSON.stringify({ success: true }), { status: 200, headers: jh });
+      }
+
       case "notify_staff": {
         // Broadcast a staff notification about the caller's OWN conversation.
         const conversationId = typeof body.conversation_id === "string" ? body.conversation_id : "";

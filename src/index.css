@@ -61,25 +61,53 @@
     /* Legacy token name, re-pointed. ICE has one brand hue, so this now
        resolves to the deeper red used for hover/pressed states. Kept rather
        than renamed because four components still reference it. */
-    /* MEMBER-RECORD TABS — Lee's instruction, 10 September 2026. Used ONLY by the twelve
-       tabs on /admin/members/:id.
+    /* MEMBER-RECORD TABS — Lee's instruction, 11 September 2026. Used ONLY by the twelve tabs
+       on /admin/members/:id.
 
-       WHY A SCOPED SET AND NOT `bg-primary`: on .theme-admin --primary is INK, deliberately —
-       "red is rationed" on the surface an operator watches for emergencies (see the portal
-       block below). That rule stands; the member RECORD is a filing screen, and confining the
-       red to these four tokens is what lets both be true without repainting the global <Tabs>
-       component the member portal and the public site also use.
+       THIS REPLACES the solid-red set from 10 September. That one was AA on every state and
+       still wrong: twelve red rectangles spend the alarm colour on navigation, and
+       MEMBER_UX_RULES R1 reserves red for alarm and critical actions. Red now appears exactly
+       once on this bar — the underline marking where you are.
 
-       --member-tab is the APP-ICON RED, the same triplet as --primary above, aliased rather
-       than re-typed so a change to the brand hue cannot leave these tabs behind. Contrast
-       against white, by the same helper the rest of the palette is checked with:
-         base 5.97:1 · active 9.47:1 · hover 7.50:1   (AA needs 4.5)
-       Active is ALSO given a white ring and underline: darker-red-on-red is 1.58:1, and colour
-       must never be the only cue (WCAG 1.4.1). */
-    --member-tab: 350 85% 42%;
-    --member-tab-foreground: 0 0% 100%;
-    --member-tab-active: 351 85% 30%;
-    --member-tab-hover: 351 85% 36%;
+       WHY A SCOPED SET AT ALL, unchanged: on .theme-admin --primary is INK, deliberately, and
+       the global <Tabs> component is shared with the member portal and the public site. These
+       five tokens repaint twelve triggers on one page and nothing else.
+
+       Contrast, by the same helper the rest of the palette is checked with:
+         --member-tab-fg on the strip        6.01:1   (AA needs 4.5)
+         --member-tab-fg-active on the strip 12.01:1
+         --member-tab-fg-active on the tab   13.22:1
+         --member-tab-underline on the tab    5.97:1  (non-text; the 3:1 bar)
+       --member-tab-fg is NOT --muted-foreground, which is what it looks like it should be:
+       220 10% 46% on this strip is 4.45:1 — below AA by five hundredths, on the resting label
+       of every tab. The active surface against the strip is 1.10:1, which is why the underline,
+       the shadow and the weight change are the signal rather than the white. */
+    --member-tab-strip: 220 14% 89%;
+    --member-tab-surface: 0 0% 100%;
+    --member-tab-fg: 220 12% 38%;
+    --member-tab-fg-active: 220 15% 20%;
+    --member-tab-hover: 220 13% 84%;
+    /* The one red, aliased to --primary rather than re-typed so a change to the brand hue
+       cannot leave this underline behind on the old one. */
+    --member-tab-underline: 350 85% 42%;
+
+    /* THE MEMBER RECORD'S PAGE GROUND — Lee, 11 September 2026: "too much white-on-white".
+       The layout paints --background (0 0% 99%) and every card is --card (0 0% 100%). That is
+       1.05:1 between a card and the page it sits on, so the cards had no edges and the record
+       read as one undifferentiated sheet. This is one step down, which is enough to see a card
+       boundary and not enough to make the page feel grey.
+       Card on this ground: 1.15:1 — still slight, which is why the border stays and does the
+       rest of the work.
+
+       THE TAB STRIP MOVED WITH IT, and that is why two tokens from the tabs PR change here.
+       --member-tab-strip was 220 14% 96% — chosen against a white page, where it read as a
+       light track. Against THIS ground it is 1.05:1 and the strip disappears. It is now a step
+       DARKER than the page (1.13:1), so the row reads as an inset track rather than as nothing,
+       and the active tab's white lifts further off it than it did before (1.30:1, was 1.10:1).
+       The resting label is still AA on it (5.10:1) and the underline still clears the non-text
+       bar (4.60:1). Ground and strip are one decision; splitting them across two PRs is what
+       made this look like a change of mind. */
+    --member-record-page: 220 16% 94%;
 
     --brand-teal: 351 85% 34%;
     --brand-teal-foreground: 0 0% 100%;
@@ -551,6 +579,100 @@
   /* Focus visible styles for accessibility */
   .focus-ring {
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+
+  /*
+    THE MEMBER RECORD'S PAGE GROUND, bled to the edges of the layout's content padding.
+
+    WHY A NEGATIVE MARGIN RATHER THAN A CHANGE TO THE LAYOUT: `AdminLayout` and
+    `CallCentreLayout` paint every admin and call-centre page. Recolouring `<main>` to fix one
+    record would repaint thirty screens nobody asked about. So the record cancels the layout's
+    padding, paints, and puts the padding back.
+
+    THAT COUPLING IS REAL AND IT IS CHECKED. The numbers below must equal the two layouts'
+    `<main className="p-4 md:p-6">`; if either layout changes its padding this rule leaves a
+    white gutter down the side of the record. `memberRecordSurface.test.ts` reads the padding
+    out of both layout files and fails if they and this rule disagree, so the coupling cannot
+    rot silently.
+  */
+  .member-record-page {
+    margin: -1rem;
+    padding: 1rem;
+    background-color: hsl(var(--member-record-page));
+  }
+
+  @media (min-width: 768px) {
+    .member-record-page {
+      margin: -1.5rem;
+      padding: 1.5rem;
+    }
+  }
+
+  /*
+    FIELD ROWS — the hairline, and why it is on EVERY row including the first.
+
+    A `FieldGrid`'s children are ordinary `FormField`s, so twelve tabs can adopt the treatment
+    without their markup being rewritten. The row's breathing space is its own padding rather
+    than a grid gap, so the hairline sits between two rows instead of floating in a gap that
+    belongs to neither.
+
+    THE FIRST-ROW EXCEPTION WAS TRIED AND DELETED. `:first-child` plus a `:nth-child(2)` at the
+    breakpoint looks right and is wrong the moment a field spans both columns — on the address
+    grid, item 2 (`md:col-span-2`) is on its own row and legitimately wants a line above it,
+    and the rule would have removed it. No child can know which grid row it landed in, so a
+    selector cannot express the exception correctly. Giving every row a top line needs no such
+    knowledge, is correct at any span, and the first one reads as a rule under the section
+    heading rather than as a stray edge.
+  */
+  .field-grid > * {
+    min-width: 0;
+    padding-block: 0.75rem;
+    border-top: 1px solid hsl(var(--border));
+  }
+
+  /*
+    THE VALUE, at full contrast and heavier than its caption. In read mode #328 has already
+    stripped the box off the control; this is what makes the remaining text read as an answer
+    rather than as more grey.
+  */
+  .field-grid :is(input, textarea, [role="combobox"], [data-slot="select-trigger"]) {
+    font-weight: 500;
+    color: hsl(var(--foreground));
+  }
+
+  /*
+    THE MEMBER RECORD'S TAB STRIP — the scroll behaviour and the edge fade.
+
+    THE FADE HAS TO KNOW WHETHER THERE IS ANYTHING TO SCROLL TO. A plain `mask-image` cannot:
+    it would dim the first and last tab on a 1280px screen where all twelve already fit, which
+    is worse than no fade because it invents an affordance that is not there.
+
+    So this is the four-layer scroll-shadow: two COVER layers painted in the strip's own colour
+    and attached `local` (they scroll with the content, so they sit over the shadow only while
+    that end is at rest), and two SHADOW layers attached `scroll` (fixed to the box). At the
+    left end the left cover hides the left shadow; scroll right and the cover moves away and
+    the shadow appears. Pure CSS, no listener, and it cannot get out of step with the scroll
+    position the way a JS one does on a resize.
+
+    The scrollbar is hidden rather than styled: on a strip this short a horizontal scrollbar
+    doubles the row's height on the platforms that reserve space for one, and the fade is the
+    affordance.
+  */
+  .member-tab-strip {
+    scrollbar-width: none;
+    background-image:
+      linear-gradient(to right, hsl(var(--member-tab-strip)) 40%, hsl(var(--member-tab-strip) / 0)),
+      linear-gradient(to left, hsl(var(--member-tab-strip)) 40%, hsl(var(--member-tab-strip) / 0)),
+      linear-gradient(to right, hsl(var(--foreground) / 0.14), hsl(var(--foreground) / 0)),
+      linear-gradient(to left, hsl(var(--foreground) / 0.14), hsl(var(--foreground) / 0));
+    background-position: left center, right center, left center, right center;
+    background-repeat: no-repeat;
+    background-size: 32px 100%, 32px 100%, 14px 100%, 14px 100%;
+    background-attachment: local, local, scroll, scroll;
+  }
+
+  .member-tab-strip::-webkit-scrollbar {
+    display: none;
   }
 
   /*

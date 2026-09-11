@@ -7,11 +7,9 @@ import { useMemberProfile } from "@/hooks/useMemberProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, User, Mail, Phone, MapPin, Plane } from "lucide-react";
 import { NotificationPreferences } from "@/components/client/NotificationPreferences";
 import { GdprSettingsSection } from "@/components/gdpr/GdprSettingsSection";
@@ -22,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import i18n from "@/i18n";
 import { PageHeader } from "@/components/client/PageHeader";
 import { LockedIdentityField } from "@/components/client/LockedIdentityField";
+import { MemberAvatarUpload } from "@/components/client/MemberAvatarUpload";
 import { EditableCard } from "@/components/EditableCard";
 import { FieldControl, FieldLabel } from "@/components/FieldControl";
 import { HomeLocationRow } from "@/components/client/HomeLocationRow";
@@ -324,23 +323,32 @@ export default function ProfilePage() {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Sidebar - Photo Card */}
           <div className="lg:col-span-1 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">{t("profile.profilePhoto")}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center gap-4">
-                <Avatar className="h-32 w-32">
-                  <AvatarImage src={profile.photo_url || undefined} />
-                  <AvatarFallback className="text-3xl bg-primary/10 text-primary">
-                    {profile.first_name?.[0]}
-                    {profile.last_name?.[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <p className="text-sm text-muted-foreground text-center">
-                  {t("profile.contactSupportToChange")}
-                </p>
-              </CardContent>
-            </Card>
+            {/*
+              THE PHOTO CARD — R7, and the one card on this page with nothing to Save.
+
+              It was an avatar of initials over R6's banned sentence, "contact support to
+              change", above a column (`members.photo_url`) that has existed since the first
+              migration and that nothing has ever written. Ringing support would not have got a
+              member a photograph either.
+
+              `mode="manage"` because the upload commits ITSELF: choosing a file uploads it and
+              points the record at it in one go, so a Save button here would be a button that
+              saves nothing — the same lie as an Edit that unlocks nothing. Edit ARMS the
+              camera and Remove; Done disarms them. Read-only the card is just the picture.
+            */}
+            <EditableCard
+              testId="profile-card-photo"
+              mode="manage"
+              title={<span className="text-lg">{t("profile.profilePhoto")}</span>}
+              manageHint={t("profile.photoEditHint", "Press Edit to add or change your photo.")}
+              disableFieldsWhenLocked={false}
+            >
+              <MemberAvatarUpload
+                memberId={memberId}
+                photoUrl={profile.photo_url}
+                initials={`${profile.first_name?.[0] ?? ""}${profile.last_name?.[0] ?? ""}`}
+              />
+            </EditableCard>
 
             {/* Language Preference Card */}
             <EditableCard

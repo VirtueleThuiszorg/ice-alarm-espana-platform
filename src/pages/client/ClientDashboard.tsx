@@ -1,4 +1,16 @@
-import { Phone, MessageCircle, ArrowRight, Eye, ArrowLeft, MessageSquare, Inbox} from "lucide-react";
+import {
+  Phone,
+  MessageCircle,
+  ArrowRight,
+  Eye,
+  ArrowLeft,
+  MessageSquare,
+  Inbox,
+  Check,
+  ClipboardList,
+  FileText,
+} from "lucide-react";
+import { useState } from "react";
 import { DeviceStatusCard } from "@/components/dashboard/DeviceStatusCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +31,10 @@ import { telHref, waNumber } from "@/lib/phone";
 import { PageHeader } from "@/components/client/PageHeader";
 import { ProtectionChecklist } from "@/components/client/ProtectionChecklist";
 import { useMemberSubscriptions, useMemberAlerts } from "@/hooks/useMemberProfile";
+import { useMemberAlertHistory } from "@/hooks/useMemberAlertHistory";
+import { useMemberMissingInfo } from "@/hooks/useMemberMissingInfo";
+import { CompleteMyDetailsDialog } from "@/components/client/CompleteMyDetailsDialog";
+import { ReviewMyDetailsDialog } from "@/components/client/ReviewMyDetailsDialog";
 import { useMemberUnread } from "@/hooks/useMemberUnread";
 import { useMemberLastThread } from "@/hooks/useMemberLastThread";
 import { formatDistanceToNow } from "date-fns";
@@ -147,6 +163,16 @@ export default function ClientDashboard() {
     fewer round trip and reports the right number.
   */
 
+  /*
+    IS THE MEMBER SHOWN THEIR ALERTS AT ALL? Off by default (20260910140000).
+
+    Governs DISPLAY on this page only. Alerts are still created, still escalate, and staff still
+    see every one of them — the two reads below are simply not rendered, and the reads themselves
+    are disabled so a hidden feature does not cost a member two round trips on the page they open
+    most.
+  */
+  const { enabled: alertHistoryEnabled } = useMemberAlertHistory();
+
   // Fetch recent alerts count
   const { data: alertsCount } = useQuery({
     queryKey: ["member-alerts-count", effectiveMemberId],
@@ -163,8 +189,28 @@ export default function ClientDashboard() {
       if (error) throw error;
       return count || 0;
     },
-    enabled: !!effectiveMemberId && !isTemplatePreview,
+    // Not fetched when the tile that shows it is not rendered.
+    enabled: !!effectiveMemberId && !isTemplatePreview && alertHistoryEnabled,
   });
+
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+
+  /*
+    WHAT WE STILL NEED FROM THIS MEMBER — the same read the staff record uses, off the same
+    `memberRequiredFields.ts` definition. One list, so the number on the member's dashboard and
+    the number in the staff queue cannot disagree about what "missing" means.
+  */
+  const { data: missingInfo, isLoading: missingLoading } = useMemberMissingInfo(
+    isTemplatePreview ? null : effectiveMemberId,
+  );
+  /*
+    THE MEMBER'S OWN NUMBER, not the staff one. `count` includes the three items only we can
+    close — a pendant assigned, a pendant tested, a subscription activated by the webhook — and a
+    badge counting those opens a dialog with nothing in it. `memberCanFill` is that list minus
+    ours, from the same `requestableFields` the emailed update link uses.
+  */
+  const missingCount = missingInfo?.memberCanFill.length ?? 0;
 
   // One definition of "unread", shared with the nav badge. It was inline here, so nothing else
   // could reach it — which is why the nav had no badge to put a count on.
@@ -173,8 +219,10 @@ export default function ClientDashboard() {
   const { data: lastThread } = useMemberLastThread(isTemplatePreview ? null : effectiveMemberId);
 
   // The last few alerts, for "Recent activity". Same override as the subscription read, for the
-  // same admin-preview reason.
-  const { data: recentAlerts } = useMemberAlerts(isTemplatePreview ? null : effectiveMemberId);
+  // same admin-preview reason — and not read at all when the card is hidden.
+  const { data: recentAlerts } = useMemberAlerts(
+    isTemplatePreview || !alertHistoryEnabled ? null : effectiveMemberId,
+  );
 
   // Use mock data in template preview mode
   const displayMember = isTemplatePreview ? MOCK_MEMBER : member;
@@ -199,6 +247,18 @@ export default function ClientDashboard() {
   const currentDate = format(new Date(), 'EEEE, d MMMM yyyy', { locale: dateLocale });
 
   const memberName = displayMember?.first_name || t("common.member");
+
+  /*
+    HOW MANY STAT TILES THERE ARE, and therefore how the row is laid out.
+
+    Four with the alerts tile, three without. `md:grid-cols-4` with three children leaves an
+    empty quarter on the right at desktop width, which reads as a tile that failed to load on a
+    page whose whole subject is whether something is working. The skeleton row is derived from
+    the same number so the placeholder cannot show four boxes and then settle into three.
+  */
+  const statCount = alertHistoryEnabled ? 4 : 3;
+  const statColumns = alertHistoryEnabled ? "md:grid-cols-4" : "md:grid-cols-3";
+  const statSkeletons = Array.from({ length: statCount }, (_, i) => i);
 
 
 
@@ -256,7 +316,64 @@ export default function ClientDashboard() {
         }
         subtitle={currentDate}
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+          {/*
+            THE TWO THINGS A MEMBER ACTUALLY WANTS FROM THIS HEADER, beside the phone icon.
+
+            WHY HERE AND NOT ON A CARD. Both answer a question about the record as a WHOLE — "what
+            do you still need from me" and "what do you hold about me" — and neither belongs to
+            Profile or Medical or Contacts, which is exactly why a member could not find the
+            answer before: it was spread across three pages and no page owned it.
+
+            TEXT AND ICON, NOT ICON ALONE. The two controls beside them are icon-only because a
+            telephone and the WhatsApp glyph are universally read; "complete my details" is not
+            a picture. `touch-target` on both, because R11's reader is the same one who misses
+            small buttons.
+          */}
+          {/*
+            HIDDEN ENTIRELY WHEN NOTHING IS MISSING, and replaced by a tick.
+
+            A "Complete my details" button on a complete record is a button that opens an empty
+            dialog — the dead-control pattern this codebase keeps finding. And `missingLoading`
+            gates it too: a badge that says 6 while the query is in flight is a badge members
+            learn to ignore, which is the argument `memberRequiredFields` makes about a NULL
+            source not being a gap.
+          */}
+          {!isTemplatePreview && !missingLoading && (missingCount > 0 ? (
+            <Button
+              variant="outline"
+              className="touch-target gap-2"
+              onClick={() => setCompleteOpen(true)}
+              data-testid="dashboard-complete-details"
+            >
+              <ClipboardList className="h-5 w-5" aria-hidden="true" />
+              <span>{t("dashboard.completeMyDetails", "Complete my details")}</span>
+              {/* Ink, not red: R1 rations red to the page's one action, and a count is not one. */}
+              <Badge className="bg-foreground text-background" data-testid="dashboard-missing-badge">
+                {missingCount}
+              </Badge>
+            </Button>
+          ) : (
+            <span
+              className="inline-flex items-center gap-1.5 text-[0.8125rem] text-muted-foreground"
+              data-testid="dashboard-details-complete"
+            >
+              <Check className="h-4 w-4 text-alert-resolved" aria-hidden="true" />
+              {t("dashboard.detailsComplete", "Your details are complete")}
+            </span>
+          ))}
+
+          {!isTemplatePreview && (
+            <Button
+              variant="outline"
+              className="touch-target gap-2"
+              onClick={() => setReviewOpen(true)}
+              data-testid="dashboard-review-details"
+            >
+              <FileText className="h-5 w-5" aria-hidden="true" />
+              <span>{t("dashboard.reviewMyDetails", "Review my details")}</span>
+            </Button>
+          )}
           {phoneHref && (
             <Button
               size="icon"
@@ -362,6 +479,7 @@ export default function ClientDashboard() {
         list is empty, and that is the good outcome — so the empty state says so plainly rather
         than apologising for having nothing to show.
       */}
+      {alertHistoryEnabled && (
       <Card data-testid="recent-activity">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold">
@@ -400,6 +518,7 @@ export default function ClientDashboard() {
           </Button>
         </CardContent>
       </Card>
+      )}
 
       <div className="grid gap-4">
         {/* Messages Card */}
@@ -475,8 +594,8 @@ export default function ClientDashboard() {
         reassurance on a safety dashboard.
       */}
       {!isTemplatePreview && !deviceLoading && !displayDevice ? null : (deviceLoading || readinessLoading) && !isTemplatePreview ? (
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
+        <div className={cn("grid gap-4 grid-cols-2", statColumns)}>
+          {statSkeletons.map((i) => (
             <Card key={i}>
               <CardContent className="p-4">
                 <Skeleton className="h-8 w-16 mx-auto mb-2" />
@@ -486,13 +605,21 @@ export default function ClientDashboard() {
           ))}
         </div>
       ) : (
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+      <div className={cn("grid gap-4 grid-cols-2", statColumns)}>
+        {/*
+          THE ALERTS TILE GOES WITH THE FEATURE. A "0" under "Alerts in the last 30 days" is
+          still a statement about alerts, on a dashboard where somebody decided not to discuss
+          them — and the other three tiles reflow to fill the row rather than leaving a hole
+          where this one was.
+        */}
+        {alertHistoryEnabled && (
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-primary">{displayAlertsCount || 0}</p>
             <p className="text-xs text-muted-foreground">{t("dashboard.alertsLast30Days")}</p>
           </CardContent>
         </Card>
+        )}
         <Card>
           <CardContent className="p-4 text-center">
             {/* The count from the readiness view, not the length of a `.limit(3)` page. An em
@@ -522,6 +649,28 @@ export default function ClientDashboard() {
           </CardContent>
         </Card>
       </div>
+      )}
+
+      {/*
+        THE DIALOGS. Mounted once at page level rather than inside the header, so neither is
+        re-created when the header re-renders — and so `ReviewMyDetailsDialog` can key its own
+        read on `open` and fetch nothing at all until a member asks.
+      */}
+      {!isTemplatePreview && (
+        <>
+          {/* The badge's list, so what it counts and what the dialog offers cannot differ. */}
+          <CompleteMyDetailsDialog
+            open={completeOpen}
+            onOpenChange={setCompleteOpen}
+            memberId={effectiveMemberId}
+            missing={missingInfo?.memberCanFill ?? []}
+          />
+          <ReviewMyDetailsDialog
+            open={reviewOpen}
+            onOpenChange={setReviewOpen}
+            memberId={effectiveMemberId}
+          />
+        </>
       )}
 
       {/*

@@ -3006,6 +3006,21 @@ INSERT INTO public.staff (user_id, email, first_name, last_name, role) VALUES
   ('a8000000-0000-0000-0000-000000000002', 'operator-settings@example.com', 'Olga', 'Operator', 'call_centre');
 
 -- ── F2: what the anonymous browser can read, exactly ──────────────────────
+--
+-- THE EIGHTH KEY, AND WHY IT IS ON THE LIST. `member_alert_history_enabled` (20260910170000)
+-- decides whether a MEMBER is offered an Alert History page, a recent-activity card and an
+-- alerts tile. A member is `authenticated` with no staff row, so without the whitelist the read
+-- returns nothing, "nothing" parses as off, and the admin switch appears to work while being
+-- permanently stuck — the exact state four pricing keys were in until 20260908120000.
+--
+-- IT IS ALSO GENUINELY PUBLIC, which is the part worth checking rather than assuming. The value
+-- is one boolean about which nav items a member sees. It names no person, carries no credential,
+-- and an anonymous visitor learning that alert history is switched off learns nothing they could
+-- not learn by signing up. That is the test this list should be read against — not "does
+-- somebody need it", which is how a whitelist grows.
+--
+-- This assertion is what caught the widening: it names the members rather than counting them, so
+-- adding a key to the policy turns it red until somebody writes the paragraph above.
 DO $$
 DECLARE v_keys text[];
 BEGIN
@@ -3015,13 +3030,14 @@ BEGIN
   RESET ROLE;
 
   PERFORM pg_temp.check(
-    'anonymous reads EXACTLY the seven whitelisted settings keys',
-    v_keys = ARRAY['registration_fee_discount', 'registration_fee_enabled',
+    'anonymous reads EXACTLY the eight whitelisted settings keys',
+    v_keys = ARRAY['member_alert_history_enabled',
+                   'registration_fee_discount', 'registration_fee_enabled',
                    'settings_active_payment_gateway', 'settings_address',
                    'settings_company_name', 'settings_emergency_phone',
                    'settings_support_email'],
-    'four company keys plus the three /join needs — named, not counted, so a widened '
-    'policy fails here instead of passing with more rows');
+    'four company keys, the three /join needs, and one member-portal display flag — named, '
+    'not counted, so a widened policy fails here instead of passing with more rows');
 END $$;
 
 -- The three that were the blocker, called out individually: a whitelist that happens to have
@@ -6545,6 +6561,185 @@ SELECT pg_temp.check(
     'UPDATE public.members SET status = ''active''
       WHERE user_id = ''11111111-1111-1111-1111-111111111111'''),
   'two BEFORE UPDATE triggers on one table — this fails if either stops running');
+
+
+-- ============================================================
+--  member-avatars — a member's photograph reaches exactly one folder
+-- ============================================================
+--
+-- MEMBER_UX_RULES R7: *"RLS: own bucket path."* The path is `<memberId>/<file>` and every policy
+-- in 20260910150000 compares its first segment against the caller's own `members.id`. That IS
+-- the security model — there is no second mechanism, and nothing in the browser is trusted — so
+-- it is asserted here against real PostgreSQL and the real policies rather than argued for in a
+-- comment.
+--
+-- WHY THIS SUITE AND NOT A UNIT TEST. A vitest suite can prove the client builds the right path.
+-- It cannot prove that a member who builds the WRONG one is refused, and that is the only
+-- question that matters: a public bucket, or a policy written with `USING` where it needed
+-- `WITH CHECK`, would let member A read — or overwrite — a photograph of member B at their home
+-- address. The failure is invisible from the UI and total.
+--
+-- THE STAFF FIXTURE IS a6000000-0000-0000-0000-00000000000f (Otto Ordinary, call_centre) AND
+-- NOT THE OBVIOUS 55555555-5555-5555-5555-555555555555: line 1976 of this file DELETEs that
+-- staff row on purpose, to prove what a signed-in user
+-- with no staff row can see, so by the time this block runs it is not staff any more. A staff
+-- assertion written against it would report FAIL for a reason that has nothing to do with the
+-- policy under test — which is how a real defect gets explained away as a fixture problem.
+--
+-- Fixtures are inserted as the superuser this script runs as; every assertion then runs through
+-- `count_as` / `exec_as` / `raises_as`, which drop to `authenticated` with a real
+-- `request.jwt.claims`, exactly as PostgREST does.
+
+INSERT INTO storage.objects (bucket_id, name)
+VALUES
+  ('member-avatars', 'aaaaaaaa-0000-0000-0000-000000000001/avatar.jpg'),
+  ('member-avatars', 'bbbbbbbb-0000-0000-0000-000000000002/avatar.jpg');
+
+SELECT pg_temp.check(
+  'the member-avatars bucket is PRIVATE',
+  (SELECT public IS NOT TRUE FROM storage.buckets WHERE id = 'member-avatars'),
+  'a public bucket serves any object to anyone holding its path, and a member id is not a secret');
+
+SELECT pg_temp.check(
+  'member A can read their OWN avatar object',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM storage.objects WHERE bucket_id = ''member-avatars''
+       AND name = ''aaaaaaaa-0000-0000-0000-000000000001/avatar.jpg''') = 1,
+  'without this the next assertion could pass vacuously — a member who can read nothing at all');
+
+SELECT pg_temp.check(
+  'MEMBER A CANNOT READ MEMBER B''S AVATAR',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM storage.objects WHERE bucket_id = ''member-avatars''
+       AND name = ''bbbbbbbb-0000-0000-0000-000000000002/avatar.jpg''') = 0,
+  'the whole point: SELECT is what createSignedUrl is evaluated against');
+
+SELECT pg_temp.check(
+  'member A sees exactly one object in the bucket — their own',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT id FROM storage.objects WHERE bucket_id = ''member-avatars''') = 1,
+  'listing the bucket must not enumerate other members');
+
+SELECT pg_temp.check(
+  'member A cannot UPLOAD into member B''s folder',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO storage.objects (bucket_id, name)
+       VALUES (''member-avatars'', ''bbbbbbbb-0000-0000-0000-000000000002/hacked.jpg'')'),
+  'WITH CHECK on INSERT — a policy written with USING alone would allow every upload');
+
+SELECT pg_temp.check(
+  'member A CAN upload into their own folder',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'INSERT INTO storage.objects (bucket_id, name)
+       VALUES (''member-avatars'', ''aaaaaaaa-0000-0000-0000-000000000001/second.webp'')') = 1,
+  'the feature has to work, not merely be refused consistently');
+
+SELECT pg_temp.check(
+  'member A cannot MOVE their own object into member B''s folder',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE storage.objects SET name = ''bbbbbbbb-0000-0000-0000-000000000002/hacked.jpg''
+      WHERE name = ''aaaaaaaa-0000-0000-0000-000000000001/avatar.jpg'''),
+  'this is what the UPDATE policy''s WITH CHECK is for. USING alone permits the move, because the row being changed IS the caller''s own and nothing then constrains the new name');
+
+SELECT pg_temp.check(
+  'member A cannot DELETE member B''s avatar',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'DELETE FROM storage.objects
+      WHERE name = ''bbbbbbbb-0000-0000-0000-000000000002/avatar.jpg''') = 0,
+  'a DELETE that matches no row under RLS deletes nothing rather than raising');
+
+SELECT pg_temp.check(
+  'member B''s avatar survived everything member A tried',
+  (SELECT count(*) FROM storage.objects
+     WHERE name = 'bbbbbbbb-0000-0000-0000-000000000002/avatar.jpg') = 1,
+  'checked as superuser, so it reports the real state of the table rather than what A can see');
+
+SELECT pg_temp.check(
+  'STAFF can read every member avatar — an operator has to know who they are looking for',
+  pg_temp.count_as('a6000000-0000-0000-0000-00000000000f',
+    'SELECT id FROM storage.objects WHERE bucket_id = ''member-avatars''') >= 2,
+  'staff read is a real requirement, and a policy granting nothing would pass every isolation check above while breaking the operator card');
+
+SELECT pg_temp.check(
+  'staff CANNOT delete a member''s photograph',
+  pg_temp.exec_as('a6000000-0000-0000-0000-00000000000f',
+    'DELETE FROM storage.objects
+      WHERE name = ''aaaaaaaa-0000-0000-0000-000000000001/avatar.jpg''') = 0,
+  'staff get SELECT and nothing else. The ABSENCE of the other three policies is the enforcement, so this fails the moment somebody adds a convenience policy');
+
+-- ── the INSERT half of the same rule ───────────────────────────────────────
+-- The guard is BEFORE UPDATE. `Staff can manage members` is FOR ALL, so staff can INSERT a
+-- members row — and an INSERT that claims `member_pin` would put "set by member on <today>" on
+-- the SOS card for a pin no member has ever seen. Same lie, different verb.
+SELECT pg_temp.check(
+  'STAFF CANNOT CREATE A MEMBER WITH A PIN THAT CLAIMS THE MEMBER CONFIRMED IT',
+  pg_temp.raises_as('c0000001-0000-0000-0000-000000000001',
+    'INSERT INTO public.members
+       (first_name, last_name, email, phone, date_of_birth,
+        address_line_1, city, province, postal_code,
+        home_lat, home_lng, home_location_source)
+     VALUES (''Forged'', ''Pin'', ''forged-pin@example.com'', ''+34600000099'', ''1950-01-01'',
+             ''Calle F 1'', ''Albox'', ''Almeria'', ''04800'',
+             37.4, -2.2, ''member_pin'')'),
+  'the SOS card labels a member confirmation differently from a staff pin; an INSERT must not '
+  'be the way round the rule the UPDATE path enforces');
+
+SELECT pg_temp.check(
+  'but staff CAN create a member carrying an imported pin — that is the CRM import',
+  pg_temp.exec_as('c0000001-0000-0000-0000-000000000001',
+    'INSERT INTO public.members
+       (first_name, last_name, email, phone, date_of_birth,
+        address_line_1, city, province, postal_code,
+        home_lat, home_lng, home_location_source)
+     VALUES (''Imported'', ''Pin'', ''imported-pin@example.com'', ''+34600000098'', ''1950-01-01'',
+             ''Calle I 1'', ''Albox'', ''Almeria'', ''04800'',
+             37.4, -2.2, ''imported'')') = 1,
+  'if this fails the CRM import cannot create a member with the coordinates it parsed');
+
+SELECT pg_temp.check(
+  'and a staff INSERT with no pin at all is untouched',
+  pg_temp.exec_as('c0000001-0000-0000-0000-000000000001',
+    'INSERT INTO public.members
+       (first_name, last_name, email, phone, date_of_birth,
+        address_line_1, city, province, postal_code)
+     VALUES (''No'', ''Pin'', ''no-pin@example.com'', ''+34600000097'', ''1950-01-01'',
+             ''Calle N 1'', ''Albox'', ''Almeria'', ''04800'')') = 1,
+  'the guard must cost an ordinary Add-a-member nothing');
+
+-- Provenance on an INSERT is stamped, not accepted — the same rule as on UPDATE, and the
+-- reason the label on the SOS card is evidence rather than decoration. Asserted in two
+-- statements rather than one: `exec_as(...) = 1 AND (SELECT ...)` lets the planner run the
+-- sublink as an InitPlan BEFORE the volatile write, and the read then sees no row.
+SELECT pg_temp.check(
+  'a staff pin INSERT is accepted',
+  pg_temp.exec_as('c0000001-0000-0000-0000-000000000001',
+    'INSERT INTO public.members
+       (first_name, last_name, email, phone, date_of_birth,
+        address_line_1, city, province, postal_code,
+        home_lat, home_lng, home_location_source,
+        home_location_set_at, home_location_set_by)
+     VALUES (''Stamped'', ''Pin'', ''stamped-pin@example.com'', ''+34600000096'', ''1950-01-01'',
+             ''Calle S 1'', ''Albox'', ''Almeria'', ''04800'',
+             37.4, -2.2, ''staff_pin'',
+             ''2001-01-01T00:00:00Z'', ''11111111-1111-1111-1111-111111111111'')') = 1,
+  'setup for the stamping assertion below');
+
+SELECT pg_temp.check(
+  'A FORGED set_at / set_by ON AN INSERT IS OVERWRITTEN, NOT STORED',
+  (SELECT home_location_set_at::date = now()::date
+          AND home_location_set_by = 'c0000001-0000-0000-0000-000000000001'::uuid
+     FROM public.members WHERE email = 'stamped-pin@example.com'),
+  'the row above asked to be dated 2001 and attributed to member A. A backdated set_at makes '
+  'a fresh guess look like a long-standing confirmation, and a borrowed set_by blames somebody '
+  'else for it');
+
+SELECT pg_temp.check(
+  'AN IMPORTED PIN GETS NO CONFIRMATION DATE',
+  (SELECT home_location_set_at IS NULL
+          AND home_location_set_by = 'c0000001-0000-0000-0000-000000000001'::uuid
+     FROM public.members WHERE email = 'imported-pin@example.com'),
+  'a coordinate off a KarmaCRM export was never confirmed by anyone, so it must carry no date '
+  'that an operator could read as one — while still being attributed to whoever ran the import');
 
 -- ============================================================
 --  The Santander date: whose money, whose date

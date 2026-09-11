@@ -80,6 +80,9 @@ const RED_BUTTONS: Record<string, string[]> = {
     "the Messages tab's empty state — R8, and mutually exclusive with the trigger above",
     "'send us a message' on the Help tab, which is that tab's one action",
   ],
+  "src/components/client/CompleteMyDetailsDialog.tsx": [
+    "Save. A dialog is its own surface with its own single action — the same reason the contacts and messages dialogs have one. The contacts LINK beside it is outline, and `ReviewMyDetailsDialog`'s Print is `ink`, so this is the only red on either sheet",
+  ],
   "src/components/client/MembershipConditionCard.tsx": [
     "the empty state's single action, and the only red button on the Membership page's empty branch",
   ],

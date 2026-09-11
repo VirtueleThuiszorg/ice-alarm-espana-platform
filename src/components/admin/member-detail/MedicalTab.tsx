@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { format } from "date-fns";
+import { FieldGrid, FIELD_LABEL_CLASS } from "@/components/FieldGrid";
 
 const medicalSchema = z.object({
   blood_type: z.string().optional(),
@@ -365,13 +366,13 @@ export function MedicalTab({ memberId }: MedicalTabProps) {
             </div>
 
             {/* Blood Type & Doctor Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FieldGrid>
               <FormField
                 control={form.control}
                 name="blood_type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Blood Type</FormLabel>
+                    <FormLabel className={FIELD_LABEL_CLASS}>Blood Type</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -399,7 +400,7 @@ export function MedicalTab({ memberId }: MedicalTabProps) {
                 name="hospital_preference"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Hospital Preference</FormLabel>
+                    <FormLabel className={FIELD_LABEL_CLASS}>Hospital Preference</FormLabel>
                     <FormControl>
                       <Input placeholder="Preferred hospital..." {...field} />
                     </FormControl>
@@ -412,7 +413,7 @@ export function MedicalTab({ memberId }: MedicalTabProps) {
                 name="doctor_name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Doctor Name</FormLabel>
+                    <FormLabel className={FIELD_LABEL_CLASS}>Doctor Name</FormLabel>
                     <FormControl>
                       <Input placeholder="Dr. Name..." {...field} />
                     </FormControl>
@@ -425,7 +426,7 @@ export function MedicalTab({ memberId }: MedicalTabProps) {
                 name="doctor_phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Doctor Phone</FormLabel>
+                    <FormLabel className={FIELD_LABEL_CLASS}>Doctor Phone</FormLabel>
                     <FormControl>
                       <Input placeholder="+34 XXX XXX XXX" {...field} />
                     </FormControl>
@@ -433,7 +434,7 @@ export function MedicalTab({ memberId }: MedicalTabProps) {
                   </FormItem>
                 )}
               />
-            </div>
+            </FieldGrid>
 
             {/* Additional Notes */}
             <FormField
@@ -441,7 +442,7 @@ export function MedicalTab({ memberId }: MedicalTabProps) {
               name="additional_notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Additional Notes</FormLabel>
+                  <FormLabel className={FIELD_LABEL_CLASS}>Additional Notes</FormLabel>
                   <FormControl>
                     <Textarea 
                       placeholder="Any additional medical notes..."

@@ -63,6 +63,17 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: { from: () => chain
 vi.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ memberId: "m1", isLoading: false }) }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/components/gdpr/GdprSettingsSection", () => ({ GdprSettingsSection: () => null }));
+/*
+  THE MAP IS NOT WHAT THESE TESTS ARE ABOUT, and leaving it in made them flaky.
+
+  `HomeLocationRow` (#323) pulls leaflet into every `renderProfile()`. Each assertion below
+  renders the whole page, so the suite crossed vitest's 5s default under a loaded runner while
+  passing in isolation — which is the worst kind of red: it looks like a real defect and is not
+  reproducible on the machine you are on. The pin has its own suite
+  (`memberHomeLocation.test.tsx`); these are about what a Save PAYLOAD contains, so the map is
+  stubbed for the same reason `GdprSettingsSection` above is.
+*/
+vi.mock("@/components/client/HomeLocationRow", () => ({ HomeLocationRow: () => null }));
 vi.mock("@/i18n", () => ({ default: { changeLanguage: vi.fn() } }));
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({

@@ -28,6 +28,8 @@ import {
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/client/PageHeader";
+import { Navigate } from "react-router-dom";
+import { useMemberAlertHistory } from "@/hooks/useMemberAlertHistory";
 
 const ALERT_CONFIG = {
   sos_button: { 
@@ -68,6 +70,19 @@ type AlertStatus = "all" | "resolved" | "incoming" | "in_progress";
 export default function AlertHistoryPage() {
   const { t } = useTranslation();
   const { data: alerts, isLoading } = useMemberAlerts();
+  /*
+    THE SECOND HALF OF HIDING THIS PAGE. The sidebar stops offering it; this stops a member who
+    has the URL — a bookmark, a link in an old email, the browser's own history — from landing on
+    a page somebody decided not to show them.
+
+    `settled`, NOT `enabled`. Redirecting while the read is in flight would bounce a member who
+    HAS the feature on, making the page unreachable by link for as long as the read took. So the
+    guard waits for an answer and the spinner below covers the gap — the same rule
+    MEMBER_UX_RULES R3 states for the readiness notice, "never while loading", pointed the other
+    way. `settled` is true on a failed read too, so a whitelist regression redirects rather than
+    spinning for ever.
+  */
+  const { enabled: alertHistoryEnabled, settled: alertHistorySettled } = useMemberAlertHistory();
   const [typeFilter, setTypeFilter] = useState<AlertType>("all");
   const [statusFilter, setStatusFilter] = useState<AlertStatus>("all");
   const [page, setPage] = useState(1);
@@ -89,7 +104,12 @@ export default function AlertHistoryPage() {
     pending: alerts?.filter(a => a.status !== "resolved").length || 0,
   };
 
-  if (isLoading) {
+  // `replace` so Back does not land the member straight back here in a loop.
+  if (alertHistorySettled && !alertHistoryEnabled) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (isLoading || !alertHistorySettled) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

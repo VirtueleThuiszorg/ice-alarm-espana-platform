@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MemberPortalSettingsTab } from "@/components/admin/settings/MemberPortalSettingsTab";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -84,10 +85,23 @@ const KEY = {
   REG_FEE_DISCOUNT: "registration_fee_discount",
   TEST_MODE_ENABLED: "registration_test_mode_enabled",
 
-  // Stripe (no settings_ prefix in your current DB usage)
-  STRIPE_SECRET: "stripe_secret_key",
-  STRIPE_PUBLISHABLE: "stripe_publishable_key",
-  STRIPE_WEBHOOK: "stripe_webhook_secret",
+  // ── Stripe: PREFIXED, because that is the row the money path reads ────────
+  //
+  // The comment here used to say "no settings_ prefix in your current DB usage" and it was
+  // exactly wrong. `save-api-keys` stores `${service}_${key}`, and this page saves under
+  // `service: "settings"`, so a key typed into the Stripe card has ALWAYS landed in
+  // `settings_stripe_secret_key` — which is what create-checkout, stripe-webhook,
+  // send-payment-link and admin-subscription-action read. The WRITE was always right.
+  //
+  // The READ was not: these constants named the unprefixed rows, which nothing writes and
+  // nothing reads, so `mask()` got undefined and the card showed a live, working secret key as
+  // NOT SET. An admin looking at that screen would reasonably paste a new key over a good one,
+  // or go hunting for a key that was never missing.
+  //
+  // Lee's ruling (11 Sep): the prefixed family wins — it is what the money path reads and what
+  // the save writes — so only the display changes. No migration, no data moves, no row renamed.
+  STRIPE_SECRET: "settings_stripe_secret_key",
+  STRIPE_WEBHOOK: "settings_stripe_webhook_secret",
 
   // Twilio (stored with settings_ prefix)
   TWILIO_SID: "settings_twilio_account_sid",
@@ -97,8 +111,13 @@ const KEY = {
   TWILIO_VOICE_CALLER_ID: "settings_twilio_voice_caller_id",
   TWILIO_WA: "settings_twilio_whatsapp_number",
 
-  // Maps
-  GOOGLE_MAPS: "google_maps_api_key",
+  // NO GOOGLE MAPS KEY. The field that used to live here wrote
+  // `settings_google_maps_api_key` and nothing — not one component, not one function — ever read
+  // it. The maps this product actually draws are Leaflet over OpenStreetMap (the home-location
+  // picker) and plain google.com/maps LINKS on the operator card, neither of which needs a key.
+  // So it was a form that accepted a billable Google credential and dropped it. Removed per
+  // Lee, 11 Sep; if keyed maps are ever wanted, the field comes back WITH the reader that uses
+  // it, in the same PR.
 
   // Mollie
   ACTIVE_GATEWAY: "settings_active_payment_gateway",
@@ -114,7 +133,7 @@ const KEY = {
 // to when it blocks an admin for having no verified TOTP factor. Without it in this
 // list the param is dropped and the tab falls back to "company" — which is how the
 // gate came to redirect somewhere that did not offer enrolment.
-const SETTINGS_TABS = ["company", "pricing", "payments", "communications", "notifications", "devices", "images", "documentation", "security"] as const;
+const SETTINGS_TABS = ["company", "pricing", "payments", "communications", "notifications", "members", "devices", "images", "documentation", "security"] as const;
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -170,7 +189,6 @@ export default function SettingsPage() {
   // Integration keys state
   const [stripeKeys, setStripeKeys] = useState({
     secret_key: "",
-    publishable_key: "",
     webhook_secret: "",
   });
 
@@ -198,7 +216,6 @@ export default function SettingsPage() {
   const [twilioTestStatus, setTwilioTestStatus] = useState<"idle" | "testing" | "success" | "error">("idle");
   const [twilioTestMessage, setTwilioTestMessage] = useState("");
 
-  const [googleMapsKey, setGoogleMapsKey] = useState("");
 
   // Facebook settings state - split into stored flag + new input
   const [facebookPageId, setFacebookPageId] = useState("");
@@ -253,7 +270,6 @@ export default function SettingsPage() {
     // Stripe (masked)
     setStripeKeys({
       secret_key: mask(settingsMap[KEY.STRIPE_SECRET]),
-      publishable_key: settingsMap[KEY.STRIPE_PUBLISHABLE] || "",
       webhook_secret: mask(settingsMap[KEY.STRIPE_WEBHOOK]),
     });
 
@@ -275,7 +291,6 @@ export default function SettingsPage() {
     // Twilio secret stored flags - NEVER touch the input fields
     setTwilioAuthTokenStored(!!settingsMap[KEY.TWILIO_TOKEN]);
 
-    setGoogleMapsKey(settingsMap[KEY.GOOGLE_MAPS] || "");
 
     // Facebook (don’t overwrite while saving/pasting)
     if (recentlySavedSection !== "facebook") {
@@ -425,9 +440,6 @@ export default function SettingsPage() {
     if (stripeKeys.secret_key && !stripeKeys.secret_key.includes("•")) {
       updates[KEY.STRIPE_SECRET] = stripeKeys.secret_key;
     }
-    if (stripeKeys.publishable_key) {
-      updates[KEY.STRIPE_PUBLISHABLE] = stripeKeys.publishable_key;
-    }
     if (stripeKeys.webhook_secret && !stripeKeys.webhook_secret.includes("•")) {
       updates[KEY.STRIPE_WEBHOOK] = stripeKeys.webhook_secret;
     }
@@ -464,11 +476,6 @@ export default function SettingsPage() {
 
     setRecentlySavedSection("twilio");
     saveKeys(updates);
-  };
-
-  const handleSaveGoogleMaps = () => {
-    if (!googleMapsKey.trim()) return;
-    saveKeys({ [KEY.GOOGLE_MAPS]: googleMapsKey.trim() });
   };
 
   const handleSaveFacebook = () => {
@@ -551,6 +558,7 @@ export default function SettingsPage() {
           <TabsTrigger value="payments">{t("adminSettings.payments", "Payments")}</TabsTrigger>
           <TabsTrigger value="communications">{t("adminSettings.communications", "Communications")}</TabsTrigger>
           <TabsTrigger value="notifications">{t("adminSettings.notifications", "Notifications")}</TabsTrigger>
+          <TabsTrigger value="members">{t("adminSettings.members", "Members")}</TabsTrigger>
           <TabsTrigger value="devices">{t("adminSettings.devices", "Devices")}</TabsTrigger>
           <TabsTrigger value="images">{t("adminSettings.images", "Images")}</TabsTrigger>
           <TabsTrigger value="documentation">{t("adminSettings.documentation", "Docs")}</TabsTrigger>
@@ -838,7 +846,7 @@ export default function SettingsPage() {
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
                 Stripe Configuration
-                {getIntegrationStatus([KEY.STRIPE_SECRET, KEY.STRIPE_PUBLISHABLE]) ? (
+                {getIntegrationStatus([KEY.STRIPE_SECRET]) ? (
                   <Badge className="bg-alert-resolved text-alert-resolved-foreground ml-2">
                     <Check className="mr-1 h-3 w-3" />
                     Configured
@@ -864,18 +872,12 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Publishable Key</Label>
-                  <Input
-                    value={stripeKeys.publishable_key}
-                    onChange={(e) => setStripeKeys((prev) => ({ ...prev, publishable_key: e.target.value }))}
-                    placeholder="pk_live_..."
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Starts with pk_live_ (production) or pk_test_ (testing)
-                  </p>
-                </div>
-
+                {/* NO PUBLISHABLE-KEY FIELD. Nothing in this codebase reads one: checkout is
+                    created server-side by `create-checkout` and the customer is redirected to
+                    Stripe's own hosted page, so no publishable key is ever needed in the
+                    browser. The field saved to `settings_stripe_publishable_key`, which has no
+                    reader anywhere — a control that takes a credential and does nothing with it.
+                    Removed per Lee, 11 Sep. */}
                 <div className="space-y-2">
                   <Label>Secret Key</Label>
                   <div className="relative">
@@ -1048,15 +1050,11 @@ export default function SettingsPage() {
             showFacebookToken={showFacebookToken}
             setShowFacebookToken={setShowFacebookToken}
             handleSaveFacebook={handleSaveFacebook}
-            googleMapsKey={googleMapsKey}
-            setGoogleMapsKey={setGoogleMapsKey}
-            handleSaveGoogleMaps={handleSaveGoogleMaps}
             handleSaveWhatsApp={handleSaveWhatsApp}
             isSaving={saveMutation.isPending}
             twilioConfigured={getIntegrationStatus([KEY.TWILIO_SID, KEY.TWILIO_TOKEN])}
             whatsappConfigured={!!settingsMap[KEY.TWILIO_WA]}
             facebookConfigured={getIntegrationStatus([KEY.FB_PAGE_ID, KEY.FB_PAGE_TOKEN])}
-            mapsConfigured={!!settingsMap[KEY.GOOGLE_MAPS]}
           />
         </TabsContent>
 
@@ -1084,6 +1082,14 @@ export default function SettingsPage() {
         </TabsContent>
 
         {/* Devices Tab */}
+        {/*
+          MEMBERS — what the member portal shows of a member's own account. Display only: it
+          changes no policy, records no alert differently and hides nothing from staff.
+        */}
+        <TabsContent value="members" className="space-y-6">
+          <MemberPortalSettingsTab />
+        </TabsContent>
+
         <TabsContent value="devices">
           <DevicesSettingsTab isSaving={saveMutation.isPending} />
         </TabsContent>

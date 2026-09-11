@@ -16,7 +16,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 const MIGRATIONS = join(process.cwd(), "supabase/migrations");
-const FILE = "20260911100000_legacy_billing_date.sql";
+const FILE = "20260911110000_legacy_billing_date.sql";
 const raw = readFileSync(join(MIGRATIONS, FILE), "utf8");
 /** Statements only. See the header: a phrase in a comment is not a behaviour. */
 const sql = raw.replace(/^\s*--.*$/gm, "");

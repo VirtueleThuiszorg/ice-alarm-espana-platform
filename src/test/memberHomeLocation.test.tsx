@@ -159,6 +159,66 @@ beforeEach(() => {
 });
 afterEach(() => cleanup());
 
+
+/*
+  A PARENT RE-RENDER IS NOT A CHANGE OF PIN.
+
+  Both callers build the prop inline — `existing={hasPin ? { lat, lng } : null}` — so every
+  parent render hands the dialog a new object holding the same coordinate. While the seeding
+  effect depended on that object's identity, each render re-seeded from the record and discarded
+  whatever the member had done since opening it.
+
+  The second test is the one that matters. A stomped pin is visible and annoying; a stomped pin
+  UNDER a live `acceptedFix` is a save that claims GPS provenance for a coordinate the GPS never
+  produced — and every downstream guard accepts it, because `member_gps` with an accuracy inside
+  100 m is exactly what an honest reading looks like. Both fail against the pre-fix component.
+*/
+describe("the pin survives a parent re-render", () => {
+  const DIALOG_PROPS = {
+    open: true as const,
+    onOpenChange: () => {},
+    memberId: "m1",
+    actor: "member" as const,
+    address: { line1: "Calle A 1", city: "Albox", province: "Almeria", postalCode: "04800" },
+  };
+  const STORED = { lat: 37.3881, lng: -2.1479 };
+
+  it("keeps a nudged pin when the parent re-renders with an equal-but-new object", async () => {
+    const { SetHomeLocationDialog } = await import("@/components/maps/SetHomeLocationDialog");
+    const { rerender } = render(<SetHomeLocationDialog {...DIALOG_PROPS} existing={STORED} />);
+    await screen.findByTestId("home-location-coords");
+
+    fireEvent.click(screen.getByTestId("home-location-nudge-north"));
+    const nudged = screen.getByTestId("home-location-coords").textContent as string;
+    expect(nudged).not.toBe("37.388100, -2.147900");
+
+    rerender(<SetHomeLocationDialog {...DIALOG_PROPS} existing={{ ...STORED }} />);
+    await waitFor(() => {
+      expect(screen.getByTestId("home-location-coords")).toHaveTextContent(nudged);
+    });
+  });
+
+  it("never sends member_gps for a coordinate the fix did not produce", async () => {
+    installGeolocation(20, { latitude: 37.4001, longitude: -2.2002 });
+    const { SetHomeLocationDialog } = await import("@/components/maps/SetHomeLocationDialog");
+    const { rerender } = render(<SetHomeLocationDialog {...DIALOG_PROPS} existing={STORED} />);
+
+    fireEvent.click(screen.getByTestId("home-location-use-current"));
+    await screen.findByTestId("home-location-accuracy");
+
+    rerender(<SetHomeLocationDialog {...DIALOG_PROPS} existing={{ ...STORED }} />);
+    fireEvent.click(screen.getByTestId("home-location-save"));
+    await waitFor(() => expect(invoked).toHaveLength(1));
+
+    const body = invoked[0].body;
+    expect(body.source).toBe("member_gps");
+    expect(body.accuracy_m).toBe(20);
+    // The coordinate must be the FIX, not the stored pin the re-render tried to restore.
+    expect(body.lat).toBeCloseTo(37.4001, 4);
+    expect(body.lng).toBeCloseTo(-2.2002, 4);
+  });
+});
+
 // ── the row ────────────────────────────────────────────────────────────────
 describe("the Home location row on the member's own account page", () => {
   it("with no pin: one large button and nothing else to think about", async () => {

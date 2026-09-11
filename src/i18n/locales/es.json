@@ -2275,6 +2275,15 @@
     "chargeSoon": "⚠ Por favor cargue su dispositivo pronto",
     "connectionLost": "⚠ Conexión perdida - Contacte soporte"
   },
+  "memberStatus": {
+    "active": "Activo",
+    "pendingReview": "Pendiente de revisión",
+    "inactive": "Inactivo",
+    "suspended": "Suspendido",
+    "unknown": "Estado desconocido",
+    "hasPendant": "Con colgante",
+    "noPendant": "Sin colgante"
+  },
   "adminDashboard": {
     "title": "Panel",
     "welcome": "¡Bienvenido de nuevo! Aquí tiene un resumen de ICE Alarm España.",

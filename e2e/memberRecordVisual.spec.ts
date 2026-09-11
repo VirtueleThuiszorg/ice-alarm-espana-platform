@@ -163,9 +163,11 @@ for (const [label, width, height] of [
       page.screenshot({ path: `e2e/.report/member-record-${name}-${label}.png`, fullPage: false });
 
     await shot("profile");
-    // The strip on its own, because the whole of this PR is two centimetres of one screenshot.
     await page.getByRole("tablist").screenshot({
       path: `e2e/.report/member-record-tabstrip-${label}.png`,
+    });
+    await page.getByTestId("member-header").screenshot({
+      path: `e2e/.report/member-record-header-${label}.png`,
     });
 
     await openTab(page, /contacts/i);
@@ -182,14 +184,36 @@ for (const [label, width, height] of [
       scroll. A strip whose BOX is wider than the viewport is the bug, and the two look
       identical in a screenshot cropped to the viewport. So: the strip's own box must fit.
 
-      The document-level version of this assertion currently fails at 390px by 325px, and NOT
-      because of the tabs — the header's button row (Overview / Missing info / Edit / ⋯) does
-      not wrap on a phone. That is a real defect, it is the header's, and it is fixed with the
-      header rather than smuggled in here; the document assertion arrives with that fix.
+      SCOPED TO THE RECORD, and that boundary was drawn by measurement rather than by taste.
+
+      At 390px the document overflowed by 325px. The member header's action row was 291 of it —
+      four buttons in a flex row that could not wrap — and that is fixed. The remaining 34px is
+      the CALL-CENTRE SHELL's own sticky top bar (the operator's name and the icon buttons
+      beside it), which is on every call-centre page and has nothing to do with this record. A
+      document-level assertion here would either stay red for a defect this goal does not own,
+      or quietly become the place somebody "fixes" an app-shell bug inside a member-record PR.
+
+      So the assertion walks the record's own subtree. It is a real regression test for the 291
+      that were ours, and it will not go green if the shell is ever fixed and this rots.
     */
     const strip = page.getByRole("tablist");
-    const box = (await strip.boundingBox())!;
-    expect(box.width, "the tab strip's box must fit the viewport; its content may scroll")
+    const stripBox = (await strip.boundingBox())!;
+    expect(stripBox.width, "the tab strip's box must fit the viewport; its content may scroll")
       .toBeLessThanOrEqual(width);
+
+    const escapes = await page.evaluate(() => {
+      const root = document.querySelector(".member-record-page");
+      if (!root) return ["the record root is missing"];
+      const limit = root.getBoundingClientRect().right;
+      const out: string[] = [];
+      root.querySelectorAll<HTMLElement>("*").forEach((el) => {
+        // The tab strip is a scroller: its CONTENT is meant to be wider than its box.
+        if (el.closest(".member-tab-strip")) return;
+        const r = el.getBoundingClientRect();
+        if (r.right > limit + 1) out.push(`${el.tagName}.${String(el.className).slice(0, 50)}`);
+      });
+      return out.slice(0, 5);
+    });
+    expect(escapes, "nothing on the record may run past its own right edge").toEqual([]);
   });
 }

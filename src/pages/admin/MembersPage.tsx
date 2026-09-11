@@ -74,7 +74,12 @@ export default function MembersPage() {
      A legacy member with no `legacy_billing_day` cannot be moved onto Stripe at all: the runner
      has nothing to time their switch link to. Without a way to list them, that queue is 431 rows
      deep and invisible. */
-  const [billingFilter, setBillingFilter] = useState<string>("all");
+  /* Seeded from the URL so the dashboard's counters are links rather than numbers to go and
+     reproduce by hand. `?billing=switch_pending` is the one that matters — "who has a link out"
+     has no other route to it. */
+  const [billingFilter, setBillingFilter] = useState<string>(
+    () => new URLSearchParams(window.location.search).get("billing") ?? "all",
+  );
   /* Only ever populated while the status filter is `pending_review`. Cleared when the filter
      moves, because a selection carried across a filter change is a bulk action performed on rows
      the person can no longer see. */
@@ -441,6 +446,9 @@ export default function MembersPage() {
               <SelectContent>
                 <SelectItem value="all">All billing</SelectItem>
                 <SelectItem value="legacy">Legacy (Santander)</SelectItem>
+                {/* Not "moved": a link is out and unpaid, and they have left the Santander
+                    export from the moment it was created. */}
+                <SelectItem value="switch_pending">Switch link out</SelectItem>
                 <SelectItem value="needs_date">Needs a billing date</SelectItem>
                 <SelectItem value="stripe">Stripe</SelectItem>
               </SelectContent>

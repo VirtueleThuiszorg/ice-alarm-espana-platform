@@ -263,7 +263,13 @@ function MemberRecord() {
   const memberName = `${member.first_name} ${member.last_name}`;
 
   return (
-    <div className="space-y-6">
+    /*
+      THE RECORD'S OWN GROUND. `member-record-page` cancels the layout's content padding, paints
+      the neutral, and puts the padding back — see index.css for why the layout itself is not
+      recoloured (it paints thirty other screens) and for the test that keeps the two paddings
+      in step.
+    */
+    <div className="member-record-page space-y-6">
       {/* Back Button */}
       <Button variant="ghost" onClick={() => navigate(backPath)} className="mb-2">
         <ArrowLeft className="mr-2 h-4 w-4" />

@@ -550,6 +550,31 @@ describe("properties the screen cannot show", () => {
     expect(map()).toMatch(/dragging: interactive/);
   });
 
+  /*
+    THE PREVIEW IS A PICTURE; ONLY THE PICKER IS A WIDGET.
+
+    `role="application"` tells a screen reader to stop interpreting keys and hand every one of
+    them to the page — the right trade for a control whose job is to move a pin, and the wrong
+    one for a still preview with dragging, zoom and keyboard all switched off. Rendered rather
+    than scanned, because the role is an attribute on an element and that is a thing a test can
+    just look at.
+  */
+  it("the preview is an image and the picker is an application", async () => {
+    const HomeLocationMap = (await import("@/components/maps/HomeLocationMap")).default;
+
+    const preview = render(
+      <HomeLocationMap lat={37.388} lng={-2.148} interactive={false} ariaLabel="Saved home" />,
+    );
+    expect(preview.getByTestId("home-location-map")).toHaveAttribute("role", "img");
+    expect(preview.getByLabelText("Saved home")).toBeInTheDocument();
+    cleanup();
+
+    const picker = render(
+      <HomeLocationMap lat={37.388} lng={-2.148} interactive ariaLabel="Pick your door" />,
+    );
+    expect(picker.getByTestId("home-location-map")).toHaveAttribute("role", "application");
+  });
+
   it("tiles come from OpenStreetMap, attributed, with no API key anywhere", () => {
     expect(map()).toMatch(/tile\.openstreetmap\.org/);
     expect(map()).toMatch(/openstreetmap\.org\/copyright/);

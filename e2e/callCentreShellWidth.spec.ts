@@ -126,3 +126,39 @@ for (const width of WIDTHS) {
     expect(failures, `pages scrolling sideways at ${width}px`).toEqual([]);
   });
 }
+
+/**
+ * THE FONT-INDEPENDENT HALF, and the reason this test exists at all.
+ *
+ * The page-width tests above passed on this machine and failed in CI by 39px, on the Dashboard,
+ * because the runner's default font is wider than the container's. The cause was a `truncate`
+ * on a CardDescription inside a flex child with no `min-w-0`: a flex child defaults to
+ * `min-width: auto`, so its base size is the full nowrap width of the string and the truncation
+ * has nothing to truncate to. The parent had already sized itself to the whole text.
+ *
+ * A width test tuned to a font is a width test that lies on somebody else's machine. This asks
+ * the invariant directly instead: make the string absurdly long, and the card must still fit.
+ * If `min-w-0` is ever removed, this fails on EVERY machine rather than only on the runner.
+ */
+test("a long card description truncates instead of widening the page", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+  await page.goto("/call-centre");
+  await expect(page.getByTestId("duty-toggle")).toBeVisible();
+
+  const stretched = await page.evaluate(() => {
+    const descriptions = [...document.querySelectorAll<HTMLElement>("p.truncate")];
+    if (!descriptions.length) return 0;
+    for (const d of descriptions) {
+      d.textContent =
+        "EV-07B devices that have gone offline and need somebody to look at them today " +
+        "before anything else happens on this shift at all";
+    }
+    return descriptions.length;
+  });
+  expect(stretched, "no truncating card description found to stretch").toBeGreaterThan(0);
+
+  const { excess, worst } = await overflowReport(page);
+  expect(excess, `a stretched description widened the page — ${worst.join(" | ")}`)
+    .toBeLessThanOrEqual(1);
+});

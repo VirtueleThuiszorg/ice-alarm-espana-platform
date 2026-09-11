@@ -67,6 +67,11 @@ export default function MembersPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [legacyTypeFilter, setLegacyTypeFilter] = useState<string>("all");
+  /* WHO BILLS THEM, and — the reason this filter exists — who has no Santander date on file.
+     A legacy member with no `legacy_billing_day` cannot be moved onto Stripe at all: the runner
+     has nothing to time their switch link to. Without a way to list them, that queue is 431 rows
+     deep and invisible. */
+  const [billingFilter, setBillingFilter] = useState<string>("all");
   /* Only ever populated while the status filter is `pending_review`. Cleared when the filter
      moves, because a selection carried across a filter change is a bulk action performed on rows
      the person can no longer see. */
@@ -103,7 +108,7 @@ export default function MembersPage() {
   };
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-members", searchQuery, statusFilter, planFilter, legacyTypeFilter, page],
+    queryKey: ["admin-members", searchQuery, statusFilter, planFilter, legacyTypeFilter, billingFilter, page],
     queryFn: async () => {
       /* `!inner` ONLY when the legacy filter is on. An inner join left in place would silently
          drop every member with no crm_profiles row — the ones created through the wizard rather
@@ -142,6 +147,16 @@ export default function MembersPage() {
          past page one. */
       if (legacyTypeFilter !== "all") {
         query = query.eq("crm_profiles.legacy_membership_type", legacyTypeFilter);
+      }
+
+      /* Also in the DATABASE, and `needs_date` is the whole point of it: the members the
+         billing migration cannot reach. `.is(..., null)` rather than `.eq(..., null)`, which
+         PostgREST turns into `= NULL` and which matches nothing at all — an empty queue that
+         looks like a finished one. */
+      if (billingFilter === "needs_date") {
+        query = query.eq("billing_source", "legacy").is("legacy_billing_day", null);
+      } else if (billingFilter !== "all") {
+        query = query.eq("billing_source", billingFilter);
       }
 
       const { data: members, count, error } = await query;
@@ -374,6 +389,20 @@ export default function MembersPage() {
                 </SelectContent>
               </Select>
             )}
+            <Select
+              value={billingFilter}
+              onValueChange={(v) => { setBillingFilter(v); setPage(1); setSelectedIds([]); }}
+            >
+              <SelectTrigger className="w-[200px]" data-testid="billing-source-filter">
+                <SelectValue placeholder="Billing" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All billing</SelectItem>
+                <SelectItem value="legacy">Legacy (Santander)</SelectItem>
+                <SelectItem value="needs_date">Needs a billing date</SelectItem>
+                <SelectItem value="stripe">Stripe</SelectItem>
+              </SelectContent>
+            </Select>
             <Select value={planFilter} onValueChange={(v) => { setPlanFilter(v); setPage(1); }}>
               <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder={t("common.plan")} />

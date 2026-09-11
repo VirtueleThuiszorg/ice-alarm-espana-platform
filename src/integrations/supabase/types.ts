@@ -3308,6 +3308,8 @@ export type Database = {
           pendant_with_member: boolean | null
           urbanizacion: string | null
           billing_source: string
+          legacy_billing_day: number | null
+          legacy_next_renewal: string | null
           bloque: string | null
           portal: string | null
           escalera: string | null
@@ -3372,6 +3374,8 @@ export type Database = {
           pendant_with_member?: boolean | null
           urbanizacion?: string | null
           billing_source?: string
+          legacy_billing_day?: number | null
+          legacy_next_renewal?: string | null
           bloque?: string | null
           portal?: string | null
           escalera?: string | null
@@ -3436,6 +3440,8 @@ export type Database = {
           pendant_with_member?: boolean | null
           urbanizacion?: string | null
           billing_source?: string
+          legacy_billing_day?: number | null
+          legacy_next_renewal?: string | null
           bloque?: string | null
           portal?: string | null
           escalera?: string | null

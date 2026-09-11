@@ -63,6 +63,17 @@ export interface MemberInsert {
   crm_source: string;
   crm_source_id: string;
   /**
+   * The Santander schedule, derived by `deriveLegacySchedule` in the mapper.
+   *
+   * NOT in NEVER_PATCH, and deliberately so: `computeEmptyOnlyPatch` filling these on a member
+   * already imported is the ONLY backfill there is. The migration carries no SQL backfill,
+   * because parsing Karma's free-text `Monthly Payment Date` in SQL would be a second
+   * implementation of the date rule and the two would disagree on exactly the rows nobody
+   * checks. Empty-only means a staff correction is never overwritten by a re-run.
+   */
+  legacy_billing_day: number | null;
+  legacy_next_renewal: string | null;
+  /**
    * The home pin, when the CRM row held one that parses to a point in Spain.
    *
    * ALL FOUR TRAVEL TOGETHER or none does: `members_home_location_complete` refuses coordinates
@@ -136,6 +147,11 @@ export interface RowPlan {
     city: string | null;
     province: string | null;
     postal_code: string | null;
+    /* Carried here as well as on MemberInsert so that `memberPatchFor` can fill them on a
+       member the platform already holds from a row that cannot itself create one — which is
+       most of the imported file's re-runs. */
+    legacy_billing_day: number | null;
+    legacy_next_renewal: string | null;
   };
   medical: Record<string, unknown> | null;
   contacts: ContactInsert[];
@@ -230,6 +246,8 @@ export function planRowWrites(row: MappedRow): RowPlan {
         city: row.member.city,
         province: row.member.province,
         postal_code: row.member.postal_code,
+        legacy_billing_day: row.member.legacy_billing_day,
+        legacy_next_renewal: row.member.legacy_next_renewal,
       },
       medical: null,
       contacts: [],
@@ -369,6 +387,8 @@ export function planRowWrites(row: MappedRow): RowPlan {
             passport_number: m.passport_number,
             crm_source: m.crm_source,
             crm_source_id: m.crm_source_id,
+            legacy_billing_day: m.legacy_billing_day,
+            legacy_next_renewal: m.legacy_next_renewal,
             home_lat: m.home_lat,
             home_lng: m.home_lng,
             // Never a source without a coordinate: the CHECK constraint refuses it, and a
@@ -388,6 +408,8 @@ export function planRowWrites(row: MappedRow): RowPlan {
       city: m.city,
       province: m.province,
       postal_code: m.postal_code,
+      legacy_billing_day: m.legacy_billing_day,
+      legacy_next_renewal: m.legacy_next_renewal,
     },
     /* Parsed regardless of outcome, and that is deliberate.
        These were conditioned on `outcome === "member"` in the first draft, which zeroed the

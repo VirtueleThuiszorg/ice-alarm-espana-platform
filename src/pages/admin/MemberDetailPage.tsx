@@ -48,6 +48,9 @@ interface Member {
   status: string;
   /** Who bills them: stripe, legacy (imported, paid outside Stripe) or none. */
   billing_source: string | null;
+  /** When Santander collects from a legacy member. NULL is a queue for staff, not an error. */
+  legacy_billing_day: number | null;
+  legacy_next_renewal: string | null;
   photo_url: string | null;
   address_line_1: string;
   address_line_2: string | null;
@@ -325,6 +328,9 @@ function MemberRecord() {
             memberName={`${member.first_name} ${member.last_name}`}
             memberStatus={member.status}
             billingSource={member.billing_source}
+            legacyBillingDay={member.legacy_billing_day}
+            legacyNextRenewal={member.legacy_next_renewal}
+            onMemberChanged={fetchMember}
           />
         </TabsContent>
 

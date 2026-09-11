@@ -82,3 +82,65 @@ describe("the one that got through", () => {
     );
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// THE SECOND ONE ON THE SAME FUNCTION, found the same way.
+//
+// `send-payment-link` asked Stripe for a session expiring in 72 hours. From the SDK it imports
+// (stripe@14.21.0, types/Checkout/SessionsResource.d.ts):
+//
+//     "The Epoch time in seconds at which the Checkout Session will expire. It can be anywhere
+//      from 30 minutes to 24 hours after Checkout Session creation."
+//
+// So it was a 400 on every call — and, like the ReferenceError above, it happened AFTER the
+// pending order rows were written. `create-checkout`'s own comment asserted that
+// send-payment-link "allows 72 because a family needs time to talk over a link", which read like
+// a decision and is why nobody checked it.
+describe("no checkout session asks for an expiry Stripe will refuse", () => {
+  /** 30 minutes to 24 hours after creation — stripe@14.21.0's own documented range. */
+  const STRIPE_MAX_TTL_SECONDS = 24 * 60 * 60;
+  const STRIPE_MIN_TTL_SECONDS = 30 * 60;
+
+  const withSessions = [
+    "supabase/functions/create-checkout/index.ts",
+    "supabase/functions/send-payment-link/index.ts",
+  ];
+
+  for (const rel of withSessions) {
+    it(`${rel} stays inside Stripe's 30-minute-to-24-hour range`, () => {
+      const source = read(rel);
+      // Every `expires_at: <now> + <expression>` in the file, with the expression evaluated.
+      const matches = [...source.matchAll(/expires_at:\s*Math\.floor\(Date\.now\(\)\s*\/\s*1000\)\s*\+\s*([^,\n]+)/g)];
+      expect(matches.length, `${rel} creates no session?`).toBeGreaterThan(0);
+
+      for (const m of matches) {
+        const expr = m[1].trim();
+        // Resolve a named constant to its literal, then evaluate the arithmetic. Deliberately
+        // narrow: only digits, operators and a single known identifier are accepted, so this
+        // cannot be talked into running anything.
+        const constMatch = source.match(
+          new RegExp(`const\\s+${expr.replace(/[^\w]/g, "")}\\s*=\\s*([0-9*+\\s]+);`),
+        );
+        const arithmetic = /^[0-9*+\s]+$/.test(expr) ? expr : constMatch?.[1];
+        expect(arithmetic, `could not read the TTL from "${expr}" in ${rel}`).toBeTruthy();
+
+        const seconds = Number(
+          // eslint-disable-next-line no-new-func
+          new Function(`return (${arithmetic})`)(),
+        );
+        expect(seconds, `${rel} asks for ${seconds}s`).toBeLessThanOrEqual(STRIPE_MAX_TTL_SECONDS);
+        expect(seconds, `${rel} asks for ${seconds}s`).toBeGreaterThanOrEqual(STRIPE_MIN_TTL_SECONDS);
+      }
+    });
+  }
+
+  // The old comment asserted 72 hours as a CHOICE, which is why nobody checked it. It is still
+  // quoted in the corrected one — deliberately, as the record of the mistake — so what is
+  // asserted here is that the correction is present, not that the words are absent.
+  it("and both functions now say what Stripe's ceiling actually is", () => {
+    for (const rel of withSessions) {
+      expect(read(rel), rel).toMatch(/30 minutes (?:to|and) 24 hours/);
+    }
+  });
+});

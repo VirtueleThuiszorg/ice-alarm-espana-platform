@@ -638,6 +638,24 @@ INSERTing a `notification_log` row carrying `billing-switch:<member>:<renewal>:<
 re-run, an overlapping run and a crash halfway through 431 members all resolve to the same
 outcome. It arrives **switched off**.
 
+### 🔴 A direct debit that bounced (#385)
+`switch_pending` takes a member OUT of the Santander export — that is what stops them being
+collected from twice in the month they move. Exactly one thing put them back: the 14-day lapse
+sweep. But SEPA does not wait fourteen days to fail: the checkout completes `unpaid`, Stripe
+presents the debit days later, and a bounce arrives as `checkout.session.async_payment_failed`
+— **which nothing handled**. That member had no Stripe subscription and no bank collection until
+the sweep found them, up to a fortnight later. Lee's rule says the opposite in as many words:
+"if not completed within 14 days, **or the first debit bounces**, they return to legacy with a
+staff bell so the missed payment is collected the old way."
+
+`abandon_legacy_switch(member, reason)` is now the ONE implementation of "return them to legacy
+and ring the bell" — the sweep loops over it and the webhook calls it for a bounce. A copy in the
+webhook would have drifted on *which* columns get cleared, and a `switch_session_expires_at` left
+behind is how the sweep later finds a member who **has** paid and puts them back on Santander.
+The bell's wording differs by reason, because the two situations do: a member whose debit bounced
+believes they have moved, and the person ringing them has to know that. The settings card also
+told admins to subscribe to `checkout.session.failed`, which is not a Stripe event at all.
+
 ### ✅ The progress view (#369)
 Counters, the two otherwise-silent queues (no billing date; a link that lapsed unused), and the
 **Santander CSV** — which is not a report but an instruction, and excludes anybody with a link

@@ -270,6 +270,15 @@ describe("an unpaid session does not activate anybody", () => {
   it("the card tells an admin exactly which events to enable", () => {
     const card = read("src/components/admin/settings/CheckoutPaymentMethodsCard.tsx");
     expect(card).toContain("checkout.session.async_payment_succeeded");
+    /*
+      IT NAMED AN EVENT THAT DOES NOT EXIST. The card asked for `checkout.session.failed`, which
+      is not a Stripe event at all — an admin following the instruction would subscribe to
+      nothing and tick the box believing they had. The real one is
+      `checkout.session.async_payment_failed`, and it is the event that puts a legacy member
+      whose debit bounced back into the Santander collection.
+    */
+    expect(card).toContain("checkout.session.async_payment_failed");
+    expect(card).not.toMatch(/checkout\.session\.failed</);
     expect(card).toContain("never activated");
     // Card cannot be unticked in the UI either.
     expect(card).toMatch(/disabled=\{locked \|\| !gate\.selectable/);

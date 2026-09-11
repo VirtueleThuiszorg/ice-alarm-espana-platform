@@ -121,6 +121,18 @@ export const REQUIRED_EVENT_FIELDS: Record<string, string[]> = {
     "metadata.member_id",
     "metadata.subscription_id",
   ],
+  /*
+    A BOUNCED DIRECT DEBIT. SEPA completes the session `unpaid` and Stripe presents the debit days
+    later; this is the event that says it did not clear. Only what the handler needs is required —
+    `amount_total` is not, because nothing was paid, and demanding it would refuse the event and
+    leave the member out of the Santander run.
+  */
+  "checkout.session.async_payment_failed": [
+    "id",
+    "metadata.order_id",
+    "metadata.payment_id",
+    "metadata.member_id",
+  ],
   // `subscription` and `payment_intent` are the two that move in later API versions.
   "invoice.paid": ["id", "subscription", "amount_paid"],
   "invoice.payment_failed": ["id", "subscription"],

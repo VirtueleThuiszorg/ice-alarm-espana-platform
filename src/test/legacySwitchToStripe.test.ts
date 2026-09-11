@@ -41,6 +41,7 @@ const ROOT = process.cwd();
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 const MIGRATIONS = join(ROOT, "supabase/migrations");
 const MIGRATION_FILE = "20260911130000_legacy_switch_to_stripe.sql";
+const ABANDON_FILE = "20260911170000_abandon_legacy_switch.sql";
 /** Statements only: a phrase in a comment is documentation, not behaviour. */
 const sql = read(`supabase/migrations/${MIGRATION_FILE}`).replace(/^\s*--.*$/gm, "");
 const rawSql = read(`supabase/migrations/${MIGRATION_FILE}`);
@@ -261,8 +262,22 @@ describe("the session a switch asks Stripe for", () => {
 });
 
 describe("entering and leaving switch_pending", () => {
-  it("the migration exists exactly once", () => {
-    expect(readdirSync(MIGRATIONS).filter((f) => f.includes("legacy_switch"))).toEqual([MIGRATION_FILE]);
+  /*
+    THE SCHEMA IS NOT ACCRETED — the list is named, so a THIRD file has to be argued for here
+    rather than appearing.
+
+    It was one file. It is now two, and the second is not a patch on the first: the first is
+    already applied to production and is therefore immutable, and the second exists because a
+    SECOND WAY to end a switch turned up — a SEPA debit that bounces days after the session
+    completed. Its body is the first file's, moved so that there is ONE implementation of
+    "return them to legacy and ring the bell" rather than a copy in the webhook that would drift
+    on which columns get cleared.
+  */
+  it("the switch schema is these files and no others", () => {
+    expect(readdirSync(MIGRATIONS).filter((f) => f.includes("legacy_switch")).sort()).toEqual([
+      MIGRATION_FILE,
+      ABANDON_FILE,
+    ]);
   });
 
   it("adds switch_pending to the billing_source CHECK", () => {

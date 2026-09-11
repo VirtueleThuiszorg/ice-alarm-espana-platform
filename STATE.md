@@ -287,8 +287,9 @@ migrating works.**
 
 ## Member home location — 2026-09-10 · **the member's front door, and who is allowed to claim it**
 
-Five PRs — #312, #315, #323, #327 and the import one. What is claimed here is what a test presses;
-what is not done is named as not done at the bottom.
+Six PRs — #312, #315, #323, #327, the import one, and #354, which fixed a hole the first five
+shipped. What is claimed here is what a test presses; what is not done is named as not done at
+the bottom.
 
 ### ✅ The rule for which location the SOS card leads with (#312)
 `src/lib/homeLocation.ts` — five outcomes from three inputs (a fix or not, fresh or not, a pin or
@@ -360,6 +361,34 @@ and the date is always NULL: the import knows when IT ran, not when anybody stoo
 pin is not an incomplete record, the missing count does not move, and it cannot travel on the
 member's update link, which needs no login.
 Proof: `memberHomeLocationRecommended.test.ts`.
+
+### 🔧 The hole this feature shipped, found in review afterwards (#354)
+`guard_member_home_location()` was attached to **`BEFORE UPDATE`** and `"Staff can manage members"`
+is **`FOR ALL`**. So every claim above about who may say the member confirmed their own door held
+on the UPDATE path and **not on the INSERT path**: a staff INSERT carrying
+`home_location_source = 'member_pin'` put *"Home location (set by member on <today>)"* on an
+operator's SOS card for a pin no member had ever seen. Same lie, different verb.
+
+Nothing exploited it — the only INSERT path in the app is the CRM import, which writes `imported`.
+What is worth recording is **why the suite did not catch it**:
+`memberHomeLocationWrite.test.ts` asserted the trigger shape by reading ONE migration file, so it
+went on passing while the rule it described was half-enforced. It now derives the EFFECTIVE
+trigger — the newest migration that declares one — which is the version of that test that would
+have failed.
+
+`20260911102350` makes the trigger `BEFORE INSERT OR UPDATE`, branching on `TG_OP` because `OLD`
+does not exist in a BEFORE INSERT row trigger. On INSERT staff may claim `staff_pin`, `geocoded`
+or `imported` — `imported` is allowed here and still refused on UPDATE, because the import CREATES
+rows and those columns are in its `NEVER_PATCH` list for exactly that reason. `set_at` is forced
+to NULL for `imported`: today's date beside a KarmaCRM coordinate would make a spreadsheet cell
+look freshly checked.
+In production: applied by
+[Migrate Production run #17](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34590172004),
+repo 195, manifest 195, level.
+Proof: the forge assertion FAILED against the old trigger before the fix was written. Five new
+checks in `scripts/rls/isolation.sql` (636 total) — the forge, the import that must keep working,
+an ordinary Add-a-member that must stay free, and a forged `set_at`/`set_by` on an INSERT being
+overwritten rather than stored. `memberHomeLocationWrite.test.ts` 24 → 32.
 
 ### What is NOT done, named as undone
 - **No member or staff member has actually set a pin on production.** The columns are there and

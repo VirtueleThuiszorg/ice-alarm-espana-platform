@@ -28,6 +28,7 @@ import { AISalesDesk } from "@/components/admin/dashboard/AISalesDesk";
 import { NotificationSettings } from "@/components/admin/dashboard/NotificationSettings";
 import { NotificationLog } from "@/components/admin/dashboard/NotificationLog";
 import { EV07BStatusWidget } from "@/components/admin/dashboard/EV07BStatusWidget";
+import { BillingMigrationProgress } from "@/components/admin/dashboard/BillingMigrationProgress";
 import { useDeviceRealtime } from "@/hooks/useDeviceRealtime";
 import { useAlertsRealtime } from "@/hooks/useAlertsRealtime";
 import { IsabellaHealthPill } from "@/components/admin/dashboard/IsabellaHealthPill";
@@ -329,6 +330,10 @@ export default function AdminDashboard() {
 
       {/* EV-07B Status Widget */}
       <EV07BStatusWidget />
+
+      {/* How far through the billing migration we are — and, the part the office needs today,
+          who the bank should still be collecting from this month. */}
+      <BillingMigrationProgress />
 
       {/* On Shift Now Widget */}
       <Card className={onShiftNow.length > 0 ? "border-green-500/30 bg-green-500/5" : "border-red-500/30 bg-red-500/5"}>

@@ -694,7 +694,7 @@ export const FAMILIES = [
   },
   {
     wires: ["table:members", "channel:members", "table:member_notes", "table:member_contact_methods", "table:payers", "table:subscriptions", "table:payments"],
-    control: "Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin",
+    control: "Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member",
     promise: "the record reflects what was agreed",
     dest: "the named tables",
     told: "self",
@@ -707,7 +707,17 @@ export const FAMILIES = [
       "it lying is not this component: `guard_member_home_location()` forces a staff write to be " +
       "source='staff_pin', stamps set_at/set_by, and refuses a provenance-only edit. The SOS " +
       "card labels a staff_pin differently from a member confirmation, so the trigger is what " +
-      "makes that label true. Proven by execution in scripts/rls/isolation.sql.",
+      "makes that label true. Proven by execution in scripts/rls/isolation.sql.\n\n" +
+      "The Santander billing date (2026-09-11) is the other direct staff write to `members`: " +
+      "legacy_billing_day and legacy_next_renewal, the two columns the billing migration times a " +
+      "member's Stripe switch link to. Every save carries an activity_logs row with the old and " +
+      "the new value, and a FAILED log row is shown to the operator rather than swallowed — the " +
+      "change is real and unrecorded, which is the state the audit row exists to prevent. " +
+      "guard_member_billing_self_write() refuses the same write from a member: pushing your own " +
+      "next renewal out a year is a year of monitoring nobody bills for, and setting your own " +
+      "billing_source to legacy exempts you from dunning altogether. Ten assertions in " +
+      "scripts/rls/isolation.sql, and the day is deliberately NOT clamped in storage so a 31st " +
+      "member does not become a 28th member after one February.",
   },
   {
     wires: ["fn:submit-member-update", "fn:validate-member-update-token", "fn:send-member-update-request"],

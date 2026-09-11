@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { format } from "date-fns";
 import { MemberActionsCard } from "@/components/admin/member-detail/MemberActionsCard";
 import { ConfirmLegacyMemberCard } from "@/components/admin/member-detail/ConfirmLegacyMemberCard";
+import { LegacyBillingDateCard } from "@/components/admin/member-detail/LegacyBillingDateCard";
 import { EditableCard } from "@/components/EditableCard";
 import { SendPaymentLinkDialog } from "@/components/admin/member-detail/SendPaymentLinkDialog";
 import { FieldGrid, FieldRow } from "@/components/FieldGrid";
@@ -40,6 +41,11 @@ interface SubscriptionTabProps {
    */
   memberStatus?: string | null;
   billingSource?: string | null;
+  /** The Santander schedule, for the card that records it and the line that states it. */
+  legacyBillingDay?: number | null;
+  legacyNextRenewal?: string | null;
+  /** Refetch the member after the billing date is written, so the line below updates. */
+  onMemberChanged?: () => void;
 }
 
 /**
@@ -53,6 +59,9 @@ export function SubscriptionTab({
   memberName,
   memberStatus,
   billingSource,
+  legacyBillingDay = null,
+  legacyNextRenewal = null,
+  onMemberChanged,
 }: SubscriptionTabProps) {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -175,8 +184,38 @@ export function SubscriptionTab({
                 renewal or payment-failed reminders will never fire for them.
               </CardDescription>
             </CardHeader>
+            <CardContent>
+              {/* THE ONE LINE SOMEBODY ON THE PHONE NEEDS. "Is my payment still coming out, and
+                  when?" has no answer anywhere else on this record — there is no subscription
+                  row to read it off. When it is unknown it says so rather than showing a dash,
+                  because "we don't know" is the thing that needs doing something about. */}
+              <p className="text-sm" data-testid="legacy-billing-line">
+                Legacy billing — Santander —{" "}
+                {legacyNextRenewal ? (
+                  <span className="font-medium">
+                    next debit {format(new Date(legacyNextRenewal), "PPP")}
+                  </span>
+                ) : (
+                  <span className="font-medium text-amber-600">no billing date recorded yet</span>
+                )}
+                {legacyBillingDay !== null && (
+                  <span className="text-muted-foreground">
+                    {" "}
+                    (day {legacyBillingDay} of the month)
+                  </span>
+                )}
+              </p>
+            </CardContent>
           </Card>
         )}
+
+        <LegacyBillingDateCard
+          memberId={memberId}
+          billingSource={billingSource ?? null}
+          billingDay={legacyBillingDay}
+          nextRenewal={legacyNextRenewal}
+          onSaved={onMemberChanged}
+        />
 
         <Card>
           <CardHeader>

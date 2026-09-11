@@ -97,6 +97,21 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
+/*
+  A BUDGET, NOT A GLOBAL BUMP.
+
+  Stubbing leaflet above took the worst of it, but each assertion that calls `renderProfile()`
+  still mounts the whole client profile page — four cards, a form library and a query client —
+  and lands at 4-7 seconds against vitest's 5s default. Alone the file is green; in a full
+  parallel run four of them time out. That red says "the padlock is broken" when nothing is
+  broken at all, and a reader who cannot reproduce it learns to ignore the suite.
+
+  Raising `testTimeout` in the config would hide a genuinely slow test ANYWHERE, which is the
+  thing a timeout is for. This is per-test and says which tests and why — the same shape as
+  SPAWNS_THE_GENERATOR in src/test/absentAdminEvents.test.ts.
+*/
+const RENDERS_THE_WHOLE_PAGE = 30_000;
+
 async function renderProfile() {
   const Page = (await import("@/pages/client/ProfilePage")).default;
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -176,7 +191,7 @@ describe("every locked field carries a reason", () => {
     for (const id of LOCKED) {
       expect(screen.getByTestId(id)).toBeVisible();
     }
-  });
+  }, RENDERS_THE_WHOLE_PAGE);
 
   it("and each one says WHY, in a sentence", async () => {
     await renderProfile();
@@ -188,7 +203,7 @@ describe("every locked field carries a reason", () => {
         25,
       );
     }
-  });
+  }, RENDERS_THE_WHOLE_PAGE);
 
   it("DOB and NIE use R7's own sentence", async () => {
     await renderProfile();
@@ -198,7 +213,7 @@ describe("every locked field carries a reason", () => {
       );
       expect(screen.getByTestId(`${id}-reason`).textContent).toContain("verify who you are");
     }
-  });
+  }, RENDERS_THE_WHOLE_PAGE);
 
   it("NONE of them says 'contact support' — R6 bans that sentence", async () => {
     await renderProfile();
@@ -207,7 +222,7 @@ describe("every locked field carries a reason", () => {
         "contact support",
       );
     }
-  });
+  }, RENDERS_THE_WHOLE_PAGE);
 
   it("shows an em dash rather than an empty box when we have not got the value", async () => {
     // A blank locked field reads as "there is nothing here"; on this page a member should be able
@@ -249,7 +264,7 @@ describe("what the page actually sends — the padlock is not the enforcement", 
       for (const column of NEVER_SENT) {
         expect(sent, `${card} must not send ${column}`).not.toContain(column);
       }
-    });
+    }, RENDERS_THE_WHOLE_PAGE);
   }
 
   it("a card writes ONLY its own columns — a second open card cannot ride along", async () => {
@@ -277,7 +292,7 @@ describe("what the page actually sends — the padlock is not the enforcement", 
 
     expect(Object.keys(updatePayloads[0])).toEqual(["preferred_language"]);
     expect(updatePayloads[0]).not.toHaveProperty("address_line_1");
-  });
+  }, RENDERS_THE_WHOLE_PAGE);
 
   it("a locked identity field stays locked when its card is UNLOCKED", async () => {
     /*
@@ -302,7 +317,7 @@ describe("what the page actually sends — the padlock is not the enforcement", 
       // …and the reason is still on the screen, which is the half of R7 that matters.
       expect(screen.getByTestId(`${testId}-reason`)).toBeVisible();
     }
-  });
+  }, RENDERS_THE_WHOLE_PAGE);
 
   it("records honestly that the DB does not yet refuse them", () => {
     /*

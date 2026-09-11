@@ -77,7 +77,7 @@ for their value: `Credit Card Details`, `20 Digit Bank No`.
 | 61 | `GPS Co-ordinates` | `member.gps_lat`, `member.gps_lng`, `member.home_lat`, `member.home_lng` |
 | 62 | `Google Map Link` | `member.home_lat`, `member.home_lng`, `member.map_link` |
 | 63 | `Important Medical Info` | `medical.additional_notes`, `member.special_instructions` |
-| 64 | `Membership Type` | `subscription.billing_frequency`, `subscription.legacy_membership_label`, `subscription.plan_type` |
+| 64 | `Membership Type` | `member.legacy_billing_day`, `member.legacy_next_renewal`, `subscription.billing_frequency`, `subscription.legacy_membership_label`, `subscription.plan_type` |
 | 67 | `Critical Info` | `medical.additional_notes`, `member.special_instructions` |
 | 68 | `NIE Number` | `member.nie_dni` |
 | 69 | `AN/SS Number` | `member.an_ss_number` |
@@ -127,7 +127,7 @@ for their value: `Credit Card Details`, `20 Digit Bank No`.
 | 116 | `Monthly Fee` | `subscription.amount` |
 | 117 | `DD or TVP` | `subscription.payment_arrangement` |
 | 120 | `Notes` | `notes` |
-| 121 | `Monthly Payment Date` | `subscription.monthly_payment_date` |
+| 121 | `Monthly Payment Date` | `member.legacy_billing_day`, `member.legacy_next_renewal`, `subscription.monthly_payment_date` |
 | 122 | `Unit Type` | `device.unit_type` |
 | 123 | `Alarm Manufacturer` | `device.manufacturer` |
 | 124 | `Alarm Type` | `device.device_type` |
@@ -138,7 +138,7 @@ for their value: `Credit Card Details`, `20 Digit Bank No`.
 | 131 | `Permission State` | `member.consent_state` |
 | 134 | `Groups` | `crmProfile.groups`, `crmProfile.groups[]` |
 | 135 | `Date Joined` | `subscription.start_date` |
-| 136 | `Payment Type` | `subscription.billing_frequency` |
+| 136 | `Payment Type` | `member.legacy_billing_day`, `member.legacy_next_renewal`, `subscription.billing_frequency` |
 | 139 | `House Number` | `member.address_line_1` |
 | 141 | `Debt or TVP` | `subscription.arrears_note` |
 | 142 | `Personal Pendant` | `subscription.has_pendant` |

@@ -322,6 +322,8 @@ function withEmail(plan: RowPlan, email: string): RowPlan {
       address_line_2: null,
       status: "pending_review",
       billing_source: "legacy",
+      legacy_billing_day: plan.parsedMember.legacy_billing_day,
+      legacy_next_renewal: plan.parsedMember.legacy_next_renewal,
       special_instructions: null,
       // No pin on this fixture row: the CRM cell is empty, so all four stay null together.
       home_lat: null,

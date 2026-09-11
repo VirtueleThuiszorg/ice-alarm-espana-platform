@@ -6742,6 +6742,87 @@ SELECT pg_temp.check(
   'that an operator could read as one — while still being attributed to whoever ran the import');
 
 -- ============================================================
+--  The Santander date: whose money, whose date
+-- ============================================================
+--
+-- `legacy_billing_day` and `legacy_next_renewal` say when a legacy member's money leaves their
+-- bank, and the billing-migration runner times the Stripe switch link to them. `Members can
+-- update own profile` is an UPDATE policy with NO column list, so without a trigger a member
+-- reaching PostgREST directly could write them on their own row.
+--
+-- That is not a cosmetic write. Pushing your own `legacy_next_renewal` out a year is a year of
+-- monitoring nobody is billing for; flipping your own `billing_source` to `legacy` exempts you
+-- from renewal and payment-failed chasing altogether — golden rule 3's reasoning applied to the
+-- columns that decide who gets charged.
+
+SELECT pg_temp.check(
+  'a MEMBER CANNOT set their own Santander billing day',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET legacy_billing_day = 28
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''),
+  'the day decides when the switch link is sent; a member choosing it chooses when they pay');
+
+SELECT pg_temp.check(
+  'a MEMBER CANNOT push out their own next renewal date',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET legacy_next_renewal = ''2099-01-01''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''),
+  'a year of monitoring nobody is billing for');
+
+SELECT pg_temp.check(
+  'a MEMBER CANNOT exempt themselves from billing by claiming to be legacy',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET billing_source = ''legacy''
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''),
+  'renewal and payment-failed logic reads billing_source, so legacy means nobody chases them');
+
+SELECT pg_temp.check(
+  'CONTROL: the three refusals wrote nothing',
+  (SELECT legacy_billing_day IS NULL AND legacy_next_renewal IS NULL AND billing_source = 'stripe'
+     FROM public.members WHERE user_id = '11111111-1111-1111-1111-111111111111'),
+  'a guard that raises and still writes is worse than no guard');
+
+-- CONTROL IN THE OTHER DIRECTION. The card exists to be used: if staff could not write these,
+-- the "needs a billing date" queue would have no way to be emptied.
+SELECT pg_temp.check(
+  'STAFF CAN correct a legacy billing date — that is the whole feature',
+  pg_temp.exec_as('d1000000-0000-0000-0000-00000000000a',
+    'UPDATE public.members SET legacy_billing_day = 31, legacy_next_renewal = ''2026-11-30''
+      WHERE id = ''d1e00000-0000-0000-0000-00000000000a''') = 1);
+
+SELECT pg_temp.check(
+  'a 31st member KEEPS 31 while their next date is the 30th — the day is not clamped in storage',
+  (SELECT legacy_billing_day = 31 AND legacy_next_renewal = DATE '2026-11-30'
+     FROM public.members WHERE id = 'd1e00000-0000-0000-0000-00000000000a'),
+  'clamping the day on write would turn a 31st member into a 28th member after one February');
+
+SELECT pg_temp.check(
+  'a day outside 1-31 is refused even from staff',
+  pg_temp.raises_as('d1000000-0000-0000-0000-00000000000a',
+    'UPDATE public.members SET legacy_billing_day = 32
+      WHERE id = ''d1e00000-0000-0000-0000-00000000000a'''),
+  'a typo in the edit card must not become a date the runner silently never reaches');
+
+SELECT pg_temp.check(
+  'zero is refused too',
+  pg_temp.raises_as('d1000000-0000-0000-0000-00000000000a',
+    'UPDATE public.members SET legacy_billing_day = 0
+      WHERE id = ''d1e00000-0000-0000-0000-00000000000a'''));
+
+SELECT pg_temp.check(
+  'NULL stays legal: it is the queue a human works through, not an error',
+  pg_temp.exec_as('d1000000-0000-0000-0000-00000000000a',
+    'UPDATE public.members SET legacy_billing_day = NULL
+      WHERE id = ''d1e00000-0000-0000-0000-00000000000b''') = 1);
+
+SELECT pg_temp.check(
+  'and the status guard still holds beside the billing guard',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.members SET status = ''active'', legacy_billing_day = 4
+      WHERE user_id = ''11111111-1111-1111-1111-111111111111'''),
+  'three BEFORE UPDATE triggers on one table — this fails if any of them stops running');
+
+-- ============================================================
 --  Report
 -- ============================================================
 

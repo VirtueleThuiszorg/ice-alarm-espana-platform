@@ -31,6 +31,8 @@
  * Payment columns: never mapped to a structured field
  * ------------------------------------------------------------------ */
 
+import { deriveLegacySchedule } from "@/lib/legacyBillingSchedule";
+
 export const SENSITIVE_PAYMENT_HEADERS = [
   "Credit Card Details",
   "20 Digit Bank No",
@@ -695,6 +697,16 @@ export interface MappedRow {
     /** The home pin, from GPS or the map link. See mapIceRow. `null` when neither parses. */
     home_lat: number | null;
     home_lng: number | null;
+    /**
+     * When Santander takes this member's money — the day of the month, and the next date due.
+     *
+     * Derived by `deriveLegacySchedule` from `Monthly Payment Date` (monthly) or `Date Joined`
+     * (annual), and NULL whenever the row does not clearly say. Null is a queue for a human, not
+     * an error: a guessed debit date makes the switch link arrive on the wrong day, which either
+     * charges a member twice in a month or misses their renewal entirely.
+     */
+    legacy_billing_day: number | null;
+    legacy_next_renewal: string | null;
     title: string | null;
     nickname: string | null;
     gender: string | null;
@@ -810,7 +822,7 @@ export function isPlausiblySpain(lat: number, lng: number): boolean {
   return lat >= 27 && lat <= 44.5 && lng >= -19 && lng <= 5;
 }
 
-export function mapIceRow(row: IceRow): MappedRow {
+export function mapIceRow(row: IceRow, today: Date = new Date()): MappedRow {
   const warnings: string[] = [];
   const reviewReasons: string[] = [];
 
@@ -972,6 +984,25 @@ export function mapIceRow(row: IceRow): MappedRow {
   const postalStreet = row.get("Street");
   const hasPostal = Boolean(postalStreet || row.get("City/Town") || row.get("Postal Code"));
 
+  /*
+    THE SANTANDER DATE, computed once and read by both the member row and the preview.
+
+    `membership` already knows whether Karma billed this person monthly or annually, and the two
+    read DIFFERENT columns: a monthly member's day comes from `Monthly Payment Date`, an annual
+    member's from the anniversary of `Date Joined`. Reading `Monthly Payment Date` for an annual
+    member — a column that sometimes holds a stray value for them — would produce a monthly
+    schedule for somebody who pays once a year, and the runner would write to them eleven months
+    early.
+  */
+  const legacySchedule = deriveLegacySchedule(
+    {
+      monthlyPaymentDate: row.get("Monthly Payment Date") || null,
+      startDate: joinDate,
+      billingFrequency: membership.billingFrequency,
+    },
+    today,
+  );
+
   const member: MappedRow["member"] = {
     first_name: firstName,
     last_name: lastName,
@@ -993,6 +1024,8 @@ export function mapIceRow(row: IceRow): MappedRow {
     map_link: nz(row.get("Google Map Link")),
     home_lat: homeLat,
     home_lng: homeLng,
+    legacy_billing_day: legacySchedule.day,
+    legacy_next_renewal: legacySchedule.nextRenewal,
     title: nz(row.get("Title")),
     nickname: nz(row.get("Nickname")),
     gender: gender.gender,
@@ -1133,9 +1166,11 @@ export function mapIceRow(row: IceRow): MappedRow {
   };
 }
 
-export function mapIceCsv(text: string): MappedRow[] {
+export function mapIceCsv(text: string, today: Date = new Date()): MappedRow[] {
   const { headers, rows } = parseCsv(text);
-  return resolveSharedEmails(rows.map((values) => mapIceRow(new IceRow(headers, values))));
+  return resolveSharedEmails(
+    rows.map((values) => mapIceRow(new IceRow(headers, values), today)),
+  );
 }
 
 /**

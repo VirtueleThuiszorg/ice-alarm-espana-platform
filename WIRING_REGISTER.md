@@ -28,7 +28,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   1  
 ```
 
-192 distinct wires across 660 call sites and 110 routes.
+192 distinct wires across 662 call sites and 110 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
@@ -63,7 +63,7 @@ things, and a control with no wire cannot do anything:
 
 | kind | what it is | call sites |
 |---|---|---:|
-| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 351 |
+| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 353 |
 | `fn` | `supabase.functions.invoke(f)` — an edge function | 90 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 6 |
 | `channel` | `postgres_changes` — a realtime subscription | 51 |
@@ -131,7 +131,7 @@ The checks, verified on every build:
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:conversation_messages` | Isabella conversation turns — the assistant's reply appears as it is produced | conversation_messages | self | — | none | 2 |
 | **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 12 |
+| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | — | none | 13 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
 | **6** | `fn:ai-execute-action` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | mutation onError | none | 1 |
 | **6** | `table:ai_actions` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | toast | none | 2 |
@@ -160,7 +160,7 @@ The checks, verified on every build:
 | **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 34 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 12 |
+| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | — | none | 13 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
 | **7** | `fn:join-order-status` | /join?success — the confirmation screen, polling for the webhook — your payment is confirmed, and here is the one thing still to do | join-order-status, keyed on the Stripe Checkout Session id (never the order number, which is sequential) → the member's second-stage link and the 24-hour number | screen | — | `src/test/joinOrderPolling.test.tsx` | 1 |
 | **7** | `table:app_daily_metrics` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | — | `src/test/checkoutPaymentMethods.test.ts` | 1 |
@@ -194,7 +194,7 @@ The checks, verified on every build:
 | **5** | `table:documentation` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | toast | none | 1 |
 | **5** | `table:emergency_contacts` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 3 |
 | **5** | `table:member_notification_optin` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 2 |
-| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 12 |
+| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | — | none | 13 |
 | **5** | `table:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 3 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
 | **6** | `fn:ai-execute-action` | Isabella executes a tool action — the assistant does what she is permitted to do and nothing more | ai-execute-action → ai_actions | self | mutation onError | none | 1 |
@@ -202,7 +202,7 @@ The checks, verified on every build:
 | **6** | `table:ai_agent_configs` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
 | **6** | `table:ai_agents` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | toast | none | 2 |
 | **6** | `table:ai_memory` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
-| **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
+| **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 5 |
 | **9** | `table:conversations` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 8 |
 | **9** | `table:messages` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 7 |
 
@@ -242,7 +242,7 @@ The checks, verified on every build:
 | **4** | `table:staff_presence` | Write a handover note; go on/off duty — the next shift knows what happened | shift_notes / staff_presence | screen | — | none | 1 |
 | **5** | `auth:setSession` | Accept a staff or partner invite from an emailed link — this link makes your account real | auth.setSession with the tokens in the invite URL, then the *-complete-invite function | self | — | none | 3 |
 | **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
-| **5** | `channel:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 2 |
+| **5** | `channel:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | — | none | 2 |
 | **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
 | **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
 | **5** | `fn:send-member-update-request` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | toast | none | 1 |
@@ -258,15 +258,15 @@ The checks, verified on every build:
 | **5** | `table:documentation` | Assign, program, test and retire a device; publish documentation — the device on the member's wrist is the device on the record | devices / documentation, both published | screen | toast | none | 1 |
 | **5** | `table:emergency_contacts` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 3 |
 | **5** | `table:medical_information` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 2 |
-| **5** | `table:member_notes` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 3 |
-| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 12 |
+| **5** | `table:member_notes` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | — | none | 3 |
+| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | — | none | 13 |
 | **5** | `table:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 3 |
 | **5** | `table:shift_escalation_chain` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
 | **5** | `table:shift_notes` | Write a handover note; go on/off duty — the next shift knows what happened | shift_notes / staff_presence | screen | toast | none | 1 |
 | **5** | `table:staff_holidays` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
 | **5** | `table:staff_shift_covers` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
 | **5** | `table:staff_shifts` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 2 |
-| **5** | `table:subscriptions` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 1 |
+| **5** | `table:subscriptions` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | — | none | 1 |
 | **5** | `table:tasks` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 4 |
 | **5** | `table:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 1 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
@@ -275,14 +275,14 @@ The checks, verified on every build:
 | **6** | `table:ai_agent_configs` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
 | **6** | `table:ai_agents` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | toast | none | 2 |
 | **6** | `table:ai_memory` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
-| **6** | `table:payments` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | toast | none | 1 |
+| **6** | `table:payments` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | toast | none | 1 |
 | **7** | `channel:shift_notes` | Shift notes page — live handover list — code comment: “Keep the list live: notes added/edited/deleted by other operators appear without a reload.” | supabase.channel('call-centre-shift-notes') → fetchNotes() | screen | — | `scripts/rls/wiring.sql` | 1 |
 | **7** | `channel:tasks` | Call-centre dashboard — courtesy-call list auto-refresh — the courtesy-call list stays current while the operator works | supabase.channel('dashboard-courtesy-calls') → fetchCourtesyCalls() | screen | — | `scripts/rls/wiring.sql` | 1 |
 | **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
 | **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
 | **7** | `fn:save-api-keys` | Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device — your credentials work | save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push | self | toast | `src/test/firebaseConfig.test.ts` | 6 |
 | **7** | `fn:send-payment-link` | Staff send a member a Stripe payment link (CRM → member → Subscription) — a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are switched on, and always shown on screen to copy | send-payment-link → create_payment_link_order (pending order + items + subscription + payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms and/or send-email; activation is stripe-webhook's alone | the payer (SMS + email), and activity_logs twice — the order created, and what was sent | mutation onError | `src/test/sendPaymentLink.test.ts` | 1 |
-| **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
+| **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 5 |
 | **7** | `table:admin_ideas` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | mutation onError | `src/test/checkoutPaymentMethods.test.ts` | 1 |
 | **7** | `table:staff_push_tokens` | "Enable notifications on this phone" — Admin → Settings → Notifications, and Staff preferences — an alert reaches you when this page is closed | staff_push_tokens, one row per device keyed on the FCM registration token; read by the notify-staff router's push transport (_shared/fcm.ts) and pruned by it when Google says a token is dead | push | toast | `src/test/pushClient.test.ts` | 1 |
 | **9** | `fn:notify-fulfilment` | Order state transition fan-out — paid → allocated → programmed → dispatched → delivered → tested — the next person in the chain knows the device is theirs to move | notify-fulfilment → member_notification_log, one row per channel decision | bell | — | `src/test/notifyFulfilmentDispatcher.test.ts` | 1 |
@@ -333,7 +333,7 @@ The checks, verified on every build:
 | **4** | `table:staff` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | — | none | 11 |
 | **5** | `auth:setSession` | Accept a staff or partner invite from an emailed link — this link makes your account real | auth.setSession with the tokens in the invite URL, then the *-complete-invite function | self | — | none | 3 |
 | **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
-| **5** | `channel:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 2 |
+| **5** | `channel:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | — | none | 2 |
 | **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
 | **5** | `channel:outreach_crm_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | mutation onError | none | 1 |
 | **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
@@ -376,10 +376,10 @@ The checks, verified on every build:
 | **5** | `table:media_topic_goals` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
 | **5** | `table:media_topics` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
 | **5** | `table:medical_information` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 2 |
-| **5** | `table:member_contact_methods` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 1 |
-| **5** | `table:member_notes` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 3 |
+| **5** | `table:member_contact_methods` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | — | none | 1 |
+| **5** | `table:member_notes` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | — | none | 3 |
 | **5** | `table:member_notification_optin` | Member edits their emergency contacts, medical information, notification opt-in — this is what an operator will see when you press the pendant | emergency_contacts / medical_information / member_notification_optin | self | — | none | 2 |
-| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 12 |
+| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | — | none | 13 |
 | **5** | `table:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 3 |
 | **5** | `table:outreach_crm_leads` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | toast | none | 3 |
 | **5** | `table:outreach_queued_tasks` | AI outreach — build a list, draft, send, suppress, track daily usage — the campaign runs inside its limits | outreach_* tables and outreach-send-email | bell | mutation onError | none | 1 |
@@ -390,7 +390,7 @@ The checks, verified on every build:
 | **5** | `table:partner_alert_subscriptions` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
 | **5** | `table:partner_members` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
 | **5** | `table:partner_pricing_tiers` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
-| **5** | `table:payers` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 1 |
+| **5** | `table:payers` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | — | none | 1 |
 | **5** | `table:shift_escalation_chain` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
 | **5** | `table:staff_activity_log` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
 | **5** | `table:staff_documents` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | mutation onError | none | 1 |
@@ -398,7 +398,7 @@ The checks, verified on every build:
 | **5** | `table:staff_invites` | Invite a colleague, accept an invite, register, manage staff records and documents — your account exists and you can get in | staff-* edge functions; staff / staff_invites / staff_documents / staff_activity_log | email | toast | none | 1 |
 | **5** | `table:staff_shift_covers` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 1 |
 | **5** | `table:staff_shifts` | Request holiday, approve/decline, offer and accept shift cover, edit the rota — the person who has to act finds out | staff_holidays / staff_shift_covers / staff_shifts (+ escalation chain), each followed by a targeted notification through src/lib/staffNotify.ts | bell | mutation onError | none | 2 |
-| **5** | `table:subscriptions` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 1 |
+| **5** | `table:subscriptions` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | — | none | 1 |
 | **5** | `table:tasks` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 4 |
 | **5** | `table:ticket_comments` | Create/assign a task; raise an internal ticket; comment on one — the person it is assigned to picks it up | tasks / internal_tickets / ticket_comments | screen | toast | none | 1 |
 | **5** | `table:video_brand_settings` | Video hub — queue a render, watch it complete — you will know when the render is ready | video_* tables; video-render-queue; video-render-webhook writes the completion notification | bell | mutation onError | none | 1 |
@@ -413,7 +413,7 @@ The checks, verified on every build:
 | **6** | `table:ai_agent_configs` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
 | **6** | `table:ai_agents` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | toast | none | 2 |
 | **6** | `table:ai_memory` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
-| **6** | `table:payments` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | toast | none | 1 |
+| **6** | `table:payments` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | toast | none | 1 |
 | **7** | `channel:registration_drafts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | toast | `scripts/rls/wiring.sql` | 1 |
 | **7** | `channel:social_post_metrics` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
 | **7** | `channel:social_posts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
@@ -424,7 +424,7 @@ The checks, verified on every build:
 | **7** | `fn:send-payment-link` | Staff send a member a Stripe payment link (CRM → member → Subscription) — a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are switched on, and always shown on screen to copy | send-payment-link → create_payment_link_order (pending order + items + subscription + payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms and/or send-email; activation is stripe-webhook's alone | the payer (SMS + email), and activity_logs twice — the order created, and what was sent | mutation onError | `src/test/sendPaymentLink.test.ts` | 1 |
 | **7** | `fn:send-test-email` | Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device — your credentials work | save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push | self | toast | `src/test/firebaseConfig.test.ts` | 1 |
 | **7** | `fn:test-twilio` | Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device — your credentials work | save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push | self | mutation onError | `src/test/firebaseConfig.test.ts` | 1 |
-| **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 4 |
+| **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 5 |
 | **7** | `table:admin_ideas` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | mutation onError | `src/test/checkoutPaymentMethods.test.ts` | 1 |
 | **7** | `table:app_daily_metrics` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | — | `src/test/checkoutPaymentMethods.test.ts` | 1 |
 | **7** | `table:app_events` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | — | `src/test/checkoutPaymentMethods.test.ts` | 1 |
@@ -472,7 +472,7 @@ The checks, verified on every build:
 | **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 34 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
-| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin — the record reflects what was agreed | the named tables | self | — | none | 12 |
+| **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | — | none | 13 |
 | **5** | `table:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 3 |
 | **5** | `table:partner_agreements` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
 | **5** | `table:partner_alert_notifications` | Partner invites a member, signs the agreement, sets pricing tiers, subscribes to a member's alerts, publishes marketing links; admin creates/deletes a partner — your referral is tracked and you are paid for it | the partner_* tables and the partner-admin-* / partner-*-invite edge functions | nobody | mutation onError | none | 1 |
@@ -1217,7 +1217,7 @@ THE MOST CONSEQUENTIAL EMAIL IN THE PRODUCT, and the register was not asking abo
 
 ### `channel:members` — 5/10 (arrives, unproven)
 
-- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin
+- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member
 - **promised** the record reflects what was agreed
 - **goes to** the named tables
 - **who is told** self
@@ -1229,6 +1229,8 @@ THE MOST CONSEQUENTIAL EMAIL IN THE PRODUCT, and the register was not asking abo
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
 
 The home-location pin (2026-09-10) is a direct staff write to `members`, and what stops it lying is not this component: `guard_member_home_location()` forces a staff write to be source='staff_pin', stamps set_at/set_by, and refuses a provenance-only edit. The SOS card labels a staff_pin differently from a member confirmation, so the trigger is what makes that label true. Proven by execution in scripts/rls/isolation.sql.
+
+The Santander billing date (2026-09-11) is the other direct staff write to `members`: legacy_billing_day and legacy_next_renewal, the two columns the billing migration times a member's Stripe switch link to. Every save carries an activity_logs row with the old and the new value, and a FAILED log row is shown to the operator rather than swallowed — the change is real and unrecorded, which is the state the audit row exists to prevent. guard_member_billing_self_write() refuses the same write from a member: pushing your own next renewal out a year is a year of monitoring nobody bills for, and setting your own billing_source to legacy exempts you from dunning altogether. Ten assertions in scripts/rls/isolation.sql, and the day is deliberately NOT clamped in storage so a 31st member does not become a 28th member after one February.
 
 ### `channel:notification_log` — 5/10 (arrives, unproven)
 
@@ -1817,7 +1819,7 @@ Life-safety data with no notification owed — the member is the actor. What it 
 
 ### `table:member_contact_methods` — 5/10 (arrives, unproven)
 
-- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin
+- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member
 - **promised** the record reflects what was agreed
 - **goes to** the named tables
 - **who is told** self
@@ -1830,9 +1832,11 @@ Life-safety data with no notification owed — the member is the actor. What it 
 
 The home-location pin (2026-09-10) is a direct staff write to `members`, and what stops it lying is not this component: `guard_member_home_location()` forces a staff write to be source='staff_pin', stamps set_at/set_by, and refuses a provenance-only edit. The SOS card labels a staff_pin differently from a member confirmation, so the trigger is what makes that label true. Proven by execution in scripts/rls/isolation.sql.
 
+The Santander billing date (2026-09-11) is the other direct staff write to `members`: legacy_billing_day and legacy_next_renewal, the two columns the billing migration times a member's Stripe switch link to. Every save carries an activity_logs row with the old and the new value, and a FAILED log row is shown to the operator rather than swallowed — the change is real and unrecorded, which is the state the audit row exists to prevent. guard_member_billing_self_write() refuses the same write from a member: pushing your own next renewal out a year is a year of monitoring nobody bills for, and setting your own billing_source to legacy exempts you from dunning altogether. Ten assertions in scripts/rls/isolation.sql, and the day is deliberately NOT clamped in storage so a 31st member does not become a 28th member after one February.
+
 ### `table:member_notes` — 5/10 (arrives, unproven)
 
-- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin
+- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member
 - **promised** the record reflects what was agreed
 - **goes to** the named tables
 - **who is told** self
@@ -1844,6 +1848,8 @@ The home-location pin (2026-09-10) is a direct staff write to `members`, and wha
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
 
 The home-location pin (2026-09-10) is a direct staff write to `members`, and what stops it lying is not this component: `guard_member_home_location()` forces a staff write to be source='staff_pin', stamps set_at/set_by, and refuses a provenance-only edit. The SOS card labels a staff_pin differently from a member confirmation, so the trigger is what makes that label true. Proven by execution in scripts/rls/isolation.sql.
+
+The Santander billing date (2026-09-11) is the other direct staff write to `members`: legacy_billing_day and legacy_next_renewal, the two columns the billing migration times a member's Stripe switch link to. Every save carries an activity_logs row with the old and the new value, and a FAILED log row is shown to the operator rather than swallowed — the change is real and unrecorded, which is the state the audit row exists to prevent. guard_member_billing_self_write() refuses the same write from a member: pushing your own next renewal out a year is a year of monitoring nobody bills for, and setting your own billing_source to legacy exempts you from dunning altogether. Ten assertions in scripts/rls/isolation.sql, and the day is deliberately NOT clamped in storage so a 31st member does not become a 28th member after one February.
 
 ### `table:member_notification_optin` — 5/10 (arrives, unproven)
 
@@ -1860,18 +1866,20 @@ Life-safety data with no notification owed — the member is the actor. What it 
 
 ### `table:members` — 5/10 (arrives, unproven)
 
-- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin
+- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member
 - **promised** the record reflects what was agreed
 - **goes to** the named tables
 - **who is told** self
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /, /admin, /admin/ai, /admin/ai-outreach, /admin/ai/agents/:agentKey, /admin/ai/operations +91
-- **call sites** src/components/admin/member-detail/CourtesyCallsCard.tsx, src/components/admin/member-detail/ProfileTab.tsx, src/components/client/CompleteMyDetailsDialog.tsx, src/components/LanguageSelector.tsx +8
+- **call sites** src/components/admin/member-detail/CourtesyCallsCard.tsx, src/components/admin/member-detail/ProfileTab.tsx, src/components/client/CompleteMyDetailsDialog.tsx, src/components/LanguageSelector.tsx +9
 
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
 
 The home-location pin (2026-09-10) is a direct staff write to `members`, and what stops it lying is not this component: `guard_member_home_location()` forces a staff write to be source='staff_pin', stamps set_at/set_by, and refuses a provenance-only edit. The SOS card labels a staff_pin differently from a member confirmation, so the trigger is what makes that label true. Proven by execution in scripts/rls/isolation.sql.
+
+The Santander billing date (2026-09-11) is the other direct staff write to `members`: legacy_billing_day and legacy_next_renewal, the two columns the billing migration times a member's Stripe switch link to. Every save carries an activity_logs row with the old and the new value, and a FAILED log row is shown to the operator rather than swallowed — the change is real and unrecorded, which is the state the audit row exists to prevent. guard_member_billing_self_write() refuses the same write from a member: pushing your own next renewal out a year is a year of monitoring nobody bills for, and setting your own billing_source to legacy exempts you from dunning altogether. Ten assertions in scripts/rls/isolation.sql, and the day is deliberately NOT clamped in storage so a 31st member does not become a 28th member after one February.
 
 ### `table:notification_log` — 5/10 (arrives, unproven)
 
@@ -2044,7 +2052,7 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 
 ### `table:payers` — 5/10 (arrives, unproven)
 
-- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin
+- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member
 - **promised** the record reflects what was agreed
 - **goes to** the named tables
 - **who is told** self
@@ -2056,6 +2064,8 @@ Split out from registration deliberately. Nothing here notifies anybody — an i
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
 
 The home-location pin (2026-09-10) is a direct staff write to `members`, and what stops it lying is not this component: `guard_member_home_location()` forces a staff write to be source='staff_pin', stamps set_at/set_by, and refuses a provenance-only edit. The SOS card labels a staff_pin differently from a member confirmation, so the trigger is what makes that label true. Proven by execution in scripts/rls/isolation.sql.
+
+The Santander billing date (2026-09-11) is the other direct staff write to `members`: legacy_billing_day and legacy_next_renewal, the two columns the billing migration times a member's Stripe switch link to. Every save carries an activity_logs row with the old and the new value, and a FAILED log row is shown to the operator rather than swallowed — the change is real and unrecorded, which is the state the audit row exists to prevent. guard_member_billing_self_write() refuses the same write from a member: pushing your own next renewal out a year is a year of monitoring nobody bills for, and setting your own billing_source to legacy exempts you from dunning altogether. Ten assertions in scripts/rls/isolation.sql, and the day is deliberately NOT clamped in storage so a 31st member does not become a 28th member after one February.
 
 ### `table:shift_escalation_chain` — 5/10 (arrives, unproven)
 
@@ -2163,7 +2173,7 @@ The existing good pattern: one write path (`notifyUsers`), targeted rows so mark
 
 ### `table:subscriptions` — 5/10 (arrives, unproven)
 
-- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin
+- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member
 - **promised** the record reflects what was agreed
 - **goes to** the named tables
 - **who is told** self
@@ -2175,6 +2185,8 @@ The existing good pattern: one write path (`notifyUsers`), targeted rows so mark
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
 
 The home-location pin (2026-09-10) is a direct staff write to `members`, and what stops it lying is not this component: `guard_member_home_location()` forces a staff write to be source='staff_pin', stamps set_at/set_by, and refuses a provenance-only edit. The SOS card labels a staff_pin differently from a member confirmation, so the trigger is what makes that label true. Proven by execution in scripts/rls/isolation.sql.
+
+The Santander billing date (2026-09-11) is the other direct staff write to `members`: legacy_billing_day and legacy_next_renewal, the two columns the billing migration times a member's Stripe switch link to. Every save carries an activity_logs row with the old and the new value, and a FAILED log row is shown to the operator rather than swallowed — the change is real and unrecorded, which is the state the audit row exists to prevent. guard_member_billing_self_write() refuses the same write from a member: pushing your own next renewal out a year is a year of monitoring nobody bills for, and setting your own billing_source to legacy exempts you from dunning altogether. Ten assertions in scripts/rls/isolation.sql, and the day is deliberately NOT clamped in storage so a 31st member does not become a 28th member after one February.
 
 ### `table:tasks` — 5/10 (arrives, unproven)
 
@@ -2373,7 +2385,7 @@ Split from the gate above: `isabellaGate` proves the hard blocks, not that a pro
 
 ### `table:payments` — 6/10 (arrives, unproven)
 
-- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin
+- **control** Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member
 - **promised** the record reflects what was agreed
 - **goes to** the named tables
 - **who is told** self
@@ -2385,6 +2397,8 @@ Split from the gate above: `isabellaGate` proves the hard blocks, not that a pro
 `subscriptions` deserves its own warning: golden rule 4 reserves activation for the payment webhook, and `useMemberAction` honours that by calling the gateway first and only recording afterwards. Nothing here writes status='active' from the browser.
 
 The home-location pin (2026-09-10) is a direct staff write to `members`, and what stops it lying is not this component: `guard_member_home_location()` forces a staff write to be source='staff_pin', stamps set_at/set_by, and refuses a provenance-only edit. The SOS card labels a staff_pin differently from a member confirmation, so the trigger is what makes that label true. Proven by execution in scripts/rls/isolation.sql.
+
+The Santander billing date (2026-09-11) is the other direct staff write to `members`: legacy_billing_day and legacy_next_renewal, the two columns the billing migration times a member's Stripe switch link to. Every save carries an activity_logs row with the old and the new value, and a FAILED log row is shown to the operator rather than swallowed — the change is real and unrecorded, which is the state the audit row exists to prevent. guard_member_billing_self_write() refuses the same write from a member: pushing your own next renewal out a year is a year of monitoring nobody bills for, and setting your own billing_source to legacy exempts you from dunning altogether. Ten assertions in scripts/rls/isolation.sql, and the day is deliberately NOT clamped in storage so a 31st member does not become a 28th member after one February.
 
 ### `channel:registration_drafts` — 7/10 (proven; nobody told)
 
@@ -2564,7 +2578,7 @@ These are the only in-app way to find out whether the email, SMS and push channe
 - **failure shown to user** no
 - **proof** `src/test/staffMemberActions.test.tsx`
 - **routes** /admin/commissions, /admin/media-manager, /admin/members/:id, /admin/members/new, /admin/orders, /admin/partners/:id +3
-- **call sites** src/hooks/useGdprDeletion.ts, src/hooks/useMemberAction.ts, src/lib/auditLog.ts, src/pages/admin/AddMemberWizard.tsx
+- **call sites** src/hooks/useGdprDeletion.ts, src/hooks/useLegacyBillingDate.ts, src/hooks/useMemberAction.ts, src/lib/auditLog.ts +1
 
 The database refuses a `member_action` row without a reason and an actor, which is why this scores on its trigger rather than on a notification.
 

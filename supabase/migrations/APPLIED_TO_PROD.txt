@@ -236,3 +236,4 @@
 20260910170000_member_email_optional.sql
 20260910180000_member_avatars_bucket.sql
 20260910190000_member_alert_history_setting.sql
+20260911102350_member_home_location_insert_guard.sql

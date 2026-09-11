@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -79,6 +80,78 @@ describe("the self-hosted faces", () => {
     const referenced = [...FONT_CSS.matchAll(/url\('\/fonts\/([^']+)'\)/g)].map((m) => m[1]);
     expect(new Set(referenced)).toEqual(new Set(files));
   });
+
+  it("HOLD NO TWO FILES WITH THE SAME BYTES — the defect this replaced", () => {
+    /*
+      The first self-hosting pass asked Google for `wght@500;600;700;800` and
+      wrote one file per weight. Both families are VARIABLE, and Google answers
+      every weight of a variable family with THE SAME variable file — so
+      archivo-500, archivo-600, archivo-700 and archivo-800 were four names for
+      one set of bytes, as were the three Source Sans weights.
+
+      Nothing looked wrong: the CSS was valid, the weights rendered correctly and
+      the files were each a reasonable size. What it cost was invisible until it
+      was measured — a page rendered three heading weights and three body
+      weights, so it downloaded SIX files, 190 KB, for 64 KB of distinct content.
+      On the mobile profile that was ~800 ms of largest-contentful-paint.
+
+      A duplicate here is always a mistake, and it is one a reviewer cannot see.
+      This is the assertion that sees it.
+    */
+    const byDigest = new Map<string, string[]>();
+    for (const file of files) {
+      const digest = crypto
+        .createHash("sha256")
+        .update(fs.readFileSync(path.join(FONT_DIR, file)))
+        .digest("hex");
+      byDigest.set(digest, [...(byDigest.get(digest) ?? []), file]);
+    }
+    const duplicated = [...byDigest.values()].filter((group) => group.length > 1);
+    expect(
+      duplicated,
+      `these files are byte-identical and every one of them is downloaded separately: ` +
+        duplicated.map((g) => g.join(" = ")).join("; "),
+    ).toEqual([]);
+  });
+
+  it("ship ONE file per family per subset, because the faces are variable", () => {
+    // Four files: two families x {latin, latin-ext}. More than that means
+    // per-weight files have crept back in.
+    expect([...files].sort()).toEqual([
+      "archivo-var-latin-ext.woff2",
+      "archivo-var-latin.woff2",
+      "source-sans-3-var-latin-ext.woff2",
+      "source-sans-3-var-latin.woff2",
+    ]);
+  });
+
+  it("declare a WEIGHT RANGE, or the browser synthesises the weights it is given", () => {
+    // `font-weight: 100 900` is what tells the browser this single file can be
+    // instantiated at any weight. A single number against a variable file pins it
+    // and every other weight in the design gets faux-bolded by the rasteriser.
+    const faces = FONT_CSS.match(/@font-face\s*\{[^}]*\}/g) ?? [];
+    expect(faces.length).toBe(4);
+    for (const face of faces) {
+      expect(face, `not a variable range: ${face.slice(0, 120)}`).toMatch(
+        /font-weight:\s*\d+\s+\d+;/,
+      );
+    }
+  });
+
+  it("cover every weight the design actually asks for", () => {
+    // Tailwind classes in use today: font-normal 400, font-medium 500,
+    // font-semibold 600, font-bold 700. All inside both declared ranges.
+    const ranges = [...FONT_CSS.matchAll(/font-weight:\s*(\d+)\s+(\d+);/g)].map(
+      (m) => [Number(m[1]), Number(m[2])] as const,
+    );
+    expect(ranges.length).toBe(4);
+    for (const [low, high] of ranges) {
+      for (const used of [400, 500, 600, 700]) {
+        expect(low, `weight ${used} is below the declared range`).toBeLessThanOrEqual(used);
+        expect(high, `weight ${used} is above the declared range`).toBeGreaterThanOrEqual(used);
+      }
+    }
+  });
 });
 
 describe("src/styles/fonts.css", () => {
@@ -126,9 +199,11 @@ describe("what index.html preloads", () => {
     /*
       A self-hosted @font-face is still only DISCOVERED once the CSS referencing
       it has parsed — one round trip too late on a slow connection, which shows
-      as a flash of fallback text. Preloading the body weight and the heading
-      weight removes that; preloading all fourteen would push 500 KB in front of
-      the render and make the page slower, not faster.
+      as a flash of fallback text. Preloading the two latin faces removes that,
+      and with variable fonts those two cover every weight on the page. The
+      latin-ext pair is deliberately NOT preloaded: unicode-range fetches it only
+      for a page that renders a character in that range, and preloading it would
+      put 65 KB in front of the render for most visitors who never need it.
     */
     const preloads = [...INDEX_HTML.matchAll(/rel="preload"[^>]*href="(\/fonts\/[^"]+)"/g)].map(
       (m) => m[1],

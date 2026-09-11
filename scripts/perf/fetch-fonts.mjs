@@ -42,8 +42,21 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..
 const OUT_DIR = path.join(REPO_ROOT, "public/fonts");
 const CSS_OUT = path.join(REPO_ROOT, "src/styles/fonts.css");
 
+/**
+ * VARIABLE, not a list of static weights — and this is the whole saving.
+ *
+ * Asking for `wght@500;600;700;800` gets one file PER WEIGHT, and a page that
+ * uses three heading weights downloads three of them. Measured on this build,
+ * every route pulled SIX faces totalling 190 KB, which on the mobile profile
+ * (1.6 Mbps) is most of a second of the critical path before a heading can
+ * settle.
+ *
+ * A `wght@a..b` range gets ONE variable file per family covering the whole axis.
+ * Two requests instead of six, fewer bytes than the three Archivo weights alone,
+ * and every intermediate weight becomes available rather than fewer.
+ */
 const FAMILIES =
-  "family=Archivo:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600";
+  "family=Archivo:wght@100..900&family=Source+Sans+3:wght@200..900";
 const CSS_URL = `https://fonts.googleapis.com/css2?${FAMILIES}&display=swap`;
 
 /** The scripts this product's languages are written in. See the header. */
@@ -82,13 +95,16 @@ for (const [, subset, face] of blocks) {
   }
 
   const family = /font-family:\s*'([^']+)'/.exec(face)?.[1];
-  const weight = /font-weight:\s*(\d+)/.exec(face)?.[1];
+  // A variable face declares a RANGE ("font-weight: 100 900"), a static one a
+  // single number. Both are captured; the range is what names the file.
+  const weight = /font-weight:\s*([\d]+(?:\s+[\d]+)?)\s*;/.exec(face)?.[1]?.trim();
   const url = /url\((https:[^)]+)\)/.exec(face)?.[1];
   const range = /unicode-range:\s*([^;]+);/.exec(face)?.[1];
   if (!family || !weight || !url) throw new Error(`could not read a face: ${face.slice(0, 80)}`);
 
   const slug = family.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  const file = `${slug}-${weight}-${subset}.woff2`;
+  const variable = /\s/.test(weight);
+  const file = `${slug}-${variable ? "var" : weight}-${subset}.woff2`;
   const dest = path.join(OUT_DIR, file);
 
   const bytes = Buffer.from(
@@ -102,7 +118,7 @@ for (const [, subset, face] of blocks) {
 
   kept.push(
     [
-      `/* ${family} ${weight} — ${subset} */`,
+      `/* ${family} ${variable ? `variable ${weight}` : weight} — ${subset} */`,
       `@font-face {`,
       `  font-family: '${family}';`,
       `  font-style: normal;`,
@@ -126,6 +142,11 @@ const header = `/*
  * Self-hosted so the cold first visit does not wait on a third party: the
  * Google Fonts <link> in index.html cost two DNS lookups, two TLS handshakes
  * and two round trips before the first byte of CSS arrived.
+ *
+ * ONE VARIABLE FILE PER FAMILY. The first version of this shipped static
+ * weights, and every page then downloaded six of them (190 KB) because the
+ * design uses three Archivo weights and three Source Sans weights. A variable
+ * face carries the whole 100-900 axis in one file.
  *
  * Only the latin and latin-ext subsets are shipped. This platform serves Spain
  * in Spanish, English and Dutch, all of which are written in latin script;

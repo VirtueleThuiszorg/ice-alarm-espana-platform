@@ -302,15 +302,27 @@ describe("who gets the strip at all", () => {
     expect(dashboard).toMatch(/<WhoIsOnStrip[\s\S]{0,160}ROTA_MANAGER_ROLES/);
   });
 
-  it("uses the same staleness threshold as the runner that alerts on it", () => {
-    // The number is duplicated on purpose (the runner's constant is module-private), so the
-    // duplication is pinned: if one moves, this fails.
+  it("uses the same staleness threshold as the runner — ONE constant, not two that match", () => {
+    /*
+      This used to read the runner's source for its own `HEARTBEAT_STALE_SECONDS = 90` and compare
+      the numbers, because that constant was module-private there. Pinning a duplicate only ever
+      says "they have not drifted YET", and the runner and this strip disagreeing about whether
+      somebody is present is exactly the defect that filled a bell with no-show alerts about a man
+      at his desk. So there is one constant now, in `_shared/presence.ts`, and what is asserted is
+      that BOTH read it rather than that two numbers happen to match.
+    */
     const runner = readFileSync(
       join(process.cwd(), "supabase/functions/staff-shift-monitor/index.ts"),
       "utf8",
     );
-    const match = /HEARTBEAT_STALE_SECONDS\s*=\s*(\d+)/.exec(runner);
-    expect(match, "the runner's constant was renamed").toBeTruthy();
-    expect(Number(match![1])).toBe(HEARTBEAT_STALE_SECONDS);
+    const hook = readFileSync(join(process.cwd(), "src/hooks/useWhoIsOn.ts"), "utf8");
+
+    expect(runner).toMatch(/import\s*\{[^}]*HEARTBEAT_STALE_SECONDS[^}]*\}\s*from\s*"\.\.\/_shared\/presence\.ts"/);
+    expect(hook).toContain("_shared/presence");
+    // Neither may declare one of its own again.
+    expect(runner).not.toMatch(/const\s+HEARTBEAT_STALE_SECONDS\s*=/);
+    expect(hook).not.toMatch(/const\s+HEARTBEAT_STALE_SECONDS\s*=/);
+    // And the value the strip exports is still the shared one.
+    expect(HEARTBEAT_STALE_SECONDS).toBe(90);
   });
 });

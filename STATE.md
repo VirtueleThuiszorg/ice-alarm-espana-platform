@@ -544,6 +544,43 @@ regenerated rather than picked between.
   claiming `imported`, and filling an empty pin from a three-year-old spreadsheet on a live
   record is the wrong direction anyway. Backfilling those is a deliberate service-role job.
 
+## Merge gate — 2026-09-12 · **the ruleset is on; the PAT is in; the push itself is still unproven**
+
+Ruleset `main` (19055263) went `enforcement: active` on 11 Sep at 16:28 UTC and was re-saved at
+06:02 on the 12th. What it does today: requires a pull request, blocks deletions, blocks force
+pushes, and allows all three merge methods. What it still does **not** do: require any status
+check. `Merge gate is enforced` (`scripts/ci/check-merge-gate.mjs`) is red on main for that reason
+and no other, and stays red until a `required_status_checks` rule exists. **So "never merge red"
+is still discipline, not a gate.**
+
+The `pull_request` rule refuses every direct push to main, CI's own included, and
+`github-actions[bot]` cannot be exempted — it is not an installed app on this repository. There
+were **two** such pushers, not one:
+
+- `migrate.yml` — `chore(prod): record N migrations applied by CI`, the manifest. It failed four
+  times on 11 Sep (runs 29, 33, 34, 37), each time applying the migration to production and losing
+  the record, which the drift gate then read as *production is behind* — the dangerous direction.
+  Three hand-written correction PRs (#404, #406, #410) exist only because of this.
+- `ci.yml` — the wiring-register self-heal added in #382. Never fired since the ruleset went on,
+  purely because the register happened to stay clean. Found by reading, not by an incident.
+
+Both now check out with `MANIFEST_PUSH_TOKEN`, a fine-grained PAT with contents read/write whose
+owner the ruleset's bypass list admits, handed to `actions/checkout` rather than spliced into a
+remote URL. `RULE 6` in `ciJobIsolation.test.ts` is a scanner, not two assertions: it finds every
+step in every workflow that pushes to main and requires each one to carry the PAT, guard it before
+pushing, and fall back to `github.token` so an absent secret is *named* rather than surfacing as
+"Bad credentials".
+
+**What is proven, and what is not.** Migrate Production
+[run 40](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34681314328)
+is green on main: `Require migrate secrets` passes, so the secret exists, and `Checkout code`
+succeeds with the PAT as its token, so the PAT is valid and can read. But production was level, so
+nothing applied, `applied_count` was 0 and **`Commit the manifest to main` was skipped**. The same
+is true of the self-heal: with the register current it exits before pushing. So the one thing still
+unproven is the part that matters most — **that a push authenticated as this PAT is admitted past
+the `pull_request` rule.** It should be, since a fine-grained PAT acts as its owner and its owner is
+an admin, but that is reasoning, not evidence. The next migration to land will settle it.
+
 ## CI — 2026-09-09 · **one gate per job; a missing secret fails**
 
 Four gates shared one job — drift, wiring register, typecheck, build, in that order. A failing step

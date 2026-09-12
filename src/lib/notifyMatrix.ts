@@ -63,6 +63,8 @@ export const EVENT_SPECS: readonly EventSpec[] = [
   { event: "shift.no_show", group: "shifts", label: "Somebody has not signed in for their shift", detail: "Their shift started and they are not on duty." },
   { event: "shift.no_coverage", group: "shifts", label: "Nobody is on duty", detail: "No operator is signed in. Immediate cover is needed." },
   { event: "shift.disconnected", group: "shifts", label: "An operator lost connection mid-shift", detail: "They were on duty and their heartbeat stopped." },
+  { event: "shift.not_on_duty", group: "shifts", label: "You are scheduled and online — press On duty", detail: "Goes to the operator alone. They are at the desk, but alerts route by `is_on_call`, so until they press the button their shift's alerts reach nobody. Not a no-show: they turned up." },
+  { event: "shift.signed_in_after_alert", group: "shifts", label: "Somebody reported missing has signed in", detail: "The retraction. An open no-show closed itself because the person arrived — sent once, so the alarm is answered rather than left standing." },
   { event: "shift.swap_requested", group: "shifts", label: "Somebody asked you to swap or cover a shift", detail: "Goes to the person being asked. Their answer is what the requester is waiting on." },
   { event: "shift.swap_accepted", group: "shifts", label: "A swap was accepted and needs approving", detail: "Goes to the person who asked, and to everyone who can approve it. Nothing has moved on the rota yet." },
   { event: "shift.swap_approved", group: "shifts", label: "A shift swap was approved", detail: "Goes to both people. The rota they turn up to has changed." },

@@ -58,6 +58,11 @@ export const NOTIFY_EVENTS = [
   "shift.no_coverage",
   "shift.disconnected",
   // ── the swap flow (rota brief §3). Who answers an alert at three in the morning changes ──
+  // ── the shift monitor learning to tell "here" from "on duty" ──
+  //   not_on_duty            they are AT THE DESK and the routing does not know it. To them.
+  //   signed_in_after_alert  the retraction: a no-show that turned out to be somebody arriving.
+  "shift.not_on_duty",
+  "shift.signed_in_after_alert",
   "shift.swap_requested",
   "shift.swap_accepted",
   "shift.swap_approved",

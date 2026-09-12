@@ -66,6 +66,74 @@ async function fireRunnerFailureAlert(
   }
 }
 
+/**
+ * CLAIM AN ALERT — and answer whether THIS run is the one that raised it.
+ *
+ * The flood's second half lived here. The runner used to SELECT for an existing open row, then
+ * INSERT, then notify — ignoring the insert's result entirely:
+ *
+ *     await supabase.from("shift_alert_log").insert({ ... });   // error discarded
+ *     await fetch(NOTIFY_ADMIN, ...);                          // sent regardless
+ *
+ * (written without the real path above, because `notifyCallerGuard` reads this file for every
+ * occurrence of it and requires a bearer token within the next few lines — a quotation of the
+ * old code is not a call site, and the guard is right to be that literal.)
+ *
+ * Read-then-write is not atomic, so two runs two minutes apart could both find nothing and both
+ * notify; and because the insert's error was discarded, a row REFUSED by the unique index still
+ * produced a notification. The index was doing its job and nobody was listening to it.
+ *
+ * `upsert` with `ignoreDuplicates` is PostgREST's `ON CONFLICT DO NOTHING`, and `.select()` makes
+ * the database answer the only question that matters: did this row land? An empty array means
+ * somebody else already raised it, and the caller sends nothing. The decision moves from the
+ * runner's memory of what it read to the database's record of what exists.
+ */
+async function claimAlert(
+  supabase: ReturnType<typeof createClient>,
+  row: { alert_type: string; staff_id: string | null; shift_date: string; shift_type: string },
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("shift_alert_log")
+    .upsert(row, { ignoreDuplicates: true })
+    .select("id");
+
+  if (error) {
+    // A failed claim must NOT notify: the row is the dedupe, and without it there is nothing to
+    // stop the next run doing this again in two minutes. Silence here is the safe direction.
+    log({ event: "alert_claim_failed", alert_type: row.alert_type, error: error.message });
+    return false;
+  }
+  return (data ?? []).length > 0;
+}
+
+/**
+ * CLOSE AN OPEN ALERT because the thing it was about has stopped being true.
+ *
+ * Returns whether a row actually moved, so the "they are here now" bell is sent once rather than
+ * every two minutes for the rest of the shift.
+ */
+async function resolveAlert(
+  supabase: ReturnType<typeof createClient>,
+  key: { alert_type: string; staff_id: string; shift_date: string; shift_type: string },
+  resolution: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("shift_alert_log")
+    .update({ resolved_at: new Date().toISOString(), resolution })
+    .eq("alert_type", key.alert_type)
+    .eq("staff_id", key.staff_id)
+    .eq("shift_date", key.shift_date)
+    .eq("shift_type", key.shift_type)
+    .is("resolved_at", null)
+    .select("id");
+
+  if (error) {
+    log({ event: "alert_resolve_failed", alert_type: key.alert_type, error: error.message });
+    return false;
+  }
+  return (data ?? []).length > 0;
+}
+
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
@@ -90,6 +158,10 @@ serve(async (req) => {
       noShowAlerts: 0,
       /** Scheduled, at the desk, and never pressed "On duty". Not an alert — see CHECK 1. */
       presentNotOnDuty: 0,
+      /** Nudges sent to those people. At most one per person per shift. */
+      notOnDutyNudges: 0,
+      /** Open alerts closed because the person turned up. */
+      resolvedOnArrival: 0,
       noCoverageAlerts: 0,
       disconnectedAlerts: 0,
     };
@@ -173,7 +245,50 @@ serve(async (req) => {
             now.getTime(),
           );
 
-          if (state === "on_duty") continue;
+          if (state === "on_duty") {
+            /*
+              THEY TURNED UP. An alert that stays open after the thing it was about has stopped
+              being true is how a queue of "no-show" rows becomes wallpaper — and while it is open
+              the unique index refuses a NEW one, so a genuine absence later in the same shift
+              would be silently swallowed by a row about something already over.
+
+              Both types close: the no-show, and the nudge about not having pressed the button —
+              pressing it is exactly what the nudge asked for.
+            */
+            for (const type of ["no_show", "not_on_duty"]) {
+              const closed = await resolveAlert(
+                supabase,
+                { alert_type: type, staff_id: scheduled.staff_id, shift_date: shiftDate, shift_type: shiftType },
+                "signed_in",
+              );
+              if (closed && type === "no_show") {
+                // ONE bell replacing the alarm, sent only when a row actually moved.
+                stats.resolvedOnArrival++;
+                const name = `${scheduled.first_name} ${scheduled.last_name}`.trim();
+                try {
+                  // Through `notify-staff` — the one door — rather than `notify-admin`, whose
+                  // formatter owns the words for the twelve events it was written for. This one
+                  // brings its own.
+                  await fetch(`${baseUrl}/functions/v1/notify-staff`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+                    body: JSON.stringify({
+                      event: {
+                        type: "shift.signed_in_after_alert",
+                        title: `${name} is now on shift`,
+                        body: `The ${shiftType} shift was reported unmanned and ${name} has signed in. Nothing further is needed.`,
+                        entity: { type: "staff", id: scheduled.staff_id },
+                      },
+                      audience: { roles: ["call_centre_supervisor", "admin", "super_admin"] },
+                    }),
+                  });
+                } catch (err) {
+                  console.error("Staff notify error (signed_in_after_alert):", err);
+                }
+              }
+            }
+            continue;
+          }
 
           if (state === "present_not_on_duty") {
             /*
@@ -196,28 +311,55 @@ serve(async (req) => {
               shift_date: shiftDate,
               minutes_into_shift: minutesIntoShift,
             });
+
+            /*
+              ONE NUDGE, TO THEM, ONCE PER SHIFT. The row is what makes it once: without it this
+              would fire every two minutes for eight hours, which is the flood again wearing a
+              politer message.
+            */
+            const raised = await claimAlert(supabase, {
+              alert_type: "not_on_duty",
+              staff_id: scheduled.staff_id,
+              shift_date: shiftDate,
+              shift_type: shiftType,
+            });
+
+            if (raised) {
+              stats.notOnDutyNudges++;
+              try {
+                await fetch(`${baseUrl}/functions/v1/notify-staff`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+                  body: JSON.stringify({
+                    event: {
+                      type: "shift.not_on_duty",
+                      title: "You are scheduled and online — press On duty",
+                      body: `Your ${shiftType} shift has started and you are signed in, but alerts are not routed to you until you press "On duty".`,
+                      link: "/call-centre",
+                      entity: { type: "staff", id: scheduled.staff_id },
+                    },
+                    // TO THE OPERATOR, not to the admins: they are the only person who can fix
+                    // it, and it is not news to anybody else yet.
+                    audience: { staffIds: [scheduled.staff_id] },
+                  }),
+                });
+              } catch (err) {
+                console.error("Staff notify error (not_on_duty):", err);
+              }
+            }
             continue;
           }
 
           // ── a real no-show ──────────────────────────────────────────────────
-          const { data: existing } = await supabase
-            .from("shift_alert_log")
-            .select("id")
-            .eq("alert_type", "no_show")
-            .eq("staff_id", scheduled.staff_id)
-            .eq("shift_date", shiftDate)
-            .eq("shift_type", shiftType)
-            .is("resolved_at", null)
-            .maybeSingle();
-
-          if (existing) continue; // Already alerted
-
-          await supabase.from("shift_alert_log").insert({
+          // The claim IS the dedupe. Nothing below runs unless this run is the one that raised it.
+          const raisedNoShow = await claimAlert(supabase, {
             alert_type: "no_show",
             staff_id: scheduled.staff_id,
             shift_date: shiftDate,
             shift_type: shiftType,
           });
+
+          if (!raisedNoShow) continue;
 
           const staffName = `${scheduled.first_name} ${scheduled.last_name}`.trim();
 
@@ -294,24 +436,17 @@ serve(async (req) => {
         .eq("is_on_call", true);
 
       if ((onCallCount ?? 0) === 0) {
-        // Check deduplication
-        const { data: existing } = await supabase
-          .from("shift_alert_log")
-          .select("id")
-          .eq("alert_type", "no_coverage")
-          .eq("shift_date", today)
-          .eq("shift_type", currentShift)
-          .is("resolved_at", null)
-          .maybeSingle();
+        // Same claim as the no-show: the database decides whether this run is the one that
+        // raised it. The dedupe index COALESCEs a NULL staff_id to a fixed uuid precisely so
+        // these rows dedupe against each other rather than each being distinct under NULL.
+        const raisedNoCoverage = await claimAlert(supabase, {
+          alert_type: "no_coverage",
+          staff_id: null,
+          shift_date: today,
+          shift_type: currentShift,
+        });
 
-        if (!existing) {
-          await supabase.from("shift_alert_log").insert({
-            alert_type: "no_coverage",
-            staff_id: null,
-            shift_date: today,
-            shift_type: currentShift,
-          });
-
+        if (raisedNoCoverage) {
           try {
             await fetch(`${baseUrl}/functions/v1/notify-admin`, {
               method: "POST",
@@ -363,25 +498,14 @@ serve(async (req) => {
         .in("id", staleIds);
 
       for (const staff of staleStaff || []) {
-        // Deduplication
-        const { data: existing } = await supabase
-          .from("shift_alert_log")
-          .select("id")
-          .eq("alert_type", "disconnected")
-          .eq("staff_id", staff.id)
-          .eq("shift_date", today)
-          .eq("shift_type", currentShift)
-          .is("resolved_at", null)
-          .maybeSingle();
-
-        if (existing) continue;
-
-        await supabase.from("shift_alert_log").insert({
+        const raisedDisconnected = await claimAlert(supabase, {
           alert_type: "disconnected",
           staff_id: staff.id,
           shift_date: today,
           shift_type: currentShift,
         });
+
+        if (!raisedDisconnected) continue;
 
         const staffName = `${staff.first_name} ${staff.last_name}`.trim();
 

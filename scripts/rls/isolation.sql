@@ -4941,13 +4941,14 @@ INSERT INTO public.staff (id, user_id, email, first_name, last_name, role, perso
 -- the event list does not redden the suite for a reason nobody can act on. THIS assertion is
 -- what stops that being vacuous: the routes table has to be the real 27 x 4.
 SELECT pg_temp.check(
-  'the routes table carries every event type x every channel — 27 x 4',
-  (SELECT count(*) FROM public.notification_routes) = 108
-  AND (SELECT count(DISTINCT event_type) FROM public.notification_routes) = 27
+  'the routes table carries every event type x every channel — 29 x 4',
+  (SELECT count(*) FROM public.notification_routes) = 116
+  AND (SELECT count(DISTINCT event_type) FROM public.notification_routes) = 29
   AND (SELECT count(DISTINCT channel) FROM public.notification_routes) = 4,
   'the eight this router was built for, the eleven notify-admin already sends, the three swap '
   'events, member.legacy_confirmed, the two billing-switch events, the two the migration runner '
-  'raises, and `test`');
+  'raises, `test`, and the two the shift monitor gained when it learned to tell "here" from '
+  '"on duty" (shift.not_on_duty, shift.signed_in_after_alert)');
 
 -- And the new one has a row per channel rather than a hole, for the same reason the swap events
 -- are named below: 92 rows and 23 distinct events would also be satisfied by one event missing a
@@ -7362,6 +7363,115 @@ BEGIN
 
   DROP TABLE _initplan_residue;
 END $$;
+
+-- ============================================================
+--  shift_alert_log — one open alert per person per shift, and who may read them
+-- ============================================================
+--
+-- The flood was not a missing constraint. `shift_alert_log_dedup_idx` has enforced "at most one
+-- OPEN row per (alert_type, staff, shift_date, shift_type)" since the table was created; the
+-- runner simply discarded the refusal and notified anyway. So the first thing to prove here is
+-- that the index really does what the fix now depends on — because the whole of
+-- `20260912100000` rests on `ON CONFLICT DO NOTHING` returning no row.
+--
+-- The second is who can read the table at all. These rows say which operator did not turn up for
+-- a shift, which is an employment matter: it belongs to the people who run the rota, and not to
+-- the operator sitting next to them.
+
+INSERT INTO public.shift_alert_log (alert_type, staff_id, shift_date, shift_type)
+SELECT 'no_show', s.id, DATE '2026-09-11', 'night'
+FROM public.staff s WHERE s.user_id = 'a6000000-0000-0000-0000-00000000000f';
+
+-- ── the index, which the ON CONFLICT depends on ────────────────────────────
+SELECT pg_temp.check(
+  'a SECOND open no_show for the same person and shift is REFUSED',
+  pg_temp.raises_as_role('postgres',
+    $$INSERT INTO public.shift_alert_log (alert_type, staff_id, shift_date, shift_type)
+      SELECT 'no_show', s.id, DATE '2026-09-11', 'night'
+      FROM public.staff s WHERE s.user_id = 'a6000000-0000-0000-0000-00000000000f'$$),
+  'this is what makes ON CONFLICT DO NOTHING return nothing — the runner now reads that answer');
+
+-- ── and the resolution reopens the key, which is why arriving matters ──────
+DO $$
+BEGIN
+  UPDATE public.shift_alert_log
+     SET resolved_at = now(), resolution = 'signed_in'
+   WHERE alert_type = 'no_show' AND resolved_at IS NULL
+     AND staff_id = (SELECT id FROM public.staff
+                      WHERE user_id = 'a6000000-0000-0000-0000-00000000000f');
+END $$;
+
+-- Raised by the RUNNER, which holds the service role and is not subject to RLS, so this is the
+-- superuser inserting rather than `exec_as` — the claim under test is the INDEX, not a policy.
+INSERT INTO public.shift_alert_log (alert_type, staff_id, shift_date, shift_type)
+SELECT 'no_show', s.id, DATE '2026-09-11', 'night'
+FROM public.staff s WHERE s.user_id = 'a6000000-0000-0000-0000-00000000000f';
+
+SELECT pg_temp.check(
+  'once RESOLVED, the same key can be raised again',
+  (SELECT count(*) FROM public.shift_alert_log
+    WHERE alert_type = 'no_show' AND resolved_at IS NULL
+      AND staff_id = (SELECT id FROM public.staff
+                       WHERE user_id = 'a6000000-0000-0000-0000-00000000000f')) = 1,
+  'a genuine absence later in the same shift must not be swallowed by a row about something over');
+
+-- ── the new column and the new alert type ──────────────────────────────────
+SELECT pg_temp.check(
+  'shift_alert_log.resolution exists and records WHY, not just when',
+  EXISTS (SELECT 1 FROM information_schema.columns
+           WHERE table_schema = 'public' AND table_name = 'shift_alert_log'
+             AND column_name = 'resolution'),
+  'resolved_at cannot tell "they turned up" from "it was never real"');
+
+INSERT INTO public.shift_alert_log (alert_type, staff_id, shift_date, shift_type)
+SELECT 'not_on_duty', s.id, DATE '2026-09-11', 'morning'
+FROM public.staff s WHERE s.user_id = 'a6000000-0000-0000-0000-00000000000f';
+
+SELECT pg_temp.check(
+  'the nudge type not_on_duty is accepted by the CHECK constraint',
+  (SELECT count(*) FROM public.shift_alert_log WHERE alert_type = 'not_on_duty') = 1,
+  'without it the once-per-shift nudge has nowhere to record that it was sent');
+
+SELECT pg_temp.check(
+  'an invented alert type is still REFUSED',
+  pg_temp.raises_as_role('postgres',
+    $$INSERT INTO public.shift_alert_log (alert_type, staff_id, shift_date, shift_type)
+      VALUES ('made_up', NULL, DATE '2026-09-11', 'night')$$),
+  'the constraint was widened by one value, not opened');
+
+-- ── who may read a colleague's absence ─────────────────────────────────────
+-- `count_as` WRAPS WHAT IT IS GIVEN as `SELECT count(*) FROM (<sql>) _s`, so it must be handed
+-- ROWS, not an aggregate. Both checks below first asked it to count
+-- `SELECT count(*) FROM shift_alert_log` — which counts the one row an aggregate returns and is
+-- therefore 1 for everybody, RLS or no RLS. The "supervisor CAN read" half passed that way while
+-- proving nothing at all.
+--
+-- TWO WAYS TO BE REFUSED, and both count. A missing table GRANT raises "permission denied"; a
+-- policy that does not match returns zero rows. Asserting only the second would read a hard
+-- refusal as a failure of this test rather than as the strongest possible pass.
+SELECT pg_temp.check(
+  'a call-centre operator cannot read shift_alert_log at all',
+  CASE
+    WHEN pg_temp.raises_as('a6000000-0000-0000-0000-00000000000f',
+                           'SELECT id FROM public.shift_alert_log') THEN true
+    ELSE pg_temp.count_as('a6000000-0000-0000-0000-00000000000f',
+                          'SELECT id FROM public.shift_alert_log') = 0
+  END,
+  'these rows name who did not turn up — an employment matter, not shop-floor reading');
+
+SELECT pg_temp.check(
+  'a supervisor CAN — they are the person who has to cover the shift',
+  pg_temp.count_as('a5000000-0000-0000-0000-00000000000f',
+                   'SELECT id FROM public.shift_alert_log') > 0,
+  'a policy granting nobody would pass the check above while breaking the rota');
+
+SELECT pg_temp.check(
+  'an operator cannot RESOLVE their own no-show either',
+  pg_temp.exec_as('a6000000-0000-0000-0000-00000000000f',
+    $$UPDATE public.shift_alert_log SET resolved_at = now(), resolution = 'signed_in'
+       WHERE alert_type = 'no_show'$$) = 0,
+  'clearing the record of your own absence is the one write this table must never allow');
+
 
 -- ============================================================
 --  Report

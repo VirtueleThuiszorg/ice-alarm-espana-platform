@@ -267,6 +267,15 @@ describe("logging out while on duty", () => {
 
 // ── the heartbeat ───────────────────────────────────────────────────────────
 describe("useStaffHeartbeat — presence, every 30 seconds", () => {
+  /*
+    THE GATE IS GONE, and that is what this block is now pinning.
+
+    The hook used to take `isOnDuty` and return early unless it was true, so the OBSERVATION
+    (`staff_presence`) could only ever move when the DECLARATION (`staff.is_on_call`) was already
+    set. That made the PRESENT-BUT-NOT-ON-DUTY state in _shared/presence.ts unreachable — the one
+    state the whole no-show fix turns on — and it is why Travis's row had `last_heartbeat_at`
+    equal to `session_started_at`, three days stale, while he worked with the platform open.
+  */
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
@@ -276,8 +285,8 @@ describe("useStaffHeartbeat — presence, every 30 seconds", () => {
     });
   };
 
-  it("pings immediately when on duty, opening the session once", async () => {
-    renderHook(() => useStaffHeartbeat("s-1", true));
+  it("pings immediately for a signed-in staff member, opening the session once", async () => {
+    renderHook(() => useStaffHeartbeat("s-1"));
     await flush();
 
     expect(presenceWrites()).toHaveLength(1);
@@ -290,7 +299,7 @@ describe("useStaffHeartbeat — presence, every 30 seconds", () => {
   it("pings again every 30s, and does NOT restamp session_started_at", async () => {
     // The defect this pins: `session_started_at` was sent with every ping, so it always equalled
     // `last_heartbeat_at` and "on duty since" read as zero seconds, forever.
-    renderHook(() => useStaffHeartbeat("s-1", true));
+    renderHook(() => useStaffHeartbeat("s-1"));
     await flush();
 
     await act(async () => {
@@ -310,29 +319,57 @@ describe("useStaffHeartbeat — presence, every 30 seconds", () => {
     expect(presenceWrites()).toHaveLength(4);
   });
 
-  it("STOPS when the operator goes off duty, and marks them offline", async () => {
-    const { rerender } = renderHook(({ on }: { on: boolean }) => useStaffHeartbeat("s-1", on), {
-      initialProps: { on: true },
-    });
+  it("KEEPS PINGING when the operator goes off duty — presence is not duty", async () => {
+    /*
+      THE REVERSED ASSERTION, and the point of this change.
+
+      This test used to require the opposite: going off duty stopped the interval and wrote
+      `is_online: false`. That is what made `staff_presence` a mirror of `staff.is_on_call`, and
+      it is the defect. An operator who presses "Off duty" and keeps the tab open is still at the
+      desk; the platform should be able to say so, because "scheduled, here, but not on duty" is
+      a nudge and "scheduled and gone" is an alarm, and telling them apart is the whole job.
+    */
+    const { rerender } = renderHook(({ on }: { on: boolean }) => {
+      void on; // duty is no longer an input to presence
+      return useStaffHeartbeat("s-1");
+    }, { initialProps: { on: true } });
     await flush();
     const during = presenceWrites().length;
 
     rerender({ on: false });
     await flush();
-    const offline = presenceWrites().at(-1)!;
-    expect(offline.op).toBe("update");
-    expect(offline.payload).toEqual({ is_online: false });
+    expect(
+      presenceWrites().some((w) => JSON.stringify(w.payload) === JSON.stringify({ is_online: false })),
+      "going off duty must not mark the browser offline",
+    ).toBe(false);
 
     await act(async () => {
       vi.advanceTimersByTime(HEARTBEAT_INTERVAL_MS * 3);
     });
     await flush();
-    // Nothing beyond the single offline write — the interval is gone, not merely ignored.
-    expect(presenceWrites()).toHaveLength(during + 1); // <-- load-bearing
+    // The interval survived the duty change and kept observing.
+    expect(presenceWrites().length).toBeGreaterThan(during); // <-- load-bearing
+  });
+
+  it("observes an off-duty operator too, which is the state the monitor needs", async () => {
+    // PRESENT-BUT-NOT-ON-DUTY, reachable at last. Nothing about duty reaches this hook, so a
+    // staff member who never pressed the button still produces a fresh heartbeat.
+    renderHook(() => useStaffHeartbeat("s-1"));
+    await flush();
+    await act(async () => {
+      vi.advanceTimersByTime(HEARTBEAT_INTERVAL_MS);
+    });
+    await flush();
+
+    const fresh = presenceWrites().filter(
+      (w) => (w.payload as Record<string, unknown>).is_online === true,
+    );
+    expect(fresh.length).toBeGreaterThanOrEqual(2);
+    expect(staffWrites()).toEqual([]); // and it still never touches the declaration
   });
 
   it("writes nothing at all without a staff id", async () => {
-    renderHook(() => useStaffHeartbeat(null, true));
+    renderHook(() => useStaffHeartbeat(null));
     await flush();
     await act(async () => {
       vi.advanceTimersByTime(HEARTBEAT_INTERVAL_MS * 2);
@@ -342,29 +379,29 @@ describe("useStaffHeartbeat — presence, every 30 seconds", () => {
   });
 
   it("marks offline when the tab goes away", async () => {
-    const { unmount } = renderHook(() => useStaffHeartbeat("s-1", true));
+    const { unmount } = renderHook(() => useStaffHeartbeat("s-1"));
     await flush();
     unmount();
     await flush();
     expect(presenceWrites().at(-1)!.payload).toEqual({ is_online: false });
   });
 
-  it("stamps a NEW session when the operator comes back on duty", async () => {
-    const { rerender } = renderHook(({ on }: { on: boolean }) => useStaffHeartbeat("s-1", on), {
-      initialProps: { on: true },
-    });
+  it("stamps a NEW session when the tab comes back, not when duty changes", async () => {
+    // The session is the BROWSER's, now that duty is not an input. Remounting — a reload, a new
+    // tab — opens a new one; a duty change does not, because nothing about duty reaches here.
+    const first = renderHook(() => useStaffHeartbeat("s-1"));
     await flush();
-    rerender({ on: false });
+    first.unmount();
     await flush();
-    rerender({ on: true });
+    renderHook(() => useStaffHeartbeat("s-1"));
     await flush();
 
     const upserts = presenceWrites().filter((w) => w.op === "upsert");
-    expect(upserts).toHaveLength(2); // one per duty period, not one per ping
+    expect(upserts).toHaveLength(2); // one per browser session, not one per ping
   });
 
   it("presence is never confused with duty — it writes only staff_presence", async () => {
-    renderHook(() => useStaffHeartbeat("s-1", true));
+    renderHook(() => useStaffHeartbeat("s-1"));
     await flush();
     await act(async () => {
       vi.advanceTimersByTime(HEARTBEAT_INTERVAL_MS);

@@ -9,16 +9,31 @@
  *     if (onCallIds.has(scheduled.staff_id)) continue; // They signed in, skip
  *
  * `staff.is_on_call` is set by pressing "On duty". It is not the same question as "is this person
- * here". An operator who worked a whole night shift with the platform open, sending a heartbeat
- * every thirty seconds, but who never pressed that button, was ABSENT as far as this runner was
- * concerned — and the bell filled with alerts saying he had not turned up, while he was at the
- * desk answering the phone.
+ * here". An operator who worked a whole night shift with the platform open but who never pressed
+ * that button was ABSENT as far as this runner was concerned — and the bell filled with alerts
+ * saying he had not turned up, while he was at the desk answering the phone.
  *
- * The platform already knew he was there. `staff_presence` carries `is_online` and
- * `last_heartbeat_at`, and `useWhoIsOn` — the supervisor's "who is on now" strip — has been
- * reading exactly those to say PRESENT since it was written. The runner and the strip disagreed
- * about the same person at the same moment, on the same data, because each had its own idea of
- * what presence is.
+ * `staff_presence` carries `is_online` and `last_heartbeat_at`, and `useWhoIsOn` — the
+ * supervisor's "who is on now" strip — has been reading exactly those to say PRESENT since it was
+ * written. The runner and the strip disagreed about the same person at the same moment, on the
+ * same data, because each had its own idea of what presence is.
+ *
+ * ── A CORRECTION TO THIS HEADER, AND IT MATTERED ────────────────────────────
+ *
+ * The paragraph above used to say that operator was "sending a heartbeat every thirty seconds".
+ * THAT WAS NOT TRUE WHEN IT WAS WRITTEN. `useStaffHeartbeat` took an `isOnDuty` argument and
+ * returned early unless it was set, so the ping only ran while `is_on_call` was already true.
+ *
+ * The rule below was therefore correct and inert: its second branch — a fresh heartbeat without
+ * the button — could not be satisfied, because a heartbeat could only be fresh when the first
+ * branch had already decided. PRESENT-BUT-NOT-ON-DUTY was unreachable in production, and the
+ * three states were two wearing a third's name.
+ *
+ * Travis Nelison's row is the evidence (SHIFT_NOSHOW_FINDINGS.md): `last_heartbeat_at` equal to
+ * `session_started_at` to the millisecond and three days stale, while `is_on_call` was false —
+ * one ping, when the button was last pressed, and nothing since.
+ *
+ * The gate is gone as of this change. The sentence is true now.
  *
  * ── THE THREE STATES, WHICH ARE NOT TWO ─────────────────────────────────────
  *

@@ -251,3 +251,4 @@
 20260911190000_conversation_summaries.sql
 20260912100000_shift_alert_once_per_shift.sql
 20260912110000_no_show_ladder.sql
+20260912140000_presence_is_not_duty.sql

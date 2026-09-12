@@ -21,6 +21,47 @@ function requireEnv(name: string): string {
 }
 
 // https://vitejs.dev/config/
+/**
+ * The primitives the EAGER shell reaches from main.tsx without crossing a
+ * dynamic import. They are excluded from the merged `ui-primitives` chunk: a
+ * merged chunk is only lazy if nothing eager touches it, and these do.
+ *
+ * Kept honest by `src/test/perf/chunkGraph.test.ts`, which re-derives the eager
+ * set from the source and fails if this list has drifted — adding an eager
+ * import of a primitive that is NOT here would silently move 48 files' worth of
+ * JavaScript into the shell, which shows up as a number and not on screen.
+ */
+/**
+ * Primitives that front a large third-party dependency. Excluded from the merged
+ * `ui-primitives` chunk so the dependency stays behind the page that uses it.
+ */
+const HEAVY_UI = new Set([
+  "calendar", // react-day-picker
+  "carousel", // embla-carousel-react
+  "chart", // recharts
+  "command", // cmdk
+  "drawer", // vaul
+  "form", // react-hook-form
+  "input-otp", // input-otp
+  "resizable", // react-resizable-panels
+]);
+
+const EAGER_UI = new Set([
+  "button",
+  "dialog",
+  "label",
+  "logo",
+  "page-loader",
+  "route-announcer",
+  "shell-icons",
+  "skip-link",
+  "sonner",
+  "switch",
+  "toast",
+  "toaster",
+  "tooltip",
+]);
+
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -66,7 +107,59 @@ export default defineConfig(({ mode }) => ({
         // reached by an import — laziness is preserved and recharts now loads
         // only on pages that render charts.
         manualChunks(id: string) {
+          /*
+            THE LEAVES ARE THE REQUEST COUNT.
+
+            Rollup code-splits a shared module by its SET of importers. Every
+            lucide icon and every shadcn primitive has a different set, so the
+            build emitted one chunk EACH: 386 chunks in dist, and a cold `/`
+            fetched 65 JavaScript files — chevron-right.js, check.js, card.js,
+            badge.js, one request apiece. On the mobile profile (150 ms RTT) that
+            waterfall is most of the 43 -> 79 request rise in AFTER.md.
+
+            Merging them is the fix, and the trap is that merging moves the whole
+            merged chunk into whichever graph touches it FIRST. One eager import
+            is enough: grouping lucide alone took the shell from 326.5 to 339.0 KB
+            gz, because six icons across ErrorBoundary, CookieConsentBanner,
+            PageLoader, toast, dialog and ProtectedRoute dragged all 96 KB of
+            icons into the eager entry. Those six are now inline SVG
+            (src/components/ui/shell-icons.tsx) and the eager graph imports no
+            lucide at all.
+
+            The same applies to the primitives, which is why EAGER_UI exists: 13
+            of the 61 files in src/components/ui are reached from main.tsx
+            without crossing a dynamic import. They stay where they are; the
+            other 48 merge. Putting all 61 in one chunk pushed the shell to
+            452.8 KB.
+          */
+          /*
+            `cn()` IS THE HINGE. src/lib/utils.ts is imported by almost every
+            component, eager and lazy alike. Left to Rollup it gets co-located
+            with whichever chunk holds most of its importers — which is
+            `ui-primitives` — and then ONE eager importer (LanguageSelectionModal)
+            drags all 48 merged primitives into the shell. That is the same trap
+            the vendor-utils line below was written for, arriving from the app
+            side instead of node_modules. Pinning it beside the clsx/tailwind-merge
+            it wraps keeps it in a chunk that is already eager and tiny.
+          */
+          if (/\/src\/lib\/utils\.tsx?$/.test(id)) return "vendor-utils";
+          if (id.includes("/src/components/ui/")) {
+            const name = id.split("/src/components/ui/")[1].replace(/\.tsx?$/, "");
+            // A heavy wrapper stays on its own so it stays LAZY. `chart.tsx`
+            // statically imports recharts; merged in, it pulled 96 KB gz of
+            // vendor-charts onto every route that used any primitive at all —
+            // public.pricing went from 24.0 to 147.5 KB page JS. These eight each
+            // front a large dependency and belong with the page that wants them.
+            if (HEAVY_UI.has(name)) return undefined;
+            // NAMED, not `undefined`: leaving them to Rollup's automatic
+            // placement let it co-locate them WITH `ui-primitives`, which put the
+            // merged chunk back in the eager graph and the shell back at
+            // 453.9 KB. Two explicit chunks keep the boundary where it is meant
+            // to be — `ui-shell` eager and small, `ui-primitives` lazy.
+            return EAGER_UI.has(name) ? "ui-shell" : "ui-primitives";
+          }
           if (!id.includes("node_modules")) return undefined;
+          if (/node_modules\/lucide-react\//.test(id)) return "vendor-icons";
           // Small utils shared by BOTH the eager entry and recharts. Without
           // this line Rollup co-locates them inside vendor-charts, which drags
           // the whole 420KB chart chunk into the entry preload graph via cn()/clsx.

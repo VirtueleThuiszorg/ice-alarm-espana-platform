@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Cookie, Settings, Shield } from "lucide-react";
+import { CookieIcon, SettingsIcon, ShieldIcon } from "@/components/ui/shell-icons";
 import {
   Dialog,
   DialogContent,
@@ -125,7 +125,7 @@ export function CookieConsentBanner() {
               {/* Message */}
               <div className="flex items-start gap-3 sm:flex-1">
                 <div className="mt-0.5 rounded-full bg-primary/10 p-2">
-                  <Cookie className="h-5 w-5 text-primary" />
+                  <CookieIcon className="h-5 w-5 text-primary" />
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium leading-tight">
@@ -145,7 +145,7 @@ export function CookieConsentBanner() {
                   onClick={handleOpenCustomize}
                   className="gap-1.5"
                 >
-                  <Settings className="h-3.5 w-3.5" />
+                  <SettingsIcon className="h-3.5 w-3.5" />
                   {t("gdpr.cookieBanner.customize")}
                 </Button>
                 <Button
@@ -172,7 +172,7 @@ export function CookieConsentBanner() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" />
+              <ShieldIcon className="h-5 w-5 text-primary" />
               {t("gdpr.cookieSettings.title")}
             </DialogTitle>
             <DialogDescription>

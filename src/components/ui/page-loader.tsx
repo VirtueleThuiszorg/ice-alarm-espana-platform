@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { LoaderIcon } from "@/components/ui/shell-icons";
 
 interface PageLoaderProps {
   message?: string;
@@ -10,7 +10,7 @@ export function PageLoader({ message = "Loading..." }: PageLoaderProps) {
       <div className="relative">
         <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
         <div className="relative h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <Loader2 className="h-6 w-6 text-primary animate-spin" />
+          <LoaderIcon className="h-6 w-6 text-primary animate-spin" />
         </div>
       </div>
       <p className="text-sm text-muted-foreground animate-pulse">{message}</p>

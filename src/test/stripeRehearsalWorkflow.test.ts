@@ -76,6 +76,35 @@ describe("it only ever runs when somebody asks", () => {
   it("reads nothing it does not need", () => {
     expect(code).toMatch(/permissions:\s*\n\s*contents: read/);
   });
+
+  /* ── THE ENVIRONMENT NAME IS AN INPUT, NOT A PULL REQUEST ──────────────────
+     Nine dispatched runs found STRIPE_TEST_KEY unset, and the probe eliminated 8 candidate names
+     across both stores. One of the two causes left is an ENVIRONMENT secret, which no job can see
+     until it names the environment — and no job can discover which environments exist. Taking the
+     name as a dispatch input turns that from "open a PR adding one line, merge it, dispatch again"
+     into typing it into the form.
+
+     The blank default is the load-bearing half: it must stay blank so the ORDINARY run declares no
+     environment at all. A default of "production" here would silently route every rehearsal
+     through an approval gate nobody asked for. */
+  it("takes the environment name as an optional input, defaulting to blank", () => {
+    expect(code).toMatch(/^ {6}environment:\s*$/m);
+    const block = code.slice(code.indexOf("\n      environment:"));
+    expect(block).toMatch(/required: false/);
+    expect(block).toMatch(/default: ""/);
+  });
+
+  it("names the environment from that input rather than hard-coding one", () => {
+    expect(code).toMatch(/^ {4}environment: \$\{\{ inputs\.environment \}\}\s*$/m);
+  });
+
+  it("never pins the job to a named environment", () => {
+    // `environment: production` (or any literal) would make every run wait on that environment's
+    // protection rules, and would read the wrong secret if one existed under both scopes.
+    const jobEnv = code.match(/^ {4}environment: (.+)$/m);
+    expect(jobEnv).not.toBeNull();
+    expect(jobEnv![1].trim()).toBe("${{ inputs.environment }}");
+  });
 });
 
 describe("the key", () => {

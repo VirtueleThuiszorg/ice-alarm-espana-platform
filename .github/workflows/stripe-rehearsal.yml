@@ -26,6 +26,10 @@ on:
         description: "The member's Santander day of the month"
         required: true
         default: "15"
+      environment:
+        description: "ONLY if STRIPE_TEST_KEY is an Environment secret: that environment's name. Leave blank for a repository or organisation secret."
+        required: false
+        default: ""
 
 concurrency:
   # One at a time. Two rehearsals share the Stripe account, and one advancing a clock while the
@@ -42,6 +46,18 @@ jobs:
     runs-on: ubuntu-latest
     # Two full rehearsals, each advancing a test clock twice and waiting on Stripe to catch up.
     timeout-minutes: 30
+
+    # AN ENVIRONMENT SECRET IS INVISIBLE UNTIL THE JOB NAMES ITS ENVIRONMENT, and no job can
+    # discover which environments exist. Nine dispatched runs found STRIPE_TEST_KEY unset; the
+    # probe below eliminated 8 candidate names across BOTH stores, which leaves two causes — an
+    # organisation secret whose repository-access list omits this repo, and an environment secret.
+    # Only the second is fixable from inside this file, and only if somebody supplies the name.
+    #
+    # So the name is an INPUT rather than something that needs a pull request: whoever knows where
+    # the key lives types it into the dispatch form. BLANK IS THE NORMAL CASE and means no
+    # environment at all, which is how a repository or organisation secret is read — so the
+    # ordinary run is unchanged and nobody has to think about this field.
+    environment: ${{ inputs.environment }}
 
     steps:
       - name: Checkout code

@@ -262,6 +262,79 @@ Recorded because "the tests passed" was not enough twice in one brief.
 - ⬜ Both Vercel checks are red on every PR in this repo today: the account hit its free-tier
   100-deploys-per-day cap. Not caused by this work, and not one of the repo's listed quality gates.
 
+## Shift no-show alerts — 2026-09-12 · **the flood explained, and one premise corrected**
+
+Lee's brief: *"Shift no-show alerts are wrong and noisy … fix the definition, the flood, the title
+and the delivery."* Facts first, per the brief: `SHIFT_NOSHOW_FINDINGS.md` records what production
+actually said, read read-only from CI (#432, #435, #437, run #3).
+
+### What the rows said
+
+- **The dedupe was never broken.** Zero keys held more than one open row — the partial unique
+  index from `20260303123455` held perfectly. Cause 1 is out.
+- **No duplicate shift rows.** 128 rows, none doubled. Cause 2 is out.
+- **The multiplier is FAN-OUT, which was not on the list.** 100 `notification_log` rows ÷ 10
+  distinct instants = 10 rows per event = 2 recipients × 5 channels. Six alerts about Travis
+  became sixty rows. A count of bell entries is not a count of events, and reading it as one
+  over-estimates by an order of magnitude.
+- **The two clocks are real.** The database runs in UTC while the shift windows in
+  `staff_on_shift_now` are Madrid wall-clock, so the view is two hours late in Madrid terms. The
+  alerts raised at 07:06 Madrid are logged `morning` while the row the view returned was *last
+  night's night shift*; the ones at 23:06 Madrid are logged `night` while the row was the
+  afternoon. One shift, more than one dedupe key, and the index cannot help because the keys
+  genuinely differ.
+
+### 🔴 The premise that did not survive
+
+**The platform has no record of Travis being online.** `staff_presence.is_online` is false and
+`last_heartbeat_at` is 2026-09-09 09:15:41.997+00 — three days before the alerts, and *exactly
+equal* to `session_started_at`. A row whose last heartbeat is its first is a session that pinged
+once and never again.
+
+So either the heartbeat is not being written at all — in which case nobody is ever "present" by
+the platform's own measure and the presence-based definition landed in #436 will not by itself
+have stopped these six alerts — or he was not signed in on those nights. **The fix does not close
+this on its own**, and recording it as closed would be the same mistake the brief is about.
+Establishing whether `last_heartbeat_at` advances for a signed-in operator is the next step, and
+it is a question about the client heartbeat, not the monitor.
+
+### What shipped
+
+- ✅ **One definition of "present"** (#436). `staff.is_on_call` alone decided a no-show; the
+  platform already knew better and the supervisor's strip had been reading it all along.
+  `_shared/presence.ts` is now the only answer, with three states — ON DUTY, PRESENT NOT ON DUTY,
+  ABSENT — because collapsing the middle one is wrong in a different direction each way.
+  `HEARTBEAT_STALE_SECONDS` was two constants agreeing by test; it is one now.
+- ✅ **The alert is keyed to the scheduled row** (#436), not to the runner's clock, and the grace
+  period is measured from that shift's start. A row the view returns after its own shift has ended
+  in Madrid is logged, not alerted.
+- ✅ **The runner listens to the index** (#438). `ON CONFLICT DO NOTHING` + `.select()`, for all
+  four alert types — the identical read-then-write pair sat in the no-coverage and disconnected
+  checks too. A failed claim sends nothing.
+- ✅ **An alert that is over says so** (#438). Open rows close on arrival with
+  `resolution = 'signed_in'` and one retraction bell, which also frees the key so a later absence
+  in the same shift is not swallowed. Every pre-fix open row is retracted as
+  `false_positive_pre_fix`; it is self-correcting, because a real absence is re-raised within two
+  minutes by the corrected rule.
+- ✅ **Titles, not routing keys** (#433). `notification_log` has no title column, and
+  `useNotifications` answered `title: row.event_type` — so the bell, the admin notifications page
+  and the admin mobile home rendered `shift.no_show` as the title of **every** notification, of
+  every type, since each was written. Built on `EVENT_SPECS` rather than a second list, so
+  coverage is a build-time ratchet; 29 events × title + body × en/es/nl.
+- ✅ **A read-only facts job** (#432, #435, #437). It runs in CI because the credentials already
+  live there, inside `SET TRANSACTION READ ONLY` so a write is refused by Postgres rather than
+  trusted not to be there.
+
+### Still owed
+
+- **The heartbeat**, above.
+- `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are not set as repository secrets, though three
+  workflows name the latter — so whatever in those needs it has never worked. Run #1 of the facts
+  job is what surfaced it.
+- The no-show ladder the brief describes (operator SMS at grace, supervisor at grace, admins at
+  grace+15) is **half done**: the routes and preferences exist and `shift.no_show` goes through
+  the router, but the *timed* escalation to admins at grace+15 is not built.
+
 ## Rota, shifts and holidays — 2026-09-10 · **all six items on main and in production**
 
 Lee's brief: *"Staff see and manage their own shifts; supervisors control everyone's; holiday

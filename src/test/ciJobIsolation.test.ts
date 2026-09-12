@@ -321,7 +321,7 @@ describe("RULE 2 — a missing secret fails the job, in every workflow", () => {
     }
   });
 
-  it("the migrate job guards ALL THREE of its secrets, in one call", () => {
+  it("the migrate job guards ALL FOUR of its secrets, in one call", () => {
     // Comments are stripped FIRST. The header explains the change and names the script, and the
     // first version of this assertion matched that prose instead of the `run:` line — passing on
     // the strength of a comment, which is the one thing a workflow does not execute.
@@ -332,9 +332,48 @@ describe("RULE 2 — a missing secret fails the job, in every workflow", () => {
       "SUPABASE_ACCESS_TOKEN",
       "SUPABASE_PROJECT_REF",
       "SUPABASE_DB_PASSWORD",
+      // The fourth is MANIFEST_PUSH_TOKEN, and it is the one whose absence is silent without this
+      // guard: the job would apply migrations to production and only then discover it cannot
+      // record them, which is the drift this whole workflow exists to prevent.
+      "MANIFEST_PUSH_TOKEN",
     ]) {
       expect(guard![1], `migrate does not require ${secret}`).toContain(secret);
     }
+  });
+
+  /*
+    THE MANIFEST COMMIT GOES TO A GATED BRANCH.
+
+    main is governed by a repository ruleset: every change to it needs a pull request, and
+    github-actions[bot] is not a bypass actor. So `secrets.GITHUB_TOKEN` can no longer push the
+    APPLIED_TO_PROD.txt commit, and the failure mode if it tries is the bad one — production has
+    already been migrated, and the only record of what landed is a red X in a log.
+  */
+  it("the migrate job checks out with the PAT, so its push to main can land", () => {
+    const body = stripComments(migrateJobs.get("migrate")!);
+    const checkout = /actions\/checkout@v4([\s\S]*?)\n\s{6}- name:/.exec(body);
+    expect(checkout, "the migrate job no longer checks out").not.toBeNull();
+    expect(
+      checkout![1],
+      "checkout does not hand actions/checkout the PAT, so the persisted credential is the " +
+        "job's own token and the manifest push is refused by the ruleset",
+    ).toMatch(/token:\s*\$\{\{\s*secrets\.MANIFEST_PUSH_TOKEN/);
+  });
+
+  it("an absent PAT still fails at the guard, not at checkout", () => {
+    // Without the fallback, an unset secret is the empty string and checkout dies on "Bad
+    // credentials" — a red that reads like a GitHub outage rather than a missing secret. With it,
+    // checkout succeeds on the job's own token and require-secrets names the secret one step
+    // later, still before anything touches production.
+    const body = stripComments(migrateJobs.get("migrate")!);
+    expect(body).toMatch(/secrets\.MANIFEST_PUSH_TOKEN\s*\|\|\s*github\.token/);
+
+    const names = stepNames(migrateJobs.get("migrate")!);
+    const guard = names.findIndex((n) => /Require migrate secrets/i.test(n));
+    const push = names.findIndex((n) => /Apply migrations/i.test(n));
+    expect(guard, "no secrets guard in the migrate job").toBeGreaterThan(-1);
+    expect(push, "no apply step in the migrate job").toBeGreaterThan(-1);
+    expect(guard, "the guard must run before production is touched").toBeLessThan(push);
   });
 
   it("the deploy job guards the two secrets IT needs", () => {
@@ -797,5 +836,110 @@ describe("reach-production.sh, driven with a stubbed CLI", () => {
     // The caller's own words, so the error says which job stopped and why.
     expect(r.output).toContain("cannot check the manifest");
     expect(r.outputs, "claimed a mode it never reached").not.toContain("mode=");
+  });
+});
+
+/*
+  RULE 6 — EVERY DIRECT PUSH TO main CARRIES THE PAT.
+
+  Ruleset 19055263 went `active` on 2026-09-11 16:28 UTC with a `pull_request` rule and no bypass
+  actor for GitHub Actions. From that minute `github.token` could not write to main, and two
+  workflow steps that had been quietly keeping main correct stopped being able to:
+
+    · migrate.yml  — `chore(prod): record N migrations applied by CI`, the manifest
+    · ci.yml       — `chore(wiring): regenerate WIRING_REGISTER.md after a merge`, the self-heal
+
+  Only the first was noticed. It failed four times in one afternoon (runs 29, 33, 34, 37), each
+  time applying the migration to production and then losing the record of it — which the drift
+  gate then read as "production is BEHIND", the dangerous direction, and three hand-written
+  correction PRs went in to say what the workflow could not. The second pusher was found by
+  reading rather than by an incident, and only because somebody went looking for a second one.
+
+  So this does not assert "migrate.yml has the token" and "ci.yml has the token" — two facts that
+  were both true of a repo with a third pusher in it. It FINDS the pushes, and requires each one
+  to sit in a job whose checkout persisted MANIFEST_PUSH_TOKEN. A fourth pusher added next month
+  fails here on the day it is added, not on the day it silently stops working.
+*/
+describe("RULE 6 — a step that pushes to main authenticates as something the ruleset admits", () => {
+  /** `git push ... HEAD:main` / `... origin main`, in any workflow. Comments cannot match. */
+  const PUSHES_TO_MAIN = /git push\b[^\n]*\b(HEAD:main|origin\s+main)\b/;
+
+  const pushers = workflowFiles.flatMap((file) => {
+    const jobs = jobsOf(readFileSync(join(WORKFLOW_DIR, file), "utf8"));
+    return [...jobs]
+      .filter(([, body]) => PUSHES_TO_MAIN.test(stripComments(body)))
+      .map(([id, body]) => ({ file, id, body }));
+  });
+
+  const keys = pushers.map((p) => `${p.file}:${p.id}`).sort();
+
+  it("finds the pushers, so this suite cannot pass by looking at nothing", () => {
+    // The two known ones, by name — the completeness half. The assertions below run over what the
+    // scan FOUND, so a third pusher is checked for the token automatically; this one is what makes
+    // its arrival a decision somebody takes deliberately, and what turns a renamed job into a
+    // loud failure instead of a suite that quietly checks one pusher, or none.
+    expect(keys).toEqual(["ci.yml:wiring-register", "migrate.yml:migrate"]);
+  });
+
+  it.each(keys)(
+    "%s checks out with MANIFEST_PUSH_TOKEN, so its push is not refused",
+    (key) => {
+      const job = pushers.find((p) => `${p.file}:${p.id}` === key)!;
+      const checkout = stepBody(stripComments(job.body), "Checkout code");
+      expect(
+        checkout,
+        `${key} pushes to main on the job's own token, which the ruleset refuses`,
+      ).toMatch(/token:\s*\$\{\{\s*secrets\.MANIFEST_PUSH_TOKEN/);
+    },
+  );
+
+  it.each(keys)(
+    "%s falls back to github.token, so an absent secret is named rather than 'Bad credentials'",
+    (key) => {
+      // Not cosmetic. An unset secret arrives as the empty string, and `actions/checkout` with an
+      // empty token dies on "Bad credentials" — which reads like a GitHub outage. With the
+      // fallback, checkout succeeds and require-secrets fails one step later WITH THE NAME. That
+      // is also why this is not a `configured == 'true'` gate, which RULE 2 forbids: the fallback
+      // changes the error message, never whether the work is attempted.
+      const job = pushers.find((p) => `${p.file}:${p.id}` === key)!;
+      expect(stripComments(job.body)).toMatch(
+        /secrets\.MANIFEST_PUSH_TOKEN\s*\|\|\s*github\.token/,
+      );
+    },
+  );
+
+  it.each(keys)(
+    "%s requires the secret through require-secrets.mjs, before it pushes",
+    (key) => {
+      const job = pushers.find((p) => `${p.file}:${p.id}` === key)!;
+      const body = stripComments(job.body);
+
+      // Anchored AFTER `require-secrets.mjs` and allowed to span lines, because the two guards are
+      // written differently and both are legitimate: ci.yml passes the one name on the `run:`
+      // line, migrate.yml folds four names onto the line below with `>`. Anchoring is what keeps
+      // it honest — a step that merely maps the secret into `env:` (which sits ABOVE `run:` in
+      // both files) and then guards something else does not match.
+      const guard = body
+        .split("\n      - name:")
+        .findIndex((s) => /require-secrets\.mjs[\s\S]*MANIFEST_PUSH_TOKEN/.test(s));
+      expect(guard, `${key} never requires MANIFEST_PUSH_TOKEN`).toBeGreaterThan(-1);
+
+      const push = body
+        .split("\n      - name:")
+        .findIndex((s) => PUSHES_TO_MAIN.test(s));
+      expect(guard, `${key} pushes before it has checked the secret exists`).toBeLessThan(push);
+    },
+  );
+
+  it("the ci.yml guard is gated on the EVENT, never on whether the secret is set", () => {
+    // A pull request has no push to make and a fork PR gets no secrets at all, so the guard is
+    // conditional there — and a condition next to a secret is the exact shape RULE 2 exists to
+    // refuse. The distinction that makes it legitimate: `github.event_name`, which says what this
+    // run IS, and never `secrets.MANIFEST_PUSH_TOKEN != ''`, which would say "skip if unconfigured".
+    const guard = stepBody(stripComments(ciJobs.get("wiring-register")!), "Require the push token");
+    expect(guard).toMatch(/if:\s*github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
+    expect(guard, "the guard skips itself when the secret is missing").not.toMatch(
+      /if:[^\n]*secrets\./,
+    );
   });
 });

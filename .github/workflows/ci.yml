@@ -177,6 +177,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          # THE SECOND DIRECT PUSHER TO main, and it needs the same PAT migrate.yml needs.
+          # Ruleset 19055263 went `active` on 2026-09-11 with a `pull_request` rule and no bypass
+          # actor for GitHub Actions, so `github.token` can no longer push to main from here.
+          # MANIFEST_PUSH_TOKEN is a fine-grained PAT scoped to this repository with contents
+          # read/write, owned by a repository admin, which the ruleset's bypass list admits.
+          #
+          # Handed to `actions/checkout` rather than spliced into a remote URL: the action stores
+          # it as an auth header and strips it again in its post step, whereas a URL credential is
+          # printed back by git on some failures and left behind in `git remote -v`.
+          #
+          # The `||` fallback keeps PULL REQUESTS working. A PR run never pushes, secrets are not
+          # available to fork PRs at all, and an absent secret is the empty string — without the
+          # fallback every PR would die on "Bad credentials", a red that reads like a GitHub
+          # outage. The guard below is what turns an absent PAT into a named failure, and it runs
+          # only where the push actually happens.
+          token: ${{ secrets.MANIFEST_PUSH_TOKEN || github.token }}
           # ON MAIN ONLY. The self-heal commits and pushes, and the default detached checkout
           # cannot — but on a PULL REQUEST `github.ref_name` is `<number>/merge`, which is not a
           # branch and makes checkout fail outright. An empty string means "the default", which
@@ -196,6 +212,23 @@ jobs:
       - name: Wiring register
         if: github.event_name == 'pull_request'
         run: node scripts/wiring/build.mjs --check
+
+      # ON MAIN, BEFORE THE REGENERATION — not inside it, and not after the diff check.
+      #
+      # The tempting version guards the PAT only once a repair turns out to be needed, so that a
+      # clean register never goes red over a secret it did not use. That is the shape RULE 2 of
+      # `ciJobIsolation.test.ts` exists to refuse: the job's promise on main is "the register on
+      # main is the generator's output", and a job that cannot push cannot keep that promise —
+      # whether or not this particular run happened to have something to push. Discovering it at
+      # the moment of need means discovering it in the one run that already has a repair to lose.
+      #
+      # It stays off pull requests because a PR run has no push to make and fork PRs get no
+      # secrets at all; the `if` is on the EVENT, never on whether the secret is set.
+      - name: Require the push token
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          MANIFEST_PUSH_TOKEN: ${{ secrets.MANIFEST_PUSH_TOKEN }}
+        run: node scripts/ci/require-secrets.mjs MANIFEST_PUSH_TOKEN
 
       # main: regenerate and commit the difference rather than going red over a generated file.
       - name: Regenerate and self-heal on main
@@ -231,13 +264,13 @@ jobs:
             sleep $((attempt * 3))
           done
 
-          # THE LIKELY REASON, AS OF 2026-09-11 16:28 UTC. Ruleset 19055263 went `active` that
-          # minute with a `pull_request` rule and `bypass_actors: null`, which refuses EVERY direct
-          # push to main — this one and migrate.yml's `chore(prod): record N migrations`. Adding
-          # `GitHub Actions` as a bypass actor is PENDING_FOR_LEE S16 trap 4. Until it is there,
-          # this step cannot repair anything, so it says which of the two things went wrong rather
-          # than leaving somebody to guess from a bare push failure.
-          echo "::error title=Register not repaired::WIRING_REGISTER.md is stale on main and the repair commit could not be pushed. Either main moved four times while this ran, or the branch ruleset refuses this push because GitHub Actions is not a bypass actor (PENDING_FOR_LEE S16, trap 4). Regenerate locally: node scripts/wiring/build.mjs"
+          # WHAT IS LEFT TO GO WRONG, now that the push carries the PAT. The permission half of
+          # this message is gone: ruleset 19055263 refused `github.token` outright, and the four
+          # attempts above burned themselves against a refusal that no amount of rebasing could
+          # fix. With MANIFEST_PUSH_TOKEN the ruleset admits the push, so a failure here is the
+          # race the loop was written for — or a PAT that has expired or lost `contents: write`,
+          # which looks identical from inside git and so is named too.
+          echo "::error title=Register not repaired::WIRING_REGISTER.md is stale on main and the repair commit could not be pushed in four attempts. Either main moved four times while this ran, or MANIFEST_PUSH_TOKEN has expired / lost contents:write on this repository. Regenerate locally: node scripts/wiring/build.mjs"
           exit 1
   # IS THE MERGE GATE ITSELF ON?
   #

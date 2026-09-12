@@ -253,7 +253,137 @@ its version appeared in the remote list *after* a push and was absent *before* i
 
 ## 2. Secrets, settings and approvals only Lee can do
 
-### S16 — 🔴 **Enforce "never merge red" with a branch ruleset** (2026-09-11) — *I could not do this one; the API path is blocked for me*
+### S16 — 🔴 **Enforce "never merge red" with a branch ruleset** (2026-09-11) — *switched on, and still not doing the job*
+
+> #### ⬜ VERIFIED 2026-09-11 16:35 UTC — **two of the five traps fixed, three still live**
+>
+> You activated the ruleset at **16:28 UTC**. Thank you — `enforcement` and the target are now
+> right, which were traps 0 and 1. **The rule that makes a red check block a merge is still not
+> there**, so the merge button behaves exactly as it did this morning. This item stays open.
+>
+> `GET /repos/VirtueleThuiszorg/ice-alarm-espana-platform/rulesets/19055263`, verbatim:
+>
+> ```json
+> {
+>   "id": 19055263,
+>   "name": "main",
+>   "target": "branch",
+>   "source_type": "Repository",
+>   "source": "VirtueleThuiszorg/ice-alarm-espana-platform",
+>   "enforcement": "active",
+>   "conditions": { "ref_name": { "exclude": [], "include": ["~DEFAULT_BRANCH"] } },
+>   "rules": [
+>     { "type": "deletion" },
+>     { "type": "non_fast_forward" },
+>     { "type": "pull_request", "parameters": {
+>         "required_approving_review_count": 0,
+>         "dismiss_stale_reviews_on_push": false,
+>         "required_reviewers": [],
+>         "require_code_owner_review": false,
+>         "require_last_push_approval": false,
+>         "required_review_thread_resolution": false,
+>         "require_extra_approval_for_unattributed_changes": true,
+>         "allowed_merge_methods": ["squash", "rebase"] } }
+>   ],
+>   "node_id": "RRS_lACqUmVwb3NpdG9yec5IdglxzgEiwp8",
+>   "created_at": "2026-07-16T15:33:16.414Z",
+>   "updated_at": "2026-09-11T16:28:03.012Z",
+>   "current_user_can_bypass": "never"
+> }
+> ```
+>
+> `GET /rules/branches/main` returns the same three rules — `deletion`, `non_fast_forward`,
+> `pull_request` — and `GET /rulesets?includes_parents=true` returns this one and nothing else, so
+> there is no organisation ruleset adding the checks from above. `GET /branches/main` reports
+> `"protected": true` with classic protection `"enabled": false` and
+> `required_status_checks.contexts: []`, so no classic rule is supplying them either.
+>
+> **Against the spec, field by field:**
+>
+> | Spec | Actual | |
+> |---|---|---|
+> | Enforcement **active** | `"enforcement": "active"` | ✅ |
+> | Targets the **default branch** | `include: ["~DEFAULT_BRANCH"]`, `exclude: []` | ✅ |
+> | **Deletions** blocked | `deletion` rule present | ✅ |
+> | **Force pushes** blocked | `non_fast_forward` rule present | ✅ |
+> | Required checks: Tests · Lint, Type Check & Build · Wiring register · Cross-tenant isolation · Security Audit · Migration drift gate | **no `required_status_checks` rule at all** | ❌ |
+> | **Merge commits allowed** | `allowed_merge_methods: ["squash", "rebase"]` — `"merge"` is absent | ❌ |
+> | Bypass = **repository admin** | no `bypass_actors` in the response — nobody can bypass | ❌ |
+>
+> **Deviation 1 — no required status checks (trap 3, and the whole point).** Proven twice over,
+> by execution:
+>
+> - A throwaway PR (**#387**, since closed) with one deliberately failing
+>   test. Its branch `claude/ruleset-proof-throwaway` is still on the remote: this session can
+>   neither delete-ref push (the git proxy disconnects) nor `DELETE /git/refs` (the agent proxy
+>   refuses every REST write), so it needs the **Delete branch** button on the closed PR. With `Tests` red, GitHub reported `mergeable: true`, **`mergeable_state: "unstable"`** —
+>   *a check is failing and nothing requires it*. The merge button was available. A gate that was
+>   enforcing would have said `blocked`. Three checks ended up red on it and the merge was still
+>   offered.
+> - The repo's own watchdog (`Merge gate is enforced`, merged as #381) says the same thing on
+>   every pull request and on every push to main:
+>
+>   ```
+>   Branch: `main` · rules applying: 3
+>   - ✅ a pull request is required before merging
+>   - ✅ force pushes are blocked
+>   - ✅ deletion is blocked
+>   - ❌ No required status checks. This is the rule that makes a red check block a merge;
+>        without it the others only shape *how* a merge happens, never *whether*.
+>   ```
+>
+> **Deviation 2 — merge commits are blocked (trap 2).** `"merge"` is missing from
+> `allowed_merge_methods`. Squash and rebase still work, and this session has been squash-merging
+> all day, so it has not bitten yet — but #366 and several before it landed as merge commits, and
+> the next one done that way is refused for a reason that has nothing to do with the code.
+>
+> **Deviation 3 — nobody can bypass (trap 4), and this one is already costing something.** The
+> response carries no `bypass_actors`. With a `pull_request` rule and an empty bypass list, **no
+> direct push to main is possible by anyone** — not `github-actions[bot]`, and not a repository
+> admin's PAT either, because admins are *not* exempt from rulesets by default; the
+> **Repository admin** role has to be added to the bypass list explicitly. So `migrate.yml` can no
+> longer record what it applied, which is the failure mode where the migrations land and only the
+> record of them is lost. (Caveat worth stating: this session's token is a GitHub App
+> installation, and it is possible GitHub withholds `bypass_actors` from it. The API returned the
+> rest of the object in full and `current_user_can_bypass: "never"`, so the reading is "empty" —
+> but the field showing populated when you look in the browser would settle it faster than
+> anything I can run.)
+>
+> #### What is still needed, in the UI — Settings → Rules → Rulesets → `main`
+>
+> 1. **Add "Require status checks to pass"** with the six names below, copied exactly.
+> 2. **Add `merge` to the allowed merge methods** on the pull-request rule.
+> 3. **Add `Repository admin` to the bypass list** — otherwise CI cannot record migrations, and
+>    `MANIFEST_PUSH_TOKEN` (below) cannot help it.
+>
+> #### And one more thing you now have to set: `MANIFEST_PUSH_TOKEN`
+>
+> A dispatched `Migrate Production` run against the companion PR's branch
+> ([run 34624691108](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34624691108))
+> reports the secret as empty, and the job stopped where it should:
+>
+> ```
+> success   Checkout code
+> failure   Require migrate secrets     ← MANIFEST_PUSH_TOKEN is not set
+> skipped   Apply migrations            ← production was NOT touched
+> skipped   Commit the manifest to main
+> failure   Verdict
+> ```
+>
+> That is the guard working — a job that cannot record what it applied stops **before** it applies
+> anything. Set it in Settings → Secrets and variables → Actions: a fine-grained PAT scoped to
+> this repository, **contents: read and write**, owned by an account with the repository-admin
+> bypass from step 3.
+>
+> #### Until all four are done, nothing in this repo can merge green
+>
+> `Merge gate is enforced` is red on every PR because it is telling the truth, so "never merge
+> red" and "the gate is off" are now in direct contradiction. That is uncomfortable by design and
+> it clears the moment step 1 is done.
+
+**The original write-up follows, unchanged — the exact values, the four traps and the three
+verifications are all still the spec.**
+
 
 > **UPDATE, 2026-09-11 16:28 UTC — you switched it on, and it is HALF done. The unfinished half is
 > actively breaking things right now.** Read this before the section below it, which was written

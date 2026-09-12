@@ -113,121 +113,121 @@
       "lands before or after first paint."
     ],
     "public.home": {
-      "routeJsGzBytes": 389120,
+      "routeJsGzBytes": 392192,
       "dbQueriesPerLoad": 10
     },
     "public.pricing": {
-      "routeJsGzBytes": 366592,
+      "routeJsGzBytes": 375808,
       "clsBelow": 0.19
     },
     "join.wizard": {
-      "routeJsGzBytes": 374784
+      "routeJsGzBytes": 377856
     },
     "auth.login": {
-      "routeJsGzBytes": 372736
+      "routeJsGzBytes": 388096
     },
     "member.dashboard": {
-      "routeJsGzBytes": 379904,
+      "routeJsGzBytes": 389120,
       "nPlusOneTables": [
         "members"
       ]
     },
     "cc.alerts": {
-      "routeJsGzBytes": 384000,
+      "routeJsGzBytes": 390144,
       "nPlusOneTables": [
         "alerts",
         "staff"
       ]
     },
     "public.how-it-works": {
-      "routeJsGzBytes": 373760
+      "routeJsGzBytes": 376832
     },
     "public.pendant": {
-      "routeJsGzBytes": 375808
-    },
-    "public.contact": {
-      "routeJsGzBytes": 368640
-    },
-    "public.help": {
-      "routeJsGzBytes": 412672
-    },
-    "public.blog": {
-      "routeJsGzBytes": 373760
-    },
-    "public.terms": {
-      "routeJsGzBytes": 364544
-    },
-    "public.privacy": {
-      "routeJsGzBytes": 363520
-    },
-    "auth.staff-login": {
-      "routeJsGzBytes": 372736
-    },
-    "partner.join": {
       "routeJsGzBytes": 379904
     },
-    "member.profile": {
-      "routeJsGzBytes": 402432
+    "public.contact": {
+      "routeJsGzBytes": 376832
     },
-    "member.medical": {
-      "routeJsGzBytes": 356352
+    "public.help": {
+      "routeJsGzBytes": 420864
     },
-    "member.contacts": {
-      "routeJsGzBytes": 377856
+    "public.blog": {
+      "routeJsGzBytes": 384000
     },
-    "member.device": {
-      "routeJsGzBytes": 357376
+    "public.terms": {
+      "routeJsGzBytes": 374784
     },
-    "member.subscription": {
-      "routeJsGzBytes": 364544
+    "public.privacy": {
+      "routeJsGzBytes": 373760
     },
-    "member.support": {
-      "routeJsGzBytes": 424960
-    },
-    "member.messages": {
-      "routeJsGzBytes": 363520
-    },
-    "cc.dashboard": {
-      "routeJsGzBytes": 381952
-    },
-    "cc.members": {
-      "routeJsGzBytes": 349184
-    },
-    "cc.messages": {
-      "routeJsGzBytes": 372736
-    },
-    "cc.tasks": {
-      "routeJsGzBytes": 365568
-    },
-    "cc.my-shifts": {
-      "routeJsGzBytes": 372736
-    },
-    "admin.dashboard": {
+    "auth.staff-login": {
       "routeJsGzBytes": 388096
     },
-    "admin.members": {
-      "routeJsGzBytes": 361472
-    },
-    "admin.alerts": {
-      "routeJsGzBytes": 368640
-    },
-    "admin.devices": {
-      "routeJsGzBytes": 366592
-    },
-    "admin.finance": {
-      "routeJsGzBytes": 460800
-    },
-    "admin.orders": {
-      "routeJsGzBytes": 368640
-    },
-    "admin.staff": {
+    "partner.join": {
       "routeJsGzBytes": 392192
     },
+    "member.profile": {
+      "routeJsGzBytes": 412672
+    },
+    "member.medical": {
+      "routeJsGzBytes": 368640
+    },
+    "member.contacts": {
+      "routeJsGzBytes": 389120
+    },
+    "member.device": {
+      "routeJsGzBytes": 372736
+    },
+    "member.subscription": {
+      "routeJsGzBytes": 379904
+    },
+    "member.support": {
+      "routeJsGzBytes": 435200
+    },
+    "member.messages": {
+      "routeJsGzBytes": 376832
+    },
+    "cc.dashboard": {
+      "routeJsGzBytes": 390144
+    },
+    "cc.members": {
+      "routeJsGzBytes": 362496
+    },
+    "cc.messages": {
+      "routeJsGzBytes": 382976
+    },
+    "cc.tasks": {
+      "routeJsGzBytes": 374784
+    },
+    "cc.my-shifts": {
+      "routeJsGzBytes": 385024
+    },
+    "admin.dashboard": {
+      "routeJsGzBytes": 390144
+    },
+    "admin.members": {
+      "routeJsGzBytes": 370688
+    },
+    "admin.alerts": {
+      "routeJsGzBytes": 376832
+    },
+    "admin.devices": {
+      "routeJsGzBytes": 375808
+    },
+    "admin.finance": {
+      "routeJsGzBytes": 474112
+    },
+    "admin.orders": {
+      "routeJsGzBytes": 379904
+    },
+    "admin.staff": {
+      "routeJsGzBytes": 401408
+    },
     "admin.settings": {
-      "routeJsGzBytes": 486400
+      "routeJsGzBytes": 479232
     },
     "admin.analytics": {
-      "routeJsGzBytes": 465920
+      "routeJsGzBytes": 477184
     }
   },
   "overrides": {

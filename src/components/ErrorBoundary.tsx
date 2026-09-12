@@ -1,6 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { AlertTriangleIcon, RefreshCwIcon } from "@/components/ui/shell-icons";
 import * as Sentry from "@sentry/react";
 
 interface Props {
@@ -57,7 +57,7 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="min-h-screen flex items-center justify-center bg-background">
           <div className="text-center space-y-4 p-8 max-w-md">
-            <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto" />
+            <AlertTriangleIcon className="h-12 w-12 text-amber-500 mx-auto" />
             <h2 className="text-xl font-semibold">
               {isDynamicImportError
                 ? "Failed to load page"
@@ -70,7 +70,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </p>
             <div className="flex gap-2 justify-center">
               <Button onClick={this.handleRetry} variant="default">
-                <RefreshCw className="h-4 w-4 mr-2" />
+                <RefreshCwIcon className="h-4 w-4 mr-2" />
                 {isDynamicImportError ? "Reload Page" : "Try Again"}
               </Button>
               <Button

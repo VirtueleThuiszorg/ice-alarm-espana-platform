@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { isAdminRole as checkAdminRole, ADMIN_2FA_SETUP_PATH, ADMIN_2FA_SETUP_ROUTE } from "@/config/constants";
-import { Loader2, RefreshCw } from "lucide-react";
+import { LoaderIcon, RefreshCwIcon } from "@/components/ui/shell-icons";
 import { Button } from "@/components/ui/button";
 
 interface ProtectedRouteProps {
@@ -38,7 +38,7 @@ export function ProtectedRoute({
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <LoaderIcon className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -62,7 +62,7 @@ export function ProtectedRoute({
         <div className="text-center space-y-4">
           <p className="text-muted-foreground">Failed to load your account permissions.</p>
           <Button onClick={retryRoleLoad} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
+            <RefreshCwIcon className="h-4 w-4 mr-2" />
             Retry
           </Button>
         </div>

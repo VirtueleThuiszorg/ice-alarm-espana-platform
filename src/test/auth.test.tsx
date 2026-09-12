@@ -39,7 +39,22 @@ vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => mockAuth,
 }));
 
-// ---- Mock lucide-react icons to avoid SVG rendering issues ----
+// ---- Mock the icons to avoid SVG rendering issues ----
+//
+// ProtectedRoute draws its spinner from `@/components/ui/shell-icons`, not from
+// `lucide-react`. The six icons the EAGER shell renders are inline SVG so that
+// the merged `vendor-icons` chunk can stay lazy — one eager `import ... from
+// "lucide-react"` pulls all 96 KB of icons in front of first paint. See
+// src/test/perf/chunkGraph.test.ts.
+//
+// The lucide mock stays beside it: other components rendered through this file
+// still import icons from there, and the testids are unchanged either way, so
+// every assertion below reads exactly as it did.
+vi.mock("@/components/ui/shell-icons", () => ({
+  LoaderIcon: (props: Record<string, unknown>) => <span data-testid="loader" {...props} />,
+  RefreshCwIcon: (props: Record<string, unknown>) => <span data-testid="refresh-icon" {...props} />,
+}));
+
 vi.mock("lucide-react", () => ({
   Loader2: (props: Record<string, unknown>) => <span data-testid="loader" {...props} />,
   RefreshCw: (props: Record<string, unknown>) => <span data-testid="refresh-icon" {...props} />,

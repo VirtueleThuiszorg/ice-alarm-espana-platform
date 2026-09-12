@@ -33,7 +33,7 @@ let readinessError: { message: string } | null = null;
 let notifications: Array<{
   id: string;
   type: string;
-  title: string;
+  // No `title`: `notification_log` has none, and the mapper no longer invents one from the key.
   message: string;
   read: boolean;
   created_at: string;

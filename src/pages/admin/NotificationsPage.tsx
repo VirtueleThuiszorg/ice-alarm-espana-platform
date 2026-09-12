@@ -34,6 +34,7 @@ import {
 } from "@/hooks/useNotifications";
 import { notificationLink } from "@/lib/notificationLink";
 import { humaniseEventType, notificationBody, notificationTitle } from "@/lib/notificationTitles";
+import { useTranslation } from "react-i18next";
 
 function getNotificationIcon(type: NotificationType) {
   switch (type) {
@@ -66,6 +67,7 @@ function getTypeBadgeVariant(type: NotificationType) {
 }
 
 export default function NotificationsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
 

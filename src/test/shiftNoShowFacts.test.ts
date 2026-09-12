@@ -1,17 +1,16 @@
 /**
- * THE FACTS SCRIPT MAY ONLY READ, AND MAY NOT PRINT PII.
+ * THE FACTS QUERY MAY ONLY READ, AND MAY NOT PRINT PII.
  *
- * `scripts/ops/shift-noshow-facts.mjs` runs in CI with the SERVICE ROLE KEY, which is the key that
- * ignores every RLS policy in the project. Two properties make that acceptable, and neither is
- * self-evident from reading a diff six months from now:
+ * `scripts/ops/shift-noshow-facts.sql` runs against PRODUCTION as the database superuser, from a
+ * job whose log everybody with repository access can read. Two properties make that acceptable,
+ * and neither is self-evident from a diff six months from now:
  *
- *   1. it cannot write — its only `fetch` is a GET, and PostgREST maps GET to SELECT;
- *   2. it cannot leak — a workflow run's log is readable by everybody with repository access, and
- *      this reads the `staff` table, which carries `personal_mobile` beside the columns it wants.
+ *   1. it cannot write — the whole file runs inside `SET TRANSACTION READ ONLY`, so a write that
+ *      ever reached it would be refused by Postgres rather than trusted not to be there;
+ *   2. it cannot leak — `staff.personal_mobile` sits on the same row as the columns it wants.
  *
- * Both are asserted against the SOURCE rather than by running it, because running it needs
- * production. A test that reads the file is the only kind that can hold here, and it is enough:
- * the failure it prevents is somebody adding a POST or a `select=*` in a hurry.
+ * Asserted against the SOURCE, because running it needs production. That is enough for the
+ * failure being prevented: somebody adding an UPDATE or a `SELECT *` in a hurry.
  */
 
 import { describe, it, expect } from "vitest";
@@ -19,43 +18,66 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = process.cwd();
-const SCRIPT = readFileSync(join(ROOT, "scripts/ops/shift-noshow-facts.mjs"), "utf8");
+const SQL = readFileSync(join(ROOT, "scripts/ops/shift-noshow-facts.sql"), "utf8");
 const WORKFLOW = readFileSync(join(ROOT, ".github/workflows/shift-noshow-facts.yml"), "utf8");
+/** The workflow's instructions, without the prose explaining them. */
+const WORKFLOW_STEPS = WORKFLOW.split("\n")
+  .filter((line) => !line.trimStart().startsWith("#"))
+  .join("\n");
 
-/** Comments explain the rules; they are not the code the rules are about. */
-const CODE = SCRIPT.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+/** Comments explain the rules; they are not the statements the rules are about. */
+const STATEMENTS = SQL.split("\n")
+  .filter((line) => !line.trimStart().startsWith("--") && !line.trimStart().startsWith("\\echo"))
+  .join("\n");
 
-describe("the facts script can only read", () => {
-  it("calls fetch exactly once, and that call is a GET", () => {
-    const fetches = CODE.match(/fetch\(/g) ?? [];
-    expect(fetches).toHaveLength(1);
-    expect(CODE).toMatch(/method:\s*"GET"/);
+describe("the facts query can only read", () => {
+  it("declares the transaction READ ONLY before any statement", () => {
+    const readOnly = STATEMENTS.indexOf("SET TRANSACTION READ ONLY");
+    const firstSelect = STATEMENTS.indexOf("SELECT");
+    expect(readOnly).toBeGreaterThan(-1);
+    expect(readOnly).toBeLessThan(firstSelect);
+    // Without ON_ERROR_STOP a refused statement is a warning scrolled past, not a failed job.
+    expect(SQL).toContain("ON_ERROR_STOP on");
   });
 
-  it("names no writing method anywhere", () => {
-    for (const verb of ["POST", "PATCH", "PUT", "DELETE"]) {
-      expect(CODE, `${verb} must not appear`).not.toContain(verb);
+  it("contains no writing statement of any kind", () => {
+    for (const verb of [
+      "INSERT",
+      "UPDATE",
+      "DELETE",
+      "TRUNCATE",
+      "DROP",
+      "ALTER",
+      "CREATE",
+      "GRANT",
+      "REVOKE",
+      "COPY",
+    ]) {
+      expect(STATEMENTS.toUpperCase(), `${verb} must not appear`).not.toContain(`${verb} `);
     }
-    // PostgREST's own write affordances, which are not HTTP verbs.
-    expect(CODE).not.toMatch(/\bupsert\b|\bPrefer\b|\brpc\//);
+  });
+
+  it("bounds itself so it cannot sit on a lock or scan forever", () => {
+    expect(STATEMENTS).toContain("statement_timeout");
   });
 });
 
-describe("the facts script prints no PII", () => {
-  /*
-    `select=*` is the failure mode rather than a deliberate leak: `staff` and `staff_presence` both
-    carry columns nobody needs here, and a star would print all of them into a public log.
-  */
-  it("asks for explicit columns, never a star", () => {
-    expect(CODE).not.toContain("select=*");
-    const selects = CODE.match(/select=[a-z_,]+/g) ?? [];
-    expect(selects.length).toBeGreaterThan(4);
+describe("the facts query prints no PII", () => {
+  it("selects explicit columns, never a star", () => {
+    expect(STATEMENTS).not.toMatch(/SELECT\s+\*/i);
   });
 
-  it("never asks for a phone number, an email or an address", () => {
+  it("never selects a phone number, an email or an address", () => {
     for (const column of ["personal_mobile", "phone", "email", "address", "whatsapp"]) {
-      expect(CODE.toLowerCase(), `${column} must not be selected`).not.toContain(column);
+      expect(STATEMENTS.toLowerCase(), `${column} must not be selected`).not.toContain(column);
     }
+  });
+
+  it("takes the name as a bound parameter rather than pasting it into SQL", () => {
+    // `:'staff_name'` is psql's quoted-literal substitution. String-building the name into the
+    // query would make a workflow input a SQL injection point, manual trigger or not.
+    expect(SQL).toContain(":'staff_name'");
+    expect(STATEMENTS).not.toMatch(/'\s*\|\|\s*:staff_name/);
   });
 });
 
@@ -66,10 +88,31 @@ describe("the workflow around it", () => {
   });
 
   it("fails when a secret is missing rather than skipping green", () => {
-    // The repo's one implementation of that rule. A conditional instead would be the defect
-    // `require-secrets.mjs` exists to prevent.
     expect(WORKFLOW).toContain("scripts/ci/require-secrets.mjs");
     expect(WORKFLOW).not.toMatch(/if:.*secrets\./);
+  });
+
+  it("names the secrets that exist, not the two that do not", () => {
+    /*
+      Run #1 of this job failed on `require-secrets`: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY
+      are NOT set in this repository, so the PostgREST version of this script could never have
+      run. `SUPABASE_DB_PASSWORD` and `SUPABASE_PROJECT_REF` are set — `migrate.yml` applies
+      migrations with them daily.
+    */
+    expect(WORKFLOW_STEPS).toContain("SUPABASE_DB_PASSWORD");
+    expect(WORKFLOW_STEPS).toContain("SUPABASE_PROJECT_REF");
+    // Checked against the STEPS, not the file: the header explains why the other two are not
+    // used, and a comment naming a secret must not read as the job asking for it.
+    expect(WORKFLOW_STEPS).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(WORKFLOW_STEPS).not.toContain("SUPABASE_URL");
+  });
+
+  it("keeps the password out of argv", () => {
+    // libpq's environment carries it. A password in a command line reaches the process list and
+    // any `set -x` — the rule `migrate.yml` and `reach-production.sh` both follow.
+    expect(WORKFLOW).toContain('export PGPASSWORD="$SUPABASE_DB_PASSWORD"');
+    expect(WORKFLOW).not.toMatch(/psql\s+"postgresql:\/\//);
+    expect(WORKFLOW).not.toMatch(/--password|-W\b/);
   });
 
   it("asks for read-only repository permission", () => {

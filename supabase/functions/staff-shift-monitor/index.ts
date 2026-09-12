@@ -23,6 +23,14 @@ const FN = "staff-shift-monitor";
 
 // Grace period after shift start before alerting (in minutes)
 const NO_SHOW_GRACE_MINUTES = 5;
+/**
+ * How long after the grace period before the ADMINS are told, if the person is still absent.
+ *
+ * Fifteen minutes is the same figure `NOT_ON_DUTY_ESCALATE_MINUTES` uses for the politer ladder,
+ * and for the same reason: long enough that a supervisor who is already covering the shift has
+ * had a chance to, short enough that a shift nobody is on does not run that way for an hour.
+ */
+const NO_SHOW_ESCALATE_MINUTES = 15;
 
 // Every shift is eight hours. Used to tell "five minutes late" from "that shift ended two hours
 // ago", which is what the view's UTC clock can make a Madrid morning look like.
@@ -156,6 +164,8 @@ serve(async (req) => {
 
     const stats = {
       noShowAlerts: 0,
+      /** Admins told, at grace + 15, that somebody is STILL not on the shift. */
+      noShowEscalations: 0,
       /** Scheduled, at the desk, and never pressed "On duty". Not an alert — see CHECK 1. */
       presentNotOnDuty: 0,
       /** Nudges sent to those people. At most one per person per shift. */
@@ -363,59 +373,98 @@ serve(async (req) => {
 
           const staffName = `${scheduled.first_name} ${scheduled.last_name}`.trim();
 
-          // Notify admin
+          /*
+            THROUGH THE ROUTER, not around it.
+
+            This used to call `notify-admin` directly and then `notify-staff-whatsapp` for the
+            operator's mobile — two bespoke doors for one event. That is why a no-show could not
+            be switched on or off from Admin → Settings → Notifications like everything else:
+            `notification_routes` has carried a `shift.no_show` row per channel since
+            20260909121500 and nothing consulted it. It is also where the fan-out came from —
+            `notify-admin` dispatches to EVERY admin on EVERY channel, the 2 recipients x 5
+            channels that turned six alerts into sixty log rows (SHIFT_NOSHOW_FINDINGS.md).
+
+            `notify-staff` is the one door. It reads `notification_routes` for which channels the
+            event may use at all, and `staff_notification_prefs` for what each person wants, so
+            Mary's SMS and Lee's SMS are separately switchable without either being decided here.
+
+            RUNG ONE, at the grace period: the OPERATOR, who can still fix it by turning up or
+            calling in, and the SUPERVISOR, who has to cover the shift. Not the admins — a shift
+            five minutes light is not yet news to them, and making it so is how a real alert
+            stops being read.
+          */
           try {
-            await fetch(`${baseUrl}/functions/v1/notify-admin`, {
+            await fetch(`${baseUrl}/functions/v1/notify-staff`, {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${serviceKey}`,
-              },
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
               body: JSON.stringify({
-                event_type: "shift.no_show",
-                entity_type: "staff",
-                entity_id: scheduled.staff_id,
-                payload: {
-                  staff_name: staffName,
-                  shift_type: shiftType,
-                  shift_time: `${bounds.start}:00`,
+                event: {
+                  type: "shift.no_show",
+                  title: `${staffName} has not started their ${shiftType} shift`,
+                  body: `${staffName} was scheduled for the ${shiftType} shift at ${bounds.start}:00 and is not signed in. Alerts are not routed to them.`,
+                  link: "/call-centre/rota",
+                  entity: { type: "staff", id: scheduled.staff_id },
+                },
+                audience: {
+                  staffIds: [scheduled.staff_id],
+                  roles: ["call_centre_supervisor"],
                 },
               }),
             });
           } catch (err) {
-            console.error("Admin notify error (no_show):", err);
-          }
-
-          // Notify the staff member directly
-          const { data: staffRecord } = await supabase
-            .from("staff")
-            .select("personal_mobile")
-            .eq("id", scheduled.staff_id)
-            .maybeSingle();
-
-          if (staffRecord?.personal_mobile) {
-            try {
-              await fetch(`${baseUrl}/functions/v1/notify-staff-whatsapp`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${serviceKey}`,
-                },
-                body: JSON.stringify({
-                  staff_id: scheduled.staff_id,
-                  message_type: "no_show",
-                  staff_name: staffName,
-                  phone_number: staffRecord.personal_mobile,
-                  shift_type: shiftType,
-                }),
-              });
-            } catch (err) {
-              console.error("Staff notify error (no_show):", err);
-            }
+            console.error("Notify error (no_show):", err);
           }
 
           stats.noShowAlerts++;
           log({ event: "no_show_alert", shift_type: shiftType, shift_date: shiftDate });
+
+          /*
+            RUNG TWO — the admins, at grace + 15, and only if the person is STILL absent.
+
+            A different question asked later: not "did they turn up" but "are they still not
+            here". Somebody who arrived three minutes after the first alert must not reach Lee's
+            phone, so this re-reads the state it was given for THIS run rather than trusting the
+            decision that raised rung one.
+
+            Its own `no_show_escalated` row is what makes it once. Without it this fires every two
+            minutes for the rest of the shift — the flood again, one rung up.
+
+            Note it is NOT guarded by `raisedNoShow`: on the run that escalates, rung one was
+            claimed fifteen minutes ago and `claimAlert` has already returned false for it. Tying
+            the two together would mean the admins were told at the same moment as the supervisor
+            or never at all.
+          */
+          if (minutesIntoShift >= NO_SHOW_GRACE_MINUTES + NO_SHOW_ESCALATE_MINUTES) {
+            const escalated = await claimAlert(supabase, {
+              alert_type: "no_show_escalated",
+              staff_id: scheduled.staff_id,
+              shift_date: shiftDate,
+              shift_type: shiftType,
+            });
+
+            if (escalated) {
+              try {
+                await fetch(`${baseUrl}/functions/v1/notify-staff`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+                  body: JSON.stringify({
+                    event: {
+                      type: "shift.no_show",
+                      title: `Still nobody on the ${shiftType} shift — ${staffName} has not appeared`,
+                      body: `${staffName} was scheduled at ${bounds.start}:00 and is still not signed in, ${NO_SHOW_GRACE_MINUTES + NO_SHOW_ESCALATE_MINUTES} minutes in. The supervisor was told at ${NO_SHOW_GRACE_MINUTES} minutes.`,
+                      link: "/call-centre/rota",
+                      entity: { type: "staff", id: scheduled.staff_id },
+                    },
+                    audience: { roles: ["admin", "super_admin"] },
+                  }),
+                });
+              } catch (err) {
+                console.error("Notify error (no_show_escalated):", err);
+              }
+              stats.noShowEscalations++;
+              log({ event: "no_show_escalated", shift_type: shiftType, shift_date: shiftDate });
+            }
+          }
         }
       }
     }

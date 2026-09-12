@@ -70,11 +70,24 @@ describe("the claim, not the read, is what decides", () => {
       The identical read-then-write pair sat in CHECK 2 (no coverage) and CHECK 3 (disconnected).
       Leaving them would leave the same defect in two places next to the one being fixed, waiting
       for the same night.
+
+      THE COUNT IS DERIVED, not written down. It used to be the literal 4, and adding the
+      `no_show_escalated` rung turned this red for the right reason expressed the wrong way — the
+      number was standing in for "every type goes through the claim", so it should be counted from
+      the types rather than repeated beside them. Now a new alert type that forgets to claim fails
+      here, and one that claims properly does not.
     */
-    for (const type of ["no_show", "no_coverage", "disconnected", "not_on_duty"]) {
+    const types = [
+      "no_show",
+      "no_coverage",
+      "disconnected",
+      "not_on_duty",
+      "no_show_escalated",
+    ];
+    for (const type of types) {
       expect(RUNNER, type).toContain(`alert_type: "${type}"`);
     }
-    expect(RUNNER.match(/await claimAlert\(/g) ?? []).toHaveLength(4);
+    expect(RUNNER.match(/await claimAlert\(/g) ?? []).toHaveLength(types.length);
   });
 
   it("guards the nudge the same way", () => {

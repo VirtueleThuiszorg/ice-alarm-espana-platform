@@ -212,19 +212,24 @@ Units: ms except JS (KB gz). `—` is unmeasured, which scores as a fail.
 No route is at 10/10 and the stop condition is not met. Stated by check, worst
 first, so the next loop starts from facts rather than from this document's tone.
 
-### Route JS ≤ 250 KB gz — 36 / 36 fail, and the public budget is unreachable
+### Route JS ≤ 250 KB gz — 36 / 36 fail
 
 Shell is **326.5 KB gz**, down from 428.7 KB (#397, which made the four
 authenticated layouts lazy). Every route is shell + page, so the shell is the
 floor and no route can pass while it stands.
 
-The **public budget of 150 KB gz is below the floor of the framework itself** —
-react + react-dom + react-router + supabase-js + i18next — and cannot be met
-without removing one of them. That is a scope decision, not an optimisation.
-
 The 250 KB budget is reachable and the work is identified but not done: `en.json`
 is **85.7 KB gz and eager in the shell**, and recharts, leaflet and date-fns are
 not split per route.
+
+> **Superseded, 12 Sep 2026.** This section originally reported a second,
+> tighter budget of 150 KB gz for public routes and called it *unreachable* —
+> react + react-dom + react-router + supabase-js + i18next are over it before any
+> product code is added. Lee has withdrawn that budget rather than leaving a row
+> that can never go green: public routes are now held to the same 250 KB as
+> everything else. The reasoning is recorded in the header of
+> `perf/budgets.json`. Nothing about the measured numbers changed — only what
+> they are compared against.
 
 ### LCP ≤ 2.5 s mobile — 36 / 36 fail
 

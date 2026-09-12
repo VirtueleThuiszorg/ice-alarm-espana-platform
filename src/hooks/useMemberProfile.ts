@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
 import type { SubscriptionStatus } from "@/lib/membershipCondition";
+import { STALE_TIMES } from "@/config/constants";
 
 /**
  * THE GENERATED ROW — the third hand-written subset of a table's shape in this file, after
@@ -255,6 +256,8 @@ export function useMemberAlerts(memberIdOverride?: string | null) {
 
   return useQuery({
     queryKey: ["member-alerts", memberId],
+    // The operator's view of the queue is never served from cache.
+    staleTime: STALE_TIMES.LIVE,
     queryFn: async () => {
       if (!memberId) throw new Error("No member ID");
       

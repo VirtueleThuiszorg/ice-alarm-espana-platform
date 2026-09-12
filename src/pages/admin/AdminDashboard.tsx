@@ -108,7 +108,8 @@ export default function AdminDashboard() {
 
       return alerts || [];
     },
-    staleTime: STALE_TIMES.SHORT,
+    // The operator's view of the queue is never served from cache.
+    staleTime: STALE_TIMES.LIVE,
     refetchInterval: INTERVALS.DASHBOARD_REFRESH,
   });
 

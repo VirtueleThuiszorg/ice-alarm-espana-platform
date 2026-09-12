@@ -24,6 +24,7 @@ import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { isAdminRole as checkAdminRole } from "@/config/constants";
+import { STALE_TIMES } from "@/config/constants";
 
 interface DeviceOfflineAlert {
   id: string;
@@ -75,6 +76,8 @@ export function DeviceOfflineAlertsCard() {
 
   const { data: alerts, isLoading, isError } = useQuery({
     queryKey: ["staff-device-offline-alerts"],
+    // The operator's view of the queue is never served from cache.
+    staleTime: STALE_TIMES.LIVE,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("alerts")

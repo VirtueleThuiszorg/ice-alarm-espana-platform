@@ -72,6 +72,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { formatDate } from "@/lib/formatDate";
+import { STALE_TIMES } from "@/config/constants";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -111,6 +112,8 @@ export default function AlertsPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-alerts", statusFilter, typeFilter, page],
+    // The operator's view of the queue is never served from cache.
+    staleTime: STALE_TIMES.LIVE,
     queryFn: async () => {
       let query = supabase
         .from("alerts")

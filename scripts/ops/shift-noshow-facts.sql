@@ -132,7 +132,7 @@ HAVING count(*) > 1;
 SELECT
   p.is_online,
   p.last_heartbeat_at,
-  p.updated_at,
+  p.session_started_at,
   now() - p.last_heartbeat_at AS heartbeat_age
 FROM public.staff_presence p
 JOIN public.staff s ON s.id = p.staff_id

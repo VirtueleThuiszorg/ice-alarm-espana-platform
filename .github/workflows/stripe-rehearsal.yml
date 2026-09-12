@@ -56,6 +56,7 @@ jobs:
       # reasoning in its header. This job's whole promise is that Stripe was asked; a green tick
       # meaning "I did not look" reads identically to one meaning "it behaved".
       - name: Require the Stripe test key
+        id: key
         env:
           STRIPE_TEST_KEY: ${{ secrets.STRIPE_TEST_KEY }}
         run: node scripts/ci/require-secrets.mjs STRIPE_TEST_KEY
@@ -97,11 +98,16 @@ jobs:
             --label "day ${{ inputs.day }} (the member's own)" \
             2>&1 | tee rehearsal-output/day-${{ inputs.day }}.txt
 
-      # `if: always()` so a failure on the member's day does not hide the month-end answer. Two
-      # results are two pieces of information; stopping at the first throws one away, and the
-      # month-end clamp is the case most likely to be wrong.
+      # `always()` so a FAILED RESULT on the member's day does not hide the month-end answer — two
+      # results are two pieces of information, and the clamp is the case most likely to be wrong.
+      #
+      # But gated on the key step specifically, not on the job, because those are different
+      # questions. Run #1 had no key, and this step ran anyway and printed its own "no Stripe TEST
+      # key" on top of the one require-secrets had already given: three steps, three refusals, one
+      # cause. A first run should say what is wrong ONCE. The job is still red either way — the
+      # key step already failed it — so this narrows the noise and not the verdict.
       - name: Rehearsal — the month-end clamp
-        if: always()
+        if: always() && steps.key.outcome == 'success'
         env:
           STRIPE_TEST_KEY: ${{ secrets.STRIPE_TEST_KEY }}
         run: |
@@ -122,7 +128,7 @@ jobs:
       # The Supabase secrets are optional ON PURPOSE: without them the step reports UNPROVEN
       # rather than failing, because not having asked is not the same as having been told no.
       - name: Did the async events reach our destination?
-        if: always()
+        if: always() && steps.key.outcome == 'success'
         env:
           STRIPE_TEST_KEY: ${{ secrets.STRIPE_TEST_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

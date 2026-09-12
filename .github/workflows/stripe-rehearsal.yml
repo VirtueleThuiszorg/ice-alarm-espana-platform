@@ -1,0 +1,159 @@
+name: Stripe rehearsal
+
+# THE TEST-CLOCK REHEARSAL, RUN WHERE THE KEY ALREADY LIVES.
+#
+# Lee's PROVE list ends with the half of the billing migration that no test in this repository can
+# cover: whether STRIPE, given the parameters `send-payment-link` uses, charges the full fee at
+# once, bills again on the same day of the month, settles a SEPA debit days later, and retries a
+# bounced one before we tell the member. Answering that needs a key.
+#
+# It runs HERE rather than on somebody's laptop so the key never leaves GitHub. `STRIPE_TEST_KEY`
+# is an Actions secret, mapped into `env` for the one step that uses it and never echoed, never
+# interpolated into a URL, never written to the summary or the artifact.
+#
+# MANUAL ONLY. `workflow_dispatch` and nothing else: every run creates real objects in the Stripe
+# test account, and a rehearsal on every push would fill it with clocks nobody asked for. It is
+# also not a merge gate — main does not wait on Stripe being reachable.
+
+on:
+  workflow_dispatch:
+    inputs:
+      amount:
+        description: "What a real switch link charges, IN CENTS (Admin -> Settings -> Pricing)"
+        required: true
+        default: "2499"
+      day:
+        description: "The member's Santander day of the month"
+        required: true
+        default: "15"
+
+concurrency:
+  # One at a time. Two rehearsals share the Stripe account, and one advancing a clock while the
+  # other reads an invoice is a false failure that costs an afternoon to understand.
+  group: stripe-rehearsal
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  rehearsal:
+    name: Test-clock rehearsal
+    runs-on: ubuntu-latest
+    # Two full rehearsals, each advancing a test clock twice and waiting on Stripe to catch up.
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # A MISSING SECRET IS A FAILURE, NOT A SKIP — scripts/ci/require-secrets.mjs, and the
+      # reasoning in its header. This job's whole promise is that Stripe was asked; a green tick
+      # meaning "I did not look" reads identically to one meaning "it behaved".
+      - name: Require the Stripe test key
+        env:
+          STRIPE_TEST_KEY: ${{ secrets.STRIPE_TEST_KEY }}
+        run: node scripts/ci/require-secrets.mjs STRIPE_TEST_KEY
+
+      # SEPARATE FROM THE RUN ITSELF, because "is this a test key" must be answered before any
+      # call is made rather than by the script that is about to spend it. The value is compared
+      # inside the shell and never printed: `${KEY:0:8}` would put eight characters of a secret
+      # into a public log, so the test is a case pattern and the message names no value.
+      - name: Refuse anything that is not a test key
+        env:
+          STRIPE_TEST_KEY: ${{ secrets.STRIPE_TEST_KEY }}
+        run: |
+          case "$STRIPE_TEST_KEY" in
+            sk_test_*)
+              echo "Key is a test key." ;;
+            *)
+              echo "::error title=Not a Stripe test key::STRIPE_TEST_KEY must start with sk_test_. A live key here would create real customers and take real money from real cards. Refusing before any API call."
+              exit 1 ;;
+          esac
+
+      # ── THE REHEARSAL, TWICE ────────────────────────────────────────────────
+      #
+      # The second run is not a repeat. `--day 31` is the month-end clamp: a member billed on the
+      # 31st must be billed on the 28th in February, and a naive month-add produces 3 March. It is
+      # the one date case that cannot be checked by running the ordinary one again.
+      #
+      # `tee` so the full output is BOTH in the log and in the artifact. `set -o pipefail` so the
+      # script's exit code survives the pipe — without it `tee` returns 0 and a failed rehearsal
+      # reports green, which is the precise failure mode CLAUDE.md's merge rules name.
+      - name: Rehearsal — the member's own day
+        env:
+          STRIPE_TEST_KEY: ${{ secrets.STRIPE_TEST_KEY }}
+        run: |
+          set -o pipefail
+          mkdir -p rehearsal-output
+          node scripts/stripe/test-clock-rehearsal.mjs \
+            --amount "${{ inputs.amount }}" \
+            --day "${{ inputs.day }}" \
+            --label "day ${{ inputs.day }} (the member's own)" \
+            2>&1 | tee rehearsal-output/day-${{ inputs.day }}.txt
+
+      # `if: always()` so a failure on the member's day does not hide the month-end answer. Two
+      # results are two pieces of information; stopping at the first throws one away, and the
+      # month-end clamp is the case most likely to be wrong.
+      - name: Rehearsal — the month-end clamp
+        if: always()
+        env:
+          STRIPE_TEST_KEY: ${{ secrets.STRIPE_TEST_KEY }}
+        run: |
+          set -o pipefail
+          mkdir -p rehearsal-output
+          node scripts/stripe/test-clock-rehearsal.mjs \
+            --amount "${{ inputs.amount }}" \
+            --day 31 \
+            --label "day 31 (the month-end clamp)" \
+            2>&1 | tee rehearsal-output/day-31.txt
+
+      # ── DID THE ASYNC EVENTS REACH US? ──────────────────────────────────────
+      #
+      # Asks Stripe what it SENT and the platform's `webhook_events` ledger what it PROCESSED.
+      # Only "Stripe sent some and we processed none" is a failure; "nobody has completed a SEPA
+      # Checkout Session yet" is UNPROVEN and says so. See the header of platform-check.mjs.
+      #
+      # The Supabase secrets are optional ON PURPOSE: without them the step reports UNPROVEN
+      # rather than failing, because not having asked is not the same as having been told no.
+      - name: Did the async events reach our destination?
+        if: always()
+        env:
+          STRIPE_TEST_KEY: ${{ secrets.STRIPE_TEST_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -o pipefail
+          mkdir -p rehearsal-output
+          node scripts/stripe/platform-check.mjs 2>&1 | tee rehearsal-output/async-events.txt
+
+      # ── THE PLATFORM HALF OF LEE'S STEP 5 ───────────────────────────────────
+      #
+      # "Runner re-run sends nothing twice" is a claim about OUR code, not Stripe's, and it is
+      # executed against a fake PostgREST that enforces the real partial unique index. It is run
+      # here so this job's summary carries the whole of Lee's PROVE list rather than the Stripe
+      # part of it and a footnote.
+      #
+      # It is NOT run against the live database, and that is deliberate: the only way to exercise
+      # "the second run sends nothing" for real is to let the first run send something, and the
+      # first run texts members.
+      - name: The runner, run twice (platform side)
+        if: always()
+        run: |
+          set -o pipefail
+          npm ci
+          npx vitest run src/test/billingMigrationRunExecuted.test.ts --reporter=dot \
+            2>&1 | tee rehearsal-output/runner-twice.txt
+
+      - name: Upload the full output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stripe-rehearsal-${{ github.run_id }}
+          path: rehearsal-output/
+          retention-days: 30

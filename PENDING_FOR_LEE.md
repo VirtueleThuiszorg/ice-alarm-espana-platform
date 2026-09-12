@@ -276,12 +276,72 @@ its version appeared in the remote list *after* a push and was absent *before* i
 > 2. Add **Require status checks to pass**, with exactly the six names listed further down — and
 >    **not** `Manifest matches production`, which is push-only, reports `skipped` on every PR, and
 >    would leave every pull request pending for ever (trap 3).
-> 3. Under *Bypass list*, add **Repository admin** and the **GitHub Actions** app, both `always`
->    (trap 4). Do this one first if you only have a minute; it is the one currently costing us.
+> 3. ~~Under *Bypass list*, add **Repository admin** and the **GitHub Actions** app~~ — **see the
+>    2026-09-12 update below. GitHub Actions cannot be added, and the fix moved into the workflows.**
 >
 > I still cannot do any of it myself. Two separate walls, and it is worth knowing it is both:
 > the Anthropic agent proxy refuses REST writes to this path, *and* this session's token reports
 > `"permissions": {"admin": false, "maintain": false, "push": false}` on the repository. Reads work.
+
+> ### UPDATE, 2026-09-12 00:30 UTC — the live ruleset, verified; and trap 4 has a new shape
+>
+> **Verbatim `GET /repos/VirtueleThuiszorg/ice-alarm-espana-platform/rules/branches/main`.** This is
+> the "what applies to main *right now*" endpoint, not the ruleset definition — a disabled ruleset,
+> or one targeting no branch, answers `[]` here, so a non-empty answer is itself proof it is live:
+>
+> ```json
+> [
+>   { "type": "deletion",         "ruleset_id": 19055263 },
+>   { "type": "non_fast_forward", "ruleset_id": 19055263 },
+>   { "type": "pull_request", "ruleset_id": 19055263, "parameters": {
+>       "required_approving_review_count": 0,
+>       "dismiss_stale_reviews_on_push": false,
+>       "required_reviewers": [],
+>       "require_code_owner_review": false,
+>       "require_last_push_approval": false,
+>       "required_review_thread_resolution": false,
+>       "require_extra_approval_for_unattributed_changes": true,
+>       "allowed_merge_methods": ["squash", "rebase"] } }
+> ]
+> ```
+>
+> Measured against S16: **trap 1 fixed** (it applies to main at all), **traps 2 and 3 still open**
+> — no `required_status_checks` rule of any kind, and `merge` still absent from the merge methods.
+> `Merge gate is enforced` is red on main for exactly this reason and no other; every other required
+> check is green on `d180bf5`.
+>
+> **Trap 4 is resolved differently, because you found it cannot be done as written.** GitHub Actions
+> is not an installed app on this repository, so it cannot be a bypass actor. The fix therefore moves
+> out of the ruleset and into the two workflows: they authenticate their push to main with a
+> fine-grained PAT of yours instead of the job's own token. #386 does `migrate.yml`, #417 does the
+> `ci.yml` wiring self-heal — **there were two direct pushers, not one**, and the second was found by
+> reading rather than by an incident.
+>
+> **⚠️ WHICH LEAVES ONE THING ONLY YOU CAN DO, AND IT NOW BLOCKS BOTH PRs.**
+> **`MANIFEST_PUSH_TOKEN` does not exist in this repository's Actions secrets.** Proven, not assumed
+> — I dispatched Migrate Production (run 39) against #386's branch and the job log reads:
+>
+> ```
+> env:
+>   SUPABASE_ACCESS_TOKEN: ***
+>   SUPABASE_PROJECT_REF: ***
+>   SUPABASE_DB_PASSWORD: ***
+>   MANIFEST_PUSH_TOKEN:
+> ##[error]Missing required secret(s): MANIFEST_PUSH_TOKEN.
+> ```
+>
+> Production was **not** touched — the guard runs before anything applies, which is the ordering both
+> PRs were built around, and it held. But **merging either PR before the secret exists stops every
+> migration at that guard** and turns every push to main red on `Wiring register`. So:
+>
+> - **Settings → Secrets and variables → Actions → New repository secret**, named exactly
+>   `MANIFEST_PUSH_TOKEN`, holding a fine-grained PAT scoped to this repository with
+>   **Contents: read and write**, owned by an account the ruleset's bypass list admits (yours).
+> - Then #386 and #417 are safe to merge, in either order — #417 carries #386's commit, so whichever
+>   lands first reduces the other to nothing.
+>
+> Until then both are drafts on purpose. The two remaining ruleset edits (traps 2 and 3) are
+> independent of this and still worth doing whenever you are in the UI.
 
 
 **Why this is top of the list now.** Twice in July a red guard test was merged past and took production

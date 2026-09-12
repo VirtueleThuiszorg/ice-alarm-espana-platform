@@ -298,13 +298,30 @@ this on its own**, and recording it as closed would be the same mistake the brie
 Establishing whether `last_heartbeat_at` advances for a signed-in operator is the next step, and
 it is a question about the client heartbeat, not the monitor.
 
+**ANSWERED the same day (#440), and it was reading 1.** `useStaffHeartbeat` took `isOnDuty` and
+returned early without pinging when it was false, with `CallCentreHeader` passing
+`!!staffInfo?.is_on_call`. So the OBSERVATION moved only while the DECLARATION was already set: a
+heartbeat could be fresh only when `is_on_call` was true, in which case the first branch of
+`presenceState` decides and the second never does. **PRESENT-BUT-NOT-ON-DUTY could not occur**, so
+the rule shipped in #436 was correct and inert — three states that were two wearing a third's
+name — and it would NOT by itself have stopped Travis's six alerts, exactly as suspected above.
+Travis's row is the signature: one ping, stamped when the button was last pressed on 9 September,
+and nothing since. #440 removes the gate, so a signed-in operator with the platform open is
+observed as present and duty is left alone.
+
 ### What shipped
 
-- ✅ **One definition of "present"** (#436). `staff.is_on_call` alone decided a no-show; the
-  platform already knew better and the supervisor's strip had been reading it all along.
-  `_shared/presence.ts` is now the only answer, with three states — ON DUTY, PRESENT NOT ON DUTY,
-  ABSENT — because collapsing the middle one is wrong in a different direction each way.
-  `HEARTBEAT_STALE_SECONDS` was two constants agreeing by test; it is one now.
+- ✅ **One definition of "present"** (#436), **and a heartbeat that can satisfy it** (#440).
+  `staff.is_on_call` alone decided a no-show, and `_shared/presence.ts` is now the only answer,
+  with three states — ON DUTY, PRESENT NOT ON DUTY, ABSENT — because collapsing the middle one is
+  wrong in a different direction each way. `HEARTBEAT_STALE_SECONDS` was two constants agreeing by
+  test; it is one now.
+  **#436 alone was not enough, and this row records why rather than reading as a clean win**: the
+  client only sent a heartbeat while `is_on_call` was already true, so the middle state could not
+  occur and the new rule was inert until #440 removed that gate. Two comments of mine — in
+  `_shared/presence.ts` and `shiftPresence.test.ts` — described Travis as "sending a heartbeat
+  every thirty seconds", which was the brief's premise repeated without checking it. #440
+  corrected both.
 - ✅ **The alert is keyed to the scheduled row** (#436), not to the runner's clock, and the grace
   period is measured from that shift's start. A row the view returns after its own shift has ended
   in Madrid is logged, not alerted.
@@ -331,7 +348,8 @@ it is a question about the client heartbeat, not the monitor.
 
 ### Still owed
 
-- **The heartbeat**, above.
+- ~~The heartbeat.~~ **ANSWERED and fixed (#440)**, above — it was gated on duty, so the middle
+  state never existed.
 - `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are not set as repository secrets, though three
   workflows name the latter — so whatever in those needs it has never worked. Run #1 of the facts
   job is what surfaced it.

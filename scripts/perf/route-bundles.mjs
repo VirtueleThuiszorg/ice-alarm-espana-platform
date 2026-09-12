@@ -127,7 +127,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   if (routes.length === 0) die("the route catalogue is empty");
   const loaded = loadBudgets();
 
-  const PUBLIC_SURFACES = new Set(["public", "join", "auth"]);
   const rows = routes.map((route) => {
     const measured = measureRoute(route.module);
     /*
@@ -141,9 +140,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       to see how far a route still is from where it must end up, not only that it
       is inside today's allowance.
     */
-    const target = PUBLIC_SURFACES.has(route.surface)
-      ? loaded.thresholds.publicRouteJsGzBytes
-      : loaded.thresholds.routeJsGzBytes;
+    // One target for every surface since Lee's ruling of 12 Sep 2026; see the
+    // header of perf/budgets.json for why the public-only 150 KB was withdrawn.
+    const target = loaded.thresholds.routeJsGzBytes;
     const budget = gateCeilingFor(route, "routeJsGzBytes", loaded);
     return {
       ...route,

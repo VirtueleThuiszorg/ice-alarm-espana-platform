@@ -49,7 +49,6 @@ export interface Thresholds {
   transitionWarmMs: number;
   transitionColdMs: number;
   routeJsGzBytes: number;
-  publicRouteJsGzBytes: number;
   dbQueriesPerLoad: number;
   dbQueryP95Ms: number;
   clsBelow: number;
@@ -115,11 +114,12 @@ export function thresholdFor<K extends keyof Thresholds>(
 ): number {
   const override = budgets.overrides[route.id]?.[key];
   if (typeof override === "number") return override;
-  // The JS budget is the one threshold that differs by surface rather than by route:
-  // a marketing page is a cold first visit on a phone and gets the tighter number.
-  if (key === "routeJsGzBytes" && isPublicSurface(route.surface)) {
-    return budgets.thresholds.publicRouteJsGzBytes;
-  }
+  // The JS budget used to differ by surface — public routes were held to 150 KB
+  // gz on the argument that a marketing page is a cold first visit on a phone.
+  // That argument is right about the user and wrong about the number: the
+  // framework floor alone is above it, so the row could never go green and said
+  // nothing about whether a change had made things better or worse. Lee's ruling
+  // (12 Sep 2026, perf/budgets.json) puts every route on the same 250 KB.
   return budgets.thresholds[key];
 }
 

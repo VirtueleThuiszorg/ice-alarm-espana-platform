@@ -67,7 +67,6 @@ describe("budgets file", () => {
       "transitionWarmMs",
       "transitionColdMs",
       "routeJsGzBytes",
-      "publicRouteJsGzBytes",
       "dbQueriesPerLoad",
       "dbQueryP95Ms",
       "clsBelow",
@@ -83,7 +82,6 @@ describe("budgets file", () => {
     expect(t.transitionWarmMs).toBe(300);
     expect(t.transitionColdMs).toBe(1000);
     expect(t.routeJsGzBytes).toBe(250 * 1024);
-    expect(t.publicRouteJsGzBytes).toBe(150 * 1024);
     expect(t.dbQueriesPerLoad).toBe(6);
     expect(t.dbQueryP95Ms).toBe(100);
     expect(t.clsBelow).toBe(0.1);
@@ -138,8 +136,20 @@ describe("the route catalogue", () => {
   });
 });
 
-describe("the tighter public JS budget", () => {
-  it("applies to the surfaces a cold first-time visitor lands on", () => {
+describe("the JS budget is now one number for every surface", () => {
+  /*
+    WITHDRAWN, 12 Sep 2026 (Lee). Public routes were held to 150 KB gz on the
+    argument that a marketing page is a cold first visit on a phone. The argument
+    is right about the user and wrong about the number: react + react-dom +
+    react-router + supabase-js + i18next are over it before any product code is
+    added, so the row could never go green however much was cut. A check with no
+    passing state stops being information — a reader learns to skip the column,
+    and a real regression hides in a row that was already red.
+
+    `isPublicSurface` stays: it is how the report groups routes, and the surfaces
+    it names are still the ones a stranger lands on first.
+  */
+  it("still knows which surfaces a cold first-time visitor lands on", () => {
     expect(isPublicSurface("public")).toBe(true);
     expect(isPublicSurface("join")).toBe(true);
     expect(isPublicSurface("auth")).toBe(true);
@@ -147,8 +157,8 @@ describe("the tighter public JS budget", () => {
     expect(isPublicSurface("call-centre")).toBe(false);
   });
 
-  it("is the number a public route is actually measured against", () => {
-    expect(thresholdFor(route("public.home"), "routeJsGzBytes")).toBe(150 * 1024);
+  it("measures a public route against the same 250 KB as every other route", () => {
+    expect(thresholdFor(route("public.home"), "routeJsGzBytes")).toBe(250 * 1024);
     expect(thresholdFor(route("admin.members"), "routeJsGzBytes")).toBe(250 * 1024);
   });
 });
@@ -215,10 +225,16 @@ describe("scoreRoute", () => {
     expect(check.actual).toBe("subscriptions, devices");
   });
 
-  it("measures a public route against the public JS budget, not the generous one", () => {
-    const m = { ...perfect(), routeJsGzBytes: 200 * 1024 };
-    expect(scoreRoute(route("admin.members"), m).score).toBe(10);
-    expect(scoreRoute(route("public.home"), m).score).toBe(9);
+  it("scores a public route on the same JS budget as an admin one", () => {
+    // 200 KB passes everywhere now; it used to fail on public only. The pair is
+    // kept rather than deleted so the change of rule is visible in the suite.
+    const under = { ...perfect(), routeJsGzBytes: 200 * 1024 };
+    expect(scoreRoute(route("admin.members"), under).score).toBe(10);
+    expect(scoreRoute(route("public.home"), under).score).toBe(10);
+
+    const over = { ...perfect(), routeJsGzBytes: 300 * 1024 };
+    expect(scoreRoute(route("admin.members"), over).score).toBe(9);
+    expect(scoreRoute(route("public.home"), over).score).toBe(9);
   });
 
   it("can drop every point at once, so a broken page cannot look mediocre", () => {

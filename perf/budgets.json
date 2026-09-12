@@ -13,7 +13,17 @@
     "",
     "Raising a number here is a deliberate act that shows up in a diff and needs a",
     "reason in the PR. That is the point of the file — a budget nobody can quietly",
-    "widen inside the check that enforces it."
+    "widen inside the check that enforces it.",
+    "",
+    "RULING (Lee, 12 Sep 2026): the public surface no longer has its own, tighter",
+    "JS budget. `publicRouteJsGzBytes` was 150 KB gz and there was no version of",
+    "this application that could meet it: react + react-dom + react-router +",
+    "supabase-js + i18next exceed it before a single line of product code is",
+    "added, which docs/perf/AFTER.md reported as unreachable rather than merely",
+    "unmet. A budget nothing can satisfy is not a budget; it is a permanently red",
+    "row that teaches readers to skip the column. Public routes are now held to",
+    "the same 250 KB gz as every other route — a number that is demanding and",
+    "achievable, which is the only kind worth enforcing."
   ],
   "thresholds": {
     "lcpMobileColdMs": 2500,
@@ -21,7 +31,6 @@
     "transitionWarmMs": 300,
     "transitionColdMs": 1000,
     "routeJsGzBytes": 256000,
-    "publicRouteJsGzBytes": 153600,
     "dbQueriesPerLoad": 6,
     "dbQueryP95Ms": 100,
     "clsBelow": 0.1,

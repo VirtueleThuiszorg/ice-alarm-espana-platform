@@ -8,18 +8,22 @@ name: Shift no-show facts
 # disagreeing with the runner's Europe/Madrid shift date across midnight. Picking one by reading
 # the code is how the wrong one gets fixed and the flood returns on the next night shift.
 #
-# So this job reads the rows and prints them into the job summary, where they can be pasted into
-# the PR that then changes the code.
-#
 # IT RUNS HERE, like the Stripe rehearsal (#419), BECAUSE THE CREDENTIALS ALREADY LIVE HERE.
-# `SUPABASE_SERVICE_ROLE_KEY` is an Actions secret, mapped into `env` for the one step that uses
-# it and never echoed. Nobody has to copy a service-role key onto a laptop to answer a question.
 #
-# READ-ONLY, AND PROVABLY SO. The script's only `fetch` hard-codes `method: "GET"`, and PostgREST
-# maps GET to SELECT — there is no request it can make that writes a row.
-# `src/test/shiftNoShowFacts.test.ts` asserts that against the source, and asserts that no column
-# list asks for a phone number, so a later edit cannot quietly add a POST or start printing PII
-# into a log every collaborator can read.
+# WHICH CREDENTIALS, AND WHY NOT THE OTHER ONES. The first version of this job read PostgREST with
+# `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`, and run #1 failed on `require-secrets`: NEITHER IS
+# SET in this repository. Three other workflows name `SUPABASE_SERVICE_ROLE_KEY`, so anything in
+# them that needs it has never worked either — recorded in the PR rather than worked around.
+# `SUPABASE_DB_PASSWORD` and `SUPABASE_PROJECT_REF` are set and demonstrably work, because
+# `migrate.yml` applies migrations with them every day. So this reads the database directly,
+# exactly as that workflow's own read-back step does.
+#
+# THE PASSWORD NEVER REACHES ARGV OR A LOG. libpq's environment variables carry it
+# (PGPASSWORD/PGUSER/PGHOST/...), which is the rule `migrate.yml` and `reach-production.sh` both
+# follow: a password in a command line reaches the process list and any `set -x`.
+#
+# READ-ONLY IS ENFORCED BY THE SERVER. The SQL runs inside `SET TRANSACTION READ ONLY`, so a write
+# that ever reached that file would be refused by Postgres rather than trusted not to be there.
 #
 # MANUAL ONLY, and NOT A GATE. `workflow_dispatch` and nothing else: this answers a question
 # somebody is asking, and main does not wait on production being reachable.
@@ -53,24 +57,62 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
       # A MISSING SECRET FAILS THIS JOB, it does not skip it and report green.
       # `scripts/ci/require-secrets.mjs` is the one implementation of that rule, and
-      # `src/test/ciJobIsolation.test.ts` enforces its use across every workflow here.
+      # `src/test/ciJobIsolation.test.ts` enforces its use across every workflow here. Run #1 of
+      # this job is the case for it: it said exactly which two secrets were absent, in one line,
+      # instead of printing an empty report that looked like "nothing to see".
       - name: Require production read credentials
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node scripts/ci/require-secrets.mjs SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: node scripts/ci/require-secrets.mjs SUPABASE_PROJECT_REF SUPABASE_DB_PASSWORD
 
       - name: Read the facts
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           STAFF_NAME: ${{ inputs.staff_name }}
           DAYS: ${{ inputs.days }}
-        run: node scripts/ops/shift-noshow-facts.mjs
+        run: |
+          set -uo pipefail
+
+          if ! command -v psql >/dev/null; then
+            echo "::error title=psql is not on this runner::Cannot read production without it."
+            exit 1
+          fi
+
+          # THE CONNECTION, THROUGH libpq's ENVIRONMENT — never argv. See the header.
+          export PGPASSWORD="$SUPABASE_DB_PASSWORD"
+          export PGUSER="postgres.${SUPABASE_PROJECT_REF}"
+          export PGDATABASE=postgres
+          export PGPORT=5432
+          export PGCONNECT_TIMEOUT=15
+
+          # `eu-west-1` is this project's region and both regional endpoints resolve; which one
+          # serves a given project is not derivable, so each is tried. Identical to the probe in
+          # `scripts/ci/reach-production.sh`, and harmless because the transaction is read-only.
+          for HOST in aws-0-eu-west-1.pooler.supabase.com aws-1-eu-west-1.pooler.supabase.com; do
+            export PGHOST="$HOST"
+            echo "trying ${HOST}..."
+            if psql -v ON_ERROR_STOP=1 \
+                    -v staff_name="$STAFF_NAME" \
+                    -v days="$DAYS" \
+                    -f scripts/ops/shift-noshow-facts.sql > /tmp/facts.txt 2>/tmp/facts.err; then
+              {
+                echo "## Shift no-show facts — ${STAFF_NAME}, last ${DAYS} days"
+                echo ""
+                echo "Read from production via \`${HOST}\`, inside a READ ONLY transaction."
+                echo ""
+                echo '```'
+                cat /tmp/facts.txt
+                echo '```'
+              } | tee -a "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "  ${HOST} did not answer:"
+            sed 's/^/    /' /tmp/facts.err
+          done
+
+          echo "::error title=Could not read production::Neither pooler endpoint authenticated. Nothing was read and nothing was changed."
+          exit 1

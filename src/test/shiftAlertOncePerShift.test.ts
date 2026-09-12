@@ -62,7 +62,11 @@ describe("the claim, not the read, is what decides", () => {
       the next run doing this again in two minutes, so silence is the safe direction.
     */
     expect(RUNNER).toContain("alert_claim_failed");
-    expect(RUNNER).toMatch(/if \(!raisedNoShow\) continue;/);
+    // The no-show's first rung is GUARDED BY the claim rather than skipped after it: a refused
+    // claim falls through to the escalation check, which is the ladder's second rung and has a
+    // claim of its own. Either way nothing is sent on a claim that did not land.
+    expect(RUNNER).toMatch(/if \(raisedNoShow\) \{/);
+    expect(RUNNER).toMatch(/if \(!escalated\) continue;/);
   });
 
   it("claims every alert type, not just the one that flooded", () => {
@@ -71,10 +75,12 @@ describe("the claim, not the read, is what decides", () => {
       Leaving them would leave the same defect in two places next to the one being fixed, waiting
       for the same night.
     */
-    for (const type of ["no_show", "no_coverage", "disconnected", "not_on_duty"]) {
+    for (const type of ["no_show", "no_coverage", "disconnected", "not_on_duty", "no_show_escalated"]) {
       expect(RUNNER, type).toContain(`alert_type: "${type}"`);
     }
-    expect(RUNNER.match(/await claimAlert\(/g) ?? []).toHaveLength(4);
+    // Five: the four alert types above plus the no-show ladder's second rung, which needs its own
+    // row so the admins are told once rather than every two minutes.
+    expect(RUNNER.match(/await claimAlert\(/g) ?? []).toHaveLength(5);
   });
 
   it("guards the nudge the same way", () => {

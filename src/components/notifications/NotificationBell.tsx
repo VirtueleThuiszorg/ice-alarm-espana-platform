@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { notificationLink } from "@/lib/notificationLink";
+import { notificationBody, notificationTitle } from "@/lib/notificationTitles";
 
 interface NotificationBellProps {
   staffId: string | null;
@@ -155,10 +156,10 @@ export function NotificationBell({ staffId }: NotificationBellProps) {
                           !notification.read && "font-medium"
                         )}
                       >
-                        {notification.title}
+                        {notificationTitle(notification.type, t)}
                       </p>
                       <p className="text-xs text-muted-foreground truncate mt-0.5">
-                        {notification.message}
+                        {notificationBody(notification.message, notification.type, t)}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {formatDistanceToNow(new Date(notification.created_at), {

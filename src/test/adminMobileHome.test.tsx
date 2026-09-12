@@ -33,7 +33,7 @@ let readinessError: { message: string } | null = null;
 let notifications: Array<{
   id: string;
   type: string;
-  title: string;
+  // No `title`: `notification_log` has none, and the mapper no longer invents one from the key.
   message: string;
   read: boolean;
   created_at: string;
@@ -230,10 +230,19 @@ describe("a failed read is not good news", () => {
 
 // ── the last ten notifications ──────────────────────────────────────────────
 describe("the notification list", () => {
+  /*
+    NO `title` ON THE FIXTURE, because there is no title on the row.
+
+    `notification_log` has `event_type` and `message` and nothing else; the title is a
+    TRANSLATION of the type (`notificationTitle`), so every notification of one type now shares
+    one title. These two tests used to count distinct titles, which only worked because the old
+    mapper invented one per row out of the routing key. They count the distinct BODY instead —
+    the per-row text — and what they are actually about (ten and no more; flat rather than a dead
+    link) is unchanged.
+  */
   const make = (i: number, type = "sale") => ({
     id: `n${i}`,
     type,
-    title: `Notification ${i}`,
     message: `Body ${i}`,
     read: i % 2 === 0,
     created_at: new Date().toISOString(),
@@ -244,7 +253,7 @@ describe("the notification list", () => {
     // A phone list longer than a screen is a list nobody reaches the bottom of.
     notifications = Array.from({ length: 25 }, (_, i) => make(i));
     renderHome();
-    expect(screen.getAllByText(/^Notification \d+$/)).toHaveLength(10);
+    expect(screen.getAllByText(/^Body \d+$/)).toHaveLength(10);
   });
 
   it("links each one through the same resolver the bell uses", () => {
@@ -265,8 +274,10 @@ describe("the notification list", () => {
     notifications = [{ ...make(2, "totally_unknown_type"), metadata: null }];
     const { container } = renderHome();
     const anchorTexts = [...container.querySelectorAll("a")].map((a) => a.textContent ?? "");
-    expect(anchorTexts.some((t) => t.includes("Notification 2"))).toBe(false);
-    expect(screen.getByText("Notification 2")).toBeTruthy();
+    expect(anchorTexts.some((t) => t.includes("Body 2"))).toBe(false);
+    expect(screen.getByText("Body 2")).toBeTruthy();
+    // And the unknown type is humanised rather than printed as a key.
+    expect(screen.getByText("Totally unknown type")).toBeTruthy();
   });
 
   it("marks the unread ones", () => {

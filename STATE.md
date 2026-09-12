@@ -321,6 +321,10 @@ it is a question about the client heartbeat, not the monitor.
   and the admin mobile home rendered `shift.no_show` as the title of **every** notification, of
   every type, since each was written. Built on `EVENT_SPECS` rather than a second list, so
   coverage is a build-time ratchet; 29 events × title + body × en/es/nl.
+- ✅ **The ladder** (#441). Operator and supervisor together at the grace period, admins at
+  grace+15 if still absent, all through the router and all switchable — and `sms` turned on for
+  `shift.no_show`, which had been seeded off since the router landed. WhatsApp left as it is:
+  switching off a channel somebody may rely on is a product decision, not a bug fix.
 - ✅ **A read-only facts job** (#432, #435, #437). It runs in CI because the credentials already
   live there, inside `SET TRANSACTION READ ONLY` so a write is refused by Postgres rather than
   trusted not to be there.
@@ -331,9 +335,19 @@ it is a question about the client heartbeat, not the monitor.
 - `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are not set as repository secrets, though three
   workflows name the latter — so whatever in those needs it has never worked. Run #1 of the facts
   job is what surfaced it.
-- The no-show ladder the brief describes (operator SMS at grace, supervisor at grace, admins at
-  grace+15) is **half done**: the routes and preferences exist and `shift.no_show` goes through
-  the router, but the *timed* escalation to admins at grace+15 is not built.
+- ~~The no-show ladder is half done.~~ **BUILT (#441).** Correcting what this section said an hour
+  earlier: the ladder was not half done, it was misdescribed. `shift.no_show` did go through the
+  router — but only to `{roles: [admin, super_admin]}`, immediately, for a shift five minutes
+  late, while the operator was told by `notify-staff-whatsapp`, a bespoke sender that reads
+  neither `notification_routes` nor `staff_notification_prefs`. The supervisors were told nothing
+  at all, and `sms` — the channel the brief names for every rung — was seeded `false`, so gate 2
+  read it as off and it could not have sent on any rung.
+  Now: rung one is ONE dispatch to the operator and the supervisors (`audience` ORs roles with
+  staffIds); rung two reaches the admins at grace+15, and only because the first claim was refused
+  — which is what makes "still absent" free rather than a second decision, since an operator who
+  arrives closes the row higher up. `no_show_escalated` is a new ALERT type and not a new EVENT
+  type: what the admins are told is a no-show, and only the log has to tell the rungs apart, so
+  the dedupe index makes the escalation happen once rather than every two minutes.
 
 ## Rota, shifts and holidays — 2026-09-10 · **all six items on main and in production**
 

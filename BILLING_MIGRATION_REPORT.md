@@ -123,7 +123,7 @@ operator reading it out.
 |---|---|---|---|
 | ~~**A**~~ | ~~**Enable SEPA Direct Debit**, subscribe the destination to `checkout.session.async_payment_succeeded` **and** `async_payment_failed`, tick *Async events confirmed*~~ **DONE (11 Sep)** | Stripe → Payments + Developers → Webhooks, Admin → Settings → Payments | Was the item that decided whether the migration ran or needed 431 phone calls. **The rehearsal workflow now checks it rather than taking it on trust** — step 0 lists the destinations and fails if no enabled one carries both events |
 | ~~**B**~~ | ~~**Pin the destination to API version `2024-06-20`**~~ **DONE (11 Sep)** — the rehearsal reports the pinned version and notes any drift | same screen | `invoice.subscription` and `subscription.current_period_end` both moved in later versions. The webhook declares the fields it needs and refuses loudly if one is missing, so a wrong version is visible rather than silent — but it should simply be right |
-| **C1** | **`STRIPE_TEST_KEY` is NOT reaching the workflow.** Two of the four causes are now ELIMINATED; the remaining two are both things only you can see | GitHub → Settings → Secrets and variables → Actions | **Measured five times, and narrowed twice.** All five runs log `env: STRIPE_TEST_KEY:` **empty**. Runs [4](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34683729078) and [5](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34684289093) probed 8 candidate names × 2 stores — **16 combinations, all `not set`** — so it is **not** a misspelling and **not** an Actions *variable*. What is left, neither visible from inside a job: an **Organisation** secret whose *Repository access* list omits this repo, or an **Environment** secret (the job needs an `environment:` key — name it and it is one line). A fifth possibility worth a glance: it may have been set in **Supabase** secrets rather than GitHub Actions — `.env.example` records this platform's Stripe keys living in `system_settings`, which would make "it is set" true of the wrong place. **Until this is fixed no Stripe call has been made at all** |
+| **C1** | **`STRIPE_TEST_KEY` is NOT reaching the workflow.** Two of the four causes are now ELIMINATED; the remaining two are both things only you can see | GitHub → Settings → Secrets and variables → Actions | **Measured nine times, and narrowed twice.** All nine runs log `env: STRIPE_TEST_KEY:` **empty**. Runs [4](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34683729078) and [5](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34684289093) probed 8 candidate names × 2 stores — **16 combinations, all `not set`** — so it is **not** a misspelling and **not** an Actions *variable*. What is left, neither visible from inside a job: an **Organisation** secret whose *Repository access* list omits this repo, or an **Environment** secret (the job needs an `environment:` key — name it and it is one line). A fifth possibility worth a glance: it may have been set in **Supabase** secrets rather than GitHub Actions — `.env.example` records this platform's Stripe keys living in `system_settings`, which would make "it is set" true of the wrong place. **Until this is fixed no Stripe call has been made at all** |
 | **C2** | **Live-mode keys**, once the rehearsal has been RUN and read | Stripe → Developers → API keys → Supabase secrets | Nothing goes to live keys on the strength of a workflow existing. The rehearsal has still never reached Stripe |
 | **G** | **Complete ONE SEPA switch link in test mode, in a browser** | the link the rehearsal prints, or any test-mode switch link | The only step no script can do, and the only way `checkout.session.async_payment_succeeded` is ever generated: the event exists only for a Checkout Session a person completed. Until one is completed, the "did the events reach us" check reports **UNPROVEN** rather than a pass — correctly, because nothing was sent |
 | **H** | *(optional)* **`SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` as Actions secrets** | GitHub → Settings → Secrets | Lets the rehearsal read the webhook's own `webhook_events` ledger and confirm the events arrived at **our** destination rather than merely having been sent. Without them that step reports UNPROVEN and says so |
@@ -133,7 +133,7 @@ operator reading it out.
 
 **The rehearsal now runs from CI** (`.github/workflows/stripe-rehearsal.yml`, `workflow_dispatch`
 only) so the key never leaves GitHub — but **it has not yet reached Stripe**, because the key is
-not visible to the job (C1). Five dispatched runs got as far as the guard and stopped there.
+not visible to the job (C1). Nine dispatched runs got as far as the guard and stopped there.
 
 That is the guard working rather than failing: `require-secrets.mjs` names the missing secret and
 fails the job instead of skipping its work and reporting green. Two things were proven by those
@@ -210,10 +210,13 @@ sent and we missed it" need completely different responses.
   strengthened, because the first version of the dry-run case used a member whose renewal had not
   passed, so there was no write for the guard to prevent.
 
-**Not proven until the workflow has been RUN and READ.** The rehearsal exists, its judgement is
-executed against a fake Stripe, and `STRIPE_TEST_KEY` is now in Actions — but a workflow that
-exists is not a workflow that has answered. Nothing goes to live keys on the strength of this
-section; it goes on the strength of a run.
+**Not proven, because the workflow has never reached Stripe.** The rehearsal exists and its
+judgement is executed against a fake Stripe — but `STRIPE_TEST_KEY` is **not visible to the job**.
+**Nine** dispatched runs all log it empty and stop at the guard (§5 C1), so **no Stripe call has
+been made at all**, and there is no PASS/FAIL table for any scenario. An earlier draft of this
+paragraph said the key "is now in Actions"; that was taken from the brief rather than from a run,
+and the runs disagree. A workflow that exists is not a workflow that has answered. Nothing goes to
+live keys on the strength of this section; it goes on the strength of a run.
 
 **And one thing cannot be proven by any script, now or later.** The two events the whole SEPA path
 turns on — `checkout.session.async_payment_succeeded` and `async_payment_failed` — exist ONLY for
@@ -241,15 +244,15 @@ The rehearsal worth doing in **test mode**, before live keys:
 4. Fail a SEPA debit, to see `async_payment_failed` put them back on legacy billing with the bell.
 5. Run the runner twice on the same day → the second run sends nothing.
 
-**Steps 1 to 5 are now one button**, not a checklist somebody performs and interprets, and it is
-pressed where the key already lives:
+**Steps 1 to 5 are now one button**, not a checklist somebody performs and interprets, and the
+button is inside GitHub so the key never leaves it — once the key is actually there (§5 C1):
 
 > **GitHub → Actions → "Stripe rehearsal" → Run workflow**, with `amount` in cents and `day` set
 > to a member's Santander day. It is `workflow_dispatch` only — every run creates real objects in
 > the test account, and it is not a merge gate.
 
-The key is an Actions secret (`STRIPE_TEST_KEY`), mapped into `env` for the steps that need it and
-never echoed, never put on a command line, never interpolated into a URL, and never written to the
+The workflow reads the key as an Actions secret (`STRIPE_TEST_KEY`) — the secret it expects, not
+one it has been shown to receive — mapped into `env` for the steps that need it and never echoed, never put on a command line, never interpolated into a URL, and never written to the
 artifact. `src/test/stripeRehearsalWorkflow.test.ts` asserts each of those, and asserts the one
 that would be silent: every step pipes through `tee` to get its output into both the log and the
 artifact, and **without `set -o pipefail` a pipeline exits with `tee`'s status — so a rehearsal
@@ -295,7 +298,7 @@ Pass or fail per step, non-zero exit. It **refuses** without a key rather than s
 live key outright, and reports `--no-sepa` as a **failure** rather than as silence — skipping the
 path most of these members take must not produce a green run.
 
-Its **judgement** is executed here — 31 tests in `src/test/stripeRehearsal.test.ts`, nine
+Its **judgement** is executed here — 46 tests in `src/test/stripeRehearsal.test.ts`, nine
 mutations, each one made to fail. Its **HTTP** has not been: no key, so the REST shapes come from
 Stripe's documented surface. Every read checks for the field it needs and reports the missing one
 by name, so the first real run is a fixable message rather than a stack trace.

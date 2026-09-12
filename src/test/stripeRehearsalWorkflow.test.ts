@@ -179,6 +179,36 @@ describe("what it actually runs", () => {
     expect(condition).not.toMatch(/steps\.key/);
   });
 
+  /*
+    THE DIAGNOSTIC MUST NOT BECOME THE LEAK IT EXISTS INSTEAD OF.
+
+    It maps eight candidate secrets into `env` in order to report which NAMES are set. That is the
+    one step in this workflow holding more than one secret at a time, so the rule it must obey is
+    stricter, not looser: names out, never values. `toJSON(secrets)` would answer the same question
+    by printing every value into a log that anyone who can read the repository can read.
+  */
+  it("probes for the key under other names only when it is actually missing", () => {
+    const at = code.indexOf("Which Stripe secret names are visible?");
+    expect(at).toBeGreaterThan(0);
+    const condition = code.slice(at, code.indexOf("run:", at));
+    expect(condition).toMatch(/steps\.key\.outcome == 'failure'/);
+  });
+
+  it("never serialises the secrets context", () => {
+    expect(code).not.toMatch(/toJSON\(\s*secrets\s*\)/);
+    expect(code).not.toMatch(/\$\{\{\s*secrets\s*\}\}/);
+  });
+
+  it("passes the candidate names as arguments and the values only as env", () => {
+    const at = code.indexOf("Which Stripe secret names are visible?");
+    const step = code.slice(at, code.indexOf("- name:", at + 10));
+    // Every candidate appears as a bare argument to the script...
+    expect(step).toMatch(/which-secrets\.mjs/);
+    // ...and never as an interpolation on the command line, which would put the VALUE in the log.
+    const runAt = step.indexOf("run: |");
+    expect(step.slice(runAt)).not.toMatch(/\$\{\{\s*secrets\./);
+  });
+
   it("asks whether the async events reached our destination", () => {
     expect(code).toMatch(/node scripts\/stripe\/platform-check\.mjs/);
   });

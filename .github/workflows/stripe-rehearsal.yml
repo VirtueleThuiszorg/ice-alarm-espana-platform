@@ -92,6 +92,44 @@ jobs:
               exit 1 ;;
           esac
 
+      # ── WHEN THE KEY IS MISSING, SAY WHAT IS ACTUALLY WRONG ─────────────────
+      #
+      # Runs ONLY when the key step failed. Three dispatched runs reported STRIPE_TEST_KEY unset —
+      # true, and useless, because the same symptom comes from three causes needing three
+      # different screens: a different NAME (one rename), an ORGANISATION secret not shared with
+      # this repository, or an ENVIRONMENT secret, which no repository-level lookup can ever see.
+      #
+      # This makes the first visible. NAMES ONLY: no value, no prefix, no length — a prefix says
+      # which account is about to be charged and a length narrows a brute force. `toJSON(secrets)`
+      # would answer the same question by printing every value into a public log, and is exactly
+      # what this exists instead of.
+      #
+      # It never fails the job: the key step already did, and a second red step for one cause is
+      # the noise #422 removed.
+      - name: Which Stripe secret names are visible?
+        if: always() && steps.key.outcome == 'failure'
+        env:
+          STRIPE_TEST_KEY: ${{ secrets.STRIPE_TEST_KEY }}
+          STRIPE_SECRET_KEY_TEST: ${{ secrets.STRIPE_SECRET_KEY_TEST }}
+          STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          STRIPE_SK_TEST: ${{ secrets.STRIPE_SK_TEST }}
+          STRIPE_TEST_API_KEY: ${{ secrets.STRIPE_TEST_API_KEY }}
+          STRIPE_API_KEY_TEST: ${{ secrets.STRIPE_API_KEY_TEST }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_KEY: ${{ secrets.STRIPE_KEY }}
+        run: |
+          set -o pipefail
+          node scripts/ci/which-secrets.mjs \
+            STRIPE_TEST_KEY \
+            STRIPE_SECRET_KEY_TEST \
+            STRIPE_TEST_SECRET_KEY \
+            STRIPE_SK_TEST \
+            STRIPE_TEST_API_KEY \
+            STRIPE_API_KEY_TEST \
+            STRIPE_SECRET_KEY \
+            STRIPE_KEY \
+            2>&1 | tee rehearsal-output/which-secrets.txt
+
       # ── THE REHEARSAL, TWICE ────────────────────────────────────────────────
       #
       # The second run is not a repeat. `--day 31` is the month-end clamp: a member billed on the

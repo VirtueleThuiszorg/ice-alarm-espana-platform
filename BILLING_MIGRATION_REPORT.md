@@ -123,12 +123,29 @@ operator reading it out.
 |---|---|---|---|
 | ~~**A**~~ | ~~**Enable SEPA Direct Debit**, subscribe the destination to `checkout.session.async_payment_succeeded` **and** `async_payment_failed`, tick *Async events confirmed*~~ **DONE (11 Sep)** | Stripe → Payments + Developers → Webhooks, Admin → Settings → Payments | Was the item that decided whether the migration ran or needed 431 phone calls. **The rehearsal workflow now checks it rather than taking it on trust** — step 0 lists the destinations and fails if no enabled one carries both events |
 | ~~**B**~~ | ~~**Pin the destination to API version `2024-06-20`**~~ **DONE (11 Sep)** — the rehearsal reports the pinned version and notes any drift | same screen | `invoice.subscription` and `subscription.current_period_end` both moved in later versions. The webhook declares the fields it needs and refuses loudly if one is missing, so a wrong version is visible rather than silent — but it should simply be right |
-| **C** | **Live-mode keys**, once the rehearsal in §6 has been RUN and read | Stripe → Developers → API keys → Supabase secrets | `STRIPE_TEST_KEY` is now set in Actions and the rehearsal runs from CI, so the key never leaves GitHub. What is still outstanding is **reading a run**: nothing goes to live keys on the strength of a workflow existing |
+| **C1** | **`STRIPE_TEST_KEY` is NOT reaching the workflow** — set it as a **repository** secret under that exact name | GitHub → Settings → Secrets and variables → Actions | **Measured, three times.** Runs [1](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34681525043), [2](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34682043460) and [3](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34682532216) all log `env: STRIPE_TEST_KEY:` **empty**. Three things make that happen and they need different fixes: the name is not exactly `STRIPE_TEST_KEY`; it is an **Organization** secret whose *Repository access* list omits this repo; or it is an **Environment** secret, in which case the job needs an `environment:` key — say which environment and it is a one-line change. **Until this is fixed no Stripe call has been made at all** |
+| **C2** | **Live-mode keys**, once the rehearsal has been RUN and read | Stripe → Developers → API keys → Supabase secrets | Nothing goes to live keys on the strength of a workflow existing. The rehearsal has still never reached Stripe |
 | **G** | **Complete ONE SEPA switch link in test mode, in a browser** | the link the rehearsal prints, or any test-mode switch link | The only step no script can do, and the only way `checkout.session.async_payment_succeeded` is ever generated: the event exists only for a Checkout Session a person completed. Until one is completed, the "did the events reach us" check reports **UNPROVEN** rather than a pass — correctly, because nothing was sent |
 | **H** | *(optional)* **`SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` as Actions secrets** | GitHub → Settings → Secrets | Lets the rehearsal read the webhook's own `webhook_events` ledger and confirm the events arrived at **our** destination rather than merely having been sent. Without them that step reports UNPROVEN and says so |
 | **D** | **WhatsApp: switch the channel on and get a message template approved** | Admin → Settings → Notifications, Twilio → WhatsApp sender, then Meta | The brief names the delivery as "SMS/WhatsApp" and the code now offers both — but the channel is off and no template exists, so today every switch link goes by SMS and email and the WhatsApp row reads "not sent — the channel is switched off". **A business-initiated WhatsApp message outside a 24-hour window needs an approved template**, and that is the long pole rather than the switch. It has to carry the first name, the amount, the cycle and the link |
 | **E** | **Add Repository admin to the `main` ruleset's bypass list** | GitHub → Settings → Rules | The ruleset as configured returns **no bypass actors**, which blocks everyone — a repository admin's PAT included. Until it is changed, `Migrate Production` applies every migration and cannot record it, and each one needs a manual manifest line (§2) |
 | **F** | **Switch the runner on**, after reading its dry-run preview | Admin → Settings → Billing | It ships `enabled = false`. A migration that starts itself on deploy is a migration nobody chose, over 431 people who are all elderly and none of whom asked for it today |
+
+**The rehearsal now runs from CI** (`.github/workflows/stripe-rehearsal.yml`, `workflow_dispatch`
+only) so the key never leaves GitHub — but **it has not yet reached Stripe**, because the key is
+not visible to the job (C1). Three dispatched runs got as far as the guard and stopped there.
+
+That is the guard working rather than failing: `require-secrets.mjs` names the missing secret and
+fails the job instead of skipping its work and reporting green. Two things were proven by those
+runs all the same, both of which only ever appear when something is missing:
+
+- **`set -o pipefail` holds in production, not only in a test.** Run #1's day-31 step piped
+  through `tee` and still went red. Without it that step would have been GREEN while printing a
+  refusal — which is the exact failure CLAUDE.md's merge rules name.
+- **A shared output directory belongs to the job.** Run #2 found it the hard way: gating the
+  rehearsal steps on the key took their `mkdir` with them, so the one step that needs no key
+  failed for a reason that had nothing to do with it, and the artifact uploaded nothing. Fixed in
+  #423 and confirmed green on run #3.
 
 **A, B and D's first half are done** (11 Sep): SEPA is enabled on both configurations, the
 destination carries both async events, it is pinned to `2024-06-20`, and *Async events confirmed*

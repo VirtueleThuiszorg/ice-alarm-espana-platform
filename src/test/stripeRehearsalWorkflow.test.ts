@@ -144,6 +144,41 @@ describe("what it actually runs", () => {
     expect(before.lastIndexOf("if: always()")).toBeGreaterThan(before.lastIndexOf("- name: Rehearsal — the member's own day"));
   });
 
+  /*
+    MEASURED ON RUN #1, not imagined. With no key set, three steps each printed their own refusal
+    — require-secrets named the missing secret, the day-31 rehearsal printed "No Stripe TEST key",
+    and platform-check printed "REFUSING: must be a TEST key". Three messages, one cause, and the
+    first thing a reader has to do is work out which one is the reason.
+
+    So the key-dependent steps are gated on the KEY step specifically rather than on the job.
+    That is deliberately narrower than `if: success()`: a FAILED rehearsal on the member's day
+    must still not stop the month-end run, because those are two different answers.
+  */
+  it("does not re-report a missing key from every step that needed it", () => {
+    for (const step of ["the month-end clamp", "Did the async events reach"]) {
+      const at = code.indexOf(step);
+      expect(at).toBeGreaterThan(0);
+      const condition = code.slice(at, code.indexOf("run:", at));
+      expect(condition).toMatch(/steps\.key\.outcome == 'success'/);
+    }
+  });
+
+  // ...but the gate must be on the KEY, never on the job: `if: success()` here would mean a
+  // failed rehearsal on the member's day silently skipped the month-end clamp.
+  it("still runs the month-end clamp after the FIRST rehearsal fails", () => {
+    const at = code.indexOf("the month-end clamp");
+    const condition = code.slice(at, code.indexOf("run:", at));
+    expect(condition).toMatch(/always\(\)/);
+    expect(condition).not.toMatch(/if: success\(\)/);
+  });
+
+  it("runs the platform-side runner check even with no Stripe key at all", () => {
+    const at = code.indexOf("The runner, run twice");
+    const condition = code.slice(at, code.indexOf("run:", at));
+    expect(condition).toMatch(/always\(\)/);
+    expect(condition).not.toMatch(/steps\.key/);
+  });
+
   it("asks whether the async events reached our destination", () => {
     expect(code).toMatch(/node scripts\/stripe\/platform-check\.mjs/);
   });

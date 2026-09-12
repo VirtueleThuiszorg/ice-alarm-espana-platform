@@ -21,6 +21,7 @@
  * subscription and the invoices with it. The id is printed; the script does not delete it,
  * because a failed rehearsal is worth looking at in the dashboard.
  */
+import { appendFileSync } from "node:fs";
 import { NO_KEY_MESSAGE, formEncode, runRehearsal } from "./rehearsal.mjs";
 
 const args = process.argv.slice(2);
@@ -64,7 +65,9 @@ async function api(method, path, body) {
   return json;
 }
 
-const { ok, steps } = await runRehearsal(api, {
+const label = flag("label", `day ${flag("day", "15")}`);
+
+const result = await runRehearsal(api, {
   amountCents,
   day: Number(flag("day", "15")),
   interval: flag("interval", "month"),
@@ -74,18 +77,66 @@ const { ok, steps } = await runRehearsal(api, {
   sepa: !args.includes("--no-sepa"),
   ibanOk: flag("iban-ok", undefined),
   ibanFail: flag("iban-fail", undefined),
-  log: (s) => console.log(`${s.ok === true ? "PASS" : s.ok === false ? "FAIL" : "...."}  ${s.name}`),
+  settleDays: Number(flag("settle-days", "14")),
+  log: (s) => console.log(`${mark(s)}  ${s.name}`),
 });
+
+const { ok, stripeOk, steps, failed, unproven } = result;
+
+/** PASS / FAIL / UNPROVEN — three states, because "not run" is neither of the other two. */
+function mark(step) {
+  return step.ok === true ? "PASS" : step.ok === false ? "FAIL" : "UNPROVEN";
+}
 
 console.log("");
 for (const s of steps) {
-  console.log(`${s.ok === true ? "PASS" : "FAIL"}  ${s.name}\n      ${s.detail}`);
+  console.log(`${mark(s)}  ${s.name}`);
+  console.log(`      ${s.detail}`);
+  // THE IDS ARE THE POINT OF A REHEARSAL YOU DID NOT WATCH: every assertion above is only
+  // checkable afterwards if the objects it read can be opened in the dashboard.
+  if (s.ids.length) console.log(`      stripe: ${s.ids.join(" ")}`);
+  if (s.rule) console.log(`      breaks: ${s.rule}`);
 }
+
 console.log("");
-console.log(
-  ok
-    ? "Rehearsal passed. The remaining manual step is clicking through ONE real Checkout Session\n" +
-        "in test mode — completing one needs a browser, and no script can do it."
-    : "Rehearsal FAILED. Do not switch the runner on.",
-);
+if (ok) {
+  console.log(
+    "Rehearsal passed. The remaining manual step is clicking through ONE real Checkout Session\n" +
+      "in test mode — completing one needs a browser, and no script can do it.",
+  );
+} else if (!stripeOk) {
+  console.log(`Rehearsal FAILED (${failed.length} step(s)). Do not switch the runner on.`);
+} else {
+  console.log(
+    `Rehearsal did not complete: ${unproven.length} step(s) UNPROVEN, none failed. That is not a\n` +
+      "pass — it means the question was not answered, not that the answer was good.",
+  );
+}
+
+/*
+  THE JOB SUMMARY IS WRITTEN HERE, not by the workflow, because the workflow would have to parse
+  this output back out of a log to build it — and a summary reconstructed from text drifts from
+  the run it claims to describe the first time a message changes.
+*/
+if (process.env.GITHUB_STEP_SUMMARY) {
+  const cell = (t) => String(t).replace(/\|/g, "\\|").replace(/\n/g, " ");
+  const rows = steps.map(
+    (s) =>
+      `| ${mark(s)} | ${cell(s.name)} | ${cell(s.detail)} | ${cell(s.ids.join(" ") || "—")} | ${cell(s.rule || "—")} |`,
+  );
+  appendFileSync(
+    process.env.GITHUB_STEP_SUMMARY,
+    [
+      `### Stripe rehearsal — ${cell(label)}`,
+      "",
+      `${steps.filter((s) => s.ok === true).length} passed · ${failed.length} failed · ${unproven.length} unproven`,
+      "",
+      "| | step | what it found | stripe ids | breaks |",
+      "|---|---|---|---|---|",
+      ...rows,
+      "",
+    ].join("\n"),
+  );
+}
+
 process.exit(ok ? 0 : 1);

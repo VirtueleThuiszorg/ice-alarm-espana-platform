@@ -121,15 +121,24 @@ operator reading it out.
 
 | | What | Where | Why it blocks |
 |---|---|---|---|
-| **A** | **Enable SEPA Direct Debit**, subscribe the webhook destination to `checkout.session.async_payment_succeeded` **and** `checkout.session.async_payment_failed`, then tick *Async events confirmed* | Stripe → Payments + Developers → Webhooks, then Admin → Settings → Payments | **This decides whether the migration runs or needs 431 phone calls.** Every one of these members has paid by direct debit for years; a card-only link asks a 79-year-old to find a card. The platform refuses to offer SEPA until the box is ticked, so **today every switch link is card-only** |
-| **B** | **Pin the destination to API version `2024-06-20`** | same screen | `invoice.subscription` and `subscription.current_period_end` both moved in later versions. The webhook declares the fields it needs and refuses loudly if one is missing, so a wrong version is visible rather than silent — but it should simply be right |
-| **C** | **Live-mode keys**, once the test-clock rehearsal in §6 has been done | Stripe → Developers → API keys → Supabase secrets | Nothing has been run against Stripe at all |
+| ~~**A**~~ | ~~**Enable SEPA Direct Debit**, subscribe the destination to `checkout.session.async_payment_succeeded` **and** `async_payment_failed`, tick *Async events confirmed*~~ **DONE (11 Sep)** | Stripe → Payments + Developers → Webhooks, Admin → Settings → Payments | Was the item that decided whether the migration ran or needed 431 phone calls. **The rehearsal workflow now checks it rather than taking it on trust** — step 0 lists the destinations and fails if no enabled one carries both events |
+| ~~**B**~~ | ~~**Pin the destination to API version `2024-06-20`**~~ **DONE (11 Sep)** — the rehearsal reports the pinned version and notes any drift | same screen | `invoice.subscription` and `subscription.current_period_end` both moved in later versions. The webhook declares the fields it needs and refuses loudly if one is missing, so a wrong version is visible rather than silent — but it should simply be right |
+| **C** | **Live-mode keys**, once the rehearsal in §6 has been RUN and read | Stripe → Developers → API keys → Supabase secrets | `STRIPE_TEST_KEY` is now set in Actions and the rehearsal runs from CI, so the key never leaves GitHub. What is still outstanding is **reading a run**: nothing goes to live keys on the strength of a workflow existing |
+| **G** | **Complete ONE SEPA switch link in test mode, in a browser** | the link the rehearsal prints, or any test-mode switch link | The only step no script can do, and the only way `checkout.session.async_payment_succeeded` is ever generated: the event exists only for a Checkout Session a person completed. Until one is completed, the "did the events reach us" check reports **UNPROVEN** rather than a pass — correctly, because nothing was sent |
+| **H** | *(optional)* **`SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` as Actions secrets** | GitHub → Settings → Secrets | Lets the rehearsal read the webhook's own `webhook_events` ledger and confirm the events arrived at **our** destination rather than merely having been sent. Without them that step reports UNPROVEN and says so |
 | **D** | **WhatsApp: switch the channel on and get a message template approved** | Admin → Settings → Notifications, Twilio → WhatsApp sender, then Meta | The brief names the delivery as "SMS/WhatsApp" and the code now offers both — but the channel is off and no template exists, so today every switch link goes by SMS and email and the WhatsApp row reads "not sent — the channel is switched off". **A business-initiated WhatsApp message outside a 24-hour window needs an approved template**, and that is the long pole rather than the switch. It has to carry the first name, the amount, the cycle and the link |
 | **E** | **Add Repository admin to the `main` ruleset's bypass list** | GitHub → Settings → Rules | The ruleset as configured returns **no bypass actors**, which blocks everyone — a repository admin's PAT included. Until it is changed, `Migrate Production` applies every migration and cannot record it, and each one needs a manual manifest line (§2) |
 | **F** | **Switch the runner on**, after reading its dry-run preview | Admin → Settings → Billing | It ships `enabled = false`. A migration that starts itself on deploy is a migration nobody chose, over 431 people who are all elderly and none of whom asked for it today |
 
-Until **A** is done the whole thing still works — the links go out, they are payable by card, the
-webhook activates on payment — it is simply harder for the people it is for.
+**A, B and D's first half are done** (11 Sep): SEPA is enabled on both configurations, the
+destination carries both async events, it is pinned to `2024-06-20`, and *Async events confirmed*
+is ticked — so switch links now offer direct debit rather than card only.
+
+What is left is **G** above, and it is one click: the two `checkout.session.async_payment_*`
+events only ever exist for a Checkout Session that a person completed in a browser, so until
+somebody completes one in test mode there is genuinely nothing for the platform to have received.
+The check reports that as UNPROVEN rather than as a fault, because "nothing was sent" and "it was
+sent and we missed it" need completely different responses.
 
 ## 6. What is proven, and what is not
 
@@ -178,9 +187,28 @@ webhook activates on payment — it is simply harder for the people it is for.
   strengthened, because the first version of the dry-run case used a member whose renewal had not
   passed, so there was no write for the guard to prevent.
 
-**Not proven, and it cannot be proven from here:** anything Stripe actually does. No Checkout
-Session has been created, no clock advanced, no `async_payment_succeeded` received. The rehearsal
-worth doing in **test mode**, before live keys:
+**Not proven until the workflow has been RUN and READ.** The rehearsal exists, its judgement is
+executed against a fake Stripe, and `STRIPE_TEST_KEY` is now in Actions — but a workflow that
+exists is not a workflow that has answered. Nothing goes to live keys on the strength of this
+section; it goes on the strength of a run.
+
+**And one thing cannot be proven by any script, now or later.** The two events the whole SEPA path
+turns on — `checkout.session.async_payment_succeeded` and `async_payment_failed` — exist ONLY for
+a Checkout Session that a person completed in a browser. No API call creates one. So the rehearsal
+proves the three things around it instead, and says which is which rather than blurring them:
+
+1. **the destination is subscribed to both events** — account configuration, readable with the key;
+2. **the money really does move later** — the invoice-level equivalent on the same subscription,
+   open at creation and paid once the clock advances, which is the behaviour the ordering depends on;
+3. **the platform handles both events correctly** — executed in `src/test/stripeWebhookExecuted.test.ts`
+   against a fake PostgREST.
+
+Those three together are the whole of it. **None of them alone is**, and the gap that remains is
+one click: complete a single SEPA switch link in test mode. Until somebody does, the "did the
+events reach our destination" check reports **UNPROVEN** — not a pass, and deliberately not a
+fault either, because Stripe having sent nothing is not the same as us having missed something.
+
+The rehearsal worth doing in **test mode**, before live keys:
 
 1. A monthly member completes a switch link on the 15th → the **full** fee is taken at once (not
    €0, not prorated), `billing_source` flips to `stripe` on the first payment, and the Santander
@@ -190,11 +218,26 @@ worth doing in **test mode**, before live keys:
 4. Fail a SEPA debit, to see `async_payment_failed` put them back on legacy billing with the bell.
 5. Run the runner twice on the same day → the second run sends nothing.
 
-**Steps 1 and 2 are now one command**, not a checklist somebody performs and interprets:
+**Steps 1 to 5 are now one button**, not a checklist somebody performs and interprets, and it is
+pressed where the key already lives:
+
+> **GitHub → Actions → "Stripe rehearsal" → Run workflow**, with `amount` in cents and `day` set
+> to a member's Santander day. It is `workflow_dispatch` only — every run creates real objects in
+> the test account, and it is not a merge gate.
+
+The key is an Actions secret (`STRIPE_TEST_KEY`), mapped into `env` for the steps that need it and
+never echoed, never put on a command line, never interpolated into a URL, and never written to the
+artifact. `src/test/stripeRehearsalWorkflow.test.ts` asserts each of those, and asserts the one
+that would be silent: every step pipes through `tee` to get its output into both the log and the
+artifact, and **without `set -o pipefail` a pipeline exits with `tee`'s status — so a rehearsal
+that failed every assertion would report the step green.**
+
+It still runs from a terminal, unchanged, for anyone who has a key:
 
 ```
 STRIPE_TEST_KEY=sk_test_... node scripts/stripe/test-clock-rehearsal.mjs --amount <cents>
 node scripts/stripe/test-clock-rehearsal.mjs --day 31 --amount <cents>   # the month-end clamp
+STRIPE_TEST_KEY=sk_test_... node scripts/stripe/platform-check.mjs       # did the events reach us
 ```
 
 It creates a test clock, a customer and a subscription carrying the switch link's **exact**
@@ -206,6 +249,24 @@ parameters, then asserts, per step:
 | **card, next charge** | the same day of the month, accepting a month-end clamp as the right answer rather than a fault |
 | **SEPA, settles** | the debit is presented for the full amount — `open` is correct, because SEPA settles days later, which is why the webhook must handle `async_payment_succeeded` |
 | **SEPA, bounces** | exactly **one retry scheduled**. Lee's rule 4 is "one Stripe smart retry, then staff bell + friendly SMS", and that is only true if Stripe actually retries — with none, the member is told on the *first* failure, which is several hundred texts about a problem that usually fixes itself |
+| **the destination** | an **enabled** webhook destination carries BOTH `checkout.session.async_payment_succeeded` and `async_payment_failed`. Checked FIRST, because it is the only question here whose answer can be wrong while every other step passes — and its consequence is silent: the member completes the link, pays days later, we never hear it, and since `switch_pending` already removed them from the Santander run, **nobody collects from them at all** |
+
+Each step prints the Stripe object ids it relied on, so a run nobody watched can be opened in the
+dashboard afterwards, and each failure names **which of Lee's rules it breaks** rather than only
+what Stripe returned.
+
+**The SEPA halves advance the clock, and that is the whole of why they mean anything.** Read at the
+instant the subscription is created, the good IBAN and the bad one are *identical* — both `open`
+with the payment processing, because a SEPA debit takes days either way. The earlier version of
+this rehearsal stopped there and therefore passed both. Advancing the clock is what separates
+them, and it is also what makes the assertion Lee's brief actually asks for possible: the invoice
+was **not** paid at creation and **was** paid afterwards, which is the Stripe-side fact behind
+"the member flips to `stripe` on the event, not on completion".
+
+Measured rather than assumed: replacing that advance with a bare `ready = true` passed all 54
+tests, because the fake answers with a settled invoice whether or not the clock moved. The
+ordering is now asserted directly — subscription created, *then* clock advanced, *then* invoice
+re-read — and that mutation now fails twice.
 
 Pass or fail per step, non-zero exit. It **refuses** without a key rather than skipping, refuses a
 live key outright, and reports `--no-sepa` as a **failure** rather than as silence — skipping the

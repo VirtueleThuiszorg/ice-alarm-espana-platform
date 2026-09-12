@@ -34,6 +34,10 @@ const {
   NO_KEY_MESSAGE,
   TEST_IBAN_SUCCEEDS,
   TEST_IBAN_FAILS,
+  REQUIRED_ASYNC_EVENTS,
+  EXPECTED_API_VERSION,
+  summarise,
+  Step,
 } = (await import(/* @vite-ignore */ MOD)) as any;
 
 const AMOUNT = 3294;
@@ -73,10 +77,36 @@ function fakeStripe(over: Record<string, unknown> = {}) {
   const api = async (method: string, path: string, body?: Record<string, unknown>) => {
     calls.push({ method, path, body });
     if (path.startsWith("/v1/test_helpers/test_clocks") && method === "GET") {
-      return { id: "clock_1", status: over.clockStatus ?? "ready" };
+      // `frozen_time` matters now: the SEPA steps read it to know where to advance FROM, and a
+      // fake that omitted it would send them down the "could not read the clock" branch.
+      return {
+        id: "clock_1",
+        status: over.clockStatus ?? "ready",
+        frozen_time: over.frozenTime === undefined ? at(DAY, 0) : over.frozenTime,
+      };
     }
     if (path === "/v1/test_helpers/test_clocks") return { id: "clock_1", status: "ready" };
     if (path.endsWith("/advance")) return { id: "clock_1", status: "advancing" };
+    if (path.startsWith("/v1/webhook_endpoints")) {
+      if (over.webhookError) throw new Error(String(over.webhookError));
+      return {
+        data:
+          (over.webhookEndpoints as unknown[]) ??
+          [
+            {
+              id: "we_1",
+              url: "https://crpsuhoixfdhjugprbuc.supabase.co/functions/v1/stripe-webhook",
+              status: "enabled",
+              api_version: "2024-06-20",
+              enabled_events: [
+                "checkout.session.completed",
+                "checkout.session.async_payment_succeeded",
+                "checkout.session.async_payment_failed",
+              ],
+            },
+          ],
+      };
+    }
     if (path === "/v1/customers") return { id: "cus_1" };
     if (path === "/v1/prices") return { id: "price_1" };
     if (path === "/v1/payment_methods") return { id: "pm_1" };
@@ -115,6 +145,26 @@ function fakeStripe(over: Record<string, unknown> = {}) {
         latest_invoice: firstInvoice,
         ...(over.subscription as object),
       };
+    }
+    // A SINGLE INVOICE, re-read after the clock advanced — this is what separates a SEPA debit
+    // that settled from one that bounced. Distinguished from the LIST by the absence of a query
+    // string, exactly as the real API distinguishes them.
+    if (path.startsWith("/v1/invoices/")) {
+      const id = path.slice("/v1/invoices/".length);
+      if (id === "in_sepa_ok") {
+        return { id, status: "paid", amount_paid: AMOUNT, amount_due: AMOUNT, ...(over.sepaOkFinal as object) };
+      }
+      if (id === "in_sepa_fail") {
+        return {
+          id,
+          status: "open",
+          amount_due: AMOUNT,
+          attempt_count: 1,
+          next_payment_attempt: at(DAY, 0) + 3 * 86_400,
+          ...(over.sepaFailFinal as object),
+        };
+      }
+      return { id, status: "paid", amount_paid: AMOUNT };
     }
     if (path.startsWith("/v1/invoices")) {
       return { data: (over.invoices as unknown[]) ?? [firstInvoice, renewal] };
@@ -273,10 +323,15 @@ describe("when Stripe answers in a shape the script did not expect", () => {
       pollAttempts: 3,
       pollMs: 1,
     });
-    const failed = r.steps.find((x: any) => x.name.includes("same day of the month"));
-    expect(failed.ok).toBe(false);
-    expect(failed.detail).toMatch(/did not become ready/);
+    const stalled = r.steps.find((x: any) => x.name.includes("same day of the month"));
+    /* UNPROVEN, not FAILED. A clock that stalled says nothing about whether the renewal would
+       have landed on the right day, and calling it a Stripe defect sends somebody hunting for
+       one that is not there. It is still not a pass, so the run is still not ok. */
+    expect(stalled.ok).toBe(null);
+    expect(stalled.detail).toMatch(/did not become ready/);
     expect(r.ok).toBe(false);
+    expect(r.stripeOk).toBe(true);
+    expect(r.unproven).toContain(stalled);
   });
 });
 
@@ -321,27 +376,104 @@ describe("the form encoder Stripe's REST API needs", () => {
   schedules ONE retry when it bounces rather than giving up at once.
 */
 describe("the SEPA half", () => {
-  it("passes when the debit is presented and settles later — which is what SEPA does", async () => {
+  /*
+    THE ORDERING IS THE ASSERTION NOW, not the status at one instant.
+
+    Reading the invoice only at creation gave the SAME answer for the good IBAN and the bad one —
+    both are `open` with the payment processing, because a SEPA debit takes days either way. So
+    the old version of these tests could not tell settle from bounce at all, and passed both.
+    Advancing the clock is what separates them, and it is also what makes the assertion Lee's
+    brief actually asks for possible: the member is activated by the LATER event, not by the
+    completion.
+  */
+  it("passes when the debit is open at creation and paid once the clock moves", async () => {
     const r = await run();
     const s = step(r, "SEPA debit that settles");
     expect(s.ok).toBe(true);
-    expect(s.detail).toMatch(/settles days later/);
+    expect(s.detail).toMatch(/`open` at creation and `paid`/);
+    expect(s.detail).toMatch(/async_payment_succeeded and never by the completion/);
   });
 
-  it("passes just the same when it has already settled", async () => {
-    const r = await run({
-      sepaOkSubscription: { latest_invoice: { id: "in_ok", status: "paid", amount_due: AMOUNT } },
+  /*
+    THE ADVANCE ITSELF, asserted — and this one was MEASURED rather than assumed.
+
+    Replacing the SEPA `advanceClock(...)` call with a bare `ready = true` passed all 54 tests:
+    the fake answers `/v1/invoices/in_sepa_ok` with a settled invoice whether or not the clock
+    ever moved, so every assertion about the RESULT still held. In reality that mutation reports
+    nonsense — without the advance the invoice is still `open` for the good IBAN and carries no
+    retry for the bad one, which is precisely the pair the old version of this rehearsal could
+    not tell apart.
+
+    So the ORDER is the assertion: the subscription is created, then the clock moves, then the
+    invoice is re-read. Nothing about the invoice's contents can stand in for it.
+  */
+  it("advances the clock BETWEEN creating the subscription and re-reading the invoice", async () => {
+    const st = fakeStripe();
+    await runRehearsal(st.api, { amountCents: AMOUNT, day: DAY, pollAttempts: 2, pollMs: 1 });
+
+    const subCreated = st.calls.findIndex(
+      (c: any) => c.method === "POST" && c.path === "/v1/subscriptions" && c.body?.payment_settings,
+    );
+    const reread = st.calls.findIndex((c: any) => c.path === "/v1/invoices/in_sepa_ok");
+    const advanced = st.calls.findIndex(
+      (c: any, i: number) => i > subCreated && c.path.endsWith("/advance"),
+    );
+
+    expect(subCreated).toBeGreaterThanOrEqual(0);
+    expect(reread).toBeGreaterThanOrEqual(0);
+    expect(advanced).toBeGreaterThan(subCreated);
+    expect(advanced).toBeLessThan(reread);
+  });
+
+  it("moves the clock far enough for a SEPA debit to actually resolve", async () => {
+    const st = fakeStripe();
+    await runRehearsal(st.api, {
+      amountCents: AMOUNT,
+      day: DAY,
+      settleDays: 9,
+      pollAttempts: 2,
+      pollMs: 1,
     });
-    expect(step(r, "SEPA debit that settles").ok).toBe(true);
+    const subCreated = st.calls.findIndex(
+      (c: any) => c.method === "POST" && c.path === "/v1/subscriptions" && c.body?.payment_settings,
+    );
+    const advance = st.calls.find((c: any, i: number) => i > subCreated && c.path.endsWith("/advance"));
+    expect(advance?.body).toBeDefined();
+    // From the clock's own frozen_time, not from "now" — the clock is already a month ahead by
+    // the time the SEPA half runs, and advancing to a point in its past is an error, not a wait.
+    expect(advance!.body!.frozen_time).toBe(at(DAY, 0) + 9 * 86_400);
   });
 
-  it("FAILS when the first SEPA invoice was refused outright", async () => {
+  it("records the ids it relied on, so the run can be checked after the fact", async () => {
+    const r = await run();
+    const s = step(r, "SEPA debit that settles");
+    expect(s.ids).toContain("sub_sepa_ok");
+    expect(s.ids).toContain("in_sepa_ok");
+  });
+
+  // THE ORDERING BREAKING IS A FAILURE, and it used to be a pass. If Stripe marks the debit paid
+  // at creation there is no later event to activate on, and a member whose event never comes is
+  // stranded in switch_pending — out of the Santander run, collected from by nobody.
+  it("FAILS when the debit was ALREADY paid at creation — the ordering the webhook relies on", async () => {
     const r = await run({
-      sepaOkSubscription: { latest_invoice: { id: "in_ok", status: "void", amount_due: AMOUNT } },
+      sepaOkSubscription: {
+        id: "sub_sepa_ok",
+        latest_invoice: { id: "in_sepa_ok", status: "paid", amount_due: AMOUNT },
+      },
     });
     const s = step(r, "SEPA debit that settles");
     expect(s.ok).toBe(false);
-    expect(s.detail).toMatch(/neither settled nor presented/);
+    expect(s.detail).toMatch(/ALREADY `paid` when the subscription was created/);
+    expect(s.rule).toMatch(/Golden rule 4/);
+  });
+
+  it("FAILS when the debit never settles at all, and says who stops being collected from", async () => {
+    const r = await run({ sepaOkFinal: { status: "void" } });
+    const s = step(r, "SEPA debit that settles");
+    expect(s.ok).toBe(false);
+    expect(s.detail).toMatch(/never settled/);
+    expect(s.detail).toMatch(/nobody is collecting from them at all/);
+    expect(s.rule).toMatch(/nobody pays twice or loses monitoring/);
   });
 
   /*
@@ -358,15 +490,12 @@ describe("the SEPA half", () => {
   });
 
   it("FAILS when a bounce schedules NO retry, and says what that costs the member", async () => {
-    const r = await run({
-      sepaFailSubscription: {
-        latest_invoice: { id: "in_f", status: "open", amount_due: AMOUNT, next_payment_attempt: null },
-      },
-    });
+    const r = await run({ sepaFailFinal: { next_payment_attempt: null } });
     const s = step(r, "SEPA debit that BOUNCES");
     expect(s.ok).toBe(false);
-    expect(s.detail).toMatch(/NO retry is scheduled/);
-    expect(s.detail).toMatch(/told on the first failure/);
+    expect(s.detail).toMatch(/NO retry is/);
+    expect(s.detail).toMatch(/told on the FIRST failure/);
+    expect(s.rule).toMatch(/one Stripe smart retry/);
   });
 
   it("FAILS when the 'failing' IBAN was paid — the test data has moved, not the platform", async () => {
@@ -428,5 +557,144 @@ describe("the SEPA half", () => {
     expect(skipped.ok).toBe(false);
     expect(skipped.detail).toMatch(/NOT a pass/);
     expect(r.ok).toBe(false);
+  });
+});
+
+/*
+  ══ WHERE STRIPE SENDS THE EVENTS ═════════════════════════════════════════════
+
+  The only question in the whole rehearsal whose answer can be wrong while every other step
+  passes. A perfectly-behaving account with no destination subscribed to the two async events
+  leaves every SEPA member un-activated for ever, and nothing else here would notice: the
+  subscriptions bill correctly, the debits settle, and the platform is never told.
+
+  What it costs is silent and one-directional. `switch_pending` has already taken the member OUT
+  of the Santander run, so the old collection has stopped; without the event the new one never
+  starts. Nobody is collecting from them at all, and the first sign of it is a member ringing up
+  months later — or not ringing up.
+*/
+describe("the destination the async events are sent to", () => {
+  const endpoint = (over: Record<string, unknown> = {}) => ({
+    id: "we_1",
+    url: "https://example.supabase.co/functions/v1/stripe-webhook",
+    status: "enabled",
+    api_version: EXPECTED_API_VERSION,
+    enabled_events: [...REQUIRED_ASYNC_EVENTS],
+    ...over,
+  });
+
+  const destination = (r: any) => step(r, "subscribed to the two async events");
+
+  it("passes when one enabled destination carries both events", async () => {
+    const r = await run();
+    expect(destination(r).ok).toBe(true);
+    expect(destination(r).ids).toContain("we_1");
+  });
+
+  it("accepts a destination subscribed to everything", async () => {
+    const r = await run({ webhookEndpoints: [endpoint({ enabled_events: ["*"] })] });
+    expect(destination(r).ok).toBe(true);
+  });
+
+  // THE EXACT WORDS LEE ASKED FOR, because the two causes need the same first move — look at
+  // which account and which environment this key belongs to.
+  it("FAILS with 'destination not subscribed or wrong environment' when one event is missing", async () => {
+    const r = await run({
+      webhookEndpoints: [
+        endpoint({ enabled_events: ["checkout.session.completed", "checkout.session.async_payment_succeeded"] }),
+      ],
+    });
+    const s = destination(r);
+    expect(s.ok).toBe(false);
+    expect(s.detail).toMatch(/destination not subscribed or wrong environment/);
+    // It names WHICH event is missing: "one of them is missing" is a fact, "async_payment_failed
+    // is missing" is a thing somebody can go and tick.
+    expect(s.detail).toMatch(/missing checkout\.session\.async_payment_failed/);
+    expect(s.rule).toMatch(/Golden rule 4/);
+  });
+
+  it("FAILS when the account has no destination at all", async () => {
+    const r = await run({ webhookEndpoints: [] });
+    const s = destination(r);
+    expect(s.ok).toBe(false);
+    expect(s.detail).toMatch(/NO WEBHOOK DESTINATION EXISTS/);
+    expect(s.detail).toMatch(/destination not subscribed or wrong environment/);
+  });
+
+  // A disabled destination delivers nothing, so it must not satisfy the check by existing.
+  it("does not count a disabled destination as covering the events", async () => {
+    const r = await run({ webhookEndpoints: [endpoint({ status: "disabled" })] });
+    expect(destination(r).ok).toBe(false);
+  });
+
+  /* A KEY WITHOUT PERMISSION TO LIST ENDPOINTS is not a broken destination. Restricted keys are
+     ordinary, and reporting one as a fault would send somebody to the dashboard after nothing. */
+  it("is UNPROVEN, not failed, when the key may not list endpoints", async () => {
+    const r = await run({ webhookError: "This key does not have access to webhook endpoints." });
+    const s = destination(r);
+    expect(s.ok).toBe(null);
+    expect(s.detail).toMatch(/could not list webhook endpoints/);
+    expect(s.detail).toMatch(/check Developers -> Webhooks by hand/);
+    expect(r.stripeOk).toBe(true);
+    expect(r.ok).toBe(false);
+  });
+
+  /* A DIFFERENT PINNED VERSION still delivers these events — only the payload shape moves, and
+     the handlers read fields that are stable across them. Worth saying out loud, not worth
+     failing a rehearsal over; the note is how somebody notices a drift they chose. */
+  it("passes but SAYS SO when the destination is pinned to another API version", async () => {
+    const r = await run({ webhookEndpoints: [endpoint({ api_version: "2020-08-27" })] });
+    const s = destination(r);
+    expect(s.ok).toBe(true);
+    expect(s.detail).toMatch(/pinned to 2020-08-27, not 2024-06-20/);
+  });
+
+  it("checks it FIRST, before spending anything on the account", async () => {
+    const st = fakeStripe();
+    await runRehearsal(st.api, { amountCents: AMOUNT, day: DAY });
+    const endpoints = st.calls.findIndex((c: any) => c.path.startsWith("/v1/webhook_endpoints"));
+    const created = st.calls.findIndex((c: any) => c.method === "POST");
+    expect(endpoints).toBeGreaterThanOrEqual(0);
+    expect(endpoints).toBeLessThan(created);
+  });
+});
+
+/*
+  ══ THREE VERDICTS, NOT TWO ═══════════════════════════════════════════════════
+
+  "Not run" collapsed into either of the other two is how a rehearsal starts lying. Folded into
+  PASS it is the --no-sepa trap: a green run that covered nothing. Folded into FAIL it sends
+  somebody through the Stripe dashboard looking for a defect that is really a missing credential
+  or a stalled clock.
+*/
+describe("the verdict keeps UNPROVEN apart from FAILED", () => {
+  const pass = () => new Step("p").pass("fine");
+  const fail = () => new Step("f").fail("broken", "rule");
+  const unproven = () => new Step("u").unproven("not asked");
+
+  it("is ok only when everything actually passed", () => {
+    expect(summarise([pass(), pass()]).ok).toBe(true);
+  });
+
+  it("an unproven step is NOT a pass", () => {
+    const r = summarise([pass(), unproven()]);
+    expect(r.ok).toBe(false);
+    // ...but it is not Stripe's fault either, and the two go to different people.
+    expect(r.stripeOk).toBe(true);
+    expect(r.unproven).toHaveLength(1);
+    expect(r.failed).toHaveLength(0);
+  });
+
+  it("a failed step is a failed step", () => {
+    const r = summarise([pass(), fail()]);
+    expect(r.ok).toBe(false);
+    expect(r.stripeOk).toBe(false);
+    expect(r.failed).toHaveLength(1);
+  });
+
+  it("reports both when both happened, rather than the first one it met", () => {
+    const r = summarise([fail(), unproven(), pass()]);
+    expect(r.failed).toHaveLength(1);
+    expect(r.unproven).toHaveLength(1);
   });
 });

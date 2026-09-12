@@ -544,6 +544,25 @@ regenerated rather than picked between.
   claiming `imported`, and filling an empty pin from a three-year-old spreadsheet on a live
   record is the wrong direction anyway. Backfilling those is a deliberate service-role job.
 
+## Polling discipline — 2026-09-12 · **agent sessions must not watch CI in a loop**
+
+The `VirtueleThuiszorg` account hit GitHub's API rate limit around 11:00 CEST. Agent polling is
+the suspected cause, so the rule from here:
+
+- **The main-branch watchdog is the only scheduled poll**, and it does one pass — tip, drift,
+  open PRs, and check-runs on that tip — then ends.
+- **No loop that watches a PR's checks.** A session waiting on CI does ONE `check-runs` request
+  when it is asked, and otherwise waits to be told. Repeatedly polling a PR to a conclusion is
+  what turns a five-minute build into forty requests. (`gh pr checks --watch` would be the right
+  tool and uses a sane interval, but the `gh` CLI is **not installed** in the remote agent
+  environment — so the substitute is a single request, not a hand-rolled loop.)
+- **Job LOGS over the status API** stays true for correctness (the status API has served
+  snapshots up to an hour stale), but it is one request per question, not a stream.
+
+Worth knowing for whoever debugs the next limit: a session's own `GET /rate_limit` is not proof
+of innocence. Checked at 08:04 UTC it read `core: limit 15000, remaining 15000` — a window that
+had just reset — so it neither confirms nor rules out this session's share.
+
 ## Merge gate — 2026-09-12 · **the ruleset is on; the PAT is in; the push itself is still unproven**
 
 Ruleset `main` (19055263) went `enforcement: active` on 11 Sep at 16:28 UTC and was re-saved at

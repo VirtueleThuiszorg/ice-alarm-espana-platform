@@ -15,7 +15,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GlobalSearchMount } from "@/components/GlobalSearchMount";
 import { SkipLink } from "@/components/ui/skip-link";
 import { RouteAnnouncer } from "@/components/ui/route-announcer";
-import i18n from "@/i18n";
+import i18n, { localeReady } from "@/i18n";
 
 /**
  * Retry a dynamic import after a new deployment invalidates chunk URLs.
@@ -72,6 +72,38 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
   routes — the cold first visit this whole change is for — so lazy-loading it
   would add a round trip to the one path that must not have one.
 */
+/**
+ * HOLDS ROUTE RENDERING UNTIL THE LANGUAGE'S WORDS HAVE ARRIVED.
+ *
+ * `en.json` is no longer in the entry bundle (see src/i18n/index.ts — it was
+ * 86 KB gz of the shell's 326.5). Only `en.core.json` is inline, and that
+ * carries just the namespaces the always-mounted shell needs.
+ *
+ * i18next renders the KEY when a translation is missing, so a route chunk that
+ * arrives before the locale would paint `nav.home` at the user. This gate makes
+ * that impossible: it shows the SAME `<PageLoader />` the route chunk was
+ * already showing, so on a cold visit nothing new appears on screen — the loader
+ * that was there for the chunk is there for the words as well.
+ *
+ * The shell around it — header, cookie banner, skip link — renders throughout,
+ * because those are exactly the modules `en.core.json` is built from.
+ */
+function LocaleGate({ children }: { children: React.ReactNode }) {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void localeReady.then(() => {
+      if (!cancelled) setReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return ready ? <>{children}</> : <PageLoader />;
+}
+
 const AdminLayout = lazyWithRetry(() =>
   import("@/components/layout/AdminLayout").then((m) => ({ default: m.AdminLayout })),
 );
@@ -360,6 +392,7 @@ const App = () => {
             <SkipLink />
             <ErrorBoundary>
               <Suspense fallback={<PageLoader />}>
+                <LocaleGate>
                 <div id="main-content">
                   <Routes>
                     {/* Public Routes — wrapped in PublicThemeLayout so the Stage 4b
@@ -544,6 +577,7 @@ const App = () => {
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </div>
+              </LocaleGate>
               </Suspense>
             </ErrorBoundary>
           </AuthProvider>

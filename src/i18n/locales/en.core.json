@@ -1,0 +1,44 @@
+{
+  "gdpr": {
+    "cookieBanner": {
+      "title": "We use cookies",
+      "description": "We use cookies and similar technologies to improve your experience, analyse traffic and personalise content. You can choose which cookies you allow.",
+      "customize": "Customize",
+      "rejectNonEssential": "Reject non-essential",
+      "acceptAll": "Accept all"
+    },
+    "cookieSettings": {
+      "title": "Cookie Preferences",
+      "description": "Manage your cookie preferences below. Essential cookies are always active as they are necessary for the website to function.",
+      "essential": "Essential Cookies",
+      "essentialDescription": "Required for the website to function properly. Cannot be disabled.",
+      "analytics": "Analytics Cookies",
+      "analyticsDescription": "Help us understand how visitors interact with our website to improve performance.",
+      "marketing": "Marketing Cookies",
+      "marketingDescription": "Used to deliver personalised advertisements and track campaign effectiveness.",
+      "savePreferences": "Save preferences"
+    },
+    "settings": {
+      "title": "Privacy & Data",
+      "description": "Manage your privacy settings and personal data in compliance with GDPR.",
+      "downloadTitle": "Download My Data",
+      "downloadDescription": "Export a copy of all personal data we hold about you.",
+      "downloading": "Downloading...",
+      "downloadButton": "Download",
+      "cookieTitle": "Cookie Preferences",
+      "cookieDescription": "Manage which cookies and tracking technologies are active.",
+      "cookieButton": "Manage Cookies",
+      "deleteTitle": "Delete My Account",
+      "deleteDescription": "Permanently delete your account and all associated data.",
+      "deleteSubmitted": "Request submitted",
+      "deleteButton": "Delete Account"
+    },
+    "deleteDialog": {
+      "title": "Delete your account?",
+      "warning": "This action is irreversible. All your personal data, emergency contacts, medical information, alerts and payment history will be permanently deleted.",
+      "details": "Your deletion request will be processed within 30 days as required by GDPR Article 17 (Right to Erasure).",
+      "submitting": "Submitting...",
+      "confirm": "Yes, delete my account"
+    }
+  }
+}

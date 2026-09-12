@@ -110,8 +110,18 @@ jobs:
               } | tee -a "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
-            echo "  ${HOST} did not answer:"
+            # A SQL ERROR IS NOT A CONNECTION FAILURE, and run #2 proved why that matters: the
+            # first host answered, the query had a bad column name, and the loop moved on and
+            # reported "neither endpoint authenticated" — which sent the reader looking at
+            # credentials instead of at the one line naming the column. psql exits 3 for an error
+            # inside the script under ON_ERROR_STOP, and 2 when it could not connect.
+            STATUS=$?
+            echo "  ${HOST}:"
             sed 's/^/    /' /tmp/facts.err
+            if [ "$STATUS" -eq 3 ]; then
+              echo "::error title=The query failed, the connection did not::${HOST} answered. Fix the SQL above."
+              exit 1
+            fi
           done
 
           echo "::error title=Could not read production::Neither pooler endpoint authenticated. Nothing was read and nothing was changed."

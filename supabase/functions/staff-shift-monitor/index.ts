@@ -2,7 +2,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { getShiftContext } from "../_shared/shift-time.ts";
-import { HEARTBEAT_STALE_SECONDS, presenceState } from "../_shared/presence.ts";
+import {
+  HEARTBEAT_STALE_SECONDS,
+  NOT_ON_DUTY_ESCALATE_MINUTES,
+  presenceState,
+} from "../_shared/presence.ts";
 
 /**
  * Staff Shift Monitor
@@ -160,6 +164,8 @@ serve(async (req) => {
       presentNotOnDuty: 0,
       /** Nudges sent to those people. At most one per person per shift. */
       notOnDutyNudges: 0,
+      /** Absences that reached the admins because they were still absent at grace+15. */
+      noShowEscalations: 0,
       /** Open alerts closed because the person turned up. */
       resolvedOnArrival: 0,
       noCoverageAlerts: 0,
@@ -351,7 +357,10 @@ serve(async (req) => {
           }
 
           // ── a real no-show ──────────────────────────────────────────────────
-          // The claim IS the dedupe. Nothing below runs unless this run is the one that raised it.
+          const staffName = `${scheduled.first_name} ${scheduled.last_name}`.trim();
+          const shiftTime = `${bounds.start}:00`;
+
+          // The claim IS the dedupe. Nothing in the first rung runs unless this run raised it.
           const raisedNoShow = await claimAlert(supabase, {
             alert_type: "no_show",
             staff_id: scheduled.staff_id,
@@ -359,63 +368,119 @@ serve(async (req) => {
             shift_type: shiftType,
           });
 
-          if (!raisedNoShow) continue;
+          if (raisedNoShow) {
+            /*
+              RUNG ONE: THE OPERATOR AND THE SUPERVISOR, TOGETHER, AT THE GRACE PERIOD.
 
-          const staffName = `${scheduled.first_name} ${scheduled.last_name}`.trim();
+              This used to be two calls to two different places, and neither was the router. The
+              admins got it through `notify-admin` — everybody at the top, immediately, for a
+              shift five minutes late — and the operator got a WhatsApp through
+              `notify-staff-whatsapp`, which reads neither `notification_routes` nor
+              `staff_notification_prefs`. So the one message that had to arrive bypassed every
+              switch in Admin -> Settings -> Notifications, and the people who could actually
+              cover the shift — the supervisors — were not told at all.
 
-          // Notify admin
-          try {
-            await fetch(`${baseUrl}/functions/v1/notify-admin`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${serviceKey}`,
-              },
-              body: JSON.stringify({
-                event_type: "shift.no_show",
-                entity_type: "staff",
-                entity_id: scheduled.staff_id,
-                payload: {
-                  staff_name: staffName,
-                  shift_type: shiftType,
-                  shift_time: `${bounds.start}:00`,
-                },
-              }),
-            });
-          } catch (err) {
-            console.error("Admin notify error (no_show):", err);
-          }
-
-          // Notify the staff member directly
-          const { data: staffRecord } = await supabase
-            .from("staff")
-            .select("personal_mobile")
-            .eq("id", scheduled.staff_id)
-            .maybeSingle();
-
-          if (staffRecord?.personal_mobile) {
+              One call now, through the one door. `audience` ORs roles with staffIds, so the
+              person who is late and the people who cover for them are one dispatch.
+            */
             try {
-              await fetch(`${baseUrl}/functions/v1/notify-staff-whatsapp`, {
+              await fetch(`${baseUrl}/functions/v1/notify-staff`, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                   Authorization: `Bearer ${serviceKey}`,
                 },
                 body: JSON.stringify({
-                  staff_id: scheduled.staff_id,
-                  message_type: "no_show",
-                  staff_name: staffName,
-                  phone_number: staffRecord.personal_mobile,
-                  shift_type: shiftType,
+                  event: {
+                    type: "shift.no_show",
+                    title: `${staffName} has not signed in for the ${shiftType} shift`,
+                    body: `The ${shiftType} shift started at ${shiftTime} and ${staffName} is not on duty. Alerts are not routing to them.`,
+                    link: "/call-centre/rota",
+                    entity: { type: "staff", id: scheduled.staff_id },
+                  },
+                  audience: {
+                    staffIds: [scheduled.staff_id],
+                    roles: ["call_centre_supervisor"],
+                  },
                 }),
               });
             } catch (err) {
               console.error("Staff notify error (no_show):", err);
             }
+
+            stats.noShowAlerts++;
+            log({ event: "no_show_alert", shift_type: shiftType, shift_date: shiftDate });
+            continue;
           }
 
-          stats.noShowAlerts++;
-          log({ event: "no_show_alert", shift_type: shiftType, shift_date: shiftDate });
+          /*
+            RUNG TWO: THE ADMINS, FIFTEEN MINUTES LATER, AND ONLY IF STILL ABSENT.
+
+            Reached only when the first claim was refused — which means the row is already open,
+            which means somebody has been absent since it was raised. `state` is re-evaluated every
+            run, so arriving at any point closes the row (above) and this is never reached.
+
+            Its own alert type, so the dedupe index makes it once per person per shift like every
+            other rung. Without a row of its own it would either fire every two minutes for the
+            rest of the shift, or never.
+          */
+          const { data: openRow } = await supabase
+            .from("shift_alert_log")
+            .select("created_at")
+            .eq("alert_type", "no_show")
+            .eq("staff_id", scheduled.staff_id)
+            .eq("shift_date", shiftDate)
+            .eq("shift_type", shiftType)
+            .is("resolved_at", null)
+            .maybeSingle();
+
+          if (!openRow?.created_at) continue;
+
+          const openForMinutes = (now.getTime() - new Date(openRow.created_at).getTime()) / 60_000;
+          if (openForMinutes < NOT_ON_DUTY_ESCALATE_MINUTES) continue;
+
+          const escalated = await claimAlert(supabase, {
+            alert_type: "no_show_escalated",
+            staff_id: scheduled.staff_id,
+            shift_date: shiftDate,
+            shift_type: shiftType,
+          });
+
+          if (!escalated) continue;
+
+          try {
+            await fetch(`${baseUrl}/functions/v1/notify-staff`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${serviceKey}`,
+              },
+              body: JSON.stringify({
+                event: {
+                  // The SAME event type: what the admins are being told is a no-show. Only the
+                  // log needs to tell the two rungs apart.
+                  type: "shift.no_show",
+                  title: `${staffName} is still absent — ${Math.round(openForMinutes)} minutes`,
+                  body: `The ${shiftType} shift started at ${shiftTime}. ${staffName} has not signed in and the supervisor was told when it was raised.`,
+                  link: "/call-centre/rota",
+                  entity: { type: "staff", id: scheduled.staff_id },
+                },
+                audience: { roles: ["admin", "super_admin"] },
+              }),
+            });
+          } catch (err) {
+            console.error("Staff notify error (no_show escalation):", err);
+          }
+
+          stats.noShowEscalations++;
+          log({
+            event: "no_show_escalated",
+            shift_type: shiftType,
+            shift_date: shiftDate,
+            open_for_minutes: Math.round(openForMinutes),
+          });
+          continue;
+
         }
       }
     }

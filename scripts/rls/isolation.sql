@@ -7432,6 +7432,28 @@ SELECT pg_temp.check(
   (SELECT count(*) FROM public.shift_alert_log WHERE alert_type = 'not_on_duty') = 1,
   'without it the once-per-shift nudge has nowhere to record that it was sent');
 
+INSERT INTO public.shift_alert_log (alert_type, staff_id, shift_date, shift_type)
+SELECT 'no_show_escalated', s.id, DATE '2026-09-11', 'night'
+FROM public.staff s WHERE s.user_id = 'a6000000-0000-0000-0000-00000000000f';
+
+SELECT pg_temp.check(
+  'the escalation type no_show_escalated is accepted, and keys SEPARATELY from the no_show',
+  (SELECT count(*) FROM public.shift_alert_log
+    WHERE alert_type = 'no_show_escalated' AND resolved_at IS NULL) = 1
+  AND (SELECT count(*) FROM public.shift_alert_log
+        WHERE alert_type = 'no_show' AND shift_date = DATE '2026-09-11'
+          AND shift_type = 'night' AND resolved_at IS NULL) = 1,
+  'the admins'' rung must not be refused by the operator''s open row, nor refuse it — one shift, '
+  'two rungs, two rows');
+
+SELECT pg_temp.check(
+  'a SECOND escalation for the same person and shift is REFUSED',
+  pg_temp.raises_as_role('postgres',
+    $$INSERT INTO public.shift_alert_log (alert_type, staff_id, shift_date, shift_type)
+      SELECT 'no_show_escalated', s.id, DATE '2026-09-11', 'night'
+      FROM public.staff s WHERE s.user_id = 'a6000000-0000-0000-0000-00000000000f'$$),
+  'without this the admins are told every two minutes for the rest of the shift');
+
 SELECT pg_temp.check(
   'an invented alert type is still REFUSED',
   pg_temp.raises_as_role('postgres',

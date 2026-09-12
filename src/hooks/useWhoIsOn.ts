@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { INTERVALS, STALE_TIMES } from "@/config/constants";
+import { heartbeatIsFresh } from "../../supabase/functions/_shared/presence";
 import type { ShiftType } from "@/config/shifts";
 import {
   SHIFT_BOUNDS,
@@ -67,16 +68,17 @@ export interface WhoIsOn {
 /**
  * How stale a heartbeat may be before presence stops counting.
  *
- * The same 90 seconds as `HEARTBEAT_STALE_SECONDS` in `staff-shift-monitor`, which is where the
- * number comes from: that runner marks a presence row offline at 90s and raises a disconnection
- * alert. A strip using a different threshold would disagree with the alert for the difference
- * between the two — reading "present" for a minute after the runner had already said otherwise.
+ * IT IS NOW THE SAME CONSTANT, not the same number written twice. This file used to declare its
+ * own 90, with a comment saying it matched `staff-shift-monitor`'s and a test that read the
+ * runner's source to check they had not drifted. Two constants that agree by test are still two
+ * constants — the test only says they have not drifted YET — and the runner and this strip
+ * answering "is this person here" differently is precisely the defect that filled a bell with
+ * no-show alerts about somebody who was at his desk.
  *
- * Not imported from the function because that constant is module-private there; the value is
- * pinned by src/test/whoIsOn.test.ts, which reads the runner's source and fails if the two ever
- * drift apart.
+ * `_shared/presence.ts` is importable from both the edge runtime and here, the way
+ * `notifyMatrix.ts` already imports the router's event list across that boundary.
  */
-export const HEARTBEAT_STALE_SECONDS = 90;
+export { HEARTBEAT_STALE_SECONDS } from "../../supabase/functions/_shared/presence";
 
 /** The shift after `type`, in cycle order. */
 function nextShiftType(type: ShiftType): ShiftType {
@@ -121,17 +123,17 @@ export function useWhoIsOn(enabled = true) {
       }
 
       const onDutyIds = new Set((duty.data ?? []).map((s) => s.id));
-      const staleBefore = Date.now() - HEARTBEAT_STALE_SECONDS * 1000;
+      const nowMs = Date.now();
       const presenceById = new Map(
         (presence.data ?? []).map((p) => [
           p.staff_id as string,
           {
             // `is_online` alone is not enough: the runner only clears it when it next runs, so a
-            // browser closed two minutes ago still reads as online until then.
+            // browser closed two minutes ago still reads as online until then. The freshness
+            // rule is the shared one, so this strip and the alert cannot disagree about the same
+            // heartbeat.
             present:
-              !!p.is_online &&
-              !!p.last_heartbeat_at &&
-              Date.parse(p.last_heartbeat_at as string) >= staleBefore,
+              !!p.is_online && heartbeatIsFresh(p.last_heartbeat_at as string | null, nowMs),
             lastHeartbeatAt: (p.last_heartbeat_at as string | null) ?? null,
           },
         ]),

@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { getShiftContext } from "../_shared/shift-time.ts";
+import { HEARTBEAT_STALE_SECONDS, presenceState } from "../_shared/presence.ts";
 
 /**
  * Staff Shift Monitor
@@ -23,8 +24,12 @@ const FN = "staff-shift-monitor";
 // Grace period after shift start before alerting (in minutes)
 const NO_SHOW_GRACE_MINUTES = 5;
 
-// Heartbeat staleness threshold (in seconds) — 90s means 3 missed 30s heartbeats
-const HEARTBEAT_STALE_SECONDS = 90;
+// Every shift is eight hours. Used to tell "five minutes late" from "that shift ended two hours
+// ago", which is what the view's UTC clock can make a Madrid morning look like.
+const SHIFT_LENGTH_MINUTES = 8 * 60;
+
+// Heartbeat staleness threshold now lives in `_shared/presence.ts`, because `useWhoIsOn` needs
+// the same number and two constants that agree by test are still two constants.
 
 // Dead-man's-switch for sos-escalation-runner.
 const ESCALATION_HEARTBEAT_KEY = "ops_sos_escalation_last_run_at";
@@ -83,50 +88,135 @@ serve(async (req) => {
 
     const stats = {
       noShowAlerts: 0,
+      /** Scheduled, at the desk, and never pressed "On duty". Not an alert — see CHECK 1. */
+      presentNotOnDuty: 0,
       noCoverageAlerts: 0,
       disconnectedAlerts: 0,
     };
 
     // ================================================================
-    // CHECK 1: No-show — scheduled staff who haven't signed in
+    // CHECK 1: No-show — scheduled staff who are NOT THERE
+    //
+    // "Not there" is the whole question, and this used to answer it with one column:
+    // `staff.is_on_call`, which is set by pressing "On duty". An operator who worked a night
+    // shift with the platform open, heartbeat every thirty seconds, and never pressed the button
+    // was ABSENT as far as this runner was concerned. The platform knew he was there —
+    // `staff_presence` said so, and the supervisor's "who is on now" strip has been reading
+    // exactly that to show him as PRESENT the whole time. Two answers to one question, on one
+    // set of rows. `_shared/presence.ts` is now the only answer.
     // ================================================================
-    if (minutesSinceShiftStart >= NO_SHOW_GRACE_MINUTES) {
-      // Get staff scheduled for current shift
+    {
+      // The scheduled rows carry their OWN shift_date and shift_type. Both are selected now and
+      // both are used, because the runner used to log its own: `staff_on_shift_now` filters on
+      // CURRENT_DATE/CURRENT_TIME — the DATABASE's clock — while this keys on Europe/Madrid, so
+      // across midnight the two disagree and every disagreement was a fresh dedupe key for the
+      // same person and the same shift. The scheduled row is the fact; the runner's clock is an
+      // opinion about it.
       const { data: scheduledStaff } = await supabase
         .from("staff_on_shift_now")
-        .select("staff_id, first_name, last_name, shift_type");
+        .select("staff_id, first_name, last_name, shift_type, shift_date");
 
       if (scheduledStaff && scheduledStaff.length > 0) {
-        // Get who is actually on call
-        const { data: onCallStaff } = await supabase
-          .from("staff")
-          .select("id, first_name, last_name, personal_mobile")
-          .eq("is_on_call", true);
+        const scheduledIds = [...new Set(scheduledStaff.map((s) => s.staff_id))];
+
+        const [{ data: onCallStaff }, { data: presenceRows }] = await Promise.all([
+          supabase.from("staff").select("id").eq("is_on_call", true).in("id", scheduledIds),
+          supabase
+            .from("staff_presence")
+            .select("staff_id, is_online, last_heartbeat_at")
+            .in("staff_id", scheduledIds),
+        ]);
 
         const onCallIds = new Set((onCallStaff || []).map((s) => s.id));
+        const presenceByStaff = new Map(
+          (presenceRows || []).map((p) => [p.staff_id, p]),
+        );
 
         for (const scheduled of scheduledStaff) {
-          if (onCallIds.has(scheduled.staff_id)) continue; // They signed in, skip
+          const shiftType = (scheduled.shift_type ?? currentShift) as keyof typeof SHIFTS;
+          const shiftDate = scheduled.shift_date ?? today;
 
-          // Check deduplication
+          /*
+            HOW FAR INTO *THIS* SHIFT, in Madrid — not how far into the runner's idea of the
+            current one. Between 07:00 and 09:00 Madrid the view still returns last night's NIGHT
+            row (its third branch keys on CURRENT_DATE - 1 and a UTC clock), and the runner used
+            to treat that person as five minutes into the MORNING shift and alert accordingly.
+            Measured from the scheduled shift's own start, that row is nine hours in — past its
+            end — so the shift is over and there is nobody to chase.
+          */
+          const bounds = SHIFTS[shiftType];
+          if (!bounds) continue;
+          const minutesIntoShift =
+            (((shiftCtx.hour - bounds.start + 24) % 24) * 60) + shiftCtx.minute;
+
+          if (minutesIntoShift < NO_SHOW_GRACE_MINUTES) continue; // still inside the grace period
+
+          if (minutesIntoShift >= SHIFT_LENGTH_MINUTES) {
+            // The view says this row is current and Madrid says the shift has ended. That is the
+            // two clocks disagreeing, and it is worth a log line rather than an alert.
+            log({
+              event: "scheduled_row_outside_its_own_shift",
+              shift_type: shiftType,
+              shift_date: shiftDate,
+              minutes_into_shift: minutesIntoShift,
+              madrid_shift: currentShift,
+            });
+            continue;
+          }
+
+          const state = presenceState(
+            {
+              isOnCall: onCallIds.has(scheduled.staff_id),
+              isOnline: presenceByStaff.get(scheduled.staff_id)?.is_online,
+              lastHeartbeatAt: presenceByStaff.get(scheduled.staff_id)?.last_heartbeat_at,
+            },
+            now.getTime(),
+          );
+
+          if (state === "on_duty") continue;
+
+          if (state === "present_not_on_duty") {
+            /*
+              HERE, BUT THE ALERTS DO NOT KNOW IT. Not a no-show: telling a supervisor at three in
+              the morning that nobody turned up, when somebody did, is how a real alert stops
+              being believed — and this is the exact case that produced the flood.
+
+              It still matters, because alert routing reads `is_on_call`, so a shift worked
+              without pressing the button is a shift whose alerts go to nobody. The NUDGE that
+              says so needs a once-per-shift row of its own to sit in, and `shift_alert_log`'s
+              CHECK constraint allows three alert types today. Until that migration lands this is
+              recorded and not sent, which is the quiet half of the fix rather than the whole of
+              it.
+            */
+            stats.presentNotOnDuty++;
+            log({
+              event: "present_but_not_on_duty",
+              staff_id: scheduled.staff_id,
+              shift_type: shiftType,
+              shift_date: shiftDate,
+              minutes_into_shift: minutesIntoShift,
+            });
+            continue;
+          }
+
+          // ── a real no-show ──────────────────────────────────────────────────
           const { data: existing } = await supabase
             .from("shift_alert_log")
             .select("id")
             .eq("alert_type", "no_show")
             .eq("staff_id", scheduled.staff_id)
-            .eq("shift_date", today)
-            .eq("shift_type", currentShift)
+            .eq("shift_date", shiftDate)
+            .eq("shift_type", shiftType)
             .is("resolved_at", null)
             .maybeSingle();
 
           if (existing) continue; // Already alerted
 
-          // Insert alert log
           await supabase.from("shift_alert_log").insert({
             alert_type: "no_show",
             staff_id: scheduled.staff_id,
-            shift_date: today,
-            shift_type: currentShift,
+            shift_date: shiftDate,
+            shift_type: shiftType,
           });
 
           const staffName = `${scheduled.first_name} ${scheduled.last_name}`.trim();
@@ -145,8 +235,8 @@ serve(async (req) => {
                 entity_id: scheduled.staff_id,
                 payload: {
                   staff_name: staffName,
-                  shift_type: currentShift,
-                  shift_time: `${SHIFTS[currentShift as keyof typeof SHIFTS].start}:00`,
+                  shift_type: shiftType,
+                  shift_time: `${bounds.start}:00`,
                 },
               }),
             });
@@ -155,7 +245,6 @@ serve(async (req) => {
           }
 
           // Notify the staff member directly
-          // Look up their mobile from the staff table
           const { data: staffRecord } = await supabase
             .from("staff")
             .select("personal_mobile")
@@ -175,7 +264,7 @@ serve(async (req) => {
                   message_type: "no_show",
                   staff_name: staffName,
                   phone_number: staffRecord.personal_mobile,
-                  shift_type: currentShift,
+                  shift_type: shiftType,
                 }),
               });
             } catch (err) {
@@ -184,7 +273,7 @@ serve(async (req) => {
           }
 
           stats.noShowAlerts++;
-          console.log(`No-show alert: ${staffName} for ${currentShift} shift`);
+          log({ event: "no_show_alert", shift_type: shiftType, shift_date: shiftDate });
         }
       }
     }

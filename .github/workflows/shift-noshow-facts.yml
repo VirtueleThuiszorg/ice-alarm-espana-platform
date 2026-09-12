@@ -1,0 +1,76 @@
+name: Shift no-show facts
+
+# ASK PRODUCTION WHAT ACTUALLY HAPPENED, BEFORE CHANGING THE RUNNER THAT DECIDES IT.
+#
+# `staff-shift-monitor` is a safety runner. Three different defects in it would each produce "the
+# bell is full of no-show alerts about somebody who was working", and they need three different
+# fixes — a dedupe read that cannot see a set, duplicate shift rows, or the view's `CURRENT_DATE`
+# disagreeing with the runner's Europe/Madrid shift date across midnight. Picking one by reading
+# the code is how the wrong one gets fixed and the flood returns on the next night shift.
+#
+# So this job reads the rows and prints them into the job summary, where they can be pasted into
+# the PR that then changes the code.
+#
+# IT RUNS HERE, like the Stripe rehearsal (#419), BECAUSE THE CREDENTIALS ALREADY LIVE HERE.
+# `SUPABASE_SERVICE_ROLE_KEY` is an Actions secret, mapped into `env` for the one step that uses
+# it and never echoed. Nobody has to copy a service-role key onto a laptop to answer a question.
+#
+# READ-ONLY, AND PROVABLY SO. The script's only `fetch` hard-codes `method: "GET"`, and PostgREST
+# maps GET to SELECT — there is no request it can make that writes a row.
+# `src/test/shiftNoShowFacts.test.ts` asserts that against the source, and asserts that no column
+# list asks for a phone number, so a later edit cannot quietly add a POST or start printing PII
+# into a log every collaborator can read.
+#
+# MANUAL ONLY, and NOT A GATE. `workflow_dispatch` and nothing else: this answers a question
+# somebody is asking, and main does not wait on production being reachable.
+
+on:
+  workflow_dispatch:
+    inputs:
+      staff_name:
+        description: "Whose alerts to explain, as first and last name"
+        required: true
+        default: "Travis Nelison"
+      days:
+        description: "How many days back to read"
+        required: true
+        default: "7"
+
+concurrency:
+  group: shift-noshow-facts
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  facts:
+    name: Read the facts from production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # A MISSING SECRET FAILS THIS JOB, it does not skip it and report green.
+      # `scripts/ci/require-secrets.mjs` is the one implementation of that rule, and
+      # `src/test/ciJobIsolation.test.ts` enforces its use across every workflow here.
+      - name: Require production read credentials
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/ci/require-secrets.mjs SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY
+
+      - name: Read the facts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STAFF_NAME: ${{ inputs.staff_name }}
+          DAYS: ${{ inputs.days }}
+        run: node scripts/ops/shift-noshow-facts.mjs

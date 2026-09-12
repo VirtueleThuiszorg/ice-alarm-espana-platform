@@ -4,21 +4,42 @@ import { supabase } from "@/integrations/supabase/client";
 export const HEARTBEAT_INTERVAL_MS = 30_000; // 30 seconds
 
 /**
- * Sends periodic heartbeat pings to staff_presence while the staff member is on duty.
- * Also listens for browser online/offline events to update presence immediately.
+ * Sends periodic heartbeat pings to `staff_presence` while a staff member has the platform open.
  *
  * PRESENCE IS NOT DUTY, and the two must not be confused. `staff.is_on_call` is a DECLARATION —
  * an operator says "I am on duty" and the escalation ladder trusts it, calling their mobile.
  * `staff_presence` is an OBSERVATION: is a browser of theirs alive right now. So a closed tab
  * marks them offline here and leaves the declaration alone (Lee's dashboard notes, 9 Sep, item 7).
  *
- * `session_started_at` IS ONLY WRITTEN ONCE PER DUTY PERIOD. It used to be sent with every ping
- * — `session_started_at: new Date().toISOString()` inside the interval — so it always equalled
+ * ── WHY THIS NO LONGER TAKES `isOnDuty` ─────────────────────────────────────
+ *
+ * It used to return early unless the operator was on duty, so the ping only ever ran while
+ * `staff.is_on_call` was true. That made the OBSERVATION a function of the DECLARATION — the two
+ * things this comment says must not be confused — and it emptied out the state the whole no-show
+ * fix turns on.
+ *
+ * `supabase/functions/_shared/presence.ts` defines three states, and its second is
+ * PRESENT-BUT-NOT-ON-DUTY: "a fresh heartbeat and no button". Its header describes exactly the
+ * operator this work is about — one "who worked a whole night shift with the platform open,
+ * SENDING A HEARTBEAT EVERY THIRTY SECONDS, but who never pressed that button". That sentence was
+ * not true of this hook. With the gate in place the middle state was unreachable: a heartbeat
+ * could only be fresh when `is_on_call` was already true, in which case the person is ON DUTY and
+ * the second branch of the rule never decides anything.
+ *
+ * Production bears it out. Travis Nelison's row (SHIFT_NOSHOW_FINDINGS.md) had
+ * `last_heartbeat_at` EQUAL TO `session_started_at` to the millisecond, three days stale, while
+ * `is_on_call` was false — the signature of a session that pinged once, when the button was last
+ * pressed, and never again.
+ *
+ * So the gate is gone. A signed-in staff member with the platform open is observed as present,
+ * which is what "observation" means, and the declaration is left entirely alone.
+ *
+ * `session_started_at` IS ONLY WRITTEN ONCE PER SESSION. It used to be sent with every ping —
+ * `session_started_at: new Date().toISOString()` inside the interval — so it always equalled
  * `last_heartbeat_at`, and "on duty since" read as "on duty for 0 seconds" forever. The first
- * ping of a period upserts it; every later ping updates only the two fields it actually
- * observes.
+ * ping upserts it; every later ping updates only the two fields it actually observes.
  */
-export function useStaffHeartbeat(staffId: string | null, isOnDuty: boolean) {
+export function useStaffHeartbeat(staffId: string | null) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   /** False until the first ping of the current duty period has been sent. */
   const sessionOpenRef = useRef(false);
@@ -71,26 +92,15 @@ export function useStaffHeartbeat(staffId: string | null, isOnDuty: boolean) {
   }, [staffId]);
 
   useEffect(() => {
-    if (!staffId || !isOnDuty) {
-      // NOTHING TO CLEAR HERE. This branch used to call clearInterval as well, which read like
-      // the line doing the work — but React runs the previous effect's cleanup BEFORE this body
-      // on every dependency change, and that cleanup already clears the interval. A mutation
-      // deleting the copy here changed no behaviour and no test, which is what dead code looks
-      // like from the outside; the cleanup below is the single place that stops the timer.
-      //
-      // Mark offline when going OFF duty — but only if a session of ours was open.
-      //
-      // This effect's own cleanup already calls markOffline, and it runs first when `isOnDuty`
-      // flips, so an unguarded call here wrote `is_online = false` TWICE on every transition.
-      // The guard also means a page loaded while off duty writes nothing at all: we have
-      // observed nothing about that operator's presence, and saying so is the honest answer —
-      // a stale `is_online` from a crashed tab is staff-shift-monitor's job, not a guess made
-      // by whichever browser happens to open next.
-      if (staffId && !isOnDuty && sessionOpenRef.current) {
-        markOffline();
-      }
-      return;
-    }
+    // NOTHING TO CLEAR HERE. React runs the previous effect's cleanup BEFORE this body on every
+    // dependency change, and that cleanup already clears the interval. The cleanup below is the
+    // single place that stops the timer.
+    //
+    // Going OFF DUTY no longer stops the ping or marks anybody offline. Duty is a declaration
+    // about routing; presence is an observation about a browser. An operator who presses "Off
+    // duty" and keeps the tab open is still THERE, and saying otherwise is what made the middle
+    // state unreachable.
+    if (!staffId) return;
 
     // Send initial heartbeat immediately
     sendHeartbeat();
@@ -121,5 +131,5 @@ export function useStaffHeartbeat(staffId: string | null, isOnDuty: boolean) {
       // Mark offline on unmount (tab close / navigation away)
       markOffline();
     };
-  }, [staffId, isOnDuty, sendHeartbeat, markOffline]);
+  }, [staffId, sendHeartbeat, markOffline]);
 }

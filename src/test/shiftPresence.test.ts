@@ -2,13 +2,20 @@
  * WHAT COUNTS AS BEING AT WORK — the decision that filled a bell with alerts about a man at his desk.
  *
  * `staff-shift-monitor` answered "did this person turn up" with one column, `staff.is_on_call`,
- * which is set by pressing "On duty". Travis worked a night shift with the platform open, sending
- * a heartbeat every thirty seconds, and never pressed it. He was ABSENT as far as the runner was
- * concerned, and the notifications said so, repeatedly, all night.
+ * which is set by pressing "On duty". Travis worked a night shift with the platform open and
+ * never pressed it. He was ABSENT as far as the runner was concerned, and the notifications said
+ * so, repeatedly, all night.
  *
- * The platform knew he was there the whole time — `staff_presence` said so, and the supervisor's
- * "who is on now" strip rendered him as PRESENT off exactly those rows. One question, two
- * answers, because the runner and the strip each had their own idea of what presence is.
+ * `staff_presence` was supposed to know better, and the supervisor's "who is on now" strip
+ * renders PRESENT off exactly those rows. One question, two answers, because the runner and the
+ * strip each had their own idea of what presence is.
+ *
+ * A CORRECTION THIS HEADER USED TO CARRY: it said Travis was "sending a heartbeat every thirty
+ * seconds". He was not. `useStaffHeartbeat` took an `isOnDuty` argument and returned early unless
+ * it was set, so the ping ran only while `is_on_call` was already true — and the rule below,
+ * *present = on duty OR fresh heartbeat*, had a second branch that could never decide anything.
+ * The shared answer was right and inert. The gate is gone; the last block in this file is what
+ * keeps it gone.
  *
  * These tests are about the shared answer: the three states, the freshness rule, and the two
  * clocks that made one shift look like two.
@@ -187,5 +194,58 @@ describe("the arithmetic of that window", () => {
 
   it("gives the supervisor fifteen minutes before being told about a missing button", () => {
     expect(NOT_ON_DUTY_ESCALATE_MINUTES).toBe(15);
+  });
+});
+
+
+// ── the input the rule depends on ───────────────────────────────────────────
+describe("the middle state is REACHABLE, which is what makes the rule mean anything", () => {
+  const HOOK = readFileSync(join(process.cwd(), "src/hooks/useStaffHeartbeat.ts"), "utf8");
+  const HEADER = readFileSync(
+    join(process.cwd(), "src/components/layout/CallCentreHeader.tsx"),
+    "utf8",
+  );
+
+  it("the heartbeat hook takes no duty argument at all", () => {
+    /*
+      THE DEFECT, IN ONE SIGNATURE. `useStaffHeartbeat(staffId, isOnDuty)` returned early unless
+      `isOnDuty`, so `staff_presence` could only move when `staff.is_on_call` was already true.
+      Everything below about three states was then describing two.
+
+      Asserted against the signature rather than the behaviour because this is how it would come
+      back: somebody adds the parameter to "avoid pointless writes while off duty", which is
+      exactly the write the monitor needs.
+    */
+    const signature = /export function useStaffHeartbeat\(([^)]*)\)/.exec(HOOK)?.[1] ?? "";
+    expect(signature).toContain("staffId");
+    expect(signature.toLowerCase()).not.toContain("onduty");
+    expect(signature.toLowerCase()).not.toContain("oncall");
+  });
+
+  it("and nothing in the hook branches on duty", () => {
+    const code = HOOK.replace(/\/\*[\s\S]*?\*\//g, "")
+      .split("\n")
+      .filter((line) => !/^\s*\/\//.test(line))
+      .join("\n");
+    expect(code).not.toMatch(/isOnDuty/);
+    expect(code).not.toMatch(/is_on_call/);
+  });
+
+  it("the call site passes only the staff id", () => {
+    const call = /useStaffHeartbeat\(([^;]*)\);/.exec(HEADER)?.[1] ?? "";
+    expect(call).toContain("staffInfo");
+    expect(call).not.toContain(",");
+  });
+
+  it("so an off-duty operator with a live browser resolves to present_not_on_duty", () => {
+    // The end of the chain: what the client now writes, read by the rule the runner uses.
+    // Before the gate came off, this combination could not occur — `isOnline` only became true
+    // while `isOnCall` was true, and the first branch decided first.
+    expect(
+      presenceState({ isOnCall: false, isOnline: true, lastHeartbeatAt: ago(30) }, NOW),
+    ).toBe("present_not_on_duty");
+    expect(isPresent({ isOnCall: false, isOnline: true, lastHeartbeatAt: ago(30) }, NOW)).toBe(
+      true,
+    );
   });
 });

@@ -89,8 +89,14 @@ export function CallCentreHeader() {
 
   const isOnDuty = !!staffInfo?.is_on_call;
 
-  // Heartbeat — sends presence pings every 30s while on duty
-  useStaffHeartbeat(staffInfo?.id ?? null, isOnDuty);
+  /*
+    Heartbeat — presence pings every 30s while this staff member has the platform open.
+
+    NOT gated on `isOnDuty`. It was, and that made `staff_presence` a mirror of
+    `staff.is_on_call` rather than an independent observation: the PRESENT-BUT-NOT-ON-DUTY state
+    that staff-shift-monitor exists to distinguish could never occur. See useStaffHeartbeat.
+  */
+  useStaffHeartbeat(staffInfo?.id ?? null);
 
   // Check if current staff is on a scheduled shift
   const isOnScheduledShift = onShiftNow?.some(

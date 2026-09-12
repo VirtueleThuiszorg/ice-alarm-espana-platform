@@ -126,8 +126,39 @@ signed-in operator — a question about the client heartbeat, not about the moni
   notification type, because `notification_log` has no title column and the mapper used
   `event_type`.
 
-## Still open
+## The heartbeat question: ANSWERED, and it was reading 1
 
-- **The heartbeat**, above. The first thing to check.
+> Added 12 September 2026, from the code rather than from production — the answer was in the
+> client all along and needed no query.
+
+`useStaffHeartbeat` took an `isOnDuty` argument and returned early unless it was set:
+
+```ts
+export function useStaffHeartbeat(staffId: string | null, isOnDuty: boolean) {
+  ...
+  if (!staffId || !isOnDuty) { ...; return; }   // no ping, no interval
+```
+
+and `CallCentreHeader` passed `isOnDuty = !!staffInfo?.is_on_call`.
+
+So `last_heartbeat_at` advanced **only while `staff.is_on_call` was already true**. Reading 1 of
+the two above — "the heartbeat is not being written" — is correct, and the millisecond-exact
+equality is its signature: one ping, sent when the button was last pressed on 9 September, and
+nothing since.
+
+**What that means for the fix shipped this week.** The rule in `_shared/presence.ts` is
+*present = on duty OR fresh heartbeat*. Its second branch could never decide anything, because a
+heartbeat could only be fresh when the first branch was already true. PRESENT-BUT-NOT-ON-DUTY —
+the state the nudge exists for, and the state Travis was actually in — **was unreachable in
+production**. The three states were two wearing a third's name, and #436 would not by itself have
+stopped these six alerts, exactly as this document suspected.
+
+The gate is removed and the table comment corrected
+(`20260912140000_presence_is_not_duty.sql`); presence is now observed for any signed-in staff
+session, on duty or not, which is what "observation" means. The header of `_shared/presence.ts`
+claimed the operator had been "sending a heartbeat every thirty seconds" — that sentence was
+false when written and is true now; it has been corrected rather than quietly left.
+
+## Still open
 - `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are **not set** as repository secrets, though
   three workflows name the latter. Whatever in them needs it has never worked.

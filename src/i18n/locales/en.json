@@ -6349,6 +6349,14 @@
         "title": "An operator lost connection mid-shift",
         "body": "They were on duty and their heartbeat stopped."
       },
+      "shift_not_on_duty": {
+        "title": "You are scheduled and online — press On duty",
+        "body": "Goes to the operator alone. They are at the desk, but alerts route by `is_on_call`, so until they press the button their shift's alerts reach nobody. Not a no-show: they turned up."
+      },
+      "shift_signed_in_after_alert": {
+        "title": "Somebody reported missing has signed in",
+        "body": "The retraction. An open no-show closed itself because the person arrived — sent once, so the alarm is answered rather than left standing."
+      },
       "shift_no_coverage": {
         "title": "Nobody is on duty",
         "body": "No operator is signed in. Immediate cover is needed."

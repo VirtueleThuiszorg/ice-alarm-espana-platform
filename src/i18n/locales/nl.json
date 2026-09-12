@@ -6349,6 +6349,14 @@
         "title": "Een operator is tijdens de dienst de verbinding verloren",
         "body": "Deze stond op dienst en het hartslagsignaal is gestopt."
       },
+      "shift_not_on_duty": {
+        "title": "U staat ingeroosterd en bent online — druk op “Op dienst”",
+        "body": "Gaat alleen naar de operator. Deze zit achter het bureau, maar meldingen worden gerouteerd op `is_on_call`, dus tot de knop is ingedrukt bereiken de meldingen van die dienst niemand. Geen no-show: de persoon is er."
+      },
+      "shift_signed_in_after_alert": {
+        "title": "Iemand die als afwezig gemeld was, heeft zich aangemeld",
+        "body": "De intrekking. Een openstaande no-show is vanzelf gesloten doordat de persoon alsnog kwam — één keer verstuurd, zodat het alarm beantwoord is en niet blijft staan."
+      },
       "shift_no_coverage": {
         "title": "Er is niemand op dienst",
         "body": "Geen enkele operator is aangemeld. Er is direct dekking nodig."

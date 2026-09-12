@@ -6349,6 +6349,14 @@
         "title": "Un operador ha perdido la conexión durante el turno",
         "body": "Estaba de servicio y su señal se ha detenido."
       },
+      "shift_not_on_duty": {
+        "title": "Está en turno y conectado — pulse «De servicio»",
+        "body": "Se envía solo al operador. Está en su puesto, pero las alertas se dirigen según `is_on_call`, así que hasta que pulse el botón las alertas de su turno no llegan a nadie. No es una ausencia: ha acudido."
+      },
+      "shift_signed_in_after_alert": {
+        "title": "Alguien dado por ausente ha fichado",
+        "body": "La retractación. Un aviso de ausencia abierto se ha cerrado solo porque la persona ha llegado — se envía una vez, para que la alarma quede respondida y no en pie."
+      },
       "shift_no_coverage": {
         "title": "No hay nadie de servicio",
         "body": "Ningún operador ha fichado. Hace falta cobertura inmediata."

@@ -82,6 +82,7 @@ vi.mock("@/pages/admin/RotaPage", () => ({
 import CallCentreRotaPage from "@/pages/call-centre/RotaPage";
 import { CallCentreSidebar } from "@/components/layout/CallCentreSidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const renderAs = (role: string | null) => {
   mockStaffRole.mockReturnValue(role);
@@ -254,12 +255,26 @@ describe("the sidebar offers it to the right people, without disturbing the pinn
 describe("what the sidebar actually renders", () => {
   const renderSidebar = (role: string | null) => {
     mockStaffRole.mockReturnValue(role);
+    /*
+      A QueryClientProvider, because the sidebar now prefetches on hover.
+
+      `usePrefetchRoute` warms the route's chunk AND its parameter-free data, so
+      it reads the query client. In the app the sidebar is always inside App's
+      provider; here it was rendered bare. Supplying one is the honest fix — a
+      nav that quietly worked without a client would be hiding a real
+      misconfiguration rather than tolerating one.
+    */
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     return render(
-      <MemoryRouter initialEntries={["/call-centre"]}>
-        <TooltipProvider>
-          <CallCentreSidebar />
-        </TooltipProvider>
-      </MemoryRouter>,
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={["/call-centre"]}>
+          <TooltipProvider>
+            <CallCentreSidebar />
+          </TooltipProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
   };
 

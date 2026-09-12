@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow, format } from "date-fns";
 import { useAlertsRealtime } from "@/hooks/useAlertsRealtime";
+import { STALE_TIMES } from "@/config/constants";
 
 interface DeviceAlert {
   id: string;
@@ -44,6 +45,8 @@ export function DeviceAlertsPanel() {
   // Fetch open device_offline alerts
   const { data: alerts, isLoading } = useQuery({
     queryKey: ["device-offline-alerts"],
+    // The operator's view of the queue is never served from cache.
+    staleTime: STALE_TIMES.LIVE,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("alerts")

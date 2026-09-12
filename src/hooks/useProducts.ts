@@ -27,19 +27,24 @@ export interface ProductInput {
   is_active?: boolean;
 }
 
+/**
+ * The query itself, separate from the hook that calls it — so `usePrefetchRoute`
+ * can warm it on hover from `src/lib/routeData.ts` without a second copy of the
+ * key or the fetcher. One definition, two callers; a key that drifted between
+ * them would silently prefetch into a cache entry the page never reads.
+ */
+export const productsQuery = {
+  queryKey: ["products"] as const,
+  queryFn: async (): Promise<Product[]> => {
+    const { data, error } = await supabase.from("products").select("*").order("name");
+
+    if (error) throw error;
+    return data as Product[];
+  },
+};
+
 export function useProducts() {
-  return useQuery({
-    queryKey: ["products"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .order("name");
-      
-      if (error) throw error;
-      return data as Product[];
-    },
-  });
+  return useQuery(productsQuery);
 }
 
 export function useCreateProduct() {

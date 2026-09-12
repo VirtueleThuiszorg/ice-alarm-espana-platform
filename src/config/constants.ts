@@ -125,7 +125,20 @@ export const INTERVALS = {
 // ============================================================
 
 export const STALE_TIMES = {
-  /** Near-real-time data (alerts, dashboards) */
+  /**
+   * NEVER FROM CACHE. The alert queue an operator is deciding from, and anything
+   * else on the SOS path.
+   *
+   * `REALTIME` below is 30 seconds, which is the right trade for a dashboard
+   * tile and the wrong one for the screen somebody answers a pendant press on:
+   * opening that page could show a queue as it stood half a minute ago. Realtime
+   * pushes the changes; this makes sure the first render is not already behind.
+   *
+   * Raising this to save a request would be saving the request the product is
+   * for.
+   */
+  LIVE: 0,
+  /** Near-real-time data (dashboard tiles, counters) */
   REALTIME: 30 * 1000, // 30 seconds
   /** Frequently updated data (messages, tasks) */
   SHORT: 1000 * 60, // 1 minute

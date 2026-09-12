@@ -57,14 +57,31 @@ import { join, dirname, resolve, relative } from "node:path";
 const REPO = resolve(dirname(new URL(import.meta.url).pathname), "../..");
 const SRC = join(REPO, "src");
 
-/** Every .ts/.tsx under src/, excluding tests and generated type files. */
+/**
+ * Every .ts/.tsx under src/, excluding tests, type declarations and GENERATED
+ * modules.
+ *
+ * `*.generated.ts` is excluded because of what one of them is: the route
+ * prefetch map (src/lib/routeModules.generated.ts) holds a dynamic import of
+ * EVERY page, so that hovering a link can warm its chunk. Fed into the import
+ * graph below, it makes whatever imports it — the prefetch hook, then every
+ * sidebar, then every layout — an importer of every page at once, and the route
+ * attribution collapses: 50 wires dropped to score 4 and the register gained
+ * 449 lines of rows that had simply lost track of where they belong.
+ *
+ * That is the right call rather than a convenient one. This register is about
+ * WIRES — a control, where its data goes, who finds out. A generated prefetch
+ * map contains no controls and sends nothing anywhere; it is a build-time
+ * routing artefact. Hand-written modules are all still walked, so nothing a
+ * person wrote can hide here.
+ */
 function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
     if (statSync(p).isDirectory()) {
       if (name === "test" || name === "__tests__") continue;
       walk(p, out);
-    } else if (/\.tsx?$/.test(name) && !/\.d\.ts$/.test(name)) {
+    } else if (/\.tsx?$/.test(name) && !/\.d\.ts$/.test(name) && !/\.generated\.tsx?$/.test(name)) {
       out.push(p);
     }
   }

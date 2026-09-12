@@ -15,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "react-i18next";
 import { getPendantFinalPrice } from "@/config/pricing";
+import { STALE_TIMES } from "@/config/constants";
 
 export default function EV07BPage() {
   const { t } = useTranslation();
@@ -31,6 +32,8 @@ export default function EV07BPage() {
   // Open alerts count
   const { data: openAlerts } = useQuery({
     queryKey: ["ev07b-open-alerts-count"],
+    // The operator's view of the queue is never served from cache.
+    staleTime: STALE_TIMES.LIVE,
     queryFn: async () => {
       const { count, error } = await supabase
         .from("alerts")

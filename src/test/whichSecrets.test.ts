@@ -18,7 +18,9 @@ import { describe, it, expect } from "vitest";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const MOD = "../../scripts/ci/which-secrets.mjs";
-const { presentNames, describe: report } = (await import(/* @vite-ignore */ MOD)) as any;
+const { presentNames, describe: report, VARIABLE_PREFIX } = (await import(
+  /* @vite-ignore */ MOD
+)) as any;
 
 const NAMES = ["STRIPE_TEST_KEY", "STRIPE_SECRET_KEY_TEST", "STRIPE_SK_TEST"];
 const SECRET = "sk_test_51abcdefghijklmnop";
@@ -89,5 +91,54 @@ describe("no value, or any part of one, ever reaches the output", () => {
     const present = presentNames(NAMES, { STRIPE_TEST_KEY: SECRET });
     expect(present).toEqual(["STRIPE_TEST_KEY"]);
     expect(JSON.stringify(present)).not.toContain(SECRET);
+  });
+});
+
+/*
+  ══ THE FOURTH CAUSE, AND THE ONLY ONE THAT IS ALSO AN INCIDENT ═══════════════
+
+  `secrets` and `vars` are two stores on one settings page. A key put in the wrong one makes
+  `secrets.STRIPE_TEST_KEY` read empty — indistinguishable, from inside a job, from the secret not
+  existing at all. That is exactly what four runs saw, so it has to be ruled out explicitly.
+
+  And if it IS there, "you used the wrong tab" undersells it. GitHub stores Actions variables in
+  PLAIN TEXT: readable by anyone who can see repository settings, not masked in logs, carried into
+  the audit log as ordinary configuration. A Stripe key in one has been published to everyone with
+  repo access. So the remedy is never "repoint the workflow at `vars`" — it is move it to Secrets
+  AND ROLL THE KEY, and the message has to say so or somebody will do the convenient thing.
+*/
+describe("a key in a variable instead of a secret", () => {
+  it("is reported before anything else, because every other message would mislead", () => {
+    // Both "secret missing" and "variable set" are true here; only one of them is the point.
+    const msg = report(NAMES, [], "STRIPE_TEST_KEY", ["STRIPE_TEST_KEY"]);
+    expect(msg).toMatch(/set as an Actions VARIABLE, not a secret/);
+  });
+
+  it("says the key is EXPOSED and must be rolled, not merely relocated", () => {
+    const msg = report(NAMES, [], "STRIPE_TEST_KEY", ["STRIPE_TEST_KEY"]);
+    expect(msg).toMatch(/plain text/);
+    expect(msg).toMatch(/NOT masked in logs/);
+    expect(msg).toMatch(/ROLL IT/);
+    // THE TEMPTING WRONG FIX, named so nobody reaches for it.
+    expect(msg).toMatch(/Do not repoint the workflow at `vars`/);
+  });
+
+  it("leaks no value when it finds one, same as every other branch", () => {
+    const msg = report(NAMES, [], "STRIPE_TEST_KEY", ["STRIPE_TEST_KEY"]);
+    expect(msg).not.toContain(SECRET);
+    expect(msg).not.toMatch(/sk_test_/);
+  });
+
+  it("uses one prefix convention so the script needs to know nothing about GitHub contexts", () => {
+    const found = presentNames(
+      NAMES.map((n: string) => `${VARIABLE_PREFIX}${n}`),
+      { [`${VARIABLE_PREFIX}STRIPE_SK_TEST`]: SECRET },
+    );
+    expect(found).toEqual([`${VARIABLE_PREFIX}STRIPE_SK_TEST`]);
+  });
+
+  it("still says 'none set' when neither store has it, and mentions both", () => {
+    const msg = report(NAMES, [], "STRIPE_TEST_KEY", []);
+    expect(msg).toMatch(/as a secret OR as a variable/);
   });
 });

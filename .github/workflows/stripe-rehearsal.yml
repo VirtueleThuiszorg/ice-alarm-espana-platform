@@ -117,6 +117,19 @@ jobs:
           STRIPE_API_KEY_TEST: ${{ secrets.STRIPE_API_KEY_TEST }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_KEY: ${{ secrets.STRIPE_KEY }}
+          # THE SAME NAMES AGAIN, FROM THE OTHER TAB. `secrets` and `vars` are two different
+          # stores on one settings page, and a key put in the wrong one reads as "not set" from
+          # inside a job — indistinguishable from absent, which is exactly what four runs saw.
+          # Worth ruling out, and worth shouting about if true: a variable is stored in PLAIN TEXT
+          # and is not masked in logs, so a key found there has been exposed and must be rolled.
+          VAR_STRIPE_TEST_KEY: ${{ vars.STRIPE_TEST_KEY }}
+          VAR_STRIPE_SECRET_KEY_TEST: ${{ vars.STRIPE_SECRET_KEY_TEST }}
+          VAR_STRIPE_TEST_SECRET_KEY: ${{ vars.STRIPE_TEST_SECRET_KEY }}
+          VAR_STRIPE_SK_TEST: ${{ vars.STRIPE_SK_TEST }}
+          VAR_STRIPE_TEST_API_KEY: ${{ vars.STRIPE_TEST_API_KEY }}
+          VAR_STRIPE_API_KEY_TEST: ${{ vars.STRIPE_API_KEY_TEST }}
+          VAR_STRIPE_SECRET_KEY: ${{ vars.STRIPE_SECRET_KEY }}
+          VAR_STRIPE_KEY: ${{ vars.STRIPE_KEY }}
         run: |
           set -o pipefail
           node scripts/ci/which-secrets.mjs \

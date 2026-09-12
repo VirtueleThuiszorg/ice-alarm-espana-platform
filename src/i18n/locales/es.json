@@ -6280,6 +6280,116 @@
     "openChat": "Abrir chat"
   },
   "notifications": {
+    "event": {
+      "billing_annual_switch_due": {
+        "title": "Un miembro anual renueva en tres días",
+        "body": "No ha usado su enlace de Stripe y el banco está a punto de cobrar el pago anual. Alguien debe llamarle: si se pasa, habrá que esperar doce meses a la siguiente ocasión."
+      },
+      "billing_migration_run_failed": {
+        "title": "La migración de facturación no se ha ejecutado",
+        "body": "El proceso diario ha fallado o no ha llegado a arrancar. Nadie está pasando del cobro bancario y nada más lo va a advertir."
+      },
+      "device_offline": {
+        "title": "Un colgante ha dejado de comunicar",
+        "body": "El dispositivo no ha enviado su señal dentro del plazo previsto."
+      },
+      "escalation_call_failed": {
+        "title": "Una llamada de escalado no ha conectado",
+        "body": "Un eslabón de la cadena SOS no ha llegado a ninguna persona."
+      },
+      "escalation_contacts_not_notified": {
+        "title": "No se ha localizado a ningún contacto de emergencia",
+        "body": "Existen contactos y ninguno ha respondido."
+      },
+      "escalation_no_emergency_contacts": {
+        "title": "Un miembro no tiene contactos de emergencia",
+        "body": "No se puede llamar a nadie por él. El último eslabón nunca podrá cumplirse."
+      },
+      "ev07b_alert": {
+        "title": "Alerta de dispositivo (EV-07B)",
+        "body": "Botón SOS, caída, batería baja, geovalla o desconexión, desde el propio colgante."
+      },
+      "hot_sales": {
+        "title": "Una oportunidad de venta necesita atención",
+        "body": "Señalada desde el panel de administración."
+      },
+      "isabella_down": {
+        "title": "Isabella está fallando",
+        "body": "Una ejecución ha fallado — normalmente el saldo o la clave de la API de Anthropic. No responde a nadie hasta que se resuelva."
+      },
+      "lead_new": {
+        "title": "Llega una nueva consulta",
+        "body": "Del formulario de contacto, del asistente de alta o de un colaborador. La página de contacto promete respuesta en 24 horas."
+      },
+      "member_legacy_confirmed": {
+        "title": "Se ha confirmado un miembro heredado",
+        "body": "Alguien que la importación del CRM dejó pendiente de revisión ya está monitorizado, facturado fuera de Stripe. La única activación que no viene de un pago."
+      },
+      "member_switch_expired": {
+        "title": "Un enlace de cambio a Stripe ha caducado",
+        "body": "No lo ha utilizado. Queda de nuevo en la facturación de Santander y nadie le ha movido — este es el caso que exige una llamada."
+      },
+      "member_switch_link_sent": {
+        "title": "Se ha enviado un enlace de cambio a Stripe",
+        "body": "Se ha pedido a un miembro heredado que pase a la facturación de Stripe. Desde ese momento sale del fichero de Santander, para que nadie cobre dos veces."
+      },
+      "partner_joined": {
+        "title": "Un colaborador se ha registrado",
+        "body": "Un alta de colaborador que necesita llamada de bienvenida y configuración."
+      },
+      "payment_failed": {
+        "title": "Un pago ha fallado",
+        "body": "Se ha rechazado una tarjeta. El seguimiento continúa — el miembro no queda sin servicio — pero alguien debe llamarle."
+      },
+      "sale_paid": {
+        "title": "Una venta está pagada",
+        "body": "El webhook de pago ha activado a un miembro. La cifra con la que funciona el negocio."
+      },
+      "shift_disconnected": {
+        "title": "Un operador ha perdido la conexión durante el turno",
+        "body": "Estaba de servicio y su señal se ha detenido."
+      },
+      "shift_no_coverage": {
+        "title": "No hay nadie de servicio",
+        "body": "Ningún operador ha fichado. Hace falta cobertura inmediata."
+      },
+      "shift_no_show": {
+        "title": "Alguien no ha fichado en su turno",
+        "body": "Su turno ha comenzado y no está de servicio."
+      },
+      "shift_swap_accepted": {
+        "title": "Un cambio aceptado pendiente de aprobación",
+        "body": "Se envía a quien lo pidió y a todos los que pueden aprobarlo. Todavía no se ha movido nada en el cuadrante."
+      },
+      "shift_swap_approved": {
+        "title": "Se ha aprobado un cambio de turno",
+        "body": "Se envía a ambas personas. El cuadrante al que acuden ha cambiado."
+      },
+      "shift_swap_requested": {
+        "title": "Le piden cambiar o cubrir un turno",
+        "body": "Se envía a la persona a quien se lo piden. Su respuesta es lo que espera quien lo solicitó."
+      },
+      "sos_opened": {
+        "title": "Se ha generado una alerta",
+        "body": "Esto informa SOBRE una alerta. No forma parte de la vía SOS y no puede cambiar a quién se llama."
+      },
+      "sos_unassigned": {
+        "title": "Una alerta que nadie ha atendido",
+        "body": "Una alerta abierta sin ningún operador asignado."
+      },
+      "subscription_cancelled": {
+        "title": "Una suscripción se ha cancelado",
+        "body": "Alguien ha dejado de pagar."
+      },
+      "system_runner_failure": {
+        "title": "Ha fallado un proceso de seguridad",
+        "body": "El proceso de escalado o de vigilancia no se está ejecutando. La cadena SOS puede estar caída."
+      },
+      "test": {
+        "title": "Notificación de prueba",
+        "body": "La envía únicamente el botón «enviar una prueba», y solo a usted."
+      }
+    },
     "title": "Notificaciones",
     "markAllRead": "Marcar todo como leído",
     "empty": "Sin notificaciones",

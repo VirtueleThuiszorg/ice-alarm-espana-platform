@@ -6280,6 +6280,116 @@
     "openChat": "Chat openen"
   },
   "notifications": {
+    "event": {
+      "billing_annual_switch_due": {
+        "title": "Een jaarlid verlengt over drie dagen",
+        "body": "De Stripe-link is niet gebruikt en de bank staat op het punt de jaarbetaling af te schrijven. Iemand moet bellen — anders duurt het twaalf maanden voor de volgende kans."
+      },
+      "billing_migration_run_failed": {
+        "title": "De facturatiemigratie is niet uitgevoerd",
+        "body": "Het dagelijkse proces is mislukt of niet gestart. Er wordt niemand van de bankincasso overgezet en niets anders meldt dat."
+      },
+      "device_offline": {
+        "title": "Een hanger meldt zich niet meer",
+        "body": "Het apparaat heeft zijn controlemoment gemist."
+      },
+      "escalation_call_failed": {
+        "title": "Een escalatie-oproep kwam niet door",
+        "body": "Een schakel in de SOS-keten heeft niemand bereikt."
+      },
+      "escalation_contacts_not_notified": {
+        "title": "Geen enkel noodcontact is bereikt",
+        "body": "Er zijn contacten en geen van hen heeft opgenomen."
+      },
+      "escalation_no_emergency_contacts": {
+        "title": "Een lid heeft geen noodcontacten",
+        "body": "Er is niemand om voor hen te bellen. De laatste schakel kan nooit worden bediend."
+      },
+      "ev07b_alert": {
+        "title": "Apparaatmelding (EV-07B)",
+        "body": "SOS-knop, val, lege batterij, geofence of offline, vanaf de hanger zelf."
+      },
+      "hot_sales": {
+        "title": "Een verkoopkans vraagt aandacht",
+        "body": "Aangemeld vanaf het beheerdersdashboard."
+      },
+      "isabella_down": {
+        "title": "Isabella werkt niet",
+        "body": "Een uitvoering is mislukt — meestal het Anthropic-saldo of de API-sleutel. Zij beantwoordt niemand tot dat is opgelost."
+      },
+      "lead_new": {
+        "title": "Er is een nieuwe aanvraag",
+        "body": "Via het contactformulier, de aanmeldwizard of een partner. De contactpagina belooft antwoord binnen 24 uur."
+      },
+      "member_legacy_confirmed": {
+        "title": "Een bestaand lid is bevestigd",
+        "body": "Iemand die de CRM-import ter beoordeling had laten staan, wordt nu bewaakt en buiten Stripe gefactureerd. De enige activering die niet uit een betaling komt."
+      },
+      "member_switch_expired": {
+        "title": "Een Stripe-overstaplink is verlopen",
+        "body": "De link is niet gebruikt. Het lid staat weer op Santander-incasso en is door niemand verplaatst — hier moet gebeld worden."
+      },
+      "member_switch_link_sent": {
+        "title": "Er is een Stripe-overstaplink verstuurd",
+        "body": "Een bestaand lid is gevraagd over te stappen op facturatie via Stripe. Vanaf dat moment valt het lid uit de Santander-export, zodat niemand dubbel incasseert."
+      },
+      "partner_joined": {
+        "title": "Een partner heeft zich aangemeld",
+        "body": "Een nieuwe partnerregistratie die een welkomstgesprek en instelling nodig heeft."
+      },
+      "payment_failed": {
+        "title": "Een betaling is mislukt",
+        "body": "Een kaart is geweigerd. De bewaking loopt door — het lid wordt niet afgesloten — maar iemand moet bellen."
+      },
+      "sale_paid": {
+        "title": "Een verkoop is betaald",
+        "body": "De betaal-webhook heeft een lid geactiveerd. Het cijfer waar het bedrijf op draait."
+      },
+      "shift_disconnected": {
+        "title": "Een operator is tijdens de dienst de verbinding verloren",
+        "body": "Deze stond op dienst en het hartslagsignaal is gestopt."
+      },
+      "shift_no_coverage": {
+        "title": "Er is niemand op dienst",
+        "body": "Geen enkele operator is aangemeld. Er is direct dekking nodig."
+      },
+      "shift_no_show": {
+        "title": "Iemand heeft zich niet aangemeld voor de dienst",
+        "body": "De dienst is begonnen en deze persoon staat niet op dienst."
+      },
+      "shift_swap_accepted": {
+        "title": "Een ruil is geaccepteerd en moet worden goedgekeurd",
+        "body": "Gaat naar de aanvrager en naar iedereen die mag goedkeuren. Er is nog niets in het rooster verschoven."
+      },
+      "shift_swap_approved": {
+        "title": "Een dienstruil is goedgekeurd",
+        "body": "Gaat naar beide personen. Het rooster waar zij op afkomen is gewijzigd."
+      },
+      "shift_swap_requested": {
+        "title": "Er is gevraagd een dienst te ruilen of over te nemen",
+        "body": "Gaat naar degene aan wie het gevraagd wordt. Op dat antwoord wacht de aanvrager."
+      },
+      "sos_opened": {
+        "title": "Er is een alarm aangemaakt",
+        "body": "Dit meldt OVER een alarm. Het is niet de SOS-route en verandert niet wie er gebeld wordt."
+      },
+      "sos_unassigned": {
+        "title": "Een alarm dat niemand heeft opgepakt",
+        "body": "Een openstaand alarm zonder operator."
+      },
+      "subscription_cancelled": {
+        "title": "Een abonnement is opgezegd",
+        "body": "Iemand is gestopt met betalen."
+      },
+      "system_runner_failure": {
+        "title": "Een veiligheidsproces is uitgevallen",
+        "body": "Het escalatie- of bewakingsproces draait niet. De SOS-keten kan uit staan."
+      },
+      "test": {
+        "title": "Testmelding",
+        "body": "Wordt alleen verstuurd door de knop “een test versturen”, en alleen naar uzelf."
+      }
+    },
     "title": "Meldingen",
     "markAllRead": "Alles als gelezen markeren",
     "empty": "Geen meldingen",

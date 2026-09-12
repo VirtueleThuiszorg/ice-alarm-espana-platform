@@ -6280,6 +6280,116 @@
     "openChat": "Open chat"
   },
   "notifications": {
+    "event": {
+      "billing_annual_switch_due": {
+        "title": "An annual member is three days from renewal",
+        "body": "They have not used their Stripe link and their yearly payment is about to be taken by the bank. Somebody needs to ring them — miss it and they wait twelve months for another chance."
+      },
+      "billing_migration_run_failed": {
+        "title": "The billing migration did not run",
+        "body": "The daily runner failed or refused to start. Nobody is being moved off the bank collection and nothing else will say so."
+      },
+      "device_offline": {
+        "title": "A pendant stopped checking in",
+        "body": "The device has missed its check-in window."
+      },
+      "escalation_call_failed": {
+        "title": "An escalation call did not connect",
+        "body": "A rung of the SOS ladder did not reach a human."
+      },
+      "escalation_contacts_not_notified": {
+        "title": "No emergency contact was reached",
+        "body": "Contacts exist and none of them answered."
+      },
+      "escalation_no_emergency_contacts": {
+        "title": "A member has no emergency contacts",
+        "body": "Nobody can be called for them. The last rung can never be served."
+      },
+      "ev07b_alert": {
+        "title": "A device alert (EV-07B)",
+        "body": "SOS button, fall, low battery, geofence or offline, from the pendant itself."
+      },
+      "hot_sales": {
+        "title": "A sales opportunity needs attention",
+        "body": "Raised from the admin dashboard."
+      },
+      "isabella_down": {
+        "title": "Isabella is failing",
+        "body": "A run failed — usually the Anthropic balance or API key. She is answering nobody until it clears."
+      },
+      "lead_new": {
+        "title": "A new enquiry arrives",
+        "body": "From the contact form, the join wizard or a partner referral. The contact page promises a reply within 24 hours."
+      },
+      "member_legacy_confirmed": {
+        "title": "A legacy member was confirmed",
+        "body": "Somebody the CRM import left pending review is now monitored, billed outside Stripe. The one activation that did not come from a payment."
+      },
+      "member_switch_expired": {
+        "title": "A Stripe switch link lapsed",
+        "body": "They never used it. They are back on Santander billing and nobody has moved them — this is the one that needs somebody to ring."
+      },
+      "member_switch_link_sent": {
+        "title": "A Stripe switch link went out",
+        "body": "A legacy member has been asked to move onto Stripe billing. They have left the Santander export from this moment, so nobody collects twice."
+      },
+      "partner_joined": {
+        "title": "A partner signed up",
+        "body": "A new partner registration needs a welcome call and setup."
+      },
+      "payment_failed": {
+        "title": "A payment failed",
+        "body": "A card was declined. Monitoring continues — the member is not cut off — but somebody has to call them."
+      },
+      "sale_paid": {
+        "title": "A sale is paid",
+        "body": "The payment webhook activated a member. The number the business runs on."
+      },
+      "shift_disconnected": {
+        "title": "An operator lost connection mid-shift",
+        "body": "They were on duty and their heartbeat stopped."
+      },
+      "shift_no_coverage": {
+        "title": "Nobody is on duty",
+        "body": "No operator is signed in. Immediate cover is needed."
+      },
+      "shift_no_show": {
+        "title": "Somebody has not signed in for their shift",
+        "body": "Their shift started and they are not on duty."
+      },
+      "shift_swap_accepted": {
+        "title": "A swap was accepted and needs approving",
+        "body": "Goes to the person who asked, and to everyone who can approve it. Nothing has moved on the rota yet."
+      },
+      "shift_swap_approved": {
+        "title": "A shift swap was approved",
+        "body": "Goes to both people. The rota they turn up to has changed."
+      },
+      "shift_swap_requested": {
+        "title": "Somebody asked you to swap or cover a shift",
+        "body": "Goes to the person being asked. Their answer is what the requester is waiting on."
+      },
+      "sos_opened": {
+        "title": "An alert was raised",
+        "body": "This notifies ABOUT an alert. It is not the SOS path and cannot change who is called."
+      },
+      "sos_unassigned": {
+        "title": "An alert nobody has picked up",
+        "body": "An open alert with no operator on it."
+      },
+      "subscription_cancelled": {
+        "title": "A subscription was cancelled",
+        "body": "Somebody stopped paying."
+      },
+      "system_runner_failure": {
+        "title": "A safety runner has failed",
+        "body": "The escalation or monitoring runner is not running. The SOS ladder may be down."
+      },
+      "test": {
+        "title": "A test notification",
+        "body": "Sent only by the \"send a test\" button, to you."
+      }
+    },
     "title": "Notifications",
     "markAllRead": "Mark all read",
     "empty": "No notifications",

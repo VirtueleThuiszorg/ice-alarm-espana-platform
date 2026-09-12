@@ -7,7 +7,15 @@ export type NotificationType = "alert" | "system" | "message" | "task";
 export interface NotificationRecord {
   id: string;
   type: NotificationType;
-  title: string;
+  /**
+   * NO `title` HERE, AND THAT IS THE FIX.
+   *
+   * `notification_log` has no title column — it has `event_type` and `message` — so this mapper
+   * used to answer `title: row.event_type`, and every surface rendering it put a raw routing key
+   * (`shift.no_show`) where a sentence belongs. A title is not a property of the row; it is a
+   * translation of `type`, so it is resolved where there is a translator:
+   * `notificationTitle(type, t)` in `@/lib/notificationTitles`.
+   */
   message: string;
   read: boolean;
   created_at: string;
@@ -24,7 +32,6 @@ function mapRow(row: Record<string, unknown>): NotificationRecord {
   return {
     id: row.id as string,
     type: (row.event_type as NotificationType) ?? "system",
-    title: (row.event_type as string) ?? "Notification",
     message: (row.message as string) ?? "",
     read: (row.status as string) === "read",
     created_at: row.created_at as string,

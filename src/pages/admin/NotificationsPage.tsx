@@ -33,6 +33,7 @@ import {
   NotificationType,
 } from "@/hooks/useNotifications";
 import { notificationLink } from "@/lib/notificationLink";
+import { humaniseEventType, notificationBody, notificationTitle } from "@/lib/notificationTitles";
 
 function getNotificationIcon(type: NotificationType) {
   switch (type) {
@@ -230,14 +231,15 @@ export default function NotificationsPage() {
                             !notification.read && "font-semibold"
                           )}
                         >
-                          {notification.title}
+                          {notificationTitle(notification.type, t)}
                         </span>
+                        {/* The badge said `shift.no_show` too — a key is a key wherever it is rendered. */}
                         <Badge variant={getTypeBadgeVariant(notification.type)} className="text-[10px] px-1.5 py-0">
-                          {notification.type}
+                          {humaniseEventType(notification.type)}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-2">
-                        {notification.message}
+                        {notificationBody(notification.message, notification.type, t)}
                       </p>
                       <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                         <span>

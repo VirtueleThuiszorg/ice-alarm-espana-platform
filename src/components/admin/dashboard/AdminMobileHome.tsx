@@ -20,6 +20,7 @@ import { useSalesCommandStats } from "@/hooks/useSalesCommandStats";
 import { useMonitoringReadiness } from "@/hooks/useMonitoringReadiness";
 import { useNotifications, type NotificationRecord } from "@/hooks/useNotifications";
 import { notificationLink } from "@/lib/notificationLink";
+import { notificationBody, notificationTitle } from "@/lib/notificationTitles";
 
 /**
  * /admin ON A PHONE — Lee's brief: "the five things I look at, each one tappable".
@@ -239,14 +240,18 @@ export function AdminMobileHome({ stats, statsLoading, statsError, alerts }: Adm
                   <div className="flex min-h-11 items-start gap-3 px-4 py-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="truncate text-sm font-medium">{notification.title}</span>
+                        <span className="truncate text-sm font-medium">
+                          {notificationTitle(notification.type, t)}
+                        </span>
                         {!notification.read && (
                           <Badge variant="secondary" className="shrink-0 px-1.5 py-0 text-[10px]">
                             {t("adminMobile.new", "new")}
                           </Badge>
                         )}
                       </div>
-                      <p className="truncate text-xs text-muted-foreground">{notification.message}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {notificationBody(notification.message, notification.type, t)}
+                      </p>
                       <p className="text-[10px] text-muted-foreground">
                         {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                       </p>

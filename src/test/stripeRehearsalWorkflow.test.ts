@@ -187,6 +187,37 @@ describe("what it actually runs", () => {
     expect(code).toMatch(/billingMigrationRunExecuted\.test\.ts/);
   });
 
+  /*
+    FOUND BY RUNNING IT, not by reading it — run #2 (34682043460).
+
+    `mkdir -p rehearsal-output` used to live inside each rehearsal step. Gating those steps on the
+    key took the mkdir with them, so with no key every rehearsal step skipped, the directory never
+    existed, and `tee rehearsal-output/runner-twice.txt` had nowhere to write. The one step that
+    needs NO key — the platform-side runner check — failed for a reason that had nothing to do
+    with it, and the artifact uploaded nothing: "No files were found with the provided path".
+
+    A shared output path belongs to the job, not to whichever step happens to run first. So it is
+    created once, by a step no condition can skip, before anything writes into it.
+  */
+  it("creates the output directory in a step that nothing can skip", () => {
+    const at = code.indexOf("run: mkdir -p rehearsal-output");
+    expect(at).toBeGreaterThan(0);
+
+    // The step that owns it carries no `if:` at all.
+    const stepStart = code.lastIndexOf("- name:", at);
+    expect(code.slice(stepStart, at)).not.toMatch(/if:/);
+
+    // ...and it happens before the first thing that writes there.
+    const firstWrite = code.indexOf("| tee rehearsal-output/");
+    expect(firstWrite).toBeGreaterThan(at);
+  });
+
+  it("does not leave the mkdir inside a step that can be skipped", () => {
+    // Exactly one real mkdir — in the stripped code, so the explanatory comment does not count.
+    const mkdirs = code.match(/mkdir -p rehearsal-output/g) ?? [];
+    expect(mkdirs).toHaveLength(1);
+  });
+
   it("keeps the full output even when the run failed", () => {
     expect(code).toMatch(/actions\/upload-artifact@v4/);
     const upload = code.indexOf("upload-artifact");

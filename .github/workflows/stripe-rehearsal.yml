@@ -52,6 +52,21 @@ jobs:
         with:
           node-version: "20"
 
+      # THE OUTPUT DIRECTORY IS OWNED BY ONE UNGATED STEP, and it was not always so.
+      #
+      # `mkdir -p rehearsal-output` used to live inside each rehearsal step. When those steps were
+      # gated on the key (#422) the mkdir went with them, so on run #2 — no key, every rehearsal
+      # step skipped — the directory did not exist, `tee rehearsal-output/runner-twice.txt` had
+      # nowhere to write, and the ONE step that needs no key failed for a reason that had nothing
+      # to do with it. The artifact then uploaded nothing: "No files were found with the provided
+      # path".
+      #
+      # So the directory is created once, before anything writes to it, by a step that no
+      # condition can skip. A shared output path belongs to the job, not to whichever step
+      # happened to run first.
+      - name: Prepare the output directory
+        run: mkdir -p rehearsal-output
+
       # A MISSING SECRET IS A FAILURE, NOT A SKIP — scripts/ci/require-secrets.mjs, and the
       # reasoning in its header. This job's whole promise is that Stripe was asked; a green tick
       # meaning "I did not look" reads identically to one meaning "it behaved".
@@ -91,7 +106,6 @@ jobs:
           STRIPE_TEST_KEY: ${{ secrets.STRIPE_TEST_KEY }}
         run: |
           set -o pipefail
-          mkdir -p rehearsal-output
           node scripts/stripe/test-clock-rehearsal.mjs \
             --amount "${{ inputs.amount }}" \
             --day "${{ inputs.day }}" \
@@ -112,7 +126,6 @@ jobs:
           STRIPE_TEST_KEY: ${{ secrets.STRIPE_TEST_KEY }}
         run: |
           set -o pipefail
-          mkdir -p rehearsal-output
           node scripts/stripe/test-clock-rehearsal.mjs \
             --amount "${{ inputs.amount }}" \
             --day 31 \
@@ -135,7 +148,6 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           set -o pipefail
-          mkdir -p rehearsal-output
           node scripts/stripe/platform-check.mjs 2>&1 | tee rehearsal-output/async-events.txt
 
       # ── THE PLATFORM HALF OF LEE'S STEP 5 ───────────────────────────────────

@@ -253,7 +253,94 @@ its version appeared in the remote list *after* a push and was absent *before* i
 
 ## 2. Secrets, settings and approvals only Lee can do
 
-### S16 — 🔴 **Enforce "never merge red" with a branch ruleset** (2026-09-11) — *switched on, and still not doing the job*
+### S16 — ✅ **CLOSED 2026-09-12 — "never merge red" is enforced by the repository, not by anybody's memory**
+
+> #### ✅ DONE. Verified against the live API at 08:22 UTC on 12 Sep 2026.
+>
+> `GET /repos/VirtueleThuiszorg/ice-alarm-espana-platform/rules/branches/main` — the endpoint that
+> answers *what applies to main right now* rather than *does a ruleset exist*, so a non-empty
+> answer is itself proof it is live:
+>
+> ```json
+> [
+>   { "type": "deletion",         "ruleset_id": 19055263 },
+>   { "type": "non_fast_forward", "ruleset_id": 19055263 },
+>   { "type": "pull_request", "ruleset_id": 19055263, "parameters": {
+>       "required_approving_review_count": 0,
+>       "dismiss_stale_reviews_on_push": false,
+>       "required_reviewers": [],
+>       "require_code_owner_review": false,
+>       "require_last_push_approval": false,
+>       "required_review_thread_resolution": false,
+>       "require_extra_approval_for_unattributed_changes": false,
+>       "allowed_merge_methods": ["squash", "rebase", "merge"] } },
+>   { "type": "required_status_checks", "ruleset_id": 19055263, "parameters": {
+>       "strict_required_status_checks_policy": false,
+>       "do_not_enforce_on_create": false,
+>       "required_status_checks": [
+>         { "context": "Tests",                     "integration_id": 15368 },
+>         { "context": "Lint, Type Check & Build",  "integration_id": 15368 },
+>         { "context": "Wiring register",           "integration_id": 15368 },
+>         { "context": "Cross-tenant isolation",    "integration_id": 15368 },
+>         { "context": "Security Audit",            "integration_id": 15368 },
+>         { "context": "Migration drift gate",      "integration_id": 15368 } ] } }
+> ]
+> ```
+>
+> Run through `evaluateMergeGate` (the same pure function `Merge gate is enforced` uses):
+>
+> ```
+> ok       : true
+> problems : (none)
+> - ✅ a pull request is required before merging
+> - ✅ force pushes are blocked
+> - ✅ deletion is blocked
+> - ✅ all 6 required checks are enforced
+> ```
+>
+> **Every trap in the original write-up below is now closed**, one of them differently than
+> planned:
+>
+> | Trap | Resolution |
+> |---|---|
+> | 0 — `enforcement: disabled` | ✅ `active` |
+> | 1 — targets no branch | ✅ `~DEFAULT_BRANCH` |
+> | 2 — merge commits refused | ✅ `allowed_merge_methods` includes `merge` |
+> | 3 — no status-check rule | ✅ all six, each pinned to `integration_id: 15368` so only a check produced by **GitHub Actions** can satisfy it |
+> | 4 — `github-actions[bot]` needs a bypass | **Not possible as written** — it is not an installed app here, so it cannot be a bypass actor. Solved in the workflows instead: both direct pushers authenticate with `MANIFEST_PUSH_TOKEN`, enforced by `RULE 6` in `ciJobIsolation.test.ts` |
+>
+> `Manifest matches production` is **deliberately absent** and must stay absent: it is
+> `if: github.event_name == 'push'`, reports `skipped` on every pull request, and requiring it
+> would leave every PR pending for ever.
+>
+> **Two things that saved a day of confusion, recorded for next time.** The status-check rule
+> silently failed to save twice when all six names were added at once — the rest of the form
+> persisted and that rule did not, and the UI showed the picker populated afterwards even though
+> nothing had stored. Adding the names **one at a time**, re-reading the API after each, worked
+> first try. So: after any ruleset edit, confirm against `GET /rules/branches/main`, never against
+> the screen.
+>
+> #### ⚠️ ONE THING IS STILL UNPROVEN, and it is not a reason to reopen this item
+>
+> That a push authenticated as `MANIFEST_PUSH_TOKEN` is **admitted past the `pull_request` rule**
+> has not been demonstrated. The secret exists and the PAT is valid and readable — Migrate
+> Production [run 40](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34681314328)
+> passes its secrets guard and checks out with the PAT — but production was level, nothing applied,
+> and `Commit the manifest to main` was **skipped**. The wiring self-heal is in the same position:
+> on the #420 merge
+> ([run 34681640046](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/34681640046/job/103521224737))
+> `Require the push token` passed and the job then reported `Register matches the code.` and exited
+> before `git push`.
+>
+> Neither pusher had anything to push, and there is no honest way to manufacture one — a
+> deliberately stale register cannot be produced through the PR flow (git's 3-way merge
+> reconstructs the correct generated file; the historical corruptions came from conflicts resolved
+> by hand, which the merge button refuses). **The next real migration settles it.** If that run
+> fails at `Commit the manifest to main`, the PAT needs `contents: write` re-checked or the bypass
+> list needs its owner — nothing else in this section changes.
+
+**The original write-up follows, unchanged — the history of how this was found and what was tried.**
+
 
 > #### ⬜ VERIFIED 2026-09-11 16:35 UTC — **two of the five traps fixed, three still live**
 >

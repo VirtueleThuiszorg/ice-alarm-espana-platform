@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import {
   buildMemberOverview,
@@ -49,8 +50,18 @@ async function readOne<T>(run: () => PromiseLike<{ data: T | null; error: unknow
 }
 
 export function useMemberOverview(memberId: string | null | undefined, enabled: boolean) {
+  /*
+    THE READER'S LANGUAGE IS PART OF THE CACHE KEY, not just an argument.
+
+    The dates on the sheet are formatted in it. Without the language in the key, a member record
+    opened in English and then re-opened after switching to Spanish would serve the cached
+    English sheet — "9 March 1947" on a document whose every label had turned Spanish.
+  */
+  const { i18n } = useTranslation();
+  const locale = i18n.language || "en-GB";
+
   return useQuery({
-    queryKey: ["member-overview", memberId],
+    queryKey: ["member-overview", memberId, locale],
     enabled: !!memberId && enabled,
     queryFn: async (): Promise<MemberOverviewResult> => {
       const id = memberId as string;
@@ -119,7 +130,7 @@ export function useMemberOverview(memberId: string | null | undefined, enabled: 
         .join(" ");
 
       return {
-        sections: buildMemberOverview(data),
+        sections: buildMemberOverview(data, locale),
         hasPayer: !!payer,
         subject: member
           ? {

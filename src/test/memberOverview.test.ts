@@ -178,6 +178,32 @@ describe("member overview — dates and money", () => {
     expect(overviewDate("1938-04-05")).not.toContain("1938-04-05");
   });
 
+  it("spells the month in the reader's language, on the sheet as well as alone", () => {
+    /*
+      LONG FORM IN THREE LANGUAGES, and the reason is not politeness. `05/04/1938` and
+      `04/05/1938` are the same eight characters and different days: a British member, a Spanish
+      clinic and a Dutch relative each read that ordering as their own, and this sheet is handed
+      between exactly those three. A month spelt out cannot be misread.
+    */
+    expect(overviewDate("1938-04-05", "es-ES")).toMatch(/abril/);
+    expect(overviewDate("1938-04-05", "nl-NL")).toMatch(/april/);
+    expect(overviewDate("1938-04-05", "es-ES")).toContain("1938");
+
+    const spanish = buildMemberOverview(
+      { ...EMPTY, member: { first_name: "Mary", date_of_birth: "1938-04-05" } },
+      "es-ES",
+    );
+    expect(valueOf(spanish, "identity", "Date of birth")).toMatch(/abril/);
+  });
+
+  it("defaults to en-GB, so a caller that does not care is unchanged", () => {
+    const sections = buildMemberOverview({
+      ...EMPTY,
+      member: { first_name: "Mary", date_of_birth: "1938-04-05" },
+    });
+    expect(valueOf(sections, "identity", "Date of birth")).toBe("5 April 1938");
+  });
+
   it("an unparseable or absent date contributes nothing", () => {
     expect(overviewDate("not a date")).toBeNull();
     expect(overviewDate("")).toBeNull();

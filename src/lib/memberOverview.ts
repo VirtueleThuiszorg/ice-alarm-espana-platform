@@ -112,13 +112,24 @@ function text(value: unknown): string | null {
   return s.length > 0 ? s : null;
 }
 
-/** A date somebody reads, not an ISO string. Unparseable input contributes nothing. */
-export function overviewDate(value: unknown): string | null {
+/**
+ * A date somebody reads, not an ISO string. Unparseable input contributes nothing.
+ *
+ * LONG FORM, IN THE READER'S LANGUAGE. `5 April 1938` / `5 de abril de 1938` / `5 april 1938`.
+ * Long rather than numeric because `05/04/1938` and `04/05/1938` are the same eight characters
+ * and different days — a British member, a Spanish clinic and a Dutch relative each read that
+ * ordering as their own, and this sheet is handed between exactly those three. A month spelt out
+ * cannot be misread.
+ *
+ * The locale defaults to en-GB so every existing caller and test is unchanged; the member
+ * document passes the active language.
+ */
+export function overviewDate(value: unknown, locale = "en-GB"): string | null {
   const raw = text(value);
   if (!raw) return null;
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  return date.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" });
 }
 
 function row(label: string, value: unknown): OverviewRow | null {
@@ -172,15 +183,21 @@ const CONTACT_TYPE_LABEL = new Map<string, string>(
  * Section order is the order somebody reads it under pressure: who they are, where they are,
  * how to reach them, what is wrong with them, who else to call — then the commercial facts.
  */
-export function buildMemberOverview(data: MemberOverviewData): OverviewSection[] {
+export function buildMemberOverview(
+  data: MemberOverviewData,
+  /** BCP-47 tag for the dates on the sheet. Defaults to en-GB, the language this file's own
+   *  labels are written in, so a caller that does not care is unchanged. */
+  locale = "en-GB",
+): OverviewSection[] {
   const m = data.member ?? {};
   const med = data.medical ?? {};
+  const onDate = (value: unknown) => overviewDate(value, locale);
 
   const sections: Array<OverviewSection | null> = [
     section("identity", "Identity", [
       row("Name", [m.title, m.first_name, m.last_name].map(text).filter(Boolean).join(" ")),
       row("Known as", m.nickname),
-      row("Date of birth", overviewDate(m.date_of_birth)),
+      row("Date of birth", onDate(m.date_of_birth)),
       row(IDENTITY_NUMBER_LABELS[0], m.nie_dni),
       row(IDENTITY_NUMBER_LABELS[1], m.passport_number),
       row(IDENTITY_NUMBER_LABELS[2], m.an_ss_number),
@@ -190,7 +207,7 @@ export function buildMemberOverview(data: MemberOverviewData): OverviewSection[]
       row("Preferred language", m.preferred_language),
       row(NOTE_LABELS[1], m.language_notes),
       // If it is set at all, nothing else on the sheet matters as much.
-      row("Deceased", overviewDate(m.deceased_at)),
+      row("Deceased", onDate(m.deceased_at)),
     ]),
 
     section("address", "Address", [
@@ -209,8 +226,8 @@ export function buildMemberOverview(data: MemberOverviewData): OverviewSection[]
       row("Map", m.map_link),
       // How to get in — whoever is sent round needs this beside the address, not three tabs away.
       row(NOTE_LABELS[0], m.special_instructions),
-      row("Away from", overviewDate(m.away_from)),
-      row("Away until", overviewDate(m.away_until)),
+      row("Away from", onDate(m.away_from)),
+      row("Away until", onDate(m.away_until)),
     ]),
 
     section("contact", "Contact details", [
@@ -269,8 +286,8 @@ export function buildMemberOverview(data: MemberOverviewData): OverviewSection[]
         "Battery",
         typeof data.device?.battery_level === "number" ? `${data.device.battery_level}%` : null,
       ),
-      row("Last check-in", overviewDate(data.device?.last_checkin_at)),
-      row("Tested with an operator", overviewDate(data.deviceTestedAt)),
+      row("Last check-in", onDate(data.device?.last_checkin_at)),
+      row("Tested with an operator", onDate(data.deviceTestedAt)),
     ]),
 
     section("membership", "Membership", [
@@ -286,7 +303,7 @@ export function buildMemberOverview(data: MemberOverviewData): OverviewSection[]
       row("Payment method", data.subscription?.payment_method),
       row("Free of charge", data.subscription?.is_free_of_charge === true ? true : null),
       row("Includes a pendant", data.subscription?.has_pendant),
-      row("Next renewal", overviewDate(data.subscription?.renewal_date)),
+      row("Next renewal", onDate(data.subscription?.renewal_date)),
     ]),
 
     // Only when somebody else pays. For a member who pays for themselves this section does not

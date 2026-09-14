@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, Printer } from "lucide-react";
-import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +16,7 @@ import {
 import { MemberDocumentView } from "@/components/MemberDocumentView";
 import { useMemberDocumentChrome } from "@/hooks/useMemberDocumentChrome";
 import { MEDICAL_FIELDS } from "@/lib/medicalFields";
+import { overviewDate } from "@/lib/memberOverview";
 import { REQUIRED_GROUP_LABELS, type RequiredGroup } from "@/lib/memberRequiredFields";
 import {
   documentInitials,
@@ -99,7 +99,8 @@ export function ReviewMyDetailsDialog({
   onOpenChange,
   memberId,
 }: ReviewMyDetailsDialogProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language || "en-GB";
 
   /*
     READ ONLY WHEN THE DIALOG IS OPEN. This is the widest read in the member portal — the whole
@@ -140,11 +141,13 @@ export function ReviewMyDetailsDialog({
     const row = (label: string, value: unknown, extra?: Partial<Row>): Row[] =>
       present(value) ? [{ label, value: asText(value), ...extra }] : [];
 
-    const date = (value: unknown): string | null => {
-      if (!present(value)) return null;
-      const parsed = new Date(String(value));
-      return Number.isNaN(parsed.getTime()) ? String(value) : format(parsed, "d MMMM yyyy");
-    };
+    /*
+      THE SAME LONG FORM, IN THE MEMBER'S OWN LANGUAGE, from the same function the staff sheet
+      uses. `date-fns`' `format` is locale-blind unless you hand it a locale object, so this
+      printed "9 March 1947" on a sheet that was otherwise entirely in Spanish.
+    */
+    const date = (value: unknown): string | null =>
+      present(value) ? (overviewDate(value, locale) ?? String(value)) : null;
 
     const identity: Row[] = [
       ...row(t("member.firstName", "First name"), m.first_name),
@@ -211,7 +214,7 @@ export function ReviewMyDetailsDialog({
         // Empty groups are omitted whole, for the same reason empty rows are.
         .filter((section) => section.rows.length > 0)
     );
-  }, [data, t]);
+  }, [data, locale, t]);
 
   const memberName =
     [data?.member?.first_name, data?.member?.last_name].filter(Boolean).join(" ").trim() ||

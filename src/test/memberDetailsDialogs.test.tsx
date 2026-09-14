@@ -42,6 +42,10 @@ vi.mock("@/integrations/supabase/client", () => ({
       chain.select = () => chain;
       chain.eq = () => chain;
       chain.order = () => Promise.resolve({ data: contactRows, error: null });
+      // The document's company block reads the four settings App.tsx already prefetches. The
+      // stub answers nothing, so `useCompanySettings` falls back to its non-safety defaults and
+      // the emergency number stays absent rather than invented.
+      chain.in = () => Promise.resolve({ data: [], error: null });
       chain.maybeSingle = () =>
         Promise.resolve({
           data: table === "members" ? memberRow : table === "medical_information" ? medicalRow : null,
@@ -365,12 +369,12 @@ describe("Review my details", () => {
 
     expect(await screen.findByText("Ana")).toBeVisible();
     expect(screen.getByText("Albox")).toBeVisible();
-    expect(screen.getByTestId("review-group-identity")).toBeVisible();
+    expect(screen.getByTestId("member-document-section-identity")).toBeVisible();
     // A blank string is as absent as a null: an imported row can carry "" in a NOT NULL column.
     expect(screen.queryByText(/Province/i)).toBeNull();
     expect(screen.queryByText(/Postal code/i)).toBeNull();
     // And a group with nothing in it is omitted whole.
-    expect(screen.queryByTestId("review-group-medical")).toBeNull();
+    expect(screen.queryByTestId("member-document-section-medical")).toBeNull();
   });
 
   it("says so plainly when we hold nothing at all", async () => {
@@ -390,24 +394,93 @@ describe("Review my details", () => {
     ];
     await renderReview();
     expect(await screen.findByText(/María — Daughter/)).toBeVisible();
-    expect(screen.getByText("+34600111222")).toBeVisible();
+    // Grouped, because a member reads this number out to somebody — see `documentPhone`.
+    expect(screen.getByText("+34 600 111 222")).toBeVisible();
   });
 
-  it("prints through the browser rather than bundling a PDF library", () => {
+  it("still lets the BROWSER make the PDF, rather than bundling a generator", () => {
     /*
-      Every browser's print dialog offers "Save as PDF" on every platform these members use,
-      with no dependency and nothing to keep up to date. A bundled generator would add a couple
-      of hundred kilobytes to the MEMBER bundle to produce a worse document than the OS makes.
+      Unchanged and still right: every browser's print dialog offers "Save as PDF" on every
+      platform these members use, with no dependency and nothing to keep up to date. A bundled
+      generator would add a couple of hundred kilobytes to the MEMBER bundle to produce a worse
+      document than the OS makes.
     */
     const src = read("src/components/client/ReviewMyDetailsDialog.tsx");
-    expect(src).toContain("window.print()");
+    expect(src).toContain("win.print()");
     for (const lib of ["jspdf", "pdfmake", "html2pdf", "react-pdf"]) {
       expect(src, `${lib} is not worth its weight here`).not.toContain(lib);
     }
-    // `@media print` is what makes the printed page a document rather than a screenshot of a
-    // modal: the footer goes, and the sheet says whose it is and when.
-    expect(src).toContain("print:hidden");
-    expect(src).toContain("print:block");
+  });
+
+  it("prints a DOCUMENT, not this modal with the footer hidden", async () => {
+    /*
+      WHAT CHANGED, AND WHY IT MATTERS ON THIS SURFACE MOST.
+
+      It used to be `window.print()` over the dialog with `@media print` rules. That prints a
+      modal: the app's ground behind it, no A4 page, no margin, and no way to stop a section
+      splitting across two sheets. A member takes this to a hospital appointment.
+
+      It now writes the same standalone document the staff Overview prints into an off-screen
+      iframe. `window.open` is not used because a popup is blocked often enough that the button
+      would sometimes do nothing at all, with no way for the member to tell why.
+    */
+    const src = read("src/components/client/ReviewMyDetailsDialog.tsx");
+    expect(src).not.toContain("print:hidden");
+    expect(src).not.toContain("print:block");
+    // The call, not the word — the comment above it explains why a popup is the wrong door.
+    expect(src).not.toContain("window.open(");
+    expect(src).toContain("memberDocumentAsPrintHtml");
+
+    memberRow = { first_name: "Ana", last_name: "Ruiz", nie_dni: "X1234567L", city: "Albox" };
+    await renderReview();
+    await screen.findByTestId("member-document");
+    fireEvent.click(screen.getByTestId("review-details-print"));
+
+    const frames = document.querySelectorAll("iframe");
+    const html = frames[frames.length - 1].contentDocument!.documentElement.outerHTML;
+    expect(html).toContain("ICE Alarm");
+    expect(html).toContain("size:A4");
+    expect(html).toContain("page-break-inside:avoid");
+    expect(html).toContain("Destroy securely when no longer needed");
+  });
+
+  it("the member's OWN identity numbers are on their own sheet, unredacted", async () => {
+    /*
+      The opposite of the staff sheet, deliberately. There a NIE is withheld unless somebody
+      ticks a box, because that sheet is printed ABOUT a member by somebody else. This one is
+      the member's own record, printed by them — an answer to "what do you hold about me" that
+      redacts their own NIE answers the question wrongly.
+    */
+    memberRow = { first_name: "Ana", last_name: "Ruiz", nie_dni: "X1234567L" };
+    await renderReview();
+    const sheet = await screen.findByTestId("member-document");
+    expect(sheet.textContent).toContain("X1234567L");
+    expect(sheet.textContent).not.toContain("Held — not printed");
+  });
+
+  it("does not put the billing status on a member's own record", async () => {
+    /*
+      `pending_review` is an operational fact about our billing, not about them. A member reading
+      "Pending review" on their own sheet would reasonably think something was wrong with their
+      alarm. The staff sheet carries the chip because staff act on it.
+    */
+    memberRow = { first_name: "Ana", last_name: "Ruiz", status: "pending_review" };
+    await renderReview();
+    const sheet = await screen.findByTestId("member-document");
+    expect(sheet.textContent).not.toMatch(/pending.?review/i);
+  });
+
+  it("carries the masthead, the company and the notice on screen as well as on paper", async () => {
+    memberRow = { first_name: "Ana", last_name: "Ruiz", city: "Albox" };
+    await renderReview();
+    const sheet = await screen.findByTestId("member-document");
+    expect(sheet.textContent).toContain("ICE Alarm");
+    expect(sheet.textContent).toContain("Member record");
+    expect(sheet.textContent).toContain("info@icealarm.es");
+    expect(sheet.textContent).toContain("Vernietig dit veilig");
+    // Printed BY nobody: it is their own record, printed by them.
+    expect(sheet.textContent).toContain("Printed on");
+    expect(sheet.textContent).not.toContain("Printed by");
   });
 
   it("reads nothing until it is opened", async () => {

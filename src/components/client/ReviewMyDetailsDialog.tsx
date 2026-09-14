@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Loader2, Printer } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,8 +14,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { MemberDocumentView } from "@/components/MemberDocumentView";
+import { useMemberDocumentChrome } from "@/hooks/useMemberDocumentChrome";
 import { MEDICAL_FIELDS } from "@/lib/medicalFields";
 import { REQUIRED_GROUP_LABELS, type RequiredGroup } from "@/lib/memberRequiredFields";
+import {
+  documentInitials,
+  documentPhone,
+  memberDocumentAsPrintHtml,
+  type DocumentField,
+  type MemberDocument,
+} from "@/lib/memberDocument";
 
 /**
  * "REVIEW MY DETAILS" — everything we hold about a member, read-only, on one sheet.
@@ -33,11 +43,25 @@ import { REQUIRED_GROUP_LABELS, type RequiredGroup } from "@/lib/memberRequiredF
  * `REQUIRED_GROUP_LABELS`. A member who has just filled in "Medical" should find it under
  * "Medical".
  *
- * PRINT IS `window.print()`, AND THAT IS THE RIGHT ANSWER. Every browser's print dialog offers
- * "Save as PDF", on every platform these members use, with no dependency and nothing to keep up
- * to date. A bundled PDF generator would add ~200 KB to the member bundle to produce a worse
- * document than the one the OS already makes — and `@media print` rules are what make the
- * printed page a document rather than a screenshot of a modal.
+ * THE BROWSER'S PRINT DIALOG IS STILL THE PDF GENERATOR, and that is still the right answer:
+ * it offers "Save as PDF" on every platform these members use, with no dependency and nothing to
+ * keep up to date. A bundled generator would add a couple of hundred kilobytes to the MEMBER
+ * bundle to produce a worse document than the OS already makes.
+ *
+ * WHAT CHANGED IS WHAT GETS PRINTED. It used to be `window.print()` over this dialog with
+ * `@media print` rules — a printed modal, with the app's ground behind it and no way to set an
+ * A4 page, a margin, or a rule against splitting a section across two sheets. It now builds the
+ * SAME standalone document the staff Overview prints, in an off-screen iframe. One template, two
+ * surfaces: see `src/lib/memberDocument.ts`.
+ *
+ * THE MEMBER'S OWN IDENTITY NUMBERS ARE ON IT. On the staff sheet a NIE is withheld unless
+ * somebody ticks a box, because that sheet is printed ABOUT a member by somebody else. This one
+ * is the member's own record, printed by them, and a "what do you hold about me" answer that
+ * redacts their own NIE answers the question wrongly.
+ *
+ * AND THEIR STATUS IS NOT. `active` / `pending_review` is an operational fact about our billing,
+ * not about them; a member reading "Pending review" on their own record would reasonably think
+ * something was wrong with their alarm. The staff sheet carries the chip because staff act on it.
  */
 
 export interface ReviewMyDetailsDialogProps {
@@ -46,10 +70,15 @@ export interface ReviewMyDetailsDialogProps {
   memberId: string | null | undefined;
 }
 
-interface Row {
-  label: string;
-  value: string;
-}
+/**
+ * A line on the sheet, already carrying how it should LOOK on the document.
+ *
+ * The staff sheet can decide that from the label, because `buildMemberOverview` emits fixed
+ * English labels. This one's labels are translated, so matching on them would work in English
+ * and quietly stop working in Spanish — the note box and the grouped phone number would vanish
+ * for exactly the members who read the Spanish sheet. So the flag is set where the row is built.
+ */
+type Row = DocumentField;
 
 /** Blank, null and an empty array are all "we do not hold this". */
 function present(value: unknown): boolean {
@@ -108,8 +137,8 @@ export function ReviewMyDetailsDialog({
     if (!data) return [];
     const m = data.member ?? {};
 
-    const row = (label: string, value: unknown): Row[] =>
-      present(value) ? [{ label, value: asText(value) }] : [];
+    const row = (label: string, value: unknown, extra?: Partial<Row>): Row[] =>
+      present(value) ? [{ label, value: asText(value), ...extra }] : [];
 
     const date = (value: unknown): string | null => {
       if (!present(value)) return null;
@@ -139,7 +168,7 @@ export function ReviewMyDetailsDialog({
     ];
 
     const contact: Row[] = [
-      ...row(t("member.phone", "Phone"), m.phone),
+      ...row(t("member.phone", "Phone"), present(m.phone) ? documentPhone(asText(m.phone)) : null),
       ...row(t("member.email", "Email"), m.email),
     ];
 
@@ -160,7 +189,7 @@ export function ReviewMyDetailsDialog({
       .filter((c) => present(c.contact_name) || present(c.phone))
       .map((c) => ({
         label: [c.contact_name, c.relationship].filter(Boolean).join(" — ") || "—",
-        value: c.phone ?? "",
+        value: c.phone ? documentPhone(c.phone) : "",
       }));
 
     // Away is not one of the required groups, but it is something we hold and a member asking
@@ -184,13 +213,78 @@ export function ReviewMyDetailsDialog({
     );
   }, [data, t]);
 
-  const memberName = [data?.member?.first_name, data?.member?.last_name]
-    .filter(Boolean)
-    .join(" ");
+  const memberName =
+    [data?.member?.first_name, data?.member?.last_name].filter(Boolean).join(" ").trim() ||
+    t("reviewDetails.you", "Your record");
+
+  const chrome = useMemberDocumentChrome();
+
+  const doc = useMemo<MemberDocument>(
+    () => ({
+      title: chrome.title,
+      subject: {
+        name: memberName,
+        initials: documentInitials(memberName),
+        photoUrl: typeof data?.member?.photo_url === "string" ? data.member.photo_url : null,
+        // No member number exists on `members`, and no status chip on purpose — see the note at
+        // the top of this file.
+        memberNumber: null,
+        status: null,
+      },
+      factCount: t("reviewDetails.factCount", "{{count}} details on file", {
+        count: sections.reduce((total, s) => total + s.rows.length, 0),
+      }),
+      // Nobody "printed by" here: it is the member's own record, printed by them.
+      meta: chrome.metaPrintedBy(null),
+      company: chrome.company,
+      confidentiality: chrome.confidentiality,
+      sections: sections.map(({ group, rows }) => ({
+        key: group,
+        title:
+          group === "away"
+            ? t("profile.awayTitle", "Going away?")
+            : t(REQUIRED_GROUP_LABELS[group].key, REQUIRED_GROUP_LABELS[group].fallback),
+        fields: rows,
+      })),
+    }),
+    [chrome, data, memberName, sections, t],
+  );
+
+  /**
+   * Print the DOCUMENT, from an off-screen iframe — the same path the staff Overview uses.
+   *
+   * `window.open` is blocked often enough that the button would sometimes do nothing at all,
+   * with no way for the member pressing it to tell why; an iframe in the current document always
+   * exists. And printing a separate document rather than this dialog is what makes the sheet A4
+   * with margins, keeps a section off a page boundary, and puts the company and the
+   * confidentiality notice on it — none of which `@media print` over a modal can do.
+   */
+  const print = () => {
+    const frame = document.createElement("iframe");
+    frame.setAttribute("aria-hidden", "true");
+    frame.setAttribute("title", `${memberName} — ${chrome.title}`);
+    frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+    document.body.appendChild(frame);
+    const frameDoc = frame.contentDocument;
+    const win = frame.contentWindow;
+    if (!frameDoc || !win) {
+      frame.remove();
+      toast.error(t("reviewDetails.printFailed", "Could not open the print view"));
+      return;
+    }
+    frameDoc.open();
+    frameDoc.write(memberDocumentAsPrintHtml(doc));
+    frameDoc.close();
+    win.focus();
+    win.print();
+    // Removed after the print dialog has taken its snapshot; removing it synchronously cancels
+    // the print in some browsers.
+    window.setTimeout(() => frame.remove(), 1000);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto print:max-h-none print:overflow-visible">
+      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t("reviewDetails.title", "Review my details")}</DialogTitle>
           <DialogDescription>
@@ -209,47 +303,16 @@ export function ReviewMyDetailsDialog({
           <p className="text-base text-muted-foreground" data-testid="review-empty">
             {t(
               "reviewDetails.empty",
-              "We do not hold any details for you yet. Use “Complete my details” to add them.",
+              "We do not hold any details for you yet. Use \u201cComplete my details\u201d to add them.",
             )}
           </p>
         ) : (
-          <div className="space-y-6" data-testid="review-details-body">
-            {/* Only on the PRINTED sheet: a document needs to say whose it is and when. */}
-            <div className="hidden print:block">
-              <p className="text-base font-semibold">{memberName}</p>
-              <p className="text-[0.8125rem] text-muted-foreground">
-                {t("reviewDetails.printedOn", "Printed {{date}}", {
-                  date: format(new Date(), "d MMMM yyyy"),
-                })}
-              </p>
-            </div>
-
-            {sections.map(({ group, rows }) => (
-              <section key={group} data-testid={`review-group-${group}`} className="space-y-2">
-                <h3 className="text-[0.8125rem] font-semibold uppercase tracking-wide text-muted-foreground">
-                  {group === "away"
-                    ? t("profile.awayTitle", "Going away?")
-                    : t(REQUIRED_GROUP_LABELS[group].key, REQUIRED_GROUP_LABELS[group].fallback)}
-                </h3>
-                <dl className="divide-y">
-                  {rows.map((r, i) => (
-                    <div
-                      key={`${r.label}-${i}`}
-                      className="flex flex-col gap-0.5 py-2 sm:flex-row sm:justify-between sm:gap-6"
-                    >
-                      <dt className="text-[0.8125rem] uppercase tracking-wide text-muted-foreground">
-                        {r.label}
-                      </dt>
-                      <dd className="whitespace-pre-wrap text-base sm:text-right">{r.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </section>
-            ))}
+          <div data-testid="review-details-body">
+            <MemberDocumentView doc={doc} />
           </div>
         )}
 
-        <DialogFooter className="print:hidden">
+        <DialogFooter>
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
@@ -259,14 +322,13 @@ export function ReviewMyDetailsDialog({
           </Button>
           {sections.length > 0 && (
             /*
-              `window.print()`. Every browser's print dialog offers "Save as PDF" on every
-              platform these members use, with no dependency and nothing to keep up to date. A
-              bundled PDF generator would add a couple of hundred kilobytes to the member bundle
-              to produce a worse document than the one the OS already makes.
+              The one red button on this sheet (R1). The browser's own print dialog is the PDF
+              generator — see the note at the top of this file for why that is still right and
+              what changed about the document it is handed.
             */
             <Button
               variant="ink"
-              onClick={() => window.print()}
+              onClick={print}
               className="touch-target"
               data-testid="review-details-print"
             >

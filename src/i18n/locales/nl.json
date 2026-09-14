@@ -6691,6 +6691,9 @@
     "failed": "Wij konden dit niet opslaan. Probeer het opnieuw."
   },
   "reviewDetails": {
+    "factCount": "{{count}} gegevens in uw dossier",
+    "you": "Uw dossier",
+    "printFailed": "We konden de afdrukweergave niet openen",
     "title": "Mijn gegevens bekijken",
     "subtitle": "Alles wat wij over u hebben. Alleen wat wij daadwerkelijk hebben, staat hier.",
     "empty": "Wij hebben nog geen gegevens van u. Gebruik ‘Mijn gegevens aanvullen’ om ze toe te voegen.",

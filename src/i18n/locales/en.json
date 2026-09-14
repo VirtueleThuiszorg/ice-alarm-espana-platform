@@ -6691,6 +6691,9 @@
     "failed": "We could not save that. Please try again."
   },
   "reviewDetails": {
+    "factCount": "{{count}} details on file",
+    "you": "Your record",
+    "printFailed": "Could not open the print view",
     "title": "Review my details",
     "subtitle": "Everything we hold about you. Only the things we actually have are listed.",
     "empty": "We do not hold any details for you yet. Use “Complete my details” to add them.",

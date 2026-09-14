@@ -306,3 +306,84 @@ test("the printed sheet is an A4 document, with and without identity numbers", a
     expect(fs.statSync(path.join(OUT, f)).size, `${f} is empty`).toBeGreaterThan(1000);
   }
 });
+
+/**
+ * THE MEMBER'S OWN COPY — the same document, from the other side of the product.
+ *
+ * The whole point of one template is that these two surfaces cannot drift. A class-name test
+ * proves the component is imported; only a photograph of both shows that a member's own record
+ * and the staff record are recognisably the same document, and only a rendered PDF shows that
+ * the member's copy is A4 rather than a printed modal.
+ *
+ * The identity rule is INVERTED here, on purpose: a NIE is withheld on the staff sheet, which is
+ * printed about a member by somebody else, and printed on this one, which is the member's own
+ * answer to "what do you hold about me".
+ */
+test("the member's own record is the same document", async ({ page }) => {
+  const OWN_ID = "44444444-4444-4444-4444-444444444444";
+  const EMAIL = "david.evans@example.com";
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.clock.setFixedTime(NOW);
+  await installSupabaseStub(page, {
+    staff: null,
+    partner: null,
+    roleInfo: {
+      is_staff: false,
+      staff_role: null,
+      is_partner: false,
+      partner_id: null,
+      member_id: OWN_ID,
+    },
+    tables: {
+      ...tables,
+      members: [{ ...member, id: OWN_ID, user_id: "f330e208-3648-4c99-8e04-79876d204e50" }],
+      medical_information: [{ ...tables.medical_information[0], member_id: OWN_ID }],
+      emergency_contacts: tables.emergency_contacts.map((c) => ({ ...c, member_id: OWN_ID })),
+      devices: [],
+      orders: [],
+      order_items: [],
+      member_access: [],
+      member_notification_optin: [],
+      pricing_plans: [],
+      pricing_settings: [],
+      subscriptions: [],
+    },
+  });
+
+  await page.goto("/login");
+  await page.locator('input[type="email"]').fill(EMAIL);
+  await page.locator('input[type="password"]').fill("Member123");
+  await page.getByRole("button", { name: /sign in|log in/i }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+
+  await page.getByTestId("dashboard-review-details").click();
+  await expect(page.getByTestId("member-document")).toBeVisible();
+  await settle(page);
+  await page
+    .locator('[role="dialog"]')
+    .screenshot({ path: `${OUT}/member-document-portal-1280.png` });
+
+  const sheet = page.getByTestId("member-document");
+  await expect(sheet).toContainText("ICE Alarm");
+  await expect(sheet).toContainText("David Evans");
+  await expect(sheet).toContainText("Destroy securely when no longer needed");
+  // Their own NIE, in full — the inversion this surface exists to get right.
+  await expect(sheet).toContainText("X1234567L");
+  await expect(sheet).not.toContainText("Held — not printed");
+
+  await page.getByTestId("review-details-print").click();
+  const html = await page.evaluate(() => {
+    const frames = document.querySelectorAll("iframe");
+    return frames[frames.length - 1].contentDocument!.documentElement.outerHTML;
+  });
+  expect(html).toContain("@bottom-left");
+  expect(html).toContain("X1234567L");
+
+  const printed = await page.context().newPage();
+  await printed.setContent(html, { waitUntil: "load" });
+  await printed.emulateMedia({ media: "print" });
+  await printed.pdf({ path: path.join(OUT, "member-document-portal.pdf"), format: "A4" });
+  expect(fs.statSync(path.join(OUT, "member-document-portal.pdf")).size).toBeGreaterThan(1000);
+  await printed.close();
+});

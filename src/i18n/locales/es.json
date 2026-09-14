@@ -6691,6 +6691,9 @@
     "failed": "No hemos podido guardarlo. Vuelva a intentarlo."
   },
   "reviewDetails": {
+    "factCount": "{{count}} datos en su ficha",
+    "you": "Su ficha",
+    "printFailed": "No hemos podido abrir la vista de impresi\u00f3n",
     "title": "Revisar mis datos",
     "subtitle": "Todo lo que tenemos sobre usted. Solo se enumera lo que realmente tenemos.",
     "empty": "Todavía no tenemos datos suyos. Utilice «Completar mis datos» para añadirlos.",

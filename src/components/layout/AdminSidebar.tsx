@@ -57,6 +57,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
+import { usePrefetchRoute } from "@/hooks/usePrefetchRoute";
 
 interface MenuItem {
   icon: React.ElementType;
@@ -181,6 +182,10 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps = {}) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const location = useLocation();
+  // Warms the route's chunk (and its parameter-free data) on hover, focus or
+  // touchstart, so the click has nothing left to download. See
+  // src/hooks/usePrefetchRoute.ts.
+  const prefetch = usePrefetchRoute();
   const navigate = useNavigate();
   const { signOut, staffRole } = useAuth();
 
@@ -249,6 +254,7 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps = {}) {
     const linkContent = (
       <NavLink
         to={item.path}
+        {...prefetch(item.path)}
         onClick={() => isMobile && setMobileOpen(false)}
         className={cn(
           "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",

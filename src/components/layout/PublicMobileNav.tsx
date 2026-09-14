@@ -7,6 +7,7 @@ import { Logo } from "@/components/ui/logo";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { HeaderChatButton } from "@/components/chat/HeaderChatButton";
 import { useTranslation } from "react-i18next";
+import { usePrefetchRoute } from "@/hooks/usePrefetchRoute";
 
 interface NavItem {
   to: string;
@@ -22,6 +23,10 @@ interface PublicMobileNavProps {
 
 export function PublicMobileNav({ navItems, loginLabel, ctaLabel }: PublicMobileNavProps) {
   const [open, setOpen] = useState(false);
+  // Warms the route's chunk (and its parameter-free data) on hover, focus or
+  // touchstart, so the click has nothing left to download. See
+  // src/hooks/usePrefetchRoute.ts.
+  const prefetch = usePrefetchRoute();
   const { t } = useTranslation();
   const location = useLocation();
 
@@ -71,6 +76,7 @@ export function PublicMobileNav({ navItems, loginLabel, ctaLabel }: PublicMobile
                   <Link
                     key={item.to}
                     to={item.to}
+                    {...prefetch(item.to)}
                     onClick={() => setOpen(false)}
                     className={`block px-6 py-3 text-sm font-medium transition-colors hover:bg-muted ${
                       isActive ? "text-primary" : "text-foreground"

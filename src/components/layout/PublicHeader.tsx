@@ -5,8 +5,13 @@ import { Logo } from "@/components/ui/logo";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { HeaderChatButton } from "@/components/chat/HeaderChatButton";
 import { PublicMobileNav } from "@/components/layout/PublicMobileNav";
+import { usePrefetchRoute } from "@/hooks/usePrefetchRoute";
 
 export function PublicHeader() {
+  // Warms the route's chunk (and its parameter-free data) on hover, focus or
+  // touchstart, so the click has nothing left to download. See
+  // src/hooks/usePrefetchRoute.ts.
+  const prefetch = usePrefetchRoute();
   const { t } = useTranslation();
 
   const navItems = [
@@ -28,6 +33,7 @@ export function PublicHeader() {
               <Link
                 key={item.to}
                 to={item.to}
+                {...prefetch(item.to)}
                 className="text-sm font-medium hover:text-primary transition-colors"
               >
                 {item.label}

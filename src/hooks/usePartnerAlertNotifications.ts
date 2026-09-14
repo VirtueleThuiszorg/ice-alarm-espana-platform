@@ -101,7 +101,8 @@ export function useUnacknowledgedAlerts(partnerId: string | undefined) {
       return data as PartnerAlertNotification[];
     },
     enabled: !!partnerId,
-    staleTime: STALE_TIMES.REALTIME,
+    // Unacknowledged alerts: the count a partner acts on, so never from cache.
+    staleTime: STALE_TIMES.LIVE,
     refetchInterval: INTERVALS.DASHBOARD_REFRESH,
   });
 }

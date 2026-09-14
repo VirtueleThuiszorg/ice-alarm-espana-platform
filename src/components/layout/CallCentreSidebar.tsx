@@ -36,6 +36,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { usePrefetchRoute } from "@/hooks/usePrefetchRoute";
 
 interface MenuItem {
   icon: React.ElementType;
@@ -89,6 +90,10 @@ export function CallCentreSidebar({ onCollapsedChange }: CallCentreSidebarProps 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [badges, setBadges] = useState({ alerts: 0, messages: 0 });
   const location = useLocation();
+  // Warms the route's chunk (and its parameter-free data) on hover, focus or
+  // touchstart, so the click has nothing left to download. See
+  // src/hooks/usePrefetchRoute.ts.
+  const prefetch = usePrefetchRoute();
   const navigate = useNavigate();
   const { signOut, staffRole } = useAuth();
 
@@ -190,6 +195,7 @@ export function CallCentreSidebar({ onCollapsedChange }: CallCentreSidebarProps 
     const linkContent = (
       <NavLink
         to={item.path}
+        {...prefetch(item.path)}
         onClick={() => isMobile && setMobileOpen(false)}
         className={itemClassName}
       >

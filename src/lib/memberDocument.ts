@@ -100,6 +100,23 @@ export interface MemberDocument {
   sections: readonly DocumentSection[];
 }
 
+/**
+ * THE CONFIDENTIALITY NOTICE — three languages, always all three.
+ *
+ * Not translated by the reader's language, because the reader who most needs it is whoever finds
+ * the sheet LATER: the cleaner who empties the bin, the receptionist who files it, the relative
+ * who clears the flat. None of them were in the conversation that set the language, and a sheet
+ * about a Spanish member of a Dutch-owned company held by a British family has no single right
+ * one. Three short lines are cheaper than being wrong about which.
+ *
+ * Literals rather than i18n keys for the same reason: `t()` returns ONE language.
+ */
+export const MEMBER_DOCUMENT_CONFIDENTIALITY: readonly string[] = [
+  "Confidential — personal data of a member of ICE Alarm España. Destroy securely when no longer needed.",
+  "Confidencial — datos personales de un socio de ICE Alarm España. Destrúyalo de forma segura cuando ya no sea necesario.",
+  "Vertrouwelijk — persoonsgegevens van een lid van ICE Alarm España. Vernietig dit veilig wanneer het niet langer nodig is.",
+];
+
 /** The em dash a lone empty section gets. A heading over blank paper reads as a printing fault. */
 export const EMPTY_VALUE = "—";
 
@@ -158,25 +175,58 @@ function fieldsOf(section: DocumentSection): DocumentField[] {
 }
 
 /** The document's stylesheet. Exported so a test can assert the print rules without a browser. */
+/**
+ * A string safe to put inside a CSS `content: "…"`.
+ *
+ * The strip carries the company name, which comes from `system_settings` — somebody's input. A
+ * stray quote would end the declaration and take the rest of the stylesheet with it, so quotes
+ * and backslashes are escaped and newlines are dropped (a margin box is one line by nature).
+ */
+function escapeCssString(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\s+/g, " ").trim();
+}
+
+/**
+ * The page rule, built per document because the strip in its margin names the company.
+ *
+ * ── WHY A MARGIN BOX AND NOT `position: fixed` ──────────────────────────────
+ *
+ * The brief asked for a fixed footer. It was built that way, printed, and the PDF is what
+ * changed it: in Chrome's print engine a fixed element is painted at the same offset on EVERY
+ * sheet while the text flows on underneath it, so the notice printed straight across the middle
+ * of the Emergency contacts section on page two. Widening the page's bottom margin and pulling
+ * the footer down into it with a negative offset moved the overlap rather than removing it.
+ * Both were rendered to PDF and looked at; neither was reasoned about and assumed.
+ *
+ * A page margin box cannot overlap the text, because a margin is by definition the part of the
+ * page text never enters. Chrome honours `@bottom-left` / `@bottom-right` — which is why the
+ * page counter here is stated plainly rather than hedged as "where supported". What Chrome does
+ * NOT honour is a multi-line `content`: `\A` prints as a literal glyph. So the repeating strip
+ * is ONE line, and the full three-language notice is an ordinary block at the end of the
+ * document.
+ *
+ * That split is the better document anyway. Every loose sheet is marked confidential and
+ * numbered, which is what matters when one page is left on a desk; and the full notice appears
+ * once, where a reader finishes, rather than four lines deep on every page.
+ */
+export function memberDocumentPageRule(strip: string): string {
+  return (
+    `@page{size:A4;margin:18mm 18mm 26mm;` +
+    `@bottom-left{content:"${escapeCssString(strip)}";font:8pt system-ui,sans-serif;color:#5A6470;vertical-align:top}` +
+    `@bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui,sans-serif;color:#5A6470;vertical-align:top}` +
+    `}`
+  );
+}
+
+/** The document's stylesheet, minus the per-document `@page` rule above. */
 export const MEMBER_DOCUMENT_PRINT_CSS = `
 *{box-sizing:border-box}
-
-/* A4 with 18mm margins — the brief's page, and what a Spanish office printer is loaded with. */
-@page{size:A4;margin:18mm}
-
-/*
-  Page numbers where the browser supports margin boxes (print-to-PDF engines, Firefox). Chrome
-  ignores @page margin boxes, so this is a bonus rather than the mechanism: the confidentiality
-  line itself is in the fixed footer below, which every browser repeats.
-*/
-@page{@bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#555}}
 
 body{
   font:11pt/1.5 "Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
   color:${BRAND_INK};
   margin:0;
-  /* Clear of the fixed footer, which repeats on every page and would otherwise sit on the text. */
-  padding:0 0 22mm;
+  padding:0;
 }
 
 /* ── MASTHEAD ────────────────────────────────────────────────────────────── */
@@ -221,15 +271,32 @@ dd{margin:0;font-size:10pt;line-height:1.45;overflow-wrap:anywhere}
 
 /* ── FOOTER ─────────────────────────────────────────────────────────────── */
 /*
-  \`position:fixed\` is how a footer repeats on every printed page in every browser that matters;
-  @page margin boxes are not implemented in Chrome. Inside the print iframe there is nothing to
-  scroll, so fixed is also correct on screen.
+  IN THE FLOW, at the end — printed once, on the last page. See \`memberDocumentPageRule\` for
+  why this footer is a plain block rather than a pinned one, and what repeats instead.
 */
-.doc-footer{position:fixed;left:0;right:0;bottom:0;border-top:1px solid #C9CFD8;padding-top:5px;
-  font-size:8pt;line-height:1.4;color:#5A6470}
+.doc-footer{border-top:1px solid #C9CFD8;padding-top:5px;margin-top:14px;
+  page-break-inside:avoid;break-inside:avoid;font-size:8pt;line-height:1.45;color:#5A6470}
 .doc-company{margin:0 0 3px;color:${BRAND_INK}}
 .doc-confidential p{margin:0}
 `;
+
+/** The company's details as one line, in the order a reader needs them. Empty parts drop out. */
+function companyLine(company: DocumentCompany): string {
+  return [company.name, company.phone, company.email, company.address]
+    .filter((part): part is string => !!part && part.trim().length > 0)
+    .join(" · ");
+}
+
+/**
+ * The one line that repeats in every page's bottom margin.
+ *
+ * Short on purpose: a margin box is one line, and this one has to survive beside the page
+ * counter at 8pt. It says the two things that matter on a sheet found on its own — whose data
+ * this is, and that it is confidential. The full notice is at the end of the document.
+ */
+export function memberDocumentStrip(doc: MemberDocument): string {
+  return `${doc.subject.name} · ${doc.company.name} · Confidential / Confidencial / Vertrouwelijk`;
+}
 
 /**
  * The document as a standalone printable page.
@@ -240,7 +307,7 @@ dd{margin:0;font-size:10pt;line-height:1.45;overflow-wrap:anywhere}
  * need a browser.
  */
 export function memberDocumentAsPrintHtml(doc: MemberDocument): string {
-  const { subject, company } = doc;
+  const { subject } = doc;
 
   const avatar = subject.photoUrl
     ? `<span class="doc-avatar"><img src="${escapeHtml(subject.photoUrl)}" alt=""></span>`
@@ -267,15 +334,10 @@ export function memberDocumentAsPrintHtml(doc: MemberDocument): string {
     })
     .join("");
 
-  const companyLine = [company.name, company.phone, company.email, company.address]
-    .filter((part): part is string => !!part && part.trim().length > 0)
-    .map((part) => escapeHtml(part))
-    .join(" · ");
-
   return [
     "<!doctype html><html><head><meta charset='utf-8'>",
     `<title>${escapeHtml(`${subject.name} — ${doc.title}`)}</title>`,
-    `<style>${MEMBER_DOCUMENT_PRINT_CSS}</style>`,
+    `<style>${memberDocumentPageRule(memberDocumentStrip(doc))}${MEMBER_DOCUMENT_PRINT_CSS}</style>`,
     "</head><body>",
     `<header class="doc-masthead">`,
     `<div class="doc-brand">${brandMarkSvg({ size: 34 })}`,
@@ -289,7 +351,7 @@ export function memberDocumentAsPrintHtml(doc: MemberDocument): string {
     `<p class="doc-meta">${escapeHtml(doc.meta)}</p>`,
     body,
     `<footer class="doc-footer">`,
-    `<p class="doc-company">${companyLine}</p>`,
+    `<p class="doc-company">${escapeHtml(companyLine(doc.company))}</p>`,
     `<div class="doc-confidential">`,
     doc.confidentiality.map((line) => `<p>${escapeHtml(line)}</p>`).join(""),
     `</div></footer>`,
@@ -302,7 +364,7 @@ export function memberDocumentAsPrintHtml(doc: MemberDocument): string {
  *
  * Plain text on purpose: it is pasted into a handover note, an email or a message to a
  * colleague, and every one of those mangles rich text differently. It carries the SAME header
- * and the SAME confidentiality line as the printed sheet — a pasted record that has lost the
+ * and the SAME confidentiality notice as the printed sheet — a pasted record that has lost the
  * notice is the copy most likely to end up somewhere it should not.
  */
 export function memberDocumentAsText(doc: MemberDocument): string {
@@ -317,10 +379,6 @@ export function memberDocumentAsText(doc: MemberDocument): string {
     lines.push("");
   }
 
-  const companyLine = [doc.company.name, doc.company.phone, doc.company.email, doc.company.address]
-    .filter((part): part is string => !!part && part.trim().length > 0)
-    .join(" · ");
-  lines.push("--", companyLine, ...doc.confidentiality);
-
+  lines.push("--", companyLine(doc.company), ...doc.confidentiality);
   return lines.join("\n").trimEnd();
 }

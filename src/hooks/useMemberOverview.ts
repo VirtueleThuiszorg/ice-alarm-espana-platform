@@ -27,6 +27,20 @@ export interface MemberOverviewResult {
   sections: OverviewSection[];
   /** True when somebody other than the member pays — the sheet says so out loud. */
   hasPayer: boolean;
+  /**
+   * WHO THE DOCUMENT IS ABOUT, for its masthead strip — name, photo, status.
+   *
+   * Not a new read: it is the `members` row this hook already fetches for the sections. It is
+   * lifted out separately because a header is not a field on the sheet — the name belongs at the
+   * top in 16pt beside the avatar, not as row one of "Identity", and the status belongs there as
+   * a humanised chip rather than the raw enum a `status` row would print.
+   */
+  subject: {
+    name: string;
+    photoUrl: string | null;
+    /** Raw enum; `statusLabel.ts` turns it into words. Never rendered as-is. */
+    status: string | null;
+  } | null;
 }
 
 async function readOne<T>(run: () => PromiseLike<{ data: T | null; error: unknown }>) {
@@ -98,7 +112,23 @@ export function useMemberOverview(memberId: string | null | undefined, enabled: 
         payer: payer as MemberOverviewData["payer"],
       };
 
-      return { sections: buildMemberOverview(data), hasPayer: !!payer };
+      const row = (member ?? {}) as Record<string, unknown>;
+      const name = [row.title, row.first_name, row.last_name]
+        .map((part) => (typeof part === "string" ? part.trim() : ""))
+        .filter(Boolean)
+        .join(" ");
+
+      return {
+        sections: buildMemberOverview(data),
+        hasPayer: !!payer,
+        subject: member
+          ? {
+              name,
+              photoUrl: typeof row.photo_url === "string" ? row.photo_url : null,
+              status: typeof row.status === "string" ? row.status : null,
+            }
+          : null,
+      };
     },
   });
 }

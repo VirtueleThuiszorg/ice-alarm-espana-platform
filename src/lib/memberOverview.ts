@@ -1,5 +1,6 @@
 import { CONTACT_TYPES } from "@/lib/contactTypes";
 import { MEDICAL_FIELDS } from "@/lib/medicalFields";
+import { documentPhone, type DocumentSection } from "@/lib/memberDocument";
 
 /**
  * EVERYTHING WE HAVE ON THIS MEMBER, ON ONE SHEET — and nothing we do not.
@@ -135,6 +136,32 @@ function section(
   return kept.length > 0 ? { key, title, rows: kept } : null;
 }
 
+/**
+ * THE THREE ROWS THAT ARE NOT PRINTED BY DEFAULT.
+ *
+ * A NIE, a passport number and a social-security number are the three things on this sheet that
+ * are worth stealing on their own — they open a bank account and a clinic file. The rest of the
+ * record is sensitive; these are *transferable*. A sheet left on a desk, faxed to a surgery or
+ * dropped in a recycling bin should not carry them unless somebody decided it should.
+ *
+ * So they are REDACTED, NOT REMOVED. Removing the rows would say we do not hold them, which is a
+ * different and false statement — and the fact-count would change depending on a print option.
+ * The row stays, the value says it is held and not shown, and a tick box prints it in full.
+ *
+ * Labels rather than column names because the sheet is built from labels; they are declared here
+ * and used below, so the two cannot drift into a redaction that silently matches nothing.
+ */
+export const IDENTITY_NUMBER_LABELS = ["NIE / DNI", "Passport", "Social security number"] as const;
+
+/**
+ * Rows somebody typed a paragraph into. Squeezed into the value column of a two-column grid they
+ * wrap to eight ragged lines; on the document they get the full measure and a border.
+ */
+export const NOTE_LABELS = ["Access notes", "Language notes"] as const;
+
+/** Rows that hold a bare number, which is grouped so it can be read down a line. */
+export const PHONE_LABELS = ["Phone", "SIM number"] as const;
+
 const CONTACT_TYPE_LABEL = new Map<string, string>(
   CONTACT_TYPES.map((t) => [t.type, t.label.fallback]),
 );
@@ -154,14 +181,14 @@ export function buildMemberOverview(data: MemberOverviewData): OverviewSection[]
       row("Name", [m.title, m.first_name, m.last_name].map(text).filter(Boolean).join(" ")),
       row("Known as", m.nickname),
       row("Date of birth", overviewDate(m.date_of_birth)),
-      row("NIE / DNI", m.nie_dni),
-      row("Passport", m.passport_number),
-      row("Social security number", m.an_ss_number),
+      row(IDENTITY_NUMBER_LABELS[0], m.nie_dni),
+      row(IDENTITY_NUMBER_LABELS[1], m.passport_number),
+      row(IDENTITY_NUMBER_LABELS[2], m.an_ss_number),
       row("Nationality", m.nationality),
       row("Gender", m.gender),
       row("Marital status", m.marital_status),
       row("Preferred language", m.preferred_language),
-      row("Language notes", m.language_notes),
+      row(NOTE_LABELS[1], m.language_notes),
       // If it is set at all, nothing else on the sheet matters as much.
       row("Deceased", overviewDate(m.deceased_at)),
     ]),
@@ -181,13 +208,13 @@ export function buildMemberOverview(data: MemberOverviewData): OverviewSection[]
       row("Country", m.country),
       row("Map", m.map_link),
       // How to get in — whoever is sent round needs this beside the address, not three tabs away.
-      row("Access notes", m.special_instructions),
+      row(NOTE_LABELS[0], m.special_instructions),
       row("Away from", overviewDate(m.away_from)),
       row("Away until", overviewDate(m.away_until)),
     ]),
 
     section("contact", "Contact details", [
-      row("Phone", m.phone),
+      row(PHONE_LABELS[0], m.phone),
       row("Email", m.email),
       row("Preferred contact method", m.preferred_contact_method),
       row("Best time to call", m.preferred_contact_time),
@@ -235,7 +262,7 @@ export function buildMemberOverview(data: MemberOverviewData): OverviewSection[]
     section("device", "Device", [
       row("IMEI", data.device?.imei),
       row("Model", data.device?.model),
-      row("SIM number", data.device?.sim_phone_number),
+      row(PHONE_LABELS[1], data.device?.sim_phone_number),
       row("Status", data.device?.status),
       row("Online now", data.device?.is_online),
       row(
@@ -275,79 +302,53 @@ export function buildMemberOverview(data: MemberOverviewData): OverviewSection[]
   return sections.filter((s): s is OverviewSection => s !== null);
 }
 
-/**
- * The sheet as plain text, for the Copy button.
- *
- * Plain text on purpose: it is pasted into a handover note, an email or a message to a
- * colleague, and every one of those mangles rich text differently.
- */
-export function overviewAsText(sections: readonly OverviewSection[], heading?: string): string {
-  const lines: string[] = [];
-  if (heading) lines.push(heading, "=".repeat(heading.length), "");
-  for (const s of sections) {
-    lines.push(s.title.toUpperCase());
-    for (const r of s.rows) lines.push(`  ${r.label}: ${r.value}`);
-    lines.push("");
-  }
-  return lines.join("\n").trimEnd();
-}
-
 /** How many facts the sheet holds — the dialog says so, because "we know 4 things" is a finding. */
 export function overviewFactCount(sections: readonly OverviewSection[]): number {
   return sections.reduce((total, s) => total + s.rows.length, 0);
 }
 
-/**
- * Escaped for the print document. A member called `O'Brien & Sons <Ltd>` is not markup, and a
- * notes field is free text somebody typed — neither may become tags in the printout.
- */
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+export interface OverviewDocumentOptions {
+  /**
+   * OFF by default, on both surfaces that print this sheet.
+   *
+   * A default of ON would mean every routine printout carried three transferable identity
+   * numbers, and the option would only ever be noticed by whoever thought to turn it off — which
+   * is nobody, because the cost of leaving it on is paid by the member months later.
+   */
+  includeIdentityNumbers: boolean;
+  /** What a redacted identity row says instead of its value, in the reader's language. */
+  redactedLabel: string;
 }
 
 /**
- * The sheet as a standalone print document.
+ * The overview sheet as the shared document model.
  *
- * A SEPARATE DOCUMENT, not a print stylesheet over the dialog, because what needs printing is
- * the sheet — not the app chrome, the tabs behind it, or a scroll area clipped to its viewport.
- * Built here rather than in the component so the escaping above has a test.
+ * ADAPTER, NOT A SECOND BUILDER. `buildMemberOverview` still decides what is on the sheet; this
+ * only decides how each row is presented on a document — which rows are a paragraph rather than
+ * a value, which hold a number worth grouping, and which are redacted.
+ *
+ * Rows are never added or dropped here. A redacted identity number keeps its row and its place
+ * in the fact count, because "we hold a NIE and did not print it" and "we hold no NIE" are
+ * different facts and the sheet's whole promise is that it says which.
  */
-export function overviewAsPrintHtml(
+export function overviewAsDocumentSections(
   sections: readonly OverviewSection[],
-  heading: string,
-  footer?: string,
-): string {
-  const body = sections
-    .map(
-      (s) =>
-        `<section><h2>${escapeHtml(s.title)}</h2><dl>` +
-        s.rows
-          .map((r) => `<dt>${escapeHtml(r.label)}</dt><dd>${escapeHtml(r.value)}</dd>`)
-          .join("") +
-        `</dl></section>`,
-    )
-    .join("");
-  return [
-    "<!doctype html><html><head><meta charset='utf-8'>",
-    `<title>${escapeHtml(heading)}</title>`,
-    "<style>",
-    "body{font:12pt/1.45 system-ui,sans-serif;margin:24px;color:#111}",
-    "h1{font-size:18pt;margin:0 0 4px}",
-    "p.meta{margin:0 0 20px;color:#555;font-size:10pt}",
-    // Sections must not be split across a page: half a medical record on the next sheet is how
-    // the second half gets lost.
-    "section{break-inside:avoid;margin:0 0 18px}",
-    "h2{font-size:11pt;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #999;padding-bottom:3px;margin:0 0 8px}",
-    "dl{display:grid;grid-template-columns:minmax(140px,32%) 1fr;gap:4px 16px;margin:0}",
-    "dt{color:#555}dd{margin:0}",
-    "</style></head><body>",
-    `<h1>${escapeHtml(heading)}</h1>`,
-    footer ? `<p class='meta'>${escapeHtml(footer)}</p>` : "",
-    body,
-    "</body></html>",
-  ].join("");
+  { includeIdentityNumbers, redactedLabel }: OverviewDocumentOptions,
+): DocumentSection[] {
+  const identity = new Set<string>(IDENTITY_NUMBER_LABELS);
+  const notes = new Set<string>(NOTE_LABELS);
+  const phones = new Set<string>(PHONE_LABELS);
+
+  return sections.map((s) => ({
+    key: s.key,
+    title: s.title,
+    fields: s.rows.map((r) => {
+      if (identity.has(r.label) && !includeIdentityNumbers) {
+        return { label: r.label, value: redactedLabel };
+      }
+      if (notes.has(r.label)) return { label: r.label, value: r.value, note: true };
+      if (phones.has(r.label)) return { label: r.label, value: documentPhone(r.value) };
+      return { label: r.label, value: r.value };
+    }),
+  }));
 }

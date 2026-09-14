@@ -5374,6 +5374,9 @@
     }
   },
   "adminMemberDetail": {
+    "overview": {
+      "includeIdentityNumbers": "Identiteitsnummers meesturen"
+    },
     "title": "Member Details",
     "profileTab": "Profile",
     "deviceTab": "Device",
@@ -6693,5 +6696,11 @@
     "empty": "Wij hebben nog geen gegevens van u. Gebruik ‘Mijn gegevens aanvullen’ om ze toe te voegen.",
     "print": "Afdrukken / Opslaan als PDF",
     "printedOn": "Afgedrukt op {{date}}"
+  },
+  "memberDocument": {
+    "title": "Ledendossier",
+    "printedBy": "Afgedrukt door {{who}} op {{date}} \u00b7 icealarm.es",
+    "printedOn": "Afgedrukt op {{date}} \u00b7 icealarm.es",
+    "redacted": "In dossier \u2014 niet afgedrukt"
   }
 }

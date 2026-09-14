@@ -56,6 +56,9 @@ vi.mock("react-i18next", () => ({
       }
       return out;
     },
+    // The document's clock is Europe/Madrid; the LANGUAGE of the date is the reader's, so the
+    // hook reads i18n.language. A mock that returns only `t` is not react-i18next.
+    i18n: { language: "en-GB" },
   }),
 }));
 
@@ -69,6 +72,20 @@ vi.mock("@/hooks/useMemberMissingInfo", () => ({
   useMemberMissingInfo: () => ({ data: { missing: [], count: 0 }, isLoading: false }),
   useMembersMissingCounts: () => ({ data: {}, isLoading: false }),
   useMemberMissingInfoRealtime: () => {},
+}));
+
+/*
+  WHO IS PRINTING, faked at the hook boundary for the same reason as the badge above.
+
+  The document's meta line names the signed-in operator, so the dialog reads `useCurrentStaff`,
+  which reads `useAuth`. In the app that is always inside App's AuthProvider — this file renders
+  the header bare, and wrapping it in a real AuthProvider would put a login flow between this
+  suite and the four wiring properties it exists to assert.
+*/
+vi.mock("@/hooks/useCurrentStaff", () => ({
+  useCurrentStaff: () => ({
+    data: { id: "s1", first_name: "Carmen", last_name: "Nicol\u00e1s", role: "call_centre" },
+  }),
 }));
 
 const toastError = vi.fn();
@@ -142,7 +159,7 @@ describe("Overview — reachable from the header", () => {
 
     fireEvent.click(trigger);
 
-    await waitFor(() => expect(screen.getByTestId("member-overview-section-identity")).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId("member-document-section-identity")).toBeTruthy());
     expect(screen.getByText("Calle Mayor 1")).toBeTruthy();
     expect(screen.getByText("O+")).toBeTruthy();
     expect(screen.getByText("Penicillin")).toBeTruthy();
@@ -153,9 +170,17 @@ describe("Overview — reachable from the header", () => {
     expect(screen.queryByText("—")).toBeNull();
   });
 
-  it("queries nothing until it is opened", async () => {
+  it("queries nothing about the MEMBER until it is opened", async () => {
     renderHeader();
-    expect(reads).toEqual([]);
+    /*
+      `system_settings` is the exception, and it is not a cost this dialog adds: the company
+      block on the document comes from the four settings App.tsx already prefetches at boot
+      (`queryKey: ["company-settings"]`, 30-minute staleTime), so in the app this is a cache hit
+      and never a request. What this assertion is for is the SIX READS OF THE MEMBER'S RECORD —
+      members, medical, contacts, device, readiness, subscription — on every page load for a
+      dialog most visits never open. Those must still be zero.
+    */
+    expect(reads.filter((table) => table !== "system_settings")).toEqual([]);
     fireEvent.click(screen.getByTestId("member-overview-trigger"));
     await waitFor(() => expect(reads).toContain("members"));
     expect(reads).toContain("medical_information");
@@ -166,7 +191,7 @@ describe("Overview — reachable from the header", () => {
   it("is read-only: nothing on it takes a value", async () => {
     const { baseElement } = renderHeader();
     fireEvent.click(screen.getByTestId("member-overview-trigger"));
-    await waitFor(() => expect(screen.getByTestId("member-overview-section-identity")).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId("member-document-section-identity")).toBeTruthy());
     const dialog = baseElement.querySelector('[role="dialog"]')!;
     expect(dialog.querySelectorAll("input, textarea, select, [contenteditable=true]").length).toBe(0);
   });
@@ -175,8 +200,8 @@ describe("Overview — reachable from the header", () => {
     errors = { medical_information: { message: "permission denied" } };
     renderHeader();
     fireEvent.click(screen.getByTestId("member-overview-trigger"));
-    await waitFor(() => expect(screen.getByTestId("member-overview-section-identity")).toBeTruthy());
-    expect(screen.queryByTestId("member-overview-section-medical")).toBeNull();
+    await waitFor(() => expect(screen.getByTestId("member-document-section-identity")).toBeTruthy());
+    expect(screen.queryByTestId("member-document-section-medical")).toBeNull();
     // The name and the address — the reason somebody opened it — are still there.
     expect(screen.getByText("Calle Mayor 1")).toBeTruthy();
   });
@@ -186,12 +211,12 @@ describe("Overview — reachable from the header", () => {
     Object.assign(navigator, { clipboard: { writeText } });
     renderHeader();
     fireEvent.click(screen.getByTestId("member-overview-trigger"));
-    await waitFor(() => expect(screen.getByTestId("member-overview-section-identity")).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId("member-document-section-identity")).toBeTruthy());
 
     fireEvent.click(screen.getByText("Copy as text"));
     await waitFor(() => expect(writeText).toHaveBeenCalled());
     const copied = writeText.mock.calls[0][0] as string;
-    expect(copied).toContain("Mary Quinn — member record");
+    expect(copied).toContain("Mary Quinn — Member record");
     expect(copied).toContain("Name: Mary Quinn");
     expect(copied).toContain("Blood group: O+");
     expect(copied).not.toContain("NIE / DNI");
@@ -204,7 +229,7 @@ describe("Overview — reachable from the header", () => {
     });
     renderHeader();
     fireEvent.click(screen.getByTestId("member-overview-trigger"));
-    await waitFor(() => expect(screen.getByTestId("member-overview-section-identity")).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId("member-document-section-identity")).toBeTruthy());
     fireEvent.click(screen.getByText("Copy as text"));
     await waitFor(() => expect(toastError).toHaveBeenCalled());
     expect(String(toastError.mock.calls[0][0])).toMatch(/copy/i);
@@ -213,11 +238,11 @@ describe("Overview — reachable from the header", () => {
   it("prints the sheet from its own document, not the app chrome", async () => {
     renderHeader();
     fireEvent.click(screen.getByTestId("member-overview-trigger"));
-    await waitFor(() => expect(screen.getByTestId("member-overview-section-identity")).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId("member-document-section-identity")).toBeTruthy());
 
     // jsdom logs "Not implemented: window.print" here and carries on — that is the browser API
     // being absent, not the component failing, and stubbing it would test the stub.
-    fireEvent.click(screen.getByText("Print"));
+    fireEvent.click(screen.getByText("Print / Save as PDF"));
 
     // The frame is still in the document — the component removes it a second later, after the
     // print dialog has taken its snapshot.
@@ -230,5 +255,108 @@ describe("Overview — reachable from the header", () => {
     expect(html).not.toContain("member-overview-trigger");
     expect(html).not.toContain("Suspend Member");
     expect(toastError).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * THE SHEET IS A DOCUMENT — asserted on the surface a staff member actually reads.
+ *
+ * `memberDocument.test.ts` proves the renderers; this proves the DIALOG hands them a document
+ * rather than a bare list, and that what is on screen is what the printer gets. A model that is
+ * only ever passed to the print path would leave the on-screen sheet unbranded, and nobody would
+ * notice until the two were held side by side.
+ */
+describe("Overview — the branded document, on screen and on paper", () => {
+  /*
+    THE LAST IFRAME, NOT THE FIRST.
+
+    The print frame is appended to document.body and removed a second later by a timer, so
+    `cleanup()` — which unmounts React trees — does not take it. `querySelector("iframe")` then
+    returns a frame printed by an EARLIER test, and the assertion silently reads the wrong
+    document. That is how this pair of tests first went green against the previous test's sheet.
+  */
+  const lastPrintedHtml = () => {
+    const frames = document.querySelectorAll("iframe");
+    return frames[frames.length - 1].contentDocument!.documentElement.outerHTML;
+  };
+
+  const openSheet = async () => {
+    renderHeader();
+    fireEvent.click(screen.getByTestId("member-overview-trigger"));
+    await waitFor(() => expect(screen.getByTestId("member-document-section-identity")).toBeTruthy());
+  };
+
+  it("puts a masthead, the member and the notice on the screen sheet, not only the print one", async () => {
+    await openSheet();
+    const doc = screen.getByTestId("member-document");
+    expect(doc.textContent).toContain("ICE Alarm");
+    expect(doc.textContent).toContain("Member record");
+    expect(screen.getByTestId("member-document-name").textContent).toContain("Mary Quinn");
+    expect(doc.textContent).toContain("Destroy securely when no longer needed");
+    // All three languages, because whoever finds the sheet later was not in the conversation
+    // that set the language.
+    expect(doc.textContent).toContain("Destr\u00fayalo de forma segura");
+    expect(doc.textContent).toContain("Vernietig dit veilig");
+  });
+
+  it("names who printed it — the operator, from the session, not a placeholder", async () => {
+    await openSheet();
+    expect(screen.getByTestId("member-document").textContent).toContain(
+      "Printed by Carmen Nicol\u00e1s",
+    );
+  });
+
+  it("humanises the status instead of printing the raw enum on a filed sheet", async () => {
+    rows.members = { ...(rows.members as Record<string, unknown>), status: "pending_review" };
+    await openSheet();
+    const strip = screen.getByTestId("member-document-name").textContent ?? "";
+    expect(strip).toContain("Pending review");
+    expect(strip).not.toContain("pending_review");
+  });
+
+  it("withholds identity numbers until the tick box beside Print is ticked", async () => {
+    rows.members = { ...(rows.members as Record<string, unknown>), nie_dni: "X1234567L" };
+    await openSheet();
+
+    const sheet = () => screen.getByTestId("member-document").textContent ?? "";
+    expect(sheet()).toContain("NIE / DNI");
+    expect(sheet()).not.toContain("X1234567L");
+    expect(sheet()).toContain("Held \u2014 not printed");
+
+    fireEvent.click(screen.getByTestId("member-overview-identity-numbers"));
+    await waitFor(() => expect(sheet()).toContain("X1234567L"));
+  });
+
+  it("keeps them out of the PRINTED sheet too — the box is what the printer obeys", async () => {
+    rows.members = { ...(rows.members as Record<string, unknown>), nie_dni: "X1234567L" };
+    await openSheet();
+    fireEvent.click(screen.getByText("Print / Save as PDF"));
+    const html = lastPrintedHtml();
+    expect(html).not.toContain("X1234567L");
+    expect(html).toContain("NIE / DNI");
+    expect(html).toContain("Held \u2014 not printed");
+  });
+
+  it("prints the masthead, the company block and the notice", async () => {
+    await openSheet();
+    fireEvent.click(screen.getByText("Print / Save as PDF"));
+    const html = lastPrintedHtml();
+    expect(html).toContain("ICE Alarm");
+    // From system_settings via useCompanySettings — the stub answers nothing, so the non-safety
+    // defaults stand and the emergency number is absent rather than invented.
+    expect(html).toContain("info@icealarm.es");
+    expect(html).toContain("Destroy securely when no longer needed");
+    expect(html).toContain("size:A4");
+  });
+
+  it("copies the document, notice and all — a pasted record keeps its warning", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    await openSheet();
+    fireEvent.click(screen.getByText("Copy as text"));
+    await waitFor(() => expect(writeText).toHaveBeenCalled());
+    const copied = writeText.mock.calls[0][0] as string;
+    expect(copied).toContain("Printed by Carmen Nicol\u00e1s");
+    expect(copied).toContain("Destroy securely when no longer needed");
   });
 });

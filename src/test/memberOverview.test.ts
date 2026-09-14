@@ -12,8 +12,8 @@
 import { describe, it, expect } from "vitest";
 import {
   buildMemberOverview,
-  overviewAsPrintHtml,
-  overviewAsText,
+  overviewAsDocumentSections,
+  IDENTITY_NUMBER_LABELS,
   overviewDate,
   overviewFactCount,
   type MemberOverviewData,
@@ -200,33 +200,83 @@ describe("member overview — dates and money", () => {
   });
 });
 
-describe("member overview — copy and print", () => {
+describe("the sheet as a document — presentation only, never a second builder", () => {
+  const OPTIONS = { includeIdentityNumbers: false, redactedLabel: "Held — not printed" };
+
+  const sections = buildMemberOverview({
+    ...EMPTY,
+    member: {
+      first_name: "Mary",
+      last_name: "Quinn",
+      city: "Marbella",
+      phone: "+34600000001",
+      nie_dni: "X1234567L",
+      passport_number: "PA0099887",
+      an_ss_number: "28/12345678-90",
+      special_instructions: "Key safe left of the gate.\nDog in the yard.",
+    },
+  });
+
+  const fieldOf = (key: string, label: string) =>
+    overviewAsDocumentSections(sections, OPTIONS)
+      .find((s) => s.key === key)
+      ?.fields.find((f) => f.label === label);
+
+  it("withholds all three identity numbers by default, on every surface that prints", () => {
+    for (const label of IDENTITY_NUMBER_LABELS) {
+      expect(fieldOf("identity", label)?.value).toBe("Held — not printed");
+    }
+  });
+
+  it("prints them in full only when somebody asked for them", () => {
+    const withIds = overviewAsDocumentSections(sections, {
+      ...OPTIONS,
+      includeIdentityNumbers: true,
+    });
+    const identity = withIds.find((s) => s.key === "identity")!;
+    expect(identity.fields.find((f) => f.label === "NIE / DNI")?.value).toBe("X1234567L");
+    expect(identity.fields.find((f) => f.label === "Passport")?.value).toBe("PA0099887");
+    expect(identity.fields.find((f) => f.label === "Social security number")?.value).toBe(
+      "28/12345678-90",
+    );
+  });
+
+  it("REDACTS rather than removes — the row and the fact count are unchanged", () => {
+    // "We hold a NIE and did not print it" and "we hold no NIE" are different facts, and the
+    // sheet's whole promise is that it says which. A count that moved with a print option would
+    // also make "21 details on file" mean nothing.
+    const off = overviewAsDocumentSections(sections, OPTIONS);
+    const on = overviewAsDocumentSections(sections, { ...OPTIONS, includeIdentityNumbers: true });
+    expect(off.map((s) => s.fields.length)).toEqual(on.map((s) => s.fields.length));
+    expect(off.find((s) => s.key === "identity")!.fields.map((f) => f.label)).toContain("Passport");
+  });
+
+  it("never withholds anything else — a redaction that matched everything would be silent", () => {
+    expect(fieldOf("identity", "Name")?.value).toBe("Mary Quinn");
+    expect(fieldOf("address", "Town or city")?.value).toBe("Marbella");
+  });
+
+  it("groups a phone number so it can be read down a line", () => {
+    expect(fieldOf("contact", "Phone")?.value).toBe("+34 600 000 001");
+  });
+
+  it("gives a paragraph its own full-width box instead of the value column", () => {
+    const notes = fieldOf("address", "Access notes");
+    expect(notes?.note).toBe(true);
+    expect(notes?.value).toContain("Dog in the yard.");
+  });
+
+  it("keeps every section, in order, with nothing added", () => {
+    const docSections = overviewAsDocumentSections(sections, OPTIONS);
+    expect(docSections.map((s) => s.key)).toEqual(sections.map((s) => s.key));
+    expect(docSections.map((s) => s.fields.length)).toEqual(sections.map((s) => s.rows.length));
+  });
+});
+
+describe("member overview — the fact count", () => {
   const sections = buildMemberOverview({
     ...EMPTY,
     member: { first_name: "Mary", last_name: "Quinn", city: "Marbella" },
-  });
-
-  it("copies as plain text with a heading and every row", () => {
-    const out = overviewAsText(sections, "Mary Quinn — member record");
-    expect(out).toContain("Mary Quinn — member record");
-    expect(out).toContain("IDENTITY");
-    expect(out).toContain("Name: Mary Quinn");
-    expect(out).toContain("Town or city: Marbella");
-    expect(out.endsWith("\n")).toBe(false);
-  });
-
-  it("the print document escapes free text instead of letting it become markup", () => {
-    const risky = buildMemberOverview({
-      ...EMPTY,
-      member: { first_name: "Mary", last_name: "O'Brien & <Sons>" },
-      medical: { additional_notes: '<script>alert("x")</script>' },
-    });
-    const html = overviewAsPrintHtml(risky, "Mary O'Brien & <Sons>", "Printed today");
-    expect(html).toContain("&amp;");
-    expect(html).toContain("&lt;Sons&gt;");
-    expect(html).not.toContain("<script>");
-    expect(html).toContain("Printed today");
-    expect(html).toContain("break-inside:avoid");
   });
 
   it("counts the facts on the sheet", () => {

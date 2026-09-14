@@ -11,6 +11,8 @@ import {
 import {
   EMPTY_VALUE,
   MEMBER_DOCUMENT_PRINT_CSS,
+  memberDocumentPageRule,
+  memberDocumentStrip,
   documentInitials,
   documentPhone,
   memberDocumentAsPrintHtml,
@@ -154,9 +156,11 @@ describe("a member's own text is never markup", () => {
 });
 
 describe("the print rules are the ones a printed page needs", () => {
+  const page = memberDocumentPageRule(memberDocumentStrip(doc));
+
   it("is A4 with the brief's 18mm margins", () => {
-    expect(MEMBER_DOCUMENT_PRINT_CSS).toContain("size:A4");
-    expect(MEMBER_DOCUMENT_PRINT_CSS).toContain("margin:18mm");
+    expect(page).toContain("size:A4");
+    expect(page).toContain("margin:18mm 18mm 26mm");
   });
 
   it("refuses to split a section across a page, in both the old and the new property", () => {
@@ -166,15 +170,42 @@ describe("the print rules are the ones a printed page needs", () => {
     expect(MEMBER_DOCUMENT_PRINT_CSS).toContain("break-inside:avoid");
   });
 
-  it("repeats the footer on every page with a fixed element, not only an @page margin box", () => {
-    // Chrome does not implement @page margin boxes; a design that relied on them would print
-    // the notice on page one and nowhere else.
-    expect(MEMBER_DOCUMENT_PRINT_CSS).toMatch(/\.doc-footer\{position:fixed/);
-    expect(MEMBER_DOCUMENT_PRINT_CSS).toContain("counter(page)");
+  it("repeats a marking on every page from the PAGE MARGIN, where text cannot reach", () => {
+    /*
+      Not `position: fixed`, which is what the brief asked for and what was built first. In
+      Chrome's print engine a fixed footer is painted at the same offset on every sheet while the
+      text flows on underneath, and the rendered PDF showed the notice printed straight across
+      the Emergency contacts section on page two. A margin box cannot overlap the text because a
+      margin is the part of the page text never enters.
+    */
+    expect(page).toMatch(/@bottom-left\{content:"/);
+    expect(page).toContain('counter(page) " / " counter(pages)');
+    expect(MEMBER_DOCUMENT_PRINT_CSS).not.toContain("position:fixed");
   });
 
-  it("leaves room at the foot of the page so the fixed footer never lands on the text", () => {
-    expect(MEMBER_DOCUMENT_PRINT_CSS).toMatch(/padding:0 0 22mm/);
+  it("marks the repeating strip with the member, the company and the word in three languages", () => {
+    // What matters on ONE sheet found on a desk: whose it is, and that it is confidential.
+    expect(page).toContain("David Evans");
+    expect(page).toContain("ICE Alarm España");
+    expect(page).toContain("Confidential / Confidencial / Vertrouwelijk");
+  });
+
+  it("cannot have its stylesheet closed by a quote in the company name", () => {
+    // The name comes from system_settings — somebody's input. A stray quote would end the
+    // declaration and take the rest of the stylesheet with it.
+    const rule = memberDocumentPageRule('Acme " ; } body{display:none} /*');
+    const value = rule.match(/@bottom-left\{content:"((?:[^"\\]|\\.)*)"/)![1];
+    // Every quote inside the value is escaped, so the declaration runs to the end of the strip
+    // rather than being closed early by the member's own data.
+    expect(value).toContain('\\"');
+    expect(value.replace(/\\./g, "")).not.toContain('"');
+    expect(value).toContain("body{display:none}");
+  });
+
+  it("still carries the full three-language notice, once, at the end of the document", () => {
+    const html = memberDocumentAsPrintHtml(doc);
+    expect(html).toContain('<footer class="doc-footer">');
+    expect(html.match(/Destroy securely when no longer needed/g)).toHaveLength(1);
   });
 
   it("uses brand red ONCE, as a rule beside the caption — never as a fill (R1/R2)", () => {

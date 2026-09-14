@@ -5374,6 +5374,9 @@
     }
   },
   "adminMemberDetail": {
+    "overview": {
+      "includeIdentityNumbers": "Include identity numbers"
+    },
     "title": "Member Details",
     "profileTab": "Profile",
     "deviceTab": "Device",
@@ -6693,5 +6696,11 @@
     "empty": "We do not hold any details for you yet. Use “Complete my details” to add them.",
     "print": "Print / Save as PDF",
     "printedOn": "Printed {{date}}"
+  },
+  "memberDocument": {
+    "title": "Member record",
+    "printedBy": "Printed by {{who}} on {{date}} \u00b7 icealarm.es",
+    "printedOn": "Printed on {{date}} \u00b7 icealarm.es",
+    "redacted": "Held \u2014 not printed"
   }
 }

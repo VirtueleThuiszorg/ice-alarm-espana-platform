@@ -5374,6 +5374,9 @@
     }
   },
   "adminMemberDetail": {
+    "overview": {
+      "includeIdentityNumbers": "Incluir n\u00fameros de identidad"
+    },
     "title": "Detalles del Miembro",
     "profileTab": "Perfil",
     "deviceTab": "Dispositivo",
@@ -6693,5 +6696,11 @@
     "empty": "Todavía no tenemos datos suyos. Utilice «Completar mis datos» para añadirlos.",
     "print": "Imprimir / Guardar como PDF",
     "printedOn": "Impreso el {{date}}"
+  },
+  "memberDocument": {
+    "title": "Ficha del socio",
+    "printedBy": "Impreso por {{who}} el {{date}} \u00b7 icealarm.es",
+    "printedOn": "Impreso el {{date}} \u00b7 icealarm.es",
+    "redacted": "En nuestros archivos \u2014 no impreso"
   }
 }

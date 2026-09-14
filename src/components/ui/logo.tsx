@@ -1,4 +1,5 @@
 import { forwardRef } from "react";
+import { HEARTBEAT_PATH, SHIELD_PATH } from "@/lib/brandMark";
 import { cn } from "@/lib/utils";
 
 interface LogoProps {
@@ -15,8 +16,9 @@ interface LogoProps {
  * KNOCKED OUT of the shield rather than drawn over it: one shape, so it engraves,
  * embroiders and prints in a single colour pass and cannot come apart at 16px.
  *
- * Canonical vector source is `public/icon.svg` — the geometry below must stay in
- * step with it. Every raster in the icon set is exported from that file.
+ * Canonical vector source is `public/icon.svg`. The geometry itself lives in
+ * `@/lib/brandMark` because the PRINTED member record draws the same shield with no
+ * React available — two copies of a path `d` would drift the first time it is retouched.
  *
  * Primary lockup is the FULL NAME ON ONE LINE ("ICE Alarm España"), matching the
  * registered company. The stacked form is for narrow columns; below ~150px wide
@@ -24,10 +26,6 @@ interface LogoProps {
  *
  * Props are unchanged from the previous component so no caller breaks.
  */
-
-const SHIELD_D =
-  "M50 7 L87 21 V50 C87 71.5 71 87.5 50 93.5 C29 87.5 13 71.5 13 50 V21 Z";
-const HEARTBEAT_D = "M25 52 H37 L43 38 L52 66 L58 52 H75";
 
 export const Logo = forwardRef<HTMLDivElement, LogoProps>(
   function Logo({ variant = "default", size = "md", showText = true, className }, ref) {
@@ -80,9 +78,9 @@ export const Logo = forwardRef<HTMLDivElement, LogoProps>(
           role="img"
           aria-label="ICE Alarm España"
         >
-          <path d={SHIELD_D} fill={shield} />
+          <path d={SHIELD_PATH} fill={shield} />
           <path
-            d={HEARTBEAT_D}
+            d={HEARTBEAT_PATH}
             fill="none"
             stroke={beat}
             strokeWidth={7}

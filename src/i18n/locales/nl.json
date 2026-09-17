@@ -7033,8 +7033,10 @@
       "unknown": "We konden uw lidmaatschap nu niet controleren."
     },
     "pendant": {
-      "ok": "Uw hanger is getest en meldt zich bij ons.",
+      "ok": "Uw hanger is getest en meldt zich bij ons. Laatst getest op {{date}}.",
       "okAction": "Uw hanger bekijken",
+      "stale": "Het is alweer een tijd geleden dat uw hanger getest is. Laatst getest op {{date}}.",
+      "staleAction": "Een test inplannen",
       "offline": "Uw hanger meldt zich niet meer bij ons.",
       "offlineAction": "Laat het ons weten",
       "awaitingTest": "We moeten uw hanger nog samen met u telefonisch testen.",

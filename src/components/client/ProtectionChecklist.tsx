@@ -4,6 +4,8 @@ import { CheckCircle2, Clock, AlertTriangle, PlusCircle, HelpCircle } from "luci
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supportActionPath } from "@/lib/supportActions";
+import { formatMemberDayMonth } from "@/lib/memberDate";
+import { usePendantTestReminderDays } from "@/hooks/usePendantTestReminderDays";
 import {
   protectionChecklist,
   type ProtectionInput,
@@ -45,8 +47,18 @@ const RUNG_LABEL: Record<ProtectionRung["id"], { key: string; fallback: string }
 };
 
 export function ProtectionChecklist({ input }: { input: ProtectionInput }) {
-  const { t } = useTranslation();
-  const rungs = protectionChecklist(input);
+  const { t, i18n } = useTranslation();
+  /*
+    THE THRESHOLD IS READ HERE, not passed down from every page that renders this card.
+
+    It is a property of the COMPANY — one row in `system_settings` saying how often we suggest
+    testing a pendant — rather than a fact about the member, which is what `input` carries. A
+    caller that had to fetch it would be a second caller to keep in step the day a second surface
+    shows this card, and `usePendantTestReminderDays` shares one query through react-query's
+    cache anyway.
+  */
+  const testReminderDays = usePendantTestReminderDays();
+  const rungs = protectionChecklist({ ...input, testReminderDays });
 
   return (
     <Card data-testid="protection-checklist">
@@ -72,7 +84,20 @@ export function ProtectionChecklist({ input }: { input: ProtectionInput }) {
                   <p className="text-[0.8125rem] font-semibold uppercase tracking-wide text-muted-foreground">
                     {t(RUNG_LABEL[rung.id].key, RUNG_LABEL[rung.id].fallback)}
                   </p>
-                  <p className="text-base">{t(rung.headline.key, rung.headline.fallback)}</p>
+                  {/*
+                    THE DATE, IN THE READER'S LANGUAGE. `protectionChecklist` is pure and hands
+                    over a raw ISO string; "3 March" / "3 de marzo" / "3 maart" is decided here,
+                    through the same locale map the dashboard greeting uses.
+
+                    `formatMemberDayMonth` returns null for an unreadable timestamp, and the
+                    interpolation is then simply absent rather than reading "Invalid Date" in a
+                    sentence about somebody's alarm.
+                  */}
+                  <p className="text-base">
+                    {t(rung.headline.key, rung.headline.fallback, {
+                      date: formatMemberDayMonth(rung.headlineDate, i18n.language) ?? "",
+                    })}
+                  </p>
                 </div>
               </div>
 

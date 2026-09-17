@@ -7033,8 +7033,10 @@
       "unknown": "No hemos podido comprobar su suscripción en este momento."
     },
     "pendant": {
-      "ok": "Su colgante está probado y se comunica con nosotros.",
+      "ok": "Su colgante está probado y se comunica con nosotros. Última prueba: {{date}}.",
       "okAction": "Ver su colgante",
+      "stale": "Hace tiempo que no se prueba su colgante. Última prueba: {{date}}.",
+      "staleAction": "Concertar una prueba",
       "offline": "Su colgante ha dejado de comunicarse con nosotros.",
       "offlineAction": "Avísenos",
       "awaitingTest": "Todavía tenemos que probar su colgante con usted por teléfono.",

@@ -201,6 +201,7 @@ const AdminHolidaysPage = lazyWithRetry(() => import("./pages/admin/HolidaysPage
 
 // Partner Pages - Lazy loaded
 const PartnerJoin = lazyWithRetry(() => import("./pages/partner/PartnerJoin"));
+const PartnerTermsPage = lazyWithRetry(() => import("./pages/partner/PartnerTermsPage"));
 const PartnerVerify = lazyWithRetry(() => import("./pages/partner/PartnerVerify"));
 const PartnerLogin = lazyWithRetry(() => import("./pages/partner/PartnerLogin"));
 const PartnerInvitePage = lazyWithRetry(() => import("./pages/partner/PartnerInvitePage"));
@@ -496,6 +497,8 @@ const App = () => {
                         a 308 for a cold hit; this covers client-side navigation. */}
                     <Route path="/partner" element={<Navigate to="/partner/join" replace />} />
                     <Route path="/partner/join" element={<PartnerJoin />} />
+                    {/* The Partner Agreement, readable without an account — linked from /partner/join. */}
+                    <Route path="/partner/terms" element={<PartnerTermsPage />} />
                     <Route path="/partner/verify" element={<PartnerVerify />} />
                     <Route path="/partner/login" element={<PartnerLogin />} />
                     <Route path="/partner/invite" element={<PartnerInvitePage />} />

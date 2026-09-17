@@ -17,8 +17,14 @@
  * themselves are unchanged.
  *
  * Ops note: after deploy, point Auth → Hooks → "Send Email" at this function
- * and set SEND_EMAIL_HOOK_SECRET (plus GMAIL_APP_PASSWORD, already used by
- * other mail-sending functions).
+ * and set SEND_EMAIL_HOOK_SECRET.
+ *
+ * The transport is _shared/email.ts, which follows `email_settings.provider`:
+ * Resend in production. This note used to say "plus GMAIL_APP_PASSWORD, already
+ * used by other mail-sending functions", which stopped being true — that secret
+ * is the LOCAL development path and is deliberately never set in production
+ * (go-live runbook, S4). Enabling this hook before the provider is 'resend' would
+ * route every Supabase auth email into a transport that cannot send.
  */
 import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'

@@ -32,6 +32,14 @@ export const FORBIDDEN_BRAND_STRINGS = [
  * native picker, trigger a download, or hand off to an external SDK), so they
  * would false-positive as "dead". Matched case-insensitively against the
  * button's accessible name. Keep this list SHORT and justified.
+ *
+ * An entry here is a permanent exemption, not a fix: the button is skipped
+ * before it is ever clicked, so deleting its handler afterwards goes unnoticed.
+ * Prefer observing the effect (see `nativeEffects` below, which counts
+ * window.print) and add a name here only when there is genuinely nothing to
+ * observe. When you do, give ALL THREE rendered names — the check reads the
+ * accessible name and the audit runs en / es / nl, so an English-only pattern
+ * silently stops matching in the other two.
  */
 export const BUTTON_NOOP_ALLOWLIST: RegExp[] = [
   /accept|reject|manage cookies|cookie/i, // GDPR banner — state lives outside the DOM we snapshot
@@ -39,13 +47,6 @@ export const BUTTON_NOOP_ALLOWLIST: RegExp[] = [
   // explicitly out of scope for the public-page audit, and its actions (open modal /
   // start a call) are not reliably DOM-observable here.
   /call and speak|call me|isabella|open chat|chat with|close chat/i,
-  // The withdrawal-form print button (`CancellationContent`, /cancellation-policy).
-  // `window.print()` hands off to the browser's native print dialog, which is not in
-  // the page's DOM at all and is a silent no-op in headless Chromium — so there is
-  // nothing for the heuristic to observe in either direction, and a working button
-  // was reported as dead. Its three rendered names, because the check reads the
-  // accessible name and the audit may run in any of the three languages.
-  /print this page|imprimir esta página|deze pagina afdrukken/i,
 ];
 
 export type Lang = "en" | "es" | "nl";

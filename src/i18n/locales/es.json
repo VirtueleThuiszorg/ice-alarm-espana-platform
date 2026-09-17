@@ -1466,7 +1466,6 @@
     "whatsappUs": "WhatsApp",
     "subscriptionStatus": "Suscripción",
     "plan": "Plan",
-    "nextPayment": "Próximo pago",
     "manageSubscription": "Gestionar suscripción",
     "updateContacts": "Actualizar contactos",
     "announcement": "Anuncio de servicio",
@@ -1509,6 +1508,8 @@
       "videosRendered": "Renderizados",
       "videosExported": "Exportados"
     },
+    "nextPayment": "Pr\u00f3ximo pago {{date}}",
+    "nextPaymentPaidForYou": "Pr\u00f3ximo pago {{date}} \u00b7 lo paga otra persona",
     "recentActivity": "Actividad reciente",
     "noAlerts": "Sin avisos. No ha pasado nada, que es de lo que se trata.",
     "viewAllAlerts": "Ver su historial de avisos",

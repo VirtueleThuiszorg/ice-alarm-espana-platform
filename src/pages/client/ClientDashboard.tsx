@@ -24,13 +24,14 @@ import { useTranslation } from "react-i18next";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { format } from "date-fns";
-import { es, enGB } from "date-fns/locale";
+import { es, enGB, nl } from "date-fns/locale";
 import i18n from "@/i18n";
 
 import { telHref, waNumber } from "@/lib/phone";
 import { PageHeader } from "@/components/client/PageHeader";
 import { ProtectionChecklist } from "@/components/client/ProtectionChecklist";
-import { useMemberSubscriptions, useMemberAlerts } from "@/hooks/useMemberProfile";
+import { NextPaymentLine } from "@/components/client/NextPaymentLine";
+import { useMemberSubscriptions, useMemberAlerts, type SubscriptionInfo } from "@/hooks/useMemberProfile";
 import { useMemberAlertHistory } from "@/hooks/useMemberAlertHistory";
 import { useMemberMissingInfo } from "@/hooks/useMemberMissingInfo";
 import { CompleteMyDetailsDialog } from "@/components/client/CompleteMyDetailsDialog";
@@ -54,12 +55,25 @@ const MOCK_DEVICE = {
   last_location_address: "Calle Demo 123, Madrid",
 };
 
-const MOCK_SUBSCRIPTION = {
+/*
+  TYPED AS THE REAL ROW, not as a loose object literal. It is handed to components that take a
+  `SubscriptionInfo`, and the five fields it used to carry were the five somebody happened to
+  need — so a component reading a sixth got `undefined` in the preview and nothing said so.
+  `payer_id: null` is the member paying for themselves, which is what a template should show.
+*/
+const MOCK_SUBSCRIPTION: SubscriptionInfo = {
+  id: "00000000-0000-0000-0000-000000000000",
+  member_id: "00000000-0000-0000-0000-000000000000",
   plan_type: "single",
   status: "active",
   renewal_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
   amount: 24.95,
   billing_frequency: "monthly",
+  start_date: null,
+  has_pendant: true,
+  payment_method: "card",
+  payer_id: null,
+  created_at: null,
 };
 
 const MOCK_CONTACTS = [
@@ -126,7 +140,7 @@ export default function ClientDashboard() {
     any status too, because "paused" and "never joined" are different things to say to a member
     (see `membershipCondition.ts`). `useMemberSubscriptions` answers both from one read.
   */
-  const { data: subscriptions } = useMemberSubscriptions(
+  const { data: subscriptions, isLoading: subscriptionsLoading } = useMemberSubscriptions(
     isTemplatePreview ? null : effectiveMemberId,
   );
   const subscription = subscriptions?.active ?? null;
@@ -243,7 +257,13 @@ export default function ClientDashboard() {
     ? MOCK_CONTACTS.length
     : (readiness?.emergency_contact_count ?? null);
 
-  const dateLocale = i18n.language === 'es' ? es : enGB;
+  /*
+    THE HEADER'S DATES, IN THE READER'S LANGUAGE. `nl` was falling through to English here, so a
+    Dutch member read "Thursday, 17 September 2026" under a Dutch greeting. One extra branch,
+    added with the next-payment line rather than after it, because that line sits beside this
+    date and two dates in one sentence disagreeing about their language is worse than either.
+  */
+  const dateLocale = i18n.language === 'es' ? es : i18n.language === 'nl' ? nl : enGB;
   const currentDate = format(new Date(), 'EEEE, d MMMM yyyy', { locale: dateLocale });
 
   const memberName = displayMember?.first_name || t("common.member");
@@ -314,7 +334,33 @@ export default function ClientDashboard() {
             </>
           )
         }
-        subtitle={currentDate}
+        /*
+          THE NEXT PAYMENT DATE GOES IN THE SUBTITLE, NOT THE ACTION SLOT.
+
+          The action slot already carries four controls — Complete my details, Review my details,
+          the phone and WhatsApp. A fifth item there wraps badly at 1024px and, sitting among
+          four buttons, reads as a fifth thing to press. This is information.
+
+          `flex-wrap` so it drops onto its own line on a phone rather than pushing the date out,
+          and everything inside is a span: PageHeader renders the subtitle inside a <p>.
+        */
+        subtitle={
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span>{currentDate}</span>
+            {/*
+              NO MIDDOT BETWEEN THE TWO, and it was tried. A `hidden sm:inline` separator put a
+              lone "·" at the end of the date's line at 1024px, where the subtitle wraps — which
+              reads as a typo, not as punctuation. No breakpoint can know whether these two fit
+              on one line, because that depends on the member's name and the language. The
+              CalendarClock icon separates them at every width and cannot be orphaned.
+            */}
+            <NextPaymentLine
+              subscription={isTemplatePreview ? MOCK_SUBSCRIPTION : subscriptions?.latest}
+              loading={subscriptionsLoading && !isTemplatePreview}
+              dateLocale={dateLocale}
+            />
+          </span>
+        }
         action={
           <div className="flex flex-wrap items-center gap-2">
           {/*

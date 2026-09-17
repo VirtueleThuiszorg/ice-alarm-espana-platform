@@ -674,8 +674,8 @@ wrong, including dropping each of the six checks in turn, and including somebody
 | S42 | 🔴 **Replace `SUPABASE_ACCESS_TOKEN`** — Supabase is refusing the one CI holds | Supabase → Account → Access Tokens → generate, then GitHub → Settings → Secrets and variables → **Actions** → `SUPABASE_ACCESS_TOKEN` | **Edge functions have stopped deploying to production.** Migrate Production [run 48](https://github.com/VirtueleThuiszorg/ice-alarm-espana-platform/actions/runs/35203666109/job/105144203491) failed on 17 Sep at `supabase functions deploy` with `unexpected list functions status 401: {"message":"Unauthorized"}`. The secrets guard passed — `All 2 required secret(s) present` — so the secret EXISTS and Supabase is rejecting its VALUE: expired or revoked. Run 47 (12 Sep) was the last success. **Why this is worse than it looks:** that job's whole promise is that main's edge functions and production's are the same code, so from 17 Sep onward the two may be diverging, and every push to main fails the same way until the token is replaced. **Why it may not look broken:** `reach-production.sh` falls back to the pooler with `SUPABASE_DB_PASSWORD` when the Management API refuses the token, so MIGRATIONS may still land while function deploys silently do not — do not read a green drift gate as "the token is fine". Drift was level (207/207) at the time of writing, so nothing is lost yet. After replacing it, re-run the workflow and check `Deploy functions to prod` | ⬜ |
 | S41 | 🔴 **Roll the LIVE Stripe secret key** (`sk_live_…`) that was pasted into chat on 12 Sep | Stripe → Developers → API keys → roll, then Developers → Logs | Same reason as S1, one rung worse: a live Stripe secret key moves real money. It was refused on sight and never used — `stripe-rehearsal.yml` rejects any key not starting `sk_test_`, before a single API call, precisely so that a live key in the wrong box cannot create real customers and real SEPA mandates against members who are mostly in their eighties. But refusing to use it does not un-expose it. Roll it, then read Developers → Logs for requests you do not recognise. **The key the rehearsal actually wants is the TEST one (S39) — those are different keys and only one of them is safe to hand to CI** | ⬜ |
 | S2 | **Approve the Twilio WhatsApp sender** | Twilio console | D8's opt-in link and D7's WhatsApp channel cannot send until approved. **Has its own clock — start early** | ⬜ |
-| S3 | **Verify `icealarm.es` with Resend**, then edit the existing SPF record (one record only), publish DKIM + DMARC | Resend + DNS | Email channel stays OFF until this delivers. Nothing built this run depends on email | ⬜ |
-| S4 | **Set `GMAIL_APP_PASSWORD`** or retire the Gmail transport in favour of Resend | Supabase → Edge Function secrets | `send-member-update-request` currently fails on the missing secret | ⬜ |
+| S3 | **Verify `icealarm.es` with Resend**, then publish the records Resend prints (its own `send.` sub-domain, so the root SPF Gmail/Zoho use is untouched — check that against what Resend actually shows you), plus DMARC | Resend + DNS | Email channel stays OFF until this delivers: partner verification, member invites, password resets, update-request links and the switch-link emails all fail. **The 17 Sep runbook for this is checked against the code in §8**, including two things it does not mention — the `www`/apex split in `SITE_URL`/`PUBLIC_SITE_URL`, and that step B alone starts partner alert emails | ⬜ |
+| ~~S4~~ | ~~**Set `GMAIL_APP_PASSWORD`** or retire the Gmail transport in favour of Resend~~ — **the code half is DONE (#456), and `GMAIL_APP_PASSWORD` never needs setting.** Gmail no longer catches everything that goes wrong: a settings-lookup failure, `provider='gmail'` with no password, and an unknown provider each refuse with their own reason, logged. **It is not in production yet** — the function deploy has been failing since 17 Sep (S42), so fixing that token is what lands it. What remains of S4 is step C of the §8 runbook: `update email_settings set provider='resend'` | Supabase → SQL editor (and S42 first) | ⚠️ |
 | S5 | 🔴 **Disconnect the stale Vercel project** `care-conneqt-platform` (under `lee-wakemans-projects`) — **it is now costing you something, not just noise** | Vercel | It fails on **every** PR because the repo was renamed; the live project `ice-alarm-espana-platform` (under `virtuele-thuiszorg`) deploys fine on the same commits. Every PR therefore shows a red X that means nothing, which is how a real red X gets ignored. **New as of 2026-09-07 21:04:** it has stopped failing on configuration and started failing on quota — *"Resource is limited - try again in 24 hours (more than 100, code: `api-deployments-free-per-day`)"*. Every push to every branch triggers a build on it, and that account's free tier is now exhausted for the day. So this is no longer cosmetic: a dead project is burning the daily deployment allowance, and the next thing to hit that ceiling may be one you need | ⬜ |
 | ~~S6~~ | ~~**Set `system_settings.settings_emergency_phone` = `950 473 199`**~~ — **now a migration** (`20260907110200`), not a manual edit. The brief asked for one in WP1(b) and it was never written; it sat here as a table edit instead. `ON CONFLICT DO NOTHING`, so if you already set it by hand your value wins. Original note kept below for context: | Supabase → Table editor → `system_settings` (it is **data, not schema** — no migration needed, no drift-gate wait) | Until this row exists the 24-hour number is **absent everywhere** — public site, pendant page, member device/support/dashboard, join confirmation, invoices. That is deliberate and correct (the old hardcoded `+34 900 123 456` was not a number this company owns and was a live `tel:` link), but it means members currently see no number at all. **This is the highest-value five-second job on this list.** | ⬜ |
 | S8 | **After pushing the WP2 corrections, verify the backfill** — run `select status, fulfilment_state, count(*) from orders group by 1,2 order by 1;` | Supabase → SQL editor | #180 defaulted EVERY existing order to `fulfilment_state='paid'`, including ones already shipped or delivered. The corrections migration maps them (processing→allocated, shipped→dispatched, delivered→delivered, cancelled→cancelled). **This is the one part of the bundle the RLS harness cannot prove**: the backfill runs at apply time, before the suite has any rows to seed, so there is nothing for it to assert against. Expect `status` and `fulfilment_state` to agree on every row except `pending`. | ⬜ |
@@ -1459,7 +1459,7 @@ phone home). The **schema is held** — `20260909121500_notify_staff.sql` and
 | channel | state |
 |---|---|
 | **push** | Ready in code, needs S30–S31 (three pastes, no consoles). Server on FCM HTTP v1; per-device tokens in `staff_push_tokens`; a token FCM calls dead (404 `UNREGISTERED`, 400 `INVALID_ARGUMENT`) is pruned, while a 401/429/500 leaves the device alone — deleting somebody's phone because Google had a bad minute would silently stop their alerts |
-| **email** | Routed through `_shared/email.ts`. **Off until `RESEND_API_KEY` exists** (or the Gmail app password, depending on `email_settings.provider`); the prefs screen says which is missing rather than offering a switch that does nothing |
+| **email** | Routed through `_shared/email.ts`. **Off until `RESEND_API_KEY` exists AND `email_settings.provider` is `'resend'`** — both, now: since #456 the Gmail branch refuses rather than being a fallback, so a missing provider switch is a named refusal in the function log instead of a complaint about a Gmail password nobody intends to set. The prefs screen says which is missing rather than offering a switch that does nothing. **The go-live runbook is §8** |
 | **SMS / WhatsApp** | Twilio, already configured for other paths. Both are gated by `notify_channel_*` first, so they stay off until you turn them on — see §3 |
 | **the bell** | Live now, and the only channel that has never needed a secret. It is how a notification survives a phone being in a drawer |
 
@@ -1478,4 +1478,121 @@ phone home). The **schema is held** — `20260909121500_notify_staff.sql` and
    nothing else. Worth knowing because it means the **loud safety alerts were forgeable** by
    anyone with a login, and an admin who learns that stops trusting the one message that must
    never be ignored.
+
+
+---
+
+## 8. Email go-live — `icealarm.es` via Resend, the runbook checked against the code (2026-09-17)
+
+The runbook of 17 September (S3 + S4) says *no code change*, and that is right: `_shared/email.ts`
+already has the Resend transport, and every path the runbook tests goes through it. So the only
+thing worth doing from a session with no Resend account, no DNS and no dashboard is to **check the
+runbook against the code before you spend an hour on it** — every step, in order, plus the things
+the steps do not mention and will be blamed on email when they fail.
+
+**What I could verify:** the schema step C writes to, the hook D.2 points at, which functions send
+through the provider switch, which build the links inside those emails, and whether anything
+rate-limits the four tests. **What I could not:** anything behind Resend, TransIP or the Supabase
+dashboard. Where I could not check, it says so rather than reassuring you.
+
+### Step by step — verdicts
+
+| step | what in this code answers it | verdict |
+|---|---|---|
+| **A** domain | nothing in the repo; Resend + DNS only | can't check. The `send.` sub-domain claim is right in principle — a Resend/SES bounce sub-domain carries its **own** SPF, so the root SPF that Gmail/Zoho use is untouched. Worth reading the records Resend prints rather than trusting that: if any record it gives you is on the **root**, that one does touch the existing SPF and must be merged into the single existing record, never added beside it |
+| **B** `RESEND_API_KEY` | `_shared/email.ts:73`, and four functions read the same name | ✅ correct name, correct place. **And it does more than the runbook says** — see *partner alert emails* below |
+| **C** the SQL | `email_settings`, created by `20260203163354_…` | ✅ **runs as written.** All five columns exist (`provider`, `from_name`, `from_email`, `reply_to_email`, `updated_at`), the singleton `00000000-0000-0000-0000-000000000001` is inserted by that same migration, and `provider` has **no CHECK constraint** — so `'resend'` is accepted, and so would a typo be. `_shared/email.ts` selects exactly those four columns and nothing else |
+| **D.2** the hook | `supabase/functions/auth-email-hook` | ✅ **deployed and ready.** `verify_jwt = false` in `config.toml` — required, because Supabase Auth calls it with no user JWT and would otherwise get a 401 on every auth email. It verifies the `standardwebhooks` signature against `SEND_EMAIL_HOOK_SECRET` (stripping the `v1,whsec_` prefix Supabase shows you), renders the six templates, and sends through the **shared** `sendEmail` — so it honours step C's switch and needs no separate provider setting |
+| **D.1** URLs | Supabase dashboard, but see *the www/apex trap* | ⚠️ **do this differently from what the runbook says** — one extra line, below |
+| **E.1** reset email | `/forgot-password` → `supabase.auth.resetPasswordForEmail` → the hook | ✅ exercises hook **and** Resend, which is exactly what you want from the first test. The partner login's *Forgot password?* links to the same page |
+| **E.2** update link | `send-member-update-request` → shared `sendEmail` | ✅ the send is right; ⚠️ the **link inside it** is not — see below |
+| **E.3** partner verification | `partner-register` → shared `sendEmail` | ✅ the send is right; ⚠️ same link problem, and note it **swallows a send failure on purpose** (`// Don't fail the registration if email fails`), so a registration that succeeds is not evidence the email went |
+| **E.4** DKIM pass | Resend dashboard | can't check |
+| **F** S4 | **done — #456**, merged. But see *S42 blocks it* |
+| rate limits | the hourly-50 / daily-300 cap lives only in `send-email`, which **none** of E.1–E.3 calls | ✅ nothing in the test plan can be throttled |
+
+### The www/apex trap — the one thing I would change in the runbook
+
+D.1 makes the auth world `www`. The code's world is the **apex**, in two different environment
+variables, neither of which the runbook sets:
+
+```
+PUBLIC_SITE_URL   5 uses   create-checkout, send-payment-link, join-order-status,
+                           _shared/post-payment, _shared/notify-staff-runtime
+SITE_URL          2 uses   partner-register, send-member-update-request
+both default to           https://icealarm.es
+```
+
+So with the runbook followed exactly: **E.2's update link and E.3's verification link are built on
+the apex** while every auth email lands on `www`. What that costs:
+
+- If the apex does not serve the app, those two tests fail for a reason that is not email — and
+  the natural conclusion ("Resend isn't working") is wrong.
+- If the apex redirects to `www`, the redirect must keep the **path and the query string**. The
+  update link is `…/…?token=…`; a redirect that drops the query turns a working email into a dead
+  link, and the token is single-use.
+- A session is per-origin. Somebody signed in on `www` who clicks an apex link is signed out.
+
+**The fix is two more pastes while you are already in step B**, no code change and no deploy: in
+Supabase → Edge Functions → Secrets, set `SITE_URL` and `PUBLIC_SITE_URL` to whichever host you
+chose in D.1 (`https://www.icealarm.es`, if you keep the runbook's value).
+
+And in D.1, **also allowlist `https://icealarm.es/**` beside the `www` one.** `ForgotPassword.tsx`
+builds its redirect from `window.location.origin` — the host **your browser is on** when you run
+E.1 — so if you happen to open the apex, the reset link is not allowlisted and Supabase silently
+falls back to the Site URL. Two entries cost nothing and remove the trap.
+
+### Step B turns on more than the runbook says
+
+`partner-alert-notify` does **not** use the shared transport: it calls `api.resend.com` directly
+with `RESEND_API_KEY`, from a hardcoded `alerts@icealarm.es`, and today skips the email entirely
+because the key is absent (`if (sub.notify_email && partner.email && RESEND_API_KEY)`). So **the
+moment step B is done, partner alert emails start sending** — before step C, and regardless of
+`email_settings`. That is fine and probably wanted; it is only worth knowing so the first one is
+not a surprise. `alerts@icealarm.es` is on the domain step A verifies, so it will pass DKIM.
+
+One smaller thing in the same area: the code's fallback from address is `noreply@icealarm.es`
+(no hyphen), the runbook's row sets `no-reply@icealarm.es` (hyphen). After step C the settings
+value wins, so the hyphen one is what sends — the two just should not be mistaken for each other
+when you read Resend's log. And `send-email`/`send-test-email` fall back to `onboarding@resend.dev`
+if `from_email` is ever **blank**: that is Resend's sandbox sender, which delivers only to the
+account owner. Step C sets the column, so this only matters if somebody later clears it.
+
+### S42 blocks the S4 half of this
+
+#456 makes a failed send say which failure it is instead of blaming `GMAIL_APP_PASSWORD` for
+everything. It is merged — **and it is not in production**, because `Migrate Production`'s
+*Deploy functions to prod* job has been failing on an expired `SUPABASE_ACCESS_TOKEN` since
+17 September (S42, above). Nothing else in this runbook is affected: every other function in it
+last changed on or before 10 September, so production has the current code for all of them, and
+the hook, the provider switch and both link-building functions are live as written here. But
+until S42 is replaced and that job goes green, a mis-set `provider` will still produce the old
+misleading sentence.
+
+### Message to Mark (DNS at TransIP)
+
+The runbook's draft is good as it stands. Two additions, both about making it one round trip
+instead of three:
+
+> Hi Mark — could you add these DNS records to `icealarm.es` at TransIP? They let our platform
+> send email through Resend (verification emails, password resets, invites). They do **not**
+> change the existing root SPF or MX — Resend uses its own `send.` sub-domain for bounces, which
+> carries its own SPF.
+>
+> Records exactly as below, copied from Resend's domain page:
+>
+> *[paste the MX and the two TXT records here — host, type, value and priority exactly as Resend
+> prints them; please don't normalise the hosts or strip the quotes from the TXT values]*
+>
+> Plus, **only if there is no `_dmarc` record already** (please check, and tell me what is there if
+> so — we must not end up with two):
+>
+> `TXT  _dmarc.icealarm.es  →  v=DMARC1; p=none; rua=mailto:info@icealarm.es`
+>
+> Two things that would save a round trip: if TransIP appends the domain to host names
+> automatically, the hosts want to end up as `send.icealarm.es` and
+> `resend._domainkey.icealarm.es` — not `send.icealarm.es.icealarm.es`. And the DKIM value is long
+> and must go in as a single unbroken string.
+>
+> Let me know when they're in and I'll press Verify. Thanks.
 

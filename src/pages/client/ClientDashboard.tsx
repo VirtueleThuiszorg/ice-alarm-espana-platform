@@ -443,84 +443,54 @@ export default function ClientDashboard() {
 
 
       {/*
-        "YOUR PROTECTION" — WP4's checklist, replacing the Subscription and Emergency-contacts
-        cards that were here.
+        PROTECTION AND MESSAGES, SIDE BY SIDE.
 
-        Those two were small dashboards of their own: a plan name, a renewal date, an amount, two
-        contact names with ordinal badges. All true, and none of it the question a member opens
-        this page to ask, which is "if I press it, will somebody come?" That has three parts, and
-        the member has to be able to see which one is missing.
+        The checklist answers "will somebody come?" and Messages answers "is anybody talking to
+        me?" — the two questions a member opens this page for. Stacked full-width, Messages sat
+        below the fold on a laptop while the checklist ran its three rungs across the whole
+        desktop width.
 
-        Reasoning for the five states — and for why a pendant on its way is NOT "action needed",
-        and a phone-only plan is not a fault — is in `src/lib/protectionChecklist.ts`.
+        3fr/2fr rather than 1fr/1fr: each rung is an uppercase label, a sentence and an action
+        button on ONE LINE, so the checklist needs the wider half — at half width those rows wrap.
+
+        `lg:` rather than `md:`: below 1024px this stays one column. Two-up at tablet width leaves
+        both halves too narrow for the rung rows, and this page's readers skew to older members on
+        iPads.
+
+        `items-start` because without it the grid stretches both cards to the same height, and a
+        short Messages card sits in a half-empty box beside a three-rung checklist.
       */}
-      <ProtectionChecklist
-        input={
-          isTemplatePreview
-            ? {
-                latestSubscription: MOCK_SUBSCRIPTION,
-                hasPendant: true,
-                device: MOCK_DEVICE,
-                readiness: { emergency_contact_count: MOCK_CONTACTS.length, device_tested_at: null },
-              }
-            : {
-                latestSubscription: subscriptions?.latest,
-                hasPendant: subscription?.has_pendant,
-                device,
-                readiness,
-              }
-        }
-      />
+      <div className="grid items-start gap-4 lg:grid-cols-[3fr_2fr]">
+        {/*
+          "YOUR PROTECTION" — WP4's checklist, replacing the Subscription and Emergency-contacts
+          cards that were here.
 
-      {/*
-        RECENT ACTIVITY — and its empty state is the reassuring one.
+          Those two were small dashboards of their own: a plan name, a renewal date, an amount, two
+          contact names with ordinal badges. All true, and none of it the question a member opens
+          this page to ask, which is "if I press it, will somebody come?" That has three parts, and
+          the member has to be able to see which one is missing.
 
-        WP4: *"Recent activity (empty = 'No alerts')."* For most members most of the time this
-        list is empty, and that is the good outcome — so the empty state says so plainly rather
-        than apologising for having nothing to show.
-      */}
-      {alertHistoryEnabled && (
-      <Card data-testid="recent-activity">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">
-            {t("dashboard.recentActivity", "Recent activity")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentAlerts === undefined && !isTemplatePreview ? (
-            <Skeleton className="h-12 w-full" />
-          ) : displayRecentAlerts.length === 0 ? (
-            <p className="text-base text-muted-foreground" data-testid="recent-activity-empty">
-              {t("dashboard.noAlerts", "No alerts. Nothing has happened, which is the idea.")}
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {displayRecentAlerts.slice(0, 3).map((alert) => (
-                <li
-                  key={alert.id}
-                  className="flex items-center justify-between gap-3 rounded-lg bg-muted/50 p-3"
-                >
-                  <span className="min-w-0 truncate text-base">
-                    {t(`alerts.type.${alert.alert_type}`, alert.alert_type)}
-                  </span>
-                  <span className="shrink-0 text-[0.8125rem] text-muted-foreground">
-                    {format(new Date(alert.received_at), "dd MMM yyyy")}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <Button variant="outline" size="sm" className="mt-3 w-full" asChild>
-            <Link to="/dashboard/alerts">
-              {t("dashboard.viewAllAlerts", "See your alert history")}
-              <ArrowRight className="ml-auto h-4 w-4" />
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
-      )}
+          Reasoning for the five states — and for why a pendant on its way is NOT "action needed",
+          and a phone-only plan is not a fault — is in `src/lib/protectionChecklist.ts`.
+        */}
+        <ProtectionChecklist
+          input={
+            isTemplatePreview
+              ? {
+                  latestSubscription: MOCK_SUBSCRIPTION,
+                  hasPendant: true,
+                  device: MOCK_DEVICE,
+                  readiness: { emergency_contact_count: MOCK_CONTACTS.length, device_tested_at: null },
+                }
+              : {
+                  latestSubscription: subscriptions?.latest,
+                  hasPendant: subscription?.has_pendant,
+                  device,
+                  readiness,
+                }
+          }
+        />
 
-      <div className="grid gap-4">
         {/* Messages Card */}
         <Card>
           <CardHeader className="pb-3">
@@ -580,6 +550,54 @@ export default function ClientDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/*
+        RECENT ACTIVITY — and its empty state is the reassuring one.
+
+        WP4: *"Recent activity (empty = 'No alerts')."* For most members most of the time this
+        list is empty, and that is the good outcome — so the empty state says so plainly rather
+        than apologising for having nothing to show.
+      */}
+      {alertHistoryEnabled && (
+      <Card data-testid="recent-activity">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold">
+            {t("dashboard.recentActivity", "Recent activity")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {recentAlerts === undefined && !isTemplatePreview ? (
+            <Skeleton className="h-12 w-full" />
+          ) : displayRecentAlerts.length === 0 ? (
+            <p className="text-base text-muted-foreground" data-testid="recent-activity-empty">
+              {t("dashboard.noAlerts", "No alerts. Nothing has happened, which is the idea.")}
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {displayRecentAlerts.slice(0, 3).map((alert) => (
+                <li
+                  key={alert.id}
+                  className="flex items-center justify-between gap-3 rounded-lg bg-muted/50 p-3"
+                >
+                  <span className="min-w-0 truncate text-base">
+                    {t(`alerts.type.${alert.alert_type}`, alert.alert_type)}
+                  </span>
+                  <span className="shrink-0 text-[0.8125rem] text-muted-foreground">
+                    {format(new Date(alert.received_at), "dd MMM yyyy")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Button variant="outline" size="sm" className="mt-3 w-full" asChild>
+            <Link to="/dashboard/alerts">
+              {t("dashboard.viewAllAlerts", "See your alert history")}
+              <ArrowRight className="ml-auto h-4 w-4" />
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+      )}
 
       {/*
         QUICK STATS — NOT SHOWN AT ALL TO A MEMBER WITH NO DEVICE.

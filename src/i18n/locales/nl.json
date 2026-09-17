@@ -3447,6 +3447,8 @@
       "callNow": "Bel ons nu"
     },
     "error": {
+      "checkFields": "Controleer de gemarkeerde velden.",
+      "tooMany": "U hebt kort geleden al meerdere berichten gestuurd. Wacht even of bel ons.",
       "sendFailed": "Bericht verzenden mislukt. Probeer het opnieuw."
     }
   },
@@ -3619,6 +3621,7 @@
     "learnMore": "Meer informatie",
     "notifyMe": "Houd mij op de hoogte",
     "notify": {
+      "tooMany": "U hebt dit al een paar keer gevraagd. Wacht even.",
       "title": "Ontvang een melding",
       "description": "Voer uw e-mailadres in en we laten het u weten wanneer {{product}} beschikbaar is.",
       "emailLabel": "E-mailadres",

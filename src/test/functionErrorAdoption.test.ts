@@ -12,6 +12,14 @@
  * site and requires the helper wherever a failure reaches the UI, so the class is
  * fixed rather than the one instance.
  *
+ * A call site may also reach the body through a SHARED READER — a module that itself imports
+ * from `src/lib/functionError` and exposes a narrower answer, as `readPublicSubmitRefusal`
+ * does for the two public forms (it reads `fields` and the 429 out of the same body). Those
+ * readers are discovered below rather than listed, because a hand-kept list of approved names
+ * is the thing that goes stale: the rule is "the reason came out of functionError", and a
+ * module that imports it and is used at the call site satisfies that rule whatever it is
+ * called. What does NOT satisfy it is reaching the body some other way.
+ *
  * Files that genuinely have no user-facing error path are listed in
  * NO_USER_FACING_ERROR with a reason each. That list is the audit: adding to it is
  * a deliberate, reviewable act, not a silent exemption.
@@ -42,6 +50,34 @@ function sourceFiles(dir = SRC): string[] {
 }
 
 const rel = (p: string) => path.relative(process.cwd(), p).replace(/\\/g, "/");
+
+/**
+ * The names that count as "reads the server's reason": the exports of `functionError.ts`
+ * itself, plus the exports of every `src/lib` module that imports from it.
+ *
+ * Derived, not typed out. `readPublicSubmitRefusal` was the first shared reader and the test
+ * did not recognise it — the two public forms DID read the body, through it, and were reported
+ * as offenders. Hardcoding that one name would have fixed the instance and left the next
+ * reader to be discovered the same way.
+ */
+function readerNames(): string[] {
+  const names = new Set<string>();
+  const collect = (file: string) => {
+    for (const m of read(file).matchAll(/export\s+(?:async\s+)?function\s+(\w+)/g)) {
+      names.add(m[1]);
+    }
+  };
+  const base = path.join(SRC, "lib", "functionError.ts");
+  collect(base);
+  for (const file of sourceFiles(path.join(SRC, "lib"))) {
+    if (file === base) continue;
+    if (/from\s+["'](?:@\/lib\/functionError|\.\/functionError)["']/.test(read(file))) collect(file);
+  }
+  return [...names];
+}
+
+/** Matches a call to any of them. */
+const READS_THE_REASON = new RegExp(`\\b(?:${readerNames().join("|")})\\b`);
 
 /** Call sites that never surface a failure to a user. Each needs a reason. */
 const NO_USER_FACING_ERROR: Record<string, string> = {
@@ -94,11 +130,24 @@ describe("functions.invoke error surfacing", () => {
     expect(invokeSites.length).toBeGreaterThan(40);
   });
 
+  it("the accepted readers are the real ones, and the pattern cannot match everything", () => {
+    /*
+      A CHECK THAT CANNOT FAIL IS NOT A CHECK. `readerNames()` is derived by reading files, so a
+      rename or a moved file could return an empty list — and `new RegExp("\\b(?:)\\b")` matches
+      at any word boundary, i.e. every source file, which would pass this whole suite silently.
+    */
+    const names = readerNames();
+    expect(names).toContain("extractFunctionError");
+    expect(names).toContain("functionError");
+    expect(names).toContain("readPublicSubmitRefusal");
+    expect(READS_THE_REASON.test("nothing here reads a body")).toBe(false);
+  });
+
   it("every call site either uses the shared helper or is a documented exemption", () => {
-    // Either entry point counts: `extractFunctionError` for a message, or
-    // `functionError` for a pre-wrapped Error. Both read the server's body.
+    // Any entry point counts: `extractFunctionError` for a message, `functionError` for a
+    // pre-wrapped Error, or a shared reader built on them. All of them read the server's body.
     const offenders = invokeSites.filter(
-      (f) => !/\bfunctionError\b|extractFunctionError/.test(read(path.resolve(process.cwd(), f))) && !(f in NO_USER_FACING_ERROR)
+      (f) => !READS_THE_REASON.test(read(path.resolve(process.cwd(), f))) && !(f in NO_USER_FACING_ERROR)
     );
 
     expect(

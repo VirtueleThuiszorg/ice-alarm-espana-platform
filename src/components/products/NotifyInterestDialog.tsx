@@ -13,7 +13,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { buildProductInterestLead, isValidEmail } from "@/lib/productInterest";
+import { isValidEmail } from "@/lib/productInterest";
+import { readPublicSubmitRefusal } from "@/lib/publicSubmit";
 
 interface NotifyInterestDialogProps {
   productName: string;
@@ -23,9 +24,19 @@ interface NotifyInterestDialogProps {
 }
 
 /**
- * "Notify Me" for coming-soon products. Captures email interest into the `leads` table
- * (tagged product_interest) and shows a confirmation. Used on the products listing (inside
- * a card Link, hence the propagation guard) and the product detail page.
+ * "Notify Me" for coming-soon products. Captures email interest as a `product_interest` lead and
+ * shows a confirmation. Used on the products listing (inside a card Link, hence the propagation
+ * guard) and the product detail page.
+ *
+ * THROUGH `public-submit`, NOT STRAIGHT INTO THE TABLE. This used to insert into `leads` from the
+ * browser with the anon key. The client-side `isValidEmail` below is kept — it saves a round trip
+ * and shows the error instantly — but it is a convenience, not the rule: the rule is
+ * `isPublicEmail` on the server, which is the only one a script POSTing at the endpoint meets.
+ * Taking the browser off the table is the first half; the anon INSERT policy that let it write
+ * there is revoked in the migration that follows, once this is deployed.
+ *
+ * ONE FIELD, on purpose. Asking for a phone number to tell somebody a product is back would lose
+ * most of the people who would otherwise ask.
  */
 export function NotifyInterestDialog({ productName, size = "sm", variant = "outline" }: NotifyInterestDialogProps) {
   const { t } = useTranslation();
@@ -34,6 +45,8 @@ export function NotifyInterestDialog({ productName, size = "sm", variant = "outl
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** The hidden field a script fills and a person cannot see. See ContactPage for the reasoning. */
+  const [honeypot, setHoneypot] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,10 +57,26 @@ export function NotifyInterestDialog({ productName, size = "sm", variant = "outl
     }
     setSubmitting(true);
     try {
-      const { error: insertError } = await supabase
-        .from("leads")
-        .insert(buildProductInterestLead(productName, email));
-      if (insertError) throw insertError;
+      const { data, error: fnError } = await supabase.functions.invoke("public-submit", {
+        body: {
+          form: "product_interest",
+          fields: { email, product_name: productName },
+          company: honeypot,
+        },
+      });
+      if (fnError) {
+        const refusal = await readPublicSubmitRefusal(fnError);
+        setError(
+          refusal.rateLimited
+            ? t(
+                "products.notify.tooMany",
+                "You have asked a few times already. Please wait a little.",
+              )
+            : t("products.notify.error", "Something went wrong. Please try again."),
+        );
+        return;
+      }
+      if (!data?.ok) throw new Error("public-submit did not confirm the submission");
       setSubmitted(true);
     } catch {
       setError(t("products.notify.error", "Something went wrong. Please try again."));
@@ -77,6 +106,20 @@ export function NotifyInterestDialog({ productName, size = "sm", variant = "outl
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
+            {/* Invisible to the eye and to a screen reader; a script fills it, a person cannot. */}
+            <div className="hidden" aria-hidden="true">
+              <label htmlFor="notify-company">Company</label>
+              <input
+                id="notify-company"
+                name="company"
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
+                data-testid="notify-honeypot"
+              />
+            </div>
             <DialogHeader>
               <DialogTitle>{t("products.notify.title", "Get notified")}</DialogTitle>
               <DialogDescription>

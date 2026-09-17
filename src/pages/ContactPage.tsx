@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { InlineAIChat } from "@/components/chat/InlineAIChat";
 import { telHref } from "@/lib/phone";
+import { readPublicSubmitRefusal } from "@/lib/publicSubmit";
 import { 
   Phone, 
   Mail, 
@@ -34,6 +35,21 @@ export default function ContactPage() {
   const phoneHref = telHref(companySettings.emergency_phone);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  /*
+    WHICH BOXES THE SERVER OBJECTED TO.
+
+    The refusal comes back as field names rather than a sentence, so the page can mark the boxes.
+    A form that says "something was wrong" and highlights nothing makes somebody re-read seven
+    fields to find the one — and on a site read mostly by people in their seventies and eighties
+    that is where they give up and ring instead, or do not.
+  */
+  const [badFields, setBadFields] = useState<string[]>([]);
+  /*
+    THE HONEYPOT. A hidden field nobody can see, so a person never fills it and a script that
+    fills every input it finds always does. Named `company` in the markup rather than `honeypot`
+    for the same reason it is hidden.
+  */
+  const [company, setCompany] = useState("");
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -46,22 +62,68 @@ export default function ContactPage() {
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear the mark as soon as they start fixing it, not on the next submit.
+    setBadFields(prev => prev.filter(f => f !== field));
   };
+
+  /** The red ring and the `aria-invalid` a screen reader announces, from one source. */
+  const invalid = (field: string) => badFields.includes(field);
+  const fieldProps = (field: string) => ({
+    "aria-invalid": invalid(field) || undefined,
+    className: invalid(field) ? "border-destructive focus-visible:ring-destructive" : undefined,
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setBadFields([]);
 
+    /*
+      THROUGH `public-submit`, NOT STRAIGHT INTO THE TABLE.
+
+      This form used to insert into `leads` from the browser with the anon key, and the only
+      validation was the `required` attributes below — which exist here and nowhere at all for a
+      script POSTing to the REST endpoint. A lead arrived with no name, no email and no phone and
+      rang the new-enquiry bell. `public-submit` applies the same rules to a browser and to a
+      script, and sets `source` and `status` itself so a POST cannot choose its own provenance.
+      The anon INSERT policy that let the browser write here is revoked in the migration that
+      follows — after this is deployed, because doing it the other way round takes the live form
+      down for however long the two are out of step.
+    */
     try {
-      const { error } = await supabase
-        .from('leads')
-        .insert({
-          ...formData,
-          source: 'contact_form',
-          status: 'new'
-        });
+      const { data, error } = await supabase.functions.invoke("public-submit", {
+        body: {
+          form: "contact",
+          fields: formData,
+          company,
+        },
+      });
 
-      if (error) throw error;
+      /*
+        A 400 OR 429 ARRIVES AS AN ERROR, WITH THE BODY ON `error.context`.
+
+        `functions.invoke` treats any non-2xx as a thrown FunctionsHttpError, so the field names
+        are in the response the error carries rather than in `data`. Reading them is what turns a
+        refusal into "this box, that box" instead of "something went wrong".
+      */
+      if (error) {
+        const refusal = await readPublicSubmitRefusal(error);
+        if (refusal.fields.length > 0) {
+          setBadFields(refusal.fields);
+          toast.error(t("contact.error.checkFields", "Please check the highlighted fields."));
+        } else if (refusal.rateLimited) {
+          toast.error(
+            t(
+              "contact.error.tooMany",
+              "You have sent several messages recently. Please wait a little, or call us.",
+            ),
+          );
+        } else {
+          toast.error(t("contact.error.sendFailed"));
+        }
+        return;
+      }
+      if (!data?.ok) throw new Error("public-submit did not confirm the submission");
 
       setIsSubmitted(true);
       toast.success(t("contact.success.message"));
@@ -186,11 +248,33 @@ export default function ContactPage() {
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSubmit} className="space-y-6">
+                    {/*
+                      THE HONEYPOT. Nobody can see it, so nobody fills it; a script that fills
+                      every input it finds always does. `aria-hidden` and `tabIndex={-1}` keep it
+                      out of the reading order and off the tab path, so it is invisible to a
+                      screen reader as well as to the eye — a trap that catches assistive
+                      technology is not a trap, it is a barrier.
+                    */}
+                    <div className="hidden" aria-hidden="true">
+                      <label htmlFor="company">Company</label>
+                      <input
+                        id="company"
+                        name="company"
+                        type="text"
+                        tabIndex={-1}
+                        autoComplete="off"
+                        value={company}
+                        onChange={(e) => setCompany(e.target.value)}
+                        data-testid="contact-honeypot"
+                      />
+                    </div>
+
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="first_name">{t("contact.form.firstName")} *</Label>
                         <Input
                           id="first_name"
+                          {...fieldProps("first_name")}
                           required
                           value={formData.first_name}
                           onChange={(e) => handleChange("first_name", e.target.value)}
@@ -200,6 +284,7 @@ export default function ContactPage() {
                         <Label htmlFor="last_name">{t("contact.form.lastName")} *</Label>
                         <Input
                           id="last_name"
+                          {...fieldProps("last_name")}
                           required
                           value={formData.last_name}
                           onChange={(e) => handleChange("last_name", e.target.value)}
@@ -212,6 +297,7 @@ export default function ContactPage() {
                         <Label htmlFor="email">{t("contact.form.email")} *</Label>
                         <Input
                           id="email"
+                          {...fieldProps("email")}
                           type="email"
                           required
                           value={formData.email}
@@ -222,6 +308,7 @@ export default function ContactPage() {
                         <Label htmlFor="phone">{t("contact.form.phone")} *</Label>
                         <Input
                           id="phone"
+                          {...fieldProps("phone")}
                           type="tel"
                           required
                           value={formData.phone}
@@ -268,15 +355,26 @@ export default function ContactPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="message">{t("contact.form.message")}</Label>
+                      <Label htmlFor="message">{t("contact.form.message")} *</Label>
                       <Textarea
                         id="message"
+                        {...fieldProps("message")}
+                        required
                         rows={5}
                         value={formData.message}
                         onChange={(e) => handleChange("message", e.target.value)}
                         placeholder={t("contact.form.messagePlaceholder")}
                       />
                     </div>
+
+                    {badFields.length > 0 && (
+                      <p className="text-sm text-destructive" role="alert" data-testid="contact-field-errors">
+                        {t(
+                          "contact.error.checkFields",
+                          "Please check the highlighted fields.",
+                        )}
+                      </p>
+                    )}
 
                     <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
                       {isSubmitting ? (

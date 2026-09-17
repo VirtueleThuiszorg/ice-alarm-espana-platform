@@ -84,6 +84,8 @@ export interface StubScenario {
    * loudly (the 501 at the bottom of this router), because a journey that silently succeeds
    * against a function nobody stubbed is the defect this stub exists to catch.
    */
+  /** What `public-submit` answers. Omit for a 200 `{ ok: true }`. */
+  publicSubmitResponse?: { status: number; body: unknown };
   memberSelfServiceResponse?: { status: number; body: unknown };
   /** Fail the password grant, as GoTrue does on bad credentials. */
   signInError?: { status: number; body: unknown };
@@ -350,6 +352,17 @@ export async function installSupabaseStub(page: Page, initial: StubScenario = {}
         success: true,
         partner: { contact_name: scenario.partner?.contact_name ?? "Partner" },
       });
+    }
+
+    /*
+      The one door every public form now goes through. The stub answers whatever the scenario
+      says, so a spec can drive the real refusal path — a 400 carrying the field names — instead
+      of only the happy one.
+    */
+    if (url.pathname === "/functions/v1/public-submit") {
+      const r = scenario.publicSubmitResponse;
+      if (r) return json(route, r.body, r.status);
+      return json(route, { ok: true });
     }
 
     if (url.pathname === "/functions/v1/member-self-service") {

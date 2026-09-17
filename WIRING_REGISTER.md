@@ -18,7 +18,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
 10 │   9  ████
  9 │   6  ██
  8 │   0  
- 7 │  34  ██████████████
+ 7 │  35  ██████████████
  6 │   9  ████
  5 │  84  ██████████████████████████████████
  4 │  50  ████████████████████
@@ -28,12 +28,12 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   1  
 ```
 
-193 distinct wires across 668 call sites and 114 routes.
+194 distinct wires across 668 call sites and 114 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
 | 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 9 | 5% |
-| 7–9 | arrives and proven; notification missing or on a channel not live today | 40 | 21% |
+| 7–9 | arrives and proven; notification missing or on a channel not live today | 41 | 21% |
 | 4–6 | arrives; nobody told; nothing proves it | 143 | 74% |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0% |
 | 0 | dead control | 1 | 1% |
@@ -63,8 +63,8 @@ things, and a control with no wire cannot do anything:
 
 | kind | what it is | call sites |
 |---|---|---:|
-| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 354 |
-| `fn` | `supabase.functions.invoke(f)` — an edge function | 93 |
+| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 352 |
+| `fn` | `supabase.functions.invoke(f)` — an edge function | 95 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 6 |
 | `channel` | `postgres_changes` — a realtime subscription | 53 |
 | `auth` | `supabase.auth.*` — sign in, sign out, register, password reset | 20 |
@@ -138,10 +138,10 @@ The checks, verified on every build:
 | **6** | `table:ai_agent_configs` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
 | **6** | `table:ai_agents` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | toast | none | 2 |
 | **6** | `table:ai_memory` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
+| **7** | `fn:public-submit` | Public forms — the /contact enquiry form and the pendant page's Notify Me box — send us a message and somebody will get back to you | public-submit → leads (service role), public_submission_log | Lee and Martijn (new-enquiry bell), unless the submission is suspected spam | inline | `src/test/publicSubmit.test.ts` | 2 |
 | **7** | `table:products` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | toast | `src/test/checkoutPaymentMethods.test.ts` | 2 |
 | **7** | `table:testimonials` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | toast | `src/test/checkoutPaymentMethods.test.ts` | 1 |
 | **9** | `table:conversations` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 8 |
-| **10** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | bell | inline | `scripts/rls/wiring.sql` | 4 |
 
 ### Join & auth
 
@@ -292,7 +292,7 @@ The checks, verified on every build:
 | **9** | `table:messages` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 7 |
 | **10** | `rpc:apply_shift_swap` | Ask a colleague to swap or cover a shift; accept or decline; a supervisor approves it — the person being asked finds out, both people find out when it is approved, and the rota actually moves | staff_shift_swaps → bell_on_shift_swap writes targeted notification_log rows; emit_shift_swap_to_router queues shift.swap_requested/_accepted/_approved to notify-staff (push on, SMS/WhatsApp/email off); approval calls apply_shift_swap, which moves staff_shifts and writes staff_shift_covers + activity_logs in one transaction | bell | toast | `src/test/shiftSwaps.test.tsx` | 1 |
 | **10** | `rpc:confirm_legacy_member` | Confirm as legacy member — on the member's record, and as a bulk action on the members list filtered to pending_review — the member becomes monitored, and WHO decided that is recorded — because there is no payment anywhere to point at | confirm_legacy_member() sets members.status = active + billing_source = legacy, writes an activity_logs row (action member.legacy_confirmed, the staff id, and the reason typed on the form), and bell_on_legacy_confirm writes targeted notification_log rows to admins and supervisors. Routed as member.legacy_confirmed: push on, SMS/WhatsApp/email off | bell | mutation onError | `src/test/legacyConfirmAction.test.tsx` | 1 |
-| **10** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | bell | inline | `scripts/rls/wiring.sql` | 4 |
+| **10** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | bell | toast | `scripts/rls/wiring.sql` | 2 |
 | **10** | `table:staff_shift_swaps` | Ask a colleague to swap or cover a shift; accept or decline; a supervisor approves it — the person being asked finds out, both people find out when it is approved, and the rota actually moves | staff_shift_swaps → bell_on_shift_swap writes targeted notification_log rows; emit_shift_swap_to_router queues shift.swap_requested/_accepted/_approved to notify-staff (push on, SMS/WhatsApp/email off); approval calls apply_shift_swap, which moves staff_shifts and writes staff_shift_covers + activity_logs in one transaction | bell | toast | `src/test/shiftSwaps.test.tsx` | 1 |
 
 ### Admin
@@ -452,7 +452,7 @@ The checks, verified on every build:
 | **9** | `table:messages` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 7 |
 | **10** | `rpc:apply_shift_swap` | Ask a colleague to swap or cover a shift; accept or decline; a supervisor approves it — the person being asked finds out, both people find out when it is approved, and the rota actually moves | staff_shift_swaps → bell_on_shift_swap writes targeted notification_log rows; emit_shift_swap_to_router queues shift.swap_requested/_accepted/_approved to notify-staff (push on, SMS/WhatsApp/email off); approval calls apply_shift_swap, which moves staff_shifts and writes staff_shift_covers + activity_logs in one transaction | bell | toast | `src/test/shiftSwaps.test.tsx` | 1 |
 | **10** | `rpc:confirm_legacy_member` | Confirm as legacy member — on the member's record, and as a bulk action on the members list filtered to pending_review — the member becomes monitored, and WHO decided that is recorded — because there is no payment anywhere to point at | confirm_legacy_member() sets members.status = active + billing_source = legacy, writes an activity_logs row (action member.legacy_confirmed, the staff id, and the reason typed on the form), and bell_on_legacy_confirm writes targeted notification_log rows to admins and supervisors. Routed as member.legacy_confirmed: push on, SMS/WhatsApp/email off | bell | mutation onError | `src/test/legacyConfirmAction.test.tsx` | 1 |
-| **10** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | bell | inline | `scripts/rls/wiring.sql` | 4 |
+| **10** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | bell | toast | `scripts/rls/wiring.sql` | 2 |
 | **10** | `table:partners` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | toast | `e2e/partnerJourney.spec.ts` | 5 |
 | **10** | `table:staff_shift_swaps` | Ask a colleague to swap or cover a shift; accept or decline; a supervisor approves it — the person being asked finds out, both people find out when it is approved, and the rota actually moves | staff_shift_swaps → bell_on_shift_swap writes targeted notification_log rows; emit_shift_swap_to_router queues shift.swap_requested/_accepted/_approved to notify-staff (push on, SMS/WhatsApp/email off); approval calls apply_shift_swap, which moves staff_shifts and writes staff_shift_covers + activity_logs in one transaction | bell | toast | `src/test/shiftSwaps.test.tsx` | 1 |
 
@@ -2549,6 +2549,19 @@ Item 6. The screen used to announce 'registration complete' from a query paramet
 
 The switches are the fix for the schema this replaces: a boolean COLUMN PER EVENT on notification_settings, which is how `whatsapp_ev07b_alerts` came to be read by notify-admin without any migration ever creating it. THE FOUR ALWAYS-LOUD EVENTS RENDER AS LOCKED, not as switches: the router ignores both tables for them, and a switch that cannot silence the alarm saying the SOS ladder is broken must not look like one. Every dark cell names which of the three gates stopped it, and `wouldReach` is driven against the router's own `planNotifications` across all 19 events × 4 channels × both switches so the screen cannot claim something the router will not do. Scored on the screen only: until the migration is applied the matrix says so rather than rendering an empty grid.
 
+### `fn:public-submit` — 7/10 (proven; nobody told)
+
+- **control** Public forms — the /contact enquiry form and the pendant page's Notify Me box
+- **promised** send us a message and somebody will get back to you
+- **goes to** public-submit → leads (service role), public_submission_log
+- **who is told** Lee and Martijn (new-enquiry bell), unless the submission is suspected spam
+- **failure shown to user** inline
+- **proof** `src/test/publicSubmit.test.ts`
+- **routes** /contact
+- **call sites** src/components/products/NotifyInterestDialog.tsx, src/pages/ContactPage.tsx
+
+Both forms used to INSERT into `leads` straight from the browser with the anon key, and the only validation was `required` attributes on the HTML — which exist in a visitor's browser and nowhere at all for a script POSTing to the REST endpoint. A lead arrived with no name, no email and no phone and rang the bell. The anon INSERT policy is revoked, so this function is the only way a lead can arrive: it checks a honeypot, a per-IP and per-email hourly limit, and every field server-side, and it refuses with the field names so the form can mark the boxes. A suspected-spam lead is still saved and still in the list; what it loses is the bell.
+
 ### `fn:save-api-keys` — 7/10 (proven; no notification owed)
 
 - **control** Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device
@@ -3029,10 +3042,10 @@ THE ONE ACTIVATION ON THIS PLATFORM THAT IS NOT A PAYMENT, which is why it is an
 - **promised** “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.”
 - **goes to** leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard
 - **who is told** bell
-- **failure shown to user** inline
+- **failure shown to user** toast
 - **proof** `scripts/rls/wiring.sql`
-- **routes** /admin/leads, /call-centre/leads, /contact
-- **call sites** src/components/products/NotifyInterestDialog.tsx, src/pages/admin/LeadsPage.tsx, src/pages/call-centre/LeadsPage.tsx, src/pages/ContactPage.tsx
+- **routes** /admin/leads, /call-centre/leads
+- **call sites** src/pages/admin/LeadsPage.tsx, src/pages/call-centre/LeadsPage.tsx
 
 THE DEFECT THIS REGISTER CAME FROM, now fixed end to end. The row always arrived and both Leads screens always showed it, but the only trigger on `leads` was `update_leads_updated_at` — no notification, no task, no queue. `leads` is in supabase_realtime and /call-centre/leads does subscribe, so a lead appeared live on a screen nobody was required to have open. That is not being told.
 

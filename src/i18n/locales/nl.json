@@ -1466,7 +1466,6 @@
     "whatsappUs": "WhatsApp Us",
     "subscriptionStatus": "Subscription",
     "plan": "Plan",
-    "nextPayment": "Next Payment",
     "manageSubscription": "Manage Subscription",
     "updateContacts": "Update Contacts",
     "announcement": "Service Announcement",
@@ -1509,6 +1508,8 @@
       "videosRendered": "Rendered",
       "videosExported": "Exported"
     },
+    "nextPayment": "Volgende betaling {{date}}",
+    "nextPaymentPaidForYou": "Volgende betaling {{date}} \u00b7 wordt voor u betaald",
     "recentActivity": "Recente activiteit",
     "noAlerts": "Geen meldingen. Er is niets gebeurd, en dat is de bedoeling.",
     "viewAllAlerts": "Uw meldingsgeschiedenis bekijken",

@@ -2240,7 +2240,9 @@ export type Database = {
           ref_partner_id: string | null
           ref_post_id: string | null
           source: string | null
+          spam_reasons: string[] | null
           status: string
+          suspected_spam: boolean
           updated_at: string
         }
         Insert: {
@@ -2261,7 +2263,9 @@ export type Database = {
           ref_partner_id?: string | null
           ref_post_id?: string | null
           source?: string | null
+          spam_reasons?: string[] | null
           status?: string
+          suspected_spam?: boolean
           updated_at?: string
         }
         Update: {
@@ -2282,7 +2286,9 @@ export type Database = {
           ref_partner_id?: string | null
           ref_post_id?: string | null
           source?: string | null
+          spam_reasons?: string[] | null
           status?: string
+          suspected_spam?: boolean
           updated_at?: string
         }
         Relationships: [
@@ -5484,6 +5490,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      public_submission_log: {
+        Row: {
+          created_at: string
+          email_hash: string | null
+          form: string
+          id: string
+          ip_prefix: string | null
+          outcome: string
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          email_hash?: string | null
+          form: string
+          id?: string
+          ip_prefix?: string | null
+          outcome: string
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          email_hash?: string | null
+          form?: string
+          id?: string
+          ip_prefix?: string | null
+          outcome?: string
+          reason?: string | null
+        }
+        Relationships: []
       }
       products: {
         Row: {

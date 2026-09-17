@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { LeadContactButton, LeadContactValue, LeadName } from "@/components/leads/LeadContact";
+import { LeadSpamBadge } from "@/components/leads/LeadSpamFlag";
 import { 
   Search, 
   Clock,
@@ -37,6 +38,8 @@ interface Lead {
   notes: string | null;
   created_at: string;
   contacted_at: string | null;
+  suspected_spam: boolean | null;
+  spam_reasons: string[] | null;
   assigned_staff?: {
     first_name: string;
     last_name: string;
@@ -291,6 +294,7 @@ export default function CallCentreLeadsPage() {
                     <div className="flex items-center gap-2">
                       <p className="font-medium"><LeadName lead={lead} /></p>
                       {getStatusBadge(lead.status)}
+                      <LeadSpamBadge suspected={lead.suspected_spam} reasons={lead.spam_reasons} />
                       <Badge variant="outline" className="text-xs">
                         {getEnquiryLabel(lead.enquiry_type)}
                       </Badge>

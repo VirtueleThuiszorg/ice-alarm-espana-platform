@@ -2563,6 +2563,15 @@
     "callLead": "Bellen",
     "noEmailOnFile": "Bij deze aanvraag staat geen e-mailadres",
     "noPhoneOnFile": "Bij deze aanvraag staat geen telefoonnummer",
+    "spam": {
+      "badge": "Mogelijk spam",
+      "notSpam": "Geen spam",
+      "notSpamHint": "Markering weghalen — dit is een echte aanvraag",
+      "linkInMessage": "Het bericht bevat een link",
+      "vendorPitch": "Leest als een verkooppraatje aan ons, niet als een aanvraag",
+      "languageMismatch": "Geschreven in een andere taal dan de gekozen taal",
+      "noReason": "Automatisch gemarkeerd; geen reden vastgelegd"
+    },
     "newLeads": "Nieuwe leads",
     "searchPlaceholder": "Zoek op naam, e-mail of telefoon...",
     "statusFilter": "Status",

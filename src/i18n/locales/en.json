@@ -2563,6 +2563,15 @@
     "callLead": "Call",
     "noEmailOnFile": "No email address on this enquiry",
     "noPhoneOnFile": "No phone number on this enquiry",
+    "spam": {
+      "badge": "Possible spam",
+      "notSpam": "Not spam",
+      "notSpamHint": "Clear the flag — this is a real enquiry",
+      "linkInMessage": "The message contains a link",
+      "vendorPitch": "Reads like a sales pitch to us, not an enquiry",
+      "languageMismatch": "Written in a different language from the one selected",
+      "noReason": "Flagged automatically; no reason was recorded"
+    },
     "newLeads": "New Leads",
     "searchPlaceholder": "Search by name, email, phone...",
     "statusFilter": "Status",

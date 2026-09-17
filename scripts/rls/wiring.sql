@@ -237,8 +237,20 @@ END $$;
 -- rather than as a template with a hole in it. `first_name`/`last_name` are NOT
 -- NULL on this table, so the case that can actually occur is empty strings —
 -- which is what `NULLIF(TRIM(…))` in the trigger exists to handle.
+--
+-- `product_interest`, NOT `contact_form`, AND THE CHANGE IS THE POINT. This row used to say
+-- contact_form, and `leads_contact_form_is_actionable` now refuses it — correctly: a contact
+-- enquiry with no name, and therefore no way to address a reply, is the row this whole change
+-- exists to stop. The constraint caught this fixture on the PR that added it, which is the
+-- check doing its job on the one row in the repo shaped like the defect.
+--
+-- The CASE is still real, and that is why the fixture stays rather than being deleted. The
+-- "Notify Me" box asks for an email and nothing else — deliberately, because asking a phone
+-- number to tell somebody a product is back would lose most of the people who would otherwise
+-- ask — so a nameless lead is the NORMAL shape there, not a defect. The trigger still has to
+-- produce a usable sentence for it.
 INSERT INTO public.leads (id, first_name, last_name, email, phone, enquiry_type, source, status)
-VALUES ('cccc2222-2222-2222-2222-222222222222', '', '  ', 'anon@example.es', '+34600111222', 'general', 'contact_form', 'new');
+VALUES ('cccc2222-2222-2222-2222-222222222222', '', '  ', 'anon@example.es', '', 'general', 'product_interest', 'new');
 
 DO $$
 DECLARE n int; expected int; msg text;
@@ -256,6 +268,39 @@ BEGIN
     RAISE EXCEPTION 'a blank name should read as such, not as a gap: %', msg;
   END IF;
   RAISE NOTICE 'wiring contract OK — a nameless lead still reaches the team: %', msg;
+END $$;
+
+-- ── AND THE SAME ROW AS A CONTACT ENQUIRY IS REFUSED BY THE DATABASE ────────
+--
+-- The row that started all of this: a contact_form lead with no name, no email and no phone,
+-- which rang the bell for Lee and Martijn and could not be acted on by anybody. `public-submit`
+-- refuses one now, and `leads_contact_form_is_actionable` makes it impossible even if a future
+-- function, an import or somebody in the SQL editor forgets.
+--
+-- ASSERTED HERE RATHER THAN IN VITEST, because a constraint is only real on a database. The
+-- unit test can read the migration text and confirm the words are present; only this can
+-- confirm PostgreSQL enforces them.
+DO $$
+DECLARE refused boolean := false;
+BEGIN
+  BEGIN
+    INSERT INTO public.leads (id, first_name, last_name, email, phone, enquiry_type, source, status)
+    VALUES ('cccc3333-3333-3333-3333-333333333333', '', '  ', '', '', 'general', 'contact_form', 'new');
+  EXCEPTION WHEN check_violation THEN
+    refused := true;
+  END;
+
+  IF NOT refused THEN
+    RAISE EXCEPTION 'a contact enquiry with no name, email or phone was ACCEPTED — the constraint is not doing its job';
+  END IF;
+
+  -- AND THE CONSTRAINT IS NOT SO WIDE THAT IT REFUSES REAL ONES. A check that rejects
+  -- everything passes the assertion above and breaks the contact form, which is the more
+  -- expensive failure of the two.
+  INSERT INTO public.leads (id, first_name, last_name, email, phone, enquiry_type, source, status)
+  VALUES ('cccc4444-4444-4444-4444-444444444444', 'María', 'Ruiz', 'maria@example.es', '+34600111222', 'pricing', 'contact_form', 'new');
+
+  RAISE NOTICE 'wiring contract OK — an unanswerable contact enquiry is refused, a real one is not';
 END $$;
 
 ROLLBACK;

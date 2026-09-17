@@ -465,6 +465,44 @@ export async function installSupabaseStub(page: Page, initial: StubScenario = {}
       return respond(route, scenario.partner ? [scenario.partner] : []);
     }
 
+    /*
+      SETTINGS ARE FILTERED BY KEY, and every other table is not.
+
+      The generic branch below answers with every row a scenario seeded, which is right for a page
+      that wants a list and wrong for `system_settings`: the app reads it two ways, `.in("key", […])`
+      for the company block and `.eq("key", …).maybeSingle()` for a single flag, and an unfiltered
+      answer turns the second into "whichever row the scenario happened to seed first".
+
+      That is not a hypothetical. `usePendantTestReminderDays` asked for
+      `pendant_test_reminder_days` and was handed `settings_emergency_phone`, whose value parses to
+      no number at all — so the hook fell back to its default and a spec that set the threshold to
+      30 days watched nothing happen. `useMemberAlertHistory` has been reading the same way for
+      longer and never noticed, because its fallback is the same as its common case: off.
+
+      Both operators, because both are used; anything else on `key` is left alone rather than
+      silently mis-handled.
+    */
+    if (url.pathname === "/rest/v1/system_settings") {
+      const rows = (scenario.tables?.system_settings ?? []) as Array<Record<string, unknown>>;
+      const filter = url.searchParams.get("key");
+      if (!filter) return respond(route, rows);
+      if (filter.startsWith("eq.")) {
+        const wanted = filter.slice(3);
+        return respond(route, rows.filter((row) => String(row.key) === wanted));
+      }
+      if (filter.startsWith("in.")) {
+        const wanted = new Set(
+          filter
+            .slice(3)
+            .replace(/^\(|\)$/g, "")
+            .split(",")
+            .map((key) => key.replace(/^"|"$/g, "")),
+        );
+        return respond(route, rows.filter((row) => wanted.has(String(row.key))));
+      }
+      return respond(route, rows);
+    }
+
     // Any other table: the rows this scenario seeded, or an empty result so pages that fan out
     // queries render their empty state instead of hanging. Still recorded in `calls`.
     if (url.pathname.startsWith("/rest/v1/")) {

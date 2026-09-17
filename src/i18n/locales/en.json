@@ -7033,8 +7033,10 @@
       "unknown": "We could not check your membership just now."
     },
     "pendant": {
-      "ok": "Your pendant is tested and checking in.",
+      "ok": "Your pendant is tested and checking in. Last tested {{date}}.",
       "okAction": "See your pendant",
+      "stale": "It has been a while since your pendant was tested. Last tested {{date}}.",
+      "staleAction": "Arrange a test",
       "offline": "Your pendant has stopped checking in with us.",
       "offlineAction": "Tell us about it",
       "awaitingTest": "We still need to test your pendant with you on the phone.",

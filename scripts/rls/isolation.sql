@@ -3176,6 +3176,7 @@ INSERT INTO public.system_settings (key, value) VALUES
   ('settings_active_payment_gateway','mollie'),
   ('registration_fee_enabled',       'true'),
   ('registration_fee_discount',      '0'),
+  ('pendant_test_reminder_days',     '90'),
   -- Seeded because the assertion below says this key is NOT public. With no row at all,
   -- anon reads nothing whatever the policy says, and adding the key to the whitelist would
   -- have passed the suite. (It did: the mutation survived until this row existed.)
@@ -3205,6 +3206,18 @@ INSERT INTO public.staff (user_id, email, first_name, last_name, role) VALUES
 
 -- ── F2: what the anonymous browser can read, exactly ──────────────────────
 --
+-- THE NINTH KEY. `pendant_test_reminder_days` (20260917150000) is how many days a pendant test
+-- stays current for before the member's own protection checklist suggests another. A member is
+-- `authenticated` with no staff row, so without the whitelist the read returns nothing, the
+-- client falls back to its built-in 90, and an admin editing that number changes nothing at all
+-- — the row is inert and silently so. Same failure as the eighth key below, and as the four
+-- pricing keys before it.
+--
+-- AND IT IS GENUINELY PUBLIC, which is the part to check rather than assume. It is one integer
+-- saying how often this company suggests testing a pendant. It names no person, carries no
+-- credential, and an anonymous visitor learning that we suggest ninety days learns what the
+-- knowledge base tells them in a sentence.
+--
 -- THE EIGHTH KEY, AND WHY IT IS ON THE LIST. `member_alert_history_enabled` (20260910170000)
 -- decides whether a MEMBER is offered an Alert History page, a recent-activity card and an
 -- alerts tile. A member is `authenticated` with no staff row, so without the whitelist the read
@@ -3228,13 +3241,14 @@ BEGIN
   RESET ROLE;
 
   PERFORM pg_temp.check(
-    'anonymous reads EXACTLY the eight whitelisted settings keys',
+    'anonymous reads EXACTLY the nine whitelisted settings keys',
     v_keys = ARRAY['member_alert_history_enabled',
+                   'pendant_test_reminder_days',
                    'registration_fee_discount', 'registration_fee_enabled',
                    'settings_active_payment_gateway', 'settings_address',
                    'settings_company_name', 'settings_emergency_phone',
                    'settings_support_email'],
-    'four company keys, the three /join needs, and one member-portal display flag — named, '
+    'four company keys, the three /join needs, and two member-portal display settings — named, '
     'not counted, so a widened policy fails here instead of passing with more rows');
 END $$;
 

@@ -69,6 +69,30 @@ vi.mock("@/integrations/supabase/client", () => ({
               data: settingValue === null ? null : { value: settingValue },
               error: null,
             });
+      /*
+        THE CHAIN IS AWAITABLE, because the read it stands in for now is.
+
+        `useMemberDisplaySettings` fetches this flag and the pendant-test threshold in one
+        `.in("key", […])` and awaits the builder directly — there is no `.maybeSingle()` to
+        resolve on. PostgREST's builder is a thenable, so this mock is one too; `.in()` still
+        returns the chain, so anything that filters and then calls `.order()` or `.limit()`
+        keeps working.
+
+        The key is written out rather than imported because `vi.mock` factories are hoisted
+        above the imports.
+      */
+      chain.then = (resolve: (value: unknown) => unknown) =>
+        Promise.resolve(
+          settingReadError
+            ? { data: null, error: new Error("no policy") }
+            : {
+                data:
+                  settingValue === null
+                    ? []
+                    : [{ key: "member_alert_history_enabled", value: settingValue }],
+                error: null,
+              },
+        ).then(resolve);
       chain.single = () => Promise.resolve({ data: null, error: null });
       return chain;
     },
@@ -401,6 +425,14 @@ describe("display only — the SOS path and the staff views cannot see this sett
   it("only the member portal and the one admin switch read it in the client", () => {
     const allowed = new Set([
       "src/lib/memberDisplaySettings.ts",
+      /*
+        THE READ MOVED HERE, and `useMemberAlertHistory` is now a wrapper that names no key.
+        One `.in(…)` fetches this flag and the pendant-test threshold together, because the perf
+        gate counts distinct query shapes per table and three against `system_settings` on the
+        member dashboard reads as a per-row query. Listed rather than covered by widening the
+        walk: the point of this test is that the key appears in a known, small set of files.
+      */
+      "src/hooks/useMemberDisplaySettings.ts",
       "src/hooks/useMemberAlertHistory.ts",
       "src/components/admin/settings/MemberPortalSettingsTab.tsx",
     ]);

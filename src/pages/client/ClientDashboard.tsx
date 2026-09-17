@@ -24,10 +24,10 @@ import { useTranslation } from "react-i18next";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { format } from "date-fns";
-import { es, enGB, nl } from "date-fns/locale";
 import i18n from "@/i18n";
 
 import { telHref, waNumber } from "@/lib/phone";
+import { memberDateLocale } from "@/lib/memberDate";
 import { PageHeader } from "@/components/client/PageHeader";
 import { ProtectionChecklist } from "@/components/client/ProtectionChecklist";
 import { NextPaymentLine } from "@/components/client/NextPaymentLine";
@@ -262,8 +262,12 @@ export default function ClientDashboard() {
     Dutch member read "Thursday, 17 September 2026" under a Dutch greeting. One extra branch,
     added with the next-payment line rather than after it, because that line sits beside this
     date and two dates in one sentence disagreeing about their language is worse than either.
+
+    THE MAP ITSELF MOVED to `memberDate.ts` when the protection checklist started printing a date
+    too. It was an inline ternary here, and the bug above is what an inline ternary in one of two
+    places looks like — the second surface is free to get it wrong in exactly the same way.
   */
-  const dateLocale = i18n.language === 'es' ? es : i18n.language === 'nl' ? nl : enGB;
+  const dateLocale = memberDateLocale(i18n.language);
   const currentDate = format(new Date(), 'EEEE, d MMMM yyyy', { locale: dateLocale });
 
   const memberName = displayMember?.first_name || t("common.member");

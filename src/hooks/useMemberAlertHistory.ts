@@ -1,12 +1,16 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import {
-  MEMBER_ALERT_HISTORY_KEY,
-  memberAlertHistoryEnabled,
-} from "@/lib/memberDisplaySettings";
+  MEMBER_DISPLAY_SETTINGS_QUERY_KEY,
+  useMemberDisplaySettings,
+} from "@/hooks/useMemberDisplaySettings";
 
-/** Shared so the sidebar, the dashboard and the route guard cannot fetch this three times. */
-export const MEMBER_ALERT_HISTORY_QUERY_KEY = ["member-alert-history-enabled"] as const;
+/**
+ * Shared so the sidebar, the dashboard and the route guard cannot fetch this three times.
+ *
+ * It is the member-display settings key, and the name is kept because that is what the admin
+ * switch imports to invalidate after a save — one setting in that block changing is a reason to
+ * re-read the block.
+ */
+export const MEMBER_ALERT_HISTORY_QUERY_KEY = MEMBER_DISPLAY_SETTINGS_QUERY_KEY;
 
 export interface MemberAlertHistoryState {
   /** OFF until a read says otherwise — including while the read is in flight. */
@@ -30,37 +34,22 @@ export interface MemberAlertHistoryState {
 /**
  * IS THE MEMBER'S ALERT HISTORY SHOWN AT ALL?
  *
- * One read, shared by every consumer through react-query's cache. A member is `authenticated`
- * with no staff row, so this only returns anything because 20260910140000 put the key in the
- * public whitelist — without that the value would be permanently indistinguishable from "off"
- * and the admin switch would appear to do nothing.
+ * A member's alert history is a list of the times their alarm went off. For most members most of
+ * the time it is empty, and the empty state is the good outcome — but for the members it is NOT
+ * empty for, it is a list of their own worst days on the screen they open to check their alarm
+ * still works. Whether to show it is a product decision, so it is a setting rather than a
+ * deletion, and it governs member DISPLAY only: alerts are still created, still escalate, and
+ * every staff view is unaffected.
  *
- * A FAILED READ IS "OFF", NOT AN ERROR ON SCREEN. There is nothing a member can do about it and
- * nothing dangerous about the outcome: they see one fewer nav item. `retry: false` because a
- * whitelist miss is not transient and retrying it three times just delays the render.
+ * THE READ MOVED, THE ANSWER DID NOT. It used to be this file's own `.eq("key", …)` query. It is
+ * now one field of `useMemberDisplaySettings`, which fetches this flag and the pendant-test
+ * threshold in a single `.in(…)` — because the performance gate counts distinct query shapes per
+ * table and three against `system_settings` on the member dashboard reads as a per-row query.
+ * Every consumer of this hook is unchanged, including the failed-read behaviour: OFF, not an
+ * error on screen, because there is nothing a member can do about it and nothing dangerous about
+ * seeing one fewer nav item.
  */
 export function useMemberAlertHistory(): MemberAlertHistoryState {
-  const { data, isSuccess, isError } = useQuery({
-    queryKey: MEMBER_ALERT_HISTORY_QUERY_KEY,
-    retry: false,
-    // It changes when an admin flips a switch, which is rare, and every member surface reads it.
-    staleTime: 5 * 60 * 1000,
-    queryFn: async (): Promise<boolean> => {
-      const { data: row, error } = await supabase
-        .from("system_settings")
-        .select("value")
-        .eq("key", MEMBER_ALERT_HISTORY_KEY)
-        .maybeSingle();
-      if (error) throw error;
-      return memberAlertHistoryEnabled(row?.value);
-    },
-  });
-
-  return {
-    enabled: data === true,
-    // An ERROR settles it too: "we asked and could not find out" is an answer the guard has to
-    // be able to act on, or a whitelist regression would leave /dashboard/alerts spinning
-    // forever instead of redirecting.
-    settled: isSuccess || isError,
-  };
+  const { alertHistoryEnabled, settled } = useMemberDisplaySettings();
+  return { enabled: alertHistoryEnabled, settled };
 }

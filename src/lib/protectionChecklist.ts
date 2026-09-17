@@ -1,4 +1,5 @@
 import { readinessGap, type ReadinessGap } from "@/lib/readinessGap";
+import { parsePendantTestReminderDays, pendantTestIsStale } from "@/lib/pendantTestReminder";
 import { membershipCondition, type MembershipCondition } from "@/lib/membershipCondition";
 import type { SupportActionKey } from "@/lib/supportActions";
 
@@ -55,6 +56,15 @@ export interface ProtectionRung {
   state: ProtectionState;
   /** One line saying where this part stands. Never a scolding. */
   headline: { key: string; fallback: string };
+  /**
+   * An ISO timestamp the headline's `{{date}}` is filled from, when it has one.
+   *
+   * RAW, NOT FORMATTED. "3 March" / "3 de marzo" / "3 maart" is a question about the reader's
+   * language, and this module is pure — it has no `t`, no i18n instance and no business
+   * acquiring one. `ProtectionChecklist` formats it through `formatMemberDayMonth`, which is the
+   * same map the dashboard greeting uses.
+   */
+  headlineDate?: string | null;
   /** The single action. `null` only where there is genuinely nothing to offer. */
   action: ProtectionAction | null;
 }
@@ -104,6 +114,17 @@ export interface ProtectionInput {
     | { emergency_contact_count: number | null; device_tested_at: string | null }
     | null
     | undefined;
+  /**
+   * How many days a pendant test stays current for — `system_settings.pendant_test_reminder_days`.
+   *
+   * OPTIONAL, AND ABSENT MEANS 90, never "never stale". A caller that has not read the setting
+   * yet, or could not, must still prompt a member whose last test was fourteen months ago: the
+   * failure mode worth avoiding is a reassuring sentence that is no longer true, not a prompt
+   * that arrives with a default threshold.
+   */
+  testReminderDays?: number | null;
+  /** Now, in ms — injected so the staleness boundary is testable without faking the clock. */
+  nowMs?: number;
 }
 
 function membershipRung(input: ProtectionInput): ProtectionRung {
@@ -193,25 +214,89 @@ function pendantRung(input: ProtectionInput): ProtectionRung {
     };
   }
 
-  const tested = input.readiness?.device_tested_at != null;
+  const testedAt = input.readiness?.device_tested_at ?? null;
+  const tested = testedAt != null;
 
   if (tested) {
     // The device row says whether it is reachable RIGHT NOW; the test says it worked in the home.
     const offline = input.device?.is_online === false;
+
+    /*
+      OFFLINE WINS, AND IT MUST. A pendant that has stopped checking in is a fault whatever the
+      age of its last test, and the stale branch below is not a fault at all — so ordering these
+      the other way round would replace "your pendant has stopped checking in" with "it has been
+      a while since it was tested" for exactly the member who needs the first sentence.
+    */
+    if (offline) {
+      return {
+        id: "pendant",
+        state: "action_needed",
+        headline: {
+          key: "protection.pendant.offline",
+          fallback: "Your pendant has stopped checking in with us.",
+        },
+        action: {
+          kind: "support",
+          action: "report_issue",
+          label: { key: "protection.pendant.offlineAction", fallback: "Tell us about it" },
+        },
+      };
+    }
+
+    /*
+      AN OVERDUE TEST IS NOT A FAULT — the most important line in this branch.
+
+      `action_needed` is the state that tells a member something is WRONG with their alarm.
+      Nothing is: the pendant is online, the membership is active, an operator is watching. The
+      only thing that has lapsed is a habit we recommend. This file already draws exactly that
+      distinction for a pendant in transit ("telling a member 'action needed' about something WE
+      owe them blames them for our queue"), and the same reasoning lands here: a member who is
+      told their alarm needs attention when it does not is a member who learns to ignore the one
+      time it does.
+
+      So `ok` in both branches, with a different sentence and a different button. No sixth
+      `ProtectionState`, no change to the tone map, and `isProtectionGap` still answers false —
+      an overdue test is not a task for the readiness queue.
+    */
+    /*
+      THE THRESHOLD IS SANITISED HERE, not trusted from the caller.
+
+      `?? DEFAULT` would have been enough for absent and null and wrong for everything else: a
+      `NaN` (which is what `Number("")` gives, and what a settings read can produce) is not
+      nullish, so it would have travelled straight into the comparison, where `age >= NaN` is
+      false — a fourteen-month-old test silently reported as current. Zero and a negative are the
+      same class of mistake pointing the other way. One sanitiser, in the one place that consumes
+      the number, so no caller can get it wrong.
+    */
+    const stale = pendantTestIsStale(
+      testedAt,
+      parsePendantTestReminderDays(input.testReminderDays),
+      input.nowMs ?? Date.now(),
+    );
+
     return {
       id: "pendant",
-      state: offline ? "action_needed" : "ok",
-      headline: offline
+      state: "ok",
+      headline: stale
         ? {
-            key: "protection.pendant.offline",
-            fallback: "Your pendant has stopped checking in with us.",
+            key: "protection.pendant.stale",
+            fallback: "It has been a while since your pendant was tested. Last tested {{date}}.",
           }
-        : { key: "protection.pendant.ok", fallback: "Your pendant is tested and checking in." },
-      action: offline
+        : {
+            key: "protection.pendant.ok",
+            fallback: "Your pendant is tested and checking in. Last tested {{date}}.",
+          },
+      headlineDate: testedAt,
+      action: stale
         ? {
-            kind: "support",
-            action: "report_issue",
-            label: { key: "protection.pendant.offlineAction", fallback: "Tell us about it" },
+            /*
+              The SAME destination the `awaitingTest` branch uses, which is the point: there is
+              one way to arrange a test with us, and a second route to the same conversation
+              would be a second thing to keep working.
+            */
+            kind: "route",
+            to: "/dashboard/support",
+            label: { key: "protection.pendant.staleAction", fallback: "Arrange a test" },
           }
         : {
             kind: "route",

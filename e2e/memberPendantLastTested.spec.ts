@@ -219,17 +219,24 @@ test.describe("the member dashboard", () => {
     await shoot(page, testInfo, "pendant-never-tested");
   });
 
-  test("the ROW moves the threshold — 45 days is fine at 90 and overdue at 30", async ({
-    page,
-  }) => {
-    /*
-      The point of the setting existing at all. Without this the row could be absent, misspelled
-      or unreadable and every assertion above would still pass on the built-in default — which is
-      exactly the silent failure the whitelist migration exists to prevent.
-    */
+  /*
+    THE ROW MOVES THE THRESHOLD — the point of the setting existing at all. Without this pair the
+    row could be absent, misspelled or unreadable and every assertion above would still pass on
+    the built-in default, which is exactly the silent failure the whitelist migration exists to
+    prevent: a number an admin edits that changes nothing.
+
+    TWO TESTS AND NOT ONE, and the first attempt was one. Signing in twice in a single test
+    reuses the page, and `usePendantTestReminderDays` has a five-minute `staleTime` — so the
+    second sign-in read the FIRST threshold out of react-query's cache and the assertion failed
+    on a fact about caching rather than about the setting. Playwright gives each test a fresh
+    context, which is what a member gets too.
+  */
+  test("45 days is current when the row says 90", async ({ page }) => {
     await signInAsMember(page, { testedAt: daysAgo(45), thresholdRow: "90" });
     await expect(await pendantRung(page)).toContainText("Your pendant is tested and checking in.");
+  });
 
+  test("…and overdue when the row says 30", async ({ page }) => {
     await signInAsMember(page, { testedAt: daysAgo(45), thresholdRow: "30" });
     await expect(await pendantRung(page)).toContainText("It has been a while");
   });

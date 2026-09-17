@@ -3133,6 +3133,10 @@
       "securityNote": "Your payment information is secure and encrypted",
       "preContractTitle": "Before you pay",
       "withdrawalNotice": "You have 14 days from receiving your pendant to withdraw from this contract for any reason. We refund everything you paid, including standard delivery; you pay only the cost of sending the pendant back. Full details and the model withdrawal form are in our Terms, section 9.2.",
+      "withdrawalImmediateStart": "If you ask us to start monitoring before the 14-day withdrawal period ends and then withdraw, you pay only a proportionate amount for the days it was active; everything else is refunded.",
+      "withdrawalRenewalMonthly": "Your membership renews automatically every month until you cancel. You can cancel at any time, with no minimum term; it ends at the close of the month you have paid for.",
+      "withdrawalRenewalAnnual": "Your membership renews automatically every 12 months until you cancel. You can cancel at any time; it ends at the close of the year you have paid for, and once the withdrawal period is over the fees for that year are not refunded.",
+      "withdrawalPolicyLink": "Cancellation, withdrawal and refund policy (includes the model withdrawal form)",
       "deliveryNotice": "Your pendant is sent by recorded delivery and arrives within 5–7 working days."
     },
     "payment": {
@@ -3585,6 +3589,115 @@
     }
   },
   "legal": {
+    "cancellation": {
+      "title": "Cancellation, Withdrawal and Refund Policy",
+      "company": "ICE Alarm España S.L. · Tax ID (CIF) B24731531",
+      "lastUpdated": "Last updated: September 2026 · Draft pending legal review",
+      "footerLink": "Cancellation & refunds",
+      "draftNotice": "This policy is a draft pending legal review. It does not limit any right you have under Spanish or EU consumer law; where it appears to, the law prevails.",
+      "summaryTitle": "In short",
+      "summaryItems": [
+        "You can <strong>withdraw within 14 days</strong> without giving a reason and receive a full refund of what you paid.",
+        "After that you can <strong>cancel at any time</strong>, with no minimum term and no notice period. Monitoring continues until the end of the period you have already paid for.",
+        "The pendant is yours to keep when you cancel. It only comes back to us if you withdraw within the 14 days.",
+        "Refunds are made within 14 days, to the same payment method you used.",
+        "Once monitoring ends, the SOS button no longer reaches our team."
+      ],
+      "s1Title": "1. Who we are and who this policy applies to",
+      "s1p1": "This policy is provided by <strong>ICE Alarm España S.L.</strong> (CIF B24731531), registered office at [[TO CONFIRM: registered address]], email info@icealarm.es, telephone [[TO CONFIRM: customer service telephone and hours]]. It forms part of our Terms of Service and explains how you can withdraw from, cancel and obtain refunds for your membership and your GPS pendant.",
+      "s1p2": "It applies to you if you are a consumer — a person acting for purposes outside their trade, business or profession — and you took out your membership at a distance (online or by telephone) or away from our business premises.",
+      "s2Title": "2. Your right of withdrawal (14 days)",
+      "s2p1": "You have the right to withdraw from this contract within 14 calendar days without giving any reason and without any penalty (Royal Legislative Decree 1/2007, articles 102 to 108).",
+      "s2Items": [
+        "<strong>If you ordered a pendant</strong>, the 14 days start on the day you, or a person you nominate other than the carrier, take physical possession of it. If pendants ordered together arrive on different days, the period starts when you receive the last one.",
+        "<strong>If you took out a membership without a pendant</strong>, the 14 days start on the day the contract was concluded.",
+        "<strong>To exercise it</strong>, tell us of your decision by a clear statement before the period ends, using any of the channels in section 3. You may use the model form in section 15, but you do not have to.",
+        "<strong>You are in time</strong> if you send your statement before the 14 days are up, even if it reaches us afterwards.",
+        "We recommend keeping a copy of your message. We will always confirm that we have received it."
+      ],
+      "s3Title": "3. How to withdraw or cancel",
+      "s3p1": "Withdrawing or cancelling should be as easy as joining. Use whichever channel suits you:",
+      "s3Items": [
+        "<strong>Online:</strong> [[TO CONFIRM: online withdrawal and cancellation function in the member area — not yet available]]",
+        "<strong>By email:</strong> write to info@icealarm.es, ideally from the email address you registered with, giving your name and saying that you wish to withdraw or to cancel.",
+        "<strong>From your member area:</strong> send us a message from the Support section.",
+        "<strong>By telephone:</strong> [[TO CONFIRM: customer service telephone and hours]].",
+        "<strong>By post:</strong> ICE Alarm España S.L., [[TO CONFIRM: registered address]]."
+      ],
+      "s3p2": "We will send you an acknowledgement by email without delay, stating what you asked for and the date and time we received it. If you do not receive it, please contact us again so that your request is not lost.",
+      "s3p3": "If you are acting for a member who cannot do it themselves, please tell us who you are and your relationship to the member. We may need to check that you are authorised to act for them.",
+      "s4Title": "4. Refunds when you withdraw",
+      "s4Items": [
+        "We refund <strong>every payment we received from you</strong> under the contract: the membership fee, the pendant, the registration fee and the cost of standard delivery. If you chose a delivery method more expensive than our standard one, we refund the standard cost.",
+        "We make the refund <strong>without undue delay and no later than 14 days</strong> from the day we are informed of your decision.",
+        "We use the <strong>same means of payment</strong> you used for the original transaction, unless you have expressly agreed otherwise. You will not be charged any fee for the refund.",
+        "For the pendant, we may withhold the corresponding part of the refund until we have received it back, or until you have given us evidence that you have sent it, whichever is earlier.",
+        "If monitoring started during the withdrawal period at your express request, we deduct only the proportionate amount described in section 5.",
+        "If someone else paid on your behalf, the refund goes back to the payment method that was charged."
+      ],
+      "s5Title": "5. If monitoring started during the withdrawal period",
+      "s5p1": "Our monitoring service may start before the 14 days are over only if you <strong>expressly ask us</strong> to start it. If you asked for this and then withdraw, you pay an amount proportionate to the service provided until you told us you were withdrawing.",
+      "s5Items": [
+        "<strong>How it is calculated:</strong> the price of your current billing period (IVA included), divided by the number of days in that period, multiplied by the number of days monitoring was active until you told us you were withdrawing.",
+        "<strong>For an annual membership</strong>, the same calculation is made on the annual price over 365 days.",
+        "<strong>If you did not expressly ask</strong> for monitoring to start during the withdrawal period, or we did not give you this information before you contracted, you owe nothing for the service provided during that period.",
+        "Everything you paid above that amount is refunded as described in section 4."
+      ],
+      "s6Title": "6. Returning the pendant after withdrawal",
+      "s6Items": [
+        "Send the pendant back without undue delay and no later than <strong>14 days</strong> from the day you told us you were withdrawing, to: [[TO CONFIRM: returns address]].",
+        "You pay the <strong>direct cost of returning</strong> the pendant. It can be sent by ordinary post or courier. [[TO CONFIRM: estimated return cost]]",
+        "You are only liable for any loss in value caused by handling the pendant beyond what is necessary to establish its nature, characteristics and functioning.",
+        "Please include the charger and any accessories supplied with it, and a note with your name or order number so that we can match the parcel to your refund.",
+        "When we process your withdrawal we disconnect the pendant from our service. From then on, pressing its SOS button no longer reaches our team."
+      ],
+      "s7Title": "7. Cancelling after the withdrawal period",
+      "s7Items": [
+        "You can cancel your membership <strong>at any time</strong>. There is no minimum term and no notice period.",
+        "Your cancellation takes effect at the <strong>end of the billing period you have already paid for</strong>. Monitoring continues until then, and you will not be charged again.",
+        "Once the withdrawal period is over, fees already paid for the current billing period are not refunded. This also applies to annual memberships. [[TO CONFIRM: treatment of annual memberships cancelled early — pending legal review]]",
+        "<strong>You keep the pendant</strong>, because you bought it. There is nothing to return.",
+        "When monitoring ends, the <strong>SOS button no longer reaches our team</strong>. If you still need an alarm service, please arrange an alternative before that date.",
+        "We confirm your cancellation, and the date it takes effect, by email.",
+        "We keep your personal data only as described in our Privacy Policy."
+      ],
+      "s8Title": "8. Renewals and price changes",
+      "s8Items": [
+        "<strong>Monthly memberships</strong> renew automatically every month, and <strong>annual memberships</strong> every 12 months, until you cancel.",
+        "An annual membership costs the same as 10 months at the monthly price, paid in one instalment for 12 months of service.",
+        "Your membership renews at the price in force on the renewal date. We tell you at least 30 days before any price change takes effect; if you do not accept it, you can cancel before it applies, at no cost.",
+        "[[TO CONFIRM: reminder sent before an annual renewal — not currently sent]]",
+        "Your next renewal date is shown in your member area, under Membership."
+      ],
+      "s9Title": "9. Prices, IVA and one-off charges",
+      "s9Items": [
+        "Every price shown to you before you pay includes IVA (Spanish VAT) where it applies.",
+        "The <strong>membership</strong> carries IVA at 10%.",
+        "The <strong>GPS pendant</strong> is sold to you and carries IVA at 21%.",
+        "<strong>Delivery</strong> is charged once per order, however many pendants you order.",
+        "A one-off <strong>registration fee</strong> may apply, as shown in the order summary. [[TO CONFIRM: IVA treatment of the registration fee]]",
+        "Before you pay, the order summary shows each item, its IVA, the total due today and the amount you will then be charged each month or year."
+      ],
+      "s10Title": "10. If a payment fails",
+      "s10Items": [
+        "If a payment fails, we or our payment provider will try to collect it again, and we will contact you.",
+        "<strong>Your monitoring continues</strong> while we work it out with you.",
+        "We will not suspend or end your service because of a missed payment without first contacting you and giving you reasonable notice. [[TO CONFIRM: suspension policy — Terms section 8.5 describes suspension after 7 days]]"
+      ],
+      "s11Title": "11. If someone else pays for your membership",
+      "s11p1": "Where a family member or another person pays for your membership, refunds go back to the payment method that was charged. Please tell us who should be contacted about withdrawal, cancellation and refunds, so that the right person is kept informed. [[TO CONFIRM: who may withdraw or cancel when a payer pays — pending legal review]]",
+      "s12Title": "12. Faulty or damaged pendant",
+      "s12p1": "Nothing in this policy affects your statutory guarantee rights if the pendant is faulty or not as described. Those rights are separate from the right of withdrawal and continue after the 14 days have passed. Contact us and we will repair or replace it as the law requires.",
+      "s13Title": "13. Members billed by bank direct debit under an earlier arrangement",
+      "s13p1": "If your membership is still collected by bank direct debit under an arrangement made before you joined this platform, you can cancel through any of the channels in section 3. We stop collecting from the end of the period already collected and confirm this to you in writing. This does not affect your right to ask your bank to refund a direct debit under payment services law. [[TO CONFIRM: cancellation procedure for members on earlier direct-debit billing]]",
+      "s14Title": "14. Questions and complaints",
+      "s14p1": "If you have a question or a complaint about a withdrawal, cancellation or refund, write to info@icealarm.es. Official complaint forms (hojas de reclamaciones) are available on request. You can also contact your municipal consumer information office (OMIC) or your regional consumer authority. [[TO CONFIRM: adherence to the Consumer Arbitration System]]",
+      "formTitle": "15. Model withdrawal form",
+      "formIntro": "Complete and return this form only if you wish to withdraw from the contract. Using it is optional.",
+      "formBody": "To: ICE Alarm España S.L., [[TO CONFIRM: registered address]], info@icealarm.es<br/><br/>I/We (*) hereby give notice that I/we (*) withdraw from my/our (*) contract of sale of the following goods (*) / for the provision of the following service (*): ______________________<br/><br/>Ordered on (*) / received on (*): ______________________<br/>Name of consumer(s): ______________________<br/>Address of consumer(s): ______________________<br/>Signature of consumer(s) (only if this form is sent on paper): ______________________<br/>Date: ______________________<br/><br/>(*) Delete as appropriate.",
+      "printForm": "Print this page",
+      "relatedTitle": "Related documents"
+    },
     "footer": {
       "termsOfService": "Terms of Service",
       "privacyPolicy": "Privacy Policy"

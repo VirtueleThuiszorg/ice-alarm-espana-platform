@@ -656,6 +656,11 @@ export default function HowItWorksPage() {
                     {t("pendant.footer.privacyPolicy")}
                   </Link>
                 </li>
+                <li>
+                  <Link to="/cancellation-policy" className="hover:text-sidebar-foreground">
+                    {t("legal.cancellation.footerLink")}
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>

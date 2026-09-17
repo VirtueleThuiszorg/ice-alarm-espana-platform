@@ -3133,6 +3133,10 @@
       "securityNote": "Uw betaalgegevens zijn veilig en versleuteld",
       "preContractTitle": "Voordat u betaalt",
       "withdrawalNotice": "U hebt 14 dagen vanaf de ontvangst van uw hanger om deze overeenkomst zonder opgave van redenen te herroepen. Wij betalen alles terug wat u hebt betaald, inclusief standaardlevering; u draagt alleen de kosten van het terugsturen van de hanger. De details en het modelformulier staan in artikel 9.2 van onze voorwaarden.",
+      "withdrawalImmediateStart": "Vraagt u ons de bewaking te starten vóór het einde van de herroepingstermijn van 14 dagen en herroept u daarna, dan betaalt u alleen een evenredig bedrag voor de dagen dat die actief was; de rest wordt terugbetaald.",
+      "withdrawalRenewalMonthly": "Uw lidmaatschap wordt elke maand automatisch verlengd totdat u opzegt. U kunt op elk moment opzeggen, zonder minimale looptijd; het eindigt aan het einde van de maand die u heeft betaald.",
+      "withdrawalRenewalAnnual": "Uw lidmaatschap wordt elke 12 maanden automatisch verlengd totdat u opzegt. U kunt op elk moment opzeggen; het eindigt aan het einde van het jaar dat u heeft betaald, en na afloop van de herroepingstermijn worden de bijdragen voor dat jaar niet terugbetaald.",
+      "withdrawalPolicyLink": "Beleid voor opzegging, herroeping en terugbetaling (met het modelformulier voor herroeping)",
       "deliveryNotice": "Uw hanger wordt per aangetekende post verzonden en komt binnen 5–7 werkdagen aan."
     },
     "payment": {
@@ -3585,6 +3589,115 @@
     }
   },
   "legal": {
+    "cancellation": {
+      "title": "Beleid voor opzegging, herroeping en terugbetaling",
+      "company": "ICE Alarm España S.L. · fiscaal nummer (CIF) B24731531",
+      "lastUpdated": "Laatst bijgewerkt: september 2026 · Concept, in afwachting van juridische toetsing",
+      "footerLink": "Opzeggen & terugbetaling",
+      "draftNotice": "Dit beleid is een concept dat nog juridisch wordt getoetst. Het beperkt geen enkel recht dat u heeft op grond van het Spaanse of Europese consumentenrecht; waar het dat lijkt te doen, gaat de wet voor.",
+      "summaryTitle": "In het kort",
+      "summaryItems": [
+        "U kunt <strong>binnen 14 dagen herroepen</strong> zonder opgave van redenen en krijgt u alles terugbetaald wat u heeft betaald.",
+        "Daarna kunt u <strong>op elk moment opzeggen</strong>, zonder minimale looptijd en zonder opzegtermijn. De bewaking loopt door tot het einde van de periode die u al heeft betaald.",
+        "Als u opzegt, houdt u de hanger. Alleen als u binnen de 14 dagen herroept, stuurt u hem terug.",
+        "Terugbetalingen gebeuren binnen 14 dagen, via hetzelfde betaalmiddel dat u gebruikte.",
+        "Zodra de bewaking stopt, bereikt de SOS-knop ons team niet meer."
+      ],
+      "s1Title": "1. Wie wij zijn en voor wie dit beleid geldt",
+      "s1p1": "Dit beleid wordt verstrekt door <strong>ICE Alarm España S.L.</strong> (CIF B24731531), statutair gevestigd te [[TO CONFIRM: registered address]], e-mail info@icealarm.es, telefoon [[TO CONFIRM: customer service telephone and hours]]. Het maakt deel uit van onze Servicevoorwaarden en legt uit hoe u uw lidmaatschap en uw GPS-hanger kunt herroepen, opzeggen en terugbetaald krijgen.",
+      "s1p2": "Het geldt voor u als u consument bent — iemand die handelt voor doeleinden buiten zijn bedrijf, beroep of ambacht — en u uw lidmaatschap op afstand (online of telefonisch) of buiten onze verkoopruimte heeft afgesloten.",
+      "s2Title": "2. Uw herroepingsrecht (14 dagen)",
+      "s2p1": "U heeft het recht deze overeenkomst binnen 14 kalenderdagen zonder opgave van redenen en zonder boete te herroepen (Spaans Koninklijk Wetgevend Besluit 1/2007, artikelen 102 tot en met 108).",
+      "s2Items": [
+        "<strong>Als u een hanger heeft besteld</strong>, gaan de 14 dagen in op de dag waarop u, of een door u aangewezen derde die niet de vervoerder is, de hanger fysiek in bezit krijgt. Komen samen bestelde hangers op verschillende dagen aan, dan begint de termijn bij ontvangst van de laatste.",
+        "<strong>Als u een lidmaatschap zonder hanger heeft afgesloten</strong>, gaan de 14 dagen in op de dag waarop de overeenkomst is gesloten.",
+        "<strong>Om het uit te oefenen</strong>, deelt u ons uw besluit vóór het einde van de termijn mee met een ondubbelzinnige verklaring, via een van de kanalen in paragraaf 3. U mag het modelformulier in paragraaf 15 gebruiken, maar dat is niet verplicht.",
+        "<strong>U bent op tijd</strong> als u uw verklaring verstuurt voordat de 14 dagen voorbij zijn, ook als die ons later bereikt.",
+        "Bewaar bij voorkeur een kopie van uw bericht. Wij bevestigen altijd dat wij het hebben ontvangen."
+      ],
+      "s3Title": "3. Zo herroept of zegt u op",
+      "s3p1": "Herroepen of opzeggen moet even eenvoudig zijn als aanmelden. Kies het kanaal dat u het beste uitkomt:",
+      "s3Items": [
+        "<strong>Online:</strong> [[TO CONFIRM: online withdrawal and cancellation function in the member area — not yet available]]",
+        "<strong>Per e-mail:</strong> schrijf naar info@icealarm.es, bij voorkeur vanaf het e-mailadres waarmee u zich heeft aangemeld, met uw naam en de mededeling dat u wilt herroepen of opzeggen.",
+        "<strong>Via uw ledenomgeving:</strong> stuur ons een bericht via het onderdeel Ondersteuning.",
+        "<strong>Telefonisch:</strong> [[TO CONFIRM: customer service telephone and hours]].",
+        "<strong>Per post:</strong> ICE Alarm España S.L., [[TO CONFIRM: registered address]]."
+      ],
+      "s3p2": "Wij sturen u zonder vertraging een ontvangstbevestiging per e-mail, met wat u heeft gevraagd en de datum en het tijdstip waarop wij het ontvingen. Krijgt u die niet, neem dan opnieuw contact met ons op zodat uw verzoek niet verloren gaat.",
+      "s3p3": "Handelt u namens een lid dat dit zelf niet kan, vertel ons dan wie u bent en wat uw relatie tot het lid is. Mogelijk moeten wij controleren of u namens hem of haar mag optreden.",
+      "s4Title": "4. Terugbetaling bij herroeping",
+      "s4Items": [
+        "Wij betalen <strong>alle betalingen die wij van u hebben ontvangen</strong> op grond van de overeenkomst terug: de lidmaatschapsbijdrage, de hanger, de inschrijvingskosten en de kosten van standaardlevering. Koos u een duurdere leveringswijze dan onze standaardlevering, dan betalen wij de standaardkosten terug.",
+        "Wij betalen terug <strong>zonder onredelijke vertraging en uiterlijk binnen 14 dagen</strong> nadat wij van uw besluit op de hoogte zijn gesteld.",
+        "Wij gebruiken <strong>hetzelfde betaalmiddel</strong> als u bij de oorspronkelijke transactie heeft gebruikt, tenzij u uitdrukkelijk anders heeft ingestemd. De terugbetaling kost u niets.",
+        "Voor de hanger mogen wij het bijbehorende deel van de terugbetaling inhouden totdat wij hem hebben terugontvangen of u heeft aangetoond dat u hem heeft teruggestuurd, al naargelang wat het eerst gebeurt.",
+        "Is de bewaking op uw uitdrukkelijk verzoek tijdens de herroepingstermijn gestart, dan houden wij alleen het evenredige bedrag uit paragraaf 5 in.",
+        "Heeft iemand anders namens u betaald, dan gaat de terugbetaling naar het betaalmiddel waarmee is betaald."
+      ],
+      "s5Title": "5. Als de bewaking tijdens de herroepingstermijn is gestart",
+      "s5p1": "Onze bewakingsdienst kan alleen vóór het einde van de 14 dagen starten als u <strong>ons daar uitdrukkelijk om vraagt</strong>. Heeft u dat gedaan en herroept u daarna, dan betaalt u een bedrag dat evenredig is aan de dienst die is geleverd tot het moment waarop u ons de herroeping meedeelde.",
+      "s5Items": [
+        "<strong>Berekening:</strong> de prijs van uw lopende factuurperiode (inclusief IVA), gedeeld door het aantal dagen van die periode, vermenigvuldigd met het aantal dagen dat de bewaking actief was totdat u ons de herroeping meedeelde.",
+        "<strong>Bij een jaarlidmaatschap</strong> wordt dezelfde berekening gemaakt op basis van de jaarprijs en 365 dagen.",
+        "<strong>Heeft u niet uitdrukkelijk gevraagd</strong> om de bewaking tijdens de herroepingstermijn te starten, of hebben wij u deze informatie niet vóór het sluiten van de overeenkomst gegeven, dan bent u niets verschuldigd voor de dienst die in die termijn is geleverd.",
+        "Alles wat u boven dat bedrag heeft betaald, wordt terugbetaald zoals beschreven in paragraaf 4."
+      ],
+      "s6Title": "6. De hanger terugsturen na herroeping",
+      "s6Items": [
+        "Stuur de hanger zonder onredelijke vertraging en uiterlijk binnen <strong>14 dagen</strong> na uw herroeping terug naar: [[TO CONFIRM: returns address]].",
+        "U draagt de <strong>directe kosten van het terugsturen</strong>. De hanger kan per gewone post of koerier worden verzonden. [[TO CONFIRM: estimated return cost]]",
+        "U bent alleen aansprakelijk voor waardevermindering die het gevolg is van een behandeling die verder gaat dan nodig is om de aard, de kenmerken en de werking vast te stellen.",
+        "Voeg a.u.b. de oplader en meegeleverde accessoires bij, met een briefje met uw naam of ordernummer zodat wij het pakket aan uw terugbetaling kunnen koppelen.",
+        "Bij de verwerking van uw herroeping koppelen wij de hanger los van onze dienst. Vanaf dat moment bereikt de SOS-knop ons team niet meer."
+      ],
+      "s7Title": "7. Opzeggen na de herroepingstermijn",
+      "s7Items": [
+        "U kunt uw lidmaatschap <strong>op elk moment</strong> opzeggen. Er is geen minimale looptijd en geen opzegtermijn.",
+        "Uw opzegging gaat in aan het <strong>einde van de factuurperiode die u al heeft betaald</strong>. Tot dan loopt de bewaking door, en daarna wordt er niets meer in rekening gebracht.",
+        "Na afloop van de herroepingstermijn worden al betaalde bijdragen voor de lopende factuurperiode niet terugbetaald. Dit geldt ook voor jaarlidmaatschappen. [[TO CONFIRM: treatment of annual memberships cancelled early — pending legal review]]",
+        "<strong>U houdt de hanger</strong>, want u heeft hem gekocht. U hoeft niets terug te sturen.",
+        "Zodra de bewaking stopt, <strong>bereikt de SOS-knop ons team niet meer</strong>. Heeft u nog een alarmdienst nodig, regel dan vóór die datum een alternatief.",
+        "Wij bevestigen uw opzegging, en de datum waarop die ingaat, per e-mail.",
+        "Wij bewaren uw persoonsgegevens alleen zoals beschreven in ons Privacybeleid."
+      ],
+      "s8Title": "8. Verlenging en prijswijzigingen",
+      "s8Items": [
+        "<strong>Maandlidmaatschappen</strong> worden elke maand automatisch verlengd en <strong>jaarlidmaatschappen</strong> elke 12 maanden, totdat u opzegt.",
+        "Een jaarlidmaatschap kost evenveel als 10 maanden tegen de maandprijs, in één keer betaald voor 12 maanden dienstverlening.",
+        "Uw lidmaatschap wordt verlengd tegen de prijs die op de verlengingsdatum geldt. Wij informeren u minstens 30 dagen vóór een prijswijziging ingaat; gaat u er niet mee akkoord, dan kunt u kosteloos opzeggen voordat die geldt.",
+        "[[TO CONFIRM: reminder sent before an annual renewal — not currently sent]]",
+        "Uw volgende verlengingsdatum staat in uw ledenomgeving, onder Lidmaatschap."
+      ],
+      "s9Title": "9. Prijzen, IVA en eenmalige kosten",
+      "s9Items": [
+        "Alle prijzen die u vóór betaling ziet, zijn inclusief IVA (Spaanse btw) waar die van toepassing is.",
+        "Over het <strong>lidmaatschap</strong> wordt 10% IVA geheven.",
+        "De <strong>GPS-hanger</strong> wordt aan u verkocht; daarover wordt 21% IVA geheven.",
+        "<strong>Verzending</strong> wordt één keer per bestelling berekend, ongeacht het aantal hangers.",
+        "Er kunnen eenmalige <strong>inschrijvingskosten</strong> gelden, zoals vermeld in het besteloverzicht. [[TO CONFIRM: IVA treatment of the registration fee]]",
+        "Vóór betaling toont het besteloverzicht elk onderdeel, de IVA, het totaal dat vandaag verschuldigd is en het bedrag dat daarna elke maand of elk jaar wordt afgeschreven."
+      ],
+      "s10Title": "10. Als een betaling mislukt",
+      "s10Items": [
+        "Mislukt een betaling, dan proberen wij of onze betaaldienstverlener het bedrag opnieuw te innen en nemen wij contact met u op.",
+        "<strong>Uw bewaking loopt door</strong> terwijl wij het samen met u oplossen.",
+        "Wij schorten uw dienst niet op en beëindigen die niet wegens een gemiste betaling zonder eerst contact met u op te nemen en u een redelijke termijn te geven. [[TO CONFIRM: suspension policy — Terms section 8.5 describes suspension after 7 days]]"
+      ],
+      "s11Title": "11. Als iemand anders uw lidmaatschap betaalt",
+      "s11p1": "Betaalt een familielid of iemand anders uw lidmaatschap, dan gaan terugbetalingen naar het betaalmiddel waarmee is betaald. Laat ons weten met wie wij contact moeten opnemen over herroeping, opzegging en terugbetaling, zodat de juiste persoon op de hoogte blijft. [[TO CONFIRM: who may withdraw or cancel when a payer pays — pending legal review]]",
+      "s12Title": "12. Defecte of beschadigde hanger",
+      "s12p1": "Niets in dit beleid doet af aan uw wettelijke garantierechten als de hanger defect is of niet aan de omschrijving voldoet. Die rechten staan los van het herroepingsrecht en blijven gelden na de 14 dagen. Neem contact met ons op en wij repareren of vervangen de hanger zoals de wet voorschrijft.",
+      "s13Title": "13. Leden die betalen via automatische incasso onder een eerdere regeling",
+      "s13p1": "Wordt uw lidmaatschap nog via automatische incasso geïnd onder een regeling van vóór uw aanmelding op dit platform, dan kunt u opzeggen via elk van de kanalen in paragraaf 3. Wij stoppen met innen na het einde van de al geïnde periode en bevestigen dit schriftelijk. Dit laat uw recht onverlet om uw bank op grond van de regels voor betalingsdiensten om terugboeking van een incasso te vragen. [[TO CONFIRM: cancellation procedure for members on earlier direct-debit billing]]",
+      "s14Title": "14. Vragen en klachten",
+      "s14p1": "Heeft u een vraag of klacht over een herroeping, opzegging of terugbetaling, schrijf dan naar info@icealarm.es. Officiële klachtenformulieren (hojas de reclamaciones) zijn op verzoek beschikbaar. U kunt zich ook wenden tot het gemeentelijke consumentenloket (OMIC) of de consumentenautoriteit van uw regio. [[TO CONFIRM: adherence to the Consumer Arbitration System]]",
+      "formTitle": "15. Modelformulier voor herroeping",
+      "formIntro": "Vul dit formulier alleen in en stuur het terug als u de overeenkomst wilt herroepen. Het gebruik ervan is niet verplicht.",
+      "formBody": "Aan: ICE Alarm España S.L., [[TO CONFIRM: registered address]], info@icealarm.es<br/><br/>Ik/Wij (*) deel/delen (*) u hierbij mede dat ik/wij (*) onze overeenkomst betreffende de verkoop van de volgende goederen (*) / de levering van de volgende dienst (*) herroep/herroepen (*): ______________________<br/><br/>Besteld op (*) / ontvangen op (*): ______________________<br/>Naam/Namen consument(en): ______________________<br/>Adres consument(en): ______________________<br/>Handtekening van consument(en) (alleen wanneer dit formulier op papier wordt ingediend): ______________________<br/>Datum: ______________________<br/><br/>(*) Doorhalen wat niet van toepassing is.",
+      "printForm": "Deze pagina afdrukken",
+      "relatedTitle": "Gerelateerde documenten"
+    },
     "footer": {
       "termsOfService": "Servicevoorwaarden",
       "privacyPolicy": "Privacybeleid"

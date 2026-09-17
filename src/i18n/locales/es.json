@@ -1511,6 +1511,8 @@
     "nextPayment": "Pr\u00f3ximo pago {{date}}",
     "nextPaymentPaidForYou": "Pr\u00f3ximo pago {{date}} \u00b7 lo paga otra persona",
     "recentActivity": "Actividad reciente",
+    "operatorSees": "Si pulsa su colgante, nuestro operador ve sus datos médicos y cómo localizarle.",
+    "operatorSeesAction": "Ver lo que ve nuestro operador",
     "noAlerts": "Sin avisos. No ha pasado nada, que es de lo que se trata.",
     "viewAllAlerts": "Ver su historial de avisos",
     "twentyFourHourLine": "Línea 24 horas",

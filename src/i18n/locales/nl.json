@@ -1511,6 +1511,8 @@
     "nextPayment": "Volgende betaling {{date}}",
     "nextPaymentPaidForYou": "Volgende betaling {{date}} \u00b7 wordt voor u betaald",
     "recentActivity": "Recente activiteit",
+    "operatorSees": "Als u op uw hanger drukt, ziet onze operator uw medische gegevens en hoe wij u kunnen bereiken.",
+    "operatorSeesAction": "Bekijk wat een operator ziet",
     "noAlerts": "Geen meldingen. Er is niets gebeurd, en dat is de bedoeling.",
     "viewAllAlerts": "Uw meldingsgeschiedenis bekijken",
     "twentyFourHourLine": "24-uurslijn",

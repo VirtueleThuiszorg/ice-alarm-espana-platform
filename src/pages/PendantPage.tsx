@@ -638,6 +638,7 @@ export default function PendantPage() {
               <ul className="space-y-2 text-sm text-sidebar-foreground/70">
                 <li><Link to="/terms" className="hover:text-sidebar-foreground">{t("pendant.footer.termsOfService")}</Link></li>
                 <li><Link to="/privacy" className="hover:text-sidebar-foreground">{t("pendant.footer.privacyPolicy")}</Link></li>
+                <li><Link to="/cancellation-policy" className="hover:text-sidebar-foreground">{t("legal.cancellation.footerLink")}</Link></li>
               </ul>
             </div>
           </div>

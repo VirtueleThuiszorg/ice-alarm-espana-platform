@@ -54,6 +54,7 @@ export default function TermsPage() {
           <div className="mt-2 space-x-4">
             <Link to="/terms" className="hover:text-sidebar-foreground">{t("legal.footer.termsOfService")}</Link>
             <Link to="/privacy" className="hover:text-sidebar-foreground">{t("legal.footer.privacyPolicy")}</Link>
+            <Link to="/cancellation-policy" className="hover:text-sidebar-foreground">{t("legal.cancellation.footerLink")}</Link>
           </div>
         </div>
       </footer>

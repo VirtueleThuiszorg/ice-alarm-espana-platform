@@ -737,6 +737,7 @@ export default function LandingPage() {
               <ul className="space-y-2 text-sm text-sidebar-foreground/70">
                 <li><Link to="/terms" className="hover:text-sidebar-foreground transition-colors">{t("landing.termsOfService")}</Link></li>
                 <li><Link to="/privacy" className="hover:text-sidebar-foreground transition-colors">{t("landing.privacyPolicy")}</Link></li>
+                <li><Link to="/cancellation-policy" className="hover:text-sidebar-foreground transition-colors">{t("legal.cancellation.footerLink")}</Link></li>
                 <li><Link to="/help" className="hover:text-sidebar-foreground transition-colors">{t("help.title", "Help Center")}</Link></li>
               </ul>
             </div>

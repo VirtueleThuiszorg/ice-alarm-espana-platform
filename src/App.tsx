@@ -125,6 +125,7 @@ const PendantPage = lazyWithRetry(() => import("./pages/PendantPage"));
 const PricingPage = lazyWithRetry(() => import("./pages/PricingPage"));
 const TermsPage = lazyWithRetry(() => import("./pages/TermsPage"));
 const PrivacyPage = lazyWithRetry(() => import("./pages/PrivacyPage"));
+const CancellationPolicyPage = lazyWithRetry(() => import("./pages/CancellationPolicyPage"));
 const BlogListPage = lazyWithRetry(() => import("./pages/blog/BlogListPage"));
 const BlogPostPage = lazyWithRetry(() => import("./pages/blog/BlogPostPage"));
 const ReferralRedirect = lazyWithRetry(() => import("./pages/ReferralRedirect"));
@@ -412,6 +413,7 @@ const App = () => {
                     <Route path="/contact" element={<ContactPage />} />
                     <Route path="/terms" element={<TermsPage />} />
                     <Route path="/privacy" element={<PrivacyPage />} />
+                    <Route path="/cancellation-policy" element={<CancellationPolicyPage />} />
                     <Route path="/blog" element={<BlogListPage />} />
                     <Route path="/blog/:slug" element={<BlogPostPage />} />
                     <Route path="/join" element={<JoinWizard />} />

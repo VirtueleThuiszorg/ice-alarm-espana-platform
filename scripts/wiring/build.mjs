@@ -207,7 +207,7 @@ const sites = inv.wires.length;
 const bar = (n) => "█".repeat(Math.round((n / Math.max(...dist)) * 34)) || "";
 
 const SURFACES = [
-  ["Public & marketing", (r) => r.routes.some((x) => ["/", "/contact", "/pricing", "/pendant", "/how-it-works", "/blog", "/help", "/terms", "/privacy"].includes(x))],
+  ["Public & marketing", (r) => r.routes.some((x) => ["/", "/contact", "/pricing", "/pendant", "/how-it-works", "/blog", "/help", "/terms", "/privacy", "/cancellation-policy"].includes(x))],
   ["Join & auth", (r) => r.routes.some((x) => ["/join", "/login", "/forgot-password", "/reset-password", "/complete-registration", "/staff/login", "/staff/invite", "/member-update", "/unauthorized"].includes(x))],
   ["Member dashboard", (r) => r.routes.some((x) => x.startsWith("/dashboard"))],
   ["Call centre", (r) => r.routes.some((x) => x.startsWith("/call-centre"))],

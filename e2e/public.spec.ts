@@ -52,6 +52,7 @@ const PUBLIC_ROUTES: { path: string; name: string }[] = [
   { path: "/blog", name: "blog" },
   { path: "/terms", name: "terms" },
   { path: "/privacy", name: "privacy" },
+  { path: "/cancellation-policy", name: "cancellation-policy" },
   { path: "/join", name: "join-step1" },
   { path: "/login", name: "login" },
   // `/partner` is not audited as a page: it is a permanent redirect to

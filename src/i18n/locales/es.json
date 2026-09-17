@@ -3133,6 +3133,10 @@
       "securityNote": "Su información de pago es segura y está encriptada",
       "preContractTitle": "Antes de pagar",
       "withdrawalNotice": "Dispone de 14 días desde la recepción de su colgante para desistir de este contrato sin necesidad de justificación. Le reembolsamos todo lo pagado, incluido el envío estándar; usted solo asume el coste de devolver el colgante. Los detalles y el modelo de formulario están en la sección 9.2 de nuestros Términos.",
+      "withdrawalImmediateStart": "Si nos pide que iniciemos la monitorización antes de que acabe el plazo de desistimiento de 14 días y después desiste, solo abonará un importe proporcional a los días en que estuvo activa; el resto se le reembolsa.",
+      "withdrawalRenewalMonthly": "Su suscripción se renueva automáticamente cada mes hasta que se dé de baja. Puede darse de baja en cualquier momento, sin permanencia mínima; la baja surte efecto al final del mes que ha pagado.",
+      "withdrawalRenewalAnnual": "Su suscripción se renueva automáticamente cada 12 meses hasta que se dé de baja. Puede darse de baja en cualquier momento; la baja surte efecto al final del año que ha pagado y, una vez transcurrido el plazo de desistimiento, no se reembolsan las cuotas de ese año.",
+      "withdrawalPolicyLink": "Política de cancelación, desistimiento y reembolsos (incluye el modelo de formulario de desistimiento)",
       "deliveryNotice": "Su colgante se envía por correo certificado y llega en 5–7 días laborables."
     },
     "payment": {
@@ -3618,6 +3622,115 @@
     }
   },
   "legal": {
+    "cancellation": {
+      "title": "Política de Cancelación, Desistimiento y Reembolsos",
+      "company": "ICE Alarm España S.L. · CIF (NIF) B24731531",
+      "lastUpdated": "Última actualización: septiembre de 2026 · Borrador pendiente de revisión jurídica",
+      "footerLink": "Cancelación y reembolsos",
+      "draftNotice": "Esta política es un borrador pendiente de revisión jurídica. No limita ninguno de los derechos que le reconoce la normativa española o europea de consumo; en caso de discrepancia, prevalece la ley.",
+      "summaryTitle": "En resumen",
+      "summaryItems": [
+        "Puede <strong>desistir en un plazo de 14 días</strong> sin indicar el motivo y le reembolsamos todo lo que haya pagado.",
+        "Transcurrido ese plazo, puede <strong>darse de baja en cualquier momento</strong>, sin permanencia mínima y sin necesidad de avisar con antelación. La monitorización continúa hasta el final del periodo que ya ha pagado.",
+        "Si se da de baja, el colgante es suyo y se lo queda. Solo nos lo devuelve si desiste dentro de los 14 días.",
+        "Los reembolsos se realizan en un plazo de 14 días, por el mismo medio de pago que utilizó.",
+        "Cuando termina la monitorización, el botón SOS ya no contactará con nuestro equipo."
+      ],
+      "s1Title": "1. Quiénes somos y a quién se aplica esta política",
+      "s1p1": "Esta política la facilita <strong>ICE Alarm España S.L.</strong> (CIF B24731531), con domicilio social en [[TO CONFIRM: registered address]], correo electrónico info@icealarm.es y teléfono [[TO CONFIRM: customer service telephone and hours]]. Forma parte de nuestros Términos de Servicio y explica cómo puede desistir, darse de baja y obtener reembolsos de su suscripción y de su colgante GPS.",
+      "s1p2": "Se le aplica si usted es consumidor —una persona que actúa con un propósito ajeno a su actividad comercial, empresarial, oficio o profesión— y contrató su suscripción a distancia (por internet o por teléfono) o fuera de nuestro establecimiento mercantil.",
+      "s2Title": "2. Su derecho de desistimiento (14 días)",
+      "s2p1": "Tiene derecho a desistir del presente contrato en un plazo de 14 días naturales sin necesidad de justificación y sin penalización alguna (Real Decreto Legislativo 1/2007, artículos 102 a 108).",
+      "s2Items": [
+        "<strong>Si pidió un colgante</strong>, los 14 días empiezan a contar desde el día en que usted, o un tercero indicado por usted distinto del transportista, adquiera la posesión material del mismo. Si los colgantes pedidos conjuntamente llegan en días distintos, el plazo empieza cuando reciba el último.",
+        "<strong>Si contrató la suscripción sin colgante</strong>, los 14 días empiezan a contar desde el día de la celebración del contrato.",
+        "<strong>Para ejercerlo</strong>, comuníquenos su decisión mediante una declaración inequívoca antes de que venza el plazo, por cualquiera de los medios del apartado 3. Puede utilizar el modelo de formulario del apartado 15, aunque no es obligatorio.",
+        "<strong>Está en plazo</strong> si envía su comunicación antes de que venzan los 14 días, aunque nos llegue después.",
+        "Le recomendamos conservar una copia de su comunicación. Siempre le confirmaremos que la hemos recibido."
+      ],
+      "s3Title": "3. Cómo desistir o darse de baja",
+      "s3p1": "Desistir o darse de baja debe ser tan sencillo como contratar. Utilice el medio que le resulte más cómodo:",
+      "s3Items": [
+        "<strong>En línea:</strong> [[TO CONFIRM: online withdrawal and cancellation function in the member area — not yet available]]",
+        "<strong>Por correo electrónico:</strong> escriba a info@icealarm.es, preferiblemente desde la dirección con la que se registró, indicando su nombre y que desea desistir o darse de baja.",
+        "<strong>Desde su área de socio:</strong> envíenos un mensaje desde la sección de Soporte.",
+        "<strong>Por teléfono:</strong> [[TO CONFIRM: customer service telephone and hours]].",
+        "<strong>Por correo postal:</strong> ICE Alarm España S.L., [[TO CONFIRM: registered address]]."
+      ],
+      "s3p2": "Le enviaremos sin demora un acuse de recibo por correo electrónico, indicando lo que ha solicitado y la fecha y hora en que lo recibimos. Si no lo recibe, vuelva a ponerse en contacto con nosotros para que su solicitud no se pierda.",
+      "s3p3": "Si actúa en nombre de un socio que no puede hacerlo por sí mismo, indíquenos quién es usted y su relación con el socio. Es posible que tengamos que comprobar que está autorizado para actuar en su nombre.",
+      "s4Title": "4. Reembolsos en caso de desistimiento",
+      "s4Items": [
+        "Le devolvemos <strong>todos los pagos recibidos de usted</strong> en virtud del contrato: la cuota de suscripción, el colgante, la cuota de inscripción y el coste del envío estándar. Si eligió una modalidad de entrega más cara que la estándar, le reembolsamos el coste de la estándar.",
+        "Efectuamos el reembolso <strong>sin demoras indebidas y, en todo caso, antes de 14 días</strong> desde la fecha en que se nos informe de su decisión.",
+        "Utilizamos <strong>el mismo medio de pago</strong> que usted empleó en la transacción inicial, salvo que haya dispuesto expresamente lo contrario. El reembolso no le supondrá ningún gasto.",
+        "En lo que respecta al colgante, podemos retener la parte correspondiente del reembolso hasta haberlo recibido o hasta que usted presente una prueba de su devolución, según qué condición se cumpla primero.",
+        "Si la monitorización comenzó durante el plazo de desistimiento a petición expresa suya, solo descontamos el importe proporcional descrito en el apartado 5.",
+        "Si otra persona pagó por usted, el reembolso se abona en el medio de pago con el que se efectuó el cargo."
+      ],
+      "s5Title": "5. Si la monitorización comenzó durante el plazo de desistimiento",
+      "s5p1": "Nuestro servicio de monitorización solo puede comenzar antes de que finalicen los 14 días si usted <strong>nos lo solicita expresamente</strong>. Si lo solicitó y después desiste, abonará un importe proporcional al servicio prestado hasta el momento en que nos comunicó su desistimiento.",
+      "s5Items": [
+        "<strong>Cómo se calcula:</strong> el precio de su periodo de facturación en curso (IVA incluido), dividido entre el número de días de ese periodo y multiplicado por el número de días en que la monitorización estuvo activa hasta que nos comunicó su desistimiento.",
+        "<strong>En la suscripción anual</strong>, se aplica el mismo cálculo sobre el precio anual y 365 días.",
+        "<strong>Si no solicitó expresamente</strong> que la monitorización comenzara durante el plazo de desistimiento, o si no le facilitamos esta información antes de contratar, no deberá abonar nada por el servicio prestado durante ese plazo.",
+        "Todo lo que haya pagado por encima de ese importe se le reembolsa conforme al apartado 4."
+      ],
+      "s6Title": "6. Devolución del colgante tras el desistimiento",
+      "s6Items": [
+        "Devuelva el colgante sin demoras indebidas y, en todo caso, en un plazo máximo de <strong>14 días</strong> desde la fecha en que nos comunicó su desistimiento, a: [[TO CONFIRM: returns address]].",
+        "Los <strong>costes directos de devolución</strong> del colgante corren de su cuenta. Puede enviarlo por correo ordinario o por mensajería. [[TO CONFIRM: estimated return cost]]",
+        "Solo responde de la disminución de valor del colgante resultante de una manipulación distinta a la necesaria para establecer su naturaleza, sus características y su funcionamiento.",
+        "Le rogamos que incluya el cargador y los accesorios entregados, junto con una nota con su nombre o número de pedido para que podamos asociar el paquete a su reembolso.",
+        "Al tramitar su desistimiento desconectamos el colgante de nuestro servicio. A partir de ese momento, el botón SOS ya no contactará con nuestro equipo."
+      ],
+      "s7Title": "7. Baja una vez transcurrido el plazo de desistimiento",
+      "s7Items": [
+        "Puede darse de baja <strong>en cualquier momento</strong>. No hay permanencia mínima y no es necesario avisar con antelación.",
+        "La baja surte efecto al <strong>final del periodo de facturación que ya ha pagado</strong>. La monitorización continúa hasta entonces y no se le volverá a cobrar.",
+        "Una vez finalizado el plazo de desistimiento, no se reembolsan las cuotas ya abonadas del periodo de facturación en curso. Esto se aplica también a las suscripciones anuales. [[TO CONFIRM: treatment of annual memberships cancelled early — pending legal review]]",
+        "<strong>Conserva el colgante</strong>, porque lo ha comprado. No tiene que devolver nada.",
+        "Cuando termina la monitorización, el <strong>botón SOS ya no contactará con nuestro equipo</strong>. Si sigue necesitando un servicio de teleasistencia, organice una alternativa antes de esa fecha.",
+        "Le confirmamos por correo electrónico la baja y la fecha en que surte efecto.",
+        "Conservamos sus datos personales únicamente en los términos de nuestra Política de Privacidad."
+      ],
+      "s8Title": "8. Renovaciones y cambios de precio",
+      "s8Items": [
+        "Las <strong>suscripciones mensuales</strong> se renuevan automáticamente cada mes, y las <strong>anuales</strong> cada 12 meses, hasta que usted se dé de baja.",
+        "La suscripción anual cuesta lo mismo que 10 meses de la cuota mensual, abonados en un único pago por 12 meses de servicio.",
+        "Su suscripción se renueva al precio vigente en la fecha de renovación. Le avisamos con al menos 30 días de antelación de cualquier cambio de precio; si no lo acepta, puede darse de baja antes de que se aplique, sin coste alguno.",
+        "[[TO CONFIRM: reminder sent before an annual renewal — not currently sent]]",
+        "La fecha de su próxima renovación figura en su área de socio, en el apartado Suscripción."
+      ],
+      "s9Title": "9. Precios, IVA y cargos únicos",
+      "s9Items": [
+        "Todos los precios que se le muestran antes de pagar incluyen el IVA cuando corresponde.",
+        "La <strong>suscripción</strong> tributa al 10 % de IVA.",
+        "El <strong>colgante GPS</strong> se le vende y tributa al 21 % de IVA.",
+        "El <strong>envío</strong> se cobra una sola vez por pedido, con independencia del número de colgantes.",
+        "Puede aplicarse una <strong>cuota de inscripción</strong> única, tal como se indica en el resumen del pedido. [[TO CONFIRM: IVA treatment of the registration fee]]",
+        "Antes de pagar, el resumen del pedido muestra cada concepto, su IVA, el total a pagar hoy y el importe que se le cobrará después cada mes o cada año."
+      ],
+      "s10Title": "10. Si un pago no se realiza",
+      "s10Items": [
+        "Si un pago falla, nosotros o nuestro proveedor de pagos intentaremos cobrarlo de nuevo y nos pondremos en contacto con usted.",
+        "<strong>Su monitorización continúa</strong> mientras lo resolvemos con usted.",
+        "No suspenderemos ni daremos por terminado su servicio por un pago pendiente sin antes ponernos en contacto con usted y concederle un plazo razonable. [[TO CONFIRM: suspension policy — Terms section 8.5 describes suspension after 7 days]]"
+      ],
+      "s11Title": "11. Si otra persona paga su suscripción",
+      "s11p1": "Cuando un familiar u otra persona paga su suscripción, los reembolsos se abonan en el medio de pago en el que se efectuó el cargo. Indíquenos con quién debemos hablar sobre desistimiento, bajas y reembolsos, para mantener informada a la persona adecuada. [[TO CONFIRM: who may withdraw or cancel when a payer pays — pending legal review]]",
+      "s12Title": "12. Colgante defectuoso o dañado",
+      "s12p1": "Nada de lo dispuesto en esta política afecta a sus derechos de garantía legal si el colgante es defectuoso o no se ajusta a lo descrito. Esos derechos son independientes del derecho de desistimiento y se mantienen una vez transcurridos los 14 días. Póngase en contacto con nosotros y lo repararemos o sustituiremos conforme a la ley.",
+      "s13Title": "13. Socios que pagan por domiciliación bancaria con un sistema anterior",
+      "s13p1": "Si su suscripción se sigue cobrando por domiciliación bancaria en virtud de un acuerdo anterior a su alta en esta plataforma, puede darse de baja por cualquiera de los medios del apartado 3. Dejaremos de cobrar a partir del final del periodo ya cobrado y se lo confirmaremos por escrito. Esto no afecta a su derecho a solicitar a su banco la devolución de un adeudo domiciliado conforme a la normativa de servicios de pago. [[TO CONFIRM: cancellation procedure for members on earlier direct-debit billing]]",
+      "s14Title": "14. Consultas y reclamaciones",
+      "s14p1": "Si tiene una consulta o una reclamación sobre un desistimiento, una baja o un reembolso, escriba a info@icealarm.es. Tenemos hojas de reclamaciones a su disposición. También puede dirigirse a la oficina municipal de información al consumidor (OMIC) o a la autoridad de consumo de su comunidad autónoma. [[TO CONFIRM: adherence to the Consumer Arbitration System]]",
+      "formTitle": "15. Modelo de formulario de desistimiento",
+      "formIntro": "Solo debe cumplimentar y enviar el presente formulario si desea desistir del contrato. Su uso es opcional.",
+      "formBody": "A la atención de ICE Alarm España S.L., [[TO CONFIRM: registered address]], info@icealarm.es<br/><br/>Por la presente le comunico/comunicamos (*) que desisto de mi/desistimos de nuestro (*) contrato de venta del siguiente bien (*) / prestación del siguiente servicio (*): ______________________<br/><br/>Pedido el (*) / recibido el (*): ______________________<br/>Nombre del consumidor o de los consumidores: ______________________<br/>Domicilio del consumidor o de los consumidores: ______________________<br/>Firma del consumidor o de los consumidores (solo si el presente formulario se presenta en papel): ______________________<br/>Fecha: ______________________<br/><br/>(*) Táchese lo que no proceda.",
+      "printForm": "Imprimir esta página",
+      "relatedTitle": "Documentos relacionados"
+    },
     "footer": {
       "termsOfService": "Términos del Servicio",
       "privacyPolicy": "Política de Privacidad"

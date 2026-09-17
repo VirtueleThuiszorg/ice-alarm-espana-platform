@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
+import { LeadContactValue, LeadName } from "@/components/leads/LeadContact";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { 
@@ -359,11 +360,17 @@ export default function LeadsPage() {
   const filteredLeads = leads.filter(lead => {
     if (!searchQuery) return true;
     const search = searchQuery.toLowerCase();
+    /*
+      EVERY FIELD OPTIONAL-CHAINED. These columns are typed `string` but the table accepts
+      empty and NULL, and `lead.first_name.toLowerCase()` on the row that started all this
+      would throw inside a filter — blanking the whole list the moment somebody typed in the
+      search box, on the one row they were most likely searching for.
+    */
     return (
-      lead.first_name.toLowerCase().includes(search) ||
-      lead.last_name.toLowerCase().includes(search) ||
-      lead.email.toLowerCase().includes(search) ||
-      lead.phone.includes(search)
+      (lead.first_name ?? "").toLowerCase().includes(search) ||
+      (lead.last_name ?? "").toLowerCase().includes(search) ||
+      (lead.email ?? "").toLowerCase().includes(search) ||
+      (lead.phone ?? "").includes(search)
     );
   });
 
@@ -606,7 +613,7 @@ export default function LeadsPage() {
                   >
                     <TableCell>
                       <div>
-                        <p className="font-medium">{lead.first_name} {lead.last_name}</p>
+                        <p className="font-medium"><LeadName lead={lead} /></p>
                         <p className="text-xs text-muted-foreground capitalize">
                           {lead.preferred_language === 'es' ? '🇪🇸 Spanish' : '🇬🇧 English'}
                         </p>
@@ -614,22 +621,20 @@ export default function LeadsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        <a 
-                          href={`mailto:${lead.email}`} 
-                          className="text-sm hover:text-primary flex items-center gap-1"
+                        {/* Never an icon-only link over a value we do not hold: it looks
+                            identical to a working one and does nothing. lib/leadDisplay.ts */}
+                        <LeadContactValue
+                          kind="email"
+                          value={lead.email}
+                          className="text-sm hover:text-primary"
                           onClick={(e) => e.stopPropagation()}
-                        >
-                          <Mail className="h-3 w-3" />
-                          {lead.email}
-                        </a>
-                        <a 
-                          href={`tel:${lead.phone}`} 
-                          className="text-sm hover:text-primary flex items-center gap-1"
+                        />
+                        <LeadContactValue
+                          kind="phone"
+                          value={lead.phone}
+                          className="text-sm hover:text-primary"
                           onClick={(e) => e.stopPropagation()}
-                        >
-                          <Phone className="h-3 w-3" />
-                          {lead.phone}
-                        </a>
+                        />
                       </div>
                     </TableCell>
                     <TableCell>{getEnquiryTypeBadge(lead.enquiry_type)}</TableCell>
@@ -932,7 +937,7 @@ export default function LeadsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-xs text-muted-foreground">Name</Label>
-                  <p className="font-medium">{selectedLead.first_name} {selectedLead.last_name}</p>
+                  <p className="font-medium"><LeadName lead={selectedLead} /></p>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Status</Label>
@@ -940,17 +945,19 @@ export default function LeadsPage() {
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Email</Label>
-                  <a href={`mailto:${selectedLead.email}`} className="text-primary hover:underline flex items-center gap-1">
-                    {selectedLead.email}
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
+                  <LeadContactValue
+                    kind="email"
+                    value={selectedLead.email}
+                    className="text-primary hover:underline"
+                  />
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Phone</Label>
-                  <a href={`tel:${selectedLead.phone}`} className="text-primary hover:underline flex items-center gap-1">
-                    {selectedLead.phone}
-                    <Phone className="h-3 w-3" />
-                  </a>
+                  <LeadContactValue
+                    kind="phone"
+                    value={selectedLead.phone}
+                    className="text-primary hover:underline"
+                  />
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Enquiry Type</Label>

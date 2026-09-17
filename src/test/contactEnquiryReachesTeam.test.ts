@@ -123,7 +123,17 @@ describe("an unworked enquiry has a home on a screen someone has open", () => {
   });
 
   it("survives a lead with blank names rather than rendering a gap", () => {
-    // first_name/last_name are NOT NULL but empty strings get through.
-    expect(card).toMatch(/enquiryNoName/);
+    /*
+      first_name/last_name are NOT NULL but empty strings get through.
+
+      IT USED TO ASSERT `enquiryNoName`, this card's own key, and the assertion changed meaning
+      when the card stopped having its own wording. `<LeadName />` is shared with both Leads
+      screens and the dashboard widget, all four of which had the same blank-name bug in their
+      own words; it renders `leads.noName` in muted italic. The rule this test exists for —
+      "  " never reaches the screen — is unchanged and is proven directly in
+      `leadMissingValues.test.tsx`, which renders the component with a blank lead.
+    */
+    expect(card).toMatch(/<LeadName\s/);
+    expect(card).not.toMatch(/\{lead\.first_name\}\s*\{lead\.last_name\}/);
   });
 });

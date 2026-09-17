@@ -2141,8 +2141,7 @@
     "fetchError": "Failed to load dashboard data",
     "alreadyClaimed": "Another operator has already claimed this alert.",
     "newEnquiries": "New enquiries",
-    "noNewEnquiries": "Every enquiry has been picked up",
-    "enquiryNoName": "No name given"
+    "noNewEnquiries": "Every enquiry has been picked up"
   },
   "leadsWidget": {
     "newLeads": "New Leads",
@@ -2557,6 +2556,13 @@
     "linkOpened": "Link Opened"
   },
   "leads": {
+    "noName": "Name not given",
+    "noEmail": "No email address",
+    "noPhone": "No phone number",
+    "sendEmail": "Send an email",
+    "callLead": "Call",
+    "noEmailOnFile": "No email address on this enquiry",
+    "noPhoneOnFile": "No phone number on this enquiry",
     "newLeads": "New Leads",
     "searchPlaceholder": "Search by name, email, phone...",
     "statusFilter": "Status",

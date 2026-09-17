@@ -2141,8 +2141,7 @@
     "fetchError": "Failed to load dashboard data",
     "alreadyClaimed": "Een andere medewerker heeft deze melding al geclaimd.",
     "newEnquiries": "Nieuwe aanvragen",
-    "noNewEnquiries": "Alle aanvragen zijn opgepakt",
-    "enquiryNoName": "Geen naam opgegeven"
+    "noNewEnquiries": "Alle aanvragen zijn opgepakt"
   },
   "leadsWidget": {
     "newLeads": "New Leads",
@@ -2557,6 +2556,13 @@
     "linkOpened": "Link Opened"
   },
   "leads": {
+    "noName": "Geen naam opgegeven",
+    "noEmail": "Geen e-mailadres",
+    "noPhone": "Geen telefoonnummer",
+    "sendEmail": "Een e-mail sturen",
+    "callLead": "Bellen",
+    "noEmailOnFile": "Bij deze aanvraag staat geen e-mailadres",
+    "noPhoneOnFile": "Bij deze aanvraag staat geen telefoonnummer",
     "newLeads": "Nieuwe leads",
     "searchPlaceholder": "Zoek op naam, e-mail of telefoon...",
     "statusFilter": "Status",

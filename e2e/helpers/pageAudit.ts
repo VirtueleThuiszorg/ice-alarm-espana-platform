@@ -142,9 +142,11 @@ export interface DeadButton {
  * Heuristic no-op button detector. Boots the page ONCE (the app cold-boots in
  * ~13s, so per-button navigation is impractical), then clicks each visible,
  * enabled, non-allowlisted button and checks whether anything observable changed
- * (url / dialog / toast / aria-expanded / DOM size). A button that changed
- * NOTHING is reported as a probable dead handler. Presses Escape after each
- * click and re-navigates only if a click caused navigation, to limit state bleed.
+ * (url / dialog / toast / aria-expanded / DOM size / a counted native call such
+ * as window.print). A button that changed NOTHING is reported as a probable dead
+ * handler. Presses Escape after each click, and re-navigates whenever the set of
+ * visible buttons stops matching the untouched page — an overlay left open by an
+ * earlier click inserts its own buttons and shifts every later index.
  *
  * Intentionally conservative — it under-reports rather than flag legitimately
  * interactive controls.
@@ -164,6 +166,15 @@ export async function findNoOpButtons(
       ).length,
       expanded: document.querySelectorAll('[aria-expanded="true"]').length,
       domSize: document.body.innerHTML.length,
+      // Native browser APIs a handler can call that leave no trace in the DOM.
+      //
+      // /cancellation-policy's "Print this page" is `onClick={() => window.print()}`
+      // and nothing else: measured over five clean loads it moves innerHTML by
+      // exactly 0 characters, opens no dialog and changes no control. A working
+      // button was therefore only ever passing this test by accident (see the
+      // re-navigation note below). Counting the call is the honest signal — a
+      // genuinely dead handler still never increments it.
+      nativeEffects: (window as unknown as { __NATIVE_EFFECTS__?: number }).__NATIVE_EFFECTS__ ?? 0,
       // Selection state of every stateful control on the page.
       //
       // Without this the only signal for "something happened" is a >40 character
@@ -184,13 +195,48 @@ export async function findNoOpButtons(
         .join(","),
     }));
 
+  // Count calls to the native APIs above. Must be armed before the first
+  // navigation: addInitScript runs on every document this page loads, so the
+  // wrapper survives the re-navigations below and the counter starts at 0 on
+  // each fresh document.
+  await page.addInitScript(() => {
+    const w = window as unknown as { __NATIVE_EFFECTS__: number };
+    w.__NATIVE_EFFECTS__ = 0;
+    const native = window.print.bind(window);
+    window.print = () => {
+      w.__NATIVE_EFFECTS__ += 1;
+      native();
+    };
+  });
+
   await gotoAudited(page, path, lng);
   const startUrl = page.url();
   const count = Math.min(await page.locator("button:visible").count(), max);
   const dead: DeadButton[] = [];
 
+  // The set of visible buttons on the untouched page. `nth(i)` is only the
+  // button this list names while the page still looks like this.
+  const visibleButtonKey = async () =>
+    (await page.locator("button:visible").allTextContents())
+      .map((t) => t.trim().replace(/\s+/g, " "))
+      .join("|");
+  const cleanKey = await visibleButtonKey();
+
   for (let i = 0; i < count; i++) {
-    if (page.url() !== startUrl) await gotoAudited(page, path, lng);
+    // Re-navigate whenever the page is no longer the one the indices were taken
+    // from — not just when a click navigated away.
+    //
+    // /cancellation-policy has six buttons and "Customize" (the cookie banner's
+    // third control, which the allowlist's /accept|reject|manage cookies/ does
+    // not match) opens a dialog. When the Escape below failed to close it, the
+    // dialog's own buttons joined `button:visible` and shifted every later index
+    // by one, so `nth(5)` was "Print this page" on some runs and an unrelated
+    // dialog button on others. That is a coin flip, and it flipped: the same
+    // commit passed on the PR and failed on main, and locally went fail / pass /
+    // fail over three consecutive runs.
+    if (page.url() !== startUrl || (await visibleButtonKey()) !== cleanKey) {
+      await gotoAudited(page, path, lng);
+    }
     const buttons = page.locator("button:visible");
     if (i >= (await buttons.count())) break;
     const btn = buttons.nth(i);
@@ -237,6 +283,7 @@ export async function findNoOpButtons(
       before.toasts !== after.toasts ||
       before.expanded !== after.expanded ||
       before.controlState !== after.controlState ||
+      before.nativeEffects !== after.nativeEffects ||
       Math.abs(before.domSize - after.domSize) > 40;
 
     if (!changed) dead.push({ index: i, name: name || "(unnamed)" });

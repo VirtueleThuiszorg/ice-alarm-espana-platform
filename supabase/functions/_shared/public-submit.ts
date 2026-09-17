@@ -395,3 +395,67 @@ export function ipPrefix(raw: string | null | undefined): string | null {
 
   return null;
 }
+
+// ── THE ROW, WHICH IS NOT THE SAME SHAPE AS THE FORM ────────────────────────
+
+/**
+ * Columns `leads` declares NOT NULL with no default. Nothing may reach the table without all
+ * four, whatever the form collected.
+ *
+ * THIS IS HERE BECAUSE OF A BREAK, not as a precaution. `buildProductInterestLead` used to run
+ * in the browser and sent `first_name: "", last_name: "", phone: ""` alongside the email. When
+ * the "Notify Me" box moved behind this function the builder was deleted and those three went
+ * with it — so every product-interest submission hit `null value in column "first_name"
+ * violates not-null constraint` and the visitor was told "Could not save your message". The
+ * contact form was unaffected, which is exactly why it went unnoticed: the form with all the
+ * tests is not the one that broke.
+ */
+const LEAD_REQUIRED_COLUMNS = ["first_name", "last_name", "email", "phone"] as const;
+
+/**
+ * The `leads` row for a submission the decision has accepted.
+ *
+ * IN THE PURE MODULE, not in the function's I/O shell, and that is the whole point: the shape of
+ * the row is a decision — which source, which status, what stands in for a column the form does
+ * not ask about — and a decision that lives in the shell is one that can only be checked by
+ * deploying it.
+ *
+ * `source` and `status` are set here and never read from the caller, so a POST cannot choose its
+ * own provenance.
+ */
+export function leadRowFor(
+  form: PublicFormId,
+  values: Record<string, string>,
+  spamReasons: string[],
+): Record<string, unknown> {
+  const row: Record<string, unknown> = {
+    ...values,
+    source: form === "contact" ? "contact_form" : "product_interest",
+    status: "new",
+    suspected_spam: spamReasons.length > 0,
+    spam_reasons: spamReasons.length > 0 ? spamReasons : null,
+  };
+
+  /*
+    `product_name` is not a column on `leads`. It goes in the message, which is where a staff
+    member reading the list looks for it.
+  */
+  if (form === "product_interest") {
+    row.message = `Interested in: ${values.product_name ?? ""}`;
+    delete row.product_name;
+  }
+
+  /*
+    THE EMPTY STRING IS THE HONEST VALUE HERE, and it is worth saying why rather than leaving it
+    to look like laziness. "We did not ask" and "they left it blank" are the same fact for a
+    product-interest capture: the box has one field, deliberately, because asking a phone number
+    to tell somebody a product is back would lose most of the people who would otherwise ask.
+    The staff screens render a blank name as "Name not given" and a blank phone as an em dash
+    with the Call button disabled, so nothing downstream mistakes it for a number.
+  */
+  for (const column of LEAD_REQUIRED_COLUMNS) {
+    if (typeof row[column] !== "string") row[column] = "";
+  }
+
+  return row;
+}

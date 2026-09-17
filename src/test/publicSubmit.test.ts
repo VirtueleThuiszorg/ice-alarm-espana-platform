@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import {
   decidePublicSubmit,
+  leadRowFor,
   detectLanguage,
   ipPrefix,
   isPublicEmail,
@@ -362,5 +363,78 @@ describe("the product-interest box asks for one thing", () => {
     expect(d.ok).toBe(false);
     if (d.ok) return;
     expect(d.fields).toEqual(["email"]);
+  });
+});
+
+// ── THE ROW THAT REACHES THE TABLE ──────────────────────────────────────────
+
+describe("leadRowFor — the shape that reaches the table", () => {
+  /**
+   * THIS EXISTS BECAUSE OF A BREAK, not as a precaution.
+   *
+   * `buildProductInterestLead` ran in the browser and sent `first_name: ""`, `last_name: ""`,
+   * `phone: ""` alongside the email. When the "Notify Me" box moved behind `public-submit` the
+   * builder was deleted and those three went with it — and `leads` declares all four of
+   * first_name, last_name, email and phone NOT NULL with no default. So every product-interest
+   * submission hit a not-null violation and the visitor was told "Could not save your message".
+   *
+   * The contact form was unaffected, which is exactly why it went unnoticed: the form with all
+   * the tests is not the one that broke. The rule now lives in the pure module and this reads
+   * the NOT NULL list off the CREATE TABLE rather than restating it.
+   */
+  const REQUIRED = (() => {
+    const create = readFileSync(
+      path.resolve(process.cwd(), "supabase/migrations/20260121170606_b0f0ebbe-fca8-4d56-b415-20f1b1532627.sql"),
+      "utf8",
+    );
+    const body = create.slice(
+      create.indexOf("CREATE TABLE public.leads"),
+      create.indexOf(");", create.indexOf("CREATE TABLE public.leads")),
+    );
+    return [...body.matchAll(/^\s*(\w+)\s+TEXT NOT NULL,\s*$/gim)].map((m) => m[1]);
+  })();
+
+  it("the NOT NULL list was actually read, not silently empty", () => {
+    // An empty list would make every assertion below vacuously true.
+    expect(REQUIRED).toContain("first_name");
+    expect(REQUIRED).toContain("phone");
+  });
+
+  it.each(["contact", "product_interest"] as const)(
+    "%s fills every NOT NULL column, whatever the form asked for",
+    (form) => {
+      const values =
+        form === "contact"
+          ? { ...GOOD }
+          : { email: "ana@example.com", product_name: "Glucose monitor" };
+      const row = leadRowFor(form, values as Record<string, string>, []);
+      for (const column of REQUIRED) {
+        expect(typeof row[column], `${column} would violate NOT NULL`).toBe("string");
+      }
+    },
+  );
+
+  it("a product-interest row carries the product in the message, not in a column", () => {
+    // `product_name` is not a column on `leads`; sending it would be rejected outright.
+    const row = leadRowFor("product_interest", { email: "a@b.com", product_name: "Dosell" }, []);
+    expect(row.product_name).toBeUndefined();
+    expect(row.message).toBe("Interested in: Dosell");
+  });
+
+  it("source and status are chosen here, never taken from the caller", () => {
+    // The whole reason the browser stopped building this row.
+    const row = leadRowFor("contact", { ...GOOD, source: "partner", status: "converted" }, []);
+    expect(row.source).toBe("contact_form");
+    expect(row.status).toBe("new");
+  });
+
+  it("carries the spam verdict, and null rather than an empty array when there is none", () => {
+    const clean = leadRowFor("contact", { ...GOOD }, []);
+    expect(clean.suspected_spam).toBe(false);
+    expect(clean.spam_reasons).toBeNull();
+
+    const flagged = leadRowFor("contact", { ...GOOD }, ["vendor_pitch"]);
+    expect(flagged.suspected_spam).toBe(true);
+    expect(flagged.spam_reasons).toEqual(["vendor_pitch"]);
   });
 });

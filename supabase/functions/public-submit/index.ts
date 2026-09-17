@@ -4,6 +4,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import {
   decidePublicSubmit,
   ipPrefix,
+  leadRowFor,
   type PublicFormId,
   type PublicSubmitContext,
 } from "../_shared/public-submit.ts";
@@ -45,9 +46,14 @@ const LIMIT_PER_HOUR = 5;
 /** Nothing in the log is of use after the hour it was written for. */
 const LOG_RETENTION_DAYS = 30;
 
-const FORMS: Record<PublicFormId, { table: "leads"; source: string }> = {
-  contact: { table: "leads", source: "contact_form" },
-  product_interest: { table: "leads", source: "product_interest" },
+/**
+ * Which table each form writes to. The `source` VALUE is not here any more — it belongs with the
+ * rest of the row's shape in `leadRowFor`, where it has a test; two places naming it was how one
+ * of them could quietly be wrong.
+ */
+const FORMS: Record<PublicFormId, { table: "leads" }> = {
+  contact: { table: "leads" },
+  product_interest: { table: "leads" },
 };
 
 /** sha-256 of the lowercased address. The log recognises a repeat; it is not a contact list. */
@@ -189,23 +195,12 @@ serve(async (req: Request): Promise<Response> => {
     });
   }
 
-  const { table, source } = FORMS[form];
-  const row: Record<string, unknown> = {
-    ...decision.values,
-    source,
-    status: "new",
-    suspected_spam: decision.spamReasons.length > 0,
-    spam_reasons: decision.spamReasons.length > 0 ? decision.spamReasons : null,
-  };
+  // The row's SHAPE is a decision — which source, which status, what stands in for a column the
+  // form does not ask about — so it lives in the pure module with the rest of them, where it has
+  // a test. This shell does the I/O.
+  const row = leadRowFor(form, decision.values, decision.spamReasons);
 
-  // `product_name` is not a column on `leads`; it belongs in the message, which is where a staff
-  // member reading the list will look for it.
-  if (form === "product_interest") {
-    row.message = `Interested in: ${decision.values.product_name}`;
-    delete row.product_name;
-  }
-
-  const { error } = await db.from(table).insert(row);
+  const { error } = await db.from(FORMS[form].table).insert(row);
   if (error) {
     console.error(`[${FN}] insert failed:`, error.message);
     await log("refused", "insert_failed");

@@ -3127,9 +3127,9 @@
       "totalDueToday": "Total a pagar hoy",
       "thenMonthly": "Luego {{amount}}/mes a partir del siguiente ciclo de facturación",
       "acceptTerms": "Acepto los Términos de Servicio",
-      "termsNote": "Al marcar esta casilla, acepta nuestros Términos de Servicio y Política de Privacidad.",
-      "acceptMedical": "Consiento compartir información médica con los servicios de emergencia",
-      "medicalNote": "Su información médica solo se compartirá con los equipos de emergencia cuando sea necesario.",
+      "termsNote": "Consulte nuestra Política de Privacidad para saber cómo tratamos sus datos personales.",
+      "acceptMedical": "Doy mi consentimiento explícito para que ICE Alarm España trate mi información de salud para ayudarme en una emergencia",
+      "medicalNote": "Le pediremos sus datos de salud después del alta. Los operadores los consultan cuando necesita ayuda y solo se facilitan a los servicios de emergencia cuando es necesario. Puede retirar este consentimiento en cualquier momento.",
       "securityNote": "Su información de pago es segura y está encriptada",
       "preContractTitle": "Antes de pagar",
       "withdrawalNotice": "Dispone de 14 días desde la recepción de su colgante para desistir de este contrato sin necesidad de justificación. Le reembolsamos todo lo pagado, incluido el envío estándar; usted solo asume el coste de devolver el colgante. Los detalles y el modelo de formulario están en la sección 9.2 de nuestros Términos.",
@@ -3203,7 +3203,7 @@
       "enterPartnerPostal": "Por favor introduzca el código postal de su pareja",
       "addEmergencyContact": "Por favor añada al menos un contacto de emergencia",
       "acceptTerms": "Por favor acepte los Términos de Servicio",
-      "acceptPrivacy": "Por favor consienta compartir información médica con servicios de emergencia"
+      "acceptPrivacy": "Para continuar, preste su consentimiento al tratamiento de su información de salud"
     },
     "paymentSuccessRecovered": "¡Pago recibido! Su pedido está confirmado.",
     "draftSaveFailed": "No hemos podido guardar su progreso. Puede continuar, pero no cierre esta pestaña.",
@@ -3915,345 +3915,421 @@
     "privacy": {
       "title": "Política de Privacidad",
       "company": "ICE Alarm España — Salud Conectada. Cuidado Humano.",
-      "lastUpdated": "Última actualización: junio de 2026",
-      "s1Title": "1. Quiénes Somos",
-      "s1p1": "<strong>ICE Alarm España</strong> (\"nosotros\", \"nuestro\") opera el servicio de respuesta de emergencia personal disponible en icealarm.es.",
-      "s1p2": "<strong>Responsable del Tratamiento:</strong><br/>ICE Alarm España<br/>Email: info@icealarm.es",
-      "s1p3": "Para cualquier consulta relacionada con la privacidad, contáctenos en: privacy@icealarm.es",
-      "s2Title": "2. Qué Cubre Esta Política",
-      "s2Intro": "Esta Política de Privacidad explica:",
+      "lastUpdated": "Última actualización: 17 de septiembre de 2026 · Versión 2.0 · Borrador pendiente de revisión jurídica",
+      "summaryTitle": "En resumen",
+      "summaryItems": [
+        "ICE Alarm España S.L. es la responsable de sus datos personales. Para cualquier cuestión sobre esta política, escriba a privacy@icealarm.es.",
+        "Utilizamos sus datos para prestarle el servicio de alarma: saber quién es usted y dónde se encuentra cuando necesita ayuda, y avisar a las personas adecuadas.",
+        "Solo tratamos su información de salud con su consentimiento explícito, que puede retirar en cualquier momento. Si lo retira, su alarma sigue funcionando.",
+        "Isabella es una asistente de inteligencia artificial, no una persona. Nunca da consejo médico ni decide qué se hace ante una emergencia: eso lo decide siempre un operador humano.",
+        "No vendemos sus datos ni los utilizamos con fines publicitarios.",
+        "Puede solicitar el acceso, la rectificación, la descarga o la supresión de sus datos, y puede presentar una reclamación ante la Agencia Española de Protección de Datos (AEPD)."
+      ],
+      "s1Title": "1. Responsable del tratamiento",
+      "s1p1": "El responsable del tratamiento es <strong>ICE Alarm España S.L.</strong> (CIF B24731531), con domicilio social en [[TO CONFIRM: domicilio social]], que presta el servicio de teleasistencia y alarma personal de icealarm.es (\"ICE Alarm España\", \"nosotros\").",
+      "s1p2": "<strong>Delegado de Protección de Datos (DPD):</strong> [[TO CONFIRM: nombre o entidad del Delegado de Protección de Datos y dirección de contacto]]. Puede contactar con nuestro DPD en privacy@icealarm.es.",
+      "s1p3": "Para cualquier consulta sobre sus datos personales, escriba a privacy@icealarm.es. Consultas generales: info@icealarm.es.",
+      "s2Title": "2. A quién se aplica esta política",
+      "s2Intro": "Esta política se aplica a:",
       "s2Items": [
-        "Qué datos personales recopilamos",
-        "Por qué los recopilamos",
-        "Cómo los utilizamos",
-        "Con quién los compartimos",
-        "Sus derechos bajo el Reglamento General de Protección de Datos (RGPD) de la UE y la Ley Orgánica 3/2018 (LOPD-GDD) de España"
+        "<strong>Socios</strong>: las personas que llevan una alarma y a las que atendemos, incluidas las dos personas de una suscripción para parejas.",
+        "<strong>Las personas que contratan o pagan una suscripción</strong> para otra persona.",
+        "<strong>Contactos de emergencia, custodios de llaves y otras personas</strong> de las que un socio nos facilita datos (por ejemplo, su médico o su empresa de ayuda a domicilio).",
+        "<strong>Familiares o cuidadores</strong> a los que un socio ha autorizado a ver parte de su información.",
+        "<strong>Visitantes de nuestra web</strong>, personas que contactan con nosotros o conversan con Isabella, y personas que inician el alta sin completarla."
       ],
-      "s3Title": "3. Datos que Recopilamos",
-      "s3_1Title": "3.1 Información que Usted Proporciona",
-      "s3AccountLabel": "Información de la Cuenta:",
-      "s3AccountItems": [
-        "Nombre completo",
-        "Dirección de email",
-        "Número de teléfono",
-        "Dirección del domicilio",
-        "Fecha de nacimiento",
-        "Idioma preferido"
+      "s2p1": "Los colaboradores que nos recomiendan socios y nuestro personal reciben información de privacidad específica junto con su acuerdo o contrato.",
+      "s3Title": "3. Datos que tratamos",
+      "s3Intro": "Solo recogemos los datos necesarios para prestar el servicio. La mayoría nos los facilita usted; otros proceden de su dispositivo de alarma, de las personas que le ayudan o de nuestros propios registros de llamadas y alertas.",
+      "s3TableHeaders": [
+        "Categoría",
+        "Qué incluye",
+        "Procedencia"
       ],
-      "s3HealthLabel": "Información de Salud y Médica (Datos de Categoría Especial):",
-      "s3HealthItems": [
-        "Condiciones médicas",
-        "Medicamentos actuales",
-        "Alergias",
-        "Grupo sanguíneo",
-        "Nombre y datos de contacto del médico",
-        "Preferencia de hospital",
-        "Limitaciones de movilidad o necesidades especiales"
+      "s3TableRows": [
+        [
+          "Datos identificativos y de contacto",
+          "Nombre, tratamiento, nombre preferido, fecha de nacimiento, sexo, nacionalidad, estado civil, correo electrónico, teléfonos, idioma preferido, forma y horario de contacto preferidos y, si la añade, su fotografía.",
+          "Usted, o la persona que contrata la suscripción en su nombre."
+        ],
+        [
+          "Documentos de identidad y números oficiales",
+          "NIE/DNI o número de pasaporte y, solo si nos los facilita, su número de la Seguridad Social y de la tarjeta sanitaria (TSI).",
+          "Usted, o nuestro anterior sistema de gestión de clientes si ya era cliente."
+        ],
+        [
+          "Domicilio y ubicación de la vivienda",
+          "Su dirección o direcciones, datos del edificio (urbanización, bloque, escalera), la posición en el mapa de la puerta de su vivienda y las fechas en que nos indique que estará fuera.",
+          "Usted, o nuestro personal siguiendo sus indicaciones. La posición en el mapa la confirma usted o nuestro personal."
+        ],
+        [
+          "Acceso a su vivienda",
+          "Ubicación y código de su caja de llaves, códigos de portales, notas de acceso y datos de los custodios de llaves.",
+          "Usted."
+        ],
+        [
+          "Información de salud y cuidados (categoría especial de datos)",
+          "Enfermedades, medicación y dónde la guarda, alergias, grupo sanguíneo, movilidad, audición y visión, su médico y centro de salud, hospital preferido, aseguradora sanitaria privada y número de póliza, empresa de ayuda a domicilio y horario de visitas, centro de día, equipamiento médico, lugar donde guarda su documento de instrucciones previas y, si decide compartirlos, sus deseos sobre el final de la vida o su seguro de decesos.",
+          "Usted, después del alta, a través de su cuenta, de un enlace seguro de actualización o por teléfono con nuestro personal. Solo con su consentimiento explícito (apartado 5)."
+        ],
+        [
+          "Datos del dispositivo de alarma y de localización",
+          "Identificadores del dispositivo (IMEI, número de serie, número de la SIM), nivel de batería, estado de conexión, comunicaciones periódicas y la última posición GPS y dirección comunicadas por el dispositivo.",
+          "Su dispositivo de alarma, de forma automática, mientras está encendido."
+        ],
+        [
+          "Alertas e incidencias",
+          "Cada alerta (botón SOS, caída, dispositivo desconectado y similares): hora, posición y dirección en ese momento, actuaciones de nuestros operadores, notas, si se llamó al 112 y a quién se avisó.",
+          "Su dispositivo y nuestros operadores."
+        ],
+        [
+          "Llamadas y mensajes",
+          "Grabaciones de las llamadas de emergencia (grabadas desde el inicio), grabaciones de otras llamadas cuando así se le indica al comienzo, transcripciones automáticas de las respuestas habladas y el contenido de los SMS, WhatsApp, correos electrónicos y mensajes en su cuenta.",
+          "Usted, nuestros operadores y nuestro proveedor de telefonía."
+        ],
+        [
+          "Conversaciones con Isabella",
+          "Lo que usted escribe o dice a Isabella y sus respuestas, así como las notas que redacta para los operadores durante una alerta.",
+          "Usted e Isabella (apartado 6)."
+        ],
+        [
+          "Datos de terceros que usted nos facilita",
+          "Contactos de emergencia y custodios de llaves: nombre, parentesco, teléfono, correo electrónico, idioma, disponibilidad y si pueden acudir a su domicilio. La persona que paga, si no es usted.",
+          "El socio o la persona que contrata la suscripción."
+        ],
+        [
+          "Pagos y facturación",
+          "Plan, periodicidad de pago, facturas, estado de los pagos y referencias de pago. Los datos de tarjeta y bancarios los gestionan nuestros proveedores de pago; no almacenamos el número completo de su tarjeta.",
+          "Usted y nuestros proveedores de pago."
+        ],
+        [
+          "Datos de recomendación",
+          "El código o enlace del colaborador con el que llegó y los parámetros de campaña (UTM).",
+          "El enlace que utilizó para acceder a nuestra web."
+        ],
+        [
+          "Cuenta, preferencias y seguridad",
+          "Datos de acceso (su contraseña solo se guarda cifrada mediante hash), si nos permite enviarle avisos por SMS, WhatsApp o correo electrónico, y registros de los cambios realizados en su ficha.",
+          "Usted y nuestros sistemas."
+        ],
+        [
+          "Datos de navegación y técnicos",
+          "Páginas visitadas, tipo de navegador y dispositivo, ubicación aproximada (ciudad o país), página de procedencia e informes de errores de nuestra web.",
+          "Su navegador; véase el apartado 13."
+        ]
       ],
-      "s3EmergencyLabel": "Contactos de Emergencia:",
-      "s3EmergencyItems": [
-        "Nombres, números de teléfono y direcciones de email de las personas que usted designe",
-        "Su relación con usted",
-        "Preferencias de idioma"
-      ],
-      "s3PaymentLabel": "Información de Pago:",
-      "s3PaymentItems": [
-        "Dirección de facturación",
-        "Datos de tarjeta de pago (procesados de forma segura por Stripe, Inc.)"
-      ],
-      "s3_2Title": "3.2 Información Recopilada Automáticamente",
-      "s3DeviceLabel": "Información del Dispositivo:",
-      "s3DeviceItems": [
-        "Identificador único de su colgante GPS (IMEI)",
-        "Estado de la batería",
-        "Estado en línea/fuera de línea",
-        "Datos de ubicación cuando se activan alertas"
-      ],
-      "s3UsageLabel": "Datos de Uso:",
-      "s3UsageItems": [
-        "Páginas visitadas en nuestro sitio web",
-        "Hora y fecha de acceso",
-        "Tipo de navegador e información del dispositivo"
-      ],
-      "s3CommsLabel": "Registros de Comunicaciones:",
-      "s3CommsItems": [
-        "Grabaciones de llamadas de voz (con su consentimiento)",
-        "Registros de mensajes SMS y WhatsApp",
-        "Transcripciones de chat con nuestro asistente de IA"
-      ],
-      "s3_3Title": "3.3 Información de Terceros",
-      "s3_3p1": "<strong>Socio de Monitorización de Dispositivos (MonitorLinq B.V.):</strong> Recibimos actualizaciones en tiempo real del estado del dispositivo, incluyendo ubicación, nivel de batería, alertas SOS y eventos de detección de caídas de su colgante GPS a través de nuestro socio tecnológico MonitorLinq B.V. (Países Bajos).",
-      "s4Title": "4. Por Qué Recopilamos Sus Datos (Base Legal)",
+      "s4Title": "4. Finalidades y base jurídica",
+      "s4Intro": "La ley solo nos permite tratar datos personales si contamos con una base jurídica (artículo 6 del RGPD) y, en el caso de los datos de salud, con una excepción adicional (artículo 9 del RGPD). Estas son las que aplicamos:",
       "s4TableHeaders": [
         "Finalidad",
-        "Base Legal (RGPD Artículo 6)"
+        "Base jurídica"
       ],
       "s4TableRows": [
         [
-          "Proporcionar servicios de respuesta de emergencia",
-          "Ejecución del contrato"
+          "Dar de alta y gestionar su suscripción: cuenta, dispositivo, monitorización, atención al cliente y llamadas de cortesía",
+          "Ejecución del contrato celebrado con usted (art. 6.1.b RGPD)"
         ],
         [
-          "Procesar los pagos de su suscripción",
-          "Ejecución del contrato"
+          "Atender una alerta: identificarle, localizarle y llamarle a usted, a sus contactos, a los custodios de llaves y al 112",
+          "Ejecución del contrato (art. 6.1.b) y protección de sus intereses vitales (art. 6.1.d)"
         ],
         [
-          "Contactarle sobre su cuenta",
-          "Ejecución del contrato"
+          "Conservar su información de salud y facilitarla a los operadores y a los servicios de emergencia",
+          "Su consentimiento explícito (art. 9.2.a); en una emergencia en la que usted no pueda prestar su consentimiento, la protección de sus intereses vitales (art. 9.2.c)"
         ],
         [
-          "Responder a alertas SOS y emergencias",
-          "Interés legítimo (protección de intereses vitales)"
+          "Grabar las llamadas de emergencia y conservar el registro de alertas",
+          "Nuestro interés legítimo en disponer de un registro fiel de cada emergencia, revisar y mejorar nuestra respuesta y protegerle a usted y a nuestro personal (art. 6.1.f); para la información de salud que contengan, las mismas excepciones indicadas arriba"
         ],
         [
-          "Almacenar información médica para emergencias",
-          "Consentimiento explícito (Artículo 9)"
+          "Isabella, nuestra asistente de inteligencia artificial",
+          "Para los socios, la ejecución del contrato (art. 6.1.b); para los visitantes, la aplicación de medidas precontractuales a petición suya (art. 6.1.b) y nuestro interés legítimo en atender consultas (art. 6.1.f)"
         ],
         [
-          "Grabar llamadas para calidad y formación",
-          "Interés legítimo + consentimiento"
+          "Tratar los datos de sus contactos de emergencia y custodios de llaves",
+          "Nuestro interés legítimo, y el suyo, en poder localizar a alguien que pueda ayudarle (art. 6.1.f); en una emergencia, los intereses vitales (art. 6.1.d)"
         ],
         [
-          "Mejorar nuestros servicios",
-          "Interés legítimo"
+          "Permitir que un familiar o cuidador vea su información",
+          "Su consentimiento explícito para cada categoría que usted elija (arts. 6.1.a y 9.2.a)"
         ],
         [
-          "Cumplir con obligaciones legales",
-          "Obligación legal"
+          "Avisos del servicio por SMS, WhatsApp o correo electrónico",
+          "Su autorización, que puede desactivar en su cuenta (art. 6.1.a). Las llamadas de emergencia no dependen de ella."
         ],
         [
-          "Enviar actualizaciones del servicio",
-          "Ejecución del contrato"
+          "Facturación y contabilidad",
+          "Ejecución del contrato (art. 6.1.b) y cumplimiento de nuestras obligaciones fiscales y mercantiles (art. 6.1.c)"
         ],
         [
-          "Enviar comunicaciones de marketing",
-          "Consentimiento (solo opt-in)"
+          "Abonar la comisión al colaborador que le recomendó",
+          "Nuestro interés legítimo en gestionar nuestro programa de colaboradores (art. 6.1.f)"
+        ],
+        [
+          "Seguridad, control de errores, registros de auditoría y prevención de usos indebidos",
+          "Nuestro interés legítimo en mantener el servicio seguro y operativo (art. 6.1.f)"
+        ],
+        [
+          "Formular o defender reclamaciones",
+          "Nuestro interés legítimo (art. 6.1.f); para los datos de salud, art. 9.2.f"
+        ],
+        [
+          "Estadísticas de la web y cookies no necesarias",
+          "Su consentimiento a través de la configuración de cookies (art. 6.1.a RGPD y art. 22.2 LSSI-CE)"
+        ],
+        [
+          "Comunicaciones comerciales",
+          "Solo con su consentimiento previo (art. 6.1.a), que puede retirar en cualquier momento"
         ]
       ],
-      "s4SpecialCategory": "<strong>Datos de Categoría Especial (Información de Salud):</strong> Procesamos su información médica SOLO porque usted nos ha dado su consentimiento explícito durante el registro, Y porque esta información puede ser vital para proteger su vida en una situación de emergencia (RGPD Artículo 9(2)(a) y (c)).",
-      "s5Title": "5. Cómo Utilizamos Sus Datos",
-      "s5_1Title": "5.1 Respuesta de Emergencia",
-      "s5_1Intro": "Cuando su colgante detecta una emergencia (botón SOS, detección de caídas, dispositivo fuera de línea), nosotros:",
-      "s5_1Items": [
-        "Recibimos la alerta de nuestro socio de monitorización",
-        "Accedemos a su perfil para identificarle",
-        "Revisamos su información médica y contactos de emergencia",
-        "Le contactamos por teléfono para evaluar la situación",
-        "Contactamos a los servicios de emergencia (112) si es necesario",
-        "Notificamos a sus contactos de emergencia designados"
+      "s4p1": "Cuando la base es el interés legítimo, puede oponerse en cualquier momento (apartado 11). Cuando la ley nos obliga a informarle o a conservar registros, lo hacemos en cumplimiento de esa obligación legal.",
+      "s5Title": "5. Su información de salud y su consentimiento explícito",
+      "s5p1": "La información de salud es una categoría especial de datos. Solo la tratamos porque usted nos da su <strong>consentimiento explícito</strong>, de forma separada de la aceptación de nuestros Términos. Lo presta mediante una casilla propia durante el alta, y solo le pedimos sus datos de salud después del alta.",
+      "s5Intro": "Con su consentimiento, utilizamos su información de salud únicamente para:",
+      "s5Items": [
+        "mostrarla a nuestros operadores cuando usted tiene una alerta o nos llama, para que conozcan su situación;",
+        "facilitar la parte necesaria al 112, a los equipos de ambulancia o al personal del hospital que le atiende;",
+        "compartirla con un familiar o cuidador solo si usted ha autorizado a esa persona a ver su información médica."
       ],
-      "s5_2Title": "5.2 Servicios Asistidos por IA",
-      "s5_2Intro": "Nuestro asistente de IA \"Isabella\" puede:",
-      "s5_2Items": [
-        "Contestar sus llamadas telefónicas",
-        "Responder a mensajes de chat",
-        "Realizar llamadas de cortesía",
-        "Gestionar el triaje inicial de emergencias"
+      "s5p2": "Nunca utilizamos su información de salud con fines comerciales, nunca la vendemos y nunca la usamos para tomar decisiones sobre su contrato o su precio.",
+      "s5p3": "<strong>Retirada del consentimiento.</strong> Puede retirar su consentimiento en cualquier momento escribiendo a privacy@icealarm.es o llamándonos. En ese caso suprimiremos su información de salud. Su alarma seguirá funcionando y nuestros operadores seguirán atendiéndole, pero no conocerán sus antecedentes médicos, por lo que la ayuda que puedan prestarle podrá estar menos informada. La retirada no afecta a la licitud del tratamiento anterior.",
+      "s5p4": "<strong>En una emergencia.</strong> Si usted está física o jurídicamente incapacitado para dar su consentimiento y su vida o su salud están en peligro, podremos facilitar la información que tengamos a los servicios de emergencia para proteger sus intereses vitales.",
+      "s5p5": "<strong>Si usted no puede prestar el consentimiento personalmente.</strong> Cada socio debe dar su propio consentimiento; en una suscripción para parejas, cada persona da el suyo. Actualmente un familiar o representante no puede prestar el consentimiento en nombre de un socio a través de nuestra web. Si este es su caso, póngase en contacto con nosotros para estudiar las opciones. [[TO CONFIRM: criterio sobre representantes legales, pendiente de asesoramiento jurídico]]",
+      "s6Title": "6. Isabella, nuestra asistente de inteligencia artificial, y decisiones automatizadas",
+      "s6p1": "Isabella es una asistente de inteligencia artificial. <strong>No es una persona</strong>, y así se lo indica. Puede responder preguntas en el chat de nuestra web, en su cuenta y en algunas llamadas telefónicas, ayudarle con su cuenta y redactar notas para nuestros operadores.",
+      "s6Intro": "Isabella nunca:",
+      "s6Items": [
+        "da consejo médico ni diagnósticos;",
+        "decide si una alerta es real o su gravedad, ni cierra una emergencia: todo SOS llega a un operador humano;",
+        "inventa ni modifica una medición de salud;",
+        "accede a más información de la que permite su propia cuenta."
       ],
-      "s5_2p1": "Cuando habla con Isabella, su conversación se procesa utilizando inteligencia artificial. Los operadores humanos pueden intervenir en cualquier momento y siempre gestionarán las emergencias reales.",
-      "s5_3Title": "5.3 Administración del Servicio",
-      "s5_3Items": [
-        "Procesar los pagos mensuales de suscripción",
-        "Enviar comunicaciones relacionadas con el servicio",
-        "Proporcionar soporte al cliente",
-        "Programar llamadas de cortesía de bienestar"
-      ],
-      "s6Title": "6. Con Quién Compartimos Sus Datos",
-      "s6Intro": "Compartimos sus datos SOLO con las siguientes categorías de destinatarios, y SOLO cuando sea necesario:",
-      "s6_1Title": "6.1 Proveedores de Servicios (Encargados del Tratamiento)",
-      "s6_1TableHeaders": [
+      "s6p2": "Cuando Isabella tiene dudas, pasa la conversación a una persona. Puede pedir hablar con una persona en cualquier momento.",
+      "s6p3": "No tomamos decisiones basadas únicamente en el tratamiento automatizado que produzcan efectos jurídicos sobre usted o le afecten significativamente de modo similar (artículo 22 del RGPD). Las decisiones sobre emergencias, su suscripción y sus pagos las toman o revisan personas.",
+      "s6p4": "Para generar las respuestas de Isabella, el contenido de su conversación se envía a nuestro proveedor de inteligencia artificial, Anthropic, PBC (Estados Unidos), que lo trata por cuenta nuestra (apartados 7 y 8). [[TO CONFIRM: condiciones de tratamiento de datos de Anthropic y plazo de conservación]]",
+      "s7Title": "7. Con quién compartimos sus datos",
+      "s7Intro": "Solo comunicamos a cada destinatario lo que necesita.",
+      "s7_1Title": "7.1 Servicios de emergencia",
+      "s7_1p1": "En una emergencia facilitamos su nombre, localización, dirección, datos de acceso a la vivienda e información de salud relevante al 112, a la policía, a los bomberos, a los equipos de ambulancia y a los hospitales.",
+      "s7_2Title": "7.2 Sus contactos de emergencia y custodios de llaves",
+      "s7_2p1": "Cuando usted tiene una alerta, podemos llamar, enviar un SMS o escribir a las personas que nos ha indicado. Les informamos de quién necesita ayuda, el tipo de alerta, cualquier mensaje y su dirección o posición en el mapa en el momento de la alerta. Figurar como contacto de emergencia no da acceso a su cuenta ni a su ficha.",
+      "s7_3Title": "7.3 Familiares o cuidadores que usted elija",
+      "s7_3p1": "Puede autorizar a una persona concreta a ver uno o varios de estos datos: sus alertas, la ubicación actual de su dispositivo y su información médica. Cada autorización es independiente, queda registrada con su fecha y puede revocarla en cualquier momento con efecto inmediato. Esa persona solo puede consultar su información, nunca modificarla.",
+      "s7_4Title": "7.4 Colaboradores",
+      "s7_4p1": "Si se dio de alta a través de un colaborador (por ejemplo, un comercio o una entidad local), ese colaborador sabe que usted es socio para que podamos abonarle su comisión. Si se dio de alta a través de una entidad que participa en su cuidado, esa entidad también puede recibir aviso cuando usted tiene una alerta, con su nombre, el tipo de alerta y su dirección. [[TO CONFIRM: qué colaboradores reciben avisos de alertas y con qué base jurídica]]",
+      "s7_5Title": "7.5 Nuestros proveedores de servicios",
+      "s7_5p1": "Estas empresas tratan datos por cuenta nuestra, en virtud de un contrato y siguiendo exclusivamente nuestras instrucciones:",
+      "s7_5TableHeaders": [
         "Proveedor",
-        "Finalidad",
-        "Ubicación",
-        "Garantías"
+        "Servicio que nos presta",
+        "Lugar de tratamiento",
+        "Garantía para las transferencias"
       ],
-      "s6_1TableRows": [
+      "s7_5TableRows": [
         [
           "Supabase, Inc.",
-          "Alojamiento de base de datos",
-          "UE (Estocolmo, Suecia)",
-          "Centro de datos UE, DPA vigente"
+          "Base de datos, accesos, almacenamiento de archivos y funciones de servidor; alberga todos los datos de esta política",
+          "Unión Europea (Irlanda)",
+          "Datos alojados en la UE; [[TO CONFIRM: garantía para cualquier acceso desde EE. UU.]]"
         ],
         [
-          "MonitorLinq B.V.",
-          "Monitorización de dispositivos y seguimiento GPS",
-          "Países Bajos (UE)",
-          "Certificado ISO 27001, NEN 7510"
-        ],
-        [
-          "Stripe, Inc.",
-          "Procesamiento de pagos",
-          "UE/EE.UU.",
-          "Marco de Privacidad de Datos UE-EE.UU., PCI-DSS"
-        ],
-        [
-          "Twilio, Inc.",
-          "Llamadas de voz y SMS",
-          "UE/EE.UU.",
-          "Cláusulas Contractuales Tipo"
+          "Twilio Inc.",
+          "Llamadas telefónicas, grabaciones, transcripción de voz, SMS y mensajes de WhatsApp",
+          "Estados Unidos y UE",
+          "[[TO CONFIRM: Marco de Privacidad de Datos UE-EE. UU. y/o cláusulas contractuales tipo]]"
         ],
         [
           "Anthropic, PBC",
-          "Funcionalidad del asistente de IA",
-          "EE.UU.",
-          "Cláusulas Contractuales Tipo"
+          "Modelo de inteligencia artificial de Isabella",
+          "Estados Unidos",
+          "[[TO CONFIRM: Marco de Privacidad de Datos UE-EE. UU. y/o cláusulas contractuales tipo]]"
         ],
         [
-          "Google (Gmail)",
-          "Envío de email",
-          "UE/EE.UU.",
-          "Cláusulas Contractuales Tipo"
+          "Stripe",
+          "Pagos con tarjeta y suscripciones",
+          "UE y Estados Unidos",
+          "[[TO CONFIRM: Marco de Privacidad de Datos UE-EE. UU. y/o cláusulas contractuales tipo]]"
         ],
         [
-          "Vercel, Inc.",
-          "Alojamiento web",
-          "UE",
-          "Centro de datos UE"
+          "Mollie B.V.",
+          "Pagos, incluida la domiciliación SEPA",
+          "Países Bajos (UE)",
+          "No aplica (UE)"
+        ],
+        [
+          "Vercel Inc.",
+          "Alojamiento y distribución de nuestra web",
+          "Estados Unidos y red global",
+          "[[TO CONFIRM: Marco de Privacidad de Datos UE-EE. UU. y/o cláusulas contractuales tipo]]"
+        ],
+        [
+          "Functional Software, Inc. (Sentry)",
+          "Informes de errores de nuestra web, con el texto de pantalla enmascarado",
+          "[[TO CONFIRM: región de datos UE o EE. UU.]]",
+          "[[TO CONFIRM]]"
+        ],
+        [
+          "Google (Gmail / Firebase)",
+          "Envío de correos electrónicos; notificaciones de alertas en los dispositivos de nuestro personal",
+          "UE y Estados Unidos",
+          "[[TO CONFIRM: Marco de Privacidad de Datos UE-EE. UU. y/o cláusulas contractuales tipo]]"
+        ],
+        [
+          "Resend, Inc.",
+          "Envío de correos electrónicos",
+          "Estados Unidos",
+          "[[TO CONFIRM: Marco de Privacidad de Datos UE-EE. UU. y/o cláusulas contractuales tipo]]"
+        ],
+        [
+          "OpenStreetMap Foundation (Nominatim)",
+          "Localizar en el mapa una dirección cuando usted o nuestro personal fijan la ubicación de su vivienda",
+          "Reino Unido",
+          "Decisión de adecuación de la UE para el Reino Unido"
+        ],
+        [
+          "Medconneqt",
+          "Plataforma de monitorización de dispensadores de medicación, utilizada por nuestros operadores si usted tiene un dispensador",
+          "Países Bajos (UE)",
+          "No aplica (UE)"
+        ],
+        [
+          "[[TO CONFIRM: proveedor de alojamiento de la pasarela de dispositivos de alarma]]",
+          "Recepción de señales y posiciones de su dispositivo de alarma",
+          "[[TO CONFIRM]]",
+          "[[TO CONFIRM]]"
         ]
       ],
-      "s6_2Title": "6.2 Servicios de Emergencia",
-      "s6_2Intro": "En una emergencia, podemos compartir su nombre, ubicación e información médica relevante con:",
-      "s6_2Items": [
-        "Servicios de emergencia españoles (112)",
-        "Policía local, bomberos o servicios de ambulancia",
-        "Departamentos de urgencias hospitalarias"
+      "s7_6Title": "7.6 Autoridades y obligaciones legales",
+      "s7_6p1": "Comunicamos datos cuando la ley lo exige —por ejemplo, a juzgados y tribunales, a las Fuerzas y Cuerpos de Seguridad con la debida base legal, a la Administración tributaria o a la AEPD— o cuando es necesario para formular o defender reclamaciones.",
+      "s7_7Title": "7.7 Lo que nunca hacemos",
+      "s7_7Items": [
+        "No vendemos sus datos personales.",
+        "No cedemos sus datos a nadie para su propia publicidad o mercadotecnia.",
+        "No utilizamos su información de salud para fines distintos de los indicados en el apartado 5."
       ],
-      "s6_2p1": "Este intercambio se basa en la protección de sus intereses vitales (RGPD Artículo 6(1)(d)).",
-      "s6_3Title": "6.3 Sus Contactos de Emergencia",
-      "s6_3Intro": "Las personas que usted designe como contactos de emergencia recibirán:",
-      "s6_3Items": [
-        "Notificación cuando se active una alerta",
-        "Su ubicación en el momento de la alerta",
-        "Actualizaciones de estado durante un incidente"
+      "s8Title": "8. Transferencias internacionales",
+      "s8p1": "Nuestra base de datos se encuentra en la Unión Europea. Algunos de los proveedores del apartado 7.5 están establecidos en Estados Unidos u otros países fuera del Espacio Económico Europeo, o pueden acceder a los datos desde ellos. En esos casos nos amparamos en:",
+      "s8Items": [
+        "una <strong>decisión de adecuación</strong> de la Comisión Europea (por ejemplo, el Reino Unido o las empresas estadounidenses adheridas al <strong>Marco de Privacidad de Datos UE-EE. UU.</strong>);",
+        "<strong>cláusulas contractuales tipo</strong> aprobadas por la Comisión Europea, con medidas adicionales cuando sea necesario."
       ],
-      "s6_4Title": "6.4 Requisitos Legales",
-      "s6_4Intro": "Podemos divulgar sus datos si es requerido por:",
-      "s6_4Items": [
-        "Orden judicial o proceso legal",
-        "Fuerzas de seguridad españolas con base legal válida",
-        "Autoridades reguladoras"
+      "s8p2": "Puede solicitar una copia de las garantías aplicables escribiendo a privacy@icealarm.es.",
+      "s9Title": "9. Plazos de conservación",
+      "s9Intro": "Conservamos los datos solo durante el tiempo necesario para las finalidades indicadas y después los suprimimos o anonimizamos. Nuestros plazos son:",
+      "s9TableHeaders": [
+        "Datos",
+        "Plazo"
       ],
-      "s6_5Title": "6.5 NO Hacemos",
-      "s6_5Items": [
-        "Vender sus datos personales",
-        "Compartir sus datos para marketing de terceros",
-        "Usar sus datos médicos para ningún fin que no sea la respuesta de emergencia"
-      ],
-      "s7Title": "7. Transferencias Internacionales de Datos",
-      "s7Intro": "Algunos de nuestros proveedores de servicios están ubicados fuera del Espacio Económico Europeo (EEE). Cuando transferimos sus datos fuera del EEE, garantizamos la protección mediante:",
-      "s7Items": [
-        "<strong>Marco de Privacidad de Datos UE-EE.UU.</strong> (para empresas estadounidenses certificadas)",
-        "<strong>Cláusulas Contractuales Tipo</strong> aprobadas por la Comisión Europea",
-        "<strong>Decisiones de adecuación</strong> cuando corresponda"
-      ],
-      "s7p1": "Puede solicitar copias de las garantías relevantes contactándonos.",
-      "s8Title": "8. Retención de Datos",
-      "s8TableHeaders": [
-        "Tipo de Datos",
-        "Período de Retención"
-      ],
-      "s8TableRows": [
+      "s9TableRows": [
         [
-          "Información de la cuenta",
-          "Duración de la membresía + 5 años"
+          "Datos de la cuenta, del contrato y de contacto",
+          "Mientras sea socio; después, bloqueados durante [[TO CONFIRM: plazo, p. ej. 5 años, plazo general de prescripción de las acciones contractuales]] y posteriormente suprimidos"
         ],
         [
-          "Información médica",
-          "Duración de la membresía + 5 años"
+          "Información de salud y cuidados",
+          "Mientras sea socio y mantenga su consentimiento; se suprime cuando retira el consentimiento, solicita la supresión o se da de baja [[TO CONFIRM: plazo tras la baja, si lo hubiera]]"
         ],
         [
-          "Datos de contactos de emergencia",
-          "Duración de la membresía + 1 año"
+          "Contactos de emergencia, custodios de llaves y datos de acceso a la vivienda",
+          "Mientras sea socio; se suprimen cuando se da de baja o nos lo solicita"
         ],
         [
-          "Registros de alertas e incidentes",
-          "7 años (requisito legal)"
+          "Registros de alertas e incidencias",
+          "[[TO CONFIRM: plazo]]; si solicita antes la supresión, eliminamos sus datos identificativos y conservamos un registro anonimizado"
         ],
         [
-          "Grabaciones de llamadas",
-          "2 años"
+          "Grabaciones y transcripciones de llamadas",
+          "[[TO CONFIRM: plazo]]"
         ],
         [
-          "Registros de pago",
-          "10 años (ley fiscal española)"
+          "Conversaciones con Isabella y otros mensajes",
+          "[[TO CONFIRM: plazo]]"
         ],
         [
-          "Registros de chat/mensajes",
-          "2 años"
+          "Facturas y registros contables",
+          "Los plazos exigidos por la normativa tributaria y mercantil española (con carácter general, de 4 a 6 años)"
         ],
         [
-          "Analíticas web",
-          "26 meses"
+          "Altas no completadas",
+          "[[TO CONFIRM: plazo]]"
+        ],
+        [
+          "Posiciones comunicadas por su dispositivo",
+          "[[TO CONFIRM: plazo]]"
+        ],
+        [
+          "Estadísticas de la web y cookies",
+          "Según lo indicado en la configuración de cookies"
         ]
       ],
-      "s8p1": "Después de estos períodos, los datos se eliminan de forma segura o se anonimizan.",
-      "s9Title": "9. Sus Derechos",
-      "s9Intro": "Bajo el RGPD y la legislación española, tiene derecho a:",
-      "s9_1Title": "9.1 Acceso",
-      "s9_1p1": "Solicitar una copia de todos los datos personales que tenemos sobre usted. Responderemos en un plazo de 30 días.",
-      "s9_2Title": "9.2 Rectificación",
-      "s9_2p1": "Corregir cualquier dato inexacto o incompleto. Puede actualizar la mayoría de la información directamente en su panel de control.",
-      "s9_3Title": "9.3 Supresión (\"Derecho al Olvido\")",
-      "s9_3p1": "Solicitar la eliminación de sus datos. Nota: Es posible que necesitemos retener algunos datos por cumplimiento legal. Puede solicitar la eliminación a través de su panel de control o contactándonos.",
-      "s9_4Title": "9.4 Limitación",
-      "s9_4p1": "Solicitar que limitemos cómo usamos sus datos mientras se resuelve una reclamación.",
-      "s9_5Title": "9.5 Portabilidad de Datos",
-      "s9_5p1": "Recibir sus datos en un formato estructurado y legible por máquina.",
-      "s9_6Title": "9.6 Oposición",
-      "s9_6p1": "Oponerse al tratamiento basado en intereses legítimos. Para marketing directo, puede darse de baja en cualquier momento.",
-      "s9_7Title": "9.7 Retirar el Consentimiento",
-      "s9_7p1": "Cuando nos basamos en su consentimiento, puede retirarlo en cualquier momento. Esto no afecta la licitud del tratamiento anterior a la retirada.",
-      "s9Warning": "Importante: Si retira el consentimiento para el procesamiento de datos médicos o solicita la eliminación, es posible que ya no podamos proporcionar servicios efectivos de respuesta de emergencia. En tales casos, es posible que necesitemos terminar su membresía por su propia seguridad.",
-      "s9_8Title": "9.8 Cómo Ejercer Sus Derechos",
-      "s9_8Items": [
-        "<strong>En línea:</strong> A través de su panel de control en icealarm.es/dashboard",
-        "<strong>Email:</strong> privacy@icealarm.es"
-      ],
-      "s9_8p1": "Responderemos en un plazo de 30 días. Es posible que necesitemos verificar su identidad antes de procesar solicitudes.",
-      "s10Title": "10. Seguridad de los Datos",
-      "s10Intro": "Implementamos medidas técnicas y organizativas apropiadas que incluyen:",
+      "s9p1": "Cuando la ley nos obliga a conservar datos tras su baja, los mantenemos <strong>bloqueados</strong> (artículo 32 de la LOPDGDD): quedan apartados y solo se utilizan para cumplir obligaciones legales o atender reclamaciones, y después se suprimen.",
+      "s10Title": "10. Cómo protegemos sus datos",
+      "s10Intro": "Aplicamos medidas técnicas y organizativas adecuadas a la sensibilidad de los datos, entre ellas:",
       "s10Items": [
-        "Cifrado de datos en tránsito (TLS 1.3)",
-        "Cifrado de datos en reposo",
-        "Controles de acceso y autenticación",
-        "Evaluaciones de seguridad regulares",
-        "Formación del personal en protección de datos",
-        "Procedimientos de respuesta a incidentes"
+        "conexiones cifradas (HTTPS) entre su navegador, nuestros sistemas y nuestros proveedores;",
+        "cifrado de los datos almacenados, proporcionado por nuestro proveedor de alojamiento;",
+        "reglas en la base de datos (seguridad a nivel de fila) para que cada persona solo pueda acceder a los registros que le corresponden;",
+        "acceso del personal según su función, con autenticación en dos pasos para el acceso de administración;",
+        "registros de auditoría de los cambios en las fichas de los socios y de las autorizaciones concedidas a familiares o cuidadores;",
+        "enmascaramiento del texto de pantalla en los informes de errores de la web;",
+        "contratos con todos los proveedores que tratan sus datos."
       ],
-      "s10p1": "Nuestra base de datos está alojada en un centro de datos certificado Tier 3 en la Unión Europea.",
-      "s11Title": "11. Privacidad de los Menores",
-      "s11p1": "Nuestros servicios no están dirigidos a menores de 16 años. No recopilamos conscientemente datos personales de menores de 16 años sin el consentimiento de los padres. Si cree que hemos recopilado dichos datos, contáctenos inmediatamente.",
-      "s12Title": "12. Toma de Decisiones Automatizada",
-      "s12Intro": "Nuestro asistente de IA puede procesar sus datos para:",
-      "s12Items": [
-        "Clasificar llamadas de emergencia",
-        "Determinar respuestas apropiadas",
-        "Derivar llamadas a operadores humanos"
+      "s10p1": "Ningún sistema es completamente seguro. Si se produce una brecha de seguridad que pueda suponer un riesgo para sus derechos, lo notificaremos a la AEPD en un plazo de 72 horas desde que tengamos conocimiento de ella y, si el riesgo para usted es alto, también se lo comunicaremos sin dilación indebida.",
+      "s11Title": "11. Sus derechos",
+      "s11Intro": "El RGPD y la LOPDGDD le reconocen los siguientes derechos:",
+      "s11Items": [
+        "<strong>Acceso</strong>: saber si tratamos datos suyos y obtener una copia.",
+        "<strong>Rectificación</strong>: corregir datos inexactos o incompletos. Muchos datos puede actualizarlos usted mismo en su cuenta.",
+        "<strong>Supresión</strong>: que eliminemos sus datos, salvo que la ley nos obligue a conservarlos (apartado 9).",
+        "<strong>Limitación</strong>: que limitemos el uso de sus datos, por ejemplo mientras revisamos una reclamación.",
+        "<strong>Portabilidad</strong>: recibir los datos que nos ha facilitado en un formato estructurado y de lectura mecánica.",
+        "<strong>Oposición</strong>: oponerse al tratamiento basado en nuestro interés legítimo y, en cualquier momento, a las comunicaciones comerciales.",
+        "<strong>Retirada del consentimiento</strong>: en cualquier momento, sin que ello afecte al tratamiento anterior.",
+        "<strong>No ser objeto de decisiones basadas únicamente en tratamientos automatizados</strong> con efectos jurídicos o significativos similares (apartado 6)."
       ],
-      "s12p1": "Tiene derecho a solicitar intervención humana en cualquier decisión automatizada que le afecte significativamente. Durante cualquier emergencia, los operadores humanos siempre están disponibles para intervenir.",
-      "s13Title": "13. Cookies",
-      "s13Intro": "Nuestro sitio web utiliza cookies para:",
+      "s11HowTitle": "Cómo ejercer sus derechos",
+      "s11HowItems": [
+        "<strong>Correo electrónico:</strong> privacy@icealarm.es",
+        "<strong>En su cuenta:</strong> Perfil → Privacidad y Datos, donde puede descargar una copia de sus datos principales y solicitar la eliminación de su cuenta.",
+        "<strong>Por correo postal:</strong> ICE Alarm España S.L., [[TO CONFIRM: domicilio social]]"
+      ],
+      "s11p1": "El ejercicio de sus derechos es gratuito. Le responderemos en el plazo de un mes; en solicitudes complejas podremos ampliarlo dos meses más, indicándole el motivo. Podemos pedirle que acredite su identidad. Un familiar o representante puede actuar en su nombre acreditando su representación.",
+      "s11DeletionTitle": "Qué ocurre cuando solicita la eliminación de su cuenta",
+      "s11DeletionItems": [
+        "se cancela su suscripción;",
+        "se suprimen su información de salud y sus contactos de emergencia;",
+        "se anulan los enlaces seguros de actualización pendientes;",
+        "se eliminan de su ficha su nombre, datos de contacto, fecha de nacimiento, números de identificación y dirección;",
+        "su historial de alertas solo se conserva de forma anonimizada;",
+        "las facturas y demás registros que la ley nos obliga a conservar quedan bloqueados (apartado 9)."
+      ],
+      "s11Warning": "Importante: la eliminación de su cuenta pone fin al servicio de teleasistencia. Dejaremos de atender su alarma.",
+      "s11p2": "<strong>Personas fallecidas.</strong> Conforme al artículo 3 de la LOPDGDD, los familiares y herederos de un socio fallecido pueden solicitarnos el acceso, la rectificación o la supresión de sus datos, salvo que el socio lo hubiera prohibido.",
+      "s12Title": "12. Menores de edad",
+      "s12p1": "Nuestro servicio está dirigido a personas adultas. No recogemos conscientemente datos de menores de 14 años. Si cree que tratamos datos de un menor, contacte con nosotros y los suprimiremos.",
+      "s13Title": "13. Web y cookies",
+      "s13Intro": "Nuestra web utiliza:",
       "s13Items": [
-        "<strong>Cookies esenciales:</strong> Necesarias para el funcionamiento del sitio web",
-        "<strong>Cookies analíticas:</strong> Para entender cómo los visitantes usan nuestro sitio (solo con consentimiento)"
+        "<strong>Cookies y almacenamiento necesarios</strong>: para mantener su sesión iniciada, recordar su idioma y sus preferencias de cookies y proteger la web.",
+        "<strong>Estadísticas</strong>: para entender cómo se usa la web; solo con su consentimiento."
       ],
-      "s13p1": "Puede gestionar las preferencias de cookies a través de nuestro banner de cookies o la configuración de su navegador.",
-      "s14Title": "14. Cambios en Esta Política",
-      "s14Intro": "Podemos actualizar esta Política de Privacidad periódicamente. Le notificaremos de cambios significativos mediante:",
+      "s13p1": "Puede cambiar sus preferencias en cualquier momento en la configuración de cookies (desde el aviso de cookies o, en su cuenta, en Perfil → Privacidad y Datos).",
+      "s14Title": "14. Cambios en esta política",
+      "s14Intro": "Actualizaremos esta política cuando cambie nuestro servicio o la normativa. Si el cambio es relevante, se lo comunicaremos mediante:",
       "s14Items": [
-        "Notificación por email",
-        "Aviso en nuestro sitio web",
-        "Aviso en su panel de control"
+        "correo electrónico;",
+        "un aviso en nuestra web;",
+        "un aviso en su cuenta."
       ],
-      "s14p1": "La fecha de \"Última Actualización\" en la parte superior indica cuándo se revisó la política por última vez.",
+      "s14p1": "Si un cambio requiere su consentimiento, se lo volveremos a pedir. La fecha y la versión que figuran al inicio de esta página indican cuándo se modificó por última vez.",
       "s15Title": "15. Reclamaciones",
-      "s15p1": "Si no está satisfecho con cómo gestionamos sus datos, tiene derecho a presentar una reclamación ante:",
+      "s15p1": "Si no está conforme con el tratamiento de sus datos, contacte primero con nosotros o con nuestro DPD: queremos solucionarlo. También tiene derecho a presentar una reclamación ante la autoridad de control:",
       "s15Authority": "<strong>Agencia Española de Protección de Datos (AEPD)</strong><br/>C/ Jorge Juan, 6<br/>28001 Madrid<br/><a href=\"https://www.aepd.es\" target=\"_blank\" rel=\"noopener noreferrer\">www.aepd.es</a><br/>Tel: 900 293 183",
-      "s15p2": "También tiene derecho a buscar un recurso judicial.",
-      "s16Title": "16. Contáctenos",
-      "s16Intro": "<strong>Para cualquier consulta relacionada con la privacidad:</strong>",
-      "s16Content": "ICE Alarm España<br/>Email: privacy@icealarm.es<br/>Consultas generales: info@icealarm.es",
-      "governedBy": "Esta Política de Privacidad se rige por la legislación española y el Reglamento General de Protección de Datos (UE) 2016/679."
+      "s15p2": "También puede acudir a los tribunales.",
+      "s16Title": "16. Contacto",
+      "s16Intro": "<strong>Para cualquier consulta sobre sus datos personales:</strong>",
+      "s16Content": "ICE Alarm España S.L. (CIF B24731531)<br/>[[TO CONFIRM: domicilio social]]<br/>Privacidad y DPD: privacy@icealarm.es<br/>Consultas generales: info@icealarm.es",
+      "governedBy": "Esta política se rige por el Reglamento (UE) 2016/679 (RGPD), la Ley Orgánica 3/2018 (LOPDGDD) y la legislación española."
     }
   },
   "mediaStrategy": {

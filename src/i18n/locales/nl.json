@@ -3127,9 +3127,9 @@
       "totalDueToday": "Vandaag te betalen totaal",
       "thenMonthly": "Daarna {{amount}}/maand vanaf de volgende factureringscyclus",
       "acceptTerms": "Ik accepteer de servicevoorwaarden",
-      "termsNote": "Door dit vakje aan te vinken, gaat u akkoord met onze servicevoorwaarden en ons privacybeleid.",
-      "acceptMedical": "Ik geef toestemming om medische informatie te delen met hulpdiensten",
-      "medicalNote": "Uw medische informatie wordt alleen gedeeld met hulpverleners wanneer dit nodig is.",
+      "termsNote": "Lees in ons privacybeleid hoe wij uw persoonsgegevens gebruiken.",
+      "acceptMedical": "Ik geef ICE Alarm España uitdrukkelijk toestemming mijn gezondheidsgegevens te gebruiken om mij bij een noodgeval te helpen",
+      "medicalNote": "Wij vragen pas na de aanmelding naar uw gezondheidsgegevens. Medewerkers zien ze wanneer u hulp nodig heeft, en wij delen ze alleen met hulpdiensten als dat nodig is. U kunt deze toestemming altijd intrekken.",
       "securityNote": "Uw betaalgegevens zijn veilig en versleuteld",
       "preContractTitle": "Voordat u betaalt",
       "withdrawalNotice": "U hebt 14 dagen vanaf de ontvangst van uw hanger om deze overeenkomst zonder opgave van redenen te herroepen. Wij betalen alles terug wat u hebt betaald, inclusief standaardlevering; u draagt alleen de kosten van het terugsturen van de hanger. De details en het modelformulier staan in artikel 9.2 van onze voorwaarden.",
@@ -3203,7 +3203,7 @@
       "enterPartnerPostal": "Voer de postcode van uw partner in",
       "addEmergencyContact": "Voeg minstens één noodcontact toe",
       "acceptTerms": "Accepteer de servicevoorwaarden",
-      "acceptPrivacy": "Geef toestemming om medische informatie te delen met hulpdiensten"
+      "acceptPrivacy": "Geef toestemming voor het gebruik van uw gezondheidsgegevens om verder te gaan"
     },
     "paymentSuccessRecovered": "Betaling ontvangen! Uw bestelling is bevestigd.",
     "draftSaveFailed": "We konden uw voortgang niet opslaan. U kunt doorgaan, maar sluit dit tabblad niet.",
@@ -3915,345 +3915,421 @@
     "privacy": {
       "title": "Privacybeleid",
       "company": "ICE Alarm España — Verbonden zorg. Menselijke aandacht.",
-      "lastUpdated": "Laatst bijgewerkt: juni 2026",
-      "s1Title": "1. Wie wij zijn",
-      "s1p1": "<strong>ICE Alarm España</strong> (\"wij\", \"ons\", \"onze\") verzorgt de persoonlijke alarmeringsdienst die beschikbaar is via icealarm.es.",
-      "s1p2": "<strong>Verwerkingsverantwoordelijke:</strong><br/>ICE Alarm España<br/>E-mail: info@icealarm.es",
-      "s1p3": "Met vragen over privacy kunt u terecht bij: privacy@icealarm.es",
-      "s2Title": "2. Waar dit beleid over gaat",
-      "s2Intro": "Dit privacybeleid legt uit:",
+      "lastUpdated": "Laatst bijgewerkt: 17 september 2026 · Versie 2.0 · Concept, in afwachting van juridische toetsing",
+      "summaryTitle": "In het kort",
+      "summaryItems": [
+        "ICE Alarm España S.L. is verantwoordelijk voor uw persoonsgegevens. Mail naar privacy@icealarm.es met vragen over dit beleid.",
+        "Wij gebruiken uw gegevens om uw alarmdienst te leveren: om te weten wie u bent en waar u bent als u hulp nodig heeft, en om de juiste mensen te bellen.",
+        "Wij bewaren uw gezondheidsgegevens alleen met uw uitdrukkelijke toestemming, die u altijd kunt intrekken. Uw alarm blijft dan gewoon werken.",
+        "Isabella is een AI-assistent, geen mens. Zij geeft nooit medisch advies en beslist nooit wat er bij een noodgeval gebeurt — dat doet altijd een menselijke medewerker.",
+        "Wij verkopen uw gegevens niet en gebruiken ze niet voor reclame.",
+        "U kunt uw gegevens inzien, laten corrigeren, downloaden of laten verwijderen, en u kunt een klacht indienen bij de Spaanse toezichthouder (AEPD)."
+      ],
+      "s1Title": "1. Wie is verantwoordelijk voor uw gegevens",
+      "s1p1": "Verwerkingsverantwoordelijke is <strong>ICE Alarm España S.L.</strong> (CIF B24731531), statutair gevestigd te [[TO CONFIRM: adres statutaire zetel]], die de persoonlijke alarmdienst op icealarm.es levert (\"ICE Alarm España\", \"wij\", \"ons\").",
+      "s1p2": "<strong>Functionaris voor gegevensbescherming (FG):</strong> [[TO CONFIRM: naam of organisatie van de functionaris voor gegevensbescherming en contactadres]]. U bereikt onze FG via privacy@icealarm.es.",
+      "s1p3": "Voor vragen over uw persoonsgegevens mailt u naar privacy@icealarm.es. Algemene vragen: info@icealarm.es.",
+      "s2Title": "2. Op wie dit beleid van toepassing is",
+      "s2Intro": "Dit beleid geldt voor:",
       "s2Items": [
-        "Welke persoonsgegevens wij verzamelen",
-        "Waarom wij die verzamelen",
-        "Hoe wij die gebruiken",
-        "Met wie wij die delen",
-        "Welke rechten u hebt op grond van de Algemene verordening gegevensbescherming (AVG) en de Spaanse organieke wet 3/2018 (LOPD-GDD)"
+        "<strong>Leden</strong> — de mensen die een alarm dragen en door ons worden bewaakt, inclusief beide personen bij een lidmaatschap voor stellen.",
+        "<strong>Mensen die een lidmaatschap voor een ander regelen of betalen</strong>.",
+        "<strong>Noodcontacten, sleutelhouders en andere personen over wie een lid ons informeert</strong> (bijvoorbeeld een huisarts of thuiszorgorganisatie).",
+        "<strong>Familieleden of mantelzorgers</strong> die een lid toestemming heeft gegeven om een deel van zijn of haar gegevens te zien.",
+        "<strong>Bezoekers van onze website</strong>, mensen die contact met ons opnemen of met Isabella chatten, en mensen die zich beginnen aan te melden zonder dit af te ronden."
       ],
-      "s3Title": "3. Gegevens die wij verzamelen",
-      "s3_1Title": "3.1 Gegevens die u zelf verstrekt",
-      "s3AccountLabel": "Accountgegevens:",
-      "s3AccountItems": [
-        "Volledige naam",
-        "E-mailadres",
-        "Telefoonnummer",
-        "Woonadres",
-        "Geboortedatum",
-        "Voorkeurstaal"
+      "s2p1": "Partners die leden naar ons doorverwijzen en onze medewerkers ontvangen aparte privacy-informatie bij hun overeenkomst of contract.",
+      "s3Title": "3. Welke gegevens wij verwerken",
+      "s3Intro": "Wij verzamelen alleen wat nodig is om de dienst te leveren. Het meeste ontvangen wij van u; sommige gegevens komen van uw alarmapparaat, van de mensen die u helpen of uit onze eigen registratie van gesprekken en meldingen.",
+      "s3TableHeaders": [
+        "Categorie",
+        "Wat het omvat",
+        "Herkomst"
       ],
-      "s3HealthLabel": "Gezondheids- en medische gegevens (bijzondere categorie persoonsgegevens):",
-      "s3HealthItems": [
-        "Medische aandoeningen",
-        "Huidige medicatie",
-        "Allergieën",
-        "Bloedgroep",
-        "Naam en contactgegevens van uw arts",
-        "Voorkeursziekenhuis",
-        "Beperkingen in mobiliteit of bijzondere behoeften"
+      "s3TableRows": [
+        [
+          "Identiteits- en contactgegevens",
+          "Naam, aanhef, roepnaam, geboortedatum, geslacht, nationaliteit, burgerlijke staat, e-mailadres, telefoonnummers, voorkeurstaal, hoe en wanneer u het liefst benaderd wordt, en een foto als u die toevoegt.",
+          "U, of de persoon die het lidmaatschap voor u regelt."
+        ],
+        [
+          "Identiteitsbewijzen en officiële nummers",
+          "NIE/DNI- of paspoortnummer en — alleen als u die aan ons geeft — uw socialezekerheidsnummer en het nummer van uw zorgpas (TSI).",
+          "U, of ons vorige klantensysteem als u al klant was."
+        ],
+        [
+          "Adres en woonlocatie",
+          "Uw adres of adressen, gebouwgegevens (urbanización, blok, trappenhuis), de positie van uw voordeur op de kaart en de data waarop u ons laat weten dat u afwezig bent.",
+          "U, of onze medewerkers op uw aanwijzing. De kaartpositie wordt door u of door onze medewerkers bevestigd."
+        ],
+        [
+          "Toegang tot uw woning",
+          "Waar uw sleutelkluis hangt en de code ervan, poortcodes, toegangsnotities en gegevens van sleutelhouders.",
+          "U."
+        ],
+        [
+          "Gezondheids- en zorggegevens (bijzondere persoonsgegevens)",
+          "Aandoeningen, medicatie en waar die bewaard wordt, allergieën, bloedgroep, mobiliteit, gehoor en zicht, uw huisarts en gezondheidscentrum, voorkeursziekenhuis, particuliere zorgverzekeraar en polisnummer, thuiszorgorganisatie en bezoekschema, dagcentrum, medische hulpmiddelen, waar uw wilsverklaring ligt, en eventuele wensen rond het levenseinde of uw uitvaartverzekering die u met ons wilt delen.",
+          "U, na de aanmelding, via uw account, een beveiligde updatelink of telefonisch met onze medewerkers. Alleen met uw uitdrukkelijke toestemming (paragraaf 5)."
+        ],
+        [
+          "Gegevens van het alarmapparaat en locatiegegevens",
+          "Apparaatkenmerken (IMEI, serienummer, simkaartnummer), batterijniveau, online/offline-status, regelmatige statusmeldingen en de laatst doorgegeven GPS-positie en het adres van het apparaat.",
+          "Uw alarmapparaat, automatisch, zolang het aan staat."
+        ],
+        [
+          "Meldingen en incidenten",
+          "Elke melding (SOS-knop, val, apparaat offline en dergelijke): tijdstip, positie en adres op dat moment, wat onze medewerkers hebben gedaan, notities, of 112 is gebeld en wie is ingelicht.",
+          "Uw apparaat en onze medewerkers."
+        ],
+        [
+          "Gesprekken en berichten",
+          "Opnamen van noodoproepen (vanaf het begin opgenomen), opnamen van andere gesprekken als wij dat aan het begin melden, automatische uitschriften van gesproken antwoorden, en de inhoud van sms-, WhatsApp-, e-mail- en accountberichten met ons.",
+          "U, onze medewerkers en onze telefonieprovider."
+        ],
+        [
+          "Gesprekken met Isabella",
+          "Wat u aan Isabella schrijft of zegt en haar antwoorden, plus de notities die zij tijdens een melding voor onze medewerkers maakt.",
+          "U en Isabella (paragraaf 6)."
+        ],
+        [
+          "Gegevens van anderen die u ons geeft",
+          "Noodcontacten en sleutelhouders: naam, relatie, telefoon, e-mail, taal, beschikbaarheid en of zij naar u toe kunnen komen. De betaler, als u dat niet zelf bent.",
+          "Het lid of de persoon die het lidmaatschap regelt."
+        ],
+        [
+          "Betaling en facturering",
+          "Abonnement, betaalfrequentie, facturen, betaalstatus en betaalreferenties. Kaart- en bankgegevens worden door onze betaalproviders verwerkt; wij slaan uw volledige kaartnummer niet op.",
+          "U en onze betaalproviders."
+        ],
+        [
+          "Doorverwijzingsgegevens",
+          "De partnercode of -link waarmee u bij ons kwam en campagneparameters (UTM).",
+          "De link waarmee u onze website bezocht."
+        ],
+        [
+          "Account, voorkeuren en beveiliging",
+          "Inloggegevens (uw wachtwoord wordt alleen versleuteld als hash opgeslagen), of u ons toestemming geeft om u berichten per sms, WhatsApp of e-mail te sturen, en registratie van wijzigingen in uw dossier.",
+          "U en onze systemen."
+        ],
+        [
+          "Website- en technische gegevens",
+          "Bezochte pagina's, type browser en apparaat, globale locatie (stad of land), verwijzende pagina en foutrapporten van onze website.",
+          "Uw browser — zie paragraaf 13."
+        ]
       ],
-      "s3EmergencyLabel": "Contactpersonen voor noodgevallen:",
-      "s3EmergencyItems": [
-        "Namen, telefoonnummers en e-mailadressen van de personen die u aanwijst",
-        "Hun relatie tot u",
-        "Taalvoorkeuren"
-      ],
-      "s3PaymentLabel": "Betaalgegevens:",
-      "s3PaymentItems": [
-        "Factuuradres",
-        "Gegevens van uw betaalkaart (veilig verwerkt door Stripe, Inc.)"
-      ],
-      "s3_2Title": "3.2 Gegevens die automatisch worden verzameld",
-      "s3DeviceLabel": "Apparaatgegevens:",
-      "s3DeviceItems": [
-        "Het unieke nummer van uw GPS-hanger (IMEI)",
-        "Batterijstatus",
-        "Online- of offlinestatus",
-        "Locatiegegevens wanneer een melding wordt gemaakt"
-      ],
-      "s3UsageLabel": "Gebruiksgegevens:",
-      "s3UsageItems": [
-        "Bezochte pagina's op onze website",
-        "Tijdstip en datum van bezoek",
-        "Browsertype en apparaatgegevens"
-      ],
-      "s3CommsLabel": "Communicatiegegevens:",
-      "s3CommsItems": [
-        "Opnamen van telefoongesprekken (met uw toestemming)",
-        "Logboeken van sms- en WhatsApp-berichten",
-        "Chatgesprekken met onze AI-assistent"
-      ],
-      "s3_3Title": "3.3 Gegevens van derden",
-      "s3_3p1": "<strong>Partner voor apparaatbewaking (MonitorLinq B.V.):</strong> wij ontvangen realtime statusgegevens van uw GPS-hanger, waaronder locatie, batterijniveau, SOS-meldingen en valdetectie, via onze technologiepartner MonitorLinq B.V. (Nederland).",
-      "s4Title": "4. Waarom wij uw gegevens verzamelen (rechtsgrond)",
+      "s4Title": "4. Waarom wij uw gegevens gebruiken en onze rechtsgrond",
+      "s4Intro": "De wet staat het gebruik van persoonsgegevens alleen toe met een rechtsgrond (artikel 6 AVG) en, voor gezondheidsgegevens, een aanvullende uitzonderingsgrond (artikel 9 AVG). Hierop baseren wij ons:",
       "s4TableHeaders": [
         "Doel",
-        "Rechtsgrond (artikel 6 AVG)"
+        "Rechtsgrond"
       ],
       "s4TableRows": [
         [
-          "Het leveren van alarmeringsdiensten",
-          "Uitvoering van de overeenkomst"
+          "Uw lidmaatschap opzetten en uitvoeren: account, apparaat, bewaking, ondersteuning en welzijnsgesprekken",
+          "Uitvoering van onze overeenkomst met u (art. 6 lid 1 sub b AVG)"
         ],
         [
-          "Het verwerken van uw abonnementsbetalingen",
-          "Uitvoering van de overeenkomst"
+          "Reageren op een melding: u identificeren en lokaliseren, u, uw contacten, sleutelhouders en 112 bellen",
+          "Uitvoering van de overeenkomst (art. 6 lid 1 sub b) en bescherming van uw vitale belangen (art. 6 lid 1 sub d)"
         ],
         [
-          "Contact met u opnemen over uw account",
-          "Uitvoering van de overeenkomst"
+          "Uw gezondheidsgegevens bewaren en verstrekken aan medewerkers en hulpdiensten",
+          "Uw uitdrukkelijke toestemming (art. 9 lid 2 sub a); in een noodgeval waarin u geen toestemming kunt geven, bescherming van uw vitale belangen (art. 9 lid 2 sub c)"
         ],
         [
-          "Reageren op SOS-meldingen en noodgevallen",
-          "Gerechtvaardigd belang (bescherming van vitale belangen)"
+          "Noodoproepen opnemen en meldingen registreren",
+          "Ons gerechtvaardigd belang bij een nauwkeurig verslag van elk noodgeval, het evalueren en verbeteren van onze hulp en de bescherming van u en onze medewerkers (art. 6 lid 1 sub f); voor gezondheidsgegevens daarin dezelfde uitzonderingsgronden als hierboven"
         ],
         [
-          "Het bewaren van medische gegevens voor noodgevallen",
-          "Uitdrukkelijke toestemming (artikel 9)"
+          "Isabella, onze AI-assistent",
+          "Voor leden de uitvoering van de overeenkomst (art. 6 lid 1 sub b); voor bezoekers precontractuele stappen op uw verzoek (art. 6 lid 1 sub b) en ons gerechtvaardigd belang bij het beantwoorden van vragen (art. 6 lid 1 sub f)"
         ],
         [
-          "Het opnemen van gesprekken voor kwaliteit en opleiding",
-          "Gerechtvaardigd belang + toestemming"
+          "Gegevens van uw noodcontacten en sleutelhouders gebruiken",
+          "Ons en uw gerechtvaardigd belang om iemand te kunnen bereiken die u kan helpen (art. 6 lid 1 sub f); in een noodgeval vitale belangen (art. 6 lid 1 sub d)"
         ],
         [
-          "Het verbeteren van onze diensten",
-          "Gerechtvaardigd belang"
+          "Een familielid of mantelzorger uw gegevens laten inzien",
+          "Uw uitdrukkelijke toestemming per categorie die u kiest (art. 6 lid 1 sub a en art. 9 lid 2 sub a)"
         ],
         [
-          "Het naleven van wettelijke verplichtingen",
-          "Wettelijke verplichting"
+          "Serviceberichten per sms, WhatsApp of e-mail",
+          "Uw toestemming, die u in uw account kunt uitzetten (art. 6 lid 1 sub a). Noodoproepen zijn hier niet van afhankelijk."
         ],
         [
-          "Het versturen van service-updates",
-          "Uitvoering van de overeenkomst"
+          "Facturering en boekhouding",
+          "Uitvoering van de overeenkomst (art. 6 lid 1 sub b) en onze wettelijke fiscale en handelsrechtelijke verplichtingen (art. 6 lid 1 sub c)"
         ],
         [
-          "Het versturen van marketingberichten",
-          "Toestemming (alleen na aanmelding)"
+          "Commissie betalen aan de partner die u heeft doorverwezen",
+          "Ons gerechtvaardigd belang bij het uitvoeren van ons partnerprogramma (art. 6 lid 1 sub f)"
+        ],
+        [
+          "Beveiliging, foutbewaking, auditregistratie en het voorkomen van misbruik",
+          "Ons gerechtvaardigd belang bij een veilige en werkende dienst (art. 6 lid 1 sub f)"
+        ],
+        [
+          "Rechtsvorderingen instellen of verdedigen",
+          "Ons gerechtvaardigd belang (art. 6 lid 1 sub f); voor gezondheidsgegevens art. 9 lid 2 sub f"
+        ],
+        [
+          "Websitestatistieken en niet-noodzakelijke cookies",
+          "Uw toestemming via onze cookie-instellingen (art. 6 lid 1 sub a AVG en art. 22.2 LSSI-CE)"
+        ],
+        [
+          "Marketingberichten",
+          "Alleen met uw voorafgaande toestemming (art. 6 lid 1 sub a), die u altijd kunt intrekken"
         ]
       ],
-      "s4SpecialCategory": "<strong>Bijzondere categorie persoonsgegevens (gezondheidsgegevens):</strong> wij verwerken uw medische gegevens UITSLUITEND omdat u ons daarvoor bij de registratie uitdrukkelijk toestemming hebt gegeven, EN omdat deze gegevens van vitaal belang kunnen zijn om uw leven bij een noodgeval te beschermen (artikel 9, lid 2, onder a en c, AVG).",
-      "s5Title": "5. Hoe wij uw gegevens gebruiken",
-      "s5_1Title": "5.1 Hulp bij noodgevallen",
-      "s5_1Intro": "Wanneer uw hanger een noodsituatie vaststelt (SOS-knop, valdetectie, apparaat offline), doen wij het volgende:",
-      "s5_1Items": [
-        "Wij ontvangen de melding van onze bewakingspartner",
-        "Wij openen uw profiel om u te identificeren",
-        "Wij bekijken uw medische gegevens en uw contactpersonen",
-        "Wij bellen u om de situatie te beoordelen",
-        "Wij schakelen indien nodig de hulpdiensten in (112)",
-        "Wij waarschuwen de door u aangewezen contactpersonen"
+      "s4p1": "Waar wij ons op gerechtvaardigd belang baseren, kunt u altijd bezwaar maken (paragraaf 11). Waar de wet ons verplicht u te informeren of gegevens te bewaren, doen wij dat op grond van die wettelijke verplichting.",
+      "s5Title": "5. Uw gezondheidsgegevens en uw uitdrukkelijke toestemming",
+      "s5p1": "Gezondheidsgegevens zijn bijzondere persoonsgegevens. Wij bewaren ze alleen omdat u ons daarvoor <strong>uitdrukkelijke toestemming</strong> geeft, los van het accepteren van onze voorwaarden. U geeft die met een apart vinkje bij de aanmelding, en wij vragen pas na de aanmelding naar uw gezondheidsgegevens.",
+      "s5Intro": "Met uw toestemming gebruiken wij uw gezondheidsgegevens uitsluitend om:",
+      "s5Items": [
+        "ze aan onze medewerkers te tonen wanneer u een melding heeft of ons belt, zodat zij uw situatie begrijpen;",
+        "het relevante deel te verstrekken aan 112, ambulancepersoneel of ziekenhuismedewerkers die u helpen;",
+        "ze te delen met een familielid of mantelzorger, alleen als u die persoon toestemming heeft gegeven uw medische gegevens te zien."
       ],
-      "s5_2Title": "5.2 AI-ondersteunde diensten",
-      "s5_2Intro": "Onze AI-assistent \"Isabella\" kan:",
-      "s5_2Items": [
-        "Uw telefoongesprekken aannemen",
-        "Reageren op chatberichten",
-        "Vriendelijke controlegesprekken voeren",
-        "Een eerste beoordeling van een noodmelding doen"
+      "s5p2": "Wij gebruiken uw gezondheidsgegevens nooit voor marketing, verkopen ze nooit en gebruiken ze nooit voor beslissingen over uw overeenkomst of prijs.",
+      "s5p3": "<strong>Toestemming intrekken.</strong> U kunt uw toestemming altijd intrekken door te mailen naar privacy@icealarm.es of ons te bellen. Wij verwijderen dan uw gezondheidsgegevens. Uw alarm blijft werken en onze medewerkers nemen nog steeds op, maar zij kennen dan uw medische achtergrond niet, waardoor hun hulp minder goed geïnformeerd kan zijn. Intrekking heeft geen gevolgen voor wat wij daarvoor hebben gedaan.",
+      "s5p4": "<strong>In een noodgeval.</strong> Als u lichamelijk of juridisch niet in staat bent toestemming te geven en uw leven of gezondheid in gevaar is, kunnen wij de gegevens die wij hebben aan hulpdiensten verstrekken om uw vitale belangen te beschermen.",
+      "s5p5": "<strong>Als u zelf geen toestemming kunt geven.</strong> Ieder lid moet zelf toestemming geven — bij een lidmaatschap voor stellen geeft ieder zijn eigen toestemming. Op dit moment kan een familielid of vertegenwoordiger via onze website geen toestemming namens een lid geven. Is dit op u van toepassing, neem dan contact met ons op om de mogelijkheden te bespreken. [[TO CONFIRM: standpunt over wettelijke vertegenwoordigers, in afwachting van juridisch advies]]",
+      "s6Title": "6. Isabella, onze AI-assistent, en geautomatiseerde besluiten",
+      "s6p1": "Isabella is een assistent op basis van kunstmatige intelligentie. Zij is <strong>geen mens</strong>, en dat zegt zij ook. Zij kan vragen beantwoorden in de chat op onze website, in uw account en bij sommige telefoongesprekken, u helpen met uw account en notities maken voor onze medewerkers.",
+      "s6Intro": "Isabella doet nooit het volgende:",
+      "s6Items": [
+        "medisch advies of een diagnose geven;",
+        "beslissen of een melding echt is, hoe ernstig die is, of een noodgeval afsluiten — elke SOS gaat naar een menselijke medewerker;",
+        "een gezondheidsmeting verzinnen of wijzigen;",
+        "meer van uw gegevens zien dan uw eigen account toestaat."
       ],
-      "s5_2p1": "Wanneer u met Isabella spreekt, wordt uw gesprek met kunstmatige intelligentie verwerkt. Menselijke operators kunnen op elk moment overnemen en behandelen echte noodgevallen altijd zelf.",
-      "s5_3Title": "5.3 Beheer van de dienst",
-      "s5_3Items": [
-        "Het verwerken van maandelijkse abonnementsbetalingen",
-        "Het versturen van berichten over de dienst",
-        "Het leveren van klantenservice",
-        "Het inplannen van welzijnscontroles"
-      ],
-      "s6Title": "6. Met wie wij uw gegevens delen",
-      "s6Intro": "Wij delen uw gegevens UITSLUITEND met de volgende categorieën ontvangers, en ALLEEN wanneer dat nodig is:",
-      "s6_1Title": "6.1 Dienstverleners (verwerkers)",
-      "s6_1TableHeaders": [
+      "s6p2": "Als Isabella twijfelt, draagt zij het gesprek over aan een mens. U kunt altijd vragen om een mens te spreken.",
+      "s6p3": "Wij nemen geen besluiten die uitsluitend op geautomatiseerde verwerking berusten en die rechtsgevolgen of vergelijkbaar ingrijpende gevolgen voor u hebben (artikel 22 AVG). Besluiten over noodgevallen, uw lidmaatschap en uw betalingen worden door mensen genomen of gecontroleerd.",
+      "s6p4": "Om de antwoorden van Isabella te genereren, wordt de inhoud van uw gesprek verstuurd naar onze AI-leverancier, Anthropic, PBC (Verenigde Staten), die deze namens ons verwerkt (paragrafen 7 en 8). [[TO CONFIRM: verwerkingsvoorwaarden en bewaartermijn van Anthropic]]",
+      "s7Title": "7. Met wie wij uw gegevens delen",
+      "s7Intro": "Wij delen alleen wat elke ontvanger nodig heeft.",
+      "s7_1Title": "7.1 Hulpdiensten",
+      "s7_1p1": "In een noodgeval geven wij uw naam, locatie, adres, toegangsgegevens en relevante gezondheidsgegevens aan 112, politie, brandweer, ambulancepersoneel en ziekenhuizen.",
+      "s7_2Title": "7.2 Uw noodcontacten en sleutelhouders",
+      "s7_2p1": "Bij een melding kunnen wij de door u opgegeven personen bellen, sms'en of mailen. Wij vertellen hun wie hulp nodig heeft, het soort melding, een eventueel bericht en uw adres of kaartpositie op het moment van de melding. Noodcontact zijn geeft niemand toegang tot uw account of dossier.",
+      "s7_3Title": "7.3 Familieleden of mantelzorgers die u kiest",
+      "s7_3p1": "U kunt een bepaalde persoon toestemming geven om een of meer van het volgende te zien: uw meldingen, de actuele locatie van uw apparaat en uw medische gegevens. Elke toestemming staat op zichzelf, wordt met datum vastgelegd en kunt u altijd met onmiddellijke ingang intrekken. De persoon kan uw gegevens alleen inzien, nooit wijzigen.",
+      "s7_4Title": "7.4 Partners",
+      "s7_4p1": "Als u via een partner lid bent geworden (bijvoorbeeld een lokale onderneming of organisatie), weet die partner dat u lid bent geworden, zodat wij de commissie kunnen betalen. Bent u lid geworden via een organisatie die bij uw zorg betrokken is, dan kan die organisatie ook bericht krijgen als u een melding heeft, met uw naam, het soort melding en uw adres. [[TO CONFIRM: welke partners meldingen ontvangen en op welke grondslag]]",
+      "s7_5Title": "7.5 Onze dienstverleners",
+      "s7_5p1": "Deze bedrijven verwerken gegevens namens ons, onder contract en alleen volgens onze instructies:",
+      "s7_5TableHeaders": [
         "Dienstverlener",
-        "Doel",
-        "Locatie",
-        "Waarborgen"
+        "Wat zij voor ons doen",
+        "Waar de gegevens worden verwerkt",
+        "Waarborg bij doorgifte"
       ],
-      "s6_1TableRows": [
+      "s7_5TableRows": [
         [
           "Supabase, Inc.",
-          "Databasehosting",
-          "EU (Stockholm, Zweden)",
-          "Datacentrum in de EU, verwerkersovereenkomst gesloten"
+          "Database, inloggen, bestandsopslag en serverfuncties — bevat alle gegevens uit dit beleid",
+          "Europese Unie (Ierland)",
+          "Gegevens opgeslagen in de EU; [[TO CONFIRM: waarborg voor eventuele toegang vanuit de VS]]"
         ],
         [
-          "MonitorLinq B.V.",
-          "Apparaatbewaking en gps-tracking",
-          "Nederland (EU)",
-          "ISO 27001- en NEN 7510-gecertificeerd"
-        ],
-        [
-          "Stripe, Inc.",
-          "Betalingsverwerking",
-          "EU/VS",
-          "EU-US Data Privacy Framework, PCI-DSS-compliant"
-        ],
-        [
-          "Twilio, Inc.",
-          "Telefoongesprekken en sms",
-          "EU/VS",
-          "Standaardcontractbepalingen"
+          "Twilio Inc.",
+          "Telefoongesprekken, gespreksopnamen, spraakherkenning, sms- en WhatsApp-berichten",
+          "Verenigde Staten en EU",
+          "[[TO CONFIRM: EU-VS-gegevensprivacykader en/of modelcontractbepalingen]]"
         ],
         [
           "Anthropic, PBC",
-          "Functionaliteit van de AI-assistent",
-          "VS",
-          "Standaardcontractbepalingen"
+          "Het AI-model achter Isabella",
+          "Verenigde Staten",
+          "[[TO CONFIRM: EU-VS-gegevensprivacykader en/of modelcontractbepalingen]]"
         ],
         [
-          "Google (Gmail)",
-          "E-mailbezorging",
-          "EU/VS",
-          "Standaardcontractbepalingen"
+          "Stripe",
+          "Kaartbetalingen en abonnementen",
+          "EU en Verenigde Staten",
+          "[[TO CONFIRM: EU-VS-gegevensprivacykader en/of modelcontractbepalingen]]"
         ],
         [
-          "Vercel, Inc.",
-          "Websitehosting",
-          "EU",
-          "Datacentrum in de EU"
+          "Mollie B.V.",
+          "Betalingen, waaronder SEPA-incasso",
+          "Nederland (EU)",
+          "Niet van toepassing (EU)"
+        ],
+        [
+          "Vercel Inc.",
+          "Hosting en levering van onze website",
+          "Verenigde Staten en wereldwijd netwerk",
+          "[[TO CONFIRM: EU-VS-gegevensprivacykader en/of modelcontractbepalingen]]"
+        ],
+        [
+          "Functional Software, Inc. (Sentry)",
+          "Foutrapporten van onze website; schermtekst wordt gemaskeerd",
+          "[[TO CONFIRM: dataregio EU of VS]]",
+          "[[TO CONFIRM]]"
+        ],
+        [
+          "Google (Gmail / Firebase)",
+          "E-mails versturen; pushmeldingen over meldingen naar apparaten van onze medewerkers",
+          "EU en Verenigde Staten",
+          "[[TO CONFIRM: EU-VS-gegevensprivacykader en/of modelcontractbepalingen]]"
+        ],
+        [
+          "Resend, Inc.",
+          "E-mails versturen",
+          "Verenigde Staten",
+          "[[TO CONFIRM: EU-VS-gegevensprivacykader en/of modelcontractbepalingen]]"
+        ],
+        [
+          "OpenStreetMap Foundation (Nominatim)",
+          "Een adres op de kaart vinden wanneer u of onze medewerkers uw woonlocatie instellen",
+          "Verenigd Koninkrijk",
+          "Adequaatheidsbesluit van de EU voor het Verenigd Koninkrijk"
+        ],
+        [
+          "Medconneqt",
+          "Bewakingsplatform voor medicijndispensers, door onze medewerkers gebruikt als u een dispenser heeft",
+          "Nederland (EU)",
+          "Niet van toepassing (EU)"
+        ],
+        [
+          "[[TO CONFIRM: hostingprovider van de gateway voor alarmapparaten]]",
+          "Ontvangen van signalen en posities van uw alarmapparaat",
+          "[[TO CONFIRM]]",
+          "[[TO CONFIRM]]"
         ]
       ],
-      "s6_2Title": "6.2 Hulpdiensten",
-      "s6_2Intro": "Bij een noodgeval kunnen wij uw naam, locatie en relevante medische gegevens delen met:",
-      "s6_2Items": [
-        "De Spaanse hulpdiensten (112)",
-        "Lokale politie, brandweer of ambulancedienst",
-        "Spoedeisende hulpafdelingen van ziekenhuizen"
+      "s7_6Title": "7.6 Autoriteiten en wettelijke verplichtingen",
+      "s7_6p1": "Wij verstrekken gegevens als de wet dat vereist — bijvoorbeeld aan rechtbanken, aan de politie met een geldige rechtsgrond, aan de belastingdienst of aan de AEPD — of als dat nodig is om rechtsvorderingen in te stellen of te verdedigen.",
+      "s7_7Title": "7.7 Wat wij nooit doen",
+      "s7_7Items": [
+        "Wij verkopen uw persoonsgegevens niet.",
+        "Wij delen uw gegevens met niemand voor diens eigen marketing of reclame.",
+        "Wij gebruiken uw gezondheidsgegevens niet voor iets anders dan de doelen in paragraaf 5."
       ],
-      "s6_2p1": "Deze verstrekking is gebaseerd op de bescherming van uw vitale belangen (artikel 6, lid 1, onder d, AVG).",
-      "s6_3Title": "6.3 Uw contactpersonen voor noodgevallen",
-      "s6_3Intro": "De personen die u als contactpersoon aanwijst, ontvangen:",
-      "s6_3Items": [
-        "Een melding wanneer er een alarm wordt gemaakt",
-        "Uw locatie op het moment van de melding",
-        "Statusupdates tijdens een incident"
+      "s8Title": "8. Doorgifte buiten de EER",
+      "s8p1": "Onze database staat in de Europese Unie. Sommige dienstverleners uit paragraaf 7.5 zijn gevestigd in, of hebben toegang vanuit, de Verenigde Staten of andere landen buiten de Europese Economische Ruimte. In dat geval baseren wij ons op:",
+      "s8Items": [
+        "een <strong>adequaatheidsbesluit</strong> van de Europese Commissie (bijvoorbeeld voor het Verenigd Koninkrijk, of voor Amerikaanse bedrijven die zijn gecertificeerd onder het <strong>EU-VS-gegevensprivacykader</strong>);",
+        "door de Europese Commissie goedgekeurde <strong>modelcontractbepalingen</strong>, zo nodig met aanvullende maatregelen."
       ],
-      "s6_4Title": "6.4 Wettelijke verplichtingen",
-      "s6_4Intro": "Wij kunnen uw gegevens verstrekken wanneer dat verplicht is op grond van:",
-      "s6_4Items": [
-        "Een rechterlijk bevel of gerechtelijke procedure",
-        "Een verzoek van de Spaanse opsporingsdiensten met een geldige rechtsgrond",
-        "Een verzoek van toezichthoudende autoriteiten"
-      ],
-      "s6_5Title": "6.5 Wat wij NIET doen",
-      "s6_5Items": [
-        "Wij verkopen uw persoonsgegevens niet",
-        "Wij delen uw gegevens niet voor marketing door derden",
-        "Wij gebruiken uw medische gegevens voor geen enkel ander doel dan hulp bij noodgevallen"
-      ],
-      "s7Title": "7. Internationale gegevensoverdracht",
-      "s7Intro": "Enkele van onze dienstverleners bevinden zich buiten de Europese Economische Ruimte (EER). Wanneer wij uw gegevens buiten de EER doorgeven, zorgen wij voor bescherming via:",
-      "s7Items": [
-        "<strong>Het EU-US Data Privacy Framework</strong> (voor gecertificeerde Amerikaanse bedrijven)",
-        "<strong>Standaardcontractbepalingen</strong> die door de Europese Commissie zijn goedgekeurd",
-        "<strong>Adequaatheidsbesluiten</strong>, waar van toepassing"
-      ],
-      "s7p1": "U kunt een kopie van de betreffende waarborgen opvragen door contact met ons op te nemen.",
-      "s8Title": "8. Bewaartermijnen",
-      "s8TableHeaders": [
-        "Soort gegevens",
+      "s8p2": "U kunt een kopie van de geldende waarborgen opvragen via privacy@icealarm.es.",
+      "s9Title": "9. Hoe lang wij uw gegevens bewaren",
+      "s9Intro": "Wij bewaren gegevens alleen zolang dat nodig is voor de hierboven genoemde doelen en verwijderen of anonimiseren ze daarna. Onze bewaartermijnen zijn:",
+      "s9TableHeaders": [
+        "Gegevens",
         "Bewaartermijn"
       ],
-      "s8TableRows": [
+      "s9TableRows": [
         [
-          "Accountgegevens",
-          "Duur van het lidmaatschap + 5 jaar"
+          "Account-, contract- en contactgegevens",
+          "Zolang u lid bent, daarna geblokkeerd gedurende [[TO CONFIRM: termijn, bijv. 5 jaar, de algemene verjaringstermijn voor contractuele vorderingen]] en vervolgens verwijderd"
         ],
         [
-          "Medische gegevens",
-          "Duur van het lidmaatschap + 5 jaar"
+          "Gezondheids- en zorggegevens",
+          "Zolang u lid bent en uw toestemming geldt; verwijderd wanneer u uw toestemming intrekt, om verwijdering vraagt of opzegt [[TO CONFIRM: eventuele termijn na opzegging]]"
         ],
         [
-          "Gegevens van contactpersonen",
-          "Duur van het lidmaatschap + 1 jaar"
+          "Noodcontacten, sleutelhouders en toegangsgegevens van uw woning",
+          "Zolang u lid bent; verwijderd wanneer u opzegt of daarom vraagt"
         ],
         [
-          "Meldingen en incidentdossiers",
-          "7 jaar (wettelijke verplichting)"
+          "Registratie van meldingen en incidenten",
+          "[[TO CONFIRM: termijn]]; vraagt u eerder om verwijdering, dan verwijderen wij uw identificerende gegevens en bewaren wij een geanonimiseerd verslag"
         ],
         [
-          "Gespreksopnamen",
-          "2 jaar"
+          "Gespreksopnamen en uitschriften",
+          "[[TO CONFIRM: termijn]]"
         ],
         [
-          "Betaalgegevens",
-          "10 jaar (Spaanse belastingwetgeving)"
+          "Gesprekken met Isabella en andere berichten",
+          "[[TO CONFIRM: termijn]]"
         ],
         [
-          "Chat- en berichtenlogboeken",
-          "2 jaar"
+          "Facturen en boekhouding",
+          "De termijnen die het Spaanse fiscale en handelsrecht voorschrijft (doorgaans 4 tot 6 jaar)"
         ],
         [
-          "Websitestatistieken",
-          "26 maanden"
+          "Niet-afgeronde aanmeldingen",
+          "[[TO CONFIRM: termijn]]"
+        ],
+        [
+          "Locatiemeldingen van uw apparaat",
+          "[[TO CONFIRM: termijn]]"
+        ],
+        [
+          "Websitestatistieken en cookies",
+          "Zoals vermeld in onze cookie-instellingen"
         ]
       ],
-      "s8p1": "Na deze termijnen worden de gegevens veilig verwijderd of geanonimiseerd.",
-      "s9Title": "9. Uw rechten",
-      "s9Intro": "Op grond van de AVG en de Spaanse wetgeving hebt u het recht om:",
-      "s9_1Title": "9.1 Inzage",
-      "s9_1p1": "Een kopie op te vragen van alle persoonsgegevens die wij over u bewaren. Wij reageren binnen 30 dagen.",
-      "s9_2Title": "9.2 Rectificatie",
-      "s9_2p1": "Onjuiste of onvolledige gegevens te laten corrigeren. De meeste gegevens kunt u zelf bijwerken in uw ledendashboard.",
-      "s9_3Title": "9.3 Verwijdering (\"recht op vergetelheid\")",
-      "s9_3p1": "Verwijdering van uw gegevens te verzoeken. Let op: wij moeten sommige gegevens bewaren om aan de wet te voldoen. U kunt verwijdering aanvragen via uw ledendashboard of door contact met ons op te nemen.",
-      "s9_4Title": "9.4 Beperking",
-      "s9_4p1": "Te verzoeken dat wij het gebruik van uw gegevens beperken zolang een klacht in behandeling is.",
-      "s9_5Title": "9.5 Gegevensoverdraagbaarheid",
-      "s9_5p1": "Uw gegevens te ontvangen in een gestructureerde, machineleesbare vorm.",
-      "s9_6Title": "9.6 Bezwaar",
-      "s9_6p1": "Bezwaar te maken tegen verwerking op grond van gerechtvaardigd belang. Voor direct marketing kunt u zich op elk moment afmelden.",
-      "s9_7Title": "9.7 Toestemming intrekken",
-      "s9_7p1": "Waar wij ons op uw toestemming baseren, kunt u die op elk moment intrekken. Dit tast de rechtmatigheid van de verwerking vóór de intrekking niet aan.",
-      "s9Warning": "Belangrijk: trekt u uw toestemming voor de verwerking van medische gegevens in of verzoekt u om verwijdering, dan kunnen wij mogelijk geen effectieve hulp bij noodgevallen meer bieden. In dat geval kunnen wij uw lidmaatschap voor uw eigen veiligheid moeten beëindigen.",
-      "s9_8Title": "9.8 Hoe u uw rechten uitoefent",
-      "s9_8Items": [
-        "<strong>Online:</strong> via uw ledendashboard op icealarm.es/dashboard",
-        "<strong>E-mail:</strong> privacy@icealarm.es"
-      ],
-      "s9_8p1": "Wij reageren binnen 30 dagen. Wij kunnen uw identiteit moeten vaststellen voordat wij een verzoek in behandeling nemen.",
-      "s10Title": "10. Beveiliging van gegevens",
-      "s10Intro": "Wij nemen passende technische en organisatorische maatregelen, waaronder:",
+      "s9p1": "Waar de wet ons verplicht gegevens na uw opzegging te bewaren, houden wij ze <strong>geblokkeerd</strong> (artikel 32 LOPDGDD): ze worden apart gezet en alleen gebruikt om aan wettelijke verplichtingen te voldoen of vorderingen af te handelen, en daarna verwijderd.",
+      "s10Title": "10. Hoe wij uw gegevens beschermen",
+      "s10Intro": "Wij nemen technische en organisatorische maatregelen die passen bij de gevoeligheid van de gegevens, waaronder:",
       "s10Items": [
-        "Versleuteling van gegevens tijdens verzending (TLS 1.3)",
-        "Versleuteling van opgeslagen gegevens",
-        "Toegangsbeheer en authenticatie",
-        "Periodieke veiligheidsbeoordelingen",
-        "Opleiding van medewerkers op het gebied van gegevensbescherming",
-        "Procedures voor het reageren op incidenten"
+        "versleutelde verbindingen (HTTPS) tussen uw browser, onze systemen en onze dienstverleners;",
+        "versleuteling van opgeslagen gegevens door onze hostingprovider;",
+        "databaseregels (beveiliging op rijniveau), zodat iedereen alleen de gegevens kan bereiken die hij mag zien;",
+        "toegang voor medewerkers op basis van hun functie, met tweestapsverificatie voor beheerderstoegang;",
+        "registratie van wijzigingen in ledendossiers en van toestemmingen aan familieleden of mantelzorgers;",
+        "maskering van schermtekst in foutrapporten van de website;",
+        "contracten met alle dienstverleners die uw gegevens verwerken."
       ],
-      "s10p1": "Onze database wordt gehost in een Tier 3-gecertificeerd datacentrum in de Europese Unie.",
-      "s11Title": "11. Privacy van kinderen",
-      "s11p1": "Onze diensten zijn niet gericht op kinderen onder de 16 jaar. Wij verzamelen niet bewust persoonsgegevens van kinderen onder de 16 zonder toestemming van een ouder. Denkt u dat wij dat toch hebben gedaan, neem dan direct contact met ons op.",
-      "s12Title": "12. Geautomatiseerde besluitvorming",
-      "s12Intro": "Onze AI-assistent kan uw gegevens verwerken om:",
-      "s12Items": [
-        "Noodmeldingen te beoordelen",
-        "Passende reacties te bepalen",
-        "Gesprekken door te verbinden naar menselijke operators"
+      "s10p1": "Geen enkel systeem is volledig veilig. Als een datalek waarschijnlijk een risico voor uw rechten oplevert, melden wij dat binnen 72 uur nadat wij ervan op de hoogte zijn aan de AEPD, en bij een hoog risico voor u informeren wij u ook zonder onnodige vertraging.",
+      "s11Title": "11. Uw rechten",
+      "s11Intro": "Op grond van de AVG en de LOPDGDD heeft u de volgende rechten:",
+      "s11Items": [
+        "<strong>Inzage</strong> — weten of wij gegevens over u hebben en een kopie ervan krijgen.",
+        "<strong>Rectificatie</strong> — onjuiste of onvolledige gegevens laten corrigeren. Veel gegevens kunt u zelf in uw account bijwerken.",
+        "<strong>Verwijdering</strong> — uw gegevens laten wissen, tenzij wij ze wettelijk moeten bewaren (paragraaf 9).",
+        "<strong>Beperking</strong> — ons vragen het gebruik van uw gegevens te beperken, bijvoorbeeld terwijl wij een klacht onderzoeken.",
+        "<strong>Overdraagbaarheid</strong> — de gegevens die u ons heeft gegeven ontvangen in een gestructureerd, machineleesbaar formaat.",
+        "<strong>Bezwaar</strong> — bezwaar maken tegen verwerking op basis van ons gerechtvaardigd belang, en altijd tegen direct marketing.",
+        "<strong>Toestemming intrekken</strong> — op elk moment, zonder gevolgen voor wat wij daarvoor hebben gedaan.",
+        "<strong>Niet onderworpen worden aan uitsluitend geautomatiseerde besluiten</strong> met rechtsgevolgen of vergelijkbaar ingrijpende gevolgen (paragraaf 6)."
       ],
-      "s12p1": "U hebt het recht om menselijke tussenkomst te vragen bij elk geautomatiseerd besluit dat u in aanzienlijke mate raakt. Bij een noodgeval zijn er altijd menselijke operators beschikbaar om over te nemen.",
-      "s13Title": "13. Cookies",
-      "s13Intro": "Onze website gebruikt cookies voor:",
+      "s11HowTitle": "Hoe u uw rechten uitoefent",
+      "s11HowItems": [
+        "<strong>E-mail:</strong> privacy@icealarm.es",
+        "<strong>In uw account:</strong> Profiel → Privacy en gegevens, waar u een kopie van uw belangrijkste gegevens kunt downloaden en kunt vragen uw account te verwijderen.",
+        "<strong>Per post:</strong> ICE Alarm España S.L., [[TO CONFIRM: adres statutaire zetel]]"
+      ],
+      "s11p1": "Het uitoefenen van uw rechten is gratis. Wij reageren binnen een maand; bij complexe verzoeken kunnen wij dit met twee maanden verlengen en vertellen wij u waarom. Wij kunnen u vragen uw identiteit te bevestigen. Een familielid of vertegenwoordiger kan namens u optreden met bewijs van vertegenwoordiging.",
+      "s11DeletionTitle": "Wat er gebeurt als u vraagt uw account te verwijderen",
+      "s11DeletionItems": [
+        "uw abonnement wordt opgezegd;",
+        "uw gezondheidsgegevens en noodcontacten worden verwijderd;",
+        "openstaande beveiligde updatelinks worden ongeldig gemaakt;",
+        "uw naam, contactgegevens, geboortedatum, identificatienummers en adres worden uit uw dossier verwijderd;",
+        "uw meldingsgeschiedenis wordt alleen geanonimiseerd bewaard;",
+        "facturen en andere gegevens die wij wettelijk moeten bewaren worden geblokkeerd (paragraaf 9)."
+      ],
+      "s11Warning": "Belangrijk: als u uw account verwijdert, stopt uw bewakingsdienst. Wij beantwoorden uw alarm dan niet meer.",
+      "s11p2": "<strong>Overleden personen.</strong> Op grond van artikel 3 LOPDGDD kunnen familieleden en erfgenamen van een overleden lid ons om inzage in, rectificatie of verwijdering van diens gegevens vragen, tenzij het lid dat heeft verboden.",
+      "s12Title": "12. Minderjarigen",
+      "s12p1": "Onze dienst is bedoeld voor volwassenen. Wij verzamelen niet bewust gegevens van kinderen jonger dan 14 jaar. Denkt u dat wij gegevens van een kind hebben, neem dan contact met ons op; wij verwijderen ze dan.",
+      "s13Title": "13. Website en cookies",
+      "s13Intro": "Onze website gebruikt:",
       "s13Items": [
-        "<strong>Noodzakelijke cookies:</strong> nodig om de website te laten werken",
-        "<strong>Analytische cookies:</strong> om te begrijpen hoe bezoekers onze site gebruiken (alleen met toestemming)"
+        "<strong>Noodzakelijke cookies en opslag</strong> — om u ingelogd te houden, uw taal en cookiekeuzes te onthouden en de site te beveiligen.",
+        "<strong>Statistieken</strong> — om te begrijpen hoe de site wordt gebruikt; alleen met uw toestemming."
       ],
-      "s13p1": "U kunt uw cookievoorkeuren beheren via onze cookiemelding of via de instellingen van uw browser.",
+      "s13p1": "U kunt uw keuzes altijd wijzigen in de cookie-instellingen (via de cookiemelding, of in uw account onder Profiel → Privacy en gegevens).",
       "s14Title": "14. Wijzigingen in dit beleid",
-      "s14Intro": "Wij kunnen dit privacybeleid van tijd tot tijd aanpassen. Belangrijke wijzigingen laten wij u weten via:",
+      "s14Intro": "Wij passen dit beleid aan wanneer onze dienst of de wet verandert. Bij een belangrijke wijziging laten wij u dat weten via:",
       "s14Items": [
-        "Een e-mailbericht",
-        "Een melding op onze website",
-        "Een melding in uw ledendashboard"
+        "e-mail;",
+        "een bericht op onze website;",
+        "een bericht in uw account."
       ],
-      "s14p1": "De datum \"Laatst bijgewerkt\" bovenaan geeft aan wanneer het beleid voor het laatst is herzien.",
+      "s14p1": "Als een wijziging uw toestemming vereist, vragen wij die opnieuw. De datum en versie bovenaan deze pagina geven aan wanneer het beleid voor het laatst is gewijzigd.",
       "s15Title": "15. Klachten",
-      "s15p1": "Bent u niet tevreden over de manier waarop wij met uw gegevens omgaan, dan hebt u het recht een klacht in te dienen bij:",
+      "s15p1": "Bent u niet tevreden over hoe wij met uw gegevens omgaan, neem dan eerst contact op met ons of onze FG — wij lossen het graag op. U heeft ook het recht een klacht in te dienen bij de toezichthouder:",
       "s15Authority": "<strong>Agencia Española de Protección de Datos (AEPD)</strong><br/>C/ Jorge Juan, 6<br/>28001 Madrid<br/><a href=\"https://www.aepd.es\" target=\"_blank\" rel=\"noopener noreferrer\">www.aepd.es</a><br/>Tel: 900 293 183",
-      "s15p2": "U hebt ook het recht om naar de rechter te stappen.",
+      "s15p2": "U kunt zich ook tot de rechter wenden.",
       "s16Title": "16. Contact",
-      "s16Intro": "<strong>Voor alle vragen over privacy:</strong>",
-      "s16Content": "ICE Alarm España<br/>E-mail: privacy@icealarm.es<br/>Algemene vragen: info@icealarm.es",
-      "governedBy": "Op dit privacybeleid is Spaans recht van toepassing, evenals de Algemene verordening gegevensbescherming (EU) 2016/679."
+      "s16Intro": "<strong>Voor vragen over uw persoonsgegevens:</strong>",
+      "s16Content": "ICE Alarm España S.L. (CIF B24731531)<br/>[[TO CONFIRM: adres statutaire zetel]]<br/>Privacy en FG: privacy@icealarm.es<br/>Algemene vragen: info@icealarm.es",
+      "governedBy": "Op dit beleid zijn Verordening (EU) 2016/679 (AVG), de Spaanse Organieke Wet 3/2018 (LOPDGDD) en het Spaanse recht van toepassing."
     }
   },
   "mediaStrategy": {

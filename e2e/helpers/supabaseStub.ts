@@ -1,5 +1,10 @@
 import type { Page, Route } from "@playwright/test";
 
+import {
+  COOKIE_CONSENT_STORAGE_KEY,
+  COOKIE_CONSENT_VERSION,
+} from "../../src/lib/cookieConsent";
+
 /**
  * A stub for Supabase's HTTP surface, installed via Playwright route interception.
  *
@@ -207,19 +212,36 @@ export async function installSupabaseStub(page: Page, initial: StubScenario = {}
   //
   // Consent is seeded as essential-only — the narrowest choice, so nothing here
   // depends on analytics or marketing being switched on.
-  await page.addInitScript(() => {
-    localStorage.setItem(
-      "ice_cookie_consent",
-      JSON.stringify({
-        essential: true,
-        analytics: false,
-        marketing: false,
-        consentedAt: "2026-08-01T00:00:00.000Z",
-      })
-    );
-    localStorage.setItem("i18nextLng", "en");
-    localStorage.setItem("iceAlarmLanguageSelected", "true");
-  });
+  //
+  // THE KEY AND THE VERSION ARE IMPORTED, NOT TYPED OUT, and that is the whole point.
+  // `readCookieConsent` refuses any record whose `version` is not the current one —
+  // correctly, because a Cookie Policy change has to be consented to again. When #452
+  // bumped `COOKIE_CONSENT_VERSION` to 2, this fixture still wrote a v1-shaped record
+  // with no `version` at all, so every journey ran with NO consent, the banner rendered
+  // over the foot of the page, and three `partnerJourney` tests spent 90 seconds each
+  // retrying a click that a `fixed bottom-0` banner was intercepting. The failure named
+  // the banner but not the cause, because the fixture looked right.
+  //
+  // Importing the constants means the next version bump updates this fixture with it. A
+  // literal here is a fixture that silently stops meaning what it says.
+  await page.addInitScript(
+    ({ key, version }: { key: string; version: number }) => {
+      localStorage.setItem(
+        key,
+        JSON.stringify({
+          essential: true,
+          analytics: false,
+          marketing: false,
+          consentedAt: "2026-08-01T00:00:00.000Z",
+          version,
+          method: "reject_all",
+        })
+      );
+      localStorage.setItem("i18nextLng", "en");
+      localStorage.setItem("iceAlarmLanguageSelected", "true");
+    },
+    { key: COOKIE_CONSENT_STORAGE_KEY, version: COOKIE_CONSENT_VERSION }
+  );
 
   const roleInfoFor = (): RoleInfo => {
     const isActivePartner = scenario.partner?.status === "active";

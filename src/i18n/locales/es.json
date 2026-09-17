@@ -3446,6 +3446,8 @@
       "callNow": "Llámenos Ahora"
     },
     "error": {
+      "checkFields": "Revise los campos marcados, por favor.",
+      "tooMany": "Ha enviado varios mensajes hace poco. Espere un momento o ll\u00e1menos.",
       "sendFailed": "Error al enviar el mensaje. Por favor, inténtelo de nuevo."
     }
   },
@@ -3618,6 +3620,7 @@
     "learnMore": "Más información",
     "notifyMe": "Avísame",
     "notify": {
+      "tooMany": "Ya lo ha solicitado varias veces. Espere un momento, por favor.",
       "title": "Recibir aviso",
       "description": "Introduzca su correo y le avisaremos cuando {{product}} esté disponible.",
       "emailLabel": "Correo electrónico",

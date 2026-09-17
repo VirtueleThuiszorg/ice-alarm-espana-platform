@@ -3446,6 +3446,8 @@
       "callNow": "Call Us Now"
     },
     "error": {
+      "checkFields": "Please check the highlighted fields.",
+      "tooMany": "You have sent several messages recently. Please wait a little, or call us.",
       "sendFailed": "Failed to send message. Please try again."
     }
   },
@@ -3618,6 +3620,7 @@
     "learnMore": "Learn more",
     "notifyMe": "Notify Me",
     "notify": {
+      "tooMany": "You have asked a few times already. Please wait a little.",
       "title": "Get notified",
       "description": "Enter your email and we'll let you know when {{product}} is available.",
       "emailLabel": "Email address",

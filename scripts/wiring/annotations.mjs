@@ -755,6 +755,24 @@ export const FAMILIES = [
       "member does not become a 28th member after one February.",
   },
   {
+    wires: ["fn:public-submit"],
+    control: "Public forms — the /contact enquiry form and the pendant page's Notify Me box",
+    promise: "send us a message and somebody will get back to you",
+    dest: "public-submit \u2192 leads (service role), public_submission_log",
+    told: "Lee and Martijn (new-enquiry bell), unless the submission is suspected spam",
+    proof: "src/test/publicSubmit.test.ts",
+    note:
+      "Both forms used to INSERT into `leads` straight from the browser with the anon key, and " +
+      "the only validation was `required` attributes on the HTML \u2014 which exist in a visitor's " +
+      "browser and nowhere at all for a script POSTing to the REST endpoint. A lead arrived with " +
+      "no name, no email and no phone and rang the bell. The anon INSERT policy is revoked, so " +
+      "this function is the only way a lead can arrive: it checks a honeypot, a per-IP and " +
+      "per-email hourly limit, and every field server-side, and it refuses with the field names " +
+      "so the form can mark the boxes. A suspected-spam lead is still saved and still in the " +
+      "list; what it loses is the bell.",
+  },
+
+  {
     wires: ["fn:submit-member-update", "fn:validate-member-update-token", "fn:send-member-update-request"],
     control: "Member-update link — staff request a details check, member submits it without logging in",
     promise: "confirm your details from the link we sent you",

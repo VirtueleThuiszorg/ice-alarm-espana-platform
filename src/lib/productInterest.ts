@@ -1,19 +1,15 @@
 /**
- * Build the `leads` row for a "Notify Me" product-interest capture on coming-soon products.
- * Tagged source `product_interest` with the product name in the message so the team can
- * follow up. Matches the leads insert shape used by the contact form.
+ * The "Notify Me" box's client-side email check.
+ *
+ * A CONVENIENCE, NOT THE RULE. It saves a round trip and shows the error the instant somebody
+ * types a bad address; the rule is `isPublicEmail` in `supabase/functions/_shared/public-submit.ts`,
+ * which is what actually decides whether a row is written and is the only one a script POSTing at
+ * the endpoint ever meets.
+ *
+ * `buildProductInterestLead` used to live here and built the `leads` row in the browser. It is
+ * gone with the browser's reason to build that row: the shape is now assembled by `public-submit`
+ * with the service role, where a POST cannot choose its own `source` or `status`.
  */
-export function buildProductInterestLead(productName: string, email: string) {
-  return {
-    first_name: "",
-    last_name: "",
-    email: email.trim(),
-    phone: "",
-    source: "product_interest",
-    message: `Product interest: ${productName}`,
-    status: "new",
-  };
-}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

@@ -569,22 +569,85 @@ export function ClientLayout() {
     // internal aqua — a member never crosses a palette boundary at login.
     <div className="theme-member min-h-screen bg-background text-foreground">
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-sidebar h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
-        <Logo variant="sidebar" size="sm" />
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-sidebar h-16 flex items-center gap-2 px-4 border-b border-sidebar-border">
+        {/*
+          THE MARK WITHOUT THE WORDMARK, below 768px — and that is a trade, not a tidy-up.
+
+          "ICE Alarm España" on one line is ~120px of a 358px bar at 390px wide, and it is the
+          least load-bearing thing in it: a member reading this is already inside their own
+          dashboard, signed in, with their own name in the menu. The shield still says whose
+          product it is. What the 120px buys is the 24-hour NUMBER, in digits, beside it.
+        */}
+        <Logo variant="sidebar" size="sm" showText={false} />
+
+        {/*
+          THE 24-HOUR NUMBER, IN ONE TAP, AT EVERY WIDTH.
+
+          It lived only at the bottom of the sidebar — and below 768px the sidebar is a Sheet
+          behind the hamburger. So on every phone, and on an iPad in portrait, reaching the one
+          number a frightened member needs was: find the hamburger, wait for the sheet, scroll to
+          the bottom, tap. Four actions, the first of which is a glyph, while "Complete my
+          details" — a data-quality chore — sat in the dashboard header in a button.
+
+          THE ARGUMENT IS THE A/A'S OWN, one element to the right of this one: *a member who
+          cannot read the screen cannot reliably find a control hidden behind a hamburger.* That
+          is right about a font-size toggle and it is far more right about this.
+
+          DIGITS WHERE THEY FIT. The sidebar block's comment says why — a member who can READ the
+          number can write it on a pad by the phone — and it is the same anchor here.
+
+          SAME TWO RULES AS THE SIDEBAR BLOCK: an `<a href="tel:">` so it dials and so a screen
+          reader announces a phone number, and NOTHING AT ALL when `settings_emergency_phone` is
+          unset. A control that promises an emergency line and goes nowhere is the defect D12 was
+          written to end, and it is worse at the top of the screen than at the bottom of a menu.
+
+          IT IS ADDED, NOT SWAPPED IN. The A/A keeps its place and `MemberReadinessNotice
+          variant="bar"` still sits directly beneath this header, which is where D10 put it.
+        */}
+        {phoneHref && (
+          <a
+            href={phoneHref}
+            data-testid="mobile-emergency-number"
+            aria-label={t("dashboard.callTwentyFourHour", "Call our 24-hour line: {{number}}", {
+              number: companySettings.emergency_phone,
+            })}
+            className="touch-target flex shrink-0 items-center gap-2 rounded-lg bg-foreground px-3 font-semibold text-background transition-colors hover:bg-foreground/90"
+          >
+            <Phone className="h-5 w-5 shrink-0" aria-hidden="true" />
+            {/*
+              THE DIGITS, AND THE ONE CASE THEY COME OFF.
+
+              Measured rather than assumed (`e2e/memberEmergencyOneTap.spec.ts` asserts it):
+              at the default text size the number fits at 360px with room to spare. At the LARGE
+              text size everything in this bar grows by a quarter — the A/A itself included — and
+              below 420px the number no longer fits beside it.
+
+              So there, and only there, the control falls back to the handset alone. The icon is
+              the fallback, never the target, and the `aria-label` above carries the number in
+              both cases. Dropping the DIGITS rather than the A/A or the control itself is the
+              right sacrifice: the member has told us they need bigger text, so the last thing to
+              do is shrink something for them to read.
+            */}
+            <span className="whitespace-nowrap text-sm tabular-nums [[data-text-size=large]_&]:max-[419px]:hidden">
+              {companySettings.emergency_phone}
+            </span>
+          </a>
+        )}
+
         {/*
           The A/A on mobile too, and not buried in the menu sheet. A member who cannot read the
           screen cannot reliably find a control hidden behind a hamburger — the one thing that
           fixes the problem must not be gated on solving it first. Two 36px buttons fit beside a
           logo and a menu button; nothing else was competing for the space.
         */}
-        <div className="ml-auto mr-2">
+        <div className="ml-auto">
           <TextSizeControl className="border-sidebar-border" />
         </div>
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setMobileMenuOpen(true)}
-          className="text-sidebar-foreground hover:bg-sidebar-accent"
+          className="shrink-0 text-sidebar-foreground hover:bg-sidebar-accent"
         >
           <Menu className="h-6 w-6" />
         </Button>

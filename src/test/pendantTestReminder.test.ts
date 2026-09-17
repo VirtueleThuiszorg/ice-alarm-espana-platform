@@ -128,6 +128,50 @@ describe("the boundary, chosen on purpose", () => {
   });
 });
 
+describe("one read, not two — what the perf gate caught", () => {
+  /*
+    The threshold started as its own `.eq("key", …)`. `e2e/perf/budgets.spec.ts` counts DISTINCT
+    query shapes per table and treats three against one table as a read-once-per-row smell; the
+    member dashboard already made two against `system_settings` (the company block's `.in(…)` and
+    the alert-history flag's `.eq(…)`), so the third made three and the gate went red on the first
+    CI run of this branch.
+
+    The gate was right. Both settings say what a member is SHOWN, neither is about a member, and
+    both are read by the portal on load — so one `.in(…)` answers both and the dashboard makes
+    exactly as many settings round trips as it did before this feature existed.
+  */
+  it("both member-display settings come back from one query", () => {
+    const shared = read("src/hooks/useMemberDisplaySettings.ts");
+    expect(shared).toMatch(/\.in\("key", \[MEMBER_ALERT_HISTORY_KEY, PENDANT_TEST_REMINDER_KEY\]\)/);
+    // One query key, so react-query serves every consumer from one cache entry.
+    expect((shared.match(/queryKey:/g) ?? [])).toHaveLength(1);
+  });
+
+  it("neither hook issues a query of its own any more", () => {
+    for (const hook of [
+      "src/hooks/usePendantTestReminderDays.ts",
+      "src/hooks/useMemberAlertHistory.ts",
+    ]) {
+      const src = read(hook);
+      expect(src, `${hook} still queries directly`).not.toContain("supabase");
+      expect(src, hook).not.toContain("useQuery");
+    }
+  });
+
+  it("the two fallbacks point in opposite directions, on purpose", () => {
+    /*
+      Same read, opposite safe sides. Alert history OFF: showing a member a list of their own
+      worst days because a read failed is the bad direction. The threshold 90, never "never
+      stale": telling somebody their fourteen-month-old test is current is the bad direction here.
+      Asserted because a later tidy-up that gave them one shared default would silently break one
+      of them.
+    */
+    const shared = read("src/hooks/useMemberDisplaySettings.ts");
+    expect(shared).toMatch(/alertHistoryEnabled: false/);
+    expect(shared).toMatch(/pendantTestReminderDays: DEFAULT_PENDANT_TEST_REMINDER_DAYS/);
+  });
+});
+
 describe("the row, and the reason it would otherwise be inert", () => {
   it("seeds the key at 90 without resetting a value somebody has changed", () => {
     expect(MIGRATION_SQL).toContain("INSERT INTO public.system_settings (key, value)");
@@ -140,7 +184,7 @@ describe("the row, and the reason it would otherwise be inert", () => {
     // find out that they stopped agreeing.
     expect(PENDANT_TEST_REMINDER_KEY).toBe("pendant_test_reminder_days");
     expect(MIGRATION_SQL).toContain(`'${PENDANT_TEST_REMINDER_KEY}'`);
-    expect(read("src/hooks/usePendantTestReminderDays.ts")).toContain("PENDANT_TEST_REMINDER_KEY");
+    expect(read("src/hooks/useMemberDisplaySettings.ts")).toContain("PENDANT_TEST_REMINDER_KEY");
   });
 
   it("adds the key to the PUBLIC whitelist, or a member cannot read it at all", () => {

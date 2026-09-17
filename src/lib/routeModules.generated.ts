@@ -71,6 +71,7 @@ export const ROUTE_MODULES: Record<string, () => Promise<unknown>> = {
   "/call-centre/tickets": () => import("@/pages/call-centre/TicketsPage"),
   "/complete-registration": () => import("@/pages/auth/CompleteRegistration"),
   "/contact": () => import("@/pages/ContactPage"),
+  "/cookies": () => import("@/pages/CookiesPage"),
   "/dashboard": () => import("@/pages/client/ClientDashboard"),
   "/dashboard/alerts": () => import("@/pages/client/AlertHistoryPage"),
   "/dashboard/contacts": () => import("@/pages/client/EmergencyContactsPage"),
@@ -110,4 +111,4 @@ export const ROUTE_MODULES: Record<string, () => Promise<unknown>> = {
 };
 
 /** How many routes the generator found, asserted in the test so a parse break is loud. */
-export const ROUTE_MODULE_COUNT = 99;
+export const ROUTE_MODULE_COUNT = 100;

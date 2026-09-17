@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { loadTwilioNumbers } from "../_shared/twilio-numbers.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { VOICE_AI_DISCLOSURE } from "../_shared/ai-disclosure.ts";
 
 const VERSION = "v2.1.0";
 const FN = "voice-handler";
@@ -499,13 +500,15 @@ Deno.serve(async (req) => {
         );
         const name = member?.first_name || callerName || "";
 
+        // EU AI Act art. 50: the AI disclosure is appended in code AFTER the configurable greeting,
+        // so no setting can remove it. DRAFT wording, pending legal review (_shared/ai-disclosure.ts).
         const greetEs = name
-          ? `Hola ${name}, bienvenido a ICE Alarm España. Soy Isabel. ${recEs} ¿En qué puedo ayudarle?`
-          : `${getSetting("voice_greeting_es", "Gracias por llamar a ICE Alarm España. Soy Isabel.")} ${recEs} ¿En qué puedo ayudarle?`;
+          ? `Hola ${name}, bienvenido a ICE Alarm España. Soy Isabella. ${VOICE_AI_DISCLOSURE.es} ${recEs} ¿En qué puedo ayudarle?`
+          : `${getSetting("voice_greeting_es", "Gracias por llamar a ICE Alarm España. Soy Isabella.")} ${VOICE_AI_DISCLOSURE.es} ${recEs} ¿En qué puedo ayudarle?`;
 
         const greetEn = name
-          ? `Hello ${name}, welcome to ICE Alarm España. I'm Isabel. ${recEn} How can I help?`
-          : `${getSetting("voice_greeting_en", "Thank you for calling ICE Alarm España. I'm Isabel.")} ${recEn} How can I help?`;
+          ? `Hello ${name}, welcome to ICE Alarm España. I'm Isabella. ${VOICE_AI_DISCLOSURE.en} ${recEn} How can I help?`
+          : `${getSetting("voice_greeting_en", "Thank you for calling ICE Alarm España. I'm Isabella.")} ${VOICE_AI_DISCLOSURE.en} ${recEn} How can I help?`;
 
         // Log greeting as conversation message
         if (convId) {

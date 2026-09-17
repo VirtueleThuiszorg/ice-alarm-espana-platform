@@ -434,20 +434,21 @@
   "gdpr": {
     "cookieBanner": {
       "title": "We gebruiken cookies",
-      "description": "We gebruiken cookies en vergelijkbare technologieën om uw ervaring te verbeteren, verkeer te analyseren en inhoud te personaliseren. U kunt kiezen welke cookies u toestaat.",
+      "description": "Wij gebruiken strikt noodzakelijke technieken om deze website veilig te laten werken. Met uw toestemming willen wij ook onze eigen statistieken gebruiken om te zien hoe de website wordt gebruikt. U kunt accepteren, weigeren of zelf kiezen — en uw keuze altijd wijzigen.",
       "customize": "Aanpassen",
       "rejectNonEssential": "Niet-essentiële weigeren",
-      "acceptAll": "Alles accepteren"
+      "acceptAll": "Alles accepteren",
+      "policyLink": "Lees ons cookiebeleid"
     },
     "cookieSettings": {
       "title": "Cookievoorkeuren",
       "description": "Beheer hieronder uw cookievoorkeuren. Essentiële cookies zijn altijd actief omdat ze noodzakelijk zijn voor het functioneren van de website.",
       "essential": "Essentiële cookies",
-      "essentialDescription": "Vereist voor het correct functioneren van de website. Kan niet worden uitgeschakeld.",
+      "essentialDescription": "Nodig om u in te loggen, de website veilig te houden, uw cookiekeuze te onthouden en fouten op te sporen. Kunnen niet worden uitgeschakeld.",
       "analytics": "Analytische cookies",
-      "analyticsDescription": "Helpen ons te begrijpen hoe bezoekers met onze website omgaan om de prestaties te verbeteren.",
+      "analyticsDescription": "Onze eigen statistieken over welke pagina’s worden bezocht en vanaf welk soort apparaat. Niet gedeeld met adverteerders. Uit, tenzij u ze inschakelt.",
       "marketing": "Marketingcookies",
-      "marketingDescription": "Gebruikt om gepersonaliseerde advertenties te tonen en de effectiviteit van campagnes te meten.",
+      "marketingDescription": "Wij gebruiken op dit moment geen advertentie- of socialemediacookies. Mochten wij dat ooit doen, dan alleen met uw toestemming.",
       "savePreferences": "Voorkeuren opslaan"
     },
     "settings": {
@@ -3214,16 +3215,20 @@
     "openChat": "Chat openen",
     "closeChat": "Chat sluiten",
     "newChat": "Nieuwe chat",
-    "assistantName": "ICE Alarm España-assistent",
-    "memberAssistantName": "Uw persoonlijke assistent",
+    "assistantName": "Isabella · AI-assistent",
+    "memberAssistantName": "Isabella · Uw AI-assistent",
     "available": "24/7 beschikbaar",
     "memberAssistantAvailable": "Hier om u te helpen",
     "placeholder": "Typ uw bericht...",
     "send": "Verzenden",
-    "welcomeMessage": "Hallo! 👋 Ik ben uw virtuele ICE Alarm España-assistent. Hoe kan ik u vandaag helpen? Ik kan vragen beantwoorden over onze diensten en prijzen of u op weg helpen.",
+    "welcomeMessage": "Hallo! 👋 Ik ben Isabella, de virtuele AI-assistent van ICE Alarm España. Hoe kan ik u vandaag helpen? Ik kan vragen beantwoorden over onze diensten en prijzen of u op weg helpen.",
     "errorMessage": "Sorry, er was een verbindingsprobleem. Probeer het later opnieuw.",
     "fallbackMessage": "Sorry, ik kon uw bericht niet verwerken. Probeer het opnieuw.",
-    "assistant": "Assistent"
+    "assistant": "Assistent",
+    "aiDisclosure": {
+      "label": "AI-assistent — geen mens",
+      "text": "Isabella is een assistent met kunstmatige intelligentie, geen mens, en kan geen medisch advies geven. Wilt u een mens spreken, vraag het haar gewoon. Druk in een noodgeval op uw SOS-knop of bel 112."
+    }
   },
   "partnerAgreement": {
     "title": "Partner Agreement",
@@ -4254,6 +4259,229 @@
       "s16Intro": "<strong>Voor alle vragen over privacy:</strong>",
       "s16Content": "ICE Alarm España<br/>E-mail: privacy@icealarm.es<br/>Algemene vragen: info@icealarm.es",
       "governedBy": "Op dit privacybeleid is Spaans recht van toepassing, evenals de Algemene verordening gegevensbescherming (EU) 2016/679."
+    },
+    "cookies": {
+      "title": "Cookiebeleid",
+      "company": "ICE Alarm España S.L. — fiscaal nummer (CIF) B24731531",
+      "lastUpdated": "Laatst bijgewerkt: 17 september 2026 · Versie 2 · Concept, in afwachting van juridische controle",
+      "footerLink": "Cookiebeleid",
+      "settingsLink": "Cookie-instellingen",
+      "intro": "Dit cookiebeleid legt uit welke cookies en vergelijkbare technieken worden gebruikt op icealarm.es en in de portalen voor leden, partners en medewerkers van ICE Alarm España, waarvoor ze dienen, hoe lang ze bewaard blijven en hoe u ze op elk moment kunt accepteren, weigeren of uw toestemming kunt intrekken. Het vult ons privacybeleid aan, waarin staat hoe wij persoonsgegevens in het algemeen verwerken.",
+      "s1Title": "1. Wat zijn cookies en vergelijkbare technieken?",
+      "s1p1": "Cookies zijn kleine tekstbestanden die een website op uw apparaat opslaat. Websites kunnen ook op andere manieren informatie in uw browser bewaren, bijvoorbeeld in de ‘lokale opslag’ (die blijft staan tot ze wordt gewist) en de ‘sessieopslag’ (die wordt gewist wanneer u het tabblad of de browser sluit). De Spaanse wet op de diensten van de informatiemaatschappij (Ley 34/2002, LSSI-CE, artikel 22.2) geldt voor al deze technieken op dezelfde manier; daarom noemen wij ze in dit beleid allemaal ‘cookies’.",
+      "s1p2": "Sommige cookies zijn strikt noodzakelijk voor een dienst waar u om hebt gevraagd en mogen zonder uw toestemming worden gebruikt. Alle andere cookies worden alleen gebruikt als u daarmee instemt.",
+      "s2Title": "2. Wie is verantwoordelijk",
+      "s2p1": "De cookies in dit beleid worden geplaatst door ICE Alarm España S.L. (CIF B24731531), behalve waar in de tabel een externe aanbieder wordt genoemd. Voor vragen over dit beleid kunt u contact opnemen via privacy@icealarm.es.",
+      "s3Title": "3. De categorieën die wij gebruiken",
+      "s3Items": [
+        "Strikt noodzakelijk: om u in te loggen en uw sessie veilig te houden, uw cookiekeuze te onthouden, een formulier dat u invult te bewaren en fouten op te sporen. Deze kunnen niet worden uitgeschakeld, omdat de website zonder deze cookies niet werkt.",
+        "Voorkeuren: om keuzes te onthouden die u maakt, zoals uw taal, de tekstgrootte of of u een rondleiding al hebt gezien. Ze worden alleen opgeslagen wanneer u die keuze maakt.",
+        "Analytisch (alleen met uw toestemming): onze eigen statistieken over welke pagina’s worden bezocht en vanaf welk soort apparaat, zodat wij de website kunnen verbeteren. Ze worden niet gedeeld met adverteerders.",
+        "Marketing: wij gebruiken op dit moment geen advertentie- of socialemediacookies. Mochten wij dat ooit doen, dan alleen met uw toestemming en na aanpassing van dit beleid."
+      ],
+      "s4Title": "4. De cookies die wij gebruiken",
+      "s4Intro": "De onderstaande tabel vermeldt alle cookies en opslagitems die onze website en portalen gebruiken. Namen met <…> verschillen enigszins per apparaat.",
+      "tableHeaders": {
+        "name": "Naam",
+        "provider": "Aanbieder",
+        "purpose": "Doel",
+        "duration": "Bewaartermijn",
+        "type": "Soort"
+      },
+      "essentialTitle": "4.1 Strikt noodzakelijk",
+      "essentialRows": [
+        {
+          "name": "sb-<project>-auth-token",
+          "provider": "ICE Alarm España (inlogdienst geleverd door Supabase)",
+          "purpose": "Houdt u veilig ingelogd op uw account.",
+          "duration": "Als u ‘Ingelogd blijven’ hebt aangevinkt: tot u uitlogt. Anders: tot u de browser sluit.",
+          "type": "Lokale opslag of sessieopslag"
+        },
+        {
+          "name": "ice.auth.persist",
+          "provider": "ICE Alarm España",
+          "purpose": "Onthoudt of u op dit apparaat ingelogd wilt blijven.",
+          "duration": "Tot u de keuze wijzigt of uw browsergegevens wist",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "ice_cookie_consent",
+          "provider": "ICE Alarm España",
+          "purpose": "Legt uw cookiekeuze vast, wanneer u die maakte en de versie van dit beleid.",
+          "duration": "24 maanden, daarna vragen wij het opnieuw",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "isRecoveryFlow",
+          "provider": "ICE Alarm España",
+          "purpose": "Rondt een wachtwoordherstel af waar u om hebt gevraagd.",
+          "duration": "Tot het herstel is voltooid of het tabblad wordt gesloten",
+          "type": "Sessieopslag"
+        },
+        {
+          "name": "chunk-reload-<page>",
+          "provider": "ICE Alarm España",
+          "purpose": "Voorkomt dat de pagina blijft herladen nadat wij een nieuwe versie van de website hebben gepubliceerd.",
+          "duration": "Tot het tabblad wordt gesloten",
+          "type": "Sessieopslag"
+        },
+        {
+          "name": "join_wizard_session_id, join_wizard_data",
+          "provider": "ICE Alarm España",
+          "purpose": "Bewaart het aanmeldformulier dat u invult, zodat het niet verloren gaat wanneer u naar de betaalpagina gaat.",
+          "duration": "Tot u de aanmelding afrondt of opnieuw begint",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "ice_conversation_id, ice_conversation_expiry",
+          "provider": "ICE Alarm España",
+          "purpose": "Zet uw gesprek met onze AI-assistent Isabella voort als u naar een andere pagina gaat.",
+          "duration": "30 minuten na uw laatste bericht",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "sentryReplaySession",
+          "provider": "Sentry (Functional Software, Inc.)",
+          "purpose": "Foutbewaking: als de website vastloopt, wordt een technisch spoor vastgelegd zodat wij het kunnen herstellen. Tekst op het scherm wordt afgeschermd en afbeeldingen worden geblokkeerd.",
+          "duration": "Tot het tabblad wordt gesloten",
+          "type": "Sessieopslag"
+        }
+      ],
+      "preferencesTitle": "4.2 Voorkeuren",
+      "preferencesRows": [
+        {
+          "name": "i18nextLng",
+          "provider": "ICE Alarm España",
+          "purpose": "Onthoudt de taal die u hebt gekozen.",
+          "duration": "Tot u deze wijzigt of uw browsergegevens wist",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "iceAlarmLanguageSelected",
+          "provider": "ICE Alarm España",
+          "purpose": "Onthoudt dat u al een taal hebt gekozen, zodat wij het niet opnieuw vragen.",
+          "duration": "Tot u uw browsergegevens wist",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "ice.textSize",
+          "provider": "ICE Alarm España",
+          "purpose": "Onthoudt de tekstgrootte die u hebt gekozen (A/A).",
+          "duration": "Tot u deze wijzigt of uw browsergegevens wist",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "ice_tour_<name>_completed",
+          "provider": "ICE Alarm España",
+          "purpose": "Onthoudt dat u een rondleiding hebt voltooid of overgeslagen.",
+          "duration": "Tot u de rondleiding opnieuw start of uw browsergegevens wist",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "ice_feedback_cooldown, ice_feedback_dismissed",
+          "provider": "ICE Alarm España",
+          "purpose": "Voorkomt dat wij u te snel, of na een weigering, opnieuw om feedback vragen.",
+          "duration": "Tot de wachttijd voorbij is of u uw browsergegevens wist",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "sidebar:state",
+          "provider": "ICE Alarm España",
+          "purpose": "Onthoudt of het zijmenu van het portaal open of dicht staat.",
+          "duration": "7 dagen",
+          "type": "Cookie"
+        }
+      ],
+      "analyticsTitle": "4.3 Analytisch (alleen met uw toestemming)",
+      "analyticsRows": [
+        {
+          "name": "ice_visitor_id",
+          "provider": "ICE Alarm España (opgeslagen in onze eigen database, gehost door Supabase)",
+          "purpose": "Een willekeurige code waarmee wij terugkerende bezoekers kunnen tellen zonder te weten wie zij zijn.",
+          "duration": "Tot u uw toestemming intrekt (dan wissen wij deze) of uw browsergegevens wist",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "ice_session_id, ice_session_timestamp",
+          "provider": "ICE Alarm España (opgeslagen in onze eigen database, gehost door Supabase)",
+          "purpose": "Groepeert de pagina’s die tijdens één bezoek zijn bekeken.",
+          "duration": "30 minuten inactiviteit; gewist wanneer u uw toestemming intrekt",
+          "type": "Lokale opslag"
+        }
+      ],
+      "referralTitle": "4.4 Doorverwijzingen door partners",
+      "referralIntro": "Deze worden alleen opgeslagen als u via een link van een van onze partners binnenkomt. Ze leggen vast welke partner u heeft doorverwezen, zodat die partner kan worden vermeld als u lid wordt. Ze volgen u niet op andere websites.",
+      "referralRows": [
+        {
+          "name": "partner_ref, partner_utm",
+          "provider": "ICE Alarm España",
+          "purpose": "Legt de partnercode en de campagne vast van de link die u hebt gevolgd.",
+          "duration": "Tot u de aanmelding afrondt of uw browsergegevens wist",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "partner_referral",
+          "provider": "ICE Alarm España",
+          "purpose": "Legt de partner en het bericht vast waarvandaan u kwam.",
+          "duration": "30 dagen",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "ref_partner_code, ref_partner_id, ref_post_id",
+          "provider": "ICE Alarm España",
+          "purpose": "Dezelfde informatie, leesbaar voor onze server.",
+          "duration": "30 dagen",
+          "type": "Cookie"
+        }
+      ],
+      "staffTitle": "4.5 Alleen in het medewerkersportaal",
+      "staffIntro": "De volgende items worden alleen gebruikt door medewerkers van ICE Alarm España wanneer zij in het interne portaal werken.",
+      "staffRows": [
+        {
+          "name": "icealarm.push.deviceLabel.token, firebase-messaging-database",
+          "provider": "Google (Firebase Cloud Messaging)",
+          "purpose": "Bezorgt meldingen van alarmen op het apparaat van een medewerker die deze heeft ingeschakeld.",
+          "duration": "Tot de meldingen worden uitgeschakeld",
+          "type": "Lokale opslag en IndexedDB"
+        },
+        {
+          "name": "videoHub_activeTab, videoHub_filters",
+          "provider": "ICE Alarm España",
+          "purpose": "Onthoudt het tabblad en de filters die in de videobibliotheek zijn gekozen.",
+          "duration": "Tot het tabblad wordt gesloten",
+          "type": "Sessieopslag"
+        },
+        {
+          "name": "Cookies van Google (bijvoorbeeld NID)",
+          "provider": "Google LLC (Google Maps)",
+          "purpose": "Een ingesloten Google-kaart toont de locatie van een alarm. Google kan bij het laden van de kaart eigen cookies plaatsen.",
+          "duration": "Bepaald door Google — zie het cookiebeleid van Google",
+          "type": "Cookie van derden"
+        }
+      ],
+      "s5Title": "5. Derden",
+      "s5Items": [
+        "Wij gebruiken geen Google Analytics, advertentienetwerken of trackingpixels van sociale media.",
+        "Betalingen verlopen via de pagina’s van onze betaalproviders (Stripe of Mollie). Zolang u op hun pagina’s bent, gelden hun eigen cookiebeleid.",
+        "De kaart waarmee u uw woonadres aanwijst, laadt afbeeldingen van OpenStreetMap. Die plaatst geen cookies, maar uw browser maakt wel verbinding met hun servers om de kaart te laden."
+      ],
+      "s6Title": "6. Toestemming geven, weigeren of intrekken",
+      "s6p1": "Bij uw eerste bezoek kunt u via een melding alle cookies accepteren, alle niet-noodzakelijke cookies weigeren of per categorie kiezen. Weigeren is net zo eenvoudig als accepteren en geen enkele optionele categorie staat vooraf aan.",
+      "s6p2": "U kunt uw keuze op elk moment wijzigen via ‘Cookie-instellingen’ onderaan onze pagina’s, via de knop hieronder of, als u lid bent, via het onderdeel Privacy en gegevens in uw account. Als u uw toestemming voor analytische cookies intrekt, stoppen wij direct met het verzamelen van statistieken en wissen wij de analytische codes uit uw browser. Het intrekken van toestemming heeft geen gevolgen voor wat daarvoor is gebeurd.",
+      "settingsButton": "Cookie-instellingen openen",
+      "s6BrowsersIntro": "U kunt cookies en opgeslagen gegevens ook blokkeren of wissen via de instellingen van uw browser. Als u strikt noodzakelijke cookies blokkeert, werken sommige onderdelen van de website, zoals inloggen, niet.",
+      "s6Browsers": [
+        "Google Chrome: Instellingen › Privacy en beveiliging › Cookies van derden / Sitegegevens",
+        "Mozilla Firefox: Instellingen › Privacy & Beveiliging › Cookies en websitegegevens",
+        "Safari: Instellingen › Safari › Geavanceerd › Websitegegevens",
+        "Microsoft Edge: Instellingen › Cookies en sitemachtigingen"
+      ],
+      "s7Title": "7. Doorgifte buiten de EER",
+      "s7p1": "Sommige van de genoemde aanbieders (zoals Sentry en Google) zijn gevestigd buiten de Europese Economische Ruimte. Wanneer hun technieken een doorgifte van persoonsgegevens meebrengen, gebeurt dat met de waarborgen die in ons privacybeleid staan beschreven.",
+      "s8Title": "8. Wijzigingen in dit beleid",
+      "s8p1": "Wij passen dit beleid aan als de cookies die wij gebruiken veranderen. Als een wijziging opnieuw uw toestemming vereist, vraagt de melding daar bij uw volgende bezoek opnieuw om. De datum en versie bovenaan geven aan wanneer het beleid voor het laatst is gewijzigd.",
+      "s9Title": "9. Contact",
+      "s9p1": "Voor vragen over cookies of uw persoonsgegevens kunt u schrijven naar privacy@icealarm.es. U hebt ook het recht een klacht in te dienen bij de Spaanse toezichthouder (AEPD, www.aepd.es)."
     }
   },
   "mediaStrategy": {

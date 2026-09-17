@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -13,32 +14,27 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import {
+  OPEN_COOKIE_SETTINGS_EVENT,
+  readCookieConsent,
+  saveCookieConsent,
+  type CookiePreferences,
+} from "@/lib/cookieConsent";
 
-const STORAGE_KEY = "ice_cookie_consent";
+export type { CookiePreferences };
 
-export interface CookiePreferences {
-  essential: boolean; // Always true
-  analytics: boolean;
-  marketing: boolean;
-  consentedAt: string;
-}
-
-function getStoredPreferences(): CookiePreferences | null {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored) as CookiePreferences;
-    }
-  } catch {
-    // Corrupted data - treat as no consent
-  }
-  return null;
-}
-
-function savePreferences(prefs: CookiePreferences): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
-}
-
+/**
+ * FIRST LAYER + SETTINGS DIALOG — LSSI-CE art. 22.2 / AEPD cookie guide (2023).
+ *
+ *   - "Reject all" and "Accept all" sit side by side, same size, same style: refusing is exactly
+ *     as easy as accepting (AEPD). The old first layer styled reject as `secondary`.
+ *   - Toggles start OFF every time there is no stored choice. Nothing is pre-ticked.
+ *   - The first layer links to the Cookie Policy (/cookies).
+ *   - The record is versioned and expires (src/lib/cookieConsent.ts); an old record re-asks.
+ *   - Settings can be re-opened at any time from the footer and from the member's account page.
+ *
+ * DRAFT — pending legal review (LEGAL.md §5).
+ */
 export function CookieConsentBanner() {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
@@ -47,65 +43,43 @@ export function CookieConsentBanner() {
   const [marketing, setMarketing] = useState(false);
 
   useEffect(() => {
-    const existing = getStoredPreferences();
-    if (!existing) {
+    if (!readCookieConsent()) {
       setVisible(true);
     }
   }, []);
 
-  // Listen for external requests to re-open cookie settings
-  useEffect(() => {
-    const handler = () => {
-      handleOpenCustomize();
-    };
-    window.addEventListener("ice:open-cookie-settings", handler);
-    return () => window.removeEventListener("ice:open-cookie-settings", handler);
+  const handleOpenCustomize = useCallback(() => {
+    // Load the current choice into the dialog; with no choice on record, everything starts OFF.
+    const existing = readCookieConsent();
+    setAnalytics(existing?.analytics ?? false);
+    setMarketing(existing?.marketing ?? false);
+    setCustomizeOpen(true);
   }, []);
 
-  const handleAcceptAll = () => {
-    const prefs: CookiePreferences = {
-      essential: true,
-      analytics: true,
-      marketing: true,
-      consentedAt: new Date().toISOString(),
-    };
-    savePreferences(prefs);
+  // Listen for external requests to re-open cookie settings (footer link, account page)
+  useEffect(() => {
+    window.addEventListener(OPEN_COOKIE_SETTINGS_EVENT, handleOpenCustomize);
+    return () => window.removeEventListener(OPEN_COOKIE_SETTINGS_EVENT, handleOpenCustomize);
+  }, [handleOpenCustomize]);
+
+  const close = () => {
     setVisible(false);
     setCustomizeOpen(false);
+  };
+
+  const handleAcceptAll = () => {
+    saveCookieConsent({ analytics: true, marketing: true, method: "accept_all" });
+    close();
   };
 
   const handleRejectNonEssential = () => {
-    const prefs: CookiePreferences = {
-      essential: true,
-      analytics: false,
-      marketing: false,
-      consentedAt: new Date().toISOString(),
-    };
-    savePreferences(prefs);
-    setVisible(false);
-    setCustomizeOpen(false);
+    saveCookieConsent({ analytics: false, marketing: false, method: "reject_all" });
+    close();
   };
 
   const handleSaveCustom = () => {
-    const prefs: CookiePreferences = {
-      essential: true,
-      analytics,
-      marketing,
-      consentedAt: new Date().toISOString(),
-    };
-    savePreferences(prefs);
-    setVisible(false);
-    setCustomizeOpen(false);
-  };
-
-  const handleOpenCustomize = () => {
-    // Load current preferences into the customize dialog
-    const existing = getStoredPreferences();
-    if (existing) {
-      setAnalytics(existing.analytics);
-      setMarketing(existing.marketing);
-    }
-    setCustomizeOpen(true);
+    saveCookieConsent({ analytics, marketing, method: "custom" });
+    close();
   };
 
   return (
@@ -113,6 +87,9 @@ export function CookieConsentBanner() {
       {/* Main Banner */}
       {visible && !customizeOpen && (
         <div
+          role="region"
+          aria-label={t("gdpr.cookieBanner.title")}
+          data-testid="cookie-banner"
           className={cn(
             "fixed bottom-0 left-0 right-0 z-[60] border-t bg-background/95 backdrop-blur",
             "supports-[backdrop-filter]:bg-background/80",
@@ -132,7 +109,10 @@ export function CookieConsentBanner() {
                     {t("gdpr.cookieBanner.title")}
                   </p>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    {t("gdpr.cookieBanner.description")}
+                    {t("gdpr.cookieBanner.description")}{" "}
+                    <Link to="/cookies" className="underline underline-offset-2 hover:text-foreground">
+                      {t("gdpr.cookieBanner.policyLink")}
+                    </Link>
                   </p>
                 </div>
               </div>
@@ -148,16 +128,18 @@ export function CookieConsentBanner() {
                   <SettingsIcon className="h-3.5 w-3.5" />
                   {t("gdpr.cookieBanner.customize")}
                 </Button>
+                {/* Same variant and size as "Accept all": refusing must be as easy as accepting. */}
                 <Button
-                  variant="secondary"
                   size="sm"
                   onClick={handleRejectNonEssential}
+                  data-testid="cookie-reject"
                 >
                   {t("gdpr.cookieBanner.rejectNonEssential")}
                 </Button>
                 <Button
                   size="sm"
                   onClick={handleAcceptAll}
+                  data-testid="cookie-accept"
                 >
                   {t("gdpr.cookieBanner.acceptAll")}
                 </Button>
@@ -231,9 +213,22 @@ export function CookieConsentBanner() {
             </div>
           </div>
 
+          <p className="text-xs text-muted-foreground">
+            <Link
+              to="/cookies"
+              className="underline underline-offset-2 hover:text-foreground"
+              onClick={() => setCustomizeOpen(false)}
+            >
+              {t("gdpr.cookieBanner.policyLink")}
+            </Link>
+          </p>
+
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={handleRejectNonEssential}>
               {t("gdpr.cookieBanner.rejectNonEssential")}
+            </Button>
+            <Button variant="outline" onClick={handleAcceptAll}>
+              {t("gdpr.cookieBanner.acceptAll")}
             </Button>
             <Button onClick={handleSaveCustom}>
               {t("gdpr.cookieSettings.savePreferences")}
@@ -250,12 +245,12 @@ export function CookieConsentBanner() {
  * Dispatches a custom event that CookieConsentBanner listens for.
  */
 export function openCookieSettings(): void {
-  window.dispatchEvent(new CustomEvent("ice:open-cookie-settings"));
+  window.dispatchEvent(new CustomEvent(OPEN_COOKIE_SETTINGS_EVENT));
 }
 
 /**
- * Hook-friendly version: returns the current cookie preferences.
+ * The current, valid cookie choice — null when none, outdated or expired.
  */
 export function getCookiePreferences(): CookiePreferences | null {
-  return getStoredPreferences();
+  return readCookieConsent();
 }

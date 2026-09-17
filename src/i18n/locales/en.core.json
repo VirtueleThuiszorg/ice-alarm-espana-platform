@@ -2,20 +2,21 @@
   "gdpr": {
     "cookieBanner": {
       "title": "We use cookies",
-      "description": "We use cookies and similar technologies to improve your experience, analyse traffic and personalise content. You can choose which cookies you allow.",
+      "description": "We use strictly necessary technologies to keep this website working and secure. With your permission, we would also like to use our own analytics to understand how the website is used. You can accept, reject or choose — and change your mind at any time.",
       "customize": "Customize",
       "rejectNonEssential": "Reject non-essential",
-      "acceptAll": "Accept all"
+      "acceptAll": "Accept all",
+      "policyLink": "Read our Cookie Policy"
     },
     "cookieSettings": {
       "title": "Cookie Preferences",
       "description": "Manage your cookie preferences below. Essential cookies are always active as they are necessary for the website to function.",
       "essential": "Essential Cookies",
-      "essentialDescription": "Required for the website to function properly. Cannot be disabled.",
+      "essentialDescription": "Needed to sign you in, keep the website secure, remember your cookie choice and detect errors. They cannot be switched off.",
       "analytics": "Analytics Cookies",
-      "analyticsDescription": "Help us understand how visitors interact with our website to improve performance.",
+      "analyticsDescription": "Our own statistics about which pages are visited and from what kind of device. Not shared with advertisers. Off unless you switch them on.",
       "marketing": "Marketing Cookies",
-      "marketingDescription": "Used to deliver personalised advertisements and track campaign effectiveness.",
+      "marketingDescription": "We do not currently use advertising or social-media cookies. If we ever do, they will only run with your consent.",
       "savePreferences": "Save preferences"
     },
     "settings": {

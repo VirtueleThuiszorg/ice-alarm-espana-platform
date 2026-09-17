@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { useAIChat } from "@/hooks/useAIChat";
 import { cn } from "@/lib/utils";
 import { CallMeModal } from "./CallMeModal";
+import { AIDisclosureNotice } from "./AIDisclosureNotice";
 interface AIChatWidgetProps {
   defaultOpen?: boolean;
   onClose?: () => void;
@@ -179,6 +180,9 @@ export function AIChatWidget({
             </Button>
           </div>
         </div>
+
+        {/* EU AI Act art. 50 — members and visitors are told up front that this is an AI. */}
+        {(userRole === "public" || userRole === "member") && <AIDisclosureNotice />}
 
         {/* Messages */}
         <ScrollArea className="flex-1 p-4" ref={scrollRef}>

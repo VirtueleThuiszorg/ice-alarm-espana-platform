@@ -423,6 +423,77 @@ BEGIN
   PERFORM pg_temp.check('anonymous cannot INSERT into partners (no INSERT policy)', failed);
 END $$;
 
+-- ── THE PUBLIC FORMS' TABLES, PROVEN THE SAME WAY ──────────────────────────
+--
+-- A spam lead arrived with no name, no email and no phone and rang the new-enquiry bell. The
+-- cause was `leads` carrying "Anyone can submit leads" FOR INSERT WITH CHECK (true) since
+-- January, so the only validation anything faced was the `required` attributes on an HTML form —
+-- which exist in a visitor's browser and nowhere at all for a script POSTing to /rest/v1/leads.
+--
+-- BY EXECUTION AS THE ANON ROLE, not by reading the migration text. A replay of CREATE/DROP
+-- POLICY is a good static check and it has a blind spot this does not: it proves what the files
+-- SAY. This proves what PostgreSQL DOES, which is the only thing a script on the internet meets.
+DO $$
+DECLARE failed boolean;
+BEGIN
+  PERFORM set_config('request.jwt.claims', '', true);
+
+  -- leads: the way in is `public-submit` with the service role. No client insert, at all.
+  failed := false;
+  SET LOCAL ROLE anon;
+  BEGIN
+    EXECUTE 'INSERT INTO public.leads (first_name, last_name, email, phone)
+             VALUES (''bot'', ''bot'', ''bot@example.com'', ''+34600000000'')';
+  EXCEPTION WHEN OTHERS THEN failed := true;
+  END;
+  RESET ROLE;
+  PERFORM pg_temp.check('anonymous cannot INSERT into leads — public-submit is the only door', failed);
+
+  -- registration_drafts: half-finished registrations — names, addresses, dates of birth. The
+  -- browser stopped writing this when `save-registration-draft` was introduced; the policy
+  -- outlived the caller, which is the worst combination because nobody is watching it.
+  failed := false;
+  SET LOCAL ROLE anon;
+  BEGIN
+    EXECUTE 'INSERT INTO public.registration_drafts (session_id) VALUES (''s'')';
+  EXCEPTION WHEN OTHERS THEN failed := true;
+  END;
+  RESET ROLE;
+  PERFORM pg_temp.check('anonymous cannot INSERT into registration_drafts', failed);
+END $$;
+
+-- website_events is DELIBERATELY still anon-insertable, and asserting that is as important as
+-- the two refusals above: it is page-view telemetry written on every page load, and routing it
+-- through a function would put an invocation on every visit to a marketing site to protect rows
+-- holding a path and a browser string. What was wrong was `WITH CHECK (true)` — anon could write
+-- ANY shape, including using the table as free storage. So: a normal event is accepted, an
+-- oversized one is not.
+DO $$
+DECLARE ok boolean := true; refused boolean := false;
+BEGIN
+  PERFORM set_config('request.jwt.claims', '', true);
+
+  SET LOCAL ROLE anon;
+  BEGIN
+    EXECUTE 'INSERT INTO public.website_events (event_type, page_path) VALUES (''page_view'', ''/'')';
+  EXCEPTION WHEN OTHERS THEN ok := false;
+  END;
+  RESET ROLE;
+  PERFORM pg_temp.check(
+    'anonymous CAN still record an ordinary page view',
+    ok,
+    'if this fails the analytics are silently dead — the refusal below would then prove nothing');
+
+  SET LOCAL ROLE anon;
+  BEGIN
+    EXECUTE 'INSERT INTO public.website_events (event_type, page_path)
+             VALUES (''page_view'', repeat(''x'', 5000))';
+  EXCEPTION WHEN OTHERS THEN refused := true;
+  END;
+  RESET ROLE;
+  PERFORM pg_temp.check('but not a 5KB one — the table is not free storage', refused);
+END $$;
+
 -- ============================================================
 --  8. Consent scoping — GOALS.md G4
 -- ============================================================

@@ -39,6 +39,13 @@ export const BUTTON_NOOP_ALLOWLIST: RegExp[] = [
   // explicitly out of scope for the public-page audit, and its actions (open modal /
   // start a call) are not reliably DOM-observable here.
   /call and speak|call me|isabella|open chat|chat with|close chat/i,
+  // The withdrawal-form print button (`CancellationContent`, /cancellation-policy).
+  // `window.print()` hands off to the browser's native print dialog, which is not in
+  // the page's DOM at all and is a silent no-op in headless Chromium — so there is
+  // nothing for the heuristic to observe in either direction, and a working button
+  // was reported as dead. Its three rendered names, because the check reads the
+  // accessible name and the audit may run in any of the three languages.
+  /print this page|imprimir esta página|deze pagina afdrukken/i,
 ];
 
 export type Lang = "en" | "es" | "nl";

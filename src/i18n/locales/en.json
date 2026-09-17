@@ -1511,6 +1511,8 @@
     "nextPayment": "Next payment {{date}}",
     "nextPaymentPaidForYou": "Next payment {{date}} \u00b7 paid for you",
     "recentActivity": "Recent activity",
+    "operatorSees": "If you press your pendant, our operator sees your medical details and how to reach you.",
+    "operatorSeesAction": "Check what we'd tell them",
     "noAlerts": "No alerts. Nothing has happened, which is the idea.",
     "viewAllAlerts": "See your alert history",
     "twentyFourHourLine": "24-hour line",

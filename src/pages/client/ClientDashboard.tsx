@@ -30,6 +30,7 @@ import { telHref, waNumber } from "@/lib/phone";
 import { memberDateLocale } from "@/lib/memberDate";
 import { PageHeader } from "@/components/client/PageHeader";
 import { ProtectionChecklist } from "@/components/client/ProtectionChecklist";
+import { OperatorSeesPointer } from "@/components/client/OperatorSeesPointer";
 import { NextPaymentLine } from "@/components/client/NextPaymentLine";
 import { useMemberSubscriptions, useMemberAlerts, type SubscriptionInfo } from "@/hooks/useMemberProfile";
 import { useMemberAlertHistory } from "@/hooks/useMemberAlertHistory";
@@ -45,6 +46,19 @@ const MOCK_MEMBER = {
   first_name: "Demo",
   last_name: "Member",
 };
+
+/**
+ * What the preview's member looks like to `membershipCondition`.
+ *
+ * Separate from `MOCK_MEMBER` because that object is the NAME the header greets, and widening it
+ * would hand `status` and `billing_source` to every consumer of `displayMember` as well. A
+ * Stripe-billed active member is what a template should show: the ordinary case, not the legacy
+ * one.
+ */
+const MOCK_MEMBER_BILLING = {
+  status: "active",
+  billing_source: "stripe",
+} as const;
 
 const MOCK_DEVICE = {
   id: "demo-device",
@@ -106,7 +120,15 @@ export default function ClientDashboard() {
       if (!effectiveMemberId) return null;
       const { data, error } = await supabase
         .from("members")
-        .select("first_name, last_name")
+        /*
+          `status` and `billing_source` ride along for `OperatorSeesPointer`.
+
+          Not a second read: they are two columns on a row this page already fetches. They are
+          what `membershipCondition` needs to recognise a LEGACY member — somebody monitored since
+          2014 with no subscription row of their own — who would otherwise be read as
+          `never_joined` and told nothing about what an operator sees.
+        */
+        .select("first_name, last_name, status, billing_source")
         .eq("id", effectiveMemberId)
         .maybeSingle();
       if (error) throw error;
@@ -600,6 +622,24 @@ export default function ClientDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/*
+        "WHAT AN OPERATOR SEES" — a signpost, and deliberately not the content.
+
+        HERE, between the checklist and Recent activity, because this and the checklist answer the
+        same question — "what happens when I press it" — and this one is the quieter half of the
+        answer. It is a signpost rather than a rung, so it goes after the card rather than inside
+        it, and it is a bordered line rather than a Card so it does not read as a fourth thing to
+        check.
+
+        The reasoning for what it must NOT render — no condition, no medication, no key-safe, and
+        no COUNT of them — is in the component. The short version is that Home is the page most
+        likely to be read over a member's shoulder, and the one an admin previews.
+      */}
+      <OperatorSeesPointer
+        latestSubscription={isTemplatePreview ? MOCK_SUBSCRIPTION : subscriptions?.latest}
+        member={isTemplatePreview ? MOCK_MEMBER_BILLING : member}
+      />
 
       {/*
         RECENT ACTIVITY — and its empty state is the reassuring one.

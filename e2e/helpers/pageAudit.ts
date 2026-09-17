@@ -59,6 +59,27 @@ export async function gotoAudited(page: Page, path: string, lng: Lang = "en") {
     }
     (window as unknown as { __AUDIT__: boolean }).__AUDIT__ = true;
     (window as unknown as { __I18N_MISSING__: string[] }).__I18N_MISSING__ = [];
+
+    /*
+      PRINTING IS AN EFFECT THE HEURISTIC CANNOT SEE — so make it one it can.
+
+      `window.print()` opens the browser's own dialog and changes nothing in the DOM, so a
+      working "Print this page" button looked identical to a dead handler and
+      `/cancellation-policy` reported one. The alternative was an entry in
+      `BUTTON_NOOP_ALLOWLIST` matching /print/i, which would also have stopped the audit
+      catching a print button that does NOTHING — exempting the name instead of observing the
+      behaviour, which is the shape of check this repo keeps removing.
+
+      Counting the calls means a button that really prints passes and one that only says
+      "Print" is still reported. It also stops the real dialog opening: a native modal in
+      headless Chromium blocks the page, and every later button in the loop would then be
+      clicked against a frozen page and reported dead.
+    */
+    const w = window as unknown as { __AUDIT_PRINTS__: number };
+    w.__AUDIT_PRINTS__ = 0;
+    window.print = () => {
+      w.__AUDIT_PRINTS__ += 1;
+    };
   }, lng);
 
   // 'commit' returns as soon as navigation commits; we then wait on the app's own
@@ -164,6 +185,8 @@ export async function findNoOpButtons(
       ).length,
       expanded: document.querySelectorAll('[aria-expanded="true"]').length,
       domSize: document.body.innerHTML.length,
+      // Set by the stub installed in `gotoAudited` — see the reasoning there.
+      prints: (window as unknown as { __AUDIT_PRINTS__?: number }).__AUDIT_PRINTS__ ?? 0,
       // Selection state of every stateful control on the page.
       //
       // Without this the only signal for "something happened" is a >40 character
@@ -237,6 +260,7 @@ export async function findNoOpButtons(
       before.toasts !== after.toasts ||
       before.expanded !== after.expanded ||
       before.controlState !== after.controlState ||
+      before.prints !== after.prints ||
       Math.abs(before.domSize - after.domSize) > 40;
 
     if (!changed) dead.push({ index: i, name: name || "(unnamed)" });

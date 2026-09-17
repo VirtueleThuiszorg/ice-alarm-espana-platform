@@ -2563,6 +2563,15 @@
     "callLead": "Llamar",
     "noEmailOnFile": "Esta consulta no incluye correo electrónico",
     "noPhoneOnFile": "Esta consulta no incluye teléfono",
+    "spam": {
+      "badge": "Posible spam",
+      "notSpam": "No es spam",
+      "notSpamHint": "Quitar la marca: esta consulta es real",
+      "linkInMessage": "El mensaje contiene un enlace",
+      "vendorPitch": "Parece una oferta comercial dirigida a nosotros, no una consulta",
+      "languageMismatch": "Escrito en un idioma distinto del seleccionado",
+      "noReason": "Marcado automáticamente; no se registró ningún motivo"
+    },
     "newLeads": "Nuevos Leads",
     "searchPlaceholder": "Buscar por nombre, email, teléfono...",
     "statusFilter": "Estado",

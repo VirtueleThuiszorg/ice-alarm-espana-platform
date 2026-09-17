@@ -22,6 +22,7 @@ import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { LeadContactValue, LeadName } from "@/components/leads/LeadContact";
+import { LeadNotSpamButton, LeadSpamBadge } from "@/components/leads/LeadSpamFlag";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { 
@@ -77,6 +78,9 @@ interface Lead {
   created_at: string;
   contacted_at: string | null;
   converted_at: string | null;
+  /** `public-submit`'s guess. Suppresses the bell and nothing else — see LeadSpamFlag. */
+  suspected_spam: boolean | null;
+  spam_reasons: string[] | null;
   assigned_staff?: {
     first_name: string;
     last_name: string;
@@ -167,6 +171,12 @@ export default function LeadsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
+  /*
+    "all" | "spam" | "clean". DEFAULT "all", deliberately: a flag set by three heuristics is a
+    guess, and a list that hides what it guessed is a list nobody can check. The filter is here
+    so somebody can work through the flagged ones, not so they disappear.
+  */
+  const [filterSpam, setFilterSpam] = useState("all");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [selectedDraft, setSelectedDraft] = useState<RegistrationDraft | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -193,7 +203,7 @@ export default function LeadsPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [filterStatus, filterType]);
+  }, [filterStatus, filterType, filterSpam]);
 
   const fetchLeads = async () => {
     setLoading(true);
@@ -210,6 +220,13 @@ export default function LeadsPage() {
     }
     if (filterType !== 'all') {
       query = query.eq('enquiry_type', filterType);
+    }
+    if (filterSpam === 'spam') {
+      query = query.eq('suspected_spam', true);
+    } else if (filterSpam === 'clean') {
+      // `is` rather than `eq`: the column defaults to false, but rows written before it existed
+      // hold NULL, and `eq('suspected_spam', false)` would drop every one of them.
+      query = query.not('suspected_spam', 'is', true);
     }
 
     const { data, error } = await query;
@@ -244,6 +261,31 @@ export default function LeadsPage() {
       .select('id, first_name, last_name')
       .eq('is_active', true);
     setStaff(data || []);
+  };
+
+  /**
+   * ONE PRESS AND IT IS AN ORDINARY ENQUIRY AGAIN.
+   *
+   * It clears the flag only. It does not change the status, does not ring the bell
+   * retrospectively, and does not tell the sender anything — the flag was never visible to them.
+   * `spam_reasons` is cleared with it: keeping the reasons on a lead somebody has judged real
+   * would leave the tooltip explaining why we still think it is spam.
+   */
+  const clearSpamFlag = async (leadId: string) => {
+    const { error } = await supabase
+      .from('leads')
+      .update({ suspected_spam: false, spam_reasons: null } as TablesUpdate<"leads">)
+      .eq('id', leadId);
+    if (error) {
+      console.error('Error clearing the spam flag:', error);
+      toast.error("Could not clear the flag");
+      return;
+    }
+    toast.success("Marked as a real enquiry");
+    setSelectedLead((prev) =>
+      prev && prev.id === leadId ? { ...prev, suspected_spam: false, spam_reasons: null } : prev,
+    );
+    fetchLeads();
   };
 
   const updateLeadStatus = async (leadId: string, status: string) => {
@@ -568,6 +610,16 @@ export default function LeadsPage() {
                 <SelectItem value="support">Support</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={filterSpam} onValueChange={setFilterSpam}>
+              <SelectTrigger className="w-full md:w-44">
+                <SelectValue placeholder="Spam" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All enquiries</SelectItem>
+                <SelectItem value="spam">Possible spam</SelectItem>
+                <SelectItem value="clean">Hide possible spam</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -613,7 +665,10 @@ export default function LeadsPage() {
                   >
                     <TableCell>
                       <div>
-                        <p className="font-medium"><LeadName lead={lead} /></p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium"><LeadName lead={lead} /></p>
+                          <LeadSpamBadge suspected={lead.suspected_spam} reasons={lead.spam_reasons} />
+                        </div>
                         <p className="text-xs text-muted-foreground capitalize">
                           {lead.preferred_language === 'es' ? '🇪🇸 Spanish' : '🇬🇧 English'}
                         </p>
@@ -937,7 +992,17 @@ export default function LeadsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-xs text-muted-foreground">Name</Label>
-                  <p className="font-medium"><LeadName lead={selectedLead} /></p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium"><LeadName lead={selectedLead} /></p>
+                    <LeadSpamBadge
+                      suspected={selectedLead.suspected_spam}
+                      reasons={selectedLead.spam_reasons}
+                    />
+                    <LeadNotSpamButton
+                      suspected={selectedLead.suspected_spam}
+                      onClear={() => clearSpamFlag(selectedLead.id)}
+                    />
+                  </div>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Status</Label>

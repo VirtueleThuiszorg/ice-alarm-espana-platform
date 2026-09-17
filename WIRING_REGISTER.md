@@ -28,7 +28,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   1  
 ```
 
-194 distinct wires across 654 call sites and 114 routes.
+194 distinct wires across 655 call sites and 114 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
@@ -63,7 +63,7 @@ things, and a control with no wire cannot do anything:
 
 | kind | what it is | call sites |
 |---|---|---:|
-| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 352 |
+| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 353 |
 | `fn` | `supabase.functions.invoke(f)` — an edge function | 95 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 6 |
 | `channel` | `postgres_changes` — a realtime subscription | 53 |
@@ -416,7 +416,7 @@ The checks, verified on every build:
 | **6** | `table:ai_agents` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | toast | none | 2 |
 | **6** | `table:ai_memory` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | mutation onError | none | 1 |
 | **6** | `table:payments` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | toast | none | 1 |
-| **7** | `channel:registration_drafts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | toast | `scripts/rls/wiring.sql` | 1 |
+| **7** | `channel:registration_drafts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | — | `scripts/rls/wiring.sql` | 1 |
 | **7** | `channel:social_post_metrics` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
 | **7** | `channel:social_posts` | Leads page abandoned-draft list; media manager post list and metrics — the list updates itself | postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics | screen | mutation onError | `scripts/rls/wiring.sql` | 1 |
 | **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
@@ -2419,7 +2419,7 @@ The Santander billing date (2026-09-11) is the other direct staff write to `memb
 - **promised** the list updates itself
 - **goes to** postgres_changes subscriptions on registration_drafts / social_posts / social_post_metrics
 - **who is told** screen
-- **failure shown to user** toast
+- **failure shown to user** no
 - **proof** `scripts/rls/wiring.sql`
 - **routes** /admin/leads
 - **call sites** src/pages/admin/LeadsPage.tsx

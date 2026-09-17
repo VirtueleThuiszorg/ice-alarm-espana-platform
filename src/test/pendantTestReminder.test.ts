@@ -26,7 +26,7 @@ import {
 
 const ROOT = process.cwd();
 const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
-const MIGRATION = read("supabase/migrations/20260917130000_pendant_test_reminder.sql");
+const MIGRATION = read("supabase/migrations/20260917150000_pendant_test_reminder.sql");
 /** The statements, without the comments that quote keys and defaults in prose. */
 const MIGRATION_SQL = MIGRATION.split("\n")
   .filter((line) => !line.trimStart().startsWith("--"))

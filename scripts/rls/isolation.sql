@@ -3135,7 +3135,7 @@ INSERT INTO public.staff (user_id, email, first_name, last_name, role) VALUES
 
 -- ── F2: what the anonymous browser can read, exactly ──────────────────────
 --
--- THE NINTH KEY. `pendant_test_reminder_days` (20260917130000) is how many days a pendant test
+-- THE NINTH KEY. `pendant_test_reminder_days` (20260917150000) is how many days a pendant test
 -- stays current for before the member's own protection checklist suggests another. A member is
 -- `authenticated` with no staff row, so without the whitelist the read returns nothing, the
 -- client falls back to its built-in 90, and an admin editing that number changes nothing at all

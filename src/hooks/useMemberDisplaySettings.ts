@@ -44,7 +44,7 @@ import {
  *
  * A member is `authenticated` with no staff row, so a key outside the whitelist reads back as
  * nothing and is indistinguishable from absent — the setting appears to work while being
- * permanently stuck at its default. Both keys are on the list (20260910190000, 20260917130000)
+ * permanently stuck at its default. Both keys are on the list (20260910190000, 20260917150000)
  * and `scripts/rls/isolation.sql` names the whole list rather than counting it.
  */
 

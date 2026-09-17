@@ -32,6 +32,13 @@
     verify_jwt = false
   [functions.partner-admin-create]
     verify_jwt = false
+  # The public forms (contact, "notify me"). Anonymous by definition — the whole point is
+  # that a visitor who is not signed in can reach it. It is not unguarded: honeypot, a
+  # per-IP and per-email hourly limit, and server-side field rules all stand in front of
+  # the insert, and the anon INSERT policy on `leads` is revoked so this is the only way in.
+  [functions.public-submit]
+    verify_jwt = false
+
   [functions.partner-register]
     verify_jwt = false
   [functions.partner-verify]

@@ -66,10 +66,15 @@ ALTER TABLE public.public_submission_log ENABLE ROW LEVEL SECURITY;
 -- NO anon policy, and no authenticated one either. The only writer is the edge function with the
 -- service role, which bypasses RLS; staff read it because a burst of refusals is something
 -- somebody should be able to look at.
+-- WRAPPED IN A SELECT, both times, and that is not style. A bare `public.is_staff(auth.uid())`
+-- in a USING clause is re-evaluated for every row the planner examines — a query against
+-- `staff` per row of this log, which is the table that grows fastest under the attack it
+-- exists to record. `(SELECT ...)` makes it an InitPlan: resolved once per query.
+-- The isolation suite checks this on every policy in the schema.
 CREATE POLICY "Staff can read the public submission log"
   ON public.public_submission_log FOR SELECT
   TO authenticated
-  USING (public.is_staff(auth.uid()));
+  USING ((SELECT public.is_staff((SELECT auth.uid()))));
 
 CREATE POLICY "Service role manages the public submission log"
   ON public.public_submission_log FOR ALL

@@ -13,10 +13,28 @@
  *    in admin ONLY after icealarm.es is verified in Resend (DKIM/SPF
  *    aligned); until then Resend can't send from the domain.
  *
- * Fail-safe: if the settings lookup fails for any reason, we fall back to
- * Gmail (the historical behaviour) — a settings hiccup must never take
- * down email that used to work. Every failure returns {success:false,
- * error} for the caller to report honestly; nothing here throws.
+ * ── THE FALL-THROUGH THAT STOPPED BEING A FAIL-SAFE ────────────────────────
+ *
+ * This used to end: "gmail", an unknown provider, or a settings lookup failure
+ * all fall back to Gmail — described as a fail-safe, because a settings hiccup
+ * must never take down email that used to work.
+ *
+ * That was true while Gmail worked. It is the opposite now. `GMAIL_APP_PASSWORD`
+ * is not set in production and never will be (go-live runbook, S4), so the
+ * fall-through routes to a transport that CANNOT send, and the caller is handed
+ * "GMAIL_APP_PASSWORD not configured" — an error about a secret nobody intends to
+ * set, for a lookup that actually failed somewhere else. A fail-safe that leads
+ * everywhere to the same dead end is just a way of not saying what went wrong.
+ *
+ * So each failure now says which failure it is:
+ *
+ *   settings lookup failed   → refuse, and name THAT. Do not guess a provider.
+ *   provider "gmail", no password → refuse, and name the fix (provider='resend').
+ *   provider "gmail", password set → send. Local development still works.
+ *   an unknown provider      → refuse, and name it. Never assume.
+ *
+ * Every failure still returns {success:false, error} and nothing here throws —
+ * what changed is that the error is now true.
  */
 import nodemailer from "npm:nodemailer@6.9.16";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -134,10 +152,61 @@ export async function sendEmail(
 ): Promise<{ success: boolean; error?: string }> {
   const settings = await getProviderSettings();
 
-  if (settings?.provider === "resend") {
+  if (!settings) {
+    /*
+      NOT a fall-through to Gmail. `getProviderSettings` returns null for three
+      different reasons — SUPABASE_URL/SERVICE_ROLE_KEY missing from this
+      function's environment, the query erroring, or the singleton row being
+      absent — and each of them is a configuration fault worth seeing. Sending
+      through a transport the row never asked for would hide it.
+    */
+    console.error(
+      "email: email_settings could not be read — no provider chosen, nothing sent",
+    );
+    return {
+      success: false,
+      error:
+        "email_settings could not be read, so no provider is known. Check this " +
+        "function has SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, and that the " +
+        "email_settings singleton row exists.",
+    };
+  }
+
+  if (settings.provider === "resend") {
     return sendViaResend(settings, to, subject, html);
   }
 
-  // "gmail", unknown provider, or settings lookup failure → Gmail (fail-safe)
-  return sendViaGmail(to, subject, html);
+  if (settings.provider === "gmail") {
+    /*
+      Gmail is the table DEFAULT and the development transport. In production it
+      is a dead end: the runbook is explicit that GMAIL_APP_PASSWORD never needs
+      setting. So the absence of that secret is what tells the two apart — no new
+      environment flag to keep in step, and a developer who sets it keeps working.
+    */
+    if (!Deno.env.get("GMAIL_APP_PASSWORD")) {
+      console.error(
+        "email: provider is 'gmail' and GMAIL_APP_PASSWORD is unset — nothing sent. " +
+          "Production sends through Resend; set email_settings.provider = 'resend'.",
+      );
+      return {
+        success: false,
+        error:
+          "email_settings.provider is 'gmail' but GMAIL_APP_PASSWORD is not set. " +
+          "This platform sends through Resend: set email_settings.provider = 'resend' " +
+          "(Admin → Settings → Email) and add RESEND_API_KEY. Gmail is the local " +
+          "development transport only.",
+      };
+    }
+    return sendViaGmail(to, subject, html);
+  }
+
+  // An unknown provider is a typo or a half-finished migration. Either way, saying
+  // so beats picking one on the caller's behalf.
+  console.error(`email: unknown provider ${JSON.stringify(settings.provider)} — nothing sent`);
+  return {
+    success: false,
+    error:
+      `email_settings.provider is ${JSON.stringify(settings.provider)}, which is not a ` +
+      `transport this platform has. Use 'resend' (production) or 'gmail' (local).`,
+  };
 }

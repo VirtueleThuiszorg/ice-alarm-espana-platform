@@ -44,7 +44,11 @@ describe("provider selection honours email_settings", () => {
   });
 
   it("resend branch: fail-fast on missing key, from address from settings", () => {
-    expect(helper).toMatch(/settings\?\.provider === "resend"/);
+    // `settings.provider`, not `settings?.provider`: null is now handled by an
+    // explicit guard ABOVE this branch, so the optional chain would only serve to
+    // hide whether that guard is still there.
+    expect(helper).toMatch(/settings\.provider === "resend"/);
+    expect(helper).not.toMatch(/settings\?\.provider === "resend"/);
     expect(helper).toMatch(/RESEND_API_KEY is not configured/);
     expect(helper).toMatch(/https:\/\/api\.resend\.com\/emails/);
     expect(helper).toMatch(/settings\.from_email \|\| "noreply@icealarm\.es"/);
@@ -56,12 +60,55 @@ describe("provider selection honours email_settings", () => {
     expect(helper).toMatch(/icealarmespana@gmail\.com/);
   });
 
-  it("FAIL-SAFE: unknown provider or settings-lookup failure falls back to Gmail", () => {
-    // getProviderSettings returns null on any error, and the dispatch only
-    // routes to Resend on an explicit provider === "resend"
+  /*
+    THIS BLOCK USED TO REQUIRE THE OPPOSITE, and the change of sides is the point.
+
+    It was called "FAIL-SAFE: unknown provider or settings-lookup failure falls back
+    to Gmail", and it pinned `return sendViaGmail(to, subject, html);` as the last
+    line of the dispatcher. That was a fail-safe while Gmail worked.
+
+    It is a dead end now. `GMAIL_APP_PASSWORD` is not set in production and never
+    will be (go-live runbook, S4), so falling through routed every one of those
+    cases into a transport that cannot send — and handed the caller
+    "GMAIL_APP_PASSWORD not configured", an error about a secret nobody intends to
+    set, for a lookup that had actually failed somewhere else entirely.
+
+    Which is the exact shape of the complaint the runbook opens with: outbound email
+    fails SILENTLY. A fall-through that leads everywhere to the same wrong sentence
+    is how it stayed silent.
+  */
+  it("a settings-lookup failure REFUSES, and says it was the lookup", () => {
     expect(helper).toMatch(/if \(error \|\| !data\) return null;/);
     expect(helper).toMatch(/} catch {\s*\n\s*return null;/);
+    // null settings no longer reach a transport at all.
+    expect(helper).toMatch(/if \(!settings\) \{/);
+    expect(helper).toMatch(/email_settings could not be read/);
+  });
+
+  it("gmail WITHOUT the password refuses, and names the fix rather than the secret", () => {
+    // The error a human reads must point at provider = 'resend', not at a secret
+    // that is deliberately never set.
+    expect(helper).toMatch(/if \(!Deno\.env\.get\("GMAIL_APP_PASSWORD"\)\) \{/);
+    expect(helper).toMatch(/set email_settings\.provider = 'resend'/);
+  });
+
+  it("gmail WITH the password still sends, so local development is unaffected", () => {
+    // The absence of the secret is what distinguishes production from a laptop —
+    // no new environment flag to keep in step with anything.
     expect(helper).toMatch(/return sendViaGmail\(to, subject, html\);/);
+  });
+
+  it("an unknown provider refuses and names it, rather than picking one", () => {
+    expect(helper).toMatch(/unknown provider/);
+    expect(helper).toMatch(/which is not a /);
+  });
+
+  it("every refusal is logged, or 'silently' is still true", () => {
+    // A returned {success:false} is only as loud as the caller chooses to be, and
+    // these callers wrap sends in try/catch. The console.error is what puts the
+    // reason in the function logs where somebody debugging at 11pm will find it.
+    const dispatcher = helper.slice(helper.indexOf("export async function sendEmail"));
+    expect((dispatcher.match(/console\.error/g) ?? []).length).toBeGreaterThanOrEqual(3);
   });
 
   it("public signature unchanged: sendEmail(to, subject, html) → {success, error?}", () => {

@@ -434,20 +434,21 @@
   "gdpr": {
     "cookieBanner": {
       "title": "We use cookies",
-      "description": "We use cookies and similar technologies to improve your experience, analyse traffic and personalise content. You can choose which cookies you allow.",
+      "description": "We use strictly necessary technologies to keep this website working and secure. With your permission, we would also like to use our own analytics to understand how the website is used. You can accept, reject or choose — and change your mind at any time.",
       "customize": "Customize",
       "rejectNonEssential": "Reject non-essential",
-      "acceptAll": "Accept all"
+      "acceptAll": "Accept all",
+      "policyLink": "Read our Cookie Policy"
     },
     "cookieSettings": {
       "title": "Cookie Preferences",
       "description": "Manage your cookie preferences below. Essential cookies are always active as they are necessary for the website to function.",
       "essential": "Essential Cookies",
-      "essentialDescription": "Required for the website to function properly. Cannot be disabled.",
+      "essentialDescription": "Needed to sign you in, keep the website secure, remember your cookie choice and detect errors. They cannot be switched off.",
       "analytics": "Analytics Cookies",
-      "analyticsDescription": "Help us understand how visitors interact with our website to improve performance.",
+      "analyticsDescription": "Our own statistics about which pages are visited and from what kind of device. Not shared with advertisers. Off unless you switch them on.",
       "marketing": "Marketing Cookies",
-      "marketingDescription": "Used to deliver personalised advertisements and track campaign effectiveness.",
+      "marketingDescription": "We do not currently use advertising or social-media cookies. If we ever do, they will only run with your consent.",
       "savePreferences": "Save preferences"
     },
     "settings": {
@@ -3127,12 +3128,16 @@
       "totalDueToday": "Total Due Today",
       "thenMonthly": "Then {{amount}}/month starting next billing cycle",
       "acceptTerms": "I accept the Terms of Service",
-      "termsNote": "By checking this box, you agree to our Terms of Service and Privacy Policy.",
-      "acceptMedical": "I consent to share medical information with emergency services",
-      "medicalNote": "Your medical information will only be shared with emergency responders when needed.",
+      "termsNote": "Please read our Privacy Policy to see how we use your personal data.",
+      "acceptMedical": "I explicitly consent to ICE Alarm España using my health information to help me in an emergency",
+      "medicalNote": "We ask for your health details after sign-up. Operators see them when you need help, and we share them with emergency services only when needed. You can withdraw this consent at any time.",
       "securityNote": "Your payment information is secure and encrypted",
       "preContractTitle": "Before you pay",
       "withdrawalNotice": "You have 14 days from receiving your pendant to withdraw from this contract for any reason. We refund everything you paid, including standard delivery; you pay only the cost of sending the pendant back. Full details and the model withdrawal form are in our Terms, section 9.2.",
+      "withdrawalImmediateStart": "If you ask us to start monitoring before the 14-day withdrawal period ends and then withdraw, you pay only a proportionate amount for the days it was active; everything else is refunded.",
+      "withdrawalRenewalMonthly": "Your membership renews automatically every month until you cancel. You can cancel at any time, with no minimum term; it ends at the close of the month you have paid for.",
+      "withdrawalRenewalAnnual": "Your membership renews automatically every 12 months until you cancel. You can cancel at any time; it ends at the close of the year you have paid for, and once the withdrawal period is over the fees for that year are not refunded.",
+      "withdrawalPolicyLink": "Cancellation, withdrawal and refund policy (includes the model withdrawal form)",
       "deliveryNotice": "Your pendant is sent by recorded delivery and arrives within 5–7 working days."
     },
     "payment": {
@@ -3203,7 +3208,7 @@
       "enterPartnerPostal": "Please enter your partner's postal code",
       "addEmergencyContact": "Please add at least one emergency contact",
       "acceptTerms": "Please accept the Terms of Service",
-      "acceptPrivacy": "Please consent to share medical information with emergency services"
+      "acceptPrivacy": "Please give your consent to the use of your health information to continue"
     },
     "paymentSuccessRecovered": "Payment received! Your order is confirmed.",
     "draftSaveFailed": "We couldn't save your progress — you can continue, but don't close this tab.",
@@ -3214,16 +3219,20 @@
     "openChat": "Open chat",
     "closeChat": "Close chat",
     "newChat": "New chat",
-    "assistantName": "ICE Alarm España Assistant",
-    "memberAssistantName": "Your Personal Assistant",
+    "assistantName": "Isabella · AI assistant",
+    "memberAssistantName": "Isabella · Your AI assistant",
     "available": "Available 24/7",
     "memberAssistantAvailable": "Here to help you",
     "placeholder": "Type your message...",
     "send": "Send",
-    "welcomeMessage": "Hello! 👋 I'm your ICE Alarm España virtual assistant. How can I help you today? I can answer questions about our services, pricing, or help you get started.",
+    "welcomeMessage": "Hello! 👋 I'm Isabella, ICE Alarm España's AI virtual assistant. How can I help you today? I can answer questions about our services and pricing, or help you get started.",
     "errorMessage": "Sorry, there was a connection issue. Please try again later.",
     "fallbackMessage": "Sorry, I couldn't process your message. Please try again.",
-    "assistant": "Assistant"
+    "assistant": "Assistant",
+    "aiDisclosure": {
+      "label": "AI assistant — not a person",
+      "text": "Isabella is an artificial intelligence assistant, not a person, and cannot give medical advice. To speak to a person, just ask her. In an emergency, press your SOS button or call 112."
+    }
   },
   "partnerAgreement": {
     "title": "Partner Agreement",
@@ -3232,6 +3241,7 @@
     "mustSignWarning": "You must sign this agreement before accessing your partner dashboard. Commission payments require a signed agreement.",
     "version": "Version",
     "effectiveDate": "Effective Date",
+    "draftStatus": "Draft pending legal review · Last updated: 17 September 2026",
     "signatureSection": "Electronic Signature",
     "signatureInstructions": "Complete all fields below to sign this agreement electronically",
     "signerName": "Full Legal Name",
@@ -3253,7 +3263,7 @@
     "signedSuccess": "Agreement signed successfully",
     "signError": "Failed to sign agreement. Please try again.",
     "legalBinding": "By signing, you agree to be legally bound by these terms under Spanish law",
-    "legalNotice": "This agreement is governed by Spanish law. Any disputes will be resolved in the courts of Spain.",
+    "legalNotice": "This agreement is governed by Spanish law. Clause 18 explains how disputes are resolved.",
     "signed": "Signed",
     "signatureDetails": "Signature Details",
     "signedOn": "Signed on",
@@ -3267,63 +3277,95 @@
     "refreshToSign": "Please refresh the page to sign the agreement",
     "noAgreementSigned": "No Agreement Signed",
     "noAgreementSignedAdmin": "This partner has not signed the agreement. Commissions cannot be paid until the agreement is signed.",
+    "publicPageDescription": "The terms that apply to every ICE Alarm España partner",
+    "backToJoin": "Back to partner registration",
     "sections": {
       "parties": {
         "title": "CONTRACTING PARTIES",
-        "content": "<strong>ICE Alarm España S.L.</strong>, with registered office at Calle Principal 1, Albox, 04800 Almería, Spain, and CIF B24731531, represented by its legal administrator (hereinafter \"THE COMPANY\").<br/><br/>And the <strong>Partner</strong>, whose details are registered in our partner portal system at the time of signing this agreement (hereinafter \"THE PARTNER\")."
+        "content": "<strong>ICE Alarm España S.L.</strong>, a Spanish limited company with CIF B24731531, registered office at [[TO CONFIRM: registered office address]], registered in the Mercantile Registry of [[TO CONFIRM: Registro Mercantil details]], acting through its duly authorised representative (\"THE COMPANY\"). Contact: info@icealarm.es.<br/><br/>And the natural or legal person who registers through the partner portal and whose identification details (name or company name, NIF/NIE/CIF and contact details) are recorded in the portal at the time of acceptance (\"THE PARTNER\"). A person who accepts on behalf of a company or organisation confirms that they are authorised to bind it.<br/><br/>THE COMPANY and THE PARTNER are together \"the parties\"."
       },
       "definitions": {
         "title": "DEFINITIONS",
-        "content": "<strong>Referral:</strong> A potential customer introduced to THE COMPANY by THE PARTNER through the designated referral system.<br/><br/><strong>Commission:</strong> The payment due to THE PARTNER for successful referrals as defined in this agreement.<br/><br/><strong>Converted Customer:</strong> A referral who has completed the subscription process and whose pendant device has been delivered."
+        "content": "<strong>Agreement:</strong> these partner programme terms, in the version identified at the top of this document.<br/><br/><strong>Portal:</strong> THE COMPANY's partner area, where THE PARTNER registers, obtains its Referral Link and follows its Referrals and Commissions.<br/><br/><strong>Referral Link / Referral Code:</strong> the unique link or code assigned to THE PARTNER in the Portal, including tracked links created for specific posts or campaigns.<br/><br/><strong>Invitation:</strong> an invitation sent by THE COMPANY through the Portal, at THE PARTNER's request, to a person THE PARTNER names.<br/><br/><strong>Referred Member:</strong> a person who takes out a monitoring subscription with THE COMPANY and whose registration is attributed to THE PARTNER under clause 5. A couple subscription counts as one Referred Member.<br/><br/><strong>Qualifying Referral:</strong> a Referred Member who meets every condition in clause 8.2.<br/><br/><strong>Commission:</strong> the amount payable to THE PARTNER for a Qualifying Referral under clause 8.<br/><br/><strong>Holding Period:</strong> the period described in clause 8.3 during which a Commission is not yet payable.<br/><br/><strong>Data Protection Law:</strong> Regulation (EU) 2016/679 (GDPR), Organic Law 3/2018 (LOPDGDD) and any other applicable data protection rules."
       },
       "object": {
         "title": "OBJECT OF THE AGREEMENT",
-        "content": "THE PARTNER agrees to promote and refer potential customers to THE COMPANY's personal emergency alarm services. THE COMPANY agrees to pay commissions for successful referrals in accordance with the terms of this agreement."
+        "content": "3.1 THE PARTNER may introduce potential customers to THE COMPANY's personal emergency alarm service, and THE COMPANY will pay a Commission for each Qualifying Referral on the terms of this Agreement.<br/><br/>3.2 The relationship is <strong>non-exclusive</strong> for both parties. THE PARTNER may promote other products and services, and THE COMPANY may work with other partners, in any area. No territory or group of customers is reserved to THE PARTNER.<br/><br/>3.3 THE PARTNER has no minimum target and no obligation to generate any particular number of referrals.<br/><br/>3.4 Every customer contracts directly with THE COMPANY under THE COMPANY's own terms of service. THE PARTNER is not a party to those contracts."
+      },
+      "status": {
+        "title": "INDEPENDENT STATUS OF THE PARTNER",
+        "content": "4.1 THE PARTNER acts independently, in its own name, with its own means and organisation and at its own risk. Nothing in this Agreement creates an employment relationship, a partnership, a joint venture or a franchise.<br/><br/>4.2 The parties intend this to be a non-exclusive referral arrangement and not a commercial agency contract under Law 12/1992 on Agency Contracts. THE PARTNER has no authority to negotiate or conclude contracts, accept orders, collect payments, grant discounts or make any commitment on behalf of THE COMPANY. If a court or authority finds that mandatory rules of that Law or of any other law apply, those rules prevail over any clause of this Agreement that contradicts them.<br/><br/>4.3 THE PARTNER is solely responsible for its own tax and social security obligations (including any registration as self-employed that the law requires), for its other legal obligations and for its own costs. THE COMPANY does not reimburse expenses unless it has agreed to do so in writing in advance."
+      },
+      "attribution": {
+        "title": "REFERRAL ATTRIBUTION",
+        "content": "5.1 A registration is attributed to THE PARTNER only if the person completes registration on THE COMPANY's website after arriving through THE PARTNER's Referral Link or with its Referral Code, or after receiving an Invitation sent at THE PARTNER's request, and THE PARTNER's account is active at the time of registration.<br/><br/>5.2 When the Referral Link is used, the Referral Code is stored in the visitor's browser until registration. A tracked campaign link remains valid for 30 days from the click. Attribution may fail if the person uses another device or browser, blocks or deletes browser storage, or registers through another channel without the Referral Code. In those cases THE COMPANY will consider a reasoned request from THE PARTNER in good faith, but is not obliged to attribute the registration.<br/><br/>5.3 <strong>The first referral prevails.</strong> If the browser already holds another partner's Referral Code, or the person has already been attributed to a partner, the earlier referral prevails. Each Referred Member is attributed to one partner only.<br/><br/>5.4 No attribution arises for: (a) THE PARTNER itself, its staff or anyone registering on its behalf or at its expense; (b) a person who is, or has been, a customer of THE COMPANY; (c) any registration obtained in breach of this Agreement.<br/><br/>5.5 THE PARTNER can see the Referred Members attributed to it in the Portal. Commissions are calculated from THE COMPANY's records. THE PARTNER may dispute those records in writing within 60 days of the relevant Commission appearing, or failing to appear, in the Portal, and the parties will review the dispute in good faith."
       },
       "obligations": {
         "title": "PARTNER OBLIGATIONS",
-        "content": "THE PARTNER agrees to:<br/><br/>• Promote THE COMPANY's services ethically and professionally<br/>• Provide accurate and truthful information about the services<br/>• Not make false claims or promises on behalf of THE COMPANY<br/>• Respect the intellectual property rights of THE COMPANY<br/>• Use only approved marketing materials<br/>• Comply with all applicable Spanish laws and regulations<br/>• Maintain confidentiality of business information<br/>• Not engage in any activities that could damage THE COMPANY's reputation"
+        "content": "6.1 THE PARTNER shall:<br/>• act honestly, professionally and in good faith, and comply with all applicable laws;<br/>• keep its details (including bank details and tax status) accurate and up to date in the Portal;<br/>• describe THE COMPANY's service accurately, using only the information and materials published or approved by THE COMPANY;<br/>• direct every prospective customer to THE COMPANY's website or team to contract, and never collect money, bank or card details, health information or identity documents from them;<br/>• make clear, whenever it recommends the service, that it may receive a commission from THE COMPANY;<br/>• respect every person's free decision, never pressure anyone to subscribe (especially older or vulnerable people), and not register anyone on their behalf unless THE COMPANY has expressly authorised it for that person;<br/>• only ask THE COMPANY to send an Invitation to a person who has asked for it or agreed to it;<br/>• inform THE COMPANY promptly of any complaint, incident or claim about the service that comes to its attention.<br/><br/>6.2 If THE PARTNER is a healthcare professional or provider, a pharmacy, a care provider or an insurer, it shall also comply with the ethical and regulatory rules of its profession or sector, including any rules on incentives, conflicts of interest and information to patients or clients, and shall not recommend the service where those rules do not allow it. THE COMPANY may decline or end a partnership if it considers that a commission could conflict with those rules."
+      },
+      "marketing": {
+        "title": "ADVERTISING AND MARKETING RULES",
+        "content": "7.1 THE PARTNER shall not make any statement about the service that THE COMPANY has not published or approved. In particular, THE PARTNER shall not:<br/>• present the service or the pendant as a medical device, a medical or health-monitoring service, or a substitute for medical care or for the 112 emergency number;<br/>• claim that the service detects, diagnoses, prevents or treats any illness or condition, or that it guarantees any result;<br/>• promise any response time, availability, price, discount, gift, refund or guarantee other than what THE COMPANY's website states at the time;<br/>• make misleading, comparative or disparaging statements about THE COMPANY or its competitors.<br/><br/>7.2 THE PARTNER shall not send unsolicited commercial emails, SMS, WhatsApp or other electronic messages (Law 34/2002, LSSI-CE, article 21), make commercial calls in breach of telecommunications or consumer protection rules, or use spam, bulk messaging, purchased contact lists, fake reviews or misleading social media content.<br/><br/>7.3 Without THE COMPANY's prior written consent, THE PARTNER shall not bid on THE COMPANY's brand names in paid search advertising, register domain names, social media accounts or app names that contain them, or present itself as THE COMPANY or as its official representative.<br/><br/>7.4 Any advertisement, website or post that mentions THE COMPANY must be identifiable as advertising where the law requires it (including Law 34/1988, General Advertising Law, Law 3/1991 on Unfair Competition and, where applicable, the rules on influencer marketing) and must disclose THE PARTNER's commercial relationship with THE COMPANY.<br/><br/>7.5 THE COMPANY may ask THE PARTNER to correct or withdraw any material that does not comply with this clause, and THE PARTNER shall do so within 48 hours of the request."
       },
       "commissions": {
-        "title": "COMMISSION STRUCTURE",
-        "content": "THE PARTNER shall receive a commission of <strong>€50 (fifty euros)</strong> gross for each successful referral. A referral is considered successful when:<br/><br/>• The referred customer completes the registration process<br/>• The customer completes payment for their subscription<br/>• The pendant device is delivered to the customer<br/><br/>Commissions enter a 7-day holding period after the triggering event, during which they may be cancelled if the order is refunded or cancelled."
+        "title": "COMMISSION",
+        "content": "8.1 THE COMPANY will pay THE PARTNER a Commission of <strong>€50 (fifty euros) for each Qualifying Referral</strong>. The amount is the same for every type of partner, does not depend on volume and is paid <strong>once per Referred Member</strong>: renewals, later orders, replacement or additional devices and couple subscriptions do not give rise to any further Commission.<br/><br/>8.2 A referral becomes a Qualifying Referral when all of the following are met: (a) the registration is attributed to THE PARTNER under clause 5; (b) the Referred Member has paid for the subscription; (c) delivery of the Referred Member's first pendant has been recorded; and (d) at the end of the Holding Period, the Referred Member's account is active, the order has not been cancelled and the payment has not been refunded.<br/><br/>8.3 A Commission is created when delivery of the pendant is recorded and remains on hold for 7 days (the Holding Period). At the end of that period it is approved or cancelled according to clause 8.2(d).<br/><br/>8.4 The Commission amount <strong>excludes VAT</strong>. If THE PARTNER must charge Spanish VAT (IVA) or another indirect tax on its services, that tax is added on THE PARTNER's valid invoice. Any personal income tax (IRPF) withholding that Spanish law requires THE COMPANY to make is deducted from the Commission and paid to the Tax Agency on THE PARTNER's behalf.<br/><br/>8.5 The Commission is a fixed amount and does not depend on the price paid by the customer, so discounts, the VAT charged to the customer and the billing period chosen do not change it.<br/><br/>8.6 Commissions may accrue before THE PARTNER has signed this Agreement electronically in the Portal, but they will not be paid until it has."
+      },
+      "clawback": {
+        "title": "CANCELLATIONS, REFUNDS AND RECOVERY OF COMMISSIONS",
+        "content": "9.1 Customers have a statutory right to withdraw from their contract within 14 days, counted from the day they receive the pendant, and may also cancel or be refunded in other cases provided by law or by THE COMPANY's terms. Because the Holding Period is shorter than the withdrawal period, a Commission may be approved or paid before the withdrawal period has ended.<br/><br/>9.2 If, within 30 days of delivery of the pendant, the Referred Member withdraws from the contract, the order is cancelled, or the payment is refunded or reversed, the Commission is not due. If it has not yet been paid, THE COMPANY will cancel it. If it has been paid, THE COMPANY may set the amount off against later Commissions or, if no Commission becomes payable within 90 days, ask THE PARTNER to repay it within 30 days of the request.<br/><br/>9.3 A Commission is also not due, and may be recovered in the same way, if the registration was obtained through fraud, false information, self-referral or any breach of clauses 6 or 7.<br/><br/>9.4 Whenever an amount is recovered or set off, the corresponding corrective invoice will be issued and any VAT and withholding will be adjusted."
       },
       "payment": {
-        "title": "PAYMENT TERMS",
-        "content": "Commissions are processed monthly. After the 7-day holding period, approved commissions will be scheduled for payment. Payments are made via bank transfer to the IBAN provided by THE PARTNER. THE PARTNER is responsible for all applicable taxes on commission income. Minimum payout threshold: €50. THE COMPANY reserves the right to withhold payment if agreement is unsigned or there are compliance concerns."
+        "title": "PAYMENT, INVOICING AND TAXES",
+        "content": "10.1 Approved Commissions are paid monthly by bank transfer to the IBAN recorded in the Portal, no later than the last day of the month following the month in which they were approved, provided that the conditions of this clause are met. Each party bears the charges of its own bank.<br/><br/>10.2 THE PARTNER shall provide, and keep up to date in the Portal, its full name or company name, NIF/NIE/CIF, tax address, VAT status and account holder name. The account must be held by THE PARTNER. THE COMPANY may postpone payment until it has the information it needs to pay lawfully.<br/><br/>10.3 If THE PARTNER acts as a business or professional, it shall issue to THE COMPANY, for each payment, an invoice that complies with the Spanish Invoicing Regulation (Royal Decree 1619/2012), showing any VAT and IRPF withholding. The parties may agree in writing that THE COMPANY issues those invoices on THE PARTNER's behalf (self-billing). If THE PARTNER is a private individual who is not required to invoice, THE COMPANY will issue a payment statement and apply any withholding the law requires.<br/><br/>10.4 THE PARTNER is solely responsible for declaring its Commissions and for paying the taxes and social security contributions due on them. THE COMPANY will report payments to the Tax Agency where the law requires it.<br/><br/>10.5 THE COMPANY may withhold payment while this Agreement has not been signed in the Portal, while THE PARTNER's account is suspended, or while a reasonable suspicion of fraud or breach is being investigated. THE COMPANY will tell THE PARTNER the reason and will complete any investigation within 60 days.<br/><br/>10.6 The Portal shows the status of each Commission (on hold, approved, paid or cancelled). THE COMPANY will explain the reason for any cancellation on request."
       },
       "intellectualProperty": {
         "title": "INTELLECTUAL PROPERTY",
-        "content": "All trademarks, logos, marketing materials, and intellectual property belong exclusively to THE COMPANY. THE PARTNER is granted a limited, non-exclusive license to use approved marketing materials solely for the purpose of promoting THE COMPANY's services. This license terminates immediately upon termination of this agreement."
+        "content": "11.1 THE COMPANY's names, trade marks, logos, website content, images and marketing materials belong to THE COMPANY or its licensors.<br/><br/>11.2 THE COMPANY grants THE PARTNER a free, non-exclusive, non-transferable and revocable licence to use the materials made available in the Portal, without alteration, solely to promote the service under this Agreement and in line with any brand guidelines THE COMPANY provides.<br/><br/>11.3 THE PARTNER shall not alter the materials, combine THE COMPANY's brands with other signs, or register or use any sign that could be confused with them.<br/><br/>11.4 The licence ends automatically when this Agreement ends. THE PARTNER shall then stop using the materials and remove them within 7 days.<br/><br/>11.5 Where THE PARTNER is an organisation, THE COMPANY may name it as a partner in its communications, unless THE PARTNER objects in writing."
       },
       "confidentiality": {
         "title": "CONFIDENTIALITY",
-        "content": "THE PARTNER agrees to maintain strict confidentiality regarding:<br/><br/>• Customer personal data and information<br/>• THE COMPANY's business strategies and practices<br/>• Commission structures and partner terms<br/>• Any proprietary information shared during the partnership<br/><br/>This obligation survives the termination of this agreement."
+        "content": "12.1 Each party shall keep confidential any non-public information it receives from the other in connection with this Agreement (including personal data, business plans, unpublished prices, Portal content and any conditions agreed individually) and shall use it only to perform this Agreement.<br/><br/>12.2 This obligation does not apply to information that is or becomes public without breach, that the receiving party already held lawfully, or that must be disclosed by law or by order of a court or authority (in which case, where lawful, the other party will be informed first).<br/><br/>12.3 The terms of this Agreement as published by THE COMPANY, including the Commission in clause 8, are not confidential.<br/><br/>12.4 This clause continues for 3 years after this Agreement ends, and without time limit for personal data."
       },
       "dataProtection": {
-        "title": "DATA PROTECTION (GDPR/LOPD)",
-        "content": "Both parties agree to comply with Regulation (EU) 2016/679 (GDPR) and Spanish Organic Law 3/2018 on Personal Data Protection (LOPD-GDD). THE PARTNER shall:<br/><br/>• Only collect and process personal data with proper consent<br/>• Not share referred customer data with third parties<br/>• Report any data breaches immediately to THE COMPANY<br/>• Delete personal data upon termination of this agreement<br/><br/>THE COMPANY acts as Data Controller for all customer data."
+        "title": "DATA PROTECTION",
+        "content": "13.1 Each party shall comply with Data Protection Law. Each party is an <strong>independent controller</strong> of the personal data it processes for its own purposes. This Agreement does not make either party a processor of the other; if processing on behalf of the other party is ever needed, the parties will first sign a data processing agreement under article 28 GDPR.<br/><br/>13.2 <strong>THE PARTNER's data.</strong> THE COMPANY processes the personal data of THE PARTNER or its contact persons (identification, contact, bank and tax details, Portal activity, referral and commission records, and the records of acceptance and signature of this Agreement) to manage the partnership, pay Commissions, meet its accounting and tax obligations and prevent fraud. The legal bases are the performance of this Agreement and compliance with legal obligations. More information, including how to exercise data protection rights, is in THE COMPANY's Privacy Policy. Contact: privacy@icealarm.es.<br/><br/>13.3 <strong>Data THE PARTNER can see.</strong> In the Portal THE PARTNER can see the name, registration date and status of its Referred Members and the status of the related Commissions. Where THE COMPANY has enabled alert notifications for a care organisation in respect of a person in its care, with that person's authorisation or on another lawful basis, the organisation may also see information about that person's alerts (such as type, time, status and location). THE PARTNER shall use this information only for the purpose for which it is provided, shall not export, copy or disclose it beyond what is strictly necessary, shall protect it with appropriate security measures, and shall not use it for its own marketing.<br/><br/>13.4 <strong>Data THE PARTNER passes on.</strong> Before asking THE COMPANY to send an Invitation, or passing on anyone's details in any other way, THE PARTNER shall make sure that the person has asked for or agreed to be contacted by THE COMPANY and knows that THE PARTNER is sharing their details with it. THE PARTNER shall never pass on health information about anyone.<br/><br/>13.5 THE PARTNER shall notify THE COMPANY at privacy@icealarm.es without undue delay, and in any case within 24 hours of becoming aware of it, of any security incident affecting personal data received from THE COMPANY, and shall cooperate in managing it.<br/><br/>13.6 When this Agreement ends, THE PARTNER shall delete the personal data received from THE COMPANY, unless the law requires it to keep them, and shall confirm the deletion in writing on request."
       },
       "duration": {
         "title": "DURATION",
-        "content": "This agreement is valid for an indefinite period from the date of electronic signature. Either party may terminate this agreement with 30 days written notice. THE COMPANY reserves the right to suspend or terminate the partnership immediately in case of breach of these terms."
+        "content": "This Agreement takes effect when THE PARTNER accepts it during registration and continues for an indefinite period until it is terminated under clause 15. THE PARTNER's electronic signature in the Portal confirms that acceptance and is required before any Commission is paid (clause 8.6)."
       },
       "termination": {
         "title": "TERMINATION",
-        "content": "This agreement may be terminated:<br/><br/>• By either party with 30 days written notice<br/>• Immediately by THE COMPANY for breach of terms<br/>• Immediately if THE PARTNER engages in fraudulent activity<br/>• Immediately if THE PARTNER damages THE COMPANY's reputation<br/><br/>Upon termination, pending approved commissions will be paid. Pending referrals in progress at termination may still be eligible for commission if converted within 30 days."
+        "content": "15.1 Either party may terminate this Agreement at any time, without giving reasons, by written notice to the other (including by email or through the Portal) given at least 30 days in advance, or any longer period required by mandatory law.<br/><br/>15.2 THE COMPANY may suspend THE PARTNER's account, or terminate this Agreement with immediate effect by written notice, if THE PARTNER seriously or repeatedly breaches this Agreement (in particular clauses 6, 7, 12 or 13), acts fraudulently, harms THE COMPANY's reputation or its customers' interests, or becomes insolvent. THE PARTNER may terminate with immediate effect if THE COMPANY seriously breaches its payment obligations and does not remedy the breach within 15 days of being notified.<br/><br/>15.3 On termination: (a) Commissions already approved are paid under clause 10, unless the termination is due to THE PARTNER's fraud or serious breach in connection with them; (b) a registration attributed to THE PARTNER before the termination date that becomes a Qualifying Referral within 30 days after that date still gives rise to a Commission; (c) THE PARTNER's access to the Portal and its Referral Links end, and THE PARTNER shall stop presenting itself as a partner; (d) clauses 9, 11.4, 12, 13, 16 and 18 continue to apply."
       },
       "liability": {
         "title": "LIABILITY",
-        "content": "THE PARTNER operates as an independent contractor, not an employee of THE COMPANY. THE PARTNER is solely responsible for their own tax obligations and social security contributions. THE COMPANY shall not be liable for any losses incurred by THE PARTNER in the course of their promotional activities. THE PARTNER indemnifies THE COMPANY against any claims arising from their promotional activities."
+        "content": "16.1 Each party is liable for the damage it causes to the other by breaching this Agreement, in accordance with the Spanish Civil Code.<br/><br/>16.2 THE PARTNER shall indemnify THE COMPANY against any claims, penalties and reasonable costs (including legal fees) arising from THE PARTNER's breach of clauses 6, 7, 11 or 13 or from any unlawful act of THE PARTNER when promoting the service.<br/><br/>16.3 THE COMPANY is not liable for THE PARTNER's loss of profit, or for Commissions not earned because of the technical limits of attribution described in clause 5.2, interruptions of the Portal, or a customer's decision not to subscribe or to cancel. THE COMPANY's total liability to THE PARTNER under this Agreement in any 12-month period is limited to the total Commissions payable to THE PARTNER in that period.<br/><br/>16.4 Nothing in this Agreement limits or excludes liability for wilful misconduct (dolo) or gross negligence, for personal injury, or any other liability that cannot be limited under Spanish law, nor THE COMPANY's obligation to pay Commissions that are properly due."
+      },
+      "amendments": {
+        "title": "CHANGES TO THIS AGREEMENT",
+        "content": "17.1 THE COMPANY may amend this Agreement, including the Commission amount and conditions, by notifying THE PARTNER by email and in the Portal at least 30 days before the change takes effect. Each version has a version number, and THE COMPANY records which version THE PARTNER has accepted.<br/><br/>17.2 If THE PARTNER does not agree with a change, it may terminate this Agreement, without penalty, before the change takes effect. If THE PARTNER remains in the programme after that date, the change applies to it, and THE COMPANY may ask THE PARTNER to accept or sign the new version in the Portal.<br/><br/>17.3 A change never affects the Commission for a registration attributed before the change takes effect; that registration remains subject to the terms in force when it was attributed.<br/><br/>17.4 THE COMPANY may make changes required by law, or changes that do not reduce THE PARTNER's rights, with immediate effect, informing THE PARTNER as soon as reasonably possible.<br/><br/>17.5 Any other change or waiver must be agreed in writing (including electronically) by both parties."
       },
       "jurisdiction": {
-        "title": "JURISDICTION AND APPLICABLE LAW",
-        "content": "This agreement is governed by Spanish law. Any disputes arising from this agreement shall be submitted to the exclusive jurisdiction of the courts of Almería, Spain. The parties waive any other jurisdiction that may correspond to them."
+        "title": "APPLICABLE LAW AND JURISDICTION",
+        "content": "18.1 This Agreement is governed by Spanish law.<br/><br/>18.2 The parties will first try to resolve any dispute amicably. THE PARTNER may write to info@icealarm.es for this purpose.<br/><br/>18.3 If no agreement is reached, disputes shall be submitted to the courts of Almería (Spain), unless mandatory law entitles THE PARTNER to bring or defend proceedings before the courts of its own domicile (for example, where THE PARTNER acts as a consumer or the rules on agency contracts apply), in which case that right is respected."
       },
       "general": {
         "title": "GENERAL PROVISIONS",
-        "content": "• This agreement constitutes the entire agreement between the parties<br/>• Modifications must be made in writing and signed by both parties<br/>• If any clause is deemed invalid, the remaining clauses remain in force<br/>• Electronic signatures have the same legal validity as handwritten signatures under Spanish law<br/>• THE COMPANY reserves the right to modify commission structures with 30 days notice"
+        "content": "19.1 This Agreement, together with any conditions THE COMPANY agrees individually and in writing with THE PARTNER, is the entire agreement between the parties on the partner programme and replaces any earlier version or communication on the same subject, without affecting Commissions already accrued.<br/><br/>19.2 If any clause is held invalid, the remaining clauses stay in force and the invalid clause will be replaced by a valid one as close as possible to the parties' intention.<br/><br/>19.3 THE PARTNER may not assign or subcontract this Agreement or its Referral Links without THE COMPANY's written consent. THE COMPANY may assign this Agreement to a company in its group or to a successor to its business, informing THE PARTNER.<br/><br/>19.4 Notices are sent to the email address recorded in the Portal for THE PARTNER, and to info@icealarm.es for THE COMPANY.<br/><br/>19.5 <strong>Acceptance and record.</strong> THE PARTNER accepts this Agreement electronically by ticking the acceptance box during registration, and THE COMPANY records the date and time of acceptance and the version accepted. THE PARTNER then confirms it by electronic signature in the Portal, and THE COMPANY keeps a record of that signature (name, identity document, date and time, version and the text signed). Electronic acceptance and signature are valid under Regulation (EU) 910/2014 (eIDAS) and Law 34/2002 (LSSI-CE). THE PARTNER can read the current version at any time at icealarm.es/partner/terms and the version it signed in the Portal.<br/><br/>19.6 This Agreement is available in Spanish and English. If the versions differ, the Spanish version prevails."
       }
+    }
+  },
+  "partnerJoin": {
+    "terms": {
+      "panelTitle": "{{name}} — version {{version}}",
+      "panelHelp": "Please read the agreement below before you create your account.",
+      "regionLabel": "Full text of the {{name}}",
+      "openFull": "Open the full agreement in a new tab",
+      "acceptLabel": "I have read and accept the {{name}} (version {{version}})",
+      "acceptDescription": "We record the date, time and version you accept. Before your first commission is paid, you will also sign the agreement electronically in your partner portal."
     }
   },
   "registration": {
@@ -3585,111 +3627,259 @@
     }
   },
   "legal": {
+    "cancellation": {
+      "title": "Cancellation, Withdrawal and Refund Policy",
+      "company": "ICE Alarm España S.L. · Tax ID (CIF) B24731531",
+      "lastUpdated": "Last updated: September 2026 · Draft pending legal review",
+      "footerLink": "Cancellation & refunds",
+      "draftNotice": "This policy is a draft pending legal review. It does not limit any right you have under Spanish or EU consumer law; where it appears to, the law prevails.",
+      "summaryTitle": "In short",
+      "summaryItems": [
+        "You can <strong>withdraw within 14 days</strong> without giving a reason and receive a full refund of what you paid.",
+        "After that you can <strong>cancel at any time</strong>, with no minimum term and no notice period. Monitoring continues until the end of the period you have already paid for.",
+        "The pendant is yours to keep when you cancel. It only comes back to us if you withdraw within the 14 days.",
+        "Refunds are made within 14 days, to the same payment method you used.",
+        "Once monitoring ends, the SOS button no longer reaches our team."
+      ],
+      "s1Title": "1. Who we are and who this policy applies to",
+      "s1p1": "This policy is provided by <strong>ICE Alarm España S.L.</strong> (CIF B24731531), registered office at [[TO CONFIRM: registered address]], email info@icealarm.es, telephone [[TO CONFIRM: customer service telephone and hours]]. It forms part of our Terms of Service and explains how you can withdraw from, cancel and obtain refunds for your membership and your GPS pendant.",
+      "s1p2": "It applies to you if you are a consumer — a person acting for purposes outside their trade, business or profession — and you took out your membership at a distance (online or by telephone) or away from our business premises.",
+      "s2Title": "2. Your right of withdrawal (14 days)",
+      "s2p1": "You have the right to withdraw from this contract within 14 calendar days without giving any reason and without any penalty (Royal Legislative Decree 1/2007, articles 102 to 108).",
+      "s2Items": [
+        "<strong>If you ordered a pendant</strong>, the 14 days start on the day you, or a person you nominate other than the carrier, take physical possession of it. If pendants ordered together arrive on different days, the period starts when you receive the last one.",
+        "<strong>If you took out a membership without a pendant</strong>, the 14 days start on the day the contract was concluded.",
+        "<strong>To exercise it</strong>, tell us of your decision by a clear statement before the period ends, using any of the channels in section 3. You may use the model form in section 15, but you do not have to.",
+        "<strong>You are in time</strong> if you send your statement before the 14 days are up, even if it reaches us afterwards.",
+        "We recommend keeping a copy of your message. We will always confirm that we have received it."
+      ],
+      "s3Title": "3. How to withdraw or cancel",
+      "s3p1": "Withdrawing or cancelling should be as easy as joining. Use whichever channel suits you:",
+      "s3Items": [
+        "<strong>Online:</strong> [[TO CONFIRM: online withdrawal and cancellation function in the member area — not yet available]]",
+        "<strong>By email:</strong> write to info@icealarm.es, ideally from the email address you registered with, giving your name and saying that you wish to withdraw or to cancel.",
+        "<strong>From your member area:</strong> send us a message from the Support section.",
+        "<strong>By telephone:</strong> [[TO CONFIRM: customer service telephone and hours]].",
+        "<strong>By post:</strong> ICE Alarm España S.L., [[TO CONFIRM: registered address]]."
+      ],
+      "s3p2": "We will send you an acknowledgement by email without delay, stating what you asked for and the date and time we received it. If you do not receive it, please contact us again so that your request is not lost.",
+      "s3p3": "If you are acting for a member who cannot do it themselves, please tell us who you are and your relationship to the member. We may need to check that you are authorised to act for them.",
+      "s4Title": "4. Refunds when you withdraw",
+      "s4Items": [
+        "We refund <strong>every payment we received from you</strong> under the contract: the membership fee, the pendant, the registration fee and the cost of standard delivery. If you chose a delivery method more expensive than our standard one, we refund the standard cost.",
+        "We make the refund <strong>without undue delay and no later than 14 days</strong> from the day we are informed of your decision.",
+        "We use the <strong>same means of payment</strong> you used for the original transaction, unless you have expressly agreed otherwise. You will not be charged any fee for the refund.",
+        "For the pendant, we may withhold the corresponding part of the refund until we have received it back, or until you have given us evidence that you have sent it, whichever is earlier.",
+        "If monitoring started during the withdrawal period at your express request, we deduct only the proportionate amount described in section 5.",
+        "If someone else paid on your behalf, the refund goes back to the payment method that was charged."
+      ],
+      "s5Title": "5. If monitoring started during the withdrawal period",
+      "s5p1": "Our monitoring service may start before the 14 days are over only if you <strong>expressly ask us</strong> to start it. If you asked for this and then withdraw, you pay an amount proportionate to the service provided until you told us you were withdrawing.",
+      "s5Items": [
+        "<strong>How it is calculated:</strong> the price of your current billing period (IVA included), divided by the number of days in that period, multiplied by the number of days monitoring was active until you told us you were withdrawing.",
+        "<strong>For an annual membership</strong>, the same calculation is made on the annual price over 365 days.",
+        "<strong>If you did not expressly ask</strong> for monitoring to start during the withdrawal period, or we did not give you this information before you contracted, you owe nothing for the service provided during that period.",
+        "Everything you paid above that amount is refunded as described in section 4."
+      ],
+      "s6Title": "6. Returning the pendant after withdrawal",
+      "s6Items": [
+        "Send the pendant back without undue delay and no later than <strong>14 days</strong> from the day you told us you were withdrawing, to: [[TO CONFIRM: returns address]].",
+        "You pay the <strong>direct cost of returning</strong> the pendant. It can be sent by ordinary post or courier. [[TO CONFIRM: estimated return cost]]",
+        "You are only liable for any loss in value caused by handling the pendant beyond what is necessary to establish its nature, characteristics and functioning.",
+        "Please include the charger and any accessories supplied with it, and a note with your name or order number so that we can match the parcel to your refund.",
+        "When we process your withdrawal we disconnect the pendant from our service. From then on, pressing its SOS button no longer reaches our team."
+      ],
+      "s7Title": "7. Cancelling after the withdrawal period",
+      "s7Items": [
+        "You can cancel your membership <strong>at any time</strong>. There is no minimum term and no notice period.",
+        "Your cancellation takes effect at the <strong>end of the billing period you have already paid for</strong>. Monitoring continues until then, and you will not be charged again.",
+        "Once the withdrawal period is over, fees already paid for the current billing period are not refunded. This also applies to annual memberships. [[TO CONFIRM: treatment of annual memberships cancelled early — pending legal review]]",
+        "<strong>You keep the pendant</strong>, because you bought it. There is nothing to return.",
+        "When monitoring ends, the <strong>SOS button no longer reaches our team</strong>. If you still need an alarm service, please arrange an alternative before that date.",
+        "We confirm your cancellation, and the date it takes effect, by email.",
+        "We keep your personal data only as described in our Privacy Policy."
+      ],
+      "s8Title": "8. Renewals and price changes",
+      "s8Items": [
+        "<strong>Monthly memberships</strong> renew automatically every month, and <strong>annual memberships</strong> every 12 months, until you cancel.",
+        "An annual membership costs the same as 10 months at the monthly price, paid in one instalment for 12 months of service.",
+        "Your membership renews at the price in force on the renewal date. We tell you at least 30 days before any price change takes effect; if you do not accept it, you can cancel before it applies, at no cost.",
+        "[[TO CONFIRM: reminder sent before an annual renewal — not currently sent]]",
+        "Your next renewal date is shown in your member area, under Membership."
+      ],
+      "s9Title": "9. Prices, IVA and one-off charges",
+      "s9Items": [
+        "Every price shown to you before you pay includes IVA (Spanish VAT) where it applies.",
+        "The <strong>membership</strong> carries IVA at 10%.",
+        "The <strong>GPS pendant</strong> is sold to you and carries IVA at 21%.",
+        "<strong>Delivery</strong> is charged once per order, however many pendants you order.",
+        "A one-off <strong>registration fee</strong> may apply, as shown in the order summary. [[TO CONFIRM: IVA treatment of the registration fee]]",
+        "Before you pay, the order summary shows each item, its IVA, the total due today and the amount you will then be charged each month or year."
+      ],
+      "s10Title": "10. If a payment fails",
+      "s10Items": [
+        "If a payment fails, we or our payment provider will try to collect it again, and we will contact you.",
+        "<strong>Your monitoring continues</strong> while we work it out with you.",
+        "We will not suspend or end your service because of a missed payment without first contacting you and giving you reasonable notice. [[TO CONFIRM: suspension policy — Terms section 8.5 describes suspension after 7 days]]"
+      ],
+      "s11Title": "11. If someone else pays for your membership",
+      "s11p1": "Where a family member or another person pays for your membership, refunds go back to the payment method that was charged. Please tell us who should be contacted about withdrawal, cancellation and refunds, so that the right person is kept informed. [[TO CONFIRM: who may withdraw or cancel when a payer pays — pending legal review]]",
+      "s12Title": "12. Faulty or damaged pendant",
+      "s12p1": "Nothing in this policy affects your statutory guarantee rights if the pendant is faulty or not as described. Those rights are separate from the right of withdrawal and continue after the 14 days have passed. Contact us and we will repair or replace it as the law requires.",
+      "s13Title": "13. Members billed by bank direct debit under an earlier arrangement",
+      "s13p1": "If your membership is still collected by bank direct debit under an arrangement made before you joined this platform, you can cancel through any of the channels in section 3. We stop collecting from the end of the period already collected and confirm this to you in writing. This does not affect your right to ask your bank to refund a direct debit under payment services law. [[TO CONFIRM: cancellation procedure for members on earlier direct-debit billing]]",
+      "s14Title": "14. Questions and complaints",
+      "s14p1": "If you have a question or a complaint about a withdrawal, cancellation or refund, write to info@icealarm.es. Official complaint forms (hojas de reclamaciones) are available on request. You can also contact your municipal consumer information office (OMIC) or your regional consumer authority. [[TO CONFIRM: adherence to the Consumer Arbitration System]]",
+      "formTitle": "15. Model withdrawal form",
+      "formIntro": "Complete and return this form only if you wish to withdraw from the contract. Using it is optional.",
+      "formBody": "To: ICE Alarm España S.L., [[TO CONFIRM: registered address]], info@icealarm.es<br/><br/>I/We (*) hereby give notice that I/we (*) withdraw from my/our (*) contract of sale of the following goods (*) / for the provision of the following service (*): ______________________<br/><br/>Ordered on (*) / received on (*): ______________________<br/>Name of consumer(s): ______________________<br/>Address of consumer(s): ______________________<br/>Signature of consumer(s) (only if this form is sent on paper): ______________________<br/>Date: ______________________<br/><br/>(*) Delete as appropriate.",
+      "printForm": "Print this page",
+      "relatedTitle": "Related documents"
+    },
     "footer": {
       "termsOfService": "Terms of Service",
       "privacyPolicy": "Privacy Policy"
     },
     "terms": {
       "title": "Terms of Service",
-      "company": "ICE Alarm España — Siempre responde alguien.",
-      "lastUpdated": "Last updated: June 2026",
-      "importantWarning": "IMPORTANT: PLEASE READ THESE TERMS CAREFULLY BEFORE USING OUR SERVICES.",
-      "emergencyWarning": "THIS IS A PERSONAL EMERGENCY RESPONSE SERVICE, NOT A SUBSTITUTE FOR EMERGENCY SERVICES (112). IN A LIFE-THREATENING EMERGENCY, ALWAYS CALL 112 DIRECTLY IF POSSIBLE.",
-      "s1Title": "1. Agreement to Terms",
-      "s1p1": "By creating an account, subscribing to our services, or using any ICE Alarm España service, you agree to be bound by these Terms of Service (\"Terms\"), our Privacy Policy, and any additional terms that apply to specific services.",
-      "s1p2": "If you do not agree to these Terms, do not use our services.",
+      "company": "ICE Alarm España S.L. · Tax ID (NIF) B24731531",
+      "lastUpdated": "Version {{version}} · Draft pending legal review · Last updated: 17 September 2026",
+      "importantWarning": "Please read these Terms carefully before you take out a membership.",
+      "emergencyWarning": "ICE Alarm España is a personal alarm and response service. It is not an emergency service and does not replace 112. In a life-threatening emergency, call 112 directly whenever you are able to.",
+      "s1Title": "1. About these Terms",
+      "s1p1": "These Terms of Service (\"Terms\") are the general terms and conditions of the contract between ICE Alarm España S.L. and the person who takes out an ICE Alarm España membership. They apply to the monitoring membership and to any GPS pendant you buy from us.",
+      "s1p2": "You accept these Terms by ticking the acceptance box before you pay. Your contract is made when we confirm your order. We then send you, by email, a confirmation of the contract together with these Terms and the withdrawal information, so that you can keep and print them.",
+      "s1p3": "These Terms are drafted as general contract conditions under Spanish law (Ley 7/1998 and Royal Legislative Decree 1/2007). Nothing in them removes or limits the rights you have by law as a consumer; if any clause could be read that way, the law prevails.",
+      "s1DefsIntro": "In these Terms:",
+      "s1DefsItems": [
+        "<strong>\"we\", \"us\", \"our\"</strong> means ICE Alarm España S.L.;",
+        "<strong>\"account holder\"</strong> or <strong>\"you\"</strong> means the person who enters into the contract with us and is responsible for payment;",
+        "<strong>\"member\"</strong> means the person who wears the pendant and whose alerts we handle. The account holder and the member are often the same person, but need not be (see section 5.2);",
+        "<strong>\"membership\"</strong> means the monitoring service described in section 3, on the plan you choose;",
+        "<strong>\"pendant\"</strong> means the GPS SOS pendant used with the service."
+      ],
       "s2Title": "2. Who We Are",
-      "s2p1": "<strong>ICE Alarm España</strong> (\"we\", \"us\", \"our\", \"ICE Alarm España\") provides personal emergency response services including GPS pendant monitoring, emergency alert handling, and related support services.",
+      "s2p1": "The service is provided by the following company (information given under article 10 of Spanish Law 34/2002, LSSI-CE):",
+      "s2Items": [
+        "<strong>Company name:</strong> ICE Alarm España S.L.",
+        "<strong>Tax ID (NIF):</strong> B24731531",
+        "<strong>Registered office:</strong> [[TO CONFIRM: registered office address]]",
+        "<strong>Commercial Registry:</strong> [[TO CONFIRM: Registro Mercantil, tomo, folio, hoja and inscripción]]",
+        "<strong>Telephone:</strong> [[TO CONFIRM: customer service telephone number]]"
+      ],
       "s2p2": "Contact: info@icealarm.es",
-      "s3Title": "3. Description of Services",
-      "s3_1Title": "3.1 What We Provide",
+      "s3Title": "3. The Service",
+      "s3_1Title": "3.1 What your membership includes",
       "s3_1Items": [
-        "GPS pendant devices for emergency alerts",
-        "24/7 monitoring of device alerts (SOS button, fall detection, device offline)",
-        "Response to alerts via phone call to assess the situation",
-        "Coordination with emergency services (112) when required",
-        "Notification of your designated emergency contacts",
-        "AI-assisted call handling and customer support",
-        "Courtesy welfare check calls (where subscribed)",
-        "Member dashboard for account management"
+        "Reception of alerts from your pendant 24 hours a day, 365 days a year: the SOS button, automatic fall alerts (where the pendant's fall sensor is switched on), and low-battery or no-connection warnings.",
+        "Our trained response team answers each alert, tries to speak with the member through the pendant or by telephone, and decides with them what help is needed.",
+        "Calling the emergency services (112) on the member's behalf when our operator considers it necessary, and passing them the information you have given us.",
+        "Contacting the member's emergency contacts and keyholders, in the order you have set.",
+        "Courtesy calls to the member, where these have been arranged with you. They are friendly check-ins, not a health assessment.",
+        "Help from Isabella, our AI assistant, with account questions and routine communications (see section 4.5).",
+        "Circle of Care: the member can name family members and other trusted people. They can only see the member's information if the member gives permission (see section 3.4).",
+        "An online member area to manage the account, contacts and payment details."
       ],
-      "s3_2Title": "3.2 What We Do NOT Provide",
+      "s3_2Title": "3.2 What the service is not",
       "s3_2Items": [
-        "Direct medical care or medical advice",
-        "Emergency medical services",
-        "Ambulance or paramedic services",
-        "Guaranteed response times",
-        "A substitute for calling 112 in emergencies",
-        "A replacement for proper medical monitoring or care facilities"
+        "It is not a medical, nursing or home-care service, and we do not give medical advice or diagnoses",
+        "It is not an emergency service, ambulance or paramedic service",
+        "It does not measure or monitor the member's health",
+        "It does not guarantee any particular response time or outcome",
+        "It is not a substitute for calling 112 in an emergency",
+        "It is not a replacement for appropriate medical care, supervision or a care facility where one is needed"
       ],
-      "s4Title": "4. Important Limitations and Disclaimers",
-      "s4_1Title": "4.1 Not a Replacement for Emergency Services",
-      "s4_1Warning": "ICE ALARM ESPAÑA IS A SUPPLEMENTARY SERVICE. WE ARE NOT EMERGENCY SERVICES.",
+      "s3_3Title": "3.3 Plans and where we operate",
+      "s3_3p1": "The Single plan covers one member. The Couple plan covers two members living at the same address. The service is designed for members who live in Spain and is provided in Spain [[TO CONFIRM: mainland Spain only, or also the Balearic and Canary Islands, Ceuta and Melilla]]. The pendant may not work, or may work only partially, outside Spain.",
+      "s3_4Title": "3.4 Family and the Circle of Care",
+      "s3_4p1": "Being named as an emergency contact, being a keyholder or paying for the membership does not by itself give anyone access to the member's health information, location or alert history. That access is only given when the member (or a person legally entitled to act for them) grants it for specific categories of information, and it can be withdrawn at any time. How we handle that information is explained in our <a href=\"/privacy\">Privacy Policy</a>.",
+      "s4Title": "4. Important Limitations",
+      "s4_1Title": "4.1 Not a replacement for emergency services",
+      "s4_1Warning": "ICE Alarm España is a supplementary service. We are not the emergency services.",
       "s4_1Items": [
-        "If you are able to call 112 directly in an emergency, you should do so",
-        "Our service depends on technology that can fail",
+        "If the member can call 112 directly in an emergency, they should do so",
+        "The service depends on technology that can fail",
         "There may be delays in our response",
-        "We cannot guarantee that help will arrive in time in any situation"
+        "We cannot guarantee that help will arrive in time in every situation"
       ],
-      "s4_2Title": "4.2 Technology Limitations",
-      "s4_2Intro": "Our service depends on technology that is subject to limitations:",
-      "s4_2GpsLabel": "GPS Pendant:",
+      "s4_2Title": "4.2 Technology limitations",
+      "s4_2Intro": "The service depends on technology that has limits:",
+      "s4_2GpsLabel": "The GPS pendant:",
       "s4_2GpsItems": [
-        "Requires battery charge (if battery dies, no alerts can be sent)",
-        "Requires mobile network coverage (may not work in remote areas or buildings with poor signal)",
-        "GPS accuracy varies (typically 5-50 meters, may be less accurate indoors)",
-        "Fall detection is not 100% accurate (may miss some falls or trigger false alerts)",
-        "Device must be worn to be effective"
+        "Needs battery charge — a pendant with a flat battery cannot send an alert",
+        "Needs mobile network coverage — it may not work in areas or buildings with poor or no signal",
+        "Location accuracy varies and is usually lower indoors; the position we see may not be exact",
+        "The automatic fall sensor will not register every fall and may sometimes raise an alert when there has been no fall",
+        "It only helps if the member is wearing it or has it within reach"
       ],
-      "s4_2SystemsLabel": "Our Systems:",
+      "s4_2SystemsLabel": "Our systems:",
       "s4_2SystemsItems": [
-        "Internet and phone networks can experience outages",
-        "Software systems can have bugs or failures",
-        "AI assistant may misunderstand or make errors"
+        "Internet, telephone and electricity networks can suffer outages",
+        "Software can have faults, although we work to prevent and correct them",
+        "Our AI assistant can misunderstand or make mistakes"
       ],
-      "s4_2ThirdPartyLabel": "Third-Party Dependencies:",
+      "s4_2ThirdPartyLabel": "Third parties:",
       "s4_2ThirdPartyItems": [
-        "We rely on mobile network operators",
-        "We rely on device monitoring partners",
-        "We rely on emergency services to respond once notified"
+        "We rely on mobile network operators and on the providers that connect the pendant to our systems",
+        "Emergency services (112, ambulance, police, fire brigade) are independent of us and decide for themselves how and when to respond"
       ],
-      "s4_3Title": "4.3 Response Time",
-      "s4_3Warning": "WE DO NOT GUARANTEE ANY SPECIFIC RESPONSE TIME.",
-      "s4_3p1": "While we strive to respond to alerts as quickly as possible, response times depend on volume of simultaneous alerts, availability of operators, accuracy of information provided, response time of emergency services (112), and traffic, weather, and other factors beyond our control.",
-      "s4_4Title": "4.4 No Medical Advice",
-      "s4_4p1": "Our staff and AI assistant provide emergency coordination, NOT medical advice. Any information provided is general in nature and should not be relied upon as medical advice. Always consult qualified medical professionals for health decisions.",
-      "s4_5Title": "4.5 AI Assistant Limitations",
-      "s4_5Intro": "Our AI assistant \"Isabella\":",
+      "s4_3Title": "4.3 Response time",
+      "s4_3Warning": "We do not guarantee any specific response time.",
+      "s4_3p1": "Our response team is available 24 hours a day and we aim to answer every alert as quickly as possible. How quickly help arrives also depends on things outside our control, including the number of simultaneous alerts, the information available to us, how quickly 112 and other services respond, traffic and weather.",
+      "s4_4Title": "4.4 No medical advice",
+      "s4_4p1": "Our team and our AI assistant coordinate help; they do not provide medical advice. Any information they give is general and must not be relied on as medical advice. Always consult a qualified health professional about health decisions.",
+      "s4_5Title": "4.5 Isabella, our AI assistant",
+      "s4_5Intro": "Isabella:",
       "s4_5Items": [
-        "Is an artificial intelligence, not a human",
-        "May misunderstand what you say",
-        "May provide incorrect or inappropriate responses",
-        "Will transfer to human operators when uncertain or upon request",
-        "Should not be relied upon for critical medical decisions"
+        "Is an artificial intelligence system, not a person, and will tell you so",
+        "May misunderstand what you say or give an incorrect answer",
+        "Does not decide how an SOS alert is handled — alerts are handled by our human response team",
+        "Will pass you to a person when she is unsure, and whenever you ask",
+        "Must not be relied on for medical decisions"
       ],
-      "s5Title": "5. Eligibility",
-      "s5Intro": "To use our services, you must:",
+      "s4_5p1": "More detail is given in our information about Isabella and the use of artificial intelligence.",
+      "s5Title": "5. Eligibility, Account Holder and Member",
+      "s5_1Title": "5.1 Who can join",
+      "s5Intro": "To take out a membership:",
       "s5Items": [
-        "Be at least 18 years old, OR have a parent/guardian agree on your behalf",
-        "Provide accurate and complete information",
-        "Have a valid payment method",
-        "Be located in an area with mobile network coverage",
-        "Be capable of wearing and using the GPS pendant (or have a caregiver who can assist)"
+        "The account holder must be at least 18 years old and able to enter into a contract",
+        "The member must live in Spain, in a place with mobile network coverage (see section 3.3)",
+        "The member must be able to wear and use the pendant, or have someone who can help them",
+        "The information given to us must be true, complete and up to date",
+        "A valid payment method is required"
       ],
-      "s5p1": "We reserve the right to refuse service to anyone for any reason.",
-      "s6Title": "6. Your Account",
-      "s6_1Title": "6.1 Account Creation",
-      "s6_1p1": "You must provide accurate, current, and complete information during registration. You agree to update this information to keep it accurate.",
-      "s6_2Title": "6.2 Account Security",
+      "s5p1": "We may decline an application if we cannot provide the service safely — for example, where there is no mobile coverage at the member's home — or if the information given is false. If we decline, we will tell you and refund any payment in full.",
+      "s5_2Title": "5.2 Account holder and member",
+      "s5_2Items": [
+        "The account holder is our contracting party: they pay, receive invoices and exercise the contractual rights, including withdrawal (section 9.2) and cancellation (section 9.1).",
+        "The member is the person we monitor. Where the account holder and the member are different people — for example, an adult child paying for a parent — our response team deals with the member during an alert, and uses the information given about the member.",
+        "Paying for a membership does not give the account holder access to the member's health information, location or alerts; that requires the member's own permission (section 3.4).",
+        "Online sign-up currently registers the member as the account holder. If someone else is to pay, please contact us and we will arrange it with you."
+      ],
+      "s5_3Title": "5.3 The member's agreement",
+      "s5_3p1": "If you take out a membership for another person, you confirm that they know about the service and have agreed to be monitored, or that you are legally entitled to decide this for them [[TO CONFIRM: counsel to confirm wording for members with support measures under Law 8/2021]]. The member may contact us at any time with questions about the service.",
+      "s6Title": "6. Your Account and Information",
+      "s6_1Title": "6.1 Creating an account",
+      "s6_1p1": "You must give accurate, current and complete information when you register, and keep it up to date.",
+      "s6_2Title": "6.2 Account security",
       "s6_2Intro": "You are responsible for:",
       "s6_2Items": [
-        "Maintaining the confidentiality of your login credentials",
-        "All activities that occur under your account",
-        "Notifying us immediately of any unauthorized access"
+        "Keeping your login details confidential",
+        "Activity carried out using your login details, unless it was not caused by you or by any lack of care on your part",
+        "Telling us promptly if you suspect unauthorised access"
       ],
-      "s6_3Title": "6.3 Accuracy of Information",
-      "s6_3Warning": "CRITICAL: The accuracy of your personal information, medical details, and emergency contacts directly affects our ability to help you in an emergency. You are responsible for keeping this information current and accurate.",
-      "s6_3p1": "If we contact your emergency contacts or provide your medical information to emergency services based on what you have provided, you agree that we are not liable for any consequences of inaccurate information.",
+      "s6_3Title": "6.3 Keeping information accurate",
+      "s6_3Warning": "Important: the accuracy of the member's details, address, health information and emergency contacts directly affects our ability to help in an emergency. Please keep them up to date.",
+      "s6_3p1": "We act on the information you give us. We are not responsible for consequences caused by information that was wrong or out of date where we acted on it reasonably. Please tell us straight away about any change of address, telephone number or contacts, and about any period when the member will be away from home.",
+      "s6_4Title": "6.4 Emergency contacts and keyholders",
+      "s6_4Intro": "When you give us details of emergency contacts or keyholders, you confirm that:",
+      "s6_4Items": [
+        "You have told them that they are being named, and they have agreed to be contacted by us, including at night",
+        "Any keyholder has agreed to hold a key to the member's home and, where possible, to go there when we ask",
+        "You will tell us promptly when their details change or when they no longer wish to be listed",
+        "You understand that during an alert we will share with them the information they need to help, as explained in our <a href=\"/privacy\">Privacy Policy</a>"
+      ],
+      "s6_4p1": "If no keyholder can be reached, the emergency services may decide to enter the member's home by other means. That decision is theirs, not ours.",
       "s7Title": "7. Devices and Equipment",
       "s7_1Title": "7.1 GPS Pendant",
       "s7_1Items": [
@@ -3699,36 +3889,60 @@
         "You do not have to return it when you cancel — the pendant is yours to keep. The only return situation is if you exercise your 14-day right of withdrawal (section 9.2), where you pay the return postage.",
         "If the pendant is lost or damaged you can buy a replacement at the current price; there is no penalty charge."
       ],
-      "s7_2Title": "7.2 Your Responsibilities",
-      "s7_2Intro": "You agree to:",
+      "s7_2Title": "7.2 Looking after the pendant",
+      "s7_2Intro": "To keep the service working, the member (or the person helping them) should:",
       "s7_2Items": [
-        "Keep the device charged",
-        "Wear the device as intended",
-        "Test the device periodically as instructed",
-        "Notify us of any device malfunctions",
-        "Not attempt to modify, repair, or tamper with the device"
+        "Charge the pendant as described in the user guide, and respond to low-battery warnings",
+        "Wear the pendant, or keep it within reach, as described in the user guide",
+        "Make a test alert regularly, as described in the user guide, and tell us if it does not work",
+        "Tell us promptly about any fault, damage or loss",
+        "Not open, modify, repair or tamper with the pendant or its SIM card"
       ],
-      "s7_3Title": "7.3 Device Connectivity",
-      "s7_3p1": "The device requires mobile network coverage, battery charge, and the SIM card to remain active (managed by our partner).",
+      "s7_3Title": "7.3 Connectivity",
+      "s7_3p1": "The pendant contains a SIM card that connects it to our systems as part of the membership. The SIM may only be used with our service. When the membership ends, the pendant's connection to our service is switched off.",
       "s7_3p2": "We are not responsible for service failures caused by:",
       "s7_3Items": [
-        "Poor or no mobile network coverage in your area",
-        "Interference from buildings, terrain, or weather",
-        "Mobile network outages",
-        "Depleted device battery"
+        "Poor or no mobile network coverage where the pendant is used",
+        "Interference from buildings, terrain or weather",
+        "Mobile network outages outside our control",
+        "A flat pendant battery"
       ],
-      "s8Title": "8. Subscription and Payment",
-      "s8_1Title": "8.1 Subscription Plans",
-      "s8_1p1": "Details of available subscription plans, including pricing, are displayed on our website and during registration. Prices include applicable VAT.",
-      "s8_2Title": "8.2 Payment",
+      "s7_4Title": "7.4 Delivery",
+      "s7_4Items": [
+        "We send the pendant by recorded delivery to the address you give us. It arrives within 5–7 working days, and in any case no later than 30 days after your order.",
+        "The delivery charge is shown in your order summary before you pay.",
+        "The pendant is at our risk until it is delivered to you or to a person you have nominated.",
+        "If we do not deliver within the period agreed, you may give us a further reasonable period; if we still do not deliver, you may end the contract and we will refund you."
+      ],
+      "s7_5Title": "7.5 Guarantee and faults",
+      "s7_5Items": [
+        "The pendant is covered by the legal guarantee of conformity: we are responsible for any lack of conformity that appears within three years of delivery, under Royal Legislative Decree 1/2007.",
+        "If the pendant is faulty, you may ask us to repair or replace it free of charge, including shipping; where that is not possible or reasonable, you may ask for a price reduction or to end the contract.",
+        "This guarantee does not cover damage caused by misuse, accidents or tampering.",
+        "Any commercial guarantee we or the manufacturer offer is in addition to, and does not replace, your legal rights."
+      ],
+      "s8Title": "8. Price, Payment and Renewal",
+      "s8_1Title": "8.1 Prices",
+      "s8_1p1": "The price you pay is the one shown on our website and in your order summary when you order. All prices are shown with IVA included, and each item shows its own IVA rate. At the date of this version, the prices are:",
+      "s8_1Items": [
+        "Single plan: {{singleMonthly}} per month, IVA (10%) included, or {{singleAnnual}} per year",
+        "Couple plan: {{coupleMonthly}} per month, IVA (10%) included, or {{coupleAnnual}} per year",
+        "The annual price equals ten monthly payments: you pay for 10 months and are covered for 12",
+        "GPS pendant (one-off purchase): {{pendant}} each, IVA (21%) included",
+        "One-off registration fee: {{registration}}",
+        "Delivery: {{shipping}}, IVA included"
+      ],
+      "s8_1p2": "If our website ever shows a price that differs from the order summary you accepted, the order summary applies.",
+      "s8_2Title": "8.2 Payment and renewal",
       "s8_2Items": [
-        "Payment is processed securely by Stripe",
-        "Subscriptions are billed monthly or annually as selected",
-        "You authorize us to charge your payment method automatically",
-        "Failed payments may result in service suspension"
+        "Payments are processed securely by our payment providers, Stripe and Mollie, by card or by SEPA Direct Debit. We do not store your full card details.",
+        "At checkout you pay the registration fee, any pendant and delivery, and the first period of your membership.",
+        "The membership is paid in advance, monthly or annually as you chose, and renews automatically for a period of the same length until it is cancelled.",
+        "You authorise us to collect each renewal payment using the payment method you gave us. You can change it at any time in your member area.",
+        "We issue an invoice for each payment."
       ],
-      "s8_3Title": "8.3 Price Changes",
-      "s8_3p1": "We may change subscription prices with 30 days notice. If you do not agree to a price change, you may cancel before it takes effect.",
+      "s8_3Title": "8.3 Price changes",
+      "s8_3p1": "We may change membership prices for valid reasons — such as changes in our costs or in taxes — and we will give you at least 30 days' notice by email before a change takes effect. If you do not agree, you may cancel free of charge before the change takes effect. Changes in the IVA rate apply from the date set by law.",
       "s8_4Title": "8.4 Refunds",
       "s8_4Items": [
         "Within the 14-day withdrawal period (section 9.2) you receive a full refund of everything you paid — including the registration fee and the standard delivery cost.",
@@ -3736,13 +3950,13 @@
         "After the withdrawal period, subscription fees already paid for the current billing period are not refunded; your cancellation takes effect at the end of that period.",
         "Faulty, damaged or misdescribed equipment is covered by your statutory guarantee rights, which this section does not limit."
       ],
-      "s8_5Title": "8.5 Non-Payment",
-      "s8_5Intro": "If payment fails:",
+      "s8_5Title": "8.5 If a payment fails",
+      "s8_5Intro": "Because this is a safety service, a failed payment does not by itself stop monitoring:",
       "s8_5Items": [
-        "We will notify you and attempt to charge again",
-        "After 7 days of failed payment, service may be suspended",
-        "After 30 days, your account may be terminated",
-        "Outstanding amounts may be sent to collections"
+        "Our payment provider will try the payment again automatically over the following days",
+        "If it still fails, we will contact you to arrange payment",
+        "Monitoring continues while we try to resolve it with you",
+        "If an amount remains unpaid after we have contacted you, we may end the contract after giving you at least [[TO CONFIRM: 15]] days' written notice (section 9.3), and we may claim the amount owed"
       ],
       "s9Title": "9. Cancellation and Termination",
       "s9_1Title": "9.1 Your Right to Cancel",
@@ -3753,152 +3967,9 @@
         "Calling our customer service"
       ],
       "s9_1p1": "You can cancel at any time. There is no minimum term and no notice period. Cancellation takes effect at the end of the billing period you have already paid for, and monitoring continues until then.",
+      "s9_1p2": "Our Cancellation and Refund Policy explains the practical steps in more detail. It does not reduce your rights under this section 9 or under the law.",
       "s9_2Title": "9.2 Right of Withdrawal (14 Days)",
       "s9_2p1": "If you are a consumer, you have the right to withdraw from this contract within 14 calendar days without giving any reason and without penalty. This is a statutory right under Spanish and EU distance-selling law (Royal Legislative Decree 1/2007, articles 102 to 108, implementing Directive 2011/83/EU).",
-      "s9_3Title": "9.3 Our Right to Terminate",
-      "s9_3Intro": "We may suspend or terminate your account if:",
-      "s9_3Items": [
-        "You breach these Terms",
-        "Your payment method fails repeatedly",
-        "You provide false information",
-        "You misuse the service or devices",
-        "You abuse our staff or AI systems",
-        "Continued service poses a risk to you or others"
-      ],
-      "s9_3p1": "We will provide reasonable notice except in cases of serious breach.",
-      "s9_4Title": "9.4 Effect of Termination",
-      "s9_4Intro": "Upon termination:",
-      "s9_4Items": [
-        "Your access to services will cease",
-        "Alert monitoring will stop — pressing the SOS button will no longer reach our team",
-        "You keep the pendant, as you bought it; there is nothing to return",
-        "We will retain your data as described in our Privacy Policy"
-      ],
-      "s10Title": "10. Limitation of Liability",
-      "s10_1Title": "10.1 To the Maximum Extent Permitted by Law",
-      "s10_1Warning": "WE SHALL NOT BE LIABLE FOR:",
-      "s10_1a": "(a) <strong>Death or personal injury</strong> except where caused directly by our gross negligence or willful misconduct",
-      "s10_1b": "(b) <strong>Any indirect, incidental, special, consequential, or punitive damages</strong> including but not limited to loss of profits, data, use, goodwill, or other intangible losses",
-      "s10_1c": "(c) <strong>Damages arising from:</strong>",
-      "s10_1cItems": [
-        "Technology failures (networks, devices, software)",
-        "Delays in response to alerts",
-        "Actions or failures of emergency services (112, police, ambulance)",
-        "Inaccurate information provided by you",
-        "Your failure to maintain device charge or wear the device",
-        "Circumstances beyond our reasonable control (force majeure)",
-        "Actions of third parties including our technology partners",
-        "AI assistant errors or misunderstandings"
-      ],
-      "s10_2Title": "10.2 Maximum Liability",
-      "s10_2Warning": "OUR TOTAL LIABILITY TO YOU FOR ANY CLAIMS ARISING FROM OR RELATED TO THESE TERMS OR OUR SERVICES SHALL NOT EXCEED THE TOTAL AMOUNT YOU HAVE PAID US IN THE 12 MONTHS PRECEDING THE CLAIM.",
-      "s10_3Title": "10.3 Essential Purpose",
-      "s10_3Intro": "You acknowledge that:",
-      "s10_3Items": [
-        "Our service is designed to provide additional support, not guaranteed protection",
-        "No emergency response system can guarantee safety",
-        "Multiple factors beyond our control affect emergency outcomes",
-        "The limitations above are an essential part of our agreement and reflected in our pricing"
-      ],
-      "s10_4Title": "10.4 Statutory Rights",
-      "s10_4Intro": "Nothing in these Terms limits or excludes:",
-      "s10_4Items": [
-        "Liability for death or personal injury caused by gross negligence",
-        "Liability for fraud or fraudulent misrepresentation",
-        "Any liability that cannot be limited or excluded under Spanish law",
-        "Your statutory rights as a consumer"
-      ],
-      "s11Title": "11. Indemnification",
-      "s11p1": "You agree to indemnify and hold harmless ICE Alarm España, its officers, directors, employees, and partners from any claims, damages, losses, liabilities, costs, and expenses (including legal fees) arising from:",
-      "s11Items": [
-        "Your breach of these Terms",
-        "Your misuse of the service or devices",
-        "Inaccurate information you provide",
-        "Your violation of any law or third-party rights",
-        "Claims by your emergency contacts or family members"
-      ],
-      "s12Title": "12. Intellectual Property",
-      "s12p1": "All content, software, trademarks, and materials on our website and in our apps remain our property or that of our licensors. You may not:",
-      "s12Items": [
-        "Copy, modify, or distribute our materials",
-        "Reverse engineer our software",
-        "Use our trademarks without permission",
-        "Scrape or harvest data from our systems"
-      ],
-      "s13Title": "13. Privacy",
-      "s13p1": "Your privacy is important to us. Please review our <a href=\"/privacy\">Privacy Policy</a> which explains how we collect, use, and protect your personal data.",
-      "s13p2": "By using our services, you consent to:",
-      "s13Items": [
-        "Processing of your personal and medical data as described in our Privacy Policy",
-        "Recording of phone calls for quality and training purposes",
-        "Sharing of your information with emergency services when necessary",
-        "Receiving communications about your service"
-      ],
-      "s14Title": "14. Communications",
-      "s14_1Title": "14.1 From Us to You",
-      "s14_1Intro": "You agree to receive communications from us via:",
-      "s14_1Items": [
-        "Email",
-        "SMS",
-        "Phone calls (including from our AI assistant)",
-        "WhatsApp",
-        "Push notifications (if you use our app)",
-        "Post"
-      ],
-      "s14_2Title": "14.2 Emergency Communications",
-      "s14_2Intro": "You agree that we may contact:",
-      "s14_2Items": [
-        "You at any phone numbers you provide",
-        "Your emergency contacts when an alert is triggered",
-        "Emergency services on your behalf"
-      ],
-      "s14_3Title": "14.3 Marketing",
-      "s14_3p1": "We will only send marketing communications with your consent. You can opt out at any time.",
-      "s15Title": "15. Modifications to Service",
-      "s15p1": "We may modify, suspend, or discontinue any aspect of our services at any time. We will provide reasonable notice of significant changes. Continued use after changes constitutes acceptance.",
-      "s16Title": "16. Modifications to Terms",
-      "s16Intro": "We may update these Terms from time to time. We will notify you of material changes by:",
-      "s16Items": [
-        "Email",
-        "Notice on our website",
-        "Notice in your dashboard"
-      ],
-      "s16p1": "If you do not agree to updated Terms, you must stop using our services and cancel your subscription.",
-      "s17Title": "17. Dispute Resolution",
-      "s17_1Title": "17.1 Informal Resolution",
-      "s17_1p1": "Before initiating formal proceedings, you agree to contact us at info@icealarm.es to attempt to resolve any dispute informally.",
-      "s17_2Title": "17.2 Governing Law",
-      "s17_2p1": "These Terms are governed by the laws of Spain.",
-      "s17_3Title": "17.3 Jurisdiction",
-      "s17_3p1": "Any disputes shall be submitted to the courts of Almería, Spain, unless you are a consumer, in which case you may also bring proceedings in your place of residence.",
-      "s17_4Title": "17.4 Consumer Rights",
-      "s17_4p1": "If you are a consumer in the EU, you have the right to access the Online Dispute Resolution platform at:",
-      "s18Title": "18. General Provisions",
-      "s18_1Title": "18.1 Entire Agreement",
-      "s18_1p1": "These Terms, together with our Privacy Policy, constitute the entire agreement between you and ICE Alarm España.",
-      "s18_2Title": "18.2 Severability",
-      "s18_2p1": "If any provision of these Terms is found unenforceable, the remaining provisions will continue in effect.",
-      "s18_3Title": "18.3 No Waiver",
-      "s18_3p1": "Our failure to enforce any right or provision does not constitute a waiver of that right.",
-      "s18_4Title": "18.4 Assignment",
-      "s18_4p1": "You may not assign your rights under these Terms. We may assign our rights to any successor or affiliate.",
-      "s18_5Title": "18.5 Force Majeure",
-      "s18_5p1": "We are not liable for failures caused by circumstances beyond our reasonable control, including natural disasters, wars, pandemics, network failures, or government actions.",
-      "s19Title": "19. Contact Us",
-      "s19Content": "<strong>ICE Alarm España</strong><br/><br/>General enquiries: info@icealarm.es<br/>Support: support@icealarm.es<br/>Privacy: privacy@icealarm.es",
-      "s20Title": "20. Acknowledgment",
-      "s20Warning": "BY USING OUR SERVICES, YOU ACKNOWLEDGE THAT:",
-      "s20Items": [
-        "You have read and understood these Terms",
-        "You understand this is a supplementary service, not a guarantee of safety",
-        "You understand the technology limitations described above",
-        "You accept the limitations of liability described above",
-        "You will maintain accurate personal, medical, and emergency contact information",
-        "You will properly maintain and wear your GPS device",
-        "You will call 112 directly whenever possible in a life-threatening emergency"
-      ],
-      "effectiveDate": "These Terms of Service are effective as of the date last updated above.",
-      "tagline": "ICE Alarm España — Keeping You Connected, Keeping You Safe",
       "s9_2Items": [
         "<strong>When the period starts:</strong> if you ordered a GPS pendant, on the day you — or someone you nominate — take physical possession of it. If you subscribed without ordering a device, on the day the contract was concluded.",
         "<strong>How to exercise it:</strong> tell us in any unambiguous statement before the 14 days expire — email info@icealarm.es, write to our registered address, or use the model form below. You do not have to give a reason.",
@@ -3910,350 +3981,798 @@
       ],
       "s9_2FormTitle": "Model withdrawal form",
       "s9_2FormIntro": "You may use this form, but you are not obliged to.",
-      "s9_2FormBody": "To ICE Alarm España, info@icealarm.es:<br/><br/>I/we hereby give notice that I/we withdraw from my/our contract for the supply of the following service and/or goods: ______________________<br/><br/>Ordered on / received on: ______________________<br/>Name of consumer(s): ______________________<br/>Address of consumer(s): ______________________<br/>Signature of consumer(s) (only if this form is sent on paper): ______________________<br/>Date: ______________________"
+      "s9_2FormBody": "To ICE Alarm España, info@icealarm.es:<br/><br/>I/we hereby give notice that I/we withdraw from my/our contract for the supply of the following service and/or goods: ______________________<br/><br/>Ordered on / received on: ______________________<br/>Name of consumer(s): ______________________<br/>Address of consumer(s): ______________________<br/>Signature of consumer(s) (only if this form is sent on paper): ______________________<br/>Date: ______________________",
+      "s9_3Title": "9.3 When we may end the contract",
+      "s9_3Intro": "We may end the contract, or suspend part of the service, if:",
+      "s9_3Items": [
+        "You seriously or repeatedly breach these Terms",
+        "An amount remains unpaid after we have contacted you (section 8.5)",
+        "The information given to us is knowingly false",
+        "The service or pendant is misused, for example by repeatedly raising alerts deliberately without need",
+        "Our staff are subjected to threats, harassment or abuse",
+        "We can no longer provide the service safely, for example because the member has moved to a place without coverage"
+      ],
+      "s9_3p1": "Because this is a safety service, we will give you at least [[TO CONFIRM: 15]] days' written notice before ending the contract, so that you can arrange an alternative — unless there is a serious risk to our staff or to others. If we end the contract for a reason that is not your fault, we will refund any amount paid for the period after it ends.",
+      "s9_4Title": "9.4 Effect of Termination",
+      "s9_4Intro": "Upon termination:",
+      "s9_4Items": [
+        "Your access to services will cease",
+        "Alert monitoring will stop — pressing the SOS button will no longer reach our team",
+        "You keep the pendant, as you bought it; there is nothing to return",
+        "We will retain your data as described in our Privacy Policy"
+      ],
+      "s9_5Title": "9.5 Death of a member or move into residential care",
+      "s9_5p1": "If a member dies or moves permanently into residential care, please let us know. We will end that member's service from the date you tell us and stop future charges for it. Any refund is handled as set out in our Cancellation and Refund Policy. On a Couple plan, the other member's service can continue on a Single plan.",
+      "s10Title": "10. Our Liability",
+      "s10_1Title": "10.1 Our commitment",
+      "s10_1p1": "We will provide the service with reasonable care and skill, using trained staff and suitable systems. We are responsible, in accordance with the law, for loss or damage caused by our failure to do so.",
+      "s10_2Title": "10.2 What we are not responsible for",
+      "s10_2Intro": "We are not responsible for loss or damage to the extent that it is caused by:",
+      "s10_2Items": [
+        "Failures of mobile, telephone, internet, electricity or satellite positioning networks that are outside our control",
+        "The acts or omissions of 112 and the emergency services, which act independently of us",
+        "Information given to us that was wrong or out of date (section 6.3)",
+        "The pendant not being charged, worn or tested as described in section 7.2, or being tampered with",
+        "Events beyond our reasonable control (section 18.5)"
+      ],
+      "s10_2p1": "Where we have also contributed to the loss, we remain responsible for our share.",
+      "s10_3Title": "10.3 Foreseeable loss",
+      "s10_3p1": "Except where we have acted with intent (dolo), we are responsible only for loss that was foreseeable, or could reasonably have been foreseen, when the contract was made, in line with article 1107 of the Spanish Civil Code.",
+      "s10_4Title": "10.4 Your statutory rights",
+      "s10_4Intro": "Nothing in these Terms limits or excludes:",
+      "s10_4Items": [
+        "Our liability for death or personal injury caused by our acts or omissions",
+        "Our liability for intent (dolo) or gross negligence",
+        "Our liability for defective products under Royal Legislative Decree 1/2007",
+        "Your rights under the legal guarantee of conformity",
+        "Any other liability, or any of your rights as a consumer, that cannot be limited or excluded under Spanish law"
+      ],
+      "s11Title": "11. Your Responsibility",
+      "s11p1": "You are responsible, in accordance with the law, for loss or damage you cause to us or to third parties by:",
+      "s11Items": [
+        "Seriously breaching these Terms",
+        "Deliberately misusing the service or the pendant",
+        "Knowingly giving us false information"
+      ],
+      "s12Title": "12. Intellectual Property",
+      "s12p1": "All content, software, trademarks and materials on our website, in our member area and in the pendant's software belong to us or to our licensors. We grant you the right to use them only to receive the service. You may not:",
+      "s12Items": [
+        "Copy, modify or distribute our materials",
+        "Reverse engineer our software, except where the law allows it",
+        "Use our trademarks without permission",
+        "Scrape or harvest data from our systems"
+      ],
+      "s13Title": "13. Privacy",
+      "s13p1": "How we collect, use and protect personal data — including the member's health and location data and recordings of calls with our response team — is explained in our <a href=\"/privacy\">Privacy Policy</a>.",
+      "s13p2": "To provide the service we need, in particular, to:",
+      "s13Items": [
+        "Share relevant information about the member with the emergency services during an alert",
+        "Share with the member's emergency contacts and keyholders the information they need to help",
+        "Keep records of alerts and of our response"
+      ],
+      "s13p3": "Accepting these Terms is not consent to any processing of personal data. Where the law requires consent, we ask for it separately, and it can be withdrawn at any time.",
+      "s14Title": "14. Communications",
+      "s14_1Title": "14.1 Communications about your service",
+      "s14_1Intro": "We will contact you about your service using the contact details you give us, by:",
+      "s14_1Items": [
+        "Email",
+        "SMS",
+        "Telephone",
+        "WhatsApp, where you have agreed to it",
+        "Post"
+      ],
+      "s14_1p1": "Some messages or calls may be handled by Isabella, our AI assistant. She will always tell you that she is an AI.",
+      "s14_2Title": "14.2 Emergency communications",
+      "s14_2Intro": "During an alert, we may contact:",
+      "s14_2Items": [
+        "The member, at any telephone number given to us and through the pendant",
+        "The member's emergency contacts and keyholders",
+        "The emergency services, on the member's behalf"
+      ],
+      "s14_3Title": "14.3 Marketing",
+      "s14_3p1": "We will only send marketing communications with your consent, or where the law otherwise allows it. You can opt out at any time, free of charge, using the link in each message or by contacting us.",
+      "s15Title": "15. Changes to the Service",
+      "s15p1": "We may improve the service, update the pendant's software or change our technical providers, provided that the essential features of the service you contracted are not reduced.",
+      "s15p2": "If we need to make a change that materially affects the service, we will give you at least 30 days' notice by email, explaining the change. You may cancel free of charge before the change takes effect.",
+      "s16Title": "16. Changes to these Terms",
+      "s16Intro": "We may update these Terms for valid reasons, such as changes in the law, in our services or in how we operate. We will notify you of material changes at least 30 days before they take effect by:",
+      "s16Items": [
+        "Email",
+        "A notice in your member area",
+        "A notice on our website"
+      ],
+      "s16p1": "If you do not agree to the changes, you may cancel free of charge before they take effect. Changes required by law, or which only benefit you, may apply sooner.",
+      "s16p2": "Each version of these Terms carries a version number and date. You can ask us for a copy of the version you accepted.",
+      "s17Title": "17. Complaints and Disputes",
+      "s17_1Title": "17.1 Complaints to us",
+      "s17_1p1": "If you are unhappy with our service, please tell us so that we can put it right. You can complain:",
+      "s17_1Items": [
+        "By email to info@icealarm.es",
+        "By telephone on [[TO CONFIRM: customer service telephone number]]",
+        "By post to our registered office (section 2)"
+      ],
+      "s17_1p2": "We will acknowledge your complaint, give you a reference, and reply as quickly as possible and in any case within [[TO CONFIRM: 15 working days]]. Complaints are always dealt with by a person.",
+      "s17_2Title": "17.2 Official complaint forms",
+      "s17_2p1": "Official complaint forms (hojas de quejas y reclamaciones) are available to you on request [[TO CONFIRM: how the official forms are provided for an online business in the relevant autonomous community]]. You may also contact your municipal consumer information office (OMIC) or the consumer authority of your autonomous community.",
+      "s17_3Title": "17.3 Alternative dispute resolution",
+      "s17_3p1": "[[TO CONFIRM: whether ICE Alarm España S.L. is adhered to the Spanish Consumer Arbitration System (Sistema Arbitral de Consumo) or any other accredited ADR entity, and its details]]. If we reject your complaint, we will tell you which alternative dispute resolution bodies you can turn to.",
+      "s17_3p2": "The European Commission's Online Dispute Resolution (ODR) platform closed on 20 July 2025 under Regulation (EU) 2024/3228, so we no longer provide a link to it. If you live in another EU country, the European Consumer Centres network can give you free advice.",
+      "s17_4Title": "17.4 Governing law",
+      "s17_4p1": "These Terms are governed by Spanish law. If you are a consumer habitually resident in another EU country, you also keep the protection of the mandatory consumer rules of that country.",
+      "s17_5Title": "17.5 Courts",
+      "s17_5p1": "If you are a consumer, any dispute may be brought before the courts of your place of residence. Before going to court, Spanish law generally requires the parties to try an appropriate means of resolving the dispute; a complaint to us under section 17.1 may help with this. If you are not a consumer, disputes will be submitted to the courts of [[TO CONFIRM: city of registered office]].",
+      "s18Title": "18. General Provisions",
+      "s18_1Title": "18.1 The whole contract",
+      "s18_1p1": "The contract consists of these Terms, your order summary and the order confirmation we send you. Our Privacy Policy explains how we handle personal data.",
+      "s18_2Title": "18.2 Invalid clauses",
+      "s18_2p1": "If any clause of these Terms is found to be invalid or unfair, it will be treated as removed and the rest of the contract will continue to apply, as far as the law allows.",
+      "s18_3Title": "18.3 No waiver",
+      "s18_3p1": "If we do not enforce a right straight away, we do not lose it.",
+      "s18_4Title": "18.4 Transfer of the contract",
+      "s18_4p1": "You may not transfer the contract to someone else without our agreement. We may transfer it to another company that will continue the service, provided your rights are not reduced; we will tell you in advance, and you may cancel free of charge if you do not agree.",
+      "s18_5Title": "18.5 Events beyond our control",
+      "s18_5p1": "We are not responsible for failures or delays caused by events beyond our reasonable control, such as natural disasters, extreme weather, widespread network or power outages, pandemics or government action. We will tell you as soon as we can, take reasonable steps to limit the effects and restore the service, and you will not pay for any period in which we could not provide the service at all. If the situation lasts more than 30 days, you may end the contract free of charge.",
+      "s18_6Title": "18.6 Language",
+      "s18_6p1": "The contract is available in Spanish and English, and you may choose either. If the two versions differ, the Spanish version prevails, except where the other version is more favourable to you. Translations into other languages are provided for information only.",
+      "s18_7Title": "18.7 Keeping a copy",
+      "s18_7p1": "We keep a copy of your contract and the version of these Terms you accepted, and we will send you a copy on request. We also email them to you when your order is confirmed.",
+      "s18_8Title": "18.8 Accessibility",
+      "s18_8p1": "If you need these Terms in another format, such as large print, or would like us to go through them with you by telephone, please contact us.",
+      "s19Title": "19. Contact Us",
+      "s19Content": "<strong>ICE Alarm España S.L.</strong><br/>Registered office: [[TO CONFIRM: registered office address]]<br/>Telephone: [[TO CONFIRM: customer service telephone number]]<br/><br/>General enquiries: info@icealarm.es<br/>Support: support@icealarm.es<br/>Privacy: privacy@icealarm.es",
+      "s20Title": "20. Key Points to Remember",
+      "s20Warning": "This summary does not replace the full Terms above:",
+      "s20Items": [
+        "In a life-threatening emergency, call 112 directly whenever you can",
+        "The service supports the member but cannot guarantee their safety",
+        "Keep the pendant charged, wear it, and test it regularly",
+        "Keep the member's details and emergency contacts up to date",
+        "You can withdraw within 14 days, and cancel at any time with no notice period",
+        "If something goes wrong, tell us — we will try to put it right"
+      ],
+      "effectiveDate": "This version applies to contracts made from its publication date, and to existing members from the date notified to them under section 16."
     },
     "privacy": {
       "title": "Privacy Policy",
       "company": "ICE Alarm España — Siempre responde alguien.",
-      "lastUpdated": "Last updated: June 2026",
-      "s1Title": "1. Who We Are",
-      "s1p1": "<strong>ICE Alarm España</strong> (\"we\", \"us\", \"our\") operates the personal emergency response service available at icealarm.es.",
-      "s1p2": "<strong>Data Controller:</strong><br/>ICE Alarm España<br/>Email: info@icealarm.es",
-      "s1p3": "For any privacy-related questions, contact us at: privacy@icealarm.es",
-      "s2Title": "2. What This Policy Covers",
-      "s2Intro": "This Privacy Policy explains:",
+      "lastUpdated": "Last updated: 17 September 2026 · Version 2.0 · Draft pending legal review",
+      "summaryTitle": "In short",
+      "summaryItems": [
+        "ICE Alarm España S.L. is responsible for your personal data. Write to privacy@icealarm.es about anything in this policy.",
+        "We use your data to run your alarm service: to know who you are and where you are when you need help, and to call the right people.",
+        "We only hold your health information with your explicit consent, and you can withdraw it at any time. Your alarm keeps working if you do.",
+        "Isabella is an AI assistant, not a person. She never gives medical advice and never decides what happens with an emergency — a human operator always does.",
+        "We do not sell your data and we do not use it for advertising.",
+        "You can ask to see, correct, download or delete your data, and you can complain to the Spanish Data Protection Agency (AEPD)."
+      ],
+      "s1Title": "1. Who is responsible for your data",
+      "s1p1": "The data controller is <strong>ICE Alarm España S.L.</strong> (CIF B24731531), registered office at [[TO CONFIRM: registered office address]], which provides the personal emergency alarm service at icealarm.es (\"ICE Alarm España\", \"we\", \"us\").",
+      "s1p2": "<strong>Data Protection Officer (DPO):</strong> [[TO CONFIRM: name or firm of the Data Protection Officer and contact address]]. You can reach our DPO at privacy@icealarm.es.",
+      "s1p3": "For any question about your personal data, write to privacy@icealarm.es. General enquiries: info@icealarm.es.",
+      "s2Title": "2. Whose data this policy covers",
+      "s2Intro": "This policy applies to:",
       "s2Items": [
-        "What personal data we collect",
-        "Why we collect it",
-        "How we use it",
-        "Who we share it with",
-        "Your rights under EU General Data Protection Regulation (GDPR) and Spanish Organic Law 3/2018 (LOPD-GDD)"
+        "<strong>Members</strong> — the people who wear an alarm and are monitored by us, including both people on a couple membership.",
+        "<strong>People who arrange or pay for a membership</strong> for someone else.",
+        "<strong>Emergency contacts, keyholders and other people a member tells us about</strong> (for example a doctor or a care agency).",
+        "<strong>Family members or carers</strong> a member has allowed to see part of their information.",
+        "<strong>Visitors to our website</strong>, people who contact us or chat with Isabella, and people who start but do not finish signing up."
       ],
-      "s3Title": "3. Data We Collect",
-      "s3_1Title": "3.1 Information You Provide",
-      "s3AccountLabel": "Account Information:",
-      "s3AccountItems": [
-        "Full name",
-        "Email address",
-        "Phone number",
-        "Home address",
-        "Date of birth",
-        "Preferred language"
+      "s2p1": "Partners who refer members to us, and our staff, receive separate privacy information with their agreement or contract.",
+      "s3Title": "3. The data we hold",
+      "s3Intro": "We collect only what we need to provide the service. Most of it comes from you; some comes from your alarm device, from the people helping you, or from our own records of calls and alerts.",
+      "s3TableHeaders": [
+        "Category",
+        "What it includes",
+        "Where it comes from"
       ],
-      "s3HealthLabel": "Health & Medical Information (Special Category Data):",
-      "s3HealthItems": [
-        "Medical conditions",
-        "Current medications",
-        "Allergies",
-        "Blood type",
-        "Doctor's name and contact details",
-        "Hospital preference",
-        "Mobility limitations or special needs"
+      "s3TableRows": [
+        [
+          "Identity and contact details",
+          "Name, title, preferred name, date of birth, gender, nationality, marital status, email, phone numbers, preferred language, how and when you prefer to be contacted, photo if you add one.",
+          "You, or the person arranging the membership for you."
+        ],
+        [
+          "Identity documents and official numbers",
+          "NIE/DNI or passport number, and — only if you give them to us — your Social Security number and health card (TSI) number.",
+          "You, or our previous customer system if you were already a customer."
+        ],
+        [
+          "Address and home location",
+          "Your address or addresses, building details (urbanización, block, staircase), the map position of your front door, and the dates you tell us you will be away.",
+          "You, or our staff on your instructions. The map position is confirmed by you or by our staff."
+        ],
+        [
+          "Access to your home",
+          "Where your key safe is and its code, gate codes, access notes, and the details of keyholders.",
+          "You."
+        ],
+        [
+          "Health and care information (special category data)",
+          "Medical conditions, medication and where it is kept, allergies, blood type, mobility, hearing and sight, your doctor and medical centre, preferred hospital, private health insurer and policy number, care agency and visit schedule, day centre, medical equipment, where your advance directive is kept, and any end-of-life or funeral-plan wishes you choose to share.",
+          "You, after sign-up, through your account, a secure update link, or a phone call with our staff. Only with your explicit consent (section 5)."
+        ],
+        [
+          "Alarm device and location data",
+          "Device identifiers (IMEI, serial number, SIM number), battery level, online/offline status, regular check-ins, and the device's last reported GPS position and address.",
+          "Your alarm device, automatically, while it is switched on."
+        ],
+        [
+          "Alerts and incidents",
+          "Every alert (SOS button, fall, device offline and similar): time, position and address at the time, what our operators did, notes, whether 112 was called and who was told.",
+          "Your device, and our operators."
+        ],
+        [
+          "Calls and messages",
+          "Recordings of emergency calls (recorded from the start), recordings of other calls where we tell you at the start of the call, automatic transcripts of spoken replies, and the content of SMS, WhatsApp, email and in-account messages with us.",
+          "You, our operators, and our telephone provider."
+        ],
+        [
+          "Conversations with Isabella",
+          "What you write or say to Isabella and her replies, plus the notes she writes for operators during an alert.",
+          "You and Isabella (section 6)."
+        ],
+        [
+          "Other people's details you give us",
+          "Emergency contacts and keyholders: name, relationship, phone, email, language, availability and whether they can come to you. The person who pays, if not you.",
+          "The member or the person arranging the membership."
+        ],
+        [
+          "Payment and billing",
+          "Plan, billing frequency, invoices, payment status and payment references. Card and bank details are handled by our payment providers; we do not store your full card number.",
+          "You and our payment providers."
+        ],
+        [
+          "Referral information",
+          "The partner code or link you arrived with, and campaign parameters (UTM).",
+          "The link you used to reach our website."
+        ],
+        [
+          "Account, preferences and security",
+          "Login details (your password is stored only in encrypted, hashed form), whether you allow us to send you notifications by SMS, WhatsApp or email, and records of changes made to your record.",
+          "You and our systems."
+        ],
+        [
+          "Website and technical data",
+          "Pages visited, browser and device type, approximate location (city or country), referring page, and error reports from our website.",
+          "Your browser — see section 13."
+        ]
       ],
-      "s3EmergencyLabel": "Emergency Contacts:",
-      "s3EmergencyItems": [
-        "Names, phone numbers, and email addresses of people you designate",
-        "Their relationship to you",
-        "Language preferences"
-      ],
-      "s3PaymentLabel": "Payment Information:",
-      "s3PaymentItems": [
-        "Billing address",
-        "Payment card details (processed securely by Stripe, Inc.)"
-      ],
-      "s3_2Title": "3.2 Information Collected Automatically",
-      "s3DeviceLabel": "Device Information:",
-      "s3DeviceItems": [
-        "Your GPS pendant's unique identifier (IMEI)",
-        "Battery status",
-        "Online/offline status",
-        "Location data when alerts are triggered"
-      ],
-      "s3UsageLabel": "Usage Data:",
-      "s3UsageItems": [
-        "Pages visited on our website",
-        "Time and date of access",
-        "Browser type and device information"
-      ],
-      "s3CommsLabel": "Communication Records:",
-      "s3CommsItems": [
-        "Voice call recordings (with your consent)",
-        "SMS and WhatsApp message logs",
-        "Chat transcripts with our AI assistant"
-      ],
-      "s3_3Title": "3.3 Information from Third Parties",
-      "s3_3p1": "<strong>Device Monitoring Partner (MonitorLinq B.V.):</strong> We receive real-time device status updates including location, battery level, SOS alerts, and fall detection events from your GPS pendant via our technology partner MonitorLinq B.V. (Netherlands).",
-      "s4Title": "4. Why We Collect Your Data (Legal Basis)",
+      "s4Title": "4. Why we use your data and our legal basis",
+      "s4Intro": "The law only allows us to use personal data if we have a legal basis (article 6 GDPR) and, for health data, an additional condition (article 9 GDPR). This is what we rely on:",
       "s4TableHeaders": [
         "Purpose",
-        "Legal Basis (GDPR Article 6)"
+        "Legal basis"
       ],
       "s4TableRows": [
         [
-          "Provide emergency response services",
-          "Performance of contract"
+          "Setting up and running your membership: account, device, monitoring, support and courtesy calls",
+          "Performance of our contract with you (art. 6(1)(b) GDPR)"
         ],
         [
-          "Process your subscription payments",
-          "Performance of contract"
+          "Responding to an alert: identifying you, locating you, calling you, your contacts, keyholders and 112",
+          "Performance of the contract (art. 6(1)(b)) and protecting your vital interests (art. 6(1)(d))"
         ],
         [
-          "Contact you about your account",
-          "Performance of contract"
+          "Holding your health information and giving it to operators and emergency services",
+          "Your explicit consent (art. 9(2)(a)); in an emergency where you cannot give consent, protecting your vital interests (art. 9(2)(c))"
         ],
         [
-          "Respond to SOS alerts and emergencies",
-          "Legitimate interest (protecting vital interests)"
+          "Recording emergency calls and keeping alert records",
+          "Our legitimate interest in an accurate record of each emergency, in reviewing and improving our response, and in protecting you and our staff (art. 6(1)(f)); for health information in those records, the same conditions as above"
         ],
         [
-          "Store medical information for emergencies",
-          "Explicit consent (Article 9)"
+          "Isabella, our AI assistant",
+          "For members, performance of the contract (art. 6(1)(b)); for visitors, steps you ask us to take before a contract (art. 6(1)(b)) and our legitimate interest in answering enquiries (art. 6(1)(f))"
         ],
         [
-          "Record calls for quality and training",
-          "Legitimate interest + consent"
+          "Using details of your emergency contacts and keyholders",
+          "Our legitimate interest, and yours, in being able to reach someone who can help you (art. 6(1)(f)); in an emergency, vital interests (art. 6(1)(d))"
         ],
         [
-          "Improve our services",
-          "Legitimate interest"
+          "Letting a family member or carer see your information",
+          "Your explicit consent for each category you choose (art. 6(1)(a) and 9(2)(a))"
         ],
         [
-          "Comply with legal obligations",
-          "Legal obligation"
+          "Service notifications by SMS, WhatsApp or email",
+          "Your permission, which you can switch off in your account (art. 6(1)(a)). Emergency calls do not depend on it."
         ],
         [
-          "Send service updates",
-          "Performance of contract"
+          "Billing, invoices and accounting",
+          "Performance of the contract (art. 6(1)(b)) and our legal obligations under tax and commercial law (art. 6(1)(c))"
         ],
         [
-          "Send marketing communications",
-          "Consent (opt-in only)"
+          "Paying commission to the partner who referred you",
+          "Our legitimate interest in running our partner programme (art. 6(1)(f))"
+        ],
+        [
+          "Security, error monitoring, audit trails and preventing misuse",
+          "Our legitimate interest in keeping the service safe and working (art. 6(1)(f))"
+        ],
+        [
+          "Defending or bringing legal claims",
+          "Our legitimate interest (art. 6(1)(f)); for health data, art. 9(2)(f)"
+        ],
+        [
+          "Website statistics and non-essential cookies",
+          "Your consent through our cookie settings (art. 6(1)(a) GDPR and art. 22.2 LSSI-CE)"
+        ],
+        [
+          "Marketing communications",
+          "Only with your prior consent (art. 6(1)(a)); you can withdraw it at any time"
         ]
       ],
-      "s4SpecialCategory": "<strong>Special Category Data (Health Information):</strong> We process your medical information ONLY because you have given us explicit consent during registration, AND because this information may be vital for protecting your life in an emergency situation (GDPR Article 9(2)(a) and (c)).",
-      "s5Title": "5. How We Use Your Data",
-      "s5_1Title": "5.1 Emergency Response",
-      "s5_1Intro": "When your pendant detects an emergency (SOS button, fall detection, device offline), we:",
-      "s5_1Items": [
-        "Receive the alert from our monitoring partner",
-        "Access your profile to identify you",
-        "Review your medical information and emergency contacts",
-        "Contact you by phone to assess the situation",
-        "Contact emergency services (112) if required",
-        "Notify your designated emergency contacts"
+      "s4p1": "Where we rely on legitimate interest, you may object at any time (section 11). If we are required to give you information or keep records by law, we do so because of that legal obligation.",
+      "s5Title": "5. Your health information and your explicit consent",
+      "s5p1": "Health information is special category data. We only hold it because you give us your <strong>explicit consent</strong>, separately from accepting our Terms. You give it with its own tick box when you sign up, and we ask for your health details only after sign-up.",
+      "s5Intro": "With your consent we use your health information only to:",
+      "s5Items": [
+        "show it to our operators when you have an alert or call us, so they understand your situation;",
+        "give the relevant parts to 112, ambulance crews or hospital staff who are helping you;",
+        "share it with a family member or carer only if you have allowed that person to see your medical information."
       ],
-      "s5_2Title": "5.2 AI-Assisted Services",
-      "s5_2Intro": "Our AI assistant \"Isabella\" may:",
-      "s5_2Items": [
-        "Answer your phone calls",
-        "Respond to chat messages",
-        "Make courtesy check-in calls",
-        "Handle initial emergency triage"
+      "s5p2": "We never use your health information for marketing, never sell it, and never use it to make decisions about your contract or price.",
+      "s5p3": "<strong>Withdrawing consent.</strong> You can withdraw your consent at any time by writing to privacy@icealarm.es or by calling us. We will then delete your health information. Your alarm will keep working and our operators will still answer, but they will not know your medical background, so the help they can give may be less informed. Withdrawing consent does not affect what we did before.",
+      "s5p4": "<strong>In an emergency.</strong> If you are physically or legally unable to give consent and your life or health is at risk, we may share the information we hold with emergency services to protect your vital interests.",
+      "s5p5": "<strong>If you cannot give consent yourself.</strong> Every member must give their own consent — on a couple membership, each person gives their own. At present a relative or representative cannot give consent on a member's behalf through our website. If this applies to you, please contact us so we can discuss what is possible. [[TO CONFIRM: position for legal representatives, pending legal advice]]",
+      "s6Title": "6. Isabella, our AI assistant, and automated decisions",
+      "s6p1": "Isabella is an artificial-intelligence assistant. She is <strong>not a person</strong>, and she tells you so. She can answer questions in our website chat, in your account and on some phone calls, help you with your account, and write notes for our operators.",
+      "s6Intro": "Isabella never:",
+      "s6Items": [
+        "gives medical advice or a diagnosis;",
+        "decides whether an alert is real, how serious it is, or closes an emergency — every SOS goes to a human operator;",
+        "invents or changes a health reading;",
+        "sees more of your information than your own account allows."
       ],
-      "s5_2p1": "When speaking with Isabella, your conversation is processed using artificial intelligence. Human operators can take over at any time and will always handle genuine emergencies.",
-      "s5_3Title": "5.3 Service Administration",
-      "s5_3Items": [
-        "Process monthly subscription payments",
-        "Send service-related communications",
-        "Provide customer support",
-        "Schedule courtesy welfare calls"
-      ],
-      "s6Title": "6. Who We Share Your Data With",
-      "s6Intro": "We share your data ONLY with the following categories of recipients, and ONLY when necessary:",
-      "s6_1Title": "6.1 Service Providers (Data Processors)",
-      "s6_1TableHeaders": [
+      "s6p2": "When Isabella is unsure, she hands over to a person. You can ask to speak to a person at any time.",
+      "s6p3": "We do not take any decision based solely on automated processing that has legal or similarly significant effects on you (article 22 GDPR). Decisions about emergencies, your membership and your payments are taken or checked by people.",
+      "s6p4": "To generate Isabella's replies, the content of your conversation is sent to our AI provider, Anthropic, PBC (United States), which processes it on our behalf (sections 7 and 8). [[TO CONFIRM: Anthropic data processing terms and retention period]]",
+      "s7Title": "7. Who we share your data with",
+      "s7Intro": "We only share what each recipient needs.",
+      "s7_1Title": "7.1 Emergency services",
+      "s7_1p1": "In an emergency we give your name, location, address, access details and relevant health information to 112, the police, fire service, ambulance crews and hospitals.",
+      "s7_2Title": "7.2 Your emergency contacts and keyholders",
+      "s7_2p1": "When you have an alert we may call, text or email the people you named. We tell them who needs help, the type of alert, any message, and your address or map position at the time of the alert. Being an emergency contact does not give anyone access to your account or records.",
+      "s7_3Title": "7.3 Family members or carers you choose",
+      "s7_3p1": "You can allow a named person to see one or more of these: your alerts, your device's current location, and your medical information. Each permission is separate, recorded with its date, and you can withdraw it at any time with immediate effect. The person can only read, never change, your information.",
+      "s7_4Title": "7.4 Partners",
+      "s7_4p1": "If you joined through a partner (for example a local business or organisation), that partner knows that you became a member so that we can pay their commission. Where you have joined through an organisation that helps look after you, that organisation may also be told when you have an alert, including your name, the type of alert and your address. [[TO CONFIRM: which partners receive alert notifications and on what basis]]",
+      "s7_5Title": "7.5 Our service providers",
+      "s7_5p1": "These companies process data on our behalf, under contract and only on our instructions:",
+      "s7_5TableHeaders": [
         "Provider",
-        "Purpose",
-        "Location",
-        "Safeguards"
+        "What they do for us",
+        "Where the data is processed",
+        "Safeguard for transfers"
       ],
-      "s6_1TableRows": [
+      "s7_5TableRows": [
         [
           "Supabase, Inc.",
-          "Database hosting",
-          "EU (Stockholm, Sweden)",
-          "EU data center, DPA in place"
+          "Database, logins, file storage and server functions — holds all the data in this policy",
+          "European Union (Ireland)",
+          "Data stored in the EU; [[TO CONFIRM: safeguard for any access from the US]]"
         ],
         [
-          "MonitorLinq B.V.",
-          "Device monitoring & GPS tracking",
-          "Netherlands (EU)",
-          "ISO 27001, NEN 7510 certified"
-        ],
-        [
-          "Stripe, Inc.",
-          "Payment processing",
-          "EU/US",
-          "EU-US Data Privacy Framework, PCI-DSS compliant"
-        ],
-        [
-          "Twilio, Inc.",
-          "Voice calls & SMS",
-          "EU/US",
-          "Standard Contractual Clauses"
+          "Twilio Inc.",
+          "Phone calls, call recordings, speech transcription, SMS and WhatsApp messages",
+          "United States and EU",
+          "[[TO CONFIRM: EU–US Data Privacy Framework and/or Standard Contractual Clauses]]"
         ],
         [
           "Anthropic, PBC",
-          "AI assistant functionality",
-          "US",
-          "Standard Contractual Clauses"
+          "The AI model behind Isabella",
+          "United States",
+          "[[TO CONFIRM: EU–US Data Privacy Framework and/or Standard Contractual Clauses]]"
         ],
         [
-          "Google (Gmail)",
-          "Email delivery",
-          "EU/US",
-          "Standard Contractual Clauses"
+          "Stripe",
+          "Card payments and subscriptions",
+          "EU and United States",
+          "[[TO CONFIRM: EU–US Data Privacy Framework and/or Standard Contractual Clauses]]"
         ],
         [
-          "Vercel, Inc.",
-          "Website hosting",
-          "EU",
-          "EU data center"
+          "Mollie B.V.",
+          "Payments, including SEPA direct debit",
+          "Netherlands (EU)",
+          "Not applicable (EU)"
+        ],
+        [
+          "Vercel Inc.",
+          "Hosting and delivery of our website",
+          "United States and global network",
+          "[[TO CONFIRM: EU–US Data Privacy Framework and/or Standard Contractual Clauses]]"
+        ],
+        [
+          "Functional Software, Inc. (Sentry)",
+          "Error reports from our website; on-screen text is masked",
+          "[[TO CONFIRM: EU or US data region]]",
+          "[[TO CONFIRM]]"
+        ],
+        [
+          "Google (Gmail / Firebase)",
+          "Sending emails; push notifications to our staff's devices about alerts",
+          "EU and United States",
+          "[[TO CONFIRM: EU–US Data Privacy Framework and/or Standard Contractual Clauses]]"
+        ],
+        [
+          "Resend, Inc.",
+          "Sending emails",
+          "United States",
+          "[[TO CONFIRM: EU–US Data Privacy Framework and/or Standard Contractual Clauses]]"
+        ],
+        [
+          "OpenStreetMap Foundation (Nominatim)",
+          "Finding the map position of an address when you or our staff set your home location",
+          "United Kingdom",
+          "EU adequacy decision for the United Kingdom"
+        ],
+        [
+          "Medconneqt",
+          "Monitoring platform for medication dispensers, used by our operators if you have a dispenser",
+          "Netherlands (EU)",
+          "Not applicable (EU)"
+        ],
+        [
+          "[[TO CONFIRM: hosting provider of our alarm-device gateway]]",
+          "Receiving signals and positions from your alarm device",
+          "[[TO CONFIRM]]",
+          "[[TO CONFIRM]]"
         ]
       ],
-      "s6_2Title": "6.2 Emergency Services",
-      "s6_2Intro": "In an emergency, we may share your name, location, and relevant medical information with:",
-      "s6_2Items": [
-        "Spanish emergency services (112)",
-        "Local police, fire, or ambulance services",
-        "Hospital emergency departments"
+      "s7_6Title": "7.6 Authorities and legal obligations",
+      "s7_6p1": "We disclose data when the law requires it — for example to courts, the police acting with a valid legal basis, the tax authorities or the AEPD — or when needed to establish or defend legal claims.",
+      "s7_7Title": "7.7 What we never do",
+      "s7_7Items": [
+        "We do not sell your personal data.",
+        "We do not share your data with anyone for their own marketing or advertising.",
+        "We do not use your health information for anything other than the purposes in section 5."
       ],
-      "s6_2p1": "This sharing is based on protecting your vital interests (GDPR Article 6(1)(d)).",
-      "s6_3Title": "6.3 Your Emergency Contacts",
-      "s6_3Intro": "People you designate as emergency contacts will receive:",
-      "s6_3Items": [
-        "Notification when an alert is triggered",
-        "Your location at the time of alert",
-        "Status updates during an incident"
+      "s8Title": "8. International transfers",
+      "s8p1": "Our database is in the European Union. Some providers in section 7.5 are based in, or may access data from, the United States or other countries outside the European Economic Area. When that happens we rely on one of the following:",
+      "s8Items": [
+        "an <strong>adequacy decision</strong> of the European Commission (for example the United Kingdom, or US companies certified under the <strong>EU–US Data Privacy Framework</strong>);",
+        "<strong>Standard Contractual Clauses</strong> approved by the European Commission, with additional measures where needed."
       ],
-      "s6_4Title": "6.4 Legal Requirements",
-      "s6_4Intro": "We may disclose your data if required by:",
-      "s6_4Items": [
-        "Court order or legal process",
-        "Spanish law enforcement with valid legal basis",
-        "Regulatory authorities"
+      "s8p2": "You can ask us for a copy of the safeguards that apply by writing to privacy@icealarm.es.",
+      "s9Title": "9. How long we keep your data",
+      "s9Intro": "We keep data only as long as we need it for the purposes above, and then delete or anonymise it. Our retention periods are:",
+      "s9TableHeaders": [
+        "Data",
+        "How long"
       ],
-      "s6_5Title": "6.5 We Do NOT",
-      "s6_5Items": [
-        "Sell your personal data",
-        "Share your data for third-party marketing",
-        "Use your medical data for any purpose other than emergency response"
-      ],
-      "s7Title": "7. International Data Transfers",
-      "s7Intro": "Some of our service providers are located outside the European Economic Area (EEA). When we transfer your data outside the EEA, we ensure protection through:",
-      "s7Items": [
-        "<strong>EU-US Data Privacy Framework</strong> (for certified US companies)",
-        "<strong>Standard Contractual Clauses</strong> approved by the European Commission",
-        "<strong>Adequacy decisions</strong> where applicable"
-      ],
-      "s7p1": "You can request copies of the relevant safeguards by contacting us.",
-      "s8Title": "8. Data Retention",
-      "s8TableHeaders": [
-        "Data Type",
-        "Retention Period"
-      ],
-      "s8TableRows": [
+      "s9TableRows": [
         [
-          "Account information",
-          "Duration of membership + 5 years"
+          "Account, contract and contact details",
+          "While you are a member, then blocked for [[TO CONFIRM: period, e.g. 5 years, the general limitation period for contractual claims]] and then deleted"
         ],
         [
-          "Medical information",
-          "Duration of membership + 5 years"
+          "Health and care information",
+          "While you are a member and your consent is in place; deleted when you withdraw consent, ask for deletion or leave [[TO CONFIRM: any period after leaving]]"
         ],
         [
-          "Emergency contact details",
-          "Duration of membership + 1 year"
+          "Emergency contacts, keyholders and home access details",
+          "While you are a member; deleted when you leave or ask us to"
         ],
         [
           "Alert and incident records",
-          "7 years (legal requirement)"
+          "[[TO CONFIRM: period]]; if you ask for deletion earlier, we remove your identifying details and keep an anonymised record"
         ],
         [
-          "Call recordings",
-          "2 years"
+          "Call recordings and transcripts",
+          "[[TO CONFIRM: period]]"
         ],
         [
-          "Payment records",
-          "10 years (Spanish tax law)"
+          "Conversations with Isabella and other messages",
+          "[[TO CONFIRM: period]]"
         ],
         [
-          "Chat/message logs",
-          "2 years"
+          "Invoices and accounting records",
+          "The periods required by Spanish tax and commercial law (generally 4 to 6 years)"
         ],
         [
-          "Website analytics",
-          "26 months"
+          "Unfinished sign-ups",
+          "[[TO CONFIRM: period]]"
+        ],
+        [
+          "Location reports from your device",
+          "[[TO CONFIRM: period]]"
+        ],
+        [
+          "Website statistics and cookies",
+          "As stated in our cookie settings"
         ]
       ],
-      "s8p1": "After these periods, data is securely deleted or anonymized.",
-      "s9Title": "9. Your Rights",
-      "s9Intro": "Under GDPR and Spanish law, you have the right to:",
-      "s9_1Title": "9.1 Access",
-      "s9_1p1": "Request a copy of all personal data we hold about you. We will respond within 30 days.",
-      "s9_2Title": "9.2 Rectification",
-      "s9_2p1": "Correct any inaccurate or incomplete data. You can update most information directly in your member dashboard.",
-      "s9_3Title": "9.3 Erasure (\"Right to be Forgotten\")",
-      "s9_3p1": "Request deletion of your data. Note: We may need to retain some data for legal compliance. You can request deletion through your member dashboard or by contacting us.",
-      "s9_4Title": "9.4 Restriction",
-      "s9_4p1": "Request that we limit how we use your data while a complaint is being resolved.",
-      "s9_5Title": "9.5 Data Portability",
-      "s9_5p1": "Receive your data in a structured, machine-readable format.",
-      "s9_6Title": "9.6 Object",
-      "s9_6p1": "Object to processing based on legitimate interests. For direct marketing, you can opt out at any time.",
-      "s9_7Title": "9.7 Withdraw Consent",
-      "s9_7p1": "Where we rely on your consent, you can withdraw it at any time. This does not affect the lawfulness of processing before withdrawal.",
-      "s9Warning": "Important: If you withdraw consent for medical data processing or request deletion, we may no longer be able to provide effective emergency response services. In such cases, we may need to terminate your membership for your own safety.",
-      "s9_8Title": "9.8 How to Exercise Your Rights",
-      "s9_8Items": [
-        "<strong>Online:</strong> Through your member dashboard at icealarm.es/dashboard",
-        "<strong>Email:</strong> privacy@icealarm.es"
-      ],
-      "s9_8p1": "We will respond within 30 days. We may need to verify your identity before processing requests.",
-      "s10Title": "10. Data Security",
-      "s10Intro": "We implement appropriate technical and organizational measures including:",
+      "s9p1": "Where the law requires us to keep data after you leave, we keep it <strong>blocked</strong> (article 32 LOPDGDD): it is set aside and only used to meet legal obligations or deal with claims, and then deleted.",
+      "s10Title": "10. How we protect your data",
+      "s10Intro": "We use technical and organisational measures appropriate to the sensitivity of the data, including:",
       "s10Items": [
-        "Encryption of data in transit (TLS 1.3)",
-        "Encryption of data at rest",
-        "Access controls and authentication",
-        "Regular security assessments",
-        "Staff training on data protection",
-        "Incident response procedures"
+        "encrypted connections (HTTPS) between your browser, our systems and our providers;",
+        "encryption of stored data provided by our hosting provider;",
+        "database rules (row-level security) so that each person can only reach the records they are allowed to see;",
+        "role-based access for staff, with two-factor authentication for administrative access;",
+        "audit records of changes to member records and of permissions given to family members or carers;",
+        "masking of on-screen text in website error reports;",
+        "contracts with every service provider that handles your data."
       ],
-      "s10p1": "Our database is hosted in a Tier 3 certified data center in the European Union.",
-      "s11Title": "11. Children's Privacy",
-      "s11p1": "Our services are not directed at children under 16. We do not knowingly collect personal data from children under 16 without parental consent. If you believe we have collected such data, please contact us immediately.",
-      "s12Title": "12. Automated Decision-Making",
-      "s12Intro": "Our AI assistant may process your data to:",
-      "s12Items": [
-        "Triage emergency calls",
-        "Determine appropriate responses",
-        "Route calls to human operators"
+      "s10p1": "No system is completely secure. If a personal data breach is likely to put your rights at risk, we will notify the AEPD within 72 hours of becoming aware of it, and if the risk to you is high we will also tell you without undue delay.",
+      "s11Title": "11. Your rights",
+      "s11Intro": "You have the following rights under the GDPR and the LOPDGDD:",
+      "s11Items": [
+        "<strong>Access</strong> — to know whether we hold data about you and get a copy of it.",
+        "<strong>Rectification</strong> — to have inaccurate or incomplete data corrected. You can update many details yourself in your account.",
+        "<strong>Erasure</strong> — to have your data deleted, unless we must keep it by law (section 9).",
+        "<strong>Restriction</strong> — to ask us to limit how we use your data, for example while we check a complaint.",
+        "<strong>Portability</strong> — to receive the data you gave us in a structured, machine-readable format.",
+        "<strong>Objection</strong> — to object to processing based on our legitimate interest, and at any time to direct marketing.",
+        "<strong>Withdrawing consent</strong> — at any time, without affecting what we did before.",
+        "<strong>Not to be subject to solely automated decisions</strong> with legal or similarly significant effects (section 6)."
       ],
-      "s12p1": "You have the right to request human intervention in any automated decision that significantly affects you. During any emergency, human operators are always available to take over.",
-      "s13Title": "13. Cookies",
-      "s13Intro": "Our website uses cookies for:",
+      "s11HowTitle": "How to exercise your rights",
+      "s11HowItems": [
+        "<strong>Email:</strong> privacy@icealarm.es",
+        "<strong>In your account:</strong> Profile → Privacy &amp; Data, where you can download a copy of your main records and ask for your account to be deleted.",
+        "<strong>By post:</strong> ICE Alarm España S.L., [[TO CONFIRM: registered office address]]"
+      ],
+      "s11p1": "Exercising your rights is free. We reply within one month; for complex requests we may extend this by two more months and will tell you why. We may ask you to confirm your identity. A relative or representative may act for you with proof of their authority.",
+      "s11DeletionTitle": "What happens when you ask us to delete your account",
+      "s11DeletionItems": [
+        "your subscription is cancelled;",
+        "your health information and emergency contacts are deleted;",
+        "any pending secure update links are cancelled;",
+        "your name, contact details, date of birth, identity numbers and address are removed from your record;",
+        "your alert history is kept only in anonymised form;",
+        "invoices and other records we must keep by law are blocked (section 9)."
+      ],
+      "s11Warning": "Important: deleting your account ends your monitoring service. Your alarm will no longer be answered by us.",
+      "s11p2": "<strong>Deceased persons.</strong> Under article 3 of the LOPDGDD, relatives and heirs of a deceased member may ask us for access to, correction or deletion of that member's data, unless the member prohibited it.",
+      "s12Title": "12. Minors",
+      "s12p1": "Our service is for adults. We do not knowingly collect data from children under 14. If you believe we hold data about a child, please contact us and we will delete it.",
+      "s13Title": "13. Website and cookies",
+      "s13Intro": "Our website uses:",
       "s13Items": [
-        "<strong>Essential cookies:</strong> Required for the website to function",
-        "<strong>Analytics cookies:</strong> To understand how visitors use our site (only with consent)"
+        "<strong>Necessary cookies and storage</strong> — to keep you logged in, remember your language and your cookie choices, and keep the site secure.",
+        "<strong>Statistics</strong> — to understand how the site is used; only with your consent."
       ],
-      "s13p1": "You can manage cookie preferences through our cookie banner or your browser settings.",
-      "s14Title": "14. Changes to This Policy",
-      "s14Intro": "We may update this Privacy Policy from time to time. We will notify you of significant changes by:",
+      "s13p1": "You can change your choices at any time in the cookie settings (from the cookie banner, or in your account under Profile → Privacy &amp; Data).",
+      "s14Title": "14. Changes to this policy",
+      "s14Intro": "We will update this policy when our service or the law changes. If a change is significant we will tell you by:",
       "s14Items": [
-        "Email notification",
-        "Notice on our website",
-        "Notice in your member dashboard"
+        "email;",
+        "a notice on our website;",
+        "a notice in your account."
       ],
-      "s14p1": "The \"Last Updated\" date at the top indicates when the policy was last revised.",
+      "s14p1": "If a change needs your consent, we will ask for it again. The date and version at the top of this page show when the policy last changed.",
       "s15Title": "15. Complaints",
-      "s15p1": "If you are not satisfied with how we handle your data, you have the right to lodge a complaint with:",
+      "s15p1": "If you are unhappy with how we handle your data, please contact us or our DPO first — we would like to put it right. You also have the right to complain to the supervisory authority:",
       "s15Authority": "<strong>Agencia Española de Protección de Datos (AEPD)</strong><br/>C/ Jorge Juan, 6<br/>28001 Madrid<br/><a href=\"https://www.aepd.es\" target=\"_blank\" rel=\"noopener noreferrer\">www.aepd.es</a><br/>Tel: 900 293 183",
-      "s15p2": "You also have the right to seek judicial remedy.",
-      "s16Title": "16. Contact Us",
-      "s16Intro": "<strong>For any privacy-related questions:</strong>",
-      "s16Content": "ICE Alarm España<br/>Email: privacy@icealarm.es<br/>General enquiries: info@icealarm.es",
-      "governedBy": "This Privacy Policy is governed by Spanish law and the General Data Protection Regulation (EU) 2016/679."
+      "s15p2": "You may also go to the courts.",
+      "s16Title": "16. Contact us",
+      "s16Intro": "<strong>For any question about your personal data:</strong>",
+      "s16Content": "ICE Alarm España S.L. (CIF B24731531)<br/>[[TO CONFIRM: registered office address]]<br/>Privacy and DPO: privacy@icealarm.es<br/>General enquiries: info@icealarm.es",
+      "governedBy": "This policy is governed by Regulation (EU) 2016/679 (GDPR), Spanish Organic Law 3/2018 (LOPDGDD) and Spanish law."
+    },
+    "cookies": {
+      "title": "Cookie Policy",
+      "company": "ICE Alarm España S.L. — CIF B24731531",
+      "lastUpdated": "Last updated: 17 September 2026 · Version 2 · Draft pending legal review",
+      "footerLink": "Cookie Policy",
+      "settingsLink": "Cookie settings",
+      "intro": "This Cookie Policy explains which cookies and similar technologies are used on icealarm.es and in the ICE Alarm España member, partner and staff portals, what they are for, how long they last and how you can accept, refuse or withdraw your consent at any time. It complements our Privacy Policy, which explains how we process personal data in general.",
+      "s1Title": "1. What are cookies and similar technologies?",
+      "s1p1": "Cookies are small text files that a website stores on your device. Websites can also store information in your browser in other ways — for example “local storage” (which remains until it is deleted) and “session storage” (which is deleted when you close the tab or browser). The Spanish Information Society Services Act (Ley 34/2002, LSSI-CE, article 22.2) applies to all of these technologies in the same way, so in this policy we call them all “cookies”.",
+      "s1p2": "Some cookies are strictly necessary for a service you have asked for, and can be used without your consent. All other cookies are only used if you agree to them.",
+      "s2Title": "2. Who is responsible",
+      "s2p1": "The cookies described here are set by ICE Alarm España S.L. (CIF B24731531), except where a third-party provider is named in the table. You can contact us about this policy at privacy@icealarm.es.",
+      "s3Title": "3. The categories we use",
+      "s3Items": [
+        "Strictly necessary: to sign you in and keep your session secure, to remember your cookie choice, to keep a form you are filling in and to detect errors. They cannot be switched off, because the website would not work without them.",
+        "Preferences: to remember choices you make, such as your language, text size or whether you have already seen a guided tour. They are only stored when you make that choice.",
+        "Analytics (only with your consent): our own statistics about which pages are visited and from what kind of device, so we can improve the website. They are not shared with advertisers.",
+        "Marketing: we do not currently use advertising or social-media cookies. If we ever do, they will only be used with your consent and this policy will be updated first."
+      ],
+      "s4Title": "4. The cookies we use",
+      "s4Intro": "The table below lists every cookie and storage item our website and portals use. Names that contain <…> vary slightly from device to device.",
+      "tableHeaders": {
+        "name": "Name",
+        "provider": "Provider",
+        "purpose": "Purpose",
+        "duration": "Duration",
+        "type": "Type"
+      },
+      "essentialTitle": "4.1 Strictly necessary",
+      "essentialRows": [
+        {
+          "name": "sb-<project>-auth-token",
+          "provider": "ICE Alarm España (authentication service provided by Supabase)",
+          "purpose": "Keeps you signed in to your account securely.",
+          "duration": "If you ticked “Keep me signed in”: until you sign out. Otherwise: until you close the browser.",
+          "type": "Local storage or session storage"
+        },
+        {
+          "name": "ice.auth.persist",
+          "provider": "ICE Alarm España",
+          "purpose": "Remembers whether you asked to stay signed in on this device.",
+          "duration": "Until you change the choice or clear your browser data",
+          "type": "Local storage"
+        },
+        {
+          "name": "ice_cookie_consent",
+          "provider": "ICE Alarm España",
+          "purpose": "Records your cookie choice, when you made it and the version of this policy.",
+          "duration": "24 months, then we ask again",
+          "type": "Local storage"
+        },
+        {
+          "name": "isRecoveryFlow",
+          "provider": "ICE Alarm España",
+          "purpose": "Completes a password reset you have requested.",
+          "duration": "Until the reset is finished or the tab is closed",
+          "type": "Session storage"
+        },
+        {
+          "name": "chunk-reload-<page>",
+          "provider": "ICE Alarm España",
+          "purpose": "Prevents a reload loop after we publish a new version of the website.",
+          "duration": "Until the tab is closed",
+          "type": "Session storage"
+        },
+        {
+          "name": "join_wizard_session_id, join_wizard_data",
+          "provider": "ICE Alarm España",
+          "purpose": "Keeps the sign-up form you are filling in, so it is not lost when you go to the payment page.",
+          "duration": "Until you finish or restart the sign-up",
+          "type": "Local storage"
+        },
+        {
+          "name": "ice_conversation_id, ice_conversation_expiry",
+          "provider": "ICE Alarm España",
+          "purpose": "Continues your conversation with our AI assistant, Isabella, if you move to another page.",
+          "duration": "30 minutes after your last message",
+          "type": "Local storage"
+        },
+        {
+          "name": "sentryReplaySession",
+          "provider": "Sentry (Functional Software, Inc.)",
+          "purpose": "Error monitoring: if the website fails, records a technical trace so we can fix it. Text on screen is masked and images are blocked.",
+          "duration": "Until the tab is closed",
+          "type": "Session storage"
+        }
+      ],
+      "preferencesTitle": "4.2 Preferences",
+      "preferencesRows": [
+        {
+          "name": "i18nextLng",
+          "provider": "ICE Alarm España",
+          "purpose": "Remembers the language you chose.",
+          "duration": "Until you change it or clear your browser data",
+          "type": "Local storage"
+        },
+        {
+          "name": "iceAlarmLanguageSelected",
+          "provider": "ICE Alarm España",
+          "purpose": "Remembers that you have already chosen a language, so we do not ask again.",
+          "duration": "Until you clear your browser data",
+          "type": "Local storage"
+        },
+        {
+          "name": "ice.textSize",
+          "provider": "ICE Alarm España",
+          "purpose": "Remembers the text size you chose (A/A).",
+          "duration": "Until you change it or clear your browser data",
+          "type": "Local storage"
+        },
+        {
+          "name": "ice_tour_<name>_completed",
+          "provider": "ICE Alarm España",
+          "purpose": "Remembers that you have finished or skipped a guided tour.",
+          "duration": "Until you restart the tour or clear your browser data",
+          "type": "Local storage"
+        },
+        {
+          "name": "ice_feedback_cooldown, ice_feedback_dismissed",
+          "provider": "ICE Alarm España",
+          "purpose": "Avoids asking you for feedback again too soon, or after you declined.",
+          "duration": "Until the waiting period ends, or until you clear your browser data",
+          "type": "Local storage"
+        },
+        {
+          "name": "sidebar:state",
+          "provider": "ICE Alarm España",
+          "purpose": "Remembers whether the portal side menu is open or closed.",
+          "duration": "7 days",
+          "type": "Cookie"
+        }
+      ],
+      "analyticsTitle": "4.3 Analytics (only with your consent)",
+      "analyticsRows": [
+        {
+          "name": "ice_visitor_id",
+          "provider": "ICE Alarm España (stored in our own database, hosted by Supabase)",
+          "purpose": "A random identifier that lets us count returning visitors without knowing who they are.",
+          "duration": "Until you withdraw consent (we then delete it) or clear your browser data",
+          "type": "Local storage"
+        },
+        {
+          "name": "ice_session_id, ice_session_timestamp",
+          "provider": "ICE Alarm España (stored in our own database, hosted by Supabase)",
+          "purpose": "Groups the pages viewed in one visit.",
+          "duration": "30 minutes of inactivity; deleted when you withdraw consent",
+          "type": "Local storage"
+        }
+      ],
+      "referralTitle": "4.4 Partner referrals",
+      "referralIntro": "These are only stored if you arrive through a link shared by one of our partners. They record which partner referred you, so that the partner can be credited if you join. They do not track you on other websites.",
+      "referralRows": [
+        {
+          "name": "partner_ref, partner_utm",
+          "provider": "ICE Alarm España",
+          "purpose": "Records the partner code and campaign in the link you followed.",
+          "duration": "Until you complete the sign-up, or until you clear your browser data",
+          "type": "Local storage"
+        },
+        {
+          "name": "partner_referral",
+          "provider": "ICE Alarm España",
+          "purpose": "Records the partner and the post you came from.",
+          "duration": "30 days",
+          "type": "Local storage"
+        },
+        {
+          "name": "ref_partner_code, ref_partner_id, ref_post_id",
+          "provider": "ICE Alarm España",
+          "purpose": "The same information, readable by our server.",
+          "duration": "30 days",
+          "type": "Cookie"
+        }
+      ],
+      "staffTitle": "4.5 Staff portal only",
+      "staffIntro": "The following are only used by ICE Alarm España staff when working in the internal portal.",
+      "staffRows": [
+        {
+          "name": "icealarm.push.deviceLabel.token, firebase-messaging-database",
+          "provider": "Google (Firebase Cloud Messaging)",
+          "purpose": "Delivers alert notifications to a staff member’s device once they have enabled them.",
+          "duration": "Until notifications are turned off",
+          "type": "Local storage and IndexedDB"
+        },
+        {
+          "name": "videoHub_activeTab, videoHub_filters",
+          "provider": "ICE Alarm España",
+          "purpose": "Remembers the tab and filters selected in the video library.",
+          "duration": "Until the tab is closed",
+          "type": "Session storage"
+        },
+        {
+          "name": "Google cookies (for example NID)",
+          "provider": "Google LLC (Google Maps)",
+          "purpose": "An embedded Google map shows the location of an alert. Google may set its own cookies when the map loads.",
+          "duration": "Set by Google — see Google’s cookie policy",
+          "type": "Third-party cookie"
+        }
+      ],
+      "s5Title": "5. Third parties",
+      "s5Items": [
+        "We do not use Google Analytics, advertising networks or social-media tracking pixels.",
+        "Payments are made on the pages of our payment providers (Stripe or Mollie). When you are on their pages, their own cookie policies apply.",
+        "The map used to set your home location loads images from OpenStreetMap. It does not set cookies, but your browser connects to their servers to load the map."
+      ],
+      "s6Title": "6. How to accept, refuse or withdraw consent",
+      "s6p1": "When you first visit, a banner lets you accept all cookies, reject all non-essential cookies, or choose by category. Rejecting is as easy as accepting, and no optional category is switched on in advance.",
+      "s6p2": "You can change your mind at any time using “Cookie settings” at the bottom of our pages, the button below or, if you are a member, the Privacy & Data section of your account. When you withdraw consent for analytics, we stop collecting statistics straight away and delete the analytics identifiers from your browser. Withdrawing consent does not affect anything done before.",
+      "settingsButton": "Open cookie settings",
+      "s6BrowsersIntro": "You can also block or delete cookies and stored data in your browser settings. If you block strictly necessary cookies, parts of the website — such as signing in — will not work.",
+      "s6Browsers": [
+        "Google Chrome: Settings › Privacy and security › Third-party cookies / Site data",
+        "Mozilla Firefox: Settings › Privacy & Security › Cookies and Site Data",
+        "Safari: Settings › Safari › Advanced › Website Data",
+        "Microsoft Edge: Settings › Cookies and site permissions"
+      ],
+      "s7Title": "7. International transfers",
+      "s7p1": "Some of the providers named above (such as Sentry and Google) are based outside the European Economic Area. Where their technologies involve a transfer of personal data, it is made under the safeguards described in our Privacy Policy.",
+      "s8Title": "8. Changes to this policy",
+      "s8p1": "We will update this policy if the cookies we use change. If a change requires your consent again, the banner will ask you again the next time you visit. The date and version at the top show when it was last changed.",
+      "s9Title": "9. Contact",
+      "s9p1": "For any question about cookies or your personal data, write to privacy@icealarm.es. You also have the right to complain to the Spanish Data Protection Agency (AEPD, www.aepd.es)."
     }
   },
   "mediaStrategy": {
@@ -6645,11 +7164,11 @@
     "staff": {
       "title": "Home location",
       "purpose": "Where an operator sends help when the pendant cannot say where the member is.",
-      "loadFailed": "We could not load this member's home location. This does not mean there is none \u2014 reload the record before setting a pin.",
+      "loadFailed": "We could not load this member's home location. This does not mean there is none — reload the record before setting a pin.",
       "confirmedByMember": "Confirmed by the member",
       "setByTeam": "Set by our team",
-      "fromAddress": "From the address \u2014 not confirmed",
-      "fromImport": "From the CRM import \u2014 not confirmed",
+      "fromAddress": "From the address — not confirmed",
+      "fromImport": "From the CRM import — not confirmed",
       "none": "No pin on this record. The SOS card will fall back to the postal address.",
       "correctPin": "Correct the pin",
       "setPin": "Set the pin"
@@ -6702,8 +7221,8 @@
   },
   "memberDocument": {
     "title": "Member record",
-    "printedBy": "Printed by {{who}} on {{date}} \u00b7 icealarm.es",
-    "printedOn": "Printed on {{date}} \u00b7 icealarm.es",
-    "redacted": "Held \u2014 not printed"
+    "printedBy": "Printed by {{who}} on {{date}} · icealarm.es",
+    "printedOn": "Printed on {{date}} · icealarm.es",
+    "redacted": "Held — not printed"
   }
 }

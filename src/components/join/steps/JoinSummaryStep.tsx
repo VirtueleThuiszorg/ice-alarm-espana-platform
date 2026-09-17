@@ -145,6 +145,23 @@ export function JoinSummaryStep({ data, onUpdate }: JoinSummaryStepProps) {
             <RotateCcw className="h-4 w-4 mt-0.5 shrink-0" />
             <span>{t("joinWizard.summary.withdrawalNotice")}</span>
           </p>
+          {/*
+            The rest of what art. 97.1 TRLGDCU asks for before the consumer is bound: that the
+            contract renews automatically and how it ends, and what they owe if monitoring starts
+            inside the withdrawal period at their request. Information only — nothing here gates
+            the Pay button or changes what is charged or activated (golden rule 4).
+          */}
+          <p className="pl-6" data-testid="summary-renewal-terms">
+            {data.billingFrequency === "annual"
+              ? t("joinWizard.summary.withdrawalRenewalAnnual")
+              : t("joinWizard.summary.withdrawalRenewalMonthly")}
+          </p>
+          <p className="pl-6">{t("joinWizard.summary.withdrawalImmediateStart")}</p>
+          <p className="pl-6">
+            <Link to="/cancellation-policy" target="_blank" className="underline">
+              {t("joinWizard.summary.withdrawalPolicyLink")}
+            </Link>
+          </p>
         </CardContent>
       </Card>
 

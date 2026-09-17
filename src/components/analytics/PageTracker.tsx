@@ -1,6 +1,15 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { COOKIE_CONSENT_CHANGED_EVENT, hasAnalyticsConsent } from "@/lib/cookieConsent";
+
+/*
+  CONSENT FIRST (LSSI-CE art. 22.2). This tracker keeps a persistent visitor id and a session id
+  in localStorage and sends page views to `website_events`. That is analytics, not something the
+  site needs in order to work, so it runs ONLY after the visitor has accepted analytics in the
+  cookie banner — and stops, without a reload, the moment that consent is withdrawn.
+  `src/test/cookieConsent.test.ts` proves nothing is stored or sent before the choice.
+*/
 
 // Generate a unique visitor ID that persists across sessions
 function getVisitorId(): string {
@@ -86,9 +95,21 @@ interface PageTrackerProps {
 export function PageTracker({ enabled = true }: PageTrackerProps) {
   const location = useLocation();
   const lastPath = useRef<string>("");
+  const [consented, setConsented] = useState<boolean>(() => hasAnalyticsConsent());
 
   useEffect(() => {
-    if (!enabled) return;
+    const onChange = () => {
+      const next = hasAnalyticsConsent();
+      setConsented(next);
+      // Granting consent mid-visit counts the page the visitor is on now.
+      if (!next) lastPath.current = "";
+    };
+    window.addEventListener(COOKIE_CONSENT_CHANGED_EVENT, onChange);
+    return () => window.removeEventListener(COOKIE_CONSENT_CHANGED_EVENT, onChange);
+  }, []);
+
+  useEffect(() => {
+    if (!enabled || !consented) return;
     
     // Avoid duplicate tracking for same path
     const currentPath = location.pathname + location.search;
@@ -133,7 +154,7 @@ export function PageTracker({ enabled = true }: PageTrackerProps) {
     const timeoutId = setTimeout(trackPageView, 100);
     
     return () => clearTimeout(timeoutId);
-  }, [location.pathname, location.search, enabled]);
+  }, [location.pathname, location.search, enabled, consented]);
 
   // This component doesn't render anything
   return null;
@@ -144,6 +165,7 @@ export async function trackEvent(
   eventType: string,
   metadata?: Record<string, string | number | boolean | null>
 ): Promise<void> {
+  if (!hasAnalyticsConsent()) return;
   try {
     const visitorId = getVisitorId();
     const sessionId = getSessionId();

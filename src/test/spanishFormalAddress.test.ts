@@ -55,7 +55,7 @@ const MEMBER_FACING = [
   "registration", "memberUpdate", "notifications", "phoneOnly", "deviceStatus",
   "pendantStatus",
   // partner-facing
-  "partner", "partnerSupport", "partnerInvites", "partnerAgreement",
+  "partner", "partnerSupport", "partnerInvites", "partnerAgreement", "partnerJoin",
   "partnerLogin", "partnerTypes", "partnerRegions",
 ] as const;
 

@@ -196,16 +196,16 @@ export function useAIChat(options: UseAIChatOptions | string = {}) {
     } else if (userRole === "staff" && staffName) {
       // Personalized greeting for call centre staff
       if (i18n.language === "es") {
-        content = `${greeting}, ${staffName}! 👋 Soy tu Especialista de Soporte. Estoy aquí para ayudarte con procedimientos, búsquedas de miembros, gestión de alertas, y cualquier cosa que necesites durante tu turno. ¿En qué puedo ayudarte?`;
+        content = `${greeting}, ${staffName}! 👋 Soy tu asistente de soporte con inteligencia artificial (IA). Estoy aquí para ayudarte con procedimientos, búsquedas de miembros, gestión de alertas, y cualquier cosa que necesites durante tu turno. ¿En qué puedo ayudarte?`;
       } else {
-        content = `${greeting}, ${staffName}! 👋 I'm your Staff Support Specialist. I'm here to help you with procedures, member lookups, alert handling, and anything else you need during your shift. What can I help you with?`;
+        content = `${greeting}, ${staffName}! 👋 I'm your AI staff support assistant. I'm here to help you with procedures, member lookups, alert handling, and anything else you need during your shift. What can I help you with?`;
       }
     } else if (userRole === "member" && memberName) {
       // Personalized greeting for logged-in members
       if (i18n.language === "es") {
-        content = `${greeting}, ${memberName}! 👋 Soy tu asistente personal de ICE Alarm España. Estoy aquí para ayudarte con cualquier cosa que necesites - tu dispositivo, tu cuenta, o cualquier pregunta. ¿En qué puedo ayudarte hoy?`;
+        content = `${greeting}, ${memberName}! 👋 Soy Isabella, su asistente virtual de inteligencia artificial de ICE Alarm España; no soy una persona. Puedo ayudarle con su dispositivo, su cuenta o sus preguntas, pero no puedo darle consejo médico. Si desea hablar con una persona, dígamelo. En caso de emergencia, pulse su botón SOS o llame al 112. ¿En qué puedo ayudarle hoy?`;
       } else {
-        content = `${greeting}, ${memberName}! 👋 I'm your personal ICE Alarm España assistant. I'm here to help you with anything you need - your device, your account, or any questions you have. How can I help you today?`;
+        content = `${greeting}, ${memberName}! 👋 I'm Isabella, your ICE Alarm España artificial intelligence assistant — not a person. I can help with your device, your account or your questions, but I cannot give medical advice. If you would like to speak to a person, just tell me. In an emergency, press your SOS button or call 112. How can I help you today?`;
       }
     } else {
       // Generic welcome for public visitors

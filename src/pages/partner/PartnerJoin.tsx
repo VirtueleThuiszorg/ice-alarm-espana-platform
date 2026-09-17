@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useForm, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +17,8 @@ import { cn } from "@/lib/utils";
 import { REGIONS, HOW_HEARD_OPTIONS, isB2BPartnerType } from "@/config/partnerTypes";
 import { partnerFormSchema, PARTNER_STEP_FIELDS, type PartnerFormValues } from "@/lib/partnerRegistrationSchema";
 import { functionError } from "@/lib/functionError";
+import { PartnerAgreementText } from "@/components/partner/PartnerAgreementText";
+import { CURRENT_PARTNER_TERMS_VERSION } from "@/content/partnerTerms";
 
 // Partner type for selection
 type PartnerType = "referral" | "care" | "residential" | "pharmacy" | "insurance" | "healthcare_provider" | "real_estate" | "expat_community" | "corporate_other";
@@ -143,6 +146,8 @@ const organizationTypes: Record<string, { value: string; label: string }[]> = {
 
 export default function PartnerJoin() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const agreementName = t("partnerAgreement.title");
   const [step, setStep] = useState<Step>("info");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState("");
@@ -908,6 +913,38 @@ export default function PartnerJoin() {
                       )}
                     />
 
+                    {/* The agreement being accepted, in full, before the box that accepts it.
+                        Same sections as /partner/terms and the portal signing modal; the
+                        version shown is the version partner-register records. */}
+                    <section
+                      aria-labelledby="partner-agreement-panel-title"
+                      className="rounded-md border"
+                      data-testid="partner-agreement-panel"
+                    >
+                      <div className="flex flex-col gap-1 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <h3 id="partner-agreement-panel-title" className="text-sm font-semibold">
+                          {t("partnerJoin.terms.panelTitle", { name: agreementName, version: CURRENT_PARTNER_TERMS_VERSION })}
+                        </h3>
+                        <Link
+                          to="/partner/terms"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary underline underline-offset-2"
+                        >
+                          {t("partnerJoin.terms.openFull")}
+                        </Link>
+                      </div>
+                      <p className="px-4 pt-3 text-xs text-muted-foreground">{t("partnerJoin.terms.panelHelp")}</p>
+                      <div
+                        role="region"
+                        aria-label={t("partnerJoin.terms.regionLabel", { name: agreementName })}
+                        tabIndex={0}
+                        className="max-h-72 overflow-y-auto px-4 py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <PartnerAgreementText headingLevel={4} compact />
+                      </div>
+                    </section>
+
                     <FormField
                       control={form.control}
                       name="accept_terms"
@@ -921,11 +958,10 @@ export default function PartnerJoin() {
                           </FormControl>
                           <div className="space-y-1 leading-none">
                             <FormLabel>
-                              I accept the terms and conditions *
+                              {t("partnerJoin.terms.acceptLabel", { name: agreementName, version: CURRENT_PARTNER_TERMS_VERSION })} *
                             </FormLabel>
                             <FormDescription>
-                              By registering, you agree to our partner program terms, including
-                              commission rates and payout schedules.
+                              {t("partnerJoin.terms.acceptDescription")}
                             </FormDescription>
                           </div>
                           <FormMessage />

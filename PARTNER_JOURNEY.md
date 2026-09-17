@@ -48,7 +48,7 @@ Walked against the code. ✅ works · ⚠️ works with a caveat · ❌ broken.
 | **Find the way back in** | `/partner/login` | ✅ | Linked from the landing footer and from `/partner/join` (twice). |
 | **Register** | `partner-register` | ⚠️ | Works. The form is 6 steps and 23 fields, including an IBAN and a password, as the first thing a cold visitor sees — see §3.1. |
 | **Password rule** | client + server | ✅ | Enforced client-side with an inline message (C2); server rejects reach the user (C1). |
-| **Terms acceptance** | `partner-register` | ✅ | Server-enforced and persisted with a timestamp + version (C3). |
+| **Terms acceptance** | `partner-register` | ✅ | Server-enforced and persisted with a timestamp + version (C3). Since 17 Sep 2026 the Create Account step shows the full Partner Agreement (v2.0, draft pending legal review) above the checkbox and links the public copy at `/partner/terms`; the checkbox names the agreement and version, and the recorded `terms_version` equals the agreement version (`partnerAgreementOnJoin.test.tsx`). That step's acceptance copy is now i18n (`partnerJoin.terms.*`); the rest of the wizard is still §3.1. |
 | **Verification email** | `sendEmail` | ⚠️ | Send failure is logged and does **not** fail registration — correct — but transport is interim Gmail SMTP (~500/day, no bounce webhooks, no custom-domain DKIM). `LAUNCH_CHECKLIST.md` hard blocker. |
 | **Verify** | `/partner/verify` | ✅ | Sets `status='active'`, confirms the auth email, marks the token used, logs to `activity_logs`. |
 | **Login** | `/partner/login` | ⚠️ | Redirect no longer races the role fetch (#103). §3.2 remains. |

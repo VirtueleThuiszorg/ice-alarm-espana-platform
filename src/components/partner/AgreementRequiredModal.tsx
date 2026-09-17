@@ -22,7 +22,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { agreementSections, generateAgreementHtml, CURRENT_AGREEMENT_VERSION } from "@/content/partnerAgreementTerms";
+import { generateAgreementHtml, CURRENT_AGREEMENT_VERSION } from "@/content/partnerAgreementTerms";
+import { PartnerAgreementText } from "@/components/partner/PartnerAgreementText";
 import { logCrmEvent } from "@/lib/crmEvents";
 
 interface AgreementRequiredModalProps {
@@ -136,27 +137,7 @@ export function AgreementRequiredModal({ partnerId, partnerName }: AgreementRequ
           <div className="flex-1 lg:border-r min-h-0">
             <ScrollArea className="h-full max-h-[40vh] lg:max-h-none">
               <div className="p-6 max-w-3xl mx-auto">
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <p className="text-muted-foreground mb-6">
-                    {t("partnerAgreement.version")}: {CURRENT_AGREEMENT_VERSION} | {t("partnerAgreement.effectiveDate")}: {new Date().toLocaleDateString()}
-                  </p>
-
-                  {agreementSections.map((section, index) => (
-                    <section key={index} className="mb-8">
-                      <h3 className="text-lg font-semibold mb-3">
-                        {index + 1}. {t(section.titleKey)}
-                      </h3>
-                      <div 
-                        className="text-muted-foreground leading-relaxed whitespace-pre-line"
-                        dangerouslySetInnerHTML={{ __html: t(section.contentKey) }}
-                      />
-                    </section>
-                  ))}
-
-                  <div className="mt-8 p-4 bg-muted rounded-lg">
-                    <p className="text-sm font-medium">{t("partnerAgreement.legalNotice")}</p>
-                  </div>
-                </div>
+                <PartnerAgreementText className="prose prose-sm dark:prose-invert" />
               </div>
             </ScrollArea>
           </div>

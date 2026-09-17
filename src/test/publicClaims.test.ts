@@ -44,6 +44,7 @@ const PUBLIC_NAMESPACES = [
   "partnerLogin",
   "partnerOnboarding",
   "partnerAgreement",
+  "partnerJoin",
   "partnerSupport",
   "partnerTypes",
 ];

@@ -434,20 +434,21 @@
   "gdpr": {
     "cookieBanner": {
       "title": "We gebruiken cookies",
-      "description": "We gebruiken cookies en vergelijkbare technologieën om uw ervaring te verbeteren, verkeer te analyseren en inhoud te personaliseren. U kunt kiezen welke cookies u toestaat.",
+      "description": "Wij gebruiken strikt noodzakelijke technieken om deze website veilig te laten werken. Met uw toestemming willen wij ook onze eigen statistieken gebruiken om te zien hoe de website wordt gebruikt. U kunt accepteren, weigeren of zelf kiezen — en uw keuze altijd wijzigen.",
       "customize": "Aanpassen",
       "rejectNonEssential": "Niet-essentiële weigeren",
-      "acceptAll": "Alles accepteren"
+      "acceptAll": "Alles accepteren",
+      "policyLink": "Lees ons cookiebeleid"
     },
     "cookieSettings": {
       "title": "Cookievoorkeuren",
       "description": "Beheer hieronder uw cookievoorkeuren. Essentiële cookies zijn altijd actief omdat ze noodzakelijk zijn voor het functioneren van de website.",
       "essential": "Essentiële cookies",
-      "essentialDescription": "Vereist voor het correct functioneren van de website. Kan niet worden uitgeschakeld.",
+      "essentialDescription": "Nodig om u in te loggen, de website veilig te houden, uw cookiekeuze te onthouden en fouten op te sporen. Kunnen niet worden uitgeschakeld.",
       "analytics": "Analytische cookies",
-      "analyticsDescription": "Helpen ons te begrijpen hoe bezoekers met onze website omgaan om de prestaties te verbeteren.",
+      "analyticsDescription": "Onze eigen statistieken over welke pagina’s worden bezocht en vanaf welk soort apparaat. Niet gedeeld met adverteerders. Uit, tenzij u ze inschakelt.",
       "marketing": "Marketingcookies",
-      "marketingDescription": "Gebruikt om gepersonaliseerde advertenties te tonen en de effectiviteit van campagnes te meten.",
+      "marketingDescription": "Wij gebruiken op dit moment geen advertentie- of socialemediacookies. Mochten wij dat ooit doen, dan alleen met uw toestemming.",
       "savePreferences": "Voorkeuren opslaan"
     },
     "settings": {
@@ -3127,12 +3128,16 @@
       "totalDueToday": "Vandaag te betalen totaal",
       "thenMonthly": "Daarna {{amount}}/maand vanaf de volgende factureringscyclus",
       "acceptTerms": "Ik accepteer de servicevoorwaarden",
-      "termsNote": "Door dit vakje aan te vinken, gaat u akkoord met onze servicevoorwaarden en ons privacybeleid.",
-      "acceptMedical": "Ik geef toestemming om medische informatie te delen met hulpdiensten",
-      "medicalNote": "Uw medische informatie wordt alleen gedeeld met hulpverleners wanneer dit nodig is.",
+      "termsNote": "Lees in ons privacybeleid hoe wij uw persoonsgegevens gebruiken.",
+      "acceptMedical": "Ik geef ICE Alarm España uitdrukkelijk toestemming mijn gezondheidsgegevens te gebruiken om mij bij een noodgeval te helpen",
+      "medicalNote": "Wij vragen pas na de aanmelding naar uw gezondheidsgegevens. Medewerkers zien ze wanneer u hulp nodig heeft, en wij delen ze alleen met hulpdiensten als dat nodig is. U kunt deze toestemming altijd intrekken.",
       "securityNote": "Uw betaalgegevens zijn veilig en versleuteld",
       "preContractTitle": "Voordat u betaalt",
       "withdrawalNotice": "U hebt 14 dagen vanaf de ontvangst van uw hanger om deze overeenkomst zonder opgave van redenen te herroepen. Wij betalen alles terug wat u hebt betaald, inclusief standaardlevering; u draagt alleen de kosten van het terugsturen van de hanger. De details en het modelformulier staan in artikel 9.2 van onze voorwaarden.",
+      "withdrawalImmediateStart": "Vraagt u ons de bewaking te starten vóór het einde van de herroepingstermijn van 14 dagen en herroept u daarna, dan betaalt u alleen een evenredig bedrag voor de dagen dat die actief was; de rest wordt terugbetaald.",
+      "withdrawalRenewalMonthly": "Uw lidmaatschap wordt elke maand automatisch verlengd totdat u opzegt. U kunt op elk moment opzeggen, zonder minimale looptijd; het eindigt aan het einde van de maand die u heeft betaald.",
+      "withdrawalRenewalAnnual": "Uw lidmaatschap wordt elke 12 maanden automatisch verlengd totdat u opzegt. U kunt op elk moment opzeggen; het eindigt aan het einde van het jaar dat u heeft betaald, en na afloop van de herroepingstermijn worden de bijdragen voor dat jaar niet terugbetaald.",
+      "withdrawalPolicyLink": "Beleid voor opzegging, herroeping en terugbetaling (met het modelformulier voor herroeping)",
       "deliveryNotice": "Uw hanger wordt per aangetekende post verzonden en komt binnen 5–7 werkdagen aan."
     },
     "payment": {
@@ -3203,7 +3208,7 @@
       "enterPartnerPostal": "Voer de postcode van uw partner in",
       "addEmergencyContact": "Voeg minstens één noodcontact toe",
       "acceptTerms": "Accepteer de servicevoorwaarden",
-      "acceptPrivacy": "Geef toestemming om medische informatie te delen met hulpdiensten"
+      "acceptPrivacy": "Geef toestemming voor het gebruik van uw gezondheidsgegevens om verder te gaan"
     },
     "paymentSuccessRecovered": "Betaling ontvangen! Uw bestelling is bevestigd.",
     "draftSaveFailed": "We konden uw voortgang niet opslaan. U kunt doorgaan, maar sluit dit tabblad niet.",
@@ -3214,16 +3219,20 @@
     "openChat": "Chat openen",
     "closeChat": "Chat sluiten",
     "newChat": "Nieuwe chat",
-    "assistantName": "ICE Alarm España-assistent",
-    "memberAssistantName": "Uw persoonlijke assistent",
+    "assistantName": "Isabella · AI-assistent",
+    "memberAssistantName": "Isabella · Uw AI-assistent",
     "available": "24/7 beschikbaar",
     "memberAssistantAvailable": "Hier om u te helpen",
     "placeholder": "Typ uw bericht...",
     "send": "Verzenden",
-    "welcomeMessage": "Hallo! 👋 Ik ben uw virtuele ICE Alarm España-assistent. Hoe kan ik u vandaag helpen? Ik kan vragen beantwoorden over onze diensten en prijzen of u op weg helpen.",
+    "welcomeMessage": "Hallo! 👋 Ik ben Isabella, de virtuele AI-assistent van ICE Alarm España. Hoe kan ik u vandaag helpen? Ik kan vragen beantwoorden over onze diensten en prijzen of u op weg helpen.",
     "errorMessage": "Sorry, er was een verbindingsprobleem. Probeer het later opnieuw.",
     "fallbackMessage": "Sorry, ik kon uw bericht niet verwerken. Probeer het opnieuw.",
-    "assistant": "Assistent"
+    "assistant": "Assistent",
+    "aiDisclosure": {
+      "label": "AI-assistent — geen mens",
+      "text": "Isabella is een assistent met kunstmatige intelligentie, geen mens, en kan geen medisch advies geven. Wilt u een mens spreken, vraag het haar gewoon. Druk in een noodgeval op uw SOS-knop of bel 112."
+    }
   },
   "partnerAgreement": {
     "title": "Partner Agreement",
@@ -3232,6 +3241,7 @@
     "mustSignWarning": "You must sign this agreement before accessing your partner dashboard. Commission payments require a signed agreement.",
     "version": "Version",
     "effectiveDate": "Effective Date",
+    "draftStatus": "Draft pending legal review · Last updated: 17 September 2026",
     "signatureSection": "Electronic Signature",
     "signatureInstructions": "Complete all fields below to sign this agreement electronically",
     "signerName": "Full Legal Name",
@@ -3253,7 +3263,7 @@
     "signedSuccess": "Agreement signed successfully",
     "signError": "Failed to sign agreement. Please try again.",
     "legalBinding": "By signing, you agree to be legally bound by these terms under Spanish law",
-    "legalNotice": "This agreement is governed by Spanish law. Any disputes will be resolved in the courts of Spain.",
+    "legalNotice": "This agreement is governed by Spanish law. Clause 18 explains how disputes are resolved.",
     "signed": "Signed",
     "signatureDetails": "Signature Details",
     "signedOn": "Signed on",
@@ -3267,63 +3277,95 @@
     "refreshToSign": "Please refresh the page to sign the agreement",
     "noAgreementSigned": "No Agreement Signed",
     "noAgreementSignedAdmin": "This partner has not signed the agreement. Commissions cannot be paid until the agreement is signed.",
+    "publicPageDescription": "The terms that apply to every ICE Alarm España partner",
+    "backToJoin": "Back to partner registration",
     "sections": {
       "parties": {
         "title": "CONTRACTING PARTIES",
-        "content": "<strong>ICE Alarm España S.L.</strong>, with registered office at Calle Principal 1, Albox, 04800 Almería, Spain, and CIF B24731531, represented by its legal administrator (hereinafter \"THE COMPANY\").<br/><br/>And the <strong>Partner</strong>, whose details are registered in our partner portal system at the time of signing this agreement (hereinafter \"THE PARTNER\")."
+        "content": "<strong>ICE Alarm España S.L.</strong>, a Spanish limited company with CIF B24731531, registered office at [[TO CONFIRM: registered office address]], registered in the Mercantile Registry of [[TO CONFIRM: Registro Mercantil details]], acting through its duly authorised representative (\"THE COMPANY\"). Contact: info@icealarm.es.<br/><br/>And the natural or legal person who registers through the partner portal and whose identification details (name or company name, NIF/NIE/CIF and contact details) are recorded in the portal at the time of acceptance (\"THE PARTNER\"). A person who accepts on behalf of a company or organisation confirms that they are authorised to bind it.<br/><br/>THE COMPANY and THE PARTNER are together \"the parties\"."
       },
       "definitions": {
         "title": "DEFINITIONS",
-        "content": "<strong>Referral:</strong> A potential customer introduced to THE COMPANY by THE PARTNER through the designated referral system.<br/><br/><strong>Commission:</strong> The payment due to THE PARTNER for successful referrals as defined in this agreement.<br/><br/><strong>Converted Customer:</strong> A referral who has completed the subscription process and whose pendant device has been delivered."
+        "content": "<strong>Agreement:</strong> these partner programme terms, in the version identified at the top of this document.<br/><br/><strong>Portal:</strong> THE COMPANY's partner area, where THE PARTNER registers, obtains its Referral Link and follows its Referrals and Commissions.<br/><br/><strong>Referral Link / Referral Code:</strong> the unique link or code assigned to THE PARTNER in the Portal, including tracked links created for specific posts or campaigns.<br/><br/><strong>Invitation:</strong> an invitation sent by THE COMPANY through the Portal, at THE PARTNER's request, to a person THE PARTNER names.<br/><br/><strong>Referred Member:</strong> a person who takes out a monitoring subscription with THE COMPANY and whose registration is attributed to THE PARTNER under clause 5. A couple subscription counts as one Referred Member.<br/><br/><strong>Qualifying Referral:</strong> a Referred Member who meets every condition in clause 8.2.<br/><br/><strong>Commission:</strong> the amount payable to THE PARTNER for a Qualifying Referral under clause 8.<br/><br/><strong>Holding Period:</strong> the period described in clause 8.3 during which a Commission is not yet payable.<br/><br/><strong>Data Protection Law:</strong> Regulation (EU) 2016/679 (GDPR), Organic Law 3/2018 (LOPDGDD) and any other applicable data protection rules."
       },
       "object": {
         "title": "OBJECT OF THE AGREEMENT",
-        "content": "THE PARTNER agrees to promote and refer potential customers to THE COMPANY's personal emergency alarm services. THE COMPANY agrees to pay commissions for successful referrals in accordance with the terms of this agreement."
+        "content": "3.1 THE PARTNER may introduce potential customers to THE COMPANY's personal emergency alarm service, and THE COMPANY will pay a Commission for each Qualifying Referral on the terms of this Agreement.<br/><br/>3.2 The relationship is <strong>non-exclusive</strong> for both parties. THE PARTNER may promote other products and services, and THE COMPANY may work with other partners, in any area. No territory or group of customers is reserved to THE PARTNER.<br/><br/>3.3 THE PARTNER has no minimum target and no obligation to generate any particular number of referrals.<br/><br/>3.4 Every customer contracts directly with THE COMPANY under THE COMPANY's own terms of service. THE PARTNER is not a party to those contracts."
+      },
+      "status": {
+        "title": "INDEPENDENT STATUS OF THE PARTNER",
+        "content": "4.1 THE PARTNER acts independently, in its own name, with its own means and organisation and at its own risk. Nothing in this Agreement creates an employment relationship, a partnership, a joint venture or a franchise.<br/><br/>4.2 The parties intend this to be a non-exclusive referral arrangement and not a commercial agency contract under Law 12/1992 on Agency Contracts. THE PARTNER has no authority to negotiate or conclude contracts, accept orders, collect payments, grant discounts or make any commitment on behalf of THE COMPANY. If a court or authority finds that mandatory rules of that Law or of any other law apply, those rules prevail over any clause of this Agreement that contradicts them.<br/><br/>4.3 THE PARTNER is solely responsible for its own tax and social security obligations (including any registration as self-employed that the law requires), for its other legal obligations and for its own costs. THE COMPANY does not reimburse expenses unless it has agreed to do so in writing in advance."
+      },
+      "attribution": {
+        "title": "REFERRAL ATTRIBUTION",
+        "content": "5.1 A registration is attributed to THE PARTNER only if the person completes registration on THE COMPANY's website after arriving through THE PARTNER's Referral Link or with its Referral Code, or after receiving an Invitation sent at THE PARTNER's request, and THE PARTNER's account is active at the time of registration.<br/><br/>5.2 When the Referral Link is used, the Referral Code is stored in the visitor's browser until registration. A tracked campaign link remains valid for 30 days from the click. Attribution may fail if the person uses another device or browser, blocks or deletes browser storage, or registers through another channel without the Referral Code. In those cases THE COMPANY will consider a reasoned request from THE PARTNER in good faith, but is not obliged to attribute the registration.<br/><br/>5.3 <strong>The first referral prevails.</strong> If the browser already holds another partner's Referral Code, or the person has already been attributed to a partner, the earlier referral prevails. Each Referred Member is attributed to one partner only.<br/><br/>5.4 No attribution arises for: (a) THE PARTNER itself, its staff or anyone registering on its behalf or at its expense; (b) a person who is, or has been, a customer of THE COMPANY; (c) any registration obtained in breach of this Agreement.<br/><br/>5.5 THE PARTNER can see the Referred Members attributed to it in the Portal. Commissions are calculated from THE COMPANY's records. THE PARTNER may dispute those records in writing within 60 days of the relevant Commission appearing, or failing to appear, in the Portal, and the parties will review the dispute in good faith."
       },
       "obligations": {
         "title": "PARTNER OBLIGATIONS",
-        "content": "THE PARTNER agrees to:<br/><br/>• Promote THE COMPANY's services ethically and professionally<br/>• Provide accurate and truthful information about the services<br/>• Not make false claims or promises on behalf of THE COMPANY<br/>• Respect the intellectual property rights of THE COMPANY<br/>• Use only approved marketing materials<br/>• Comply with all applicable Spanish laws and regulations<br/>• Maintain confidentiality of business information<br/>• Not engage in any activities that could damage THE COMPANY's reputation"
+        "content": "6.1 THE PARTNER shall:<br/>• act honestly, professionally and in good faith, and comply with all applicable laws;<br/>• keep its details (including bank details and tax status) accurate and up to date in the Portal;<br/>• describe THE COMPANY's service accurately, using only the information and materials published or approved by THE COMPANY;<br/>• direct every prospective customer to THE COMPANY's website or team to contract, and never collect money, bank or card details, health information or identity documents from them;<br/>• make clear, whenever it recommends the service, that it may receive a commission from THE COMPANY;<br/>• respect every person's free decision, never pressure anyone to subscribe (especially older or vulnerable people), and not register anyone on their behalf unless THE COMPANY has expressly authorised it for that person;<br/>• only ask THE COMPANY to send an Invitation to a person who has asked for it or agreed to it;<br/>• inform THE COMPANY promptly of any complaint, incident or claim about the service that comes to its attention.<br/><br/>6.2 If THE PARTNER is a healthcare professional or provider, a pharmacy, a care provider or an insurer, it shall also comply with the ethical and regulatory rules of its profession or sector, including any rules on incentives, conflicts of interest and information to patients or clients, and shall not recommend the service where those rules do not allow it. THE COMPANY may decline or end a partnership if it considers that a commission could conflict with those rules."
+      },
+      "marketing": {
+        "title": "ADVERTISING AND MARKETING RULES",
+        "content": "7.1 THE PARTNER shall not make any statement about the service that THE COMPANY has not published or approved. In particular, THE PARTNER shall not:<br/>• present the service or the pendant as a medical device, a medical or health-monitoring service, or a substitute for medical care or for the 112 emergency number;<br/>• claim that the service detects, diagnoses, prevents or treats any illness or condition, or that it guarantees any result;<br/>• promise any response time, availability, price, discount, gift, refund or guarantee other than what THE COMPANY's website states at the time;<br/>• make misleading, comparative or disparaging statements about THE COMPANY or its competitors.<br/><br/>7.2 THE PARTNER shall not send unsolicited commercial emails, SMS, WhatsApp or other electronic messages (Law 34/2002, LSSI-CE, article 21), make commercial calls in breach of telecommunications or consumer protection rules, or use spam, bulk messaging, purchased contact lists, fake reviews or misleading social media content.<br/><br/>7.3 Without THE COMPANY's prior written consent, THE PARTNER shall not bid on THE COMPANY's brand names in paid search advertising, register domain names, social media accounts or app names that contain them, or present itself as THE COMPANY or as its official representative.<br/><br/>7.4 Any advertisement, website or post that mentions THE COMPANY must be identifiable as advertising where the law requires it (including Law 34/1988, General Advertising Law, Law 3/1991 on Unfair Competition and, where applicable, the rules on influencer marketing) and must disclose THE PARTNER's commercial relationship with THE COMPANY.<br/><br/>7.5 THE COMPANY may ask THE PARTNER to correct or withdraw any material that does not comply with this clause, and THE PARTNER shall do so within 48 hours of the request."
       },
       "commissions": {
-        "title": "COMMISSION STRUCTURE",
-        "content": "THE PARTNER shall receive a commission of <strong>€50 (fifty euros)</strong> gross for each successful referral. A referral is considered successful when:<br/><br/>• The referred customer completes the registration process<br/>• The customer completes payment for their subscription<br/>• The pendant device is delivered to the customer<br/><br/>Commissions enter a 7-day holding period after the triggering event, during which they may be cancelled if the order is refunded or cancelled."
+        "title": "COMMISSION",
+        "content": "8.1 THE COMPANY will pay THE PARTNER a Commission of <strong>€50 (fifty euros) for each Qualifying Referral</strong>. The amount is the same for every type of partner, does not depend on volume and is paid <strong>once per Referred Member</strong>: renewals, later orders, replacement or additional devices and couple subscriptions do not give rise to any further Commission.<br/><br/>8.2 A referral becomes a Qualifying Referral when all of the following are met: (a) the registration is attributed to THE PARTNER under clause 5; (b) the Referred Member has paid for the subscription; (c) delivery of the Referred Member's first pendant has been recorded; and (d) at the end of the Holding Period, the Referred Member's account is active, the order has not been cancelled and the payment has not been refunded.<br/><br/>8.3 A Commission is created when delivery of the pendant is recorded and remains on hold for 7 days (the Holding Period). At the end of that period it is approved or cancelled according to clause 8.2(d).<br/><br/>8.4 The Commission amount <strong>excludes VAT</strong>. If THE PARTNER must charge Spanish VAT (IVA) or another indirect tax on its services, that tax is added on THE PARTNER's valid invoice. Any personal income tax (IRPF) withholding that Spanish law requires THE COMPANY to make is deducted from the Commission and paid to the Tax Agency on THE PARTNER's behalf.<br/><br/>8.5 The Commission is a fixed amount and does not depend on the price paid by the customer, so discounts, the VAT charged to the customer and the billing period chosen do not change it.<br/><br/>8.6 Commissions may accrue before THE PARTNER has signed this Agreement electronically in the Portal, but they will not be paid until it has."
+      },
+      "clawback": {
+        "title": "CANCELLATIONS, REFUNDS AND RECOVERY OF COMMISSIONS",
+        "content": "9.1 Customers have a statutory right to withdraw from their contract within 14 days, counted from the day they receive the pendant, and may also cancel or be refunded in other cases provided by law or by THE COMPANY's terms. Because the Holding Period is shorter than the withdrawal period, a Commission may be approved or paid before the withdrawal period has ended.<br/><br/>9.2 If, within 30 days of delivery of the pendant, the Referred Member withdraws from the contract, the order is cancelled, or the payment is refunded or reversed, the Commission is not due. If it has not yet been paid, THE COMPANY will cancel it. If it has been paid, THE COMPANY may set the amount off against later Commissions or, if no Commission becomes payable within 90 days, ask THE PARTNER to repay it within 30 days of the request.<br/><br/>9.3 A Commission is also not due, and may be recovered in the same way, if the registration was obtained through fraud, false information, self-referral or any breach of clauses 6 or 7.<br/><br/>9.4 Whenever an amount is recovered or set off, the corresponding corrective invoice will be issued and any VAT and withholding will be adjusted."
       },
       "payment": {
-        "title": "PAYMENT TERMS",
-        "content": "Commissions are processed monthly. After the 7-day holding period, approved commissions will be scheduled for payment. Payments are made via bank transfer to the IBAN provided by THE PARTNER. THE PARTNER is responsible for all applicable taxes on commission income. Minimum payout threshold: €50. THE COMPANY reserves the right to withhold payment if agreement is unsigned or there are compliance concerns."
+        "title": "PAYMENT, INVOICING AND TAXES",
+        "content": "10.1 Approved Commissions are paid monthly by bank transfer to the IBAN recorded in the Portal, no later than the last day of the month following the month in which they were approved, provided that the conditions of this clause are met. Each party bears the charges of its own bank.<br/><br/>10.2 THE PARTNER shall provide, and keep up to date in the Portal, its full name or company name, NIF/NIE/CIF, tax address, VAT status and account holder name. The account must be held by THE PARTNER. THE COMPANY may postpone payment until it has the information it needs to pay lawfully.<br/><br/>10.3 If THE PARTNER acts as a business or professional, it shall issue to THE COMPANY, for each payment, an invoice that complies with the Spanish Invoicing Regulation (Royal Decree 1619/2012), showing any VAT and IRPF withholding. The parties may agree in writing that THE COMPANY issues those invoices on THE PARTNER's behalf (self-billing). If THE PARTNER is a private individual who is not required to invoice, THE COMPANY will issue a payment statement and apply any withholding the law requires.<br/><br/>10.4 THE PARTNER is solely responsible for declaring its Commissions and for paying the taxes and social security contributions due on them. THE COMPANY will report payments to the Tax Agency where the law requires it.<br/><br/>10.5 THE COMPANY may withhold payment while this Agreement has not been signed in the Portal, while THE PARTNER's account is suspended, or while a reasonable suspicion of fraud or breach is being investigated. THE COMPANY will tell THE PARTNER the reason and will complete any investigation within 60 days.<br/><br/>10.6 The Portal shows the status of each Commission (on hold, approved, paid or cancelled). THE COMPANY will explain the reason for any cancellation on request."
       },
       "intellectualProperty": {
         "title": "INTELLECTUAL PROPERTY",
-        "content": "All trademarks, logos, marketing materials, and intellectual property belong exclusively to THE COMPANY. THE PARTNER is granted a limited, non-exclusive license to use approved marketing materials solely for the purpose of promoting THE COMPANY's services. This license terminates immediately upon termination of this agreement."
+        "content": "11.1 THE COMPANY's names, trade marks, logos, website content, images and marketing materials belong to THE COMPANY or its licensors.<br/><br/>11.2 THE COMPANY grants THE PARTNER a free, non-exclusive, non-transferable and revocable licence to use the materials made available in the Portal, without alteration, solely to promote the service under this Agreement and in line with any brand guidelines THE COMPANY provides.<br/><br/>11.3 THE PARTNER shall not alter the materials, combine THE COMPANY's brands with other signs, or register or use any sign that could be confused with them.<br/><br/>11.4 The licence ends automatically when this Agreement ends. THE PARTNER shall then stop using the materials and remove them within 7 days.<br/><br/>11.5 Where THE PARTNER is an organisation, THE COMPANY may name it as a partner in its communications, unless THE PARTNER objects in writing."
       },
       "confidentiality": {
         "title": "CONFIDENTIALITY",
-        "content": "THE PARTNER agrees to maintain strict confidentiality regarding:<br/><br/>• Customer personal data and information<br/>• THE COMPANY's business strategies and practices<br/>• Commission structures and partner terms<br/>• Any proprietary information shared during the partnership<br/><br/>This obligation survives the termination of this agreement."
+        "content": "12.1 Each party shall keep confidential any non-public information it receives from the other in connection with this Agreement (including personal data, business plans, unpublished prices, Portal content and any conditions agreed individually) and shall use it only to perform this Agreement.<br/><br/>12.2 This obligation does not apply to information that is or becomes public without breach, that the receiving party already held lawfully, or that must be disclosed by law or by order of a court or authority (in which case, where lawful, the other party will be informed first).<br/><br/>12.3 The terms of this Agreement as published by THE COMPANY, including the Commission in clause 8, are not confidential.<br/><br/>12.4 This clause continues for 3 years after this Agreement ends, and without time limit for personal data."
       },
       "dataProtection": {
-        "title": "DATA PROTECTION (GDPR/LOPD)",
-        "content": "Both parties agree to comply with Regulation (EU) 2016/679 (GDPR) and Spanish Organic Law 3/2018 on Personal Data Protection (LOPD-GDD). THE PARTNER shall:<br/><br/>• Only collect and process personal data with proper consent<br/>• Not share referred customer data with third parties<br/>• Report any data breaches immediately to THE COMPANY<br/>• Delete personal data upon termination of this agreement<br/><br/>THE COMPANY acts as Data Controller for all customer data."
+        "title": "DATA PROTECTION",
+        "content": "13.1 Each party shall comply with Data Protection Law. Each party is an <strong>independent controller</strong> of the personal data it processes for its own purposes. This Agreement does not make either party a processor of the other; if processing on behalf of the other party is ever needed, the parties will first sign a data processing agreement under article 28 GDPR.<br/><br/>13.2 <strong>THE PARTNER's data.</strong> THE COMPANY processes the personal data of THE PARTNER or its contact persons (identification, contact, bank and tax details, Portal activity, referral and commission records, and the records of acceptance and signature of this Agreement) to manage the partnership, pay Commissions, meet its accounting and tax obligations and prevent fraud. The legal bases are the performance of this Agreement and compliance with legal obligations. More information, including how to exercise data protection rights, is in THE COMPANY's Privacy Policy. Contact: privacy@icealarm.es.<br/><br/>13.3 <strong>Data THE PARTNER can see.</strong> In the Portal THE PARTNER can see the name, registration date and status of its Referred Members and the status of the related Commissions. Where THE COMPANY has enabled alert notifications for a care organisation in respect of a person in its care, with that person's authorisation or on another lawful basis, the organisation may also see information about that person's alerts (such as type, time, status and location). THE PARTNER shall use this information only for the purpose for which it is provided, shall not export, copy or disclose it beyond what is strictly necessary, shall protect it with appropriate security measures, and shall not use it for its own marketing.<br/><br/>13.4 <strong>Data THE PARTNER passes on.</strong> Before asking THE COMPANY to send an Invitation, or passing on anyone's details in any other way, THE PARTNER shall make sure that the person has asked for or agreed to be contacted by THE COMPANY and knows that THE PARTNER is sharing their details with it. THE PARTNER shall never pass on health information about anyone.<br/><br/>13.5 THE PARTNER shall notify THE COMPANY at privacy@icealarm.es without undue delay, and in any case within 24 hours of becoming aware of it, of any security incident affecting personal data received from THE COMPANY, and shall cooperate in managing it.<br/><br/>13.6 When this Agreement ends, THE PARTNER shall delete the personal data received from THE COMPANY, unless the law requires it to keep them, and shall confirm the deletion in writing on request."
       },
       "duration": {
         "title": "DURATION",
-        "content": "This agreement is valid for an indefinite period from the date of electronic signature. Either party may terminate this agreement with 30 days written notice. THE COMPANY reserves the right to suspend or terminate the partnership immediately in case of breach of these terms."
+        "content": "This Agreement takes effect when THE PARTNER accepts it during registration and continues for an indefinite period until it is terminated under clause 15. THE PARTNER's electronic signature in the Portal confirms that acceptance and is required before any Commission is paid (clause 8.6)."
       },
       "termination": {
         "title": "TERMINATION",
-        "content": "This agreement may be terminated:<br/><br/>• By either party with 30 days written notice<br/>• Immediately by THE COMPANY for breach of terms<br/>• Immediately if THE PARTNER engages in fraudulent activity<br/>• Immediately if THE PARTNER damages THE COMPANY's reputation<br/><br/>Upon termination, pending approved commissions will be paid. Pending referrals in progress at termination may still be eligible for commission if converted within 30 days."
+        "content": "15.1 Either party may terminate this Agreement at any time, without giving reasons, by written notice to the other (including by email or through the Portal) given at least 30 days in advance, or any longer period required by mandatory law.<br/><br/>15.2 THE COMPANY may suspend THE PARTNER's account, or terminate this Agreement with immediate effect by written notice, if THE PARTNER seriously or repeatedly breaches this Agreement (in particular clauses 6, 7, 12 or 13), acts fraudulently, harms THE COMPANY's reputation or its customers' interests, or becomes insolvent. THE PARTNER may terminate with immediate effect if THE COMPANY seriously breaches its payment obligations and does not remedy the breach within 15 days of being notified.<br/><br/>15.3 On termination: (a) Commissions already approved are paid under clause 10, unless the termination is due to THE PARTNER's fraud or serious breach in connection with them; (b) a registration attributed to THE PARTNER before the termination date that becomes a Qualifying Referral within 30 days after that date still gives rise to a Commission; (c) THE PARTNER's access to the Portal and its Referral Links end, and THE PARTNER shall stop presenting itself as a partner; (d) clauses 9, 11.4, 12, 13, 16 and 18 continue to apply."
       },
       "liability": {
         "title": "LIABILITY",
-        "content": "THE PARTNER operates as an independent contractor, not an employee of THE COMPANY. THE PARTNER is solely responsible for their own tax obligations and social security contributions. THE COMPANY shall not be liable for any losses incurred by THE PARTNER in the course of their promotional activities. THE PARTNER indemnifies THE COMPANY against any claims arising from their promotional activities."
+        "content": "16.1 Each party is liable for the damage it causes to the other by breaching this Agreement, in accordance with the Spanish Civil Code.<br/><br/>16.2 THE PARTNER shall indemnify THE COMPANY against any claims, penalties and reasonable costs (including legal fees) arising from THE PARTNER's breach of clauses 6, 7, 11 or 13 or from any unlawful act of THE PARTNER when promoting the service.<br/><br/>16.3 THE COMPANY is not liable for THE PARTNER's loss of profit, or for Commissions not earned because of the technical limits of attribution described in clause 5.2, interruptions of the Portal, or a customer's decision not to subscribe or to cancel. THE COMPANY's total liability to THE PARTNER under this Agreement in any 12-month period is limited to the total Commissions payable to THE PARTNER in that period.<br/><br/>16.4 Nothing in this Agreement limits or excludes liability for wilful misconduct (dolo) or gross negligence, for personal injury, or any other liability that cannot be limited under Spanish law, nor THE COMPANY's obligation to pay Commissions that are properly due."
+      },
+      "amendments": {
+        "title": "CHANGES TO THIS AGREEMENT",
+        "content": "17.1 THE COMPANY may amend this Agreement, including the Commission amount and conditions, by notifying THE PARTNER by email and in the Portal at least 30 days before the change takes effect. Each version has a version number, and THE COMPANY records which version THE PARTNER has accepted.<br/><br/>17.2 If THE PARTNER does not agree with a change, it may terminate this Agreement, without penalty, before the change takes effect. If THE PARTNER remains in the programme after that date, the change applies to it, and THE COMPANY may ask THE PARTNER to accept or sign the new version in the Portal.<br/><br/>17.3 A change never affects the Commission for a registration attributed before the change takes effect; that registration remains subject to the terms in force when it was attributed.<br/><br/>17.4 THE COMPANY may make changes required by law, or changes that do not reduce THE PARTNER's rights, with immediate effect, informing THE PARTNER as soon as reasonably possible.<br/><br/>17.5 Any other change or waiver must be agreed in writing (including electronically) by both parties."
       },
       "jurisdiction": {
-        "title": "JURISDICTION AND APPLICABLE LAW",
-        "content": "This agreement is governed by Spanish law. Any disputes arising from this agreement shall be submitted to the exclusive jurisdiction of the courts of Almería, Spain. The parties waive any other jurisdiction that may correspond to them."
+        "title": "APPLICABLE LAW AND JURISDICTION",
+        "content": "18.1 This Agreement is governed by Spanish law.<br/><br/>18.2 The parties will first try to resolve any dispute amicably. THE PARTNER may write to info@icealarm.es for this purpose.<br/><br/>18.3 If no agreement is reached, disputes shall be submitted to the courts of Almería (Spain), unless mandatory law entitles THE PARTNER to bring or defend proceedings before the courts of its own domicile (for example, where THE PARTNER acts as a consumer or the rules on agency contracts apply), in which case that right is respected."
       },
       "general": {
         "title": "GENERAL PROVISIONS",
-        "content": "• This agreement constitutes the entire agreement between the parties<br/>• Modifications must be made in writing and signed by both parties<br/>• If any clause is deemed invalid, the remaining clauses remain in force<br/>• Electronic signatures have the same legal validity as handwritten signatures under Spanish law<br/>• THE COMPANY reserves the right to modify commission structures with 30 days notice"
+        "content": "19.1 This Agreement, together with any conditions THE COMPANY agrees individually and in writing with THE PARTNER, is the entire agreement between the parties on the partner programme and replaces any earlier version or communication on the same subject, without affecting Commissions already accrued.<br/><br/>19.2 If any clause is held invalid, the remaining clauses stay in force and the invalid clause will be replaced by a valid one as close as possible to the parties' intention.<br/><br/>19.3 THE PARTNER may not assign or subcontract this Agreement or its Referral Links without THE COMPANY's written consent. THE COMPANY may assign this Agreement to a company in its group or to a successor to its business, informing THE PARTNER.<br/><br/>19.4 Notices are sent to the email address recorded in the Portal for THE PARTNER, and to info@icealarm.es for THE COMPANY.<br/><br/>19.5 <strong>Acceptance and record.</strong> THE PARTNER accepts this Agreement electronically by ticking the acceptance box during registration, and THE COMPANY records the date and time of acceptance and the version accepted. THE PARTNER then confirms it by electronic signature in the Portal, and THE COMPANY keeps a record of that signature (name, identity document, date and time, version and the text signed). Electronic acceptance and signature are valid under Regulation (EU) 910/2014 (eIDAS) and Law 34/2002 (LSSI-CE). THE PARTNER can read the current version at any time at icealarm.es/partner/terms and the version it signed in the Portal.<br/><br/>19.6 This Agreement is available in Spanish and English. If the versions differ, the Spanish version prevails."
       }
+    }
+  },
+  "partnerJoin": {
+    "terms": {
+      "panelTitle": "{{name}} — version {{version}}",
+      "panelHelp": "Please read the agreement below before you create your account.",
+      "regionLabel": "Full text of the {{name}}",
+      "openFull": "Open the full agreement in a new tab",
+      "acceptLabel": "I have read and accept the {{name}} (version {{version}})",
+      "acceptDescription": "We record the date, time and version you accept. Before your first commission is paid, you will also sign the agreement electronically in your partner portal."
     }
   },
   "registration": {
@@ -3585,112 +3627,260 @@
     }
   },
   "legal": {
+    "cancellation": {
+      "title": "Beleid voor opzegging, herroeping en terugbetaling",
+      "company": "ICE Alarm España S.L. · fiscaal nummer (CIF) B24731531",
+      "lastUpdated": "Laatst bijgewerkt: september 2026 · Concept, in afwachting van juridische toetsing",
+      "footerLink": "Opzeggen & terugbetaling",
+      "draftNotice": "Dit beleid is een concept dat nog juridisch wordt getoetst. Het beperkt geen enkel recht dat u heeft op grond van het Spaanse of Europese consumentenrecht; waar het dat lijkt te doen, gaat de wet voor.",
+      "summaryTitle": "In het kort",
+      "summaryItems": [
+        "U kunt <strong>binnen 14 dagen herroepen</strong> zonder opgave van redenen en krijgt u alles terugbetaald wat u heeft betaald.",
+        "Daarna kunt u <strong>op elk moment opzeggen</strong>, zonder minimale looptijd en zonder opzegtermijn. De bewaking loopt door tot het einde van de periode die u al heeft betaald.",
+        "Als u opzegt, houdt u de hanger. Alleen als u binnen de 14 dagen herroept, stuurt u hem terug.",
+        "Terugbetalingen gebeuren binnen 14 dagen, via hetzelfde betaalmiddel dat u gebruikte.",
+        "Zodra de bewaking stopt, bereikt de SOS-knop ons team niet meer."
+      ],
+      "s1Title": "1. Wie wij zijn en voor wie dit beleid geldt",
+      "s1p1": "Dit beleid wordt verstrekt door <strong>ICE Alarm España S.L.</strong> (CIF B24731531), statutair gevestigd te [[TO CONFIRM: registered address]], e-mail info@icealarm.es, telefoon [[TO CONFIRM: customer service telephone and hours]]. Het maakt deel uit van onze Servicevoorwaarden en legt uit hoe u uw lidmaatschap en uw GPS-hanger kunt herroepen, opzeggen en terugbetaald krijgen.",
+      "s1p2": "Het geldt voor u als u consument bent — iemand die handelt voor doeleinden buiten zijn bedrijf, beroep of ambacht — en u uw lidmaatschap op afstand (online of telefonisch) of buiten onze verkoopruimte heeft afgesloten.",
+      "s2Title": "2. Uw herroepingsrecht (14 dagen)",
+      "s2p1": "U heeft het recht deze overeenkomst binnen 14 kalenderdagen zonder opgave van redenen en zonder boete te herroepen (Spaans Koninklijk Wetgevend Besluit 1/2007, artikelen 102 tot en met 108).",
+      "s2Items": [
+        "<strong>Als u een hanger heeft besteld</strong>, gaan de 14 dagen in op de dag waarop u, of een door u aangewezen derde die niet de vervoerder is, de hanger fysiek in bezit krijgt. Komen samen bestelde hangers op verschillende dagen aan, dan begint de termijn bij ontvangst van de laatste.",
+        "<strong>Als u een lidmaatschap zonder hanger heeft afgesloten</strong>, gaan de 14 dagen in op de dag waarop de overeenkomst is gesloten.",
+        "<strong>Om het uit te oefenen</strong>, deelt u ons uw besluit vóór het einde van de termijn mee met een ondubbelzinnige verklaring, via een van de kanalen in paragraaf 3. U mag het modelformulier in paragraaf 15 gebruiken, maar dat is niet verplicht.",
+        "<strong>U bent op tijd</strong> als u uw verklaring verstuurt voordat de 14 dagen voorbij zijn, ook als die ons later bereikt.",
+        "Bewaar bij voorkeur een kopie van uw bericht. Wij bevestigen altijd dat wij het hebben ontvangen."
+      ],
+      "s3Title": "3. Zo herroept of zegt u op",
+      "s3p1": "Herroepen of opzeggen moet even eenvoudig zijn als aanmelden. Kies het kanaal dat u het beste uitkomt:",
+      "s3Items": [
+        "<strong>Online:</strong> [[TO CONFIRM: online withdrawal and cancellation function in the member area — not yet available]]",
+        "<strong>Per e-mail:</strong> schrijf naar info@icealarm.es, bij voorkeur vanaf het e-mailadres waarmee u zich heeft aangemeld, met uw naam en de mededeling dat u wilt herroepen of opzeggen.",
+        "<strong>Via uw ledenomgeving:</strong> stuur ons een bericht via het onderdeel Ondersteuning.",
+        "<strong>Telefonisch:</strong> [[TO CONFIRM: customer service telephone and hours]].",
+        "<strong>Per post:</strong> ICE Alarm España S.L., [[TO CONFIRM: registered address]]."
+      ],
+      "s3p2": "Wij sturen u zonder vertraging een ontvangstbevestiging per e-mail, met wat u heeft gevraagd en de datum en het tijdstip waarop wij het ontvingen. Krijgt u die niet, neem dan opnieuw contact met ons op zodat uw verzoek niet verloren gaat.",
+      "s3p3": "Handelt u namens een lid dat dit zelf niet kan, vertel ons dan wie u bent en wat uw relatie tot het lid is. Mogelijk moeten wij controleren of u namens hem of haar mag optreden.",
+      "s4Title": "4. Terugbetaling bij herroeping",
+      "s4Items": [
+        "Wij betalen <strong>alle betalingen die wij van u hebben ontvangen</strong> op grond van de overeenkomst terug: de lidmaatschapsbijdrage, de hanger, de inschrijvingskosten en de kosten van standaardlevering. Koos u een duurdere leveringswijze dan onze standaardlevering, dan betalen wij de standaardkosten terug.",
+        "Wij betalen terug <strong>zonder onredelijke vertraging en uiterlijk binnen 14 dagen</strong> nadat wij van uw besluit op de hoogte zijn gesteld.",
+        "Wij gebruiken <strong>hetzelfde betaalmiddel</strong> als u bij de oorspronkelijke transactie heeft gebruikt, tenzij u uitdrukkelijk anders heeft ingestemd. De terugbetaling kost u niets.",
+        "Voor de hanger mogen wij het bijbehorende deel van de terugbetaling inhouden totdat wij hem hebben terugontvangen of u heeft aangetoond dat u hem heeft teruggestuurd, al naargelang wat het eerst gebeurt.",
+        "Is de bewaking op uw uitdrukkelijk verzoek tijdens de herroepingstermijn gestart, dan houden wij alleen het evenredige bedrag uit paragraaf 5 in.",
+        "Heeft iemand anders namens u betaald, dan gaat de terugbetaling naar het betaalmiddel waarmee is betaald."
+      ],
+      "s5Title": "5. Als de bewaking tijdens de herroepingstermijn is gestart",
+      "s5p1": "Onze bewakingsdienst kan alleen vóór het einde van de 14 dagen starten als u <strong>ons daar uitdrukkelijk om vraagt</strong>. Heeft u dat gedaan en herroept u daarna, dan betaalt u een bedrag dat evenredig is aan de dienst die is geleverd tot het moment waarop u ons de herroeping meedeelde.",
+      "s5Items": [
+        "<strong>Berekening:</strong> de prijs van uw lopende factuurperiode (inclusief IVA), gedeeld door het aantal dagen van die periode, vermenigvuldigd met het aantal dagen dat de bewaking actief was totdat u ons de herroeping meedeelde.",
+        "<strong>Bij een jaarlidmaatschap</strong> wordt dezelfde berekening gemaakt op basis van de jaarprijs en 365 dagen.",
+        "<strong>Heeft u niet uitdrukkelijk gevraagd</strong> om de bewaking tijdens de herroepingstermijn te starten, of hebben wij u deze informatie niet vóór het sluiten van de overeenkomst gegeven, dan bent u niets verschuldigd voor de dienst die in die termijn is geleverd.",
+        "Alles wat u boven dat bedrag heeft betaald, wordt terugbetaald zoals beschreven in paragraaf 4."
+      ],
+      "s6Title": "6. De hanger terugsturen na herroeping",
+      "s6Items": [
+        "Stuur de hanger zonder onredelijke vertraging en uiterlijk binnen <strong>14 dagen</strong> na uw herroeping terug naar: [[TO CONFIRM: returns address]].",
+        "U draagt de <strong>directe kosten van het terugsturen</strong>. De hanger kan per gewone post of koerier worden verzonden. [[TO CONFIRM: estimated return cost]]",
+        "U bent alleen aansprakelijk voor waardevermindering die het gevolg is van een behandeling die verder gaat dan nodig is om de aard, de kenmerken en de werking vast te stellen.",
+        "Voeg a.u.b. de oplader en meegeleverde accessoires bij, met een briefje met uw naam of ordernummer zodat wij het pakket aan uw terugbetaling kunnen koppelen.",
+        "Bij de verwerking van uw herroeping koppelen wij de hanger los van onze dienst. Vanaf dat moment bereikt de SOS-knop ons team niet meer."
+      ],
+      "s7Title": "7. Opzeggen na de herroepingstermijn",
+      "s7Items": [
+        "U kunt uw lidmaatschap <strong>op elk moment</strong> opzeggen. Er is geen minimale looptijd en geen opzegtermijn.",
+        "Uw opzegging gaat in aan het <strong>einde van de factuurperiode die u al heeft betaald</strong>. Tot dan loopt de bewaking door, en daarna wordt er niets meer in rekening gebracht.",
+        "Na afloop van de herroepingstermijn worden al betaalde bijdragen voor de lopende factuurperiode niet terugbetaald. Dit geldt ook voor jaarlidmaatschappen. [[TO CONFIRM: treatment of annual memberships cancelled early — pending legal review]]",
+        "<strong>U houdt de hanger</strong>, want u heeft hem gekocht. U hoeft niets terug te sturen.",
+        "Zodra de bewaking stopt, <strong>bereikt de SOS-knop ons team niet meer</strong>. Heeft u nog een alarmdienst nodig, regel dan vóór die datum een alternatief.",
+        "Wij bevestigen uw opzegging, en de datum waarop die ingaat, per e-mail.",
+        "Wij bewaren uw persoonsgegevens alleen zoals beschreven in ons Privacybeleid."
+      ],
+      "s8Title": "8. Verlenging en prijswijzigingen",
+      "s8Items": [
+        "<strong>Maandlidmaatschappen</strong> worden elke maand automatisch verlengd en <strong>jaarlidmaatschappen</strong> elke 12 maanden, totdat u opzegt.",
+        "Een jaarlidmaatschap kost evenveel als 10 maanden tegen de maandprijs, in één keer betaald voor 12 maanden dienstverlening.",
+        "Uw lidmaatschap wordt verlengd tegen de prijs die op de verlengingsdatum geldt. Wij informeren u minstens 30 dagen vóór een prijswijziging ingaat; gaat u er niet mee akkoord, dan kunt u kosteloos opzeggen voordat die geldt.",
+        "[[TO CONFIRM: reminder sent before an annual renewal — not currently sent]]",
+        "Uw volgende verlengingsdatum staat in uw ledenomgeving, onder Lidmaatschap."
+      ],
+      "s9Title": "9. Prijzen, IVA en eenmalige kosten",
+      "s9Items": [
+        "Alle prijzen die u vóór betaling ziet, zijn inclusief IVA (Spaanse btw) waar die van toepassing is.",
+        "Over het <strong>lidmaatschap</strong> wordt 10% IVA geheven.",
+        "De <strong>GPS-hanger</strong> wordt aan u verkocht; daarover wordt 21% IVA geheven.",
+        "<strong>Verzending</strong> wordt één keer per bestelling berekend, ongeacht het aantal hangers.",
+        "Er kunnen eenmalige <strong>inschrijvingskosten</strong> gelden, zoals vermeld in het besteloverzicht. [[TO CONFIRM: IVA treatment of the registration fee]]",
+        "Vóór betaling toont het besteloverzicht elk onderdeel, de IVA, het totaal dat vandaag verschuldigd is en het bedrag dat daarna elke maand of elk jaar wordt afgeschreven."
+      ],
+      "s10Title": "10. Als een betaling mislukt",
+      "s10Items": [
+        "Mislukt een betaling, dan proberen wij of onze betaaldienstverlener het bedrag opnieuw te innen en nemen wij contact met u op.",
+        "<strong>Uw bewaking loopt door</strong> terwijl wij het samen met u oplossen.",
+        "Wij schorten uw dienst niet op en beëindigen die niet wegens een gemiste betaling zonder eerst contact met u op te nemen en u een redelijke termijn te geven. [[TO CONFIRM: suspension policy — Terms section 8.5 describes suspension after 7 days]]"
+      ],
+      "s11Title": "11. Als iemand anders uw lidmaatschap betaalt",
+      "s11p1": "Betaalt een familielid of iemand anders uw lidmaatschap, dan gaan terugbetalingen naar het betaalmiddel waarmee is betaald. Laat ons weten met wie wij contact moeten opnemen over herroeping, opzegging en terugbetaling, zodat de juiste persoon op de hoogte blijft. [[TO CONFIRM: who may withdraw or cancel when a payer pays — pending legal review]]",
+      "s12Title": "12. Defecte of beschadigde hanger",
+      "s12p1": "Niets in dit beleid doet af aan uw wettelijke garantierechten als de hanger defect is of niet aan de omschrijving voldoet. Die rechten staan los van het herroepingsrecht en blijven gelden na de 14 dagen. Neem contact met ons op en wij repareren of vervangen de hanger zoals de wet voorschrijft.",
+      "s13Title": "13. Leden die betalen via automatische incasso onder een eerdere regeling",
+      "s13p1": "Wordt uw lidmaatschap nog via automatische incasso geïnd onder een regeling van vóór uw aanmelding op dit platform, dan kunt u opzeggen via elk van de kanalen in paragraaf 3. Wij stoppen met innen na het einde van de al geïnde periode en bevestigen dit schriftelijk. Dit laat uw recht onverlet om uw bank op grond van de regels voor betalingsdiensten om terugboeking van een incasso te vragen. [[TO CONFIRM: cancellation procedure for members on earlier direct-debit billing]]",
+      "s14Title": "14. Vragen en klachten",
+      "s14p1": "Heeft u een vraag of klacht over een herroeping, opzegging of terugbetaling, schrijf dan naar info@icealarm.es. Officiële klachtenformulieren (hojas de reclamaciones) zijn op verzoek beschikbaar. U kunt zich ook wenden tot het gemeentelijke consumentenloket (OMIC) of de consumentenautoriteit van uw regio. [[TO CONFIRM: adherence to the Consumer Arbitration System]]",
+      "formTitle": "15. Modelformulier voor herroeping",
+      "formIntro": "Vul dit formulier alleen in en stuur het terug als u de overeenkomst wilt herroepen. Het gebruik ervan is niet verplicht.",
+      "formBody": "Aan: ICE Alarm España S.L., [[TO CONFIRM: registered address]], info@icealarm.es<br/><br/>Ik/Wij (*) deel/delen (*) u hierbij mede dat ik/wij (*) onze overeenkomst betreffende de verkoop van de volgende goederen (*) / de levering van de volgende dienst (*) herroep/herroepen (*): ______________________<br/><br/>Besteld op (*) / ontvangen op (*): ______________________<br/>Naam/Namen consument(en): ______________________<br/>Adres consument(en): ______________________<br/>Handtekening van consument(en) (alleen wanneer dit formulier op papier wordt ingediend): ______________________<br/>Datum: ______________________<br/><br/>(*) Doorhalen wat niet van toepassing is.",
+      "printForm": "Deze pagina afdrukken",
+      "relatedTitle": "Gerelateerde documenten"
+    },
     "footer": {
       "termsOfService": "Servicevoorwaarden",
       "privacyPolicy": "Privacybeleid"
     },
     "terms": {
       "title": "Servicevoorwaarden",
-      "company": "ICE Alarm España — Verbonden zorg. Menselijke aandacht.",
-      "lastUpdated": "Laatst bijgewerkt: juni 2026",
-      "importantWarning": "BELANGRIJK: LEES DEZE VOORWAARDEN ZORGVULDIG VOORDAT U ONZE DIENSTEN GEBRUIKT.",
-      "emergencyWarning": "DIT IS EEN PERSOONLIJKE ALARMERINGSDIENST, GEEN VERVANGING VAN DE HULPDIENSTEN (112). BEL BIJ LEVENSGEVAAR ALTIJD ZELF 112 ALS DAT MOGELIJK IS.",
-      "s1Title": "1. Aanvaarding van de voorwaarden",
-      "s1p1": "Door een account aan te maken, een abonnement te nemen of gebruik te maken van een dienst van ICE Alarm España, aanvaardt u deze servicevoorwaarden (\"voorwaarden\"), ons privacybeleid en eventuele aanvullende voorwaarden die voor specifieke diensten gelden.",
-      "s1p2": "Bent u niet met deze voorwaarden akkoord, maak dan geen gebruik van onze diensten.",
+      "company": "ICE Alarm España S.L. · fiscaal nummer (NIF) B24731531",
+      "lastUpdated": "Versie {{version}} · Concept, in afwachting van juridische toetsing · Laatst bijgewerkt: 17 september 2026",
+      "importantWarning": "Lees deze voorwaarden zorgvuldig door voordat u een lidmaatschap afsluit. Deze Nederlandse vertaling is uitsluitend ter informatie (zie artikel 18.6).",
+      "emergencyWarning": "ICE Alarm España is een persoonlijke alarm- en opvolgdienst. Het is geen hulpdienst en vervangt 112 niet. Bel bij een levensbedreigend noodgeval altijd zelf 112 als u daartoe in staat bent.",
+      "s1Title": "1. Over deze voorwaarden",
+      "s1p1": "Deze Servicevoorwaarden (de \"voorwaarden\") zijn de algemene voorwaarden van de overeenkomst tussen ICE Alarm España S.L. en de persoon die een lidmaatschap van ICE Alarm España afsluit. Ze gelden voor het bewakingslidmaatschap en voor elke GPS-hanger die u bij ons koopt.",
+      "s1p2": "U aanvaardt deze voorwaarden door vóór de betaling het vakje voor akkoord aan te vinken. De overeenkomst komt tot stand wanneer wij uw bestelling bevestigen. Daarna sturen wij u per e-mail een bevestiging van de overeenkomst, samen met deze voorwaarden en de informatie over herroeping, zodat u ze kunt bewaren en afdrukken.",
+      "s1p3": "Deze voorwaarden zijn opgesteld als algemene voorwaarden naar Spaans recht (Ley 7/1998 en Koninklijk Wetgevend Besluit 1/2007). Niets hierin neemt de rechten weg die u als consument volgens de wet hebt, of beperkt die; als een bepaling zo gelezen zou kunnen worden, gaat de wet voor.",
+      "s1DefsIntro": "In deze voorwaarden betekent:",
+      "s1DefsItems": [
+        "<strong>\"wij\", \"ons\", \"onze\"</strong>: ICE Alarm España S.L.;",
+        "<strong>\"contractant\"</strong> of <strong>\"u\"</strong>: de persoon die de overeenkomst met ons sluit en verantwoordelijk is voor de betaling;",
+        "<strong>\"lid\"</strong>: de persoon die de hanger draagt en wiens meldingen wij behandelen. De contractant en het lid zijn vaak dezelfde persoon, maar dat hoeft niet (zie artikel 5.2);",
+        "<strong>\"lidmaatschap\"</strong>: de bewakingsdienst zoals beschreven in artikel 3, volgens het abonnement dat u kiest;",
+        "<strong>\"hanger\"</strong>: de GPS-hanger met SOS-knop die bij de dienst wordt gebruikt."
+      ],
       "s2Title": "2. Wie wij zijn",
-      "s2p1": "<strong>ICE Alarm España</strong> (\"wij\", \"ons\", \"onze\", \"ICE Alarm España\") levert persoonlijke alarmeringsdiensten, waaronder bewaking via een GPS-hanger, de afhandeling van noodmeldingen en bijbehorende ondersteuning.",
+      "s2p1": "De dienst wordt geleverd door de volgende vennootschap (gegevens verstrekt op grond van artikel 10 van de Spaanse wet 34/2002, LSSI-CE):",
+      "s2Items": [
+        "<strong>Statutaire naam:</strong> ICE Alarm España S.L.",
+        "<strong>Fiscaal nummer (NIF):</strong> B24731531",
+        "<strong>Statutaire zetel:</strong> [[TO CONFIRM: registered office address]]",
+        "<strong>Handelsregister:</strong> [[TO CONFIRM: Registro Mercantil, tomo, folio, hoja and inscripción]]",
+        "<strong>Telefoon:</strong> [[TO CONFIRM: customer service telephone number]]"
+      ],
       "s2p2": "Contact: info@icealarm.es",
-      "s3Title": "3. Beschrijving van de diensten",
-      "s3_1Title": "3.1 Wat wij leveren",
+      "s3Title": "3. De dienst",
+      "s3_1Title": "3.1 Wat uw lidmaatschap omvat",
       "s3_1Items": [
-        "GPS-hangers voor noodmeldingen",
-        "24/7 bewaking van apparaatmeldingen (SOS-knop, valdetectie, apparaat offline)",
-        "Reactie op meldingen via een telefoongesprek om de situatie te beoordelen",
-        "Coördinatie met de hulpdiensten (112) wanneer dat nodig is",
-        "Het waarschuwen van uw aangewezen contactpersonen",
-        "AI-ondersteunde gespreksafhandeling en klantenservice",
-        "Welzijnscontroles per telefoon (bij het betreffende abonnement)",
-        "Een ledendashboard voor het beheer van uw account"
+        "Ontvangst van meldingen van uw hanger, 24 uur per dag en 365 dagen per jaar: de SOS-knop, automatische valmeldingen (als de valsensor van de hanger is ingeschakeld) en waarschuwingen bij een bijna lege batterij of geen verbinding.",
+        "Ons getrainde meldkamerteam behandelt elke melding, probeert via de hanger of telefonisch met het lid te spreken en bepaalt samen met het lid welke hulp nodig is.",
+        "Namens het lid de hulpdiensten (112) bellen wanneer onze medewerker dat nodig acht, en hun de informatie doorgeven die u ons hebt verstrekt.",
+        "Contact opnemen met de noodcontacten en sleutelhouders van het lid, in de volgorde die u hebt aangegeven.",
+        "Belletjes uit betrokkenheid naar het lid, als dat met u is afgesproken. Dit zijn vriendelijke contactmomenten, geen gezondheidsbeoordeling.",
+        "Hulp van Isabella, onze AI-assistent, bij vragen over uw account en bij routinematige communicatie (zie artikel 4.5).",
+        "Zorgkring: het lid kan familieleden en andere vertrouwde personen aanwijzen. Zij kunnen de gegevens van het lid alleen inzien als het lid daarvoor toestemming geeft (zie artikel 3.4).",
+        "Een online ledenomgeving om het account, de contactpersonen en de betaalgegevens te beheren."
       ],
-      "s3_2Title": "3.2 Wat wij NIET leveren",
+      "s3_2Title": "3.2 Wat de dienst niet is",
       "s3_2Items": [
-        "Directe medische zorg of medisch advies",
-        "Spoedeisende medische hulp",
-        "Ambulance- of paramedische diensten",
-        "Gegarandeerde reactietijden",
-        "Een vervanging van het bellen van 112 bij noodgevallen",
-        "Een vervanging van goede medische bewaking of zorginstellingen"
+        "Het is geen medische dienst, geen verpleging en geen thuiszorg, en wij geven geen medisch advies of diagnoses",
+        "Het is geen hulpdienst, ambulancedienst of spoedeisende medische hulp",
+        "De dienst meet of bewaakt de gezondheid van het lid niet",
+        "Er wordt geen bepaalde reactietijd of uitkomst gegarandeerd",
+        "Het is geen vervanging voor het bellen van 112 in een noodsituatie",
+        "Het is geen vervanging voor passende medische zorg, toezicht of een zorginstelling wanneer die nodig is"
       ],
-      "s4Title": "4. Belangrijke beperkingen en disclaimers",
-      "s4_1Title": "4.1 Geen vervanging van de hulpdiensten",
-      "s4_1Warning": "ICE ALARM ESPAÑA IS EEN AANVULLENDE DIENST. WIJ ZIJN GEEN HULPDIENST.",
+      "s3_3Title": "3.3 Abonnementen en werkgebied",
+      "s3_3p1": "Het Single-abonnement geldt voor één lid. Het Duo-abonnement geldt voor twee leden die op hetzelfde adres wonen. De dienst is bedoeld voor leden die in Spanje wonen en wordt in Spanje geleverd [[TO CONFIRM: mainland Spain only, or also the Balearic and Canary Islands, Ceuta and Melilla]]. Buiten Spanje werkt de hanger mogelijk niet of maar gedeeltelijk.",
+      "s3_4Title": "3.4 Familie en de Zorgkring",
+      "s3_4p1": "Wie als noodcontact is opgegeven, sleutelhouder is of het lidmaatschap betaalt, krijgt daardoor alleen nog geen toegang tot de gezondheidsgegevens, locatie of meldingsgeschiedenis van het lid. Die toegang wordt pas verleend wanneer het lid (of iemand die wettelijk namens het lid mag optreden) daarvoor toestemming geeft voor bepaalde categorieën gegevens, en die toestemming kan op elk moment worden ingetrokken. Hoe wij met die gegevens omgaan, leest u in ons <a href=\"/privacy\">privacybeleid</a>.",
+      "s4Title": "4. Belangrijke beperkingen",
+      "s4_1Title": "4.1 Geen vervanging voor de hulpdiensten",
+      "s4_1Warning": "ICE Alarm España is een aanvullende dienst. Wij zijn niet de hulpdiensten.",
       "s4_1Items": [
-        "Kunt u bij een noodgeval zelf 112 bellen, doe dat dan",
-        "Onze dienst is afhankelijk van techniek die kan uitvallen",
+        "Als het lid in een noodsituatie zelf 112 kan bellen, moet het lid dat doen",
+        "De dienst is afhankelijk van technologie die kan uitvallen",
         "Onze reactie kan vertraging oplopen",
-        "Wij kunnen niet garanderen dat hulp in elke situatie tijdig arriveert"
+        "Wij kunnen niet garanderen dat hulp in elke situatie op tijd arriveert"
       ],
-      "s4_2Title": "4.2 Beperkingen van de techniek",
-      "s4_2Intro": "Onze dienst is afhankelijk van techniek die haar beperkingen kent:",
-      "s4_2GpsLabel": "GPS-hanger:",
+      "s4_2Title": "4.2 Technische beperkingen",
+      "s4_2Intro": "De dienst is afhankelijk van technologie met beperkingen:",
+      "s4_2GpsLabel": "De GPS-hanger:",
       "s4_2GpsItems": [
-        "Heeft een opgeladen batterij nodig (is de batterij leeg, dan kunnen er geen meldingen worden verzonden)",
-        "Heeft mobiele netwerkdekking nodig (werkt mogelijk niet in afgelegen gebieden of gebouwen met slecht bereik)",
-        "De nauwkeurigheid van gps varieert (doorgaans 5-50 meter, binnenshuis mogelijk minder nauwkeurig)",
-        "Valdetectie is niet 100% nauwkeurig (kan een val missen of een valse melding geven)",
-        "Het apparaat moet gedragen worden om te werken"
+        "Heeft een opgeladen batterij nodig — een hanger met een lege batterij kan geen melding versturen",
+        "Heeft mobiel bereik nodig — in gebieden of gebouwen met slecht of geen bereik werkt de hanger mogelijk niet",
+        "De nauwkeurigheid van de locatie wisselt en is binnenshuis meestal lager; de positie die wij zien is mogelijk niet exact",
+        "De automatische valsensor registreert niet elke val en kan soms een melding geven terwijl er niemand is gevallen",
+        "Helpt alleen als het lid de hanger draagt of binnen handbereik heeft"
       ],
       "s4_2SystemsLabel": "Onze systemen:",
       "s4_2SystemsItems": [
-        "Internet- en telefoonnetwerken kunnen storingen hebben",
-        "Software kan fouten of storingen bevatten",
-        "De AI-assistent kan iets verkeerd begrijpen of fouten maken"
+        "Internet-, telefoon- en elektriciteitsnetten kunnen uitvallen",
+        "Software kan fouten bevatten, al doen wij er alles aan om die te voorkomen en te herstellen",
+        "Onze AI-assistent kan iets verkeerd begrijpen of fouten maken"
       ],
-      "s4_2ThirdPartyLabel": "Afhankelijkheid van derden:",
+      "s4_2ThirdPartyLabel": "Derden:",
       "s4_2ThirdPartyItems": [
-        "Wij zijn afhankelijk van mobiele netwerkaanbieders",
-        "Wij zijn afhankelijk van partners voor apparaatbewaking",
-        "Wij zijn afhankelijk van de hulpdiensten om te reageren nadat zij gewaarschuwd zijn"
+        "Wij zijn afhankelijk van mobiele netwerkaanbieders en van de partijen die de hanger met onze systemen verbinden",
+        "De hulpdiensten (112, ambulance, politie, brandweer) staan los van ons en bepalen zelf hoe en wanneer zij optreden"
       ],
       "s4_3Title": "4.3 Reactietijd",
-      "s4_3Warning": "WIJ GARANDEREN GEEN ENKELE SPECIFIEKE REACTIETIJD.",
-      "s4_3p1": "Wij streven ernaar zo snel mogelijk op meldingen te reageren, maar de reactietijd hangt af van het aantal gelijktijdige meldingen, de beschikbaarheid van operators, de juistheid van de verstrekte gegevens, de reactietijd van de hulpdiensten (112) en van verkeer, weer en andere factoren buiten onze macht.",
+      "s4_3Warning": "Wij garanderen geen specifieke reactietijd.",
+      "s4_3p1": "Ons meldkamerteam is 24 uur per dag bereikbaar en wij streven ernaar elke melding zo snel mogelijk te behandelen. Hoe snel hulp ter plaatse is, hangt ook af van factoren buiten onze invloed, zoals het aantal gelijktijdige meldingen, de beschikbare informatie, de reactiesnelheid van 112 en andere diensten, het verkeer en het weer.",
       "s4_4Title": "4.4 Geen medisch advies",
-      "s4_4p1": "Onze medewerkers en onze AI-assistent verzorgen de coördinatie bij noodgevallen, GEEN medisch advies. Verstrekte informatie is algemeen van aard en mag niet als medisch advies worden opgevat. Raadpleeg voor gezondheidsbeslissingen altijd een bevoegde zorgverlener.",
-      "s4_5Title": "4.5 Beperkingen van de AI-assistent",
-      "s4_5Intro": "Onze AI-assistent \"Isabella\":",
+      "s4_4p1": "Ons team en onze AI-assistent coördineren hulp; zij geven geen medisch advies. De informatie die zij geven is algemeen en mag niet als medisch advies worden opgevat. Raadpleeg voor beslissingen over uw gezondheid altijd een bevoegde zorgverlener.",
+      "s4_5Title": "4.5 Isabella, onze AI-assistent",
+      "s4_5Intro": "Isabella:",
       "s4_5Items": [
-        "Is kunstmatige intelligentie, geen mens",
-        "Kan verkeerd begrijpen wat u zegt",
-        "Kan onjuiste of ongepaste antwoorden geven",
-        "Verbindt door naar een menselijke operator bij twijfel of op uw verzoek",
-        "Mag niet worden gebruikt voor kritieke medische beslissingen"
+        "Is een systeem op basis van kunstmatige intelligentie, geen mens, en zal u dat ook vertellen",
+        "Kan verkeerd begrijpen wat u zegt of een onjuist antwoord geven",
+        "Beslist niet hoe een SOS-melding wordt afgehandeld — meldingen worden behandeld door ons meldkamerteam van mensen",
+        "Verbindt u door met een medewerker als zij twijfelt, en altijd wanneer u daarom vraagt",
+        "Mag niet worden gebruikt als basis voor medische beslissingen"
       ],
-      "s5Title": "5. Voorwaarden voor deelname",
-      "s5Intro": "Om onze diensten te gebruiken, moet u:",
+      "s4_5p1": "Meer informatie vindt u in onze uitleg over Isabella en het gebruik van kunstmatige intelligentie.",
+      "s5Title": "5. Voorwaarden voor deelname, contractant en lid",
+      "s5_1Title": "5.1 Wie kan deelnemen",
+      "s5Intro": "Om een lidmaatschap af te sluiten:",
       "s5Items": [
-        "Ten minste 18 jaar oud zijn, OF een ouder/voogd hebben die namens u akkoord gaat",
-        "Juiste en volledige gegevens verstrekken",
-        "Beschikken over een geldig betaalmiddel",
-        "Zich bevinden in een gebied met mobiele netwerkdekking",
-        "In staat zijn de GPS-hanger te dragen en te gebruiken (of een verzorger hebben die daarbij helpt)"
+        "Moet de contractant ten minste 18 jaar oud en handelingsbekwaam zijn",
+        "Moet het lid in Spanje wonen, op een plaats met mobiel bereik (zie artikel 3.3)",
+        "Moet het lid de hanger kunnen dragen en gebruiken, of iemand hebben die daarbij helpt",
+        "Moeten de gegevens die u ons verstrekt juist, volledig en actueel zijn",
+        "Is een geldig betaalmiddel nodig"
       ],
-      "s5p1": "Wij behouden ons het recht voor om de dienst aan iedereen te weigeren, om welke reden dan ook.",
-      "s6Title": "6. Uw account",
-      "s6_1Title": "6.1 Account aanmaken",
-      "s6_1p1": "U moet bij de registratie juiste, actuele en volledige gegevens verstrekken. U stemt ermee in deze gegevens bij te werken zodat ze juist blijven.",
-      "s6_2Title": "6.2 Accountbeveiliging",
+      "s5p1": "Wij kunnen een aanvraag weigeren als wij de dienst niet veilig kunnen leveren — bijvoorbeeld als er bij het lid thuis geen mobiel bereik is — of als de verstrekte gegevens onjuist zijn. In dat geval laten wij u dat weten en betalen wij alles volledig terug.",
+      "s5_2Title": "5.2 Contractant en lid",
+      "s5_2Items": [
+        "De contractant is onze wederpartij: die betaalt, ontvangt de facturen en oefent de rechten uit de overeenkomst uit, waaronder herroeping (artikel 9.2) en opzegging (artikel 9.1).",
+        "Het lid is de persoon die wij bewaken. Zijn de contractant en het lid verschillende personen — bijvoorbeeld een volwassen kind dat voor een ouder betaalt — dan heeft ons team bij een melding contact met het lid en gebruikt het de gegevens die over het lid zijn verstrekt.",
+        "Betalen voor een lidmaatschap geeft de contractant geen toegang tot de gezondheidsgegevens, locatie of meldingen van het lid; daarvoor is toestemming van het lid zelf nodig (artikel 3.4).",
+        "Bij online aanmelding wordt het lid momenteel als contractant geregistreerd. Wil iemand anders betalen, neem dan contact met ons op; wij regelen dat dan met u."
+      ],
+      "s5_3Title": "5.3 Instemming van het lid",
+      "s5_3p1": "Als u een lidmaatschap afsluit voor iemand anders, bevestigt u dat die persoon van de dienst op de hoogte is en ermee heeft ingestemd bewaakt te worden, of dat u wettelijk bevoegd bent dit namens die persoon te beslissen [[TO CONFIRM: counsel to confirm wording for members with support measures under Law 8/2021]]. Het lid kan altijd contact met ons opnemen met vragen over de dienst.",
+      "s6Title": "6. Uw account en uw gegevens",
+      "s6_1Title": "6.1 Een account aanmaken",
+      "s6_1p1": "U moet bij de registratie juiste, actuele en volledige gegevens verstrekken en deze actueel houden.",
+      "s6_2Title": "6.2 Beveiliging van uw account",
       "s6_2Intro": "U bent verantwoordelijk voor:",
       "s6_2Items": [
-        "Het geheim houden van uw inloggegevens",
-        "Alle activiteiten die onder uw account plaatsvinden",
-        "Het onmiddellijk melden van ongeoorloofde toegang"
+        "Het geheimhouden van uw inloggegevens",
+        "Handelingen die met uw inloggegevens worden verricht, tenzij die niet door u of door onvoldoende zorgvuldigheid van uw kant zijn veroorzaakt",
+        "Het direct melden van vermoedelijk ongeoorloofde toegang"
       ],
-      "s6_3Title": "6.3 Juistheid van de gegevens",
-      "s6_3Warning": "ESSENTIEEL: de juistheid van uw persoonlijke gegevens, medische gegevens en contactpersonen bepaalt direct of wij u bij een noodgeval kunnen helpen. U bent er verantwoordelijk voor dat deze gegevens actueel en juist blijven.",
-      "s6_3p1": "Wanneer wij op basis van uw gegevens uw contactpersonen benaderen of uw medische gegevens aan de hulpdiensten verstrekken, aanvaardt u dat wij niet aansprakelijk zijn voor de gevolgen van onjuiste gegevens.",
-      "s7Title": "7. Apparaten en apparatuur",
+      "s6_3Title": "6.3 Juistheid van gegevens",
+      "s6_3Warning": "Belangrijk: de juistheid van de gegevens van het lid, het adres, de gezondheidsinformatie en de noodcontacten bepaalt rechtstreeks hoe goed wij in een noodsituatie kunnen helpen. Houd ze actueel.",
+      "s6_3p1": "Wij handelen op basis van de gegevens die u ons verstrekt. Wij zijn niet verantwoordelijk voor gevolgen van onjuiste of verouderde gegevens als wij daar redelijkerwijs op hebben gehandeld. Geef ons een adreswijziging, een nieuw telefoonnummer of gewijzigde contactpersonen direct door, evenals elke periode waarin het lid niet thuis zal zijn.",
+      "s6_4Title": "6.4 Noodcontacten en sleutelhouders",
+      "s6_4Intro": "Wanneer u ons gegevens van noodcontacten of sleutelhouders verstrekt, bevestigt u dat:",
+      "s6_4Items": [
+        "U hen hebt laten weten dat u hen opgeeft, en zij ermee hebben ingestemd dat wij contact met hen opnemen, ook 's nachts",
+        "Elke sleutelhouder ermee heeft ingestemd een sleutel van de woning van het lid te bewaren en, waar mogelijk, erheen te gaan als wij daarom vragen",
+        "U ons direct laat weten wanneer hun gegevens wijzigen of wanneer zij niet langer op de lijst willen staan",
+        "U begrijpt dat wij hun tijdens een melding de informatie geven die zij nodig hebben om te helpen, zoals uitgelegd in ons <a href=\"/privacy\">privacybeleid</a>"
+      ],
+      "s6_4p1": "Als geen enkele sleutelhouder bereikbaar is, kunnen de hulpdiensten besluiten zich op een andere manier toegang tot de woning van het lid te verschaffen. Dat besluiten zij, niet wij.",
+      "s7Title": "7. Apparaten en uitrusting",
       "s7_1Title": "7.1 GPS-hanger",
       "s7_1Items": [
         "De GPS-hanger wordt <strong>aan u verkocht</strong>: bij levering wordt deze uw eigendom. Wij lenen of verhuren het apparaat niet en vragen geen borg.",
@@ -3699,36 +3889,60 @@
         "U hoeft de hanger bij opzegging niet terug te sturen — die is en blijft van u. Terugsturen is alleen aan de orde als u uw herroepingsrecht van 14 dagen uitoefent (artikel 9.2); de retourkosten zijn dan voor uw rekening.",
         "Raakt de hanger kwijt of beschadigd, dan kunt u een nieuwe aanschaffen tegen de dan geldende prijs; wij brengen geen boete in rekening."
       ],
-      "s7_2Title": "7.2 Uw verantwoordelijkheden",
-      "s7_2Intro": "U stemt ermee in om:",
+      "s7_2Title": "7.2 Zorg voor de hanger",
+      "s7_2Intro": "Om de dienst goed te laten werken, moet het lid (of degene die helpt):",
       "s7_2Items": [
-        "Het apparaat opgeladen te houden",
-        "Het apparaat te dragen zoals bedoeld",
-        "Het apparaat periodiek te testen volgens de instructies",
-        "Storingen aan het apparaat aan ons te melden",
-        "Niet te proberen het apparaat te wijzigen, te repareren of ermee te manipuleren"
+        "De hanger opladen zoals beschreven in de gebruikershandleiding en reageren op waarschuwingen over een bijna lege batterij",
+        "De hanger dragen of binnen handbereik houden zoals beschreven in de gebruikershandleiding",
+        "Regelmatig een testmelding doen zoals beschreven in de gebruikershandleiding, en ons laten weten als die niet werkt",
+        "Ons direct op de hoogte stellen van een storing, beschadiging of verlies",
+        "De hanger of de simkaart niet openen, aanpassen, repareren of ermee knoeien"
       ],
-      "s7_3Title": "7.3 Connectiviteit van het apparaat",
-      "s7_3p1": "Het apparaat heeft mobiele netwerkdekking en een opgeladen batterij nodig, en de simkaart moet actief blijven (beheerd door onze partner).",
-      "s7_3p2": "Wij zijn niet verantwoordelijk voor storingen in de dienst als gevolg van:",
+      "s7_3Title": "7.3 Verbinding",
+      "s7_3p1": "De hanger bevat een simkaart die hem als onderdeel van het lidmaatschap met onze systemen verbindt. De simkaart mag alleen voor onze dienst worden gebruikt. Wanneer het lidmaatschap eindigt, wordt de verbinding van de hanger met onze dienst uitgeschakeld.",
+      "s7_3p2": "Wij zijn niet verantwoordelijk voor storingen in de dienst die worden veroorzaakt door:",
       "s7_3Items": [
-        "Slechte of geen mobiele netwerkdekking in uw gebied",
+        "Slecht of geen mobiel bereik op de plaats waar de hanger wordt gebruikt",
         "Storing door gebouwen, terrein of weersomstandigheden",
-        "Storingen in het mobiele netwerk",
-        "Een lege batterij van het apparaat"
+        "Uitval van het mobiele netwerk buiten onze invloed",
+        "Een lege batterij van de hanger"
       ],
-      "s8Title": "8. Abonnement en betaling",
-      "s8_1Title": "8.1 Abonnementen",
-      "s8_1p1": "De beschikbare abonnementen, inclusief prijzen, staan op onze website en worden tijdens de registratie weergegeven. De prijzen zijn inclusief de toepasselijke btw.",
-      "s8_2Title": "8.2 Betaling",
+      "s7_4Title": "7.4 Levering",
+      "s7_4Items": [
+        "Wij versturen de hanger aangetekend naar het adres dat u opgeeft. Hij wordt binnen 5–7 werkdagen bezorgd, en in elk geval uiterlijk 30 dagen na uw bestelling.",
+        "De verzendkosten staan in uw besteloverzicht voordat u betaalt.",
+        "De hanger is voor ons risico totdat hij aan u of aan een door u aangewezen persoon is afgeleverd.",
+        "Leveren wij niet binnen de afgesproken termijn, dan kunt u ons een redelijke extra termijn geven; leveren wij dan nog niet, dan kunt u de overeenkomst ontbinden en betalen wij u terug."
+      ],
+      "s7_5Title": "7.5 Garantie en storingen",
+      "s7_5Items": [
+        "Op de hanger rust de wettelijke conformiteitsgarantie: wij zijn verantwoordelijk voor elk gebrek aan overeenstemming dat zich binnen drie jaar na levering voordoet, volgens Koninklijk Wetgevend Besluit 1/2007.",
+        "Is de hanger defect, dan kunt u ons vragen hem kosteloos te repareren of te vervangen, inclusief verzending; is dat niet mogelijk of redelijk, dan kunt u prijsvermindering of ontbinding van de overeenkomst vragen.",
+        "Deze garantie dekt geen schade door verkeerd gebruik, ongelukken of knoeien met het apparaat.",
+        "Een commerciële garantie van ons of van de fabrikant komt bovenop uw wettelijke rechten en vervangt die niet."
+      ],
+      "s8Title": "8. Prijs, betaling en verlenging",
+      "s8_1Title": "8.1 Prijzen",
+      "s8_1p1": "U betaalt de prijs die op het moment van bestellen op onze website en in uw besteloverzicht staat. Alle prijzen zijn inclusief IVA (Spaanse btw), en bij elk onderdeel staat het eigen IVA-tarief. Op de datum van deze versie gelden de volgende prijzen:",
+      "s8_1Items": [
+        "Single-abonnement: {{singleMonthly}} per maand, inclusief IVA (10%), of {{singleAnnual}} per jaar",
+        "Duo-abonnement: {{coupleMonthly}} per maand, inclusief IVA (10%), of {{coupleAnnual}} per jaar",
+        "De jaarprijs is gelijk aan tien maandbedragen: u betaalt 10 maanden en bent 12 maanden gedekt",
+        "GPS-hanger (eenmalige aankoop): {{pendant}} per stuk, inclusief IVA (21%)",
+        "Eenmalige inschrijvingskosten: {{registration}}",
+        "Verzending: {{shipping}}, inclusief IVA"
+      ],
+      "s8_1p2": "Toont onze website ooit een andere prijs dan het besteloverzicht dat u hebt aanvaard, dan geldt het besteloverzicht.",
+      "s8_2Title": "8.2 Betaling en verlenging",
       "s8_2Items": [
-        "De betaling wordt veilig verwerkt door Stripe",
-        "Abonnementen worden maandelijks of jaarlijks gefactureerd, naar keuze",
-        "U geeft ons toestemming uw betaalmiddel automatisch te belasten",
-        "Mislukte betalingen kunnen leiden tot opschorting van de dienst"
+        "Betalingen worden veilig verwerkt door onze betaalproviders Stripe en Mollie, per kaart of via SEPA-incasso. Wij slaan uw volledige kaartgegevens niet op.",
+        "Bij het afrekenen betaalt u de inschrijvingskosten, een eventuele hanger en de verzending, en de eerste periode van uw lidmaatschap.",
+        "Het lidmaatschap wordt vooraf betaald, per maand of per jaar zoals u hebt gekozen, en wordt automatisch verlengd met een periode van dezelfde duur totdat het wordt opgezegd.",
+        "U machtigt ons om elke verlenging te innen met het betaalmiddel dat u ons hebt opgegeven. U kunt dit op elk moment wijzigen in uw ledenomgeving.",
+        "Voor elke betaling ontvangt u een factuur."
       ],
       "s8_3Title": "8.3 Prijswijzigingen",
-      "s8_3p1": "Wij kunnen abonnementsprijzen wijzigen met een aankondiging van 30 dagen. Bent u niet akkoord met een prijswijziging, dan kunt u opzeggen voordat deze ingaat.",
+      "s8_3p1": "Wij kunnen de prijzen van het lidmaatschap om geldige redenen wijzigen — zoals veranderingen in onze kosten of in belastingen — en laten u dat ten minste 30 dagen voordat de wijziging ingaat per e-mail weten. Gaat u niet akkoord, dan kunt u kosteloos opzeggen voordat de wijziging ingaat. Wijzigingen in het IVA-tarief gelden vanaf de datum die de wet bepaalt.",
       "s8_4Title": "8.4 Terugbetalingen",
       "s8_4Items": [
         "Binnen de herroepingstermijn van 14 dagen (artikel 9.2) krijgt u alles terug wat u hebt betaald, inclusief het inschrijfgeld en de kosten van standaardlevering.",
@@ -3736,13 +3950,13 @@
         "Na de herroepingstermijn worden al betaalde abonnementskosten voor de lopende factuurperiode niet terugbetaald; uw opzegging gaat in aan het einde van die periode.",
         "Voor defecte, beschadigde of niet-conforme apparatuur gelden uw wettelijke garantierechten, die dit artikel niet beperkt."
       ],
-      "s8_5Title": "8.5 Niet-betaling",
-      "s8_5Intro": "Als een betaling mislukt:",
+      "s8_5Title": "8.5 Als een betaling mislukt",
+      "s8_5Intro": "Omdat dit een veiligheidsdienst is, stopt de bewaking niet alleen omdat een betaling is mislukt:",
       "s8_5Items": [
-        "Stellen wij u op de hoogte en proberen wij het bedrag opnieuw af te schrijven",
-        "Kan de dienst na 7 dagen van mislukte betaling worden opgeschort",
-        "Kan uw account na 30 dagen worden beëindigd",
-        "Kunnen openstaande bedragen ter incasso worden overgedragen"
+        "Onze betaalprovider probeert de betaling in de dagen daarna automatisch opnieuw",
+        "Lukt het dan nog niet, dan nemen wij contact met u op om de betaling te regelen",
+        "De bewaking gaat door terwijl wij het samen met u proberen op te lossen",
+        "Blijft er na ons contact een bedrag onbetaald, dan kunnen wij de overeenkomst beëindigen na een schriftelijke aankondiging van ten minste [[TO CONFIRM: 15]] dagen (artikel 9.3), en kunnen wij het verschuldigde bedrag vorderen"
       ],
       "s9Title": "9. Opzegging en beëindiging",
       "s9_1Title": "9.1 Uw recht om op te zeggen",
@@ -3753,152 +3967,9 @@
         "Een telefoontje naar onze klantenservice"
       ],
       "s9_1p1": "U kunt op elk moment opzeggen. Er is geen minimumtermijn en geen opzegtermijn. De opzegging gaat in aan het einde van de factuurperiode die u al hebt betaald; tot dan blijft de bewaking actief.",
+      "s9_1p2": "Ons annulerings- en terugbetalingsbeleid legt de praktische stappen verder uit. Het beperkt uw rechten op grond van dit artikel 9 of de wet niet.",
       "s9_2Title": "9.2 Herroepingsrecht (14 dagen)",
       "s9_2p1": "Als consument hebt u het recht deze overeenkomst binnen 14 kalenderdagen zonder opgave van redenen en zonder boete te herroepen. Dit is een wettelijk recht op grond van de Spaanse en Europese regels voor verkoop op afstand (Real Decreto Legislativo 1/2007, artikelen 102 tot en met 108, ter uitvoering van Richtlijn 2011/83/EU).",
-      "s9_3Title": "9.3 Ons recht tot beëindiging",
-      "s9_3Intro": "Wij kunnen uw account opschorten of beëindigen als:",
-      "s9_3Items": [
-        "U deze voorwaarden schendt",
-        "Uw betaalmiddel herhaaldelijk faalt",
-        "U onjuiste gegevens verstrekt",
-        "U de dienst of de apparaten misbruikt",
-        "U onze medewerkers of AI-systemen bejegent op een onaanvaardbare manier",
-        "Voortzetting van de dienst een risico vormt voor u of voor anderen"
-      ],
-      "s9_3p1": "Wij kondigen dit met een redelijke termijn aan, behalve bij een ernstige schending.",
-      "s9_4Title": "9.4 Gevolgen van beëindiging",
-      "s9_4Intro": "Bij beëindiging:",
-      "s9_4Items": [
-        "Vervalt uw toegang tot de diensten",
-        "Stopt de bewaking van meldingen — een druk op de SOS-knop bereikt ons team dan niet meer",
-        "Houdt u de hanger, omdat u die hebt gekocht; er is niets terug te sturen",
-        "Bewaren wij uw gegevens zoals beschreven in ons privacybeleid"
-      ],
-      "s10Title": "10. Beperking van aansprakelijkheid",
-      "s10_1Title": "10.1 Voor zover wettelijk toegestaan",
-      "s10_1Warning": "WIJ ZIJN NIET AANSPRAKELIJK VOOR:",
-      "s10_1a": "(a) <strong>Overlijden of persoonlijk letsel</strong>, behalve wanneer dit direct het gevolg is van onze grove schuld of opzet",
-      "s10_1b": "(b) <strong>Indirecte schade, incidentele schade, bijzondere schade, gevolgschade of punitieve schadevergoeding</strong>, waaronder maar niet beperkt tot winstderving, verlies van gegevens, gebruiksderving, reputatieschade of andere immateriële schade",
-      "s10_1c": "(c) <strong>Schade die voortvloeit uit:</strong>",
-      "s10_1cItems": [
-        "Storingen in de techniek (netwerken, apparaten, software)",
-        "Vertraging in de reactie op meldingen",
-        "Handelen of nalaten van de hulpdiensten (112, politie, ambulance)",
-        "Onjuiste gegevens die u hebt verstrekt",
-        "Het niet opgeladen houden of niet dragen van het apparaat",
-        "Omstandigheden buiten onze redelijke macht (overmacht)",
-        "Handelen van derden, waaronder onze technologiepartners",
-        "Fouten of misverstanden van de AI-assistent"
-      ],
-      "s10_2Title": "10.2 Maximale aansprakelijkheid",
-      "s10_2Warning": "ONZE TOTALE AANSPRAKELIJKHEID JEGENS U VOOR VORDERINGEN DIE VOORTVLOEIEN UIT OF VERBAND HOUDEN MET DEZE VOORWAARDEN OF ONZE DIENSTEN BEDRAAGT NOOIT MEER DAN HET TOTAALBEDRAG DAT U ONS IN DE 12 MAANDEN VOORAFGAAND AAN DE VORDERING HEBT BETAALD.",
-      "s10_3Title": "10.3 Wezenlijk doel",
-      "s10_3Intro": "U erkent dat:",
-      "s10_3Items": [
-        "Onze dienst bedoeld is als aanvullende ondersteuning, niet als gegarandeerde bescherming",
-        "Geen enkel alarmeringssysteem veiligheid kan garanderen",
-        "Meerdere factoren buiten onze macht de uitkomst van een noodgeval beïnvloeden",
-        "De bovenstaande beperkingen een wezenlijk onderdeel van onze overeenkomst zijn en in onze prijzen zijn verwerkt"
-      ],
-      "s10_4Title": "10.4 Wettelijke rechten",
-      "s10_4Intro": "Niets in deze voorwaarden beperkt of sluit uit:",
-      "s10_4Items": [
-        "Aansprakelijkheid voor overlijden of persoonlijk letsel door grove schuld",
-        "Aansprakelijkheid voor fraude of bedrog",
-        "Aansprakelijkheid die naar Spaans recht niet kan worden beperkt of uitgesloten",
-        "Uw wettelijke rechten als consument"
-      ],
-      "s11Title": "11. Vrijwaring",
-      "s11p1": "U vrijwaart ICE Alarm España, haar bestuurders, directeuren, werknemers en partners van alle vorderingen, schade, verliezen, aansprakelijkheden, kosten en uitgaven (waaronder juridische kosten) die voortvloeien uit:",
-      "s11Items": [
-        "Uw schending van deze voorwaarden",
-        "Uw misbruik van de dienst of de apparaten",
-        "Onjuiste gegevens die u verstrekt",
-        "Uw overtreding van de wet of van rechten van derden",
-        "Vorderingen van uw contactpersonen of familieleden"
-      ],
-      "s12Title": "12. Intellectuele eigendom",
-      "s12p1": "Alle inhoud, software, merken en materialen op onze website en in onze apps blijven ons eigendom of dat van onze licentiegevers. Het is niet toegestaan om:",
-      "s12Items": [
-        "Onze materialen te kopiëren, te wijzigen of te verspreiden",
-        "Onze software te reverse-engineeren",
-        "Onze merken zonder toestemming te gebruiken",
-        "Gegevens uit onze systemen te scrapen of te verzamelen"
-      ],
-      "s13Title": "13. Privacy",
-      "s13p1": "Uw privacy is belangrijk voor ons. Lees ons <a href=\"/privacy\">privacybeleid</a>, waarin staat hoe wij uw persoonsgegevens verzamelen, gebruiken en beschermen.",
-      "s13p2": "Door onze diensten te gebruiken, stemt u in met:",
-      "s13Items": [
-        "De verwerking van uw persoonlijke en medische gegevens zoals beschreven in ons privacybeleid",
-        "Het opnemen van telefoongesprekken voor kwaliteit en opleiding",
-        "Het delen van uw gegevens met de hulpdiensten wanneer dat nodig is",
-        "Het ontvangen van berichten over uw dienst"
-      ],
-      "s14Title": "14. Communicatie",
-      "s14_1Title": "14.1 Van ons aan u",
-      "s14_1Intro": "U stemt ermee in berichten van ons te ontvangen via:",
-      "s14_1Items": [
-        "E-mail",
-        "Sms",
-        "Telefoongesprekken (ook van onze AI-assistent)",
-        "WhatsApp",
-        "Pushmeldingen (als u onze app gebruikt)",
-        "Post"
-      ],
-      "s14_2Title": "14.2 Communicatie bij noodgevallen",
-      "s14_2Intro": "U stemt ermee in dat wij contact mogen opnemen met:",
-      "s14_2Items": [
-        "U, op elk telefoonnummer dat u opgeeft",
-        "Uw contactpersonen wanneer een melding wordt gemaakt",
-        "De hulpdiensten, namens u"
-      ],
-      "s14_3Title": "14.3 Marketing",
-      "s14_3p1": "Wij versturen alleen marketingberichten met uw toestemming. U kunt zich op elk moment afmelden.",
-      "s15Title": "15. Wijzigingen in de dienst",
-      "s15p1": "Wij kunnen onderdelen van onze diensten op elk moment wijzigen, opschorten of beëindigen. Belangrijke wijzigingen kondigen wij met een redelijke termijn aan. Blijft u de dienst daarna gebruiken, dan geldt dat als aanvaarding.",
-      "s16Title": "16. Wijzigingen in de voorwaarden",
-      "s16Intro": "Wij kunnen deze voorwaarden van tijd tot tijd aanpassen. Wezenlijke wijzigingen laten wij u weten via:",
-      "s16Items": [
-        "E-mail",
-        "Een melding op onze website",
-        "Een melding in uw dashboard"
-      ],
-      "s16p1": "Bent u niet akkoord met de bijgewerkte voorwaarden, dan dient u het gebruik van onze diensten te staken en uw abonnement op te zeggen.",
-      "s17Title": "17. Geschillenbeslechting",
-      "s17_1Title": "17.1 Informele oplossing",
-      "s17_1p1": "Voordat u een formele procedure start, stemt u ermee in eerst contact met ons op te nemen via info@icealarm.es om het geschil informeel op te lossen.",
-      "s17_2Title": "17.2 Toepasselijk recht",
-      "s17_2p1": "Op deze voorwaarden is Spaans recht van toepassing.",
-      "s17_3Title": "17.3 Bevoegde rechter",
-      "s17_3p1": "Geschillen worden voorgelegd aan de rechter in Almería, Spanje, tenzij u consument bent; in dat geval kunt u de zaak ook aanhangig maken in uw woonplaats.",
-      "s17_4Title": "17.4 Consumentenrechten",
-      "s17_4p1": "Bent u consument in de EU, dan hebt u toegang tot het Europese platform voor onlinegeschillenbeslechting op:",
-      "s18Title": "18. Algemene bepalingen",
-      "s18_1Title": "18.1 Volledige overeenkomst",
-      "s18_1p1": "Deze voorwaarden vormen samen met ons privacybeleid de volledige overeenkomst tussen u en ICE Alarm España.",
-      "s18_2Title": "18.2 Deelbaarheid",
-      "s18_2p1": "Wordt een bepaling van deze voorwaarden niet-uitvoerbaar bevonden, dan blijven de overige bepalingen van kracht.",
-      "s18_3Title": "18.3 Geen afstand van recht",
-      "s18_3p1": "Wanneer wij een recht of bepaling niet handhaven, betekent dat niet dat wij afstand doen van dat recht.",
-      "s18_4Title": "18.4 Overdracht",
-      "s18_4p1": "U mag uw rechten uit deze voorwaarden niet overdragen. Wij mogen onze rechten overdragen aan een rechtsopvolger of aan een gelieerde onderneming.",
-      "s18_5Title": "18.5 Overmacht",
-      "s18_5p1": "Wij zijn niet aansprakelijk voor tekortkomingen door omstandigheden buiten onze redelijke macht, waaronder natuurrampen, oorlog, pandemieën, netwerkstoringen of overheidsmaatregelen.",
-      "s19Title": "19. Contact",
-      "s19Content": "<strong>ICE Alarm España</strong><br/><br/>Algemene vragen: info@icealarm.es<br/>Ondersteuning: support@icealarm.es<br/>Privacy: privacy@icealarm.es",
-      "s20Title": "20. Bevestiging",
-      "s20Warning": "DOOR ONZE DIENSTEN TE GEBRUIKEN, BEVESTIGT U DAT:",
-      "s20Items": [
-        "U deze voorwaarden hebt gelezen en begrepen",
-        "U begrijpt dat dit een aanvullende dienst is en geen garantie op veiligheid",
-        "U de hierboven beschreven beperkingen van de techniek begrijpt",
-        "U de hierboven beschreven beperkingen van aansprakelijkheid aanvaardt",
-        "U uw persoonlijke gegevens, medische gegevens en contactpersonen juist houdt",
-        "U uw GPS-apparaat goed onderhoudt en draagt",
-        "U bij levensgevaar altijd zelf 112 belt wanneer dat mogelijk is"
-      ],
-      "effectiveDate": "Deze servicevoorwaarden gelden vanaf de hierboven vermelde datum van laatste bijwerking.",
-      "tagline": "ICE Alarm España — Altijd verbonden, altijd veilig",
       "s9_2Items": [
         "<strong>Start van de termijn:</strong> hebt u een GPS-hanger besteld, dan op de dag waarop u — of iemand die u aanwijst — het apparaat fysiek in bezit krijgt. Hebt u zich geabonneerd zonder apparaat, dan op de dag waarop de overeenkomst is gesloten.",
         "<strong>Hoe u het uitoefent:</strong> laat het ons binnen de 14 dagen weten met een ondubbelzinnige verklaring — per e-mail naar info@icealarm.es, schriftelijk naar ons vestigingsadres, of met het modelformulier hieronder. U hoeft geen reden op te geven.",
@@ -3910,350 +3981,798 @@
       ],
       "s9_2FormTitle": "Modelformulier voor herroeping",
       "s9_2FormIntro": "U mag dit formulier gebruiken, maar dat is niet verplicht.",
-      "s9_2FormBody": "Aan ICE Alarm España, info@icealarm.es:<br/><br/>Hiermee deel ik/delen wij u mee dat ik/wij onze overeenkomst herroep(en) voor de levering van de volgende dienst en/of goederen: ______________________<br/><br/>Besteld op / ontvangen op: ______________________<br/>Naam consument(en): ______________________<br/>Adres consument(en): ______________________<br/>Handtekening consument(en) (alleen als dit formulier op papier wordt verzonden): ______________________<br/>Datum: ______________________"
+      "s9_2FormBody": "Aan ICE Alarm España, info@icealarm.es:<br/><br/>Hiermee deel ik/delen wij u mee dat ik/wij onze overeenkomst herroep(en) voor de levering van de volgende dienst en/of goederen: ______________________<br/><br/>Besteld op / ontvangen op: ______________________<br/>Naam consument(en): ______________________<br/>Adres consument(en): ______________________<br/>Handtekening consument(en) (alleen als dit formulier op papier wordt verzonden): ______________________<br/>Datum: ______________________",
+      "s9_3Title": "9.3 Wanneer wij de overeenkomst mogen beëindigen",
+      "s9_3Intro": "Wij kunnen de overeenkomst beëindigen, of een deel van de dienst opschorten, als:",
+      "s9_3Items": [
+        "U deze voorwaarden ernstig of herhaaldelijk schendt",
+        "Er na ons contact een bedrag onbetaald blijft (artikel 8.5)",
+        "De verstrekte gegevens willens en wetens onjuist zijn",
+        "De dienst of de hanger wordt misbruikt, bijvoorbeeld door herhaaldelijk opzettelijk zonder reden meldingen te doen",
+        "Onze medewerkers worden bedreigd, lastiggevallen of beledigd",
+        "Wij de dienst niet langer veilig kunnen leveren, bijvoorbeeld omdat het lid naar een plaats zonder bereik is verhuisd"
+      ],
+      "s9_3p1": "Omdat dit een veiligheidsdienst is, kondigen wij een beëindiging ten minste [[TO CONFIRM: 15]] dagen vooraf schriftelijk aan, zodat u een alternatief kunt regelen — tenzij er een ernstig risico is voor onze medewerkers of voor anderen. Beëindigen wij de overeenkomst om een reden die u niet valt toe te rekenen, dan betalen wij elk bedrag terug dat is betaald voor de periode na de beëindiging.",
+      "s9_4Title": "9.4 Gevolgen van beëindiging",
+      "s9_4Intro": "Bij beëindiging:",
+      "s9_4Items": [
+        "Vervalt uw toegang tot de diensten",
+        "Stopt de bewaking van meldingen — een druk op de SOS-knop bereikt ons team dan niet meer",
+        "Houdt u de hanger, omdat u die hebt gekocht; er is niets terug te sturen",
+        "Bewaren wij uw gegevens zoals beschreven in ons privacybeleid"
+      ],
+      "s9_5Title": "9.5 Overlijden van een lid of verhuizing naar een verpleeghuis",
+      "s9_5p1": "Als een lid overlijdt of blijvend naar een verpleeg- of verzorgingshuis verhuist, laat u ons dat dan weten. Wij beëindigen de dienst voor dat lid vanaf de datum die u ons doorgeeft en stoppen de toekomstige betalingen daarvoor. Een eventuele terugbetaling verloopt volgens ons annulerings- en terugbetalingsbeleid. Bij een Duo-abonnement kan de dienst voor het andere lid doorlopen als Single-abonnement.",
+      "s10Title": "10. Onze aansprakelijkheid",
+      "s10_1Title": "10.1 Onze toezegging",
+      "s10_1p1": "Wij leveren de dienst met redelijke zorg en deskundigheid, met getraind personeel en passende systemen. Wij zijn volgens de wet aansprakelijk voor schade die ontstaat doordat wij dat niet doen.",
+      "s10_2Title": "10.2 Waarvoor wij niet aansprakelijk zijn",
+      "s10_2Intro": "Wij zijn niet aansprakelijk voor schade voor zover die wordt veroorzaakt door:",
+      "s10_2Items": [
+        "Storingen in mobiele, telefoon-, internet-, elektriciteits- of satellietplaatsbepalingsnetwerken buiten onze invloed",
+        "Het handelen of nalaten van 112 en de hulpdiensten, die onafhankelijk van ons optreden",
+        "Verstrekte gegevens die onjuist of verouderd waren (artikel 6.3)",
+        "Het niet opladen, dragen of testen van de hanger zoals beschreven in artikel 7.2, of het knoeien ermee",
+        "Gebeurtenissen buiten onze redelijke invloed (artikel 18.5)"
+      ],
+      "s10_2p1": "Hebben wij ook bijgedragen aan de schade, dan blijven wij aansprakelijk voor ons deel.",
+      "s10_3Title": "10.3 Voorzienbare schade",
+      "s10_3p1": "Behalve bij opzet (dolo) zijn wij alleen aansprakelijk voor schade die bij het sluiten van de overeenkomst was voorzien of redelijkerwijs kon worden voorzien, overeenkomstig artikel 1107 van het Spaanse Burgerlijk Wetboek.",
+      "s10_4Title": "10.4 Uw wettelijke rechten",
+      "s10_4Intro": "Niets in deze voorwaarden beperkt of sluit uit:",
+      "s10_4Items": [
+        "Onze aansprakelijkheid voor overlijden of letselschade veroorzaakt door ons handelen of nalaten",
+        "Onze aansprakelijkheid bij opzet (dolo) of grove nalatigheid",
+        "Onze aansprakelijkheid voor gebrekkige producten op grond van Koninklijk Wetgevend Besluit 1/2007",
+        "Uw rechten op grond van de wettelijke conformiteitsgarantie",
+        "Elke andere aansprakelijkheid, of elk van uw rechten als consument, die naar Spaans recht niet kan worden beperkt of uitgesloten"
+      ],
+      "s11Title": "11. Uw aansprakelijkheid",
+      "s11p1": "U bent volgens de wet aansprakelijk voor schade die u ons of derden toebrengt door:",
+      "s11Items": [
+        "Deze voorwaarden ernstig te schenden",
+        "De dienst of de hanger opzettelijk te misbruiken",
+        "Ons willens en wetens onjuiste gegevens te verstrekken"
+      ],
+      "s12Title": "12. Intellectuele eigendom",
+      "s12p1": "Alle inhoud, software, merken en materialen op onze website, in onze ledenomgeving en in de software van de hanger zijn van ons of van onze licentiegevers. U mag ze alleen gebruiken om de dienst te ontvangen. Het is niet toegestaan:",
+      "s12Items": [
+        "Onze materialen te kopiëren, te wijzigen of te verspreiden",
+        "Onze software te decompileren of na te bouwen, behalve voor zover de wet dat toestaat",
+        "Onze merken zonder toestemming te gebruiken",
+        "Gegevens geautomatiseerd uit onze systemen te halen"
+      ],
+      "s13Title": "13. Privacy",
+      "s13p1": "Hoe wij persoonsgegevens verzamelen, gebruiken en beschermen — waaronder de gezondheids- en locatiegegevens van het lid en opnamen van gesprekken met ons meldkamerteam — leest u in ons <a href=\"/privacy\">privacybeleid</a>.",
+      "s13p2": "Om de dienst te kunnen leveren, moeten wij in het bijzonder:",
+      "s13Items": [
+        "Relevante informatie over het lid tijdens een melding aan de hulpdiensten doorgeven",
+        "De noodcontacten en sleutelhouders van het lid de informatie geven die zij nodig hebben om te helpen",
+        "Een registratie bijhouden van meldingen en van onze opvolging"
+      ],
+      "s13p3": "Het aanvaarden van deze voorwaarden is geen toestemming voor enige verwerking van persoonsgegevens. Waar de wet toestemming vereist, vragen wij die apart, en u kunt die op elk moment intrekken.",
+      "s14Title": "14. Communicatie",
+      "s14_1Title": "14.1 Communicatie over uw dienst",
+      "s14_1Intro": "Wij nemen over uw dienst contact met u op via de contactgegevens die u ons geeft, per:",
+      "s14_1Items": [
+        "E-mail",
+        "Sms",
+        "Telefoon",
+        "WhatsApp, als u daarmee hebt ingestemd",
+        "Post"
+      ],
+      "s14_1p1": "Sommige berichten of gesprekken kunnen worden afgehandeld door Isabella, onze AI-assistent. Zij vertelt u altijd dat zij een AI is.",
+      "s14_2Title": "14.2 Communicatie bij noodsituaties",
+      "s14_2Intro": "Tijdens een melding kunnen wij contact opnemen met:",
+      "s14_2Items": [
+        "Het lid, op elk telefoonnummer dat ons is opgegeven en via de hanger",
+        "De noodcontacten en sleutelhouders van het lid",
+        "De hulpdiensten, namens het lid"
+      ],
+      "s14_3Title": "14.3 Marketing",
+      "s14_3p1": "Wij sturen u alleen marketingberichten met uw toestemming of wanneer de wet dat anderszins toestaat. U kunt zich op elk moment kosteloos afmelden via de link in elk bericht of door contact met ons op te nemen.",
+      "s15Title": "15. Wijzigingen in de dienst",
+      "s15p1": "Wij kunnen de dienst verbeteren, de software van de hanger bijwerken of van technische leveranciers wisselen, zolang de wezenlijke kenmerken van de dienst die u hebt afgenomen niet worden verminderd.",
+      "s15p2": "Moeten wij een wijziging doorvoeren die de dienst wezenlijk raakt, dan laten wij u dat ten minste 30 dagen vooraf per e-mail weten, met uitleg over de wijziging. U kunt kosteloos opzeggen voordat de wijziging ingaat.",
+      "s16Title": "16. Wijzigingen in deze voorwaarden",
+      "s16Intro": "Wij kunnen deze voorwaarden om geldige redenen bijwerken, bijvoorbeeld bij wetswijzigingen of veranderingen in onze diensten of werkwijze. Wezenlijke wijzigingen melden wij ten minste 30 dagen voordat ze ingaan via:",
+      "s16Items": [
+        "E-mail",
+        "Een bericht in uw ledenomgeving",
+        "Een bericht op onze website"
+      ],
+      "s16p1": "Gaat u niet akkoord met de wijzigingen, dan kunt u kosteloos opzeggen voordat ze ingaan. Wijzigingen die de wet voorschrijft of die alleen in uw voordeel zijn, kunnen eerder ingaan.",
+      "s16p2": "Elke versie van deze voorwaarden heeft een versienummer en een datum. U kunt ons om een kopie vragen van de versie die u hebt aanvaard.",
+      "s17Title": "17. Klachten en geschillen",
+      "s17_1Title": "17.1 Klachten bij ons",
+      "s17_1p1": "Bent u niet tevreden over onze dienst, laat het ons weten zodat wij het kunnen oplossen. U kunt een klacht indienen:",
+      "s17_1Items": [
+        "Per e-mail aan info@icealarm.es",
+        "Telefonisch via [[TO CONFIRM: customer service telephone number]]",
+        "Per post aan onze statutaire zetel (artikel 2)"
+      ],
+      "s17_1p2": "Wij bevestigen de ontvangst van uw klacht, geven u een referentienummer en antwoorden zo snel mogelijk, en in elk geval binnen [[TO CONFIRM: 15 working days]]. Klachten worden altijd door een mens behandeld.",
+      "s17_2Title": "17.2 Officiële klachtformulieren",
+      "s17_2p1": "Officiële klachtformulieren (hojas de quejas y reclamaciones) zijn op verzoek voor u beschikbaar [[TO CONFIRM: how the official forms are provided for an online business in the relevant autonomous community]]. U kunt zich ook wenden tot het gemeentelijke consumentenloket (OMIC) of tot de consumentenautoriteit van uw autonome regio.",
+      "s17_3Title": "17.3 Alternatieve geschilbeslechting",
+      "s17_3p1": "[[TO CONFIRM: whether ICE Alarm España S.L. is adhered to the Spanish Consumer Arbitration System (Sistema Arbitral de Consumo) or any other accredited ADR entity, and its details]]. Wijzen wij uw klacht af, dan vertellen wij u tot welke instanties voor alternatieve geschilbeslechting u zich kunt wenden.",
+      "s17_3p2": "Het platform voor onlinegeschillenbeslechting (ODR-platform) van de Europese Commissie is op 20 juli 2025 gesloten op grond van Verordening (EU) 2024/3228; daarom verwijzen wij er niet meer naar. Woont u in een ander EU-land, dan kan het netwerk van Europese Consumentencentra u gratis adviseren.",
+      "s17_4Title": "17.4 Toepasselijk recht",
+      "s17_4p1": "Op deze voorwaarden is Spaans recht van toepassing. Bent u een consument met uw gewone verblijfplaats in een ander EU-land, dan behoudt u daarnaast de bescherming van de dwingende consumentenregels van dat land.",
+      "s17_5Title": "17.5 Bevoegde rechter",
+      "s17_5p1": "Bent u consument, dan kan elk geschil worden voorgelegd aan de rechter van uw woonplaats. Voordat een zaak aan de rechter wordt voorgelegd, verlangt het Spaanse recht in het algemeen dat partijen eerst een passende vorm van geschiloplossing proberen; een klacht bij ons volgens artikel 17.1 kan daarbij helpen. Bent u geen consument, dan worden geschillen voorgelegd aan de rechter van [[TO CONFIRM: city of registered office]].",
+      "s18Title": "18. Algemene bepalingen",
+      "s18_1Title": "18.1 De volledige overeenkomst",
+      "s18_1p1": "De overeenkomst bestaat uit deze voorwaarden, uw besteloverzicht en de orderbevestiging die wij u sturen. Ons privacybeleid legt uit hoe wij met persoonsgegevens omgaan.",
+      "s18_2Title": "18.2 Ongeldige bepalingen",
+      "s18_2p1": "Wordt een bepaling van deze voorwaarden ongeldig of oneerlijk bevonden, dan wordt die als niet geschreven beschouwd en blijft de rest van de overeenkomst van kracht, voor zover de wet dat toestaat.",
+      "s18_3Title": "18.3 Geen afstand van recht",
+      "s18_3p1": "Als wij een recht niet direct uitoefenen, verliezen wij dat recht niet.",
+      "s18_4Title": "18.4 Overdracht van de overeenkomst",
+      "s18_4p1": "U mag de overeenkomst niet zonder onze toestemming aan een ander overdragen. Wij mogen haar overdragen aan een andere onderneming die de dienst voortzet, mits uw rechten niet worden verminderd; wij laten u dat vooraf weten en u kunt kosteloos opzeggen als u het er niet mee eens bent.",
+      "s18_5Title": "18.5 Overmacht",
+      "s18_5p1": "Wij zijn niet aansprakelijk voor storingen of vertragingen door gebeurtenissen buiten onze redelijke invloed, zoals natuurrampen, extreem weer, grootschalige netwerk- of stroomstoringen, pandemieën of overheidsmaatregelen. Wij laten u dat zo snel mogelijk weten, nemen redelijke maatregelen om de gevolgen te beperken en de dienst te herstellen, en u betaalt niet voor een periode waarin wij de dienst helemaal niet konden leveren. Duurt de situatie langer dan 30 dagen, dan kunt u de overeenkomst kosteloos beëindigen.",
+      "s18_6Title": "18.6 Taal",
+      "s18_6p1": "De overeenkomst is beschikbaar in het Spaans en het Engels, en u kunt een van beide kiezen. Wijken de twee versies van elkaar af, dan gaat de Spaanse versie voor, tenzij de andere versie gunstiger voor u is. Vertalingen in andere talen, waaronder deze Nederlandse, zijn uitsluitend ter informatie.",
+      "s18_7Title": "18.7 Bewaren van de overeenkomst",
+      "s18_7p1": "Wij bewaren een kopie van uw overeenkomst en van de versie van deze voorwaarden die u hebt aanvaard, en sturen u op verzoek een kopie. Bij de bevestiging van uw bestelling sturen wij ze u ook per e-mail.",
+      "s18_8Title": "18.8 Toegankelijkheid",
+      "s18_8p1": "Hebt u deze voorwaarden nodig in een andere vorm, zoals grote letters, of wilt u ze telefonisch met ons doornemen, neem dan contact met ons op.",
+      "s19Title": "19. Contact",
+      "s19Content": "<strong>ICE Alarm España S.L.</strong><br/>Statutaire zetel: [[TO CONFIRM: registered office address]]<br/>Telefoon: [[TO CONFIRM: customer service telephone number]]<br/><br/>Algemene vragen: info@icealarm.es<br/>Ondersteuning: support@icealarm.es<br/>Privacy: privacy@icealarm.es",
+      "s20Title": "20. Belangrijke punten om te onthouden",
+      "s20Warning": "Deze samenvatting vervangt de volledige voorwaarden hierboven niet:",
+      "s20Items": [
+        "Bel bij een levensbedreigend noodgeval zelf 112 als u daartoe in staat bent",
+        "De dienst ondersteunt het lid, maar kan zijn of haar veiligheid niet garanderen",
+        "Houd de hanger opgeladen, draag hem en test hem regelmatig",
+        "Houd de gegevens en noodcontacten van het lid actueel",
+        "U kunt binnen 14 dagen herroepen en op elk moment opzeggen, zonder opzegtermijn",
+        "Gaat er iets mis, laat het ons weten — wij doen ons best het op te lossen"
+      ],
+      "effectiveDate": "Deze versie geldt voor overeenkomsten die vanaf de publicatiedatum worden gesloten, en voor bestaande leden vanaf de datum die hun volgens artikel 16 is meegedeeld."
     },
     "privacy": {
       "title": "Privacybeleid",
       "company": "ICE Alarm España — Verbonden zorg. Menselijke aandacht.",
-      "lastUpdated": "Laatst bijgewerkt: juni 2026",
-      "s1Title": "1. Wie wij zijn",
-      "s1p1": "<strong>ICE Alarm España</strong> (\"wij\", \"ons\", \"onze\") verzorgt de persoonlijke alarmeringsdienst die beschikbaar is via icealarm.es.",
-      "s1p2": "<strong>Verwerkingsverantwoordelijke:</strong><br/>ICE Alarm España<br/>E-mail: info@icealarm.es",
-      "s1p3": "Met vragen over privacy kunt u terecht bij: privacy@icealarm.es",
-      "s2Title": "2. Waar dit beleid over gaat",
-      "s2Intro": "Dit privacybeleid legt uit:",
+      "lastUpdated": "Laatst bijgewerkt: 17 september 2026 · Versie 2.0 · Concept, in afwachting van juridische toetsing",
+      "summaryTitle": "In het kort",
+      "summaryItems": [
+        "ICE Alarm España S.L. is verantwoordelijk voor uw persoonsgegevens. Mail naar privacy@icealarm.es met vragen over dit beleid.",
+        "Wij gebruiken uw gegevens om uw alarmdienst te leveren: om te weten wie u bent en waar u bent als u hulp nodig heeft, en om de juiste mensen te bellen.",
+        "Wij bewaren uw gezondheidsgegevens alleen met uw uitdrukkelijke toestemming, die u altijd kunt intrekken. Uw alarm blijft dan gewoon werken.",
+        "Isabella is een AI-assistent, geen mens. Zij geeft nooit medisch advies en beslist nooit wat er bij een noodgeval gebeurt — dat doet altijd een menselijke medewerker.",
+        "Wij verkopen uw gegevens niet en gebruiken ze niet voor reclame.",
+        "U kunt uw gegevens inzien, laten corrigeren, downloaden of laten verwijderen, en u kunt een klacht indienen bij de Spaanse toezichthouder (AEPD)."
+      ],
+      "s1Title": "1. Wie is verantwoordelijk voor uw gegevens",
+      "s1p1": "Verwerkingsverantwoordelijke is <strong>ICE Alarm España S.L.</strong> (CIF B24731531), statutair gevestigd te [[TO CONFIRM: adres statutaire zetel]], die de persoonlijke alarmdienst op icealarm.es levert (\"ICE Alarm España\", \"wij\", \"ons\").",
+      "s1p2": "<strong>Functionaris voor gegevensbescherming (FG):</strong> [[TO CONFIRM: naam of organisatie van de functionaris voor gegevensbescherming en contactadres]]. U bereikt onze FG via privacy@icealarm.es.",
+      "s1p3": "Voor vragen over uw persoonsgegevens mailt u naar privacy@icealarm.es. Algemene vragen: info@icealarm.es.",
+      "s2Title": "2. Op wie dit beleid van toepassing is",
+      "s2Intro": "Dit beleid geldt voor:",
       "s2Items": [
-        "Welke persoonsgegevens wij verzamelen",
-        "Waarom wij die verzamelen",
-        "Hoe wij die gebruiken",
-        "Met wie wij die delen",
-        "Welke rechten u hebt op grond van de Algemene verordening gegevensbescherming (AVG) en de Spaanse organieke wet 3/2018 (LOPD-GDD)"
+        "<strong>Leden</strong> — de mensen die een alarm dragen en door ons worden bewaakt, inclusief beide personen bij een lidmaatschap voor stellen.",
+        "<strong>Mensen die een lidmaatschap voor een ander regelen of betalen</strong>.",
+        "<strong>Noodcontacten, sleutelhouders en andere personen over wie een lid ons informeert</strong> (bijvoorbeeld een huisarts of thuiszorgorganisatie).",
+        "<strong>Familieleden of mantelzorgers</strong> die een lid toestemming heeft gegeven om een deel van zijn of haar gegevens te zien.",
+        "<strong>Bezoekers van onze website</strong>, mensen die contact met ons opnemen of met Isabella chatten, en mensen die zich beginnen aan te melden zonder dit af te ronden."
       ],
-      "s3Title": "3. Gegevens die wij verzamelen",
-      "s3_1Title": "3.1 Gegevens die u zelf verstrekt",
-      "s3AccountLabel": "Accountgegevens:",
-      "s3AccountItems": [
-        "Volledige naam",
-        "E-mailadres",
-        "Telefoonnummer",
-        "Woonadres",
-        "Geboortedatum",
-        "Voorkeurstaal"
+      "s2p1": "Partners die leden naar ons doorverwijzen en onze medewerkers ontvangen aparte privacy-informatie bij hun overeenkomst of contract.",
+      "s3Title": "3. Welke gegevens wij verwerken",
+      "s3Intro": "Wij verzamelen alleen wat nodig is om de dienst te leveren. Het meeste ontvangen wij van u; sommige gegevens komen van uw alarmapparaat, van de mensen die u helpen of uit onze eigen registratie van gesprekken en meldingen.",
+      "s3TableHeaders": [
+        "Categorie",
+        "Wat het omvat",
+        "Herkomst"
       ],
-      "s3HealthLabel": "Gezondheids- en medische gegevens (bijzondere categorie persoonsgegevens):",
-      "s3HealthItems": [
-        "Medische aandoeningen",
-        "Huidige medicatie",
-        "Allergieën",
-        "Bloedgroep",
-        "Naam en contactgegevens van uw arts",
-        "Voorkeursziekenhuis",
-        "Beperkingen in mobiliteit of bijzondere behoeften"
+      "s3TableRows": [
+        [
+          "Identiteits- en contactgegevens",
+          "Naam, aanhef, roepnaam, geboortedatum, geslacht, nationaliteit, burgerlijke staat, e-mailadres, telefoonnummers, voorkeurstaal, hoe en wanneer u het liefst benaderd wordt, en een foto als u die toevoegt.",
+          "U, of de persoon die het lidmaatschap voor u regelt."
+        ],
+        [
+          "Identiteitsbewijzen en officiële nummers",
+          "NIE/DNI- of paspoortnummer en — alleen als u die aan ons geeft — uw socialezekerheidsnummer en het nummer van uw zorgpas (TSI).",
+          "U, of ons vorige klantensysteem als u al klant was."
+        ],
+        [
+          "Adres en woonlocatie",
+          "Uw adres of adressen, gebouwgegevens (urbanización, blok, trappenhuis), de positie van uw voordeur op de kaart en de data waarop u ons laat weten dat u afwezig bent.",
+          "U, of onze medewerkers op uw aanwijzing. De kaartpositie wordt door u of door onze medewerkers bevestigd."
+        ],
+        [
+          "Toegang tot uw woning",
+          "Waar uw sleutelkluis hangt en de code ervan, poortcodes, toegangsnotities en gegevens van sleutelhouders.",
+          "U."
+        ],
+        [
+          "Gezondheids- en zorggegevens (bijzondere persoonsgegevens)",
+          "Aandoeningen, medicatie en waar die bewaard wordt, allergieën, bloedgroep, mobiliteit, gehoor en zicht, uw huisarts en gezondheidscentrum, voorkeursziekenhuis, particuliere zorgverzekeraar en polisnummer, thuiszorgorganisatie en bezoekschema, dagcentrum, medische hulpmiddelen, waar uw wilsverklaring ligt, en eventuele wensen rond het levenseinde of uw uitvaartverzekering die u met ons wilt delen.",
+          "U, na de aanmelding, via uw account, een beveiligde updatelink of telefonisch met onze medewerkers. Alleen met uw uitdrukkelijke toestemming (paragraaf 5)."
+        ],
+        [
+          "Gegevens van het alarmapparaat en locatiegegevens",
+          "Apparaatkenmerken (IMEI, serienummer, simkaartnummer), batterijniveau, online/offline-status, regelmatige statusmeldingen en de laatst doorgegeven GPS-positie en het adres van het apparaat.",
+          "Uw alarmapparaat, automatisch, zolang het aan staat."
+        ],
+        [
+          "Meldingen en incidenten",
+          "Elke melding (SOS-knop, val, apparaat offline en dergelijke): tijdstip, positie en adres op dat moment, wat onze medewerkers hebben gedaan, notities, of 112 is gebeld en wie is ingelicht.",
+          "Uw apparaat en onze medewerkers."
+        ],
+        [
+          "Gesprekken en berichten",
+          "Opnamen van noodoproepen (vanaf het begin opgenomen), opnamen van andere gesprekken als wij dat aan het begin melden, automatische uitschriften van gesproken antwoorden, en de inhoud van sms-, WhatsApp-, e-mail- en accountberichten met ons.",
+          "U, onze medewerkers en onze telefonieprovider."
+        ],
+        [
+          "Gesprekken met Isabella",
+          "Wat u aan Isabella schrijft of zegt en haar antwoorden, plus de notities die zij tijdens een melding voor onze medewerkers maakt.",
+          "U en Isabella (paragraaf 6)."
+        ],
+        [
+          "Gegevens van anderen die u ons geeft",
+          "Noodcontacten en sleutelhouders: naam, relatie, telefoon, e-mail, taal, beschikbaarheid en of zij naar u toe kunnen komen. De betaler, als u dat niet zelf bent.",
+          "Het lid of de persoon die het lidmaatschap regelt."
+        ],
+        [
+          "Betaling en facturering",
+          "Abonnement, betaalfrequentie, facturen, betaalstatus en betaalreferenties. Kaart- en bankgegevens worden door onze betaalproviders verwerkt; wij slaan uw volledige kaartnummer niet op.",
+          "U en onze betaalproviders."
+        ],
+        [
+          "Doorverwijzingsgegevens",
+          "De partnercode of -link waarmee u bij ons kwam en campagneparameters (UTM).",
+          "De link waarmee u onze website bezocht."
+        ],
+        [
+          "Account, voorkeuren en beveiliging",
+          "Inloggegevens (uw wachtwoord wordt alleen versleuteld als hash opgeslagen), of u ons toestemming geeft om u berichten per sms, WhatsApp of e-mail te sturen, en registratie van wijzigingen in uw dossier.",
+          "U en onze systemen."
+        ],
+        [
+          "Website- en technische gegevens",
+          "Bezochte pagina's, type browser en apparaat, globale locatie (stad of land), verwijzende pagina en foutrapporten van onze website.",
+          "Uw browser — zie paragraaf 13."
+        ]
       ],
-      "s3EmergencyLabel": "Contactpersonen voor noodgevallen:",
-      "s3EmergencyItems": [
-        "Namen, telefoonnummers en e-mailadressen van de personen die u aanwijst",
-        "Hun relatie tot u",
-        "Taalvoorkeuren"
-      ],
-      "s3PaymentLabel": "Betaalgegevens:",
-      "s3PaymentItems": [
-        "Factuuradres",
-        "Gegevens van uw betaalkaart (veilig verwerkt door Stripe, Inc.)"
-      ],
-      "s3_2Title": "3.2 Gegevens die automatisch worden verzameld",
-      "s3DeviceLabel": "Apparaatgegevens:",
-      "s3DeviceItems": [
-        "Het unieke nummer van uw GPS-hanger (IMEI)",
-        "Batterijstatus",
-        "Online- of offlinestatus",
-        "Locatiegegevens wanneer een melding wordt gemaakt"
-      ],
-      "s3UsageLabel": "Gebruiksgegevens:",
-      "s3UsageItems": [
-        "Bezochte pagina's op onze website",
-        "Tijdstip en datum van bezoek",
-        "Browsertype en apparaatgegevens"
-      ],
-      "s3CommsLabel": "Communicatiegegevens:",
-      "s3CommsItems": [
-        "Opnamen van telefoongesprekken (met uw toestemming)",
-        "Logboeken van sms- en WhatsApp-berichten",
-        "Chatgesprekken met onze AI-assistent"
-      ],
-      "s3_3Title": "3.3 Gegevens van derden",
-      "s3_3p1": "<strong>Partner voor apparaatbewaking (MonitorLinq B.V.):</strong> wij ontvangen realtime statusgegevens van uw GPS-hanger, waaronder locatie, batterijniveau, SOS-meldingen en valdetectie, via onze technologiepartner MonitorLinq B.V. (Nederland).",
-      "s4Title": "4. Waarom wij uw gegevens verzamelen (rechtsgrond)",
+      "s4Title": "4. Waarom wij uw gegevens gebruiken en onze rechtsgrond",
+      "s4Intro": "De wet staat het gebruik van persoonsgegevens alleen toe met een rechtsgrond (artikel 6 AVG) en, voor gezondheidsgegevens, een aanvullende uitzonderingsgrond (artikel 9 AVG). Hierop baseren wij ons:",
       "s4TableHeaders": [
         "Doel",
-        "Rechtsgrond (artikel 6 AVG)"
+        "Rechtsgrond"
       ],
       "s4TableRows": [
         [
-          "Het leveren van alarmeringsdiensten",
-          "Uitvoering van de overeenkomst"
+          "Uw lidmaatschap opzetten en uitvoeren: account, apparaat, bewaking, ondersteuning en welzijnsgesprekken",
+          "Uitvoering van onze overeenkomst met u (art. 6 lid 1 sub b AVG)"
         ],
         [
-          "Het verwerken van uw abonnementsbetalingen",
-          "Uitvoering van de overeenkomst"
+          "Reageren op een melding: u identificeren en lokaliseren, u, uw contacten, sleutelhouders en 112 bellen",
+          "Uitvoering van de overeenkomst (art. 6 lid 1 sub b) en bescherming van uw vitale belangen (art. 6 lid 1 sub d)"
         ],
         [
-          "Contact met u opnemen over uw account",
-          "Uitvoering van de overeenkomst"
+          "Uw gezondheidsgegevens bewaren en verstrekken aan medewerkers en hulpdiensten",
+          "Uw uitdrukkelijke toestemming (art. 9 lid 2 sub a); in een noodgeval waarin u geen toestemming kunt geven, bescherming van uw vitale belangen (art. 9 lid 2 sub c)"
         ],
         [
-          "Reageren op SOS-meldingen en noodgevallen",
-          "Gerechtvaardigd belang (bescherming van vitale belangen)"
+          "Noodoproepen opnemen en meldingen registreren",
+          "Ons gerechtvaardigd belang bij een nauwkeurig verslag van elk noodgeval, het evalueren en verbeteren van onze hulp en de bescherming van u en onze medewerkers (art. 6 lid 1 sub f); voor gezondheidsgegevens daarin dezelfde uitzonderingsgronden als hierboven"
         ],
         [
-          "Het bewaren van medische gegevens voor noodgevallen",
-          "Uitdrukkelijke toestemming (artikel 9)"
+          "Isabella, onze AI-assistent",
+          "Voor leden de uitvoering van de overeenkomst (art. 6 lid 1 sub b); voor bezoekers precontractuele stappen op uw verzoek (art. 6 lid 1 sub b) en ons gerechtvaardigd belang bij het beantwoorden van vragen (art. 6 lid 1 sub f)"
         ],
         [
-          "Het opnemen van gesprekken voor kwaliteit en opleiding",
-          "Gerechtvaardigd belang + toestemming"
+          "Gegevens van uw noodcontacten en sleutelhouders gebruiken",
+          "Ons en uw gerechtvaardigd belang om iemand te kunnen bereiken die u kan helpen (art. 6 lid 1 sub f); in een noodgeval vitale belangen (art. 6 lid 1 sub d)"
         ],
         [
-          "Het verbeteren van onze diensten",
-          "Gerechtvaardigd belang"
+          "Een familielid of mantelzorger uw gegevens laten inzien",
+          "Uw uitdrukkelijke toestemming per categorie die u kiest (art. 6 lid 1 sub a en art. 9 lid 2 sub a)"
         ],
         [
-          "Het naleven van wettelijke verplichtingen",
-          "Wettelijke verplichting"
+          "Serviceberichten per sms, WhatsApp of e-mail",
+          "Uw toestemming, die u in uw account kunt uitzetten (art. 6 lid 1 sub a). Noodoproepen zijn hier niet van afhankelijk."
         ],
         [
-          "Het versturen van service-updates",
-          "Uitvoering van de overeenkomst"
+          "Facturering en boekhouding",
+          "Uitvoering van de overeenkomst (art. 6 lid 1 sub b) en onze wettelijke fiscale en handelsrechtelijke verplichtingen (art. 6 lid 1 sub c)"
         ],
         [
-          "Het versturen van marketingberichten",
-          "Toestemming (alleen na aanmelding)"
+          "Commissie betalen aan de partner die u heeft doorverwezen",
+          "Ons gerechtvaardigd belang bij het uitvoeren van ons partnerprogramma (art. 6 lid 1 sub f)"
+        ],
+        [
+          "Beveiliging, foutbewaking, auditregistratie en het voorkomen van misbruik",
+          "Ons gerechtvaardigd belang bij een veilige en werkende dienst (art. 6 lid 1 sub f)"
+        ],
+        [
+          "Rechtsvorderingen instellen of verdedigen",
+          "Ons gerechtvaardigd belang (art. 6 lid 1 sub f); voor gezondheidsgegevens art. 9 lid 2 sub f"
+        ],
+        [
+          "Websitestatistieken en niet-noodzakelijke cookies",
+          "Uw toestemming via onze cookie-instellingen (art. 6 lid 1 sub a AVG en art. 22.2 LSSI-CE)"
+        ],
+        [
+          "Marketingberichten",
+          "Alleen met uw voorafgaande toestemming (art. 6 lid 1 sub a), die u altijd kunt intrekken"
         ]
       ],
-      "s4SpecialCategory": "<strong>Bijzondere categorie persoonsgegevens (gezondheidsgegevens):</strong> wij verwerken uw medische gegevens UITSLUITEND omdat u ons daarvoor bij de registratie uitdrukkelijk toestemming hebt gegeven, EN omdat deze gegevens van vitaal belang kunnen zijn om uw leven bij een noodgeval te beschermen (artikel 9, lid 2, onder a en c, AVG).",
-      "s5Title": "5. Hoe wij uw gegevens gebruiken",
-      "s5_1Title": "5.1 Hulp bij noodgevallen",
-      "s5_1Intro": "Wanneer uw hanger een noodsituatie vaststelt (SOS-knop, valdetectie, apparaat offline), doen wij het volgende:",
-      "s5_1Items": [
-        "Wij ontvangen de melding van onze bewakingspartner",
-        "Wij openen uw profiel om u te identificeren",
-        "Wij bekijken uw medische gegevens en uw contactpersonen",
-        "Wij bellen u om de situatie te beoordelen",
-        "Wij schakelen indien nodig de hulpdiensten in (112)",
-        "Wij waarschuwen de door u aangewezen contactpersonen"
+      "s4p1": "Waar wij ons op gerechtvaardigd belang baseren, kunt u altijd bezwaar maken (paragraaf 11). Waar de wet ons verplicht u te informeren of gegevens te bewaren, doen wij dat op grond van die wettelijke verplichting.",
+      "s5Title": "5. Uw gezondheidsgegevens en uw uitdrukkelijke toestemming",
+      "s5p1": "Gezondheidsgegevens zijn bijzondere persoonsgegevens. Wij bewaren ze alleen omdat u ons daarvoor <strong>uitdrukkelijke toestemming</strong> geeft, los van het accepteren van onze voorwaarden. U geeft die met een apart vinkje bij de aanmelding, en wij vragen pas na de aanmelding naar uw gezondheidsgegevens.",
+      "s5Intro": "Met uw toestemming gebruiken wij uw gezondheidsgegevens uitsluitend om:",
+      "s5Items": [
+        "ze aan onze medewerkers te tonen wanneer u een melding heeft of ons belt, zodat zij uw situatie begrijpen;",
+        "het relevante deel te verstrekken aan 112, ambulancepersoneel of ziekenhuismedewerkers die u helpen;",
+        "ze te delen met een familielid of mantelzorger, alleen als u die persoon toestemming heeft gegeven uw medische gegevens te zien."
       ],
-      "s5_2Title": "5.2 AI-ondersteunde diensten",
-      "s5_2Intro": "Onze AI-assistent \"Isabella\" kan:",
-      "s5_2Items": [
-        "Uw telefoongesprekken aannemen",
-        "Reageren op chatberichten",
-        "Vriendelijke controlegesprekken voeren",
-        "Een eerste beoordeling van een noodmelding doen"
+      "s5p2": "Wij gebruiken uw gezondheidsgegevens nooit voor marketing, verkopen ze nooit en gebruiken ze nooit voor beslissingen over uw overeenkomst of prijs.",
+      "s5p3": "<strong>Toestemming intrekken.</strong> U kunt uw toestemming altijd intrekken door te mailen naar privacy@icealarm.es of ons te bellen. Wij verwijderen dan uw gezondheidsgegevens. Uw alarm blijft werken en onze medewerkers nemen nog steeds op, maar zij kennen dan uw medische achtergrond niet, waardoor hun hulp minder goed geïnformeerd kan zijn. Intrekking heeft geen gevolgen voor wat wij daarvoor hebben gedaan.",
+      "s5p4": "<strong>In een noodgeval.</strong> Als u lichamelijk of juridisch niet in staat bent toestemming te geven en uw leven of gezondheid in gevaar is, kunnen wij de gegevens die wij hebben aan hulpdiensten verstrekken om uw vitale belangen te beschermen.",
+      "s5p5": "<strong>Als u zelf geen toestemming kunt geven.</strong> Ieder lid moet zelf toestemming geven — bij een lidmaatschap voor stellen geeft ieder zijn eigen toestemming. Op dit moment kan een familielid of vertegenwoordiger via onze website geen toestemming namens een lid geven. Is dit op u van toepassing, neem dan contact met ons op om de mogelijkheden te bespreken. [[TO CONFIRM: standpunt over wettelijke vertegenwoordigers, in afwachting van juridisch advies]]",
+      "s6Title": "6. Isabella, onze AI-assistent, en geautomatiseerde besluiten",
+      "s6p1": "Isabella is een assistent op basis van kunstmatige intelligentie. Zij is <strong>geen mens</strong>, en dat zegt zij ook. Zij kan vragen beantwoorden in de chat op onze website, in uw account en bij sommige telefoongesprekken, u helpen met uw account en notities maken voor onze medewerkers.",
+      "s6Intro": "Isabella doet nooit het volgende:",
+      "s6Items": [
+        "medisch advies of een diagnose geven;",
+        "beslissen of een melding echt is, hoe ernstig die is, of een noodgeval afsluiten — elke SOS gaat naar een menselijke medewerker;",
+        "een gezondheidsmeting verzinnen of wijzigen;",
+        "meer van uw gegevens zien dan uw eigen account toestaat."
       ],
-      "s5_2p1": "Wanneer u met Isabella spreekt, wordt uw gesprek met kunstmatige intelligentie verwerkt. Menselijke operators kunnen op elk moment overnemen en behandelen echte noodgevallen altijd zelf.",
-      "s5_3Title": "5.3 Beheer van de dienst",
-      "s5_3Items": [
-        "Het verwerken van maandelijkse abonnementsbetalingen",
-        "Het versturen van berichten over de dienst",
-        "Het leveren van klantenservice",
-        "Het inplannen van welzijnscontroles"
-      ],
-      "s6Title": "6. Met wie wij uw gegevens delen",
-      "s6Intro": "Wij delen uw gegevens UITSLUITEND met de volgende categorieën ontvangers, en ALLEEN wanneer dat nodig is:",
-      "s6_1Title": "6.1 Dienstverleners (verwerkers)",
-      "s6_1TableHeaders": [
+      "s6p2": "Als Isabella twijfelt, draagt zij het gesprek over aan een mens. U kunt altijd vragen om een mens te spreken.",
+      "s6p3": "Wij nemen geen besluiten die uitsluitend op geautomatiseerde verwerking berusten en die rechtsgevolgen of vergelijkbaar ingrijpende gevolgen voor u hebben (artikel 22 AVG). Besluiten over noodgevallen, uw lidmaatschap en uw betalingen worden door mensen genomen of gecontroleerd.",
+      "s6p4": "Om de antwoorden van Isabella te genereren, wordt de inhoud van uw gesprek verstuurd naar onze AI-leverancier, Anthropic, PBC (Verenigde Staten), die deze namens ons verwerkt (paragrafen 7 en 8). [[TO CONFIRM: verwerkingsvoorwaarden en bewaartermijn van Anthropic]]",
+      "s7Title": "7. Met wie wij uw gegevens delen",
+      "s7Intro": "Wij delen alleen wat elke ontvanger nodig heeft.",
+      "s7_1Title": "7.1 Hulpdiensten",
+      "s7_1p1": "In een noodgeval geven wij uw naam, locatie, adres, toegangsgegevens en relevante gezondheidsgegevens aan 112, politie, brandweer, ambulancepersoneel en ziekenhuizen.",
+      "s7_2Title": "7.2 Uw noodcontacten en sleutelhouders",
+      "s7_2p1": "Bij een melding kunnen wij de door u opgegeven personen bellen, sms'en of mailen. Wij vertellen hun wie hulp nodig heeft, het soort melding, een eventueel bericht en uw adres of kaartpositie op het moment van de melding. Noodcontact zijn geeft niemand toegang tot uw account of dossier.",
+      "s7_3Title": "7.3 Familieleden of mantelzorgers die u kiest",
+      "s7_3p1": "U kunt een bepaalde persoon toestemming geven om een of meer van het volgende te zien: uw meldingen, de actuele locatie van uw apparaat en uw medische gegevens. Elke toestemming staat op zichzelf, wordt met datum vastgelegd en kunt u altijd met onmiddellijke ingang intrekken. De persoon kan uw gegevens alleen inzien, nooit wijzigen.",
+      "s7_4Title": "7.4 Partners",
+      "s7_4p1": "Als u via een partner lid bent geworden (bijvoorbeeld een lokale onderneming of organisatie), weet die partner dat u lid bent geworden, zodat wij de commissie kunnen betalen. Bent u lid geworden via een organisatie die bij uw zorg betrokken is, dan kan die organisatie ook bericht krijgen als u een melding heeft, met uw naam, het soort melding en uw adres. [[TO CONFIRM: welke partners meldingen ontvangen en op welke grondslag]]",
+      "s7_5Title": "7.5 Onze dienstverleners",
+      "s7_5p1": "Deze bedrijven verwerken gegevens namens ons, onder contract en alleen volgens onze instructies:",
+      "s7_5TableHeaders": [
         "Dienstverlener",
-        "Doel",
-        "Locatie",
-        "Waarborgen"
+        "Wat zij voor ons doen",
+        "Waar de gegevens worden verwerkt",
+        "Waarborg bij doorgifte"
       ],
-      "s6_1TableRows": [
+      "s7_5TableRows": [
         [
           "Supabase, Inc.",
-          "Databasehosting",
-          "EU (Stockholm, Zweden)",
-          "Datacentrum in de EU, verwerkersovereenkomst gesloten"
+          "Database, inloggen, bestandsopslag en serverfuncties — bevat alle gegevens uit dit beleid",
+          "Europese Unie (Ierland)",
+          "Gegevens opgeslagen in de EU; [[TO CONFIRM: waarborg voor eventuele toegang vanuit de VS]]"
         ],
         [
-          "MonitorLinq B.V.",
-          "Apparaatbewaking en gps-tracking",
-          "Nederland (EU)",
-          "ISO 27001- en NEN 7510-gecertificeerd"
-        ],
-        [
-          "Stripe, Inc.",
-          "Betalingsverwerking",
-          "EU/VS",
-          "EU-US Data Privacy Framework, PCI-DSS-compliant"
-        ],
-        [
-          "Twilio, Inc.",
-          "Telefoongesprekken en sms",
-          "EU/VS",
-          "Standaardcontractbepalingen"
+          "Twilio Inc.",
+          "Telefoongesprekken, gespreksopnamen, spraakherkenning, sms- en WhatsApp-berichten",
+          "Verenigde Staten en EU",
+          "[[TO CONFIRM: EU-VS-gegevensprivacykader en/of modelcontractbepalingen]]"
         ],
         [
           "Anthropic, PBC",
-          "Functionaliteit van de AI-assistent",
-          "VS",
-          "Standaardcontractbepalingen"
+          "Het AI-model achter Isabella",
+          "Verenigde Staten",
+          "[[TO CONFIRM: EU-VS-gegevensprivacykader en/of modelcontractbepalingen]]"
         ],
         [
-          "Google (Gmail)",
-          "E-mailbezorging",
-          "EU/VS",
-          "Standaardcontractbepalingen"
+          "Stripe",
+          "Kaartbetalingen en abonnementen",
+          "EU en Verenigde Staten",
+          "[[TO CONFIRM: EU-VS-gegevensprivacykader en/of modelcontractbepalingen]]"
         ],
         [
-          "Vercel, Inc.",
-          "Websitehosting",
-          "EU",
-          "Datacentrum in de EU"
+          "Mollie B.V.",
+          "Betalingen, waaronder SEPA-incasso",
+          "Nederland (EU)",
+          "Niet van toepassing (EU)"
+        ],
+        [
+          "Vercel Inc.",
+          "Hosting en levering van onze website",
+          "Verenigde Staten en wereldwijd netwerk",
+          "[[TO CONFIRM: EU-VS-gegevensprivacykader en/of modelcontractbepalingen]]"
+        ],
+        [
+          "Functional Software, Inc. (Sentry)",
+          "Foutrapporten van onze website; schermtekst wordt gemaskeerd",
+          "[[TO CONFIRM: dataregio EU of VS]]",
+          "[[TO CONFIRM]]"
+        ],
+        [
+          "Google (Gmail / Firebase)",
+          "E-mails versturen; pushmeldingen over meldingen naar apparaten van onze medewerkers",
+          "EU en Verenigde Staten",
+          "[[TO CONFIRM: EU-VS-gegevensprivacykader en/of modelcontractbepalingen]]"
+        ],
+        [
+          "Resend, Inc.",
+          "E-mails versturen",
+          "Verenigde Staten",
+          "[[TO CONFIRM: EU-VS-gegevensprivacykader en/of modelcontractbepalingen]]"
+        ],
+        [
+          "OpenStreetMap Foundation (Nominatim)",
+          "Een adres op de kaart vinden wanneer u of onze medewerkers uw woonlocatie instellen",
+          "Verenigd Koninkrijk",
+          "Adequaatheidsbesluit van de EU voor het Verenigd Koninkrijk"
+        ],
+        [
+          "Medconneqt",
+          "Bewakingsplatform voor medicijndispensers, door onze medewerkers gebruikt als u een dispenser heeft",
+          "Nederland (EU)",
+          "Niet van toepassing (EU)"
+        ],
+        [
+          "[[TO CONFIRM: hostingprovider van de gateway voor alarmapparaten]]",
+          "Ontvangen van signalen en posities van uw alarmapparaat",
+          "[[TO CONFIRM]]",
+          "[[TO CONFIRM]]"
         ]
       ],
-      "s6_2Title": "6.2 Hulpdiensten",
-      "s6_2Intro": "Bij een noodgeval kunnen wij uw naam, locatie en relevante medische gegevens delen met:",
-      "s6_2Items": [
-        "De Spaanse hulpdiensten (112)",
-        "Lokale politie, brandweer of ambulancedienst",
-        "Spoedeisende hulpafdelingen van ziekenhuizen"
+      "s7_6Title": "7.6 Autoriteiten en wettelijke verplichtingen",
+      "s7_6p1": "Wij verstrekken gegevens als de wet dat vereist — bijvoorbeeld aan rechtbanken, aan de politie met een geldige rechtsgrond, aan de belastingdienst of aan de AEPD — of als dat nodig is om rechtsvorderingen in te stellen of te verdedigen.",
+      "s7_7Title": "7.7 Wat wij nooit doen",
+      "s7_7Items": [
+        "Wij verkopen uw persoonsgegevens niet.",
+        "Wij delen uw gegevens met niemand voor diens eigen marketing of reclame.",
+        "Wij gebruiken uw gezondheidsgegevens niet voor iets anders dan de doelen in paragraaf 5."
       ],
-      "s6_2p1": "Deze verstrekking is gebaseerd op de bescherming van uw vitale belangen (artikel 6, lid 1, onder d, AVG).",
-      "s6_3Title": "6.3 Uw contactpersonen voor noodgevallen",
-      "s6_3Intro": "De personen die u als contactpersoon aanwijst, ontvangen:",
-      "s6_3Items": [
-        "Een melding wanneer er een alarm wordt gemaakt",
-        "Uw locatie op het moment van de melding",
-        "Statusupdates tijdens een incident"
+      "s8Title": "8. Doorgifte buiten de EER",
+      "s8p1": "Onze database staat in de Europese Unie. Sommige dienstverleners uit paragraaf 7.5 zijn gevestigd in, of hebben toegang vanuit, de Verenigde Staten of andere landen buiten de Europese Economische Ruimte. In dat geval baseren wij ons op:",
+      "s8Items": [
+        "een <strong>adequaatheidsbesluit</strong> van de Europese Commissie (bijvoorbeeld voor het Verenigd Koninkrijk, of voor Amerikaanse bedrijven die zijn gecertificeerd onder het <strong>EU-VS-gegevensprivacykader</strong>);",
+        "door de Europese Commissie goedgekeurde <strong>modelcontractbepalingen</strong>, zo nodig met aanvullende maatregelen."
       ],
-      "s6_4Title": "6.4 Wettelijke verplichtingen",
-      "s6_4Intro": "Wij kunnen uw gegevens verstrekken wanneer dat verplicht is op grond van:",
-      "s6_4Items": [
-        "Een rechterlijk bevel of gerechtelijke procedure",
-        "Een verzoek van de Spaanse opsporingsdiensten met een geldige rechtsgrond",
-        "Een verzoek van toezichthoudende autoriteiten"
-      ],
-      "s6_5Title": "6.5 Wat wij NIET doen",
-      "s6_5Items": [
-        "Wij verkopen uw persoonsgegevens niet",
-        "Wij delen uw gegevens niet voor marketing door derden",
-        "Wij gebruiken uw medische gegevens voor geen enkel ander doel dan hulp bij noodgevallen"
-      ],
-      "s7Title": "7. Internationale gegevensoverdracht",
-      "s7Intro": "Enkele van onze dienstverleners bevinden zich buiten de Europese Economische Ruimte (EER). Wanneer wij uw gegevens buiten de EER doorgeven, zorgen wij voor bescherming via:",
-      "s7Items": [
-        "<strong>Het EU-US Data Privacy Framework</strong> (voor gecertificeerde Amerikaanse bedrijven)",
-        "<strong>Standaardcontractbepalingen</strong> die door de Europese Commissie zijn goedgekeurd",
-        "<strong>Adequaatheidsbesluiten</strong>, waar van toepassing"
-      ],
-      "s7p1": "U kunt een kopie van de betreffende waarborgen opvragen door contact met ons op te nemen.",
-      "s8Title": "8. Bewaartermijnen",
-      "s8TableHeaders": [
-        "Soort gegevens",
+      "s8p2": "U kunt een kopie van de geldende waarborgen opvragen via privacy@icealarm.es.",
+      "s9Title": "9. Hoe lang wij uw gegevens bewaren",
+      "s9Intro": "Wij bewaren gegevens alleen zolang dat nodig is voor de hierboven genoemde doelen en verwijderen of anonimiseren ze daarna. Onze bewaartermijnen zijn:",
+      "s9TableHeaders": [
+        "Gegevens",
         "Bewaartermijn"
       ],
-      "s8TableRows": [
+      "s9TableRows": [
         [
-          "Accountgegevens",
-          "Duur van het lidmaatschap + 5 jaar"
+          "Account-, contract- en contactgegevens",
+          "Zolang u lid bent, daarna geblokkeerd gedurende [[TO CONFIRM: termijn, bijv. 5 jaar, de algemene verjaringstermijn voor contractuele vorderingen]] en vervolgens verwijderd"
         ],
         [
-          "Medische gegevens",
-          "Duur van het lidmaatschap + 5 jaar"
+          "Gezondheids- en zorggegevens",
+          "Zolang u lid bent en uw toestemming geldt; verwijderd wanneer u uw toestemming intrekt, om verwijdering vraagt of opzegt [[TO CONFIRM: eventuele termijn na opzegging]]"
         ],
         [
-          "Gegevens van contactpersonen",
-          "Duur van het lidmaatschap + 1 jaar"
+          "Noodcontacten, sleutelhouders en toegangsgegevens van uw woning",
+          "Zolang u lid bent; verwijderd wanneer u opzegt of daarom vraagt"
         ],
         [
-          "Meldingen en incidentdossiers",
-          "7 jaar (wettelijke verplichting)"
+          "Registratie van meldingen en incidenten",
+          "[[TO CONFIRM: termijn]]; vraagt u eerder om verwijdering, dan verwijderen wij uw identificerende gegevens en bewaren wij een geanonimiseerd verslag"
         ],
         [
-          "Gespreksopnamen",
-          "2 jaar"
+          "Gespreksopnamen en uitschriften",
+          "[[TO CONFIRM: termijn]]"
         ],
         [
-          "Betaalgegevens",
-          "10 jaar (Spaanse belastingwetgeving)"
+          "Gesprekken met Isabella en andere berichten",
+          "[[TO CONFIRM: termijn]]"
         ],
         [
-          "Chat- en berichtenlogboeken",
-          "2 jaar"
+          "Facturen en boekhouding",
+          "De termijnen die het Spaanse fiscale en handelsrecht voorschrijft (doorgaans 4 tot 6 jaar)"
         ],
         [
-          "Websitestatistieken",
-          "26 maanden"
+          "Niet-afgeronde aanmeldingen",
+          "[[TO CONFIRM: termijn]]"
+        ],
+        [
+          "Locatiemeldingen van uw apparaat",
+          "[[TO CONFIRM: termijn]]"
+        ],
+        [
+          "Websitestatistieken en cookies",
+          "Zoals vermeld in onze cookie-instellingen"
         ]
       ],
-      "s8p1": "Na deze termijnen worden de gegevens veilig verwijderd of geanonimiseerd.",
-      "s9Title": "9. Uw rechten",
-      "s9Intro": "Op grond van de AVG en de Spaanse wetgeving hebt u het recht om:",
-      "s9_1Title": "9.1 Inzage",
-      "s9_1p1": "Een kopie op te vragen van alle persoonsgegevens die wij over u bewaren. Wij reageren binnen 30 dagen.",
-      "s9_2Title": "9.2 Rectificatie",
-      "s9_2p1": "Onjuiste of onvolledige gegevens te laten corrigeren. De meeste gegevens kunt u zelf bijwerken in uw ledendashboard.",
-      "s9_3Title": "9.3 Verwijdering (\"recht op vergetelheid\")",
-      "s9_3p1": "Verwijdering van uw gegevens te verzoeken. Let op: wij moeten sommige gegevens bewaren om aan de wet te voldoen. U kunt verwijdering aanvragen via uw ledendashboard of door contact met ons op te nemen.",
-      "s9_4Title": "9.4 Beperking",
-      "s9_4p1": "Te verzoeken dat wij het gebruik van uw gegevens beperken zolang een klacht in behandeling is.",
-      "s9_5Title": "9.5 Gegevensoverdraagbaarheid",
-      "s9_5p1": "Uw gegevens te ontvangen in een gestructureerde, machineleesbare vorm.",
-      "s9_6Title": "9.6 Bezwaar",
-      "s9_6p1": "Bezwaar te maken tegen verwerking op grond van gerechtvaardigd belang. Voor direct marketing kunt u zich op elk moment afmelden.",
-      "s9_7Title": "9.7 Toestemming intrekken",
-      "s9_7p1": "Waar wij ons op uw toestemming baseren, kunt u die op elk moment intrekken. Dit tast de rechtmatigheid van de verwerking vóór de intrekking niet aan.",
-      "s9Warning": "Belangrijk: trekt u uw toestemming voor de verwerking van medische gegevens in of verzoekt u om verwijdering, dan kunnen wij mogelijk geen effectieve hulp bij noodgevallen meer bieden. In dat geval kunnen wij uw lidmaatschap voor uw eigen veiligheid moeten beëindigen.",
-      "s9_8Title": "9.8 Hoe u uw rechten uitoefent",
-      "s9_8Items": [
-        "<strong>Online:</strong> via uw ledendashboard op icealarm.es/dashboard",
-        "<strong>E-mail:</strong> privacy@icealarm.es"
-      ],
-      "s9_8p1": "Wij reageren binnen 30 dagen. Wij kunnen uw identiteit moeten vaststellen voordat wij een verzoek in behandeling nemen.",
-      "s10Title": "10. Beveiliging van gegevens",
-      "s10Intro": "Wij nemen passende technische en organisatorische maatregelen, waaronder:",
+      "s9p1": "Waar de wet ons verplicht gegevens na uw opzegging te bewaren, houden wij ze <strong>geblokkeerd</strong> (artikel 32 LOPDGDD): ze worden apart gezet en alleen gebruikt om aan wettelijke verplichtingen te voldoen of vorderingen af te handelen, en daarna verwijderd.",
+      "s10Title": "10. Hoe wij uw gegevens beschermen",
+      "s10Intro": "Wij nemen technische en organisatorische maatregelen die passen bij de gevoeligheid van de gegevens, waaronder:",
       "s10Items": [
-        "Versleuteling van gegevens tijdens verzending (TLS 1.3)",
-        "Versleuteling van opgeslagen gegevens",
-        "Toegangsbeheer en authenticatie",
-        "Periodieke veiligheidsbeoordelingen",
-        "Opleiding van medewerkers op het gebied van gegevensbescherming",
-        "Procedures voor het reageren op incidenten"
+        "versleutelde verbindingen (HTTPS) tussen uw browser, onze systemen en onze dienstverleners;",
+        "versleuteling van opgeslagen gegevens door onze hostingprovider;",
+        "databaseregels (beveiliging op rijniveau), zodat iedereen alleen de gegevens kan bereiken die hij mag zien;",
+        "toegang voor medewerkers op basis van hun functie, met tweestapsverificatie voor beheerderstoegang;",
+        "registratie van wijzigingen in ledendossiers en van toestemmingen aan familieleden of mantelzorgers;",
+        "maskering van schermtekst in foutrapporten van de website;",
+        "contracten met alle dienstverleners die uw gegevens verwerken."
       ],
-      "s10p1": "Onze database wordt gehost in een Tier 3-gecertificeerd datacentrum in de Europese Unie.",
-      "s11Title": "11. Privacy van kinderen",
-      "s11p1": "Onze diensten zijn niet gericht op kinderen onder de 16 jaar. Wij verzamelen niet bewust persoonsgegevens van kinderen onder de 16 zonder toestemming van een ouder. Denkt u dat wij dat toch hebben gedaan, neem dan direct contact met ons op.",
-      "s12Title": "12. Geautomatiseerde besluitvorming",
-      "s12Intro": "Onze AI-assistent kan uw gegevens verwerken om:",
-      "s12Items": [
-        "Noodmeldingen te beoordelen",
-        "Passende reacties te bepalen",
-        "Gesprekken door te verbinden naar menselijke operators"
+      "s10p1": "Geen enkel systeem is volledig veilig. Als een datalek waarschijnlijk een risico voor uw rechten oplevert, melden wij dat binnen 72 uur nadat wij ervan op de hoogte zijn aan de AEPD, en bij een hoog risico voor u informeren wij u ook zonder onnodige vertraging.",
+      "s11Title": "11. Uw rechten",
+      "s11Intro": "Op grond van de AVG en de LOPDGDD heeft u de volgende rechten:",
+      "s11Items": [
+        "<strong>Inzage</strong> — weten of wij gegevens over u hebben en een kopie ervan krijgen.",
+        "<strong>Rectificatie</strong> — onjuiste of onvolledige gegevens laten corrigeren. Veel gegevens kunt u zelf in uw account bijwerken.",
+        "<strong>Verwijdering</strong> — uw gegevens laten wissen, tenzij wij ze wettelijk moeten bewaren (paragraaf 9).",
+        "<strong>Beperking</strong> — ons vragen het gebruik van uw gegevens te beperken, bijvoorbeeld terwijl wij een klacht onderzoeken.",
+        "<strong>Overdraagbaarheid</strong> — de gegevens die u ons heeft gegeven ontvangen in een gestructureerd, machineleesbaar formaat.",
+        "<strong>Bezwaar</strong> — bezwaar maken tegen verwerking op basis van ons gerechtvaardigd belang, en altijd tegen direct marketing.",
+        "<strong>Toestemming intrekken</strong> — op elk moment, zonder gevolgen voor wat wij daarvoor hebben gedaan.",
+        "<strong>Niet onderworpen worden aan uitsluitend geautomatiseerde besluiten</strong> met rechtsgevolgen of vergelijkbaar ingrijpende gevolgen (paragraaf 6)."
       ],
-      "s12p1": "U hebt het recht om menselijke tussenkomst te vragen bij elk geautomatiseerd besluit dat u in aanzienlijke mate raakt. Bij een noodgeval zijn er altijd menselijke operators beschikbaar om over te nemen.",
-      "s13Title": "13. Cookies",
-      "s13Intro": "Onze website gebruikt cookies voor:",
+      "s11HowTitle": "Hoe u uw rechten uitoefent",
+      "s11HowItems": [
+        "<strong>E-mail:</strong> privacy@icealarm.es",
+        "<strong>In uw account:</strong> Profiel → Privacy en gegevens, waar u een kopie van uw belangrijkste gegevens kunt downloaden en kunt vragen uw account te verwijderen.",
+        "<strong>Per post:</strong> ICE Alarm España S.L., [[TO CONFIRM: adres statutaire zetel]]"
+      ],
+      "s11p1": "Het uitoefenen van uw rechten is gratis. Wij reageren binnen een maand; bij complexe verzoeken kunnen wij dit met twee maanden verlengen en vertellen wij u waarom. Wij kunnen u vragen uw identiteit te bevestigen. Een familielid of vertegenwoordiger kan namens u optreden met bewijs van vertegenwoordiging.",
+      "s11DeletionTitle": "Wat er gebeurt als u vraagt uw account te verwijderen",
+      "s11DeletionItems": [
+        "uw abonnement wordt opgezegd;",
+        "uw gezondheidsgegevens en noodcontacten worden verwijderd;",
+        "openstaande beveiligde updatelinks worden ongeldig gemaakt;",
+        "uw naam, contactgegevens, geboortedatum, identificatienummers en adres worden uit uw dossier verwijderd;",
+        "uw meldingsgeschiedenis wordt alleen geanonimiseerd bewaard;",
+        "facturen en andere gegevens die wij wettelijk moeten bewaren worden geblokkeerd (paragraaf 9)."
+      ],
+      "s11Warning": "Belangrijk: als u uw account verwijdert, stopt uw bewakingsdienst. Wij beantwoorden uw alarm dan niet meer.",
+      "s11p2": "<strong>Overleden personen.</strong> Op grond van artikel 3 LOPDGDD kunnen familieleden en erfgenamen van een overleden lid ons om inzage in, rectificatie of verwijdering van diens gegevens vragen, tenzij het lid dat heeft verboden.",
+      "s12Title": "12. Minderjarigen",
+      "s12p1": "Onze dienst is bedoeld voor volwassenen. Wij verzamelen niet bewust gegevens van kinderen jonger dan 14 jaar. Denkt u dat wij gegevens van een kind hebben, neem dan contact met ons op; wij verwijderen ze dan.",
+      "s13Title": "13. Website en cookies",
+      "s13Intro": "Onze website gebruikt:",
       "s13Items": [
-        "<strong>Noodzakelijke cookies:</strong> nodig om de website te laten werken",
-        "<strong>Analytische cookies:</strong> om te begrijpen hoe bezoekers onze site gebruiken (alleen met toestemming)"
+        "<strong>Noodzakelijke cookies en opslag</strong> — om u ingelogd te houden, uw taal en cookiekeuzes te onthouden en de site te beveiligen.",
+        "<strong>Statistieken</strong> — om te begrijpen hoe de site wordt gebruikt; alleen met uw toestemming."
       ],
-      "s13p1": "U kunt uw cookievoorkeuren beheren via onze cookiemelding of via de instellingen van uw browser.",
+      "s13p1": "U kunt uw keuzes altijd wijzigen in de cookie-instellingen (via de cookiemelding, of in uw account onder Profiel → Privacy en gegevens).",
       "s14Title": "14. Wijzigingen in dit beleid",
-      "s14Intro": "Wij kunnen dit privacybeleid van tijd tot tijd aanpassen. Belangrijke wijzigingen laten wij u weten via:",
+      "s14Intro": "Wij passen dit beleid aan wanneer onze dienst of de wet verandert. Bij een belangrijke wijziging laten wij u dat weten via:",
       "s14Items": [
-        "Een e-mailbericht",
-        "Een melding op onze website",
-        "Een melding in uw ledendashboard"
+        "e-mail;",
+        "een bericht op onze website;",
+        "een bericht in uw account."
       ],
-      "s14p1": "De datum \"Laatst bijgewerkt\" bovenaan geeft aan wanneer het beleid voor het laatst is herzien.",
+      "s14p1": "Als een wijziging uw toestemming vereist, vragen wij die opnieuw. De datum en versie bovenaan deze pagina geven aan wanneer het beleid voor het laatst is gewijzigd.",
       "s15Title": "15. Klachten",
-      "s15p1": "Bent u niet tevreden over de manier waarop wij met uw gegevens omgaan, dan hebt u het recht een klacht in te dienen bij:",
+      "s15p1": "Bent u niet tevreden over hoe wij met uw gegevens omgaan, neem dan eerst contact op met ons of onze FG — wij lossen het graag op. U heeft ook het recht een klacht in te dienen bij de toezichthouder:",
       "s15Authority": "<strong>Agencia Española de Protección de Datos (AEPD)</strong><br/>C/ Jorge Juan, 6<br/>28001 Madrid<br/><a href=\"https://www.aepd.es\" target=\"_blank\" rel=\"noopener noreferrer\">www.aepd.es</a><br/>Tel: 900 293 183",
-      "s15p2": "U hebt ook het recht om naar de rechter te stappen.",
+      "s15p2": "U kunt zich ook tot de rechter wenden.",
       "s16Title": "16. Contact",
-      "s16Intro": "<strong>Voor alle vragen over privacy:</strong>",
-      "s16Content": "ICE Alarm España<br/>E-mail: privacy@icealarm.es<br/>Algemene vragen: info@icealarm.es",
-      "governedBy": "Op dit privacybeleid is Spaans recht van toepassing, evenals de Algemene verordening gegevensbescherming (EU) 2016/679."
+      "s16Intro": "<strong>Voor vragen over uw persoonsgegevens:</strong>",
+      "s16Content": "ICE Alarm España S.L. (CIF B24731531)<br/>[[TO CONFIRM: adres statutaire zetel]]<br/>Privacy en FG: privacy@icealarm.es<br/>Algemene vragen: info@icealarm.es",
+      "governedBy": "Op dit beleid zijn Verordening (EU) 2016/679 (AVG), de Spaanse Organieke Wet 3/2018 (LOPDGDD) en het Spaanse recht van toepassing."
+    },
+    "cookies": {
+      "title": "Cookiebeleid",
+      "company": "ICE Alarm España S.L. — fiscaal nummer (CIF) B24731531",
+      "lastUpdated": "Laatst bijgewerkt: 17 september 2026 · Versie 2 · Concept, in afwachting van juridische controle",
+      "footerLink": "Cookiebeleid",
+      "settingsLink": "Cookie-instellingen",
+      "intro": "Dit cookiebeleid legt uit welke cookies en vergelijkbare technieken worden gebruikt op icealarm.es en in de portalen voor leden, partners en medewerkers van ICE Alarm España, waarvoor ze dienen, hoe lang ze bewaard blijven en hoe u ze op elk moment kunt accepteren, weigeren of uw toestemming kunt intrekken. Het vult ons privacybeleid aan, waarin staat hoe wij persoonsgegevens in het algemeen verwerken.",
+      "s1Title": "1. Wat zijn cookies en vergelijkbare technieken?",
+      "s1p1": "Cookies zijn kleine tekstbestanden die een website op uw apparaat opslaat. Websites kunnen ook op andere manieren informatie in uw browser bewaren, bijvoorbeeld in de ‘lokale opslag’ (die blijft staan tot ze wordt gewist) en de ‘sessieopslag’ (die wordt gewist wanneer u het tabblad of de browser sluit). De Spaanse wet op de diensten van de informatiemaatschappij (Ley 34/2002, LSSI-CE, artikel 22.2) geldt voor al deze technieken op dezelfde manier; daarom noemen wij ze in dit beleid allemaal ‘cookies’.",
+      "s1p2": "Sommige cookies zijn strikt noodzakelijk voor een dienst waar u om hebt gevraagd en mogen zonder uw toestemming worden gebruikt. Alle andere cookies worden alleen gebruikt als u daarmee instemt.",
+      "s2Title": "2. Wie is verantwoordelijk",
+      "s2p1": "De cookies in dit beleid worden geplaatst door ICE Alarm España S.L. (CIF B24731531), behalve waar in de tabel een externe aanbieder wordt genoemd. Voor vragen over dit beleid kunt u contact opnemen via privacy@icealarm.es.",
+      "s3Title": "3. De categorieën die wij gebruiken",
+      "s3Items": [
+        "Strikt noodzakelijk: om u in te loggen en uw sessie veilig te houden, uw cookiekeuze te onthouden, een formulier dat u invult te bewaren en fouten op te sporen. Deze kunnen niet worden uitgeschakeld, omdat de website zonder deze cookies niet werkt.",
+        "Voorkeuren: om keuzes te onthouden die u maakt, zoals uw taal, de tekstgrootte of of u een rondleiding al hebt gezien. Ze worden alleen opgeslagen wanneer u die keuze maakt.",
+        "Analytisch (alleen met uw toestemming): onze eigen statistieken over welke pagina’s worden bezocht en vanaf welk soort apparaat, zodat wij de website kunnen verbeteren. Ze worden niet gedeeld met adverteerders.",
+        "Marketing: wij gebruiken op dit moment geen advertentie- of socialemediacookies. Mochten wij dat ooit doen, dan alleen met uw toestemming en na aanpassing van dit beleid."
+      ],
+      "s4Title": "4. De cookies die wij gebruiken",
+      "s4Intro": "De onderstaande tabel vermeldt alle cookies en opslagitems die onze website en portalen gebruiken. Namen met <…> verschillen enigszins per apparaat.",
+      "tableHeaders": {
+        "name": "Naam",
+        "provider": "Aanbieder",
+        "purpose": "Doel",
+        "duration": "Bewaartermijn",
+        "type": "Soort"
+      },
+      "essentialTitle": "4.1 Strikt noodzakelijk",
+      "essentialRows": [
+        {
+          "name": "sb-<project>-auth-token",
+          "provider": "ICE Alarm España (inlogdienst geleverd door Supabase)",
+          "purpose": "Houdt u veilig ingelogd op uw account.",
+          "duration": "Als u ‘Ingelogd blijven’ hebt aangevinkt: tot u uitlogt. Anders: tot u de browser sluit.",
+          "type": "Lokale opslag of sessieopslag"
+        },
+        {
+          "name": "ice.auth.persist",
+          "provider": "ICE Alarm España",
+          "purpose": "Onthoudt of u op dit apparaat ingelogd wilt blijven.",
+          "duration": "Tot u de keuze wijzigt of uw browsergegevens wist",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "ice_cookie_consent",
+          "provider": "ICE Alarm España",
+          "purpose": "Legt uw cookiekeuze vast, wanneer u die maakte en de versie van dit beleid.",
+          "duration": "24 maanden, daarna vragen wij het opnieuw",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "isRecoveryFlow",
+          "provider": "ICE Alarm España",
+          "purpose": "Rondt een wachtwoordherstel af waar u om hebt gevraagd.",
+          "duration": "Tot het herstel is voltooid of het tabblad wordt gesloten",
+          "type": "Sessieopslag"
+        },
+        {
+          "name": "chunk-reload-<page>",
+          "provider": "ICE Alarm España",
+          "purpose": "Voorkomt dat de pagina blijft herladen nadat wij een nieuwe versie van de website hebben gepubliceerd.",
+          "duration": "Tot het tabblad wordt gesloten",
+          "type": "Sessieopslag"
+        },
+        {
+          "name": "join_wizard_session_id, join_wizard_data",
+          "provider": "ICE Alarm España",
+          "purpose": "Bewaart het aanmeldformulier dat u invult, zodat het niet verloren gaat wanneer u naar de betaalpagina gaat.",
+          "duration": "Tot u de aanmelding afrondt of opnieuw begint",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "ice_conversation_id, ice_conversation_expiry",
+          "provider": "ICE Alarm España",
+          "purpose": "Zet uw gesprek met onze AI-assistent Isabella voort als u naar een andere pagina gaat.",
+          "duration": "30 minuten na uw laatste bericht",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "sentryReplaySession",
+          "provider": "Sentry (Functional Software, Inc.)",
+          "purpose": "Foutbewaking: als de website vastloopt, wordt een technisch spoor vastgelegd zodat wij het kunnen herstellen. Tekst op het scherm wordt afgeschermd en afbeeldingen worden geblokkeerd.",
+          "duration": "Tot het tabblad wordt gesloten",
+          "type": "Sessieopslag"
+        }
+      ],
+      "preferencesTitle": "4.2 Voorkeuren",
+      "preferencesRows": [
+        {
+          "name": "i18nextLng",
+          "provider": "ICE Alarm España",
+          "purpose": "Onthoudt de taal die u hebt gekozen.",
+          "duration": "Tot u deze wijzigt of uw browsergegevens wist",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "iceAlarmLanguageSelected",
+          "provider": "ICE Alarm España",
+          "purpose": "Onthoudt dat u al een taal hebt gekozen, zodat wij het niet opnieuw vragen.",
+          "duration": "Tot u uw browsergegevens wist",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "ice.textSize",
+          "provider": "ICE Alarm España",
+          "purpose": "Onthoudt de tekstgrootte die u hebt gekozen (A/A).",
+          "duration": "Tot u deze wijzigt of uw browsergegevens wist",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "ice_tour_<name>_completed",
+          "provider": "ICE Alarm España",
+          "purpose": "Onthoudt dat u een rondleiding hebt voltooid of overgeslagen.",
+          "duration": "Tot u de rondleiding opnieuw start of uw browsergegevens wist",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "ice_feedback_cooldown, ice_feedback_dismissed",
+          "provider": "ICE Alarm España",
+          "purpose": "Voorkomt dat wij u te snel, of na een weigering, opnieuw om feedback vragen.",
+          "duration": "Tot de wachttijd voorbij is of u uw browsergegevens wist",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "sidebar:state",
+          "provider": "ICE Alarm España",
+          "purpose": "Onthoudt of het zijmenu van het portaal open of dicht staat.",
+          "duration": "7 dagen",
+          "type": "Cookie"
+        }
+      ],
+      "analyticsTitle": "4.3 Analytisch (alleen met uw toestemming)",
+      "analyticsRows": [
+        {
+          "name": "ice_visitor_id",
+          "provider": "ICE Alarm España (opgeslagen in onze eigen database, gehost door Supabase)",
+          "purpose": "Een willekeurige code waarmee wij terugkerende bezoekers kunnen tellen zonder te weten wie zij zijn.",
+          "duration": "Tot u uw toestemming intrekt (dan wissen wij deze) of uw browsergegevens wist",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "ice_session_id, ice_session_timestamp",
+          "provider": "ICE Alarm España (opgeslagen in onze eigen database, gehost door Supabase)",
+          "purpose": "Groepeert de pagina’s die tijdens één bezoek zijn bekeken.",
+          "duration": "30 minuten inactiviteit; gewist wanneer u uw toestemming intrekt",
+          "type": "Lokale opslag"
+        }
+      ],
+      "referralTitle": "4.4 Doorverwijzingen door partners",
+      "referralIntro": "Deze worden alleen opgeslagen als u via een link van een van onze partners binnenkomt. Ze leggen vast welke partner u heeft doorverwezen, zodat die partner kan worden vermeld als u lid wordt. Ze volgen u niet op andere websites.",
+      "referralRows": [
+        {
+          "name": "partner_ref, partner_utm",
+          "provider": "ICE Alarm España",
+          "purpose": "Legt de partnercode en de campagne vast van de link die u hebt gevolgd.",
+          "duration": "Tot u de aanmelding afrondt of uw browsergegevens wist",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "partner_referral",
+          "provider": "ICE Alarm España",
+          "purpose": "Legt de partner en het bericht vast waarvandaan u kwam.",
+          "duration": "30 dagen",
+          "type": "Lokale opslag"
+        },
+        {
+          "name": "ref_partner_code, ref_partner_id, ref_post_id",
+          "provider": "ICE Alarm España",
+          "purpose": "Dezelfde informatie, leesbaar voor onze server.",
+          "duration": "30 dagen",
+          "type": "Cookie"
+        }
+      ],
+      "staffTitle": "4.5 Alleen in het medewerkersportaal",
+      "staffIntro": "De volgende items worden alleen gebruikt door medewerkers van ICE Alarm España wanneer zij in het interne portaal werken.",
+      "staffRows": [
+        {
+          "name": "icealarm.push.deviceLabel.token, firebase-messaging-database",
+          "provider": "Google (Firebase Cloud Messaging)",
+          "purpose": "Bezorgt meldingen van alarmen op het apparaat van een medewerker die deze heeft ingeschakeld.",
+          "duration": "Tot de meldingen worden uitgeschakeld",
+          "type": "Lokale opslag en IndexedDB"
+        },
+        {
+          "name": "videoHub_activeTab, videoHub_filters",
+          "provider": "ICE Alarm España",
+          "purpose": "Onthoudt het tabblad en de filters die in de videobibliotheek zijn gekozen.",
+          "duration": "Tot het tabblad wordt gesloten",
+          "type": "Sessieopslag"
+        },
+        {
+          "name": "Cookies van Google (bijvoorbeeld NID)",
+          "provider": "Google LLC (Google Maps)",
+          "purpose": "Een ingesloten Google-kaart toont de locatie van een alarm. Google kan bij het laden van de kaart eigen cookies plaatsen.",
+          "duration": "Bepaald door Google — zie het cookiebeleid van Google",
+          "type": "Cookie van derden"
+        }
+      ],
+      "s5Title": "5. Derden",
+      "s5Items": [
+        "Wij gebruiken geen Google Analytics, advertentienetwerken of trackingpixels van sociale media.",
+        "Betalingen verlopen via de pagina’s van onze betaalproviders (Stripe of Mollie). Zolang u op hun pagina’s bent, gelden hun eigen cookiebeleid.",
+        "De kaart waarmee u uw woonadres aanwijst, laadt afbeeldingen van OpenStreetMap. Die plaatst geen cookies, maar uw browser maakt wel verbinding met hun servers om de kaart te laden."
+      ],
+      "s6Title": "6. Toestemming geven, weigeren of intrekken",
+      "s6p1": "Bij uw eerste bezoek kunt u via een melding alle cookies accepteren, alle niet-noodzakelijke cookies weigeren of per categorie kiezen. Weigeren is net zo eenvoudig als accepteren en geen enkele optionele categorie staat vooraf aan.",
+      "s6p2": "U kunt uw keuze op elk moment wijzigen via ‘Cookie-instellingen’ onderaan onze pagina’s, via de knop hieronder of, als u lid bent, via het onderdeel Privacy en gegevens in uw account. Als u uw toestemming voor analytische cookies intrekt, stoppen wij direct met het verzamelen van statistieken en wissen wij de analytische codes uit uw browser. Het intrekken van toestemming heeft geen gevolgen voor wat daarvoor is gebeurd.",
+      "settingsButton": "Cookie-instellingen openen",
+      "s6BrowsersIntro": "U kunt cookies en opgeslagen gegevens ook blokkeren of wissen via de instellingen van uw browser. Als u strikt noodzakelijke cookies blokkeert, werken sommige onderdelen van de website, zoals inloggen, niet.",
+      "s6Browsers": [
+        "Google Chrome: Instellingen › Privacy en beveiliging › Cookies van derden / Sitegegevens",
+        "Mozilla Firefox: Instellingen › Privacy & Beveiliging › Cookies en websitegegevens",
+        "Safari: Instellingen › Safari › Geavanceerd › Websitegegevens",
+        "Microsoft Edge: Instellingen › Cookies en sitemachtigingen"
+      ],
+      "s7Title": "7. Doorgifte buiten de EER",
+      "s7p1": "Sommige van de genoemde aanbieders (zoals Sentry en Google) zijn gevestigd buiten de Europese Economische Ruimte. Wanneer hun technieken een doorgifte van persoonsgegevens meebrengen, gebeurt dat met de waarborgen die in ons privacybeleid staan beschreven.",
+      "s8Title": "8. Wijzigingen in dit beleid",
+      "s8p1": "Wij passen dit beleid aan als de cookies die wij gebruiken veranderen. Als een wijziging opnieuw uw toestemming vereist, vraagt de melding daar bij uw volgende bezoek opnieuw om. De datum en versie bovenaan geven aan wanneer het beleid voor het laatst is gewijzigd.",
+      "s9Title": "9. Contact",
+      "s9p1": "Voor vragen over cookies of uw persoonsgegevens kunt u schrijven naar privacy@icealarm.es. U hebt ook het recht een klacht in te dienen bij de Spaanse toezichthouder (AEPD, www.aepd.es)."
     }
   },
   "mediaStrategy": {
@@ -6645,11 +7164,11 @@
     "staff": {
       "title": "Woninglocatie",
       "purpose": "Waar een operator hulp naartoe stuurt als de hanger niet kan doorgeven waar het lid is.",
-      "loadFailed": "Wij konden de woninglocatie van dit lid niet laden. Dat betekent niet dat er geen is \u2014 laad de kaart opnieuw voordat u een speld zet.",
+      "loadFailed": "Wij konden de woninglocatie van dit lid niet laden. Dat betekent niet dat er geen is — laad de kaart opnieuw voordat u een speld zet.",
       "confirmedByMember": "Bevestigd door het lid",
       "setByTeam": "Ingesteld door ons team",
-      "fromAddress": "Afgeleid van het adres \u2014 niet bevestigd",
-      "fromImport": "Uit de CRM-import \u2014 niet bevestigd",
+      "fromAddress": "Afgeleid van het adres — niet bevestigd",
+      "fromImport": "Uit de CRM-import — niet bevestigd",
       "none": "Geen speld op deze kaart. Het SOS-scherm valt terug op het postadres.",
       "correctPin": "De speld corrigeren",
       "setPin": "De speld zetten"
@@ -6702,8 +7221,8 @@
   },
   "memberDocument": {
     "title": "Ledendossier",
-    "printedBy": "Afgedrukt door {{who}} op {{date}} \u00b7 icealarm.es",
-    "printedOn": "Afgedrukt op {{date}} \u00b7 icealarm.es",
-    "redacted": "In dossier \u2014 niet afgedrukt"
+    "printedBy": "Afgedrukt door {{who}} op {{date}} · icealarm.es",
+    "printedOn": "Afgedrukt op {{date}} · icealarm.es",
+    "redacted": "In dossier — niet afgedrukt"
   }
 }

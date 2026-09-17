@@ -125,6 +125,8 @@ const PendantPage = lazyWithRetry(() => import("./pages/PendantPage"));
 const PricingPage = lazyWithRetry(() => import("./pages/PricingPage"));
 const TermsPage = lazyWithRetry(() => import("./pages/TermsPage"));
 const PrivacyPage = lazyWithRetry(() => import("./pages/PrivacyPage"));
+const CancellationPolicyPage = lazyWithRetry(() => import("./pages/CancellationPolicyPage"));
+const CookiesPage = lazyWithRetry(() => import("./pages/CookiesPage"));
 const BlogListPage = lazyWithRetry(() => import("./pages/blog/BlogListPage"));
 const BlogPostPage = lazyWithRetry(() => import("./pages/blog/BlogPostPage"));
 const ReferralRedirect = lazyWithRetry(() => import("./pages/ReferralRedirect"));
@@ -201,6 +203,7 @@ const AdminHolidaysPage = lazyWithRetry(() => import("./pages/admin/HolidaysPage
 
 // Partner Pages - Lazy loaded
 const PartnerJoin = lazyWithRetry(() => import("./pages/partner/PartnerJoin"));
+const PartnerTermsPage = lazyWithRetry(() => import("./pages/partner/PartnerTermsPage"));
 const PartnerVerify = lazyWithRetry(() => import("./pages/partner/PartnerVerify"));
 const PartnerLogin = lazyWithRetry(() => import("./pages/partner/PartnerLogin"));
 const PartnerInvitePage = lazyWithRetry(() => import("./pages/partner/PartnerInvitePage"));
@@ -411,6 +414,8 @@ const App = () => {
                     <Route path="/contact" element={<ContactPage />} />
                     <Route path="/terms" element={<TermsPage />} />
                     <Route path="/privacy" element={<PrivacyPage />} />
+                    <Route path="/cancellation-policy" element={<CancellationPolicyPage />} />
+                    <Route path="/cookies" element={<CookiesPage />} />
                     <Route path="/blog" element={<BlogListPage />} />
                     <Route path="/blog/:slug" element={<BlogPostPage />} />
                     <Route path="/join" element={<JoinWizard />} />
@@ -496,6 +501,8 @@ const App = () => {
                         a 308 for a cold hit; this covers client-side navigation. */}
                     <Route path="/partner" element={<Navigate to="/partner/join" replace />} />
                     <Route path="/partner/join" element={<PartnerJoin />} />
+                    {/* The Partner Agreement, readable without an account — linked from /partner/join. */}
+                    <Route path="/partner/terms" element={<PartnerTermsPage />} />
                     <Route path="/partner/verify" element={<PartnerVerify />} />
                     <Route path="/partner/login" element={<PartnerLogin />} />
                     <Route path="/partner/invite" element={<PartnerInvitePage />} />

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { identifyNotifyCaller } from "../_shared/admin-caller.ts";
 
 const MOLLIE_API = "https://api.mollie.com/v2";
 
@@ -12,10 +13,25 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, serviceRoleKey);
+
+    // CALLER CHECK. This function runs with verify_jwt = false and the service-role client, and it
+    // had no check of its own: anyone holding a subscription id could cancel that member's Mollie
+    // subscription — and with it the monitoring of a life-safety service. Only an admin (the
+    // staff "Cancel" action in useMemberAction) or an internal service-role caller may cancel,
+    // the same rule admin-subscription-action applies to Stripe.
+    const verdict = await identifyNotifyCaller(
+      supabase,
+      req.headers.get("Authorization"),
+      serviceRoleKey,
     );
+    if (!verdict.ok) {
+      return new Response(JSON.stringify({ error: verdict.error }), {
+        status: verdict.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Get Mollie API key
     const { data: mollieSettings } = await supabase

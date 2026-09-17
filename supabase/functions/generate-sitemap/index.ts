@@ -20,6 +20,7 @@ const staticPages: SitemapPage[] = [
   { path: "/contact", priority: 0.6, changefreq: "monthly" },
   { path: "/terms", priority: 0.3, changefreq: "yearly" },
   { path: "/privacy", priority: 0.3, changefreq: "yearly" },
+  { path: "/cancellation-policy", priority: 0.3, changefreq: "yearly" },
   { path: "/join", priority: 0.8, changefreq: "monthly" },
 ];
 

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { CookieFooterLinks } from "@/components/legal/CookieFooterLinks";
 import { usePublicTestimonials } from "@/hooks/useTestimonials";
 import { usePricing } from "@/hooks/usePricing";
 import { BillingPeriodToggle } from "@/components/pricing/BillingPeriodToggle";
@@ -638,6 +639,8 @@ export default function PendantPage() {
               <ul className="space-y-2 text-sm text-sidebar-foreground/70">
                 <li><Link to="/terms" className="hover:text-sidebar-foreground">{t("pendant.footer.termsOfService")}</Link></li>
                 <li><Link to="/privacy" className="hover:text-sidebar-foreground">{t("pendant.footer.privacyPolicy")}</Link></li>
+                <li><Link to="/cancellation-policy" className="hover:text-sidebar-foreground">{t("legal.cancellation.footerLink")}</Link></li>
+                <CookieFooterLinks className="hover:text-sidebar-foreground" />
               </ul>
             </div>
           </div>

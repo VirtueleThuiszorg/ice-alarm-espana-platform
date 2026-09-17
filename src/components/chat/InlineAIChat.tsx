@@ -10,6 +10,7 @@ import { useAIChat } from "@/hooks/useAIChat";
 import { cn } from "@/lib/utils";
 import { useMemberProfile } from "@/hooks/useMemberProfile";
 import { useAuth } from "@/contexts/AuthContext";
+import { AIDisclosureNotice } from "./AIDisclosureNotice";
 
 interface InlineAIChatProps {
   /** Use member_specialist agent with personalization when in member context */
@@ -77,6 +78,9 @@ export function InlineAIChat({ memberContext = false }: InlineAIChatProps) {
           <RotateCcw className="h-4 w-4" />
         </Button>
       </CardHeader>
+
+      {/* EU AI Act art. 50 — told up front that this is an AI, not a person. */}
+      <AIDisclosureNotice />
 
       {/* Messages */}
       <CardContent className="flex-1 p-0 overflow-hidden">

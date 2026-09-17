@@ -54,6 +54,9 @@ interface FieldSpec {
 const FORMS: Record<PublicFormId, Record<string, FieldSpec>> = {
   contact: {
     first_name: { kind: "name", required: true, max: 100 },
+    // The form marks it required; the server does not. Refusing a real enquiry over a missing
+    // surname would cost more than the surname is worth, and everything needed to reply is in
+    // the three fields below.
     last_name: { kind: "name", required: false, max: 100 },
     email: { kind: "email", required: true, max: 255 },
     phone: { kind: "phone", required: true, max: 32 },
@@ -62,7 +65,10 @@ const FORMS: Record<PublicFormId, Record<string, FieldSpec>> = {
       kind: "choice",
       required: false,
       max: 40,
-      options: ["general", "product", "support", "partnership", "press"],
+      // EXACTLY the five the form offers. A sixth value here would be dead, and a missing one
+      // would refuse a real enquiry because somebody used the dropdown — which is the failure
+      // mode a server-side allow-list has to be checked against, not reasoned about.
+      options: ["general", "pricing", "demo", "partnership", "support"],
     },
     message: { kind: "text", required: true, max: 4000 },
   },

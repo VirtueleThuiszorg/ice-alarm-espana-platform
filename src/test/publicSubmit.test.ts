@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import {
   decidePublicSubmit,
   detectLanguage,
@@ -312,6 +314,30 @@ describe("the field helpers", () => {
     expect(d.ok).toBe(false);
     if (d.ok) return;
     expect(d.fields).toEqual(["enquiry_type"]);
+  });
+
+  it("accepts every option the contact form actually offers", () => {
+    /*
+      The failure mode an allow-list has to be CHECKED against rather than reasoned about: a
+      value missing here refuses a real enquiry from somebody who used the dropdown. These five
+      are read off ContactPage's <SelectItem> list.
+    */
+    for (const value of ["general", "pricing", "demo", "partnership", "support"]) {
+      const d = contact({ ...GOOD, enquiry_type: value });
+      expect(d.ok, `${value} must be accepted`).toBe(true);
+    }
+  });
+
+  it("and the list matches the form, read from the page rather than restated", () => {
+    const page = readFileSync(path.resolve(process.cwd(), "src/pages/ContactPage.tsx"), "utf8");
+    const block = page.slice(page.indexOf('handleChange("enquiry_type"'));
+    const offered = [...block.matchAll(/<SelectItem value="([a-z_]+)"/g)].map((m) => m[1]);
+    expect(offered.length).toBeGreaterThan(0);
+    for (const value of offered) {
+      expect(contact({ ...GOOD, enquiry_type: value }).ok, `${value} is offered by the form`).toBe(
+        true,
+      );
+    }
   });
 });
 

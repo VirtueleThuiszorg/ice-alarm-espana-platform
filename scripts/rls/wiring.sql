@@ -303,6 +303,49 @@ BEGIN
   RAISE NOTICE 'wiring contract OK — an unanswerable contact enquiry is refused, a real one is not';
 END $$;
 
+-- ── A SUSPECTED-SPAM ENQUIRY IS SAVED AND DOES NOT RING ─────────────────────
+--
+-- `suspected_spam` gates both new-lead triggers through their WHEN clause. The property worth
+-- asserting is BOTH HALVES AT ONCE, because each alone is satisfied by the wrong thing: "no
+-- notifications" is also true of a trigger that refused the INSERT, and "the row exists" is also
+-- true of a WHEN clause that never fires.
+--
+-- The heuristics behind the flag are guesses — a link in the message, a vendor pitch, a language
+-- mismatch — and the last of those will one day flag a real Spanish daughter who left the
+-- English flag selected. Losing her enquiry would be far worse than one unnecessary bell, so
+-- "the row is still there" is the assertion that matters most here.
+DO $$
+DECLARE n_spam int; n_clean int; saved int; expected int;
+BEGIN
+  INSERT INTO public.leads (id, first_name, last_name, email, phone, enquiry_type, source, status, suspected_spam, spam_reasons)
+  VALUES ('cccc5555-5555-5555-5555-555555555555', 'SEO', 'Agency', 'sales@example.com', '+34600999888', 'general', 'contact_form', 'new', true, ARRAY['vendor_pitch']);
+
+  SELECT count(*) INTO n_spam FROM public.notification_log WHERE entity_id = 'cccc5555-5555-5555-5555-555555555555';
+  IF n_spam <> 0 THEN
+    RAISE EXCEPTION 'a suspected-spam lead rang the bell % times', n_spam;
+  END IF;
+
+  -- IT IS STILL AN ENQUIRY. Not refused, not deleted, still in the list staff read.
+  SELECT count(*) INTO saved FROM public.leads WHERE id = 'cccc5555-5555-5555-5555-555555555555';
+  IF saved <> 1 THEN
+    RAISE EXCEPTION 'the suspected-spam enquiry was not saved — suppressing the bell must never drop the row';
+  END IF;
+
+  -- AND THE GATE IS NOT SO WIDE THAT NOTHING RINGS. A WHEN clause that never fires passes the
+  -- first assertion and silences every real enquiry, which is the defect this whole area exists
+  -- to fix, reintroduced from the other side.
+  INSERT INTO public.leads (id, first_name, last_name, email, phone, enquiry_type, source, status)
+  VALUES ('cccc6666-6666-6666-6666-666666666666', 'Ana', 'Vidal', 'ana@example.es', '+34600222333', 'pricing', 'contact_form', 'new');
+
+  SELECT count(*) INTO n_clean FROM public.notification_log WHERE entity_id = 'cccc6666-6666-6666-6666-666666666666';
+  SELECT count(*) INTO expected FROM public.staff WHERE is_active AND user_id IS NOT NULL;
+  IF n_clean <> expected THEN
+    RAISE EXCEPTION 'an ordinary enquiry notified % staff, expected %', n_clean, expected;
+  END IF;
+
+  RAISE NOTICE 'wiring contract OK — a suspected-spam enquiry is saved and silent, an ordinary one still rings % staff', n_clean;
+END $$;
+
 ROLLBACK;
 
 -- ============================================================================

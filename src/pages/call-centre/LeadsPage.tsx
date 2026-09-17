@@ -12,15 +12,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { LeadContactButton, LeadContactValue, LeadName } from "@/components/leads/LeadContact";
 import { 
   Search, 
-  Phone, 
-  Mail, 
   Clock,
   CheckCircle,
   MessageSquare,
   RefreshCw,
-  ExternalLink,
   UserPlus
 } from "lucide-react";
 
@@ -291,21 +289,17 @@ export default function CallCentreLeadsPage() {
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium">{lead.first_name} {lead.last_name}</p>
+                      <p className="font-medium"><LeadName lead={lead} /></p>
                       {getStatusBadge(lead.status)}
                       <Badge variant="outline" className="text-xs">
                         {getEnquiryLabel(lead.enquiry_type)}
                       </Badge>
                     </div>
+                    {/* An icon with nothing after it still reads as "there is a way to reach
+                        this person" to somebody scanning a queue. See lib/leadDisplay.ts. */}
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Mail className="h-3 w-3" />
-                        {lead.email}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        {lead.phone}
-                      </span>
+                      <LeadContactValue kind="email" value={lead.email} linkify={false} />
+                      <LeadContactValue kind="phone" value={lead.phone} linkify={false} />
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Clock className="h-3 w-3" />
@@ -316,20 +310,8 @@ export default function CallCentreLeadsPage() {
                     </div>
                   </div>
                   <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                    <Button 
-                      variant="outline" 
-                      size="icon"
-                      onClick={() => window.location.href = `tel:${lead.phone}`}
-                    >
-                      <Phone className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="icon"
-                      onClick={() => window.location.href = `mailto:${lead.email}`}
-                    >
-                      <Mail className="h-4 w-4" />
-                    </Button>
+                    <LeadContactButton kind="phone" value={lead.phone} />
+                    <LeadContactButton kind="email" value={lead.email} />
                     {lead.status === 'new' && (
                       <Button 
                         size="sm"
@@ -366,7 +348,7 @@ export default function CallCentreLeadsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs text-muted-foreground">{t("common.name", "Name")}</Label>
-                  <p className="font-medium">{selectedLead.first_name} {selectedLead.last_name}</p>
+                  <p className="font-medium"><LeadName lead={selectedLead} /></p>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">{t("common.status", "Status")}</Label>
@@ -374,17 +356,19 @@ export default function CallCentreLeadsPage() {
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">{t("common.email", "Email")}</Label>
-                  <a href={`mailto:${selectedLead.email}`} className="text-primary hover:underline flex items-center gap-1 text-sm">
-                    {selectedLead.email}
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
+                  <LeadContactValue
+                    kind="email"
+                    value={selectedLead.email}
+                    className="text-primary hover:underline text-sm"
+                  />
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">{t("common.phone", "Phone")}</Label>
-                  <a href={`tel:${selectedLead.phone}`} className="text-primary hover:underline flex items-center gap-1 text-sm">
-                    {selectedLead.phone}
-                    <Phone className="h-3 w-3" />
-                  </a>
+                  <LeadContactValue
+                    kind="phone"
+                    value={selectedLead.phone}
+                    className="text-primary hover:underline text-sm"
+                  />
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">{t("leads.enquiryType", "Enquiry Type")}</Label>
@@ -428,15 +412,16 @@ export default function CallCentreLeadsPage() {
 
               {/* Actions */}
               <div className="flex gap-2 pt-4 border-t">
-                <Button 
+                {/* Disabled with the reason rather than hidden: two rows that differ by a
+                    missing button leave the operator to work out which one. */}
+                <LeadContactButton
+                  kind="phone"
+                  value={selectedLead.phone}
+                  variant="default"
+                  size="default"
                   className="flex-1"
-                  onClick={() => {
-                    window.location.href = `tel:${selectedLead.phone}`;
-                  }}
-                >
-                  <Phone className="h-4 w-4 mr-2" />
-                  {t("leads.callNow", "Call Now")}
-                </Button>
+                  label={t("leads.callNow", "Call Now")}
+                />
                 {selectedLead.status === 'new' && (
                   <Button 
                     variant="outline"

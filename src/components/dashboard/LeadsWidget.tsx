@@ -6,11 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { LeadContactButton, LeadContactValue, LeadName } from "@/components/leads/LeadContact";
 import { 
   UserPlus, 
   ArrowRight, 
-  Mail, 
-  Phone,
   Clock
 } from "lucide-react";
 
@@ -103,56 +102,38 @@ export function LeadsWidget({ variant = 'admin' }: LeadsWidgetProps) {
           </div>
         ) : (
           leads.map((lead) => (
-            <Link
+            /*
+              THE ROW IS NO LONGER ONE BIG <Link>. The Call and email buttons are real anchors
+              now (`tel:` / `mailto:`), and an anchor inside an anchor is invalid markup that
+              browsers resolve by guessing. The Link wraps the text, which is what somebody
+              clicks to open the enquiry; the buttons sit beside it.
+            */
+            <div
               key={lead.id}
-              to={linkPath}
               className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
             >
-              <div className="flex-1 min-w-0">
+              <Link to={linkPath} className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="font-medium truncate">
-                    {lead.first_name} {lead.last_name}
+                    <LeadName lead={lead} />
                   </p>
                   <Badge variant="outline" className="shrink-0 text-xs">
                     {getEnquiryLabel(lead.enquiry_type)}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Mail className="h-3 w-3" />
-                    {lead.email}
-                  </span>
+                  <LeadContactValue kind="email" value={lead.email} linkify={false} />
                   <span className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     {format(new Date(lead.created_at), 'HH:mm')}
                   </span>
                 </div>
-              </div>
+              </Link>
               <div className="ml-2 flex gap-1">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.location.href = `tel:${lead.phone}`;
-                  }}
-                >
-                  <Phone className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.location.href = `mailto:${lead.email}`;
-                  }}
-                >
-                  <Mail className="h-4 w-4" />
-                </Button>
+                <LeadContactButton kind="phone" value={lead.phone} variant="ghost" className="h-8 w-8" />
+                <LeadContactButton kind="email" value={lead.email} variant="ghost" className="h-8 w-8" />
               </div>
-            </Link>
+            </div>
           ))
         )}
       </CardContent>

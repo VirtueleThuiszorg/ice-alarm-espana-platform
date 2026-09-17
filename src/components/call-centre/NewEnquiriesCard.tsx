@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CheckCircle, ArrowRight, Mail, Inbox } from "lucide-react";
+import { LeadName } from "@/components/leads/LeadContact";
 
 /**
  * NEW ENQUIRIES AWAITING A FIRST REPLY.
@@ -110,7 +111,6 @@ export function NewEnquiriesCard() {
           </div>
         ) : (
           enquiries?.map((lead) => {
-            const name = `${lead.first_name ?? ""} ${lead.last_name ?? ""}`.trim();
             return (
               <Link
                 key={lead.id}
@@ -121,10 +121,11 @@ export function NewEnquiriesCard() {
                   <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">
-                      {/* A lead can arrive with blank names — the columns are NOT
-                          NULL but empty strings get through — and "  " reads as a
-                          broken row rather than an anonymous one. */}
-                      {name || t("staffDashboard.enquiryNoName", "No name given")}
+                      {/* A lead can arrive with blank names — the columns are NOT NULL but
+                          empty strings get through — and "  " reads as a broken row rather
+                          than an anonymous one. The same words, in the same muted type, as
+                          both Leads screens: `leads.noName`, not a third wording. */}
+                      <LeadName lead={lead} />
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
                       {lead.enquiry_type ?? "general"}

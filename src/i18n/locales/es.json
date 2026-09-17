@@ -2141,8 +2141,7 @@
     "fetchError": "Error al cargar los datos del panel",
     "alreadyClaimed": "Otro operador ya ha reclamado esta alerta.",
     "newEnquiries": "Nuevas consultas",
-    "noNewEnquiries": "Todas las consultas han sido atendidas",
-    "enquiryNoName": "Sin nombre"
+    "noNewEnquiries": "Todas las consultas han sido atendidas"
   },
   "leadsWidget": {
     "newLeads": "Nuevos leads",
@@ -2557,6 +2556,13 @@
     "linkOpened": "Enlace Abierto"
   },
   "leads": {
+    "noName": "Sin nombre",
+    "noEmail": "Sin correo electrónico",
+    "noPhone": "Sin teléfono",
+    "sendEmail": "Enviar un correo",
+    "callLead": "Llamar",
+    "noEmailOnFile": "Esta consulta no incluye correo electrónico",
+    "noPhoneOnFile": "Esta consulta no incluye teléfono",
     "newLeads": "Nuevos Leads",
     "searchPlaceholder": "Buscar por nombre, email, teléfono...",
     "statusFilter": "Estado",

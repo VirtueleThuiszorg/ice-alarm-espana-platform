@@ -192,23 +192,42 @@ for (const width of [360, 390, 768]) {
         // about the rendered page, and the Sheet is not rendered until the hamburger is pressed.
         await expect(page.locator('[role="dialog"]')).toHaveCount(0);
 
-        // …and 44px of it to aim at, per R11. The reader here is somebody with a tremor.
-        const box = await control.boundingBox();
-        expect(box?.height ?? 0, `${route}: touch target`).toBeGreaterThanOrEqual(44);
+        /*
+          MEASURED THROUGH THE LOCATOR, AND POLLED — because a handle taken a moment earlier can
+          be detached by the time it is read.
+
+          `ClientLayout` declares `SidebarContent` inside its own body, so every render produces a
+          new component type and React unmounts and remounts that whole subtree. `toBeVisible()`
+          passed and the very next `boundingBox()` returned null on a CI runner, which is what
+          that looks like from the outside: slower machine, queries settling later, one more
+          re-render inside the gap between two awaits. (The remount itself is a real defect in
+          that file and not this branch's to fix — it is in the report.)
+
+          `locator.evaluate` re-resolves the element on every attempt, so the poll measures
+          whatever is on screen NOW rather than what was there when the handle was made.
+        */
+        const geometry = () =>
+          control.evaluate((el) => {
+            const r = el.getBoundingClientRect();
+            return { height: r.height, top: r.top, bottom: r.bottom, scrollY: window.scrollY };
+          });
+
+        // 44px of it to aim at, per R11. The reader here is somebody with a tremor.
+        await expect
+          .poll(async () => (await geometry()).height, { message: `${route}: touch target` })
+          .toBeGreaterThanOrEqual(44);
 
         /*
           WITHOUT SCROLLING, which `toBeVisible` does not say. Playwright calls an element visible
           when it has a box and is not `display:none` — an element a screen below the fold passes
           that happily, and "reachable in one tap" is exactly the claim that would then be false.
-          So: the control's box is inside the viewport, and the page has not been scrolled to put
-          it there.
         */
         const viewport = page.viewportSize()!;
-        const scrolled = await page.evaluate(() => window.scrollY);
-        expect(scrolled, `${route}: the page scrolled to reach the number`).toBe(0);
-        expect(box!.y, `${route}: the number is above the viewport`).toBeGreaterThanOrEqual(0);
+        const box = await geometry();
+        expect(box.scrollY, `${route}: the page scrolled to reach the number`).toBe(0);
+        expect(box.top, `${route}: the number is above the viewport`).toBeGreaterThanOrEqual(0);
         expect(
-          box!.y + box!.height,
+          box.bottom,
           `${route}: the number is below the fold at ${width}px`,
         ).toBeLessThanOrEqual(viewport.height);
 

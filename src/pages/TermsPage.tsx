@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 import TermsContent from "@/components/legal/TermsContent";
 import { PublicHeader } from "@/components/layout/PublicHeader";
+import { CURRENT_MEMBER_TERMS_VERSION } from "@/content/memberTerms";
 
 export default function TermsPage() {
   const { t } = useTranslation();
@@ -35,7 +36,7 @@ export default function TermsPage() {
               </div>
             </div>
             <p className="text-sm text-muted-foreground">
-              {t("legal.terms.lastUpdated")}
+              {t("legal.terms.lastUpdated", { version: CURRENT_MEMBER_TERMS_VERSION })}
             </p>
           </div>
 

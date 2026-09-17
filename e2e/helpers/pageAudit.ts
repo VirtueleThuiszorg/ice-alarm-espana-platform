@@ -39,6 +39,13 @@ export const BUTTON_NOOP_ALLOWLIST: RegExp[] = [
   // explicitly out of scope for the public-page audit, and its actions (open modal /
   // start a call) are not reliably DOM-observable here.
   /call and speak|call me|isabella|open chat|chat with|close chat/i,
+  /*
+    `window.print()`. The Cancellation Policy's "Print this page" button opens the browser's
+    own print dialog — Chromium suppresses that dialog under automation, and the call changes
+    nothing in the document by design, so the heuristic can only ever read this as dead.
+    It is the same category as a native file picker, which is what this list is for.
+  */
+  /print/i,
 ];
 
 export type Lang = "en" | "es" | "nl";

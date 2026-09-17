@@ -197,9 +197,26 @@ for (const width of [360, 390, 768]) {
         expect(box?.height ?? 0, `${route}: touch target`).toBeGreaterThanOrEqual(44);
 
         /*
+          WITHOUT SCROLLING, which `toBeVisible` does not say. Playwright calls an element visible
+          when it has a box and is not `display:none` — an element a screen below the fold passes
+          that happily, and "reachable in one tap" is exactly the claim that would then be false.
+          So: the control's box is inside the viewport, and the page has not been scrolled to put
+          it there.
+        */
+        const viewport = page.viewportSize()!;
+        const scrolled = await page.evaluate(() => window.scrollY);
+        expect(scrolled, `${route}: the page scrolled to reach the number`).toBe(0);
+        expect(box!.y, `${route}: the number is above the viewport`).toBeGreaterThanOrEqual(0);
+        expect(
+          box!.y + box!.height,
+          `${route}: the number is below the fold at ${width}px`,
+        ).toBeLessThanOrEqual(viewport.height);
+
+        /*
           NOTHING MAY SCROLL SIDEWAYS — with one named exception that is not this change's.
 
-          `/dashboard` overflows by 12px at EXACTLY 768px, and it did so before this branch: the
+          `/dashboard` overflows at EXACTLY 768px — 12px here, 18px on the CI runner — and it did
+          so before this branch: the
           member dashboard's own stat-tile grid, found and recorded during the "Your protection"
           layout work (#455) and reproduced there by reverting that file on the same harness. At
           768px this change is not even on screen — `md:hidden` means the mobile bar is gone and
@@ -216,10 +233,17 @@ for (const width of [360, 390, 768]) {
             scroll: document.documentElement.scrollWidth,
             client: document.documentElement.clientWidth,
           }));
-          expect(
-            overflow.scroll - overflow.client,
-            "the known /dashboard overflow at 768px changed size or was fixed — see the comment",
-          ).toBe(12);
+          const by = overflow.scroll - overflow.client;
+          /*
+            A RANGE, NOT A NUMBER, and the first attempt here was the number. It measured 12px
+            locally and 18px on the CI runner — the same defect through a different font stack, so
+            an exact figure fails on whichever machine did not produce it. The range still bites
+            in the direction that matters: `> 2` goes red the moment somebody fixes the grid, and
+            the upper bound catches it getting worse rather than letting "some overflow" mean any
+            amount at all.
+          */
+          expect(by, "the known /dashboard overflow at 768px was fixed — delete this exception").toBeGreaterThan(2);
+          expect(by, "the known /dashboard overflow at 768px got worse — that IS worth looking at").toBeLessThanOrEqual(32);
         } else {
           await expectNoHorizontalOverflow(page);
         }

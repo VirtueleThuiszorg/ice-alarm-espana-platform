@@ -434,20 +434,21 @@
   "gdpr": {
     "cookieBanner": {
       "title": "We use cookies",
-      "description": "We use cookies and similar technologies to improve your experience, analyse traffic and personalise content. You can choose which cookies you allow.",
+      "description": "We use strictly necessary technologies to keep this website working and secure. With your permission, we would also like to use our own analytics to understand how the website is used. You can accept, reject or choose — and change your mind at any time.",
       "customize": "Customize",
       "rejectNonEssential": "Reject non-essential",
-      "acceptAll": "Accept all"
+      "acceptAll": "Accept all",
+      "policyLink": "Read our Cookie Policy"
     },
     "cookieSettings": {
       "title": "Cookie Preferences",
       "description": "Manage your cookie preferences below. Essential cookies are always active as they are necessary for the website to function.",
       "essential": "Essential Cookies",
-      "essentialDescription": "Required for the website to function properly. Cannot be disabled.",
+      "essentialDescription": "Needed to sign you in, keep the website secure, remember your cookie choice and detect errors. They cannot be switched off.",
       "analytics": "Analytics Cookies",
-      "analyticsDescription": "Help us understand how visitors interact with our website to improve performance.",
+      "analyticsDescription": "Our own statistics about which pages are visited and from what kind of device. Not shared with advertisers. Off unless you switch them on.",
       "marketing": "Marketing Cookies",
-      "marketingDescription": "Used to deliver personalised advertisements and track campaign effectiveness.",
+      "marketingDescription": "We do not currently use advertising or social-media cookies. If we ever do, they will only run with your consent.",
       "savePreferences": "Save preferences"
     },
     "settings": {
@@ -3218,16 +3219,20 @@
     "openChat": "Open chat",
     "closeChat": "Close chat",
     "newChat": "New chat",
-    "assistantName": "ICE Alarm España Assistant",
-    "memberAssistantName": "Your Personal Assistant",
+    "assistantName": "Isabella · AI assistant",
+    "memberAssistantName": "Isabella · Your AI assistant",
     "available": "Available 24/7",
     "memberAssistantAvailable": "Here to help you",
     "placeholder": "Type your message...",
     "send": "Send",
-    "welcomeMessage": "Hello! 👋 I'm your ICE Alarm España virtual assistant. How can I help you today? I can answer questions about our services, pricing, or help you get started.",
+    "welcomeMessage": "Hello! 👋 I'm Isabella, ICE Alarm España's AI virtual assistant. How can I help you today? I can answer questions about our services and pricing, or help you get started.",
     "errorMessage": "Sorry, there was a connection issue. Please try again later.",
     "fallbackMessage": "Sorry, I couldn't process your message. Please try again.",
-    "assistant": "Assistant"
+    "assistant": "Assistant",
+    "aiDisclosure": {
+      "label": "AI assistant — not a person",
+      "text": "Isabella is an artificial intelligence assistant, not a person, and cannot give medical advice. To speak to a person, just ask her. In an emergency, press your SOS button or call 112."
+    }
   },
   "partnerAgreement": {
     "title": "Partner Agreement",
@@ -4545,6 +4550,229 @@
       "s16Intro": "<strong>For any question about your personal data:</strong>",
       "s16Content": "ICE Alarm España S.L. (CIF B24731531)<br/>[[TO CONFIRM: registered office address]]<br/>Privacy and DPO: privacy@icealarm.es<br/>General enquiries: info@icealarm.es",
       "governedBy": "This policy is governed by Regulation (EU) 2016/679 (GDPR), Spanish Organic Law 3/2018 (LOPDGDD) and Spanish law."
+    },
+    "cookies": {
+      "title": "Cookie Policy",
+      "company": "ICE Alarm España S.L. — CIF B24731531",
+      "lastUpdated": "Last updated: 17 September 2026 · Version 2 · Draft pending legal review",
+      "footerLink": "Cookie Policy",
+      "settingsLink": "Cookie settings",
+      "intro": "This Cookie Policy explains which cookies and similar technologies are used on icealarm.es and in the ICE Alarm España member, partner and staff portals, what they are for, how long they last and how you can accept, refuse or withdraw your consent at any time. It complements our Privacy Policy, which explains how we process personal data in general.",
+      "s1Title": "1. What are cookies and similar technologies?",
+      "s1p1": "Cookies are small text files that a website stores on your device. Websites can also store information in your browser in other ways — for example “local storage” (which remains until it is deleted) and “session storage” (which is deleted when you close the tab or browser). The Spanish Information Society Services Act (Ley 34/2002, LSSI-CE, article 22.2) applies to all of these technologies in the same way, so in this policy we call them all “cookies”.",
+      "s1p2": "Some cookies are strictly necessary for a service you have asked for, and can be used without your consent. All other cookies are only used if you agree to them.",
+      "s2Title": "2. Who is responsible",
+      "s2p1": "The cookies described here are set by ICE Alarm España S.L. (CIF B24731531), except where a third-party provider is named in the table. You can contact us about this policy at privacy@icealarm.es.",
+      "s3Title": "3. The categories we use",
+      "s3Items": [
+        "Strictly necessary: to sign you in and keep your session secure, to remember your cookie choice, to keep a form you are filling in and to detect errors. They cannot be switched off, because the website would not work without them.",
+        "Preferences: to remember choices you make, such as your language, text size or whether you have already seen a guided tour. They are only stored when you make that choice.",
+        "Analytics (only with your consent): our own statistics about which pages are visited and from what kind of device, so we can improve the website. They are not shared with advertisers.",
+        "Marketing: we do not currently use advertising or social-media cookies. If we ever do, they will only be used with your consent and this policy will be updated first."
+      ],
+      "s4Title": "4. The cookies we use",
+      "s4Intro": "The table below lists every cookie and storage item our website and portals use. Names that contain <…> vary slightly from device to device.",
+      "tableHeaders": {
+        "name": "Name",
+        "provider": "Provider",
+        "purpose": "Purpose",
+        "duration": "Duration",
+        "type": "Type"
+      },
+      "essentialTitle": "4.1 Strictly necessary",
+      "essentialRows": [
+        {
+          "name": "sb-<project>-auth-token",
+          "provider": "ICE Alarm España (authentication service provided by Supabase)",
+          "purpose": "Keeps you signed in to your account securely.",
+          "duration": "If you ticked “Keep me signed in”: until you sign out. Otherwise: until you close the browser.",
+          "type": "Local storage or session storage"
+        },
+        {
+          "name": "ice.auth.persist",
+          "provider": "ICE Alarm España",
+          "purpose": "Remembers whether you asked to stay signed in on this device.",
+          "duration": "Until you change the choice or clear your browser data",
+          "type": "Local storage"
+        },
+        {
+          "name": "ice_cookie_consent",
+          "provider": "ICE Alarm España",
+          "purpose": "Records your cookie choice, when you made it and the version of this policy.",
+          "duration": "24 months, then we ask again",
+          "type": "Local storage"
+        },
+        {
+          "name": "isRecoveryFlow",
+          "provider": "ICE Alarm España",
+          "purpose": "Completes a password reset you have requested.",
+          "duration": "Until the reset is finished or the tab is closed",
+          "type": "Session storage"
+        },
+        {
+          "name": "chunk-reload-<page>",
+          "provider": "ICE Alarm España",
+          "purpose": "Prevents a reload loop after we publish a new version of the website.",
+          "duration": "Until the tab is closed",
+          "type": "Session storage"
+        },
+        {
+          "name": "join_wizard_session_id, join_wizard_data",
+          "provider": "ICE Alarm España",
+          "purpose": "Keeps the sign-up form you are filling in, so it is not lost when you go to the payment page.",
+          "duration": "Until you finish or restart the sign-up",
+          "type": "Local storage"
+        },
+        {
+          "name": "ice_conversation_id, ice_conversation_expiry",
+          "provider": "ICE Alarm España",
+          "purpose": "Continues your conversation with our AI assistant, Isabella, if you move to another page.",
+          "duration": "30 minutes after your last message",
+          "type": "Local storage"
+        },
+        {
+          "name": "sentryReplaySession",
+          "provider": "Sentry (Functional Software, Inc.)",
+          "purpose": "Error monitoring: if the website fails, records a technical trace so we can fix it. Text on screen is masked and images are blocked.",
+          "duration": "Until the tab is closed",
+          "type": "Session storage"
+        }
+      ],
+      "preferencesTitle": "4.2 Preferences",
+      "preferencesRows": [
+        {
+          "name": "i18nextLng",
+          "provider": "ICE Alarm España",
+          "purpose": "Remembers the language you chose.",
+          "duration": "Until you change it or clear your browser data",
+          "type": "Local storage"
+        },
+        {
+          "name": "iceAlarmLanguageSelected",
+          "provider": "ICE Alarm España",
+          "purpose": "Remembers that you have already chosen a language, so we do not ask again.",
+          "duration": "Until you clear your browser data",
+          "type": "Local storage"
+        },
+        {
+          "name": "ice.textSize",
+          "provider": "ICE Alarm España",
+          "purpose": "Remembers the text size you chose (A/A).",
+          "duration": "Until you change it or clear your browser data",
+          "type": "Local storage"
+        },
+        {
+          "name": "ice_tour_<name>_completed",
+          "provider": "ICE Alarm España",
+          "purpose": "Remembers that you have finished or skipped a guided tour.",
+          "duration": "Until you restart the tour or clear your browser data",
+          "type": "Local storage"
+        },
+        {
+          "name": "ice_feedback_cooldown, ice_feedback_dismissed",
+          "provider": "ICE Alarm España",
+          "purpose": "Avoids asking you for feedback again too soon, or after you declined.",
+          "duration": "Until the waiting period ends, or until you clear your browser data",
+          "type": "Local storage"
+        },
+        {
+          "name": "sidebar:state",
+          "provider": "ICE Alarm España",
+          "purpose": "Remembers whether the portal side menu is open or closed.",
+          "duration": "7 days",
+          "type": "Cookie"
+        }
+      ],
+      "analyticsTitle": "4.3 Analytics (only with your consent)",
+      "analyticsRows": [
+        {
+          "name": "ice_visitor_id",
+          "provider": "ICE Alarm España (stored in our own database, hosted by Supabase)",
+          "purpose": "A random identifier that lets us count returning visitors without knowing who they are.",
+          "duration": "Until you withdraw consent (we then delete it) or clear your browser data",
+          "type": "Local storage"
+        },
+        {
+          "name": "ice_session_id, ice_session_timestamp",
+          "provider": "ICE Alarm España (stored in our own database, hosted by Supabase)",
+          "purpose": "Groups the pages viewed in one visit.",
+          "duration": "30 minutes of inactivity; deleted when you withdraw consent",
+          "type": "Local storage"
+        }
+      ],
+      "referralTitle": "4.4 Partner referrals",
+      "referralIntro": "These are only stored if you arrive through a link shared by one of our partners. They record which partner referred you, so that the partner can be credited if you join. They do not track you on other websites.",
+      "referralRows": [
+        {
+          "name": "partner_ref, partner_utm",
+          "provider": "ICE Alarm España",
+          "purpose": "Records the partner code and campaign in the link you followed.",
+          "duration": "Until you complete the sign-up, or until you clear your browser data",
+          "type": "Local storage"
+        },
+        {
+          "name": "partner_referral",
+          "provider": "ICE Alarm España",
+          "purpose": "Records the partner and the post you came from.",
+          "duration": "30 days",
+          "type": "Local storage"
+        },
+        {
+          "name": "ref_partner_code, ref_partner_id, ref_post_id",
+          "provider": "ICE Alarm España",
+          "purpose": "The same information, readable by our server.",
+          "duration": "30 days",
+          "type": "Cookie"
+        }
+      ],
+      "staffTitle": "4.5 Staff portal only",
+      "staffIntro": "The following are only used by ICE Alarm España staff when working in the internal portal.",
+      "staffRows": [
+        {
+          "name": "icealarm.push.deviceLabel.token, firebase-messaging-database",
+          "provider": "Google (Firebase Cloud Messaging)",
+          "purpose": "Delivers alert notifications to a staff member’s device once they have enabled them.",
+          "duration": "Until notifications are turned off",
+          "type": "Local storage and IndexedDB"
+        },
+        {
+          "name": "videoHub_activeTab, videoHub_filters",
+          "provider": "ICE Alarm España",
+          "purpose": "Remembers the tab and filters selected in the video library.",
+          "duration": "Until the tab is closed",
+          "type": "Session storage"
+        },
+        {
+          "name": "Google cookies (for example NID)",
+          "provider": "Google LLC (Google Maps)",
+          "purpose": "An embedded Google map shows the location of an alert. Google may set its own cookies when the map loads.",
+          "duration": "Set by Google — see Google’s cookie policy",
+          "type": "Third-party cookie"
+        }
+      ],
+      "s5Title": "5. Third parties",
+      "s5Items": [
+        "We do not use Google Analytics, advertising networks or social-media tracking pixels.",
+        "Payments are made on the pages of our payment providers (Stripe or Mollie). When you are on their pages, their own cookie policies apply.",
+        "The map used to set your home location loads images from OpenStreetMap. It does not set cookies, but your browser connects to their servers to load the map."
+      ],
+      "s6Title": "6. How to accept, refuse or withdraw consent",
+      "s6p1": "When you first visit, a banner lets you accept all cookies, reject all non-essential cookies, or choose by category. Rejecting is as easy as accepting, and no optional category is switched on in advance.",
+      "s6p2": "You can change your mind at any time using “Cookie settings” at the bottom of our pages, the button below or, if you are a member, the Privacy & Data section of your account. When you withdraw consent for analytics, we stop collecting statistics straight away and delete the analytics identifiers from your browser. Withdrawing consent does not affect anything done before.",
+      "settingsButton": "Open cookie settings",
+      "s6BrowsersIntro": "You can also block or delete cookies and stored data in your browser settings. If you block strictly necessary cookies, parts of the website — such as signing in — will not work.",
+      "s6Browsers": [
+        "Google Chrome: Settings › Privacy and security › Third-party cookies / Site data",
+        "Mozilla Firefox: Settings › Privacy & Security › Cookies and Site Data",
+        "Safari: Settings › Safari › Advanced › Website Data",
+        "Microsoft Edge: Settings › Cookies and site permissions"
+      ],
+      "s7Title": "7. International transfers",
+      "s7p1": "Some of the providers named above (such as Sentry and Google) are based outside the European Economic Area. Where their technologies involve a transfer of personal data, it is made under the safeguards described in our Privacy Policy.",
+      "s8Title": "8. Changes to this policy",
+      "s8p1": "We will update this policy if the cookies we use change. If a change requires your consent again, the banner will ask you again the next time you visit. The date and version at the top show when it was last changed.",
+      "s9Title": "9. Contact",
+      "s9p1": "For any question about cookies or your personal data, write to privacy@icealarm.es. You also have the right to complain to the Spanish Data Protection Agency (AEPD, www.aepd.es)."
     }
   },
   "mediaStrategy": {
@@ -6936,11 +7164,11 @@
     "staff": {
       "title": "Home location",
       "purpose": "Where an operator sends help when the pendant cannot say where the member is.",
-      "loadFailed": "We could not load this member's home location. This does not mean there is none \u2014 reload the record before setting a pin.",
+      "loadFailed": "We could not load this member's home location. This does not mean there is none — reload the record before setting a pin.",
       "confirmedByMember": "Confirmed by the member",
       "setByTeam": "Set by our team",
-      "fromAddress": "From the address \u2014 not confirmed",
-      "fromImport": "From the CRM import \u2014 not confirmed",
+      "fromAddress": "From the address — not confirmed",
+      "fromImport": "From the CRM import — not confirmed",
       "none": "No pin on this record. The SOS card will fall back to the postal address.",
       "correctPin": "Correct the pin",
       "setPin": "Set the pin"
@@ -6993,8 +7221,8 @@
   },
   "memberDocument": {
     "title": "Member record",
-    "printedBy": "Printed by {{who}} on {{date}} \u00b7 icealarm.es",
-    "printedOn": "Printed on {{date}} \u00b7 icealarm.es",
-    "redacted": "Held \u2014 not printed"
+    "printedBy": "Printed by {{who}} on {{date}} · icealarm.es",
+    "printedOn": "Printed on {{date}} · icealarm.es",
+    "redacted": "Held — not printed"
   }
 }

@@ -9,6 +9,7 @@ import { ImageWithPlaceholder } from "@/components/ui/image-placeholder";
 import { Link, useSearchParams } from "react-router-dom";
 import { extractUtmParams, storeReferralData } from "@/lib/crmEvents";
 import { useTranslation } from "react-i18next";
+import { CookieFooterLinks } from "@/components/legal/CookieFooterLinks";
 import { PublicHeader } from "@/components/layout/PublicHeader";
 import { useWebsiteImagesBatch } from "@/hooks/useWebsiteImage";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
@@ -738,6 +739,7 @@ export default function LandingPage() {
                 <li><Link to="/terms" className="hover:text-sidebar-foreground transition-colors">{t("landing.termsOfService")}</Link></li>
                 <li><Link to="/privacy" className="hover:text-sidebar-foreground transition-colors">{t("landing.privacyPolicy")}</Link></li>
                 <li><Link to="/cancellation-policy" className="hover:text-sidebar-foreground transition-colors">{t("legal.cancellation.footerLink")}</Link></li>
+                <CookieFooterLinks className="hover:text-sidebar-foreground transition-colors" />
                 <li><Link to="/help" className="hover:text-sidebar-foreground transition-colors">{t("help.title", "Help Center")}</Link></li>
               </ul>
             </div>

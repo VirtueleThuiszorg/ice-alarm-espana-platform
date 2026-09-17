@@ -11,6 +11,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { sosVoiceGreeting } from "../_shared/ai-disclosure.ts";
 
 const FN = "isabella-voice-handler";
 
@@ -90,11 +91,10 @@ Deno.serve(async (req) => {
     if (action === "greeting") {
       const recordingEs = "Esta llamada está siendo grabada para su seguridad.";
       const recordingEn = "This call is being recorded for your safety.";
-      const greetEs = `${name ? `${name}, ` : ""}soy Isabella de ICE Alarm España. Puedo ver su alerta. ¿Puede hablar conmigo?`;
-      const greetEn = `${name ? `${name}, ` : ""}this is Isabella from ICE Alarm España. I can see your alert. Are you able to speak to me?`;
-
+      // EU AI Act art. 50 — the member must know from the first sentence that Isabella is an AI,
+      // not a person. DRAFT wording, pending legal review: see _shared/ai-disclosure.ts.
       const recording = lang === "es" ? recordingEs : recordingEn;
-      const greeting = lang === "es" ? greetEs : greetEn;
+      const greeting = sosVoiceGreeting(lang, name);
 
       await logNote(sb, alert_id, "observation", `Isabella greeting: ${recording} ${greeting}`);
 

@@ -5,6 +5,7 @@ import { functionKeyForTrigger, isIsabellaFunctionAllowed } from "../_shared/isa
 import { decideVerification, applyEscalation, verificationDirective } from "../_shared/verification-gate.ts";
 import { ISABELLA_MODEL, isabellaComplete, isabellaStream, isRateLimitError, toAnthropicTurns } from "../_shared/anthropic.ts";
 import { reportIsabellaDown } from "../_shared/isabella-down.ts";
+import { AI_IDENTITY_RULE } from "../_shared/ai-disclosure.ts";
 
 
 
@@ -1070,7 +1071,7 @@ You are speaking directly with ${member?.first_name || "this member"}. Use their
       // untouched. Same system prompt, same turns, same gates either way.
       if (context?.stream === true) {
         const stream = isabellaStream({
-          system: systemPrompt + languageInstruction,
+          system: systemPrompt + AI_IDENTITY_RULE + languageInstruction,
           turns: toAnthropicTurns(conversationHistory, currentMessage),
           maxTokens: 500,
         });
@@ -1142,7 +1143,7 @@ You are speaking directly with ${member?.first_name || "this member"}. Use their
       let chatTokens: number | null = null;
       try {
         const completion = await isabellaComplete({
-          system: systemPrompt + languageInstruction,
+          system: systemPrompt + AI_IDENTITY_RULE + languageInstruction,
           turns: toAnthropicTurns(conversationHistory, currentMessage),
           maxTokens: 500,
         });
@@ -1308,7 +1309,7 @@ When discussing emergency contacts, use the EXACT names listed above - never inv
       let responseContent = "";
       try {
         const completion = await isabellaComplete({
-          system: systemPrompt + voiceInstructions + memberContext + languageInstruction + verificationDirective(verificationDecision),
+          system: systemPrompt + AI_IDENTITY_RULE + voiceInstructions + memberContext + languageInstruction + verificationDirective(verificationDecision),
           turns: toAnthropicTurns(conversationHistory, currentMessage),
           maxTokens: 300, // Lower for voice - keep responses concise
         });

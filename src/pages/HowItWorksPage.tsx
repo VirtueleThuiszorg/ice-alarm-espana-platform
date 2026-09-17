@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { CookieFooterLinks } from "@/components/legal/CookieFooterLinks";
 import {
   ArrowRight,
   Phone,
@@ -661,6 +662,7 @@ export default function HowItWorksPage() {
                     {t("legal.cancellation.footerLink")}
                   </Link>
                 </li>
+                <CookieFooterLinks className="hover:text-sidebar-foreground" />
               </ul>
             </div>
           </div>

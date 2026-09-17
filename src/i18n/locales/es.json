@@ -434,20 +434,21 @@
   "gdpr": {
     "cookieBanner": {
       "title": "Usamos cookies",
-      "description": "Utilizamos cookies y tecnologías similares para mejorar su experiencia, analizar el tráfico y personalizar el contenido. Puede elegir qué cookies permite.",
+      "description": "Utilizamos tecnologías estrictamente necesarias para que este sitio web funcione de forma segura. Con su permiso, también querríamos utilizar nuestras propias analíticas para saber cómo se usa el sitio. Puede aceptar, rechazar o elegir, y cambiar de opinión en cualquier momento.",
       "customize": "Personalizar",
       "rejectNonEssential": "Rechazar no esenciales",
-      "acceptAll": "Aceptar todas"
+      "acceptAll": "Aceptar todas",
+      "policyLink": "Consulte nuestra Política de Cookies"
     },
     "cookieSettings": {
       "title": "Preferencias de Cookies",
       "description": "Gestione sus preferencias de cookies a continuación. Las cookies esenciales están siempre activas ya que son necesarias para el funcionamiento del sitio web.",
       "essential": "Cookies Esenciales",
-      "essentialDescription": "Necesarias para el correcto funcionamiento del sitio web. No se pueden desactivar.",
+      "essentialDescription": "Necesarias para iniciar su sesión, mantener la seguridad del sitio, recordar su elección sobre cookies y detectar errores. No se pueden desactivar.",
       "analytics": "Cookies Analíticas",
-      "analyticsDescription": "Nos ayudan a entender cómo los visitantes interactúan con nuestro sitio web para mejorar el rendimiento.",
+      "analyticsDescription": "Nuestras propias estadísticas sobre qué páginas se visitan y desde qué tipo de dispositivo. No se comparten con anunciantes. Desactivadas salvo que usted las active.",
       "marketing": "Cookies de Marketing",
-      "marketingDescription": "Se utilizan para ofrecer anuncios personalizados y medir la efectividad de las campañas.",
+      "marketingDescription": "Actualmente no utilizamos cookies publicitarias ni de redes sociales. Si en el futuro las utilizáramos, solo se activarían con su consentimiento.",
       "savePreferences": "Guardar preferencias"
     },
     "settings": {
@@ -3218,16 +3219,20 @@
     "openChat": "Abrir chat",
     "closeChat": "Cerrar chat",
     "newChat": "Nuevo chat",
-    "assistantName": "Asistente ICE Alarm España",
-    "memberAssistantName": "Su Asistente Personal",
+    "assistantName": "Isabella · Asistente de IA",
+    "memberAssistantName": "Isabella · Su asistente de IA",
     "available": "Disponible 24/7",
     "memberAssistantAvailable": "Aquí para ayudarle",
     "placeholder": "Escriba su mensaje...",
     "send": "Enviar",
-    "welcomeMessage": "¡Hola! 👋 Soy su asistente virtual de ICE Alarm España. ¿En qué puedo ayudarle hoy? Puedo responder preguntas sobre nuestros servicios, precios, o ayudarle a comenzar.",
+    "welcomeMessage": "¡Hola! 👋 Soy Isabella, la asistente virtual de inteligencia artificial de ICE Alarm España. ¿En qué puedo ayudarle hoy? Puedo responder preguntas sobre nuestros servicios y precios, o ayudarle a empezar.",
     "errorMessage": "Lo siento, hubo un problema al conectar. Por favor, intenta de nuevo más tarde.",
     "fallbackMessage": "Lo siento, no pude procesar su mensaje. Por favor, inténtelo de nuevo.",
-    "assistant": "Asistente"
+    "assistant": "Asistente",
+    "aiDisclosure": {
+      "label": "Asistente de inteligencia artificial, no una persona",
+      "text": "Isabella es una asistente de inteligencia artificial, no una persona, y no puede darle consejo médico. Si desea hablar con una persona, pídaselo. En caso de emergencia, pulse su botón SOS o llame al 112."
+    }
   },
   "partnerAgreement": {
     "title": "Acuerdo de Colaboración",
@@ -4545,6 +4550,229 @@
       "s16Intro": "<strong>Para cualquier consulta sobre sus datos personales:</strong>",
       "s16Content": "ICE Alarm España S.L. (CIF B24731531)<br/>[[TO CONFIRM: domicilio social]]<br/>Privacidad y DPD: privacy@icealarm.es<br/>Consultas generales: info@icealarm.es",
       "governedBy": "Esta política se rige por el Reglamento (UE) 2016/679 (RGPD), la Ley Orgánica 3/2018 (LOPDGDD) y la legislación española."
+    },
+    "cookies": {
+      "title": "Política de Cookies",
+      "company": "ICE Alarm España S.L. — NIF (CIF) B24731531",
+      "lastUpdated": "Última actualización: 17 de septiembre de 2026 · Versión 2 · Borrador pendiente de revisión jurídica",
+      "footerLink": "Política de Cookies",
+      "settingsLink": "Configuración de cookies",
+      "intro": "Esta Política de Cookies explica qué cookies y tecnologías similares se utilizan en icealarm.es y en los portales de miembros, colaboradores y personal de ICE Alarm España, para qué sirven, cuánto tiempo duran y cómo puede usted aceptarlas, rechazarlas o retirar su consentimiento en cualquier momento. Complementa nuestra Política de Privacidad, que explica cómo tratamos los datos personales en general.",
+      "s1Title": "1. ¿Qué son las cookies y las tecnologías similares?",
+      "s1p1": "Las cookies son pequeños archivos de texto que un sitio web almacena en su dispositivo. Los sitios web también pueden guardar información en su navegador de otras formas, por ejemplo mediante el «almacenamiento local» (que se conserva hasta que se elimina) y el «almacenamiento de sesión» (que se elimina al cerrar la pestaña o el navegador). La Ley 34/2002, de servicios de la sociedad de la información y de comercio electrónico (LSSI-CE, artículo 22.2), se aplica por igual a todas estas tecnologías, por lo que en esta política las denominamos a todas «cookies».",
+      "s1p2": "Algunas cookies son estrictamente necesarias para prestar un servicio que usted ha solicitado y pueden utilizarse sin su consentimiento. Las demás cookies solo se utilizan si usted las acepta.",
+      "s2Title": "2. Responsable",
+      "s2p1": "Las cookies descritas en esta política las instala ICE Alarm España S.L. (CIF B24731531), salvo cuando en la tabla se indique un proveedor tercero. Puede contactar con nosotros en relación con esta política en privacy@icealarm.es.",
+      "s3Title": "3. Categorías que utilizamos",
+      "s3Items": [
+        "Estrictamente necesarias: para iniciar su sesión y mantenerla segura, recordar su elección sobre cookies, conservar un formulario que está rellenando y detectar errores. No pueden desactivarse, porque sin ellas el sitio web no funcionaría.",
+        "Preferencias: para recordar las opciones que usted elige, como el idioma, el tamaño del texto o si ya ha visto una visita guiada. Solo se guardan cuando usted realiza esa elección.",
+        "Analíticas (solo con su consentimiento): nuestras propias estadísticas sobre qué páginas se visitan y desde qué tipo de dispositivo, para mejorar el sitio web. No se comparten con anunciantes.",
+        "Marketing: actualmente no utilizamos cookies publicitarias ni de redes sociales. Si en el futuro las utilizáramos, solo lo haríamos con su consentimiento y actualizaríamos antes esta política."
+      ],
+      "s4Title": "4. Cookies que utilizamos",
+      "s4Intro": "La siguiente tabla enumera todas las cookies y elementos de almacenamiento que utilizan nuestro sitio web y nuestros portales. Los nombres que contienen <…> varían ligeramente de un dispositivo a otro.",
+      "tableHeaders": {
+        "name": "Nombre",
+        "provider": "Proveedor",
+        "purpose": "Finalidad",
+        "duration": "Duración",
+        "type": "Tipo"
+      },
+      "essentialTitle": "4.1 Estrictamente necesarias",
+      "essentialRows": [
+        {
+          "name": "sb-<project>-auth-token",
+          "provider": "ICE Alarm España (servicio de autenticación prestado por Supabase)",
+          "purpose": "Mantiene su sesión iniciada de forma segura.",
+          "duration": "Si marcó «Mantener la sesión iniciada»: hasta que cierre la sesión. En otro caso: hasta que cierre el navegador.",
+          "type": "Almacenamiento local o de sesión"
+        },
+        {
+          "name": "ice.auth.persist",
+          "provider": "ICE Alarm España",
+          "purpose": "Recuerda si pidió mantener la sesión iniciada en este dispositivo.",
+          "duration": "Hasta que cambie la opción o borre los datos del navegador",
+          "type": "Almacenamiento local"
+        },
+        {
+          "name": "ice_cookie_consent",
+          "provider": "ICE Alarm España",
+          "purpose": "Registra su elección sobre cookies, cuándo la realizó y la versión de esta política.",
+          "duration": "24 meses; después volvemos a preguntarle",
+          "type": "Almacenamiento local"
+        },
+        {
+          "name": "isRecoveryFlow",
+          "provider": "ICE Alarm España",
+          "purpose": "Completa el restablecimiento de contraseña que usted ha solicitado.",
+          "duration": "Hasta que finalice el restablecimiento o cierre la pestaña",
+          "type": "Almacenamiento de sesión"
+        },
+        {
+          "name": "chunk-reload-<page>",
+          "provider": "ICE Alarm España",
+          "purpose": "Evita recargas en bucle cuando publicamos una nueva versión del sitio web.",
+          "duration": "Hasta que cierre la pestaña",
+          "type": "Almacenamiento de sesión"
+        },
+        {
+          "name": "join_wizard_session_id, join_wizard_data",
+          "provider": "ICE Alarm España",
+          "purpose": "Conserva el formulario de alta que está rellenando, para que no se pierda al pasar a la página de pago.",
+          "duration": "Hasta que termine o reinicie el alta",
+          "type": "Almacenamiento local"
+        },
+        {
+          "name": "ice_conversation_id, ice_conversation_expiry",
+          "provider": "ICE Alarm España",
+          "purpose": "Permite continuar su conversación con nuestra asistente de inteligencia artificial, Isabella, si cambia de página.",
+          "duration": "30 minutos desde su último mensaje",
+          "type": "Almacenamiento local"
+        },
+        {
+          "name": "sentryReplaySession",
+          "provider": "Sentry (Functional Software, Inc.)",
+          "purpose": "Supervisión de errores: si el sitio web falla, registra una traza técnica para que podamos corregirlo. El texto en pantalla se oculta y las imágenes se bloquean.",
+          "duration": "Hasta que cierre la pestaña",
+          "type": "Almacenamiento de sesión"
+        }
+      ],
+      "preferencesTitle": "4.2 Preferencias",
+      "preferencesRows": [
+        {
+          "name": "i18nextLng",
+          "provider": "ICE Alarm España",
+          "purpose": "Recuerda el idioma que eligió.",
+          "duration": "Hasta que lo cambie o borre los datos del navegador",
+          "type": "Almacenamiento local"
+        },
+        {
+          "name": "iceAlarmLanguageSelected",
+          "provider": "ICE Alarm España",
+          "purpose": "Recuerda que ya eligió un idioma, para no volver a preguntárselo.",
+          "duration": "Hasta que borre los datos del navegador",
+          "type": "Almacenamiento local"
+        },
+        {
+          "name": "ice.textSize",
+          "provider": "ICE Alarm España",
+          "purpose": "Recuerda el tamaño de texto que eligió (A/A).",
+          "duration": "Hasta que lo cambie o borre los datos del navegador",
+          "type": "Almacenamiento local"
+        },
+        {
+          "name": "ice_tour_<name>_completed",
+          "provider": "ICE Alarm España",
+          "purpose": "Recuerda que ha terminado u omitido una visita guiada.",
+          "duration": "Hasta que reinicie la visita o borre los datos del navegador",
+          "type": "Almacenamiento local"
+        },
+        {
+          "name": "ice_feedback_cooldown, ice_feedback_dismissed",
+          "provider": "ICE Alarm España",
+          "purpose": "Evita pedirle su opinión de nuevo demasiado pronto o después de que lo haya rechazado.",
+          "duration": "Hasta que termine el periodo de espera o borre los datos del navegador",
+          "type": "Almacenamiento local"
+        },
+        {
+          "name": "sidebar:state",
+          "provider": "ICE Alarm España",
+          "purpose": "Recuerda si el menú lateral del portal está abierto o cerrado.",
+          "duration": "7 días",
+          "type": "Cookie"
+        }
+      ],
+      "analyticsTitle": "4.3 Analíticas (solo con su consentimiento)",
+      "analyticsRows": [
+        {
+          "name": "ice_visitor_id",
+          "provider": "ICE Alarm España (almacenado en nuestra propia base de datos, alojada por Supabase)",
+          "purpose": "Un identificador aleatorio que nos permite contar las visitas repetidas sin saber quién es usted.",
+          "duration": "Hasta que retire su consentimiento (entonces lo eliminamos) o borre los datos del navegador",
+          "type": "Almacenamiento local"
+        },
+        {
+          "name": "ice_session_id, ice_session_timestamp",
+          "provider": "ICE Alarm España (almacenado en nuestra propia base de datos, alojada por Supabase)",
+          "purpose": "Agrupa las páginas vistas durante una misma visita.",
+          "duration": "30 minutos de inactividad; se eliminan cuando retira su consentimiento",
+          "type": "Almacenamiento local"
+        }
+      ],
+      "referralTitle": "4.4 Recomendaciones de colaboradores",
+      "referralIntro": "Solo se guardan si usted llega a través de un enlace compartido por uno de nuestros colaboradores. Registran qué colaborador le recomendó, para que se le pueda reconocer si usted se da de alta. No le siguen en otros sitios web.",
+      "referralRows": [
+        {
+          "name": "partner_ref, partner_utm",
+          "provider": "ICE Alarm España",
+          "purpose": "Registra el código del colaborador y la campaña del enlace que siguió.",
+          "duration": "Hasta que complete el alta o borre los datos del navegador",
+          "type": "Almacenamiento local"
+        },
+        {
+          "name": "partner_referral",
+          "provider": "ICE Alarm España",
+          "purpose": "Registra el colaborador y la publicación de la que procede.",
+          "duration": "30 días",
+          "type": "Almacenamiento local"
+        },
+        {
+          "name": "ref_partner_code, ref_partner_id, ref_post_id",
+          "provider": "ICE Alarm España",
+          "purpose": "La misma información, legible por nuestro servidor.",
+          "duration": "30 días",
+          "type": "Cookie"
+        }
+      ],
+      "staffTitle": "4.5 Solo en el portal del personal",
+      "staffIntro": "Los siguientes elementos solo los utiliza el personal de ICE Alarm España cuando trabaja en el portal interno.",
+      "staffRows": [
+        {
+          "name": "icealarm.push.deviceLabel.token, firebase-messaging-database",
+          "provider": "Google (Firebase Cloud Messaging)",
+          "purpose": "Envía notificaciones de alertas al dispositivo de un miembro del personal que las haya activado.",
+          "duration": "Hasta que se desactiven las notificaciones",
+          "type": "Almacenamiento local e IndexedDB"
+        },
+        {
+          "name": "videoHub_activeTab, videoHub_filters",
+          "provider": "ICE Alarm España",
+          "purpose": "Recuerda la pestaña y los filtros seleccionados en la videoteca.",
+          "duration": "Hasta que se cierre la pestaña",
+          "type": "Almacenamiento de sesión"
+        },
+        {
+          "name": "Cookies de Google (por ejemplo, NID)",
+          "provider": "Google LLC (Google Maps)",
+          "purpose": "Un mapa de Google integrado muestra la ubicación de una alerta. Google puede instalar sus propias cookies al cargar el mapa.",
+          "duration": "Las fija Google; consulte su política de cookies",
+          "type": "Cookie de terceros"
+        }
+      ],
+      "s5Title": "5. Terceros",
+      "s5Items": [
+        "No utilizamos Google Analytics, redes publicitarias ni píxeles de seguimiento de redes sociales.",
+        "Los pagos se realizan en las páginas de nuestros proveedores de pago (Stripe o Mollie). Mientras esté en sus páginas, se aplican sus propias políticas de cookies.",
+        "El mapa que se utiliza para fijar la ubicación de su domicilio carga imágenes de OpenStreetMap. No instala cookies, pero su navegador se conecta a sus servidores para cargar el mapa."
+      ],
+      "s6Title": "6. Cómo aceptar, rechazar o retirar el consentimiento",
+      "s6p1": "En su primera visita, un aviso le permite aceptar todas las cookies, rechazar todas las no esenciales o elegir por categorías. Rechazar es tan sencillo como aceptar, y ninguna categoría opcional aparece activada de antemano.",
+      "s6p2": "Puede cambiar de opinión en cualquier momento mediante «Configuración de cookies», al pie de nuestras páginas, el botón que figura a continuación o, si es usted miembro, la sección Privacidad y datos de su cuenta. Si retira su consentimiento para las cookies analíticas, dejamos de recoger estadísticas de inmediato y eliminamos de su navegador los identificadores analíticos. La retirada del consentimiento no afecta a lo realizado con anterioridad.",
+      "settingsButton": "Abrir la configuración de cookies",
+      "s6BrowsersIntro": "También puede bloquear o eliminar las cookies y los datos almacenados desde la configuración de su navegador. Si bloquea las cookies estrictamente necesarias, algunas partes del sitio web, como el inicio de sesión, no funcionarán.",
+      "s6Browsers": [
+        "Google Chrome: Configuración › Privacidad y seguridad › Cookies de terceros / Datos de sitios",
+        "Mozilla Firefox: Ajustes › Privacidad y seguridad › Cookies y datos del sitio",
+        "Safari: Ajustes › Safari › Avanzado › Datos de sitios web",
+        "Microsoft Edge: Configuración › Cookies y permisos del sitio"
+      ],
+      "s7Title": "7. Transferencias internacionales",
+      "s7p1": "Algunos de los proveedores indicados (como Sentry y Google) están establecidos fuera del Espacio Económico Europeo. Cuando sus tecnologías impliquen una transferencia de datos personales, esta se realiza con las garantías descritas en nuestra Política de Privacidad.",
+      "s8Title": "8. Cambios en esta política",
+      "s8p1": "Actualizaremos esta política si cambian las cookies que utilizamos. Si un cambio exige volver a obtener su consentimiento, el aviso se lo pedirá de nuevo en su próxima visita. La fecha y la versión que figuran al principio indican cuándo se modificó por última vez.",
+      "s9Title": "9. Contacto",
+      "s9p1": "Para cualquier consulta sobre las cookies o sus datos personales, escriba a privacy@icealarm.es. También tiene derecho a presentar una reclamación ante la Agencia Española de Protección de Datos (AEPD, www.aepd.es)."
     }
   },
   "mediaStrategy": {
@@ -5666,7 +5894,7 @@
   },
   "adminMemberDetail": {
     "overview": {
-      "includeIdentityNumbers": "Incluir n\u00fameros de identidad"
+      "includeIdentityNumbers": "Incluir números de identidad"
     },
     "title": "Detalles del Miembro",
     "profileTab": "Perfil",
@@ -6934,16 +7162,16 @@
       "mapLabel": "Mapa con la ubicación guardada de su domicilio"
     },
     "staff": {
-      "title": "Ubicaci\u00f3n del domicilio",
-      "purpose": "El lugar al que un operador env\u00eda ayuda cuando el colgante no puede indicar d\u00f3nde est\u00e1 el miembro.",
-      "loadFailed": "No hemos podido cargar la ubicaci\u00f3n del domicilio de este miembro. Eso no significa que no haya ninguna: recargue la ficha antes de marcar una.",
+      "title": "Ubicación del domicilio",
+      "purpose": "El lugar al que un operador envía ayuda cuando el colgante no puede indicar dónde está el miembro.",
+      "loadFailed": "No hemos podido cargar la ubicación del domicilio de este miembro. Eso no significa que no haya ninguna: recargue la ficha antes de marcar una.",
       "confirmedByMember": "Confirmada por el miembro",
       "setByTeam": "Marcada por nuestro equipo",
-      "fromAddress": "A partir de la direcci\u00f3n: sin confirmar",
-      "fromImport": "De la importaci\u00f3n del CRM: sin confirmar",
-      "none": "No hay ninguna marca en esta ficha. La tarjeta de SOS recurrir\u00e1 a la direcci\u00f3n postal.",
+      "fromAddress": "A partir de la dirección: sin confirmar",
+      "fromImport": "De la importación del CRM: sin confirmar",
+      "none": "No hay ninguna marca en esta ficha. La tarjeta de SOS recurrirá a la dirección postal.",
       "correctPin": "Corregir la marca",
-      "setPin": "Marcar la ubicaci\u00f3n"
+      "setPin": "Marcar la ubicación"
     },
     "dialog": {
       "title": "Marque la ubicación de su domicilio",
@@ -6984,7 +7212,7 @@
   "reviewDetails": {
     "factCount": "{{count}} datos en su ficha",
     "you": "Su ficha",
-    "printFailed": "No hemos podido abrir la vista de impresi\u00f3n",
+    "printFailed": "No hemos podido abrir la vista de impresión",
     "title": "Revisar mis datos",
     "subtitle": "Todo lo que tenemos sobre usted. Solo se enumera lo que realmente tenemos.",
     "empty": "Todavía no tenemos datos suyos. Utilice «Completar mis datos» para añadirlos.",
@@ -6993,8 +7221,8 @@
   },
   "memberDocument": {
     "title": "Ficha del socio",
-    "printedBy": "Impreso por {{who}} el {{date}} \u00b7 icealarm.es",
-    "printedOn": "Impreso el {{date}} \u00b7 icealarm.es",
-    "redacted": "En nuestros archivos \u2014 no impreso"
+    "printedBy": "Impreso por {{who}} el {{date}} · icealarm.es",
+    "printedOn": "Impreso el {{date}} · icealarm.es",
+    "redacted": "En nuestros archivos — no impreso"
   }
 }

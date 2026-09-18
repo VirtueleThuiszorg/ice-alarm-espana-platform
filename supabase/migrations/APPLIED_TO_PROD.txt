@@ -256,3 +256,4 @@
 20260917130000_close_the_anon_write_paths.sql
 20260917140000_suspected_spam_does_not_ring.sql
 20260917150000_pendant_test_reminder.sql
+20260918100000_member_bank_details.sql

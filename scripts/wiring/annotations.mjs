@@ -1014,6 +1014,18 @@ export const FAMILIES = [
       "the register scoring itself on an adjacent test.",
   },
   {
+    wires: ["table:member_access", "table:member_end_of_life", "table:member_bank_details"],
+    control: "CRM import: the three admin-only records",
+    promise: "the front-door code, the funeral record and the legacy bank account come across, and only admins can read them",
+    dest: "member_access / member_end_of_life / member_bank_details, via applyRowPlan",
+    told: "self",
+    proof: "src/test/crmImportAdminOnlyRecords.test.ts",
+    note:
+      "All three are is_admin, never is_staff, and none of them reaches crm_import_rows.raw — " +
+      "see ARCHIVE_EXCLUDED_HEADERS. Written as upserts over stripNulls so a re-import cannot " +
+      "blank a key safe code somebody typed into the platform. Card numbers reach none of them.",
+  },
+  {
     wires: ["table:crm_contacts", "table:crm_profiles", "table:crm_events", "table:crm_import_batches", "table:crm_import_rows"],
     control: "CRM import and contact editing",
     promise: "the legacy record is imported as it stands",

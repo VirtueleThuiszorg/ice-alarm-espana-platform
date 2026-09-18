@@ -180,7 +180,22 @@ describe("reading the file", () => {
     await loadFixture();
     const panel = screen.getByTestId("discarded-sensitive");
     expect(panel.textContent).toContain("Credit Card Details");
-    expect(panel.textContent).toContain("20 Digit Bank No");
+  });
+
+  it("lists ONLY what is really discarded — one column, not four", async () => {
+    /*
+      This panel is a promise on the screen: "these columns never reach the platform". From
+      18 September 2026 three of the four it used to list DO reach it, each into a table only
+      admins can read, because two of them should never have been on the list (private health
+      INSURANCE notes, and the funeral director's telephone) and the third is there by Lee's
+      decision. Leaving them here would make the panel a lie in the more dangerous direction:
+      somebody reads it, believes the bank account was binned, and stops looking for it.
+    */
+    await loadFixture();
+    const panel = screen.getByTestId("discarded-sensitive");
+    for (const restored of ["20 Digit Bank No", "Private Medical Details", "Death Funeral Wishes"]) {
+      expect(panel.textContent, `${restored} is imported now, not discarded`).not.toContain(restored);
+    }
   });
 
   it("never renders a sensitive value anywhere on the screen", async () => {
@@ -286,13 +301,32 @@ describe("pressing Import", () => {
     }
   });
 
-  it("keeps no sensitive value in ANY write it makes", async () => {
+  it("keeps no card value in ANY write it makes", async () => {
     // The requirement is "never reaches any table", so the sweep is over every payload.
     await runImport();
     const everything = JSON.stringify(writes);
     expect(everything).not.toContain(FAKE_CARD);
-    // A 16-digit run in any payload at all would be a card number that got through.
-    expect(everything).not.toMatch(/\d{16}/);
+  });
+
+  it("writes the bank account to member_bank_details and to nowhere else", async () => {
+    /*
+      The bank column IS imported now, so the old blanket "no 16-digit run anywhere" assertion
+      cannot stand — an IBAN is 22 digits and would trip it. What replaces it is stricter about
+      the thing that actually matters: the account may appear in exactly one table's payload.
+
+      Long digit runs are also checked everywhere ELSE, so a card arriving through some column
+      nobody thought of still fails this test rather than reaching production.
+    */
+    await runImport();
+    const bankWrites = writes.filter((w) => w.table === "member_bank_details");
+    expect(bankWrites.length).toBeGreaterThan(0);
+    expect(JSON.stringify(bankWrites)).toContain("ES9121000418450200051332");
+
+    const everythingElse = JSON.stringify(writes.filter((w) => w.table !== "member_bank_details"));
+    expect(everythingElse).not.toContain("ES9121000418450200051332");
+    expect(everythingElse, "a long digit run outside the bank table is a leak").not.toMatch(
+      /\d{16}/
+    );
   });
 
   it("writes members with status 'pending_review' + legacy billing, never 'active'", async () => {

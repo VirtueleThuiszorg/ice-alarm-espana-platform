@@ -1,6 +1,20 @@
 // @vitest-environment node
 //
-// Card and bank data must not survive the import — anywhere.
+// Card data must not survive the import — anywhere. Bank, key safe, private-insurance and
+// funeral data must survive it into exactly one place each, and never into the staff-readable
+// archive.
+//
+// THIS FILE CHANGED ON 18 SEPTEMBER 2026 and the change is the point of it. The original
+// version pinned FOUR columns as discarded. Two of them should never have been on that list:
+// `Private Medical Details` is about private health INSURANCE, not a medical record, and
+// `Death Funeral Wishes` is the funeral director's name and telephone — the thing the office
+// rings when a member dies. Both had admin-only tables built for them and both were being
+// dropped because I swept them up with the card column. A third, the bank account, was
+// discarded and is now imported to a new admin-only table by Lee's decision.
+//
+// So the assertions below are no longer "none of these four appears anywhere". They are, per
+// column, exactly where the value is allowed to be and nowhere else — which is a stronger
+// statement than the old one, and the one that was actually wanted.
 //
 // The importer used to keep them deliberately: this module's own header said card and bank
 // columns "stay in crm_import_rows.raw for admin review, exactly as before — that behaviour was
@@ -22,6 +36,8 @@ import {
   mapIceCsv,
   summarise,
   REDACTED_HEADERS,
+  RESTRICTED_HEADERS,
+  ARCHIVE_EXCLUDED_HEADERS,
   normaliseHeader,
 } from "../lib/iceCrmImport";
 
@@ -85,10 +101,17 @@ describe("IceRow refuses to read a redacted column", () => {
     expect(row.get("Home City")).toBe("Torremolinos");
   });
 
-  it("omits redacted keys from raw() entirely, rather than blanking them", () => {
+  it("refuses a RESTRICTED column through get(), but hands it over when asked by name", () => {
+    // The distinction the whole design rests on: no new mapping can pick up a bank account by
+    // adding an ordinary line, but the one mapping that needs it can ask.
+    expect(row.get("20 Digit Bank No")).toBe("");
+    expect(row.restricted("20 Digit Bank No")).toContain(MARKERS.bank);
+  });
+
+  it("omits every sensitive key from raw() entirely, rather than blanking them", () => {
     const raw = row.raw();
-    for (const h of REDACTED_HEADERS) {
-      expect(Object.keys(raw)).not.toContain(h);
+    for (const h of [...REDACTED_HEADERS, ...RESTRICTED_HEADERS, ...ARCHIVE_EXCLUDED_HEADERS]) {
+      expect(Object.keys(raw), `${h} must not be archived`).not.toContain(h);
     }
     // Omission, not blanking: a key that is present but empty is the kind of thing a later
     // "restore the raw row" feature would happily fill back in. (Other columns ARE legitimately
@@ -97,7 +120,7 @@ describe("IceRow refuses to read a redacted column", () => {
   });
 });
 
-describe("no redacted value survives mapping, at any depth", () => {
+describe("the card never survives mapping, at any depth", () => {
   const mapped = mapIceCsv(csvText);
   const serialised = JSON.stringify(mapped);
 
@@ -105,7 +128,7 @@ describe("no redacted value survives mapping, at any depth", () => {
     expect(mapped.length).toBe(10);
   });
 
-  it.each(Object.entries(MARKERS))("the whole mapped output contains no %s", (_name, marker) => {
+  it.each([MARKERS.card, MARKERS.cardTail])("the whole mapped output contains no %s", (marker) => {
     expect(serialised).not.toContain(marker);
   });
 
@@ -115,20 +138,54 @@ describe("no redacted value survives mapping, at any depth", () => {
     expect(serialised).not.toMatch(/\b(?:\d[ -]?){15,19}\d\b/);
   });
 
-  it("private_insurer is null even though the column had a value", () => {
-    const row = mapped[0];
+  it("keeps the words from a card cell that holds no digits, and nothing else", () => {
+    // 11 rows of the real export say how somebody pays rather than what their card is. The
+    // rule is "no run of two or more digits anywhere in the cell", so a cell that is half a
+    // card and half an instruction is refused whole — see IceRow.paymentMethodHint.
+    const parsed = parseCsv(csvText);
+    const withCard = new IceRow(parsed.headers, parsed.rows[0]);
+    expect(withCard.paymentMethodHint()).toBe("");
+  });
+});
+
+describe("the three restored columns land in exactly one place each", () => {
+  const mapped = mapIceCsv(csvText);
+  const row = mapped[0];
+
+  it("the bank account reaches `bank` and nothing else", () => {
+    expect(row.bank?.iban).toBe(MARKERS.bank);
+    // Everywhere except `bank`: the marker must not have leaked into a note, an address, the
+    // archive, or a field some other column concatenated it into.
+    const withoutBank = JSON.stringify({ ...row, bank: null });
+    expect(withoutBank).not.toContain(MARKERS.bank);
+  });
+
+  it("private medical INSURANCE reaches medical.private_insurer", () => {
     // The row carries an allergy, so `medical` is built at all — otherwise this would assert
     // against `undefined` and pass for the wrong reason.
     expect(row.medical).not.toBeNull();
-    expect(row.medical?.private_insurer).toBeNull();
-    // …and the policy number beside it, which is NOT redacted, still comes through.
+    expect(row.medical?.private_insurer).toBe(MARKERS.privateMedical);
+    // …and the policy number beside it still comes through, as it always did.
     expect(row.medical?.private_policy_number).toBe("POL-12345");
   });
 
+  it("funeral wishes reach endOfLife.wishes", () => {
+    expect(row.endOfLife?.wishes).toContain(MARKERS.wishes);
+  });
+
+  it("none of the four sensitive columns reaches the staff-readable archive", () => {
+    // `crm_import_rows.raw` is jsonb on a table every staff role can read. The admin-only
+    // tables above exist to withhold exactly this, and copying it into `raw` on the way past
+    // would hand it to the whole call centre.
+    const archive = JSON.stringify(row.raw);
+    for (const marker of Object.values(MARKERS)) {
+      expect(archive, `${marker} must not be in crm_import_rows.raw`).not.toContain(marker);
+    }
+  });
+
   it("keeps the raw row for everything else, so the archive is still useful", () => {
-    const raw = mapped[0].raw;
-    expect(raw["Home City"]).toBe("Torremolinos");
-    expect(Object.keys(raw).length).toBeGreaterThan(100);
+    expect(row.raw["Home City"]).toBe("Torremolinos");
+    expect(Object.keys(row.raw).length).toBeGreaterThan(100);
   });
 });
 
@@ -136,12 +193,9 @@ describe("the batch summary says what was discarded", () => {
   const summary = summarise(mapIceCsv(csvText));
 
   it("counts the rows that held each redacted column", () => {
-    expect(summary.discardedSensitive).toEqual({
-      "Credit Card Details": 1,
-      "20 Digit Bank No": 1,
-      "Private Medical Details": 1,
-      "Death Funeral Wishes": 1,
-    });
+    // One column, not four. The other three are imported now, each to a table only admins
+    // can read — the screen should say what was DISCARDED, and only the card is.
+    expect(summary.discardedSensitive).toEqual({ "Credit Card Details": 1 });
   });
 
   it("does not list a column no row carried", () => {

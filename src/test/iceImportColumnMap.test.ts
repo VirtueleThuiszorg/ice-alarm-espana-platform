@@ -376,14 +376,40 @@ describe("the derivation itself", () => {
     }
   });
 
-  it("reads the sensitive payment columns as a boolean and never as a value", () => {
-    // These are not redacted — the free-of-charge signal is recovered from them — but the only
-    // field they may reach is that boolean. Asserted as the DIFF rather than by searching the
-    // output for the probe string: the spine row carries an IMEI, so a probe value that happens
-    // to look like an IMEI would be "found" in `device.imei` and read as a leak.
-    // `discardedSensitive` holds column NAMES, never values — it is how the batch summary can
-    // say "94 rows had card data, discarded" and be believed.
-    const allowed = new Set(["subscription.is_free_of_charge", "discardedSensitive", "discardedSensitive[]"]);
+  it("the sensitive payment columns reach only the fields they are allowed to", () => {
+    /*
+      A CLOSED LIST, and every entry on it had to be argued for. Asserted as the DIFF rather
+      than by searching the output for the probe string: the spine row carries an IMEI, so a
+      probe value that happens to look like an IMEI would be "found" in `device.imei` and read
+      as a leak.
+
+        subscription.is_free_of_charge  a BOOLEAN recovered from a cell reading "FOC". Where a
+                                        member pays nothing, that is what the card column says,
+                                        and losing it would have billed somebody.
+        discardedSensitive[]            column NAMES, never values — how the batch summary can
+                                        say "94 rows had card data, discarded" and be believed.
+        paymentMethod                   the card cell ONLY when it holds no run of two or more
+                                        digits: "Paid via Stripe", "to pay cash to Lee for the
+                                        year". Never a card, by a rule you can check by reading
+                                        it — see IceRow.paymentMethodHint.
+        bank.*                          the bank column, by Lee's decision of 18 Sep 2026, into
+                                        a table only admins can read. The card column cannot
+                                        reach these: `bank` is built from `restricted("20 Digit
+                                        Bank No")` and from nothing else.
+
+      What is NOT on the list is the point: no free-text note, no address, no special
+      instructions, and nothing on `raw`.
+    */
+    const allowed = new Set([
+      "subscription.is_free_of_charge",
+      "discardedSensitive",
+      "discardedSensitive[]",
+      "paymentMethod",
+      "bank",
+      "bank.iban",
+      "bank.bank_name",
+      "bank.source_text",
+    ]);
     for (const header of SENSITIVE_PAYMENT_HEADERS) {
       const index = HEADERS.indexOf(header);
       if (index === -1) continue;

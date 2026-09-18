@@ -2967,6 +2967,38 @@ export type Database = {
           },
         ]
       }
+      member_bank_details: {
+        Row: {
+          bank_name: string | null
+          iban: string | null
+          member_id: string
+          source_text: string | null
+          updated_at: string
+        }
+        Insert: {
+          bank_name?: string | null
+          iban?: string | null
+          member_id: string
+          source_text?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bank_name?: string | null
+          iban?: string | null
+          member_id?: string
+          source_text?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_bank_details_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_end_of_life: {
         Row: {
           member_id: string

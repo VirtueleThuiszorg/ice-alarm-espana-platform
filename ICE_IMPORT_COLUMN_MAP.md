@@ -9,7 +9,7 @@ stale without CI saying so. Regenerate with:
 UPDATE_COLUMN_MAP=1 npx vitest run src/test/iceImportColumnMap.test.ts
 ```
 
-Columns: **147** · mapped **94** · read only as a fallback **5** · kept in raw only **44** · discarded **4**
+Columns: **147** · mapped **97** · read only as a fallback **5** · kept in raw only **44** · discarded **1**
 
 Three things the numbering shows that a name-keyed table cannot: `Membership Type`
 appears three times, `Policy Number` twice and `Company` twice. The column number is the
@@ -39,9 +39,6 @@ a count in the batch summary.
 | # | Column |
 |---|---|
 | 118 | `Credit Card Details` |
-| 119 | `20 Digit Bank No` |
-| 126 | `Private Medical Details` |
-| 128 | `Death Funeral Wishes` |
 
 Payment columns that are read as a BOOLEAN only — "this row had payment data" — and never
 for their value: `Credit Card Details`, `20 Digit Bank No`.
@@ -126,13 +123,16 @@ for their value: `Credit Card Details`, `20 Digit Bank No`.
 | 112 | `Medical Centre` | `medical.hospital_preference` |
 | 116 | `Monthly Fee` | `subscription.amount` |
 | 117 | `DD or TVP` | `subscription.payment_arrangement` |
+| 119 | `20 Digit Bank No` | `bank`, `bank.bank_name`, `bank.iban`, `bank.source_text` |
 | 120 | `Notes` | `notes` |
 | 121 | `Monthly Payment Date` | `member.legacy_billing_day`, `member.legacy_next_renewal`, `subscription.monthly_payment_date` |
 | 122 | `Unit Type` | `device.unit_type` |
 | 123 | `Alarm Manufacturer` | `device.manufacturer` |
 | 124 | `Alarm Type` | `device.device_type` |
 | 125 | `Contact Friend for Email` | `emailContactConsent` |
+| 126 | `Private Medical Details` | `medical.private_insurer` |
 | 127 | `Policy Number` | `medical.private_policy_number` |
+| 128 | `Death Funeral Wishes` | `endOfLife.wishes` |
 | 129 | `Funeral Plan` | `endOfLife.funeral_plan` |
 | 130 | `Policy Number` | `endOfLife.policy_number` |
 | 131 | `Permission State` | `member.consent_state` |

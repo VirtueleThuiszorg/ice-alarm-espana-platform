@@ -46,43 +46,70 @@ export const SENSITIVE_PAYMENT_HEADERS = [
  * Columns whose VALUES must never leave this module — not into a mapped field, not into
  * `crm_import_rows.raw`, not into a preview, not into a log line.
  *
- * This overrides what the header of this file used to say. The original decision was that card
- * and bank columns "stay in crm_import_rows.raw for admin review, exactly as before — that
- * behaviour was correct". It was not. `raw` is a jsonb column on a table staff can read: 94 rows
- * carry card details and 85 carry a 20-digit bank number, and putting them there means the
- * platform stores card data it has no reason to hold, cannot protect to PCI standard, and would
- * have to disclose in a breach. Lee's instruction is to strip them, and stripping is right.
+ * ONE COLUMN, and it is the card. 94 rows carry a real 16-digit PAN with an expiry date beside
+ * it. Holding those would put this business under PCI-DSS and make every one of them
+ * disclosable in a breach, and there is no need: Stripe and Mollie hold cards so this database
+ * does not. Asked directly on 18 September 2026, Lee agreed they stay out.
  *
- * Two of these four were previously MAPPED, and losing them is a real cost, recorded rather
- * than glossed:
- *   Private Medical Details  ->  medical_information.private_insurer is now always null from an
- *                                import. The insurer's name goes with the policy number it sat
- *                                beside; if Lee wants the insurer he needs a column that holds
- *                                only the insurer.
- *   Death Funeral Wishes     ->  end-of-life wishes are no longer imported at all. `funeral_plan`
- *                                and its policy number still are; the free-text wishes are not.
+ * This list used to have four entries, and two of them were a mistake of mine that stood for a
+ * week. When Lee said to strip the card column I swept up its neighbours with it:
+ *   `Private Medical Details`  is not a medical record. It is about private health INSURANCE —
+ *                              "he does not hold any private medical insurance due to his age".
+ *                              28 rows, and `medical_information.private_insurer` was built for
+ *                              them. Restored.
+ *   `Death Funeral Wishes`     is the funeral director's name, telephone and address. 17 rows,
+ *                              and `member_end_of_life.wishes` was built for them — that
+ *                              migration's own comment counts them. When a member dies this is
+ *                              who the office rings. Restored.
+ * Both are sensitive, and both now go to admin-only tables rather than to a discard pile. See
+ * ARCHIVE_EXCLUDED_HEADERS for what stops them landing somewhere less careful on the way.
  *
  * ENFORCEMENT IS AT THE ACCESSOR, not at each call site. `IceRow.get()` returns "" for these
  * headers, so a future mapping cannot pick one up by adding a line — the same reasoning as
  * golden rule 6, where Isabella's forbidden tools are unreachable in code rather than discouraged
  * in a prompt. Only PRESENCE is observable, via `redactedPresent()`.
  */
-export const REDACTED_HEADERS = [
-  "Credit Card Details",
-  "20 Digit Bank No",
+export const REDACTED_HEADERS = ["Credit Card Details"] as const;
+
+/**
+ * Readable, but only on purpose.
+ *
+ * `20 Digit Bank No` is an instruction to move somebody's money, and 85 rows have one. It is
+ * also the only record of which account Santander debits for a legacy member, so discarding it
+ * loses something the business actually needs — the opposite of the card column, where the
+ * payment processor already holds the real copy.
+ *
+ * So it sits between the two: `get()` still refuses it, exactly as before, and the ONE mapping
+ * that needs it asks for it by name through `restricted()`. The property that matters is
+ * unchanged — no new mapping can pick this up by accident — while a deliberate, named, tested
+ * call can. It never reaches `crm_import_rows.raw` either way.
+ */
+export const RESTRICTED_HEADERS = ["20 Digit Bank No"] as const;
+
+/**
+ * Readable by `get()`, never archived into `crm_import_rows.raw`.
+ *
+ * `raw` is a jsonb column on a table every staff role can read. These four have admin-only
+ * homes — `member_access`, `member_end_of_life`, `member_bank_details`, `medical_information` —
+ * and copying them into `raw` on the way past would hand to the whole call centre exactly what
+ * those tables' policies were written to withhold. `Key Safe` is the sharpest of them: 96 rows,
+ * each the code to the front door of an occupied home, and it has been going into `raw`
+ * untouched since the first import.
+ */
+export const ARCHIVE_EXCLUDED_HEADERS = [
+  "Key Safe",
   "Private Medical Details",
   "Death Funeral Wishes",
 ] as const;
 
-/**
- * Normalised for the accessor check, built once.
- *
- * Uses `normaliseHeader` rather than its own normalisation, and that is not tidiness. The first
- * version lowercased here while `normaliseHeader` does not, so the set never matched and every
- * redaction silently did nothing — the card number came through untouched and the code read as
- * if it were guarded. Two normalisers for one comparison is one too many.
- */
 const REDACTED_SET: ReadonlySet<string> = new Set(REDACTED_HEADERS.map(normaliseHeader));
+const RESTRICTED_SET: ReadonlySet<string> = new Set(RESTRICTED_HEADERS.map(normaliseHeader));
+/** Everything `raw()` leaves out: unreadable, restricted, and admin-only-homed alike. */
+const NOT_ARCHIVED: ReadonlySet<string> = new Set([
+  ...REDACTED_HEADERS,
+  ...RESTRICTED_HEADERS,
+  ...ARCHIVE_EXCLUDED_HEADERS,
+].map(normaliseHeader));
 
 /* ------------------------------------------------------------------ *
  * RFC 4180 CSV parser
@@ -203,7 +230,7 @@ export class IceRow {
    */
   get(header: string, occurrence = 0): string {
     const normalised = normaliseHeader(header);
-    if (REDACTED_SET.has(normalised)) return "";
+    if (REDACTED_SET.has(normalised) || RESTRICTED_SET.has(normalised)) return "";
     const positions = this.index.get(normalised);
     if (!positions || positions[occurrence] === undefined) return "";
     return clean(this.values[positions[occurrence]] ?? "");
@@ -218,6 +245,20 @@ export class IceRow {
   redactedPresent(header: (typeof REDACTED_HEADERS)[number]): boolean {
     const positions = this.index.get(normaliseHeader(header)) ?? [];
     return positions.some((p) => clean(this.values[p] ?? "") !== "");
+  }
+
+  /**
+   * A RESTRICTED_HEADERS value, asked for by name.
+   *
+   * The whole point is that this is not `get()`. A mapping cannot reach a bank account by
+   * adding an ordinary line; it has to call this, with a header the type system already limits
+   * to the restricted list, and that call site is named in the tests. Deliberate stays possible;
+   * accidental does not.
+   */
+  restricted(header: (typeof RESTRICTED_HEADERS)[number], occurrence = 0): string {
+    const positions = this.index.get(normaliseHeader(header));
+    if (!positions || positions[occurrence] === undefined) return "";
+    return clean(this.values[positions[occurrence]] ?? "");
   }
 
   /**
@@ -237,6 +278,29 @@ export class IceRow {
       const positions = this.index.get(normaliseHeader(h)) ?? [];
       return positions.some((p) => /^foc\b/i.test(clean(this.values[p] ?? "")));
     });
+  }
+
+  /**
+   * What the card column says when it is not a card. TEXT WITHOUT DIGITS, or nothing.
+   *
+   * 11 of the 94 filled card cells hold no card at all — "Stripe", "Paid via Stripe", "Joined
+   * through website", "to pay cash to Lee for the year", "See Roger Hawksworth". That is how a
+   * member pays, and it is worth having. The other 83 are real PANs.
+   *
+   * The rule is deliberately crude: a cell is returned ONLY if it contains no run of two or
+   * more digits anywhere. Not "strip the card number and keep the rest" — a regex that gets
+   * that wrong leaves half a PAN in a notes field, and a rule that can be checked by reading
+   * it is worth more here than one that recovers a few more rows. Measured against the real
+   * export: the stricter rule keeps 11 rows and the permissive one 47, and of the 36 it gives
+   * up exactly one is a billing instruction, for which `Monthly Payment Date` is the column.
+   */
+  paymentMethodHint(): string {
+    const positions = this.index.get(normaliseHeader("Credit Card Details")) ?? [];
+    for (const p of positions) {
+      const value = clean(this.values[p] ?? "");
+      if (value && !/\d{2,}/.test(value)) return value;
+    }
+    return "";
   }
 
   /** Every value under a repeated header, in column order, blanks dropped. */
@@ -271,7 +335,7 @@ export class IceRow {
   raw(): Record<string, string> {
     const out: Record<string, string> = {};
     this.headers.forEach((h, i) => {
-      if (REDACTED_SET.has(normaliseHeader(h))) return;
+      if (NOT_ARCHIVED.has(normaliseHeader(h))) return;
       // Duplicate headers get a suffix so the archived raw row stays lossless.
       const key = out[h] === undefined ? h : `${h} (${i})`;
       out[key] = this.values[i] ?? "";
@@ -761,6 +825,10 @@ export interface MappedRow {
   postalAddress: { address_type: "postal"; address_line_1: string | null; city: string | null; province: string | null; postal_code: string | null } | null;
   access: { key_safe_location: string | null; key_safe_code: string | null } | null;
   endOfLife: { funeral_plan: string | null; policy_number: string | null; wishes: string | null } | null;
+  /** The legacy direct-debit account. Admin-only in the platform — see member_bank_details. */
+  bank: { iban: string | null; bank_name: string | null; source_text: string } | null;
+  /** How this member pays, when the card column said so in words rather than in digits. */
+  paymentMethod: string | null;
   crmProfile: { stage: string | null; status: string | null; referral_source: string | null; assigned_label: string | null; tags: string[]; groups: string[] };
   /**
    * Which redacted columns this row HELD — names only, never values (REDACTED_HEADERS).
@@ -796,6 +864,36 @@ const nz = (v: string): string | null => (v ? v : null);
  *   "37.3886, -2.1487"                         the GPS Co-ordinates column (108 rows)
  *   "https://maps.google.com/…@37.3886,-2.1487,17z"   the Google Map Link column (90 rows)
  */
+/**
+ * A "20 Digit Bank No" cell, which is rarely twenty digits and rarely only a number.
+ *
+ * A typical one reads "<bank name> IBAN ES.. .... .... .... visa <account holder> ...". 57 of
+ * the 85 filled cells contain a parseable Spanish IBAN; the rest are a bank name, a sort-code
+ * fragment, or "FOC". So the IBAN is lifted where there is one and the cell is kept verbatim
+ * either way — the original is what settles an argument once karmaCRM is switched off.
+ *
+ * The IBAN is normalised to unspaced upper case, because the same account appears in the export
+ * spaced three different ways and two copies of one account is worse than none.
+ */
+export function parseBankCell(raw: string): { iban: string | null; bank_name: string | null; source_text: string } {
+  const text = clean(raw);
+  if (!text) return { iban: null, bank_name: null, source_text: "" };
+
+  const match = text.replace(/[-.]/g, " ").match(/\bES\s?\d{2}(?:\s?\d{4}){5}\b/i);
+  const iban = match ? match[0].replace(/\s+/g, "").toUpperCase() : null;
+
+  /* Whatever precedes the word IBAN, or the first word, is the bank as often as not. It is a
+     convenience for reading the list, never something to bank against — `source_text` is. */
+  const before = text.split(/\bIBAN\b/i)[0];
+  const bankName = clean(before).replace(/[,;:]+$/, "");
+
+  return {
+    iban,
+    bank_name: bankName && bankName.length <= 60 && !/\d{4,}/.test(bankName) ? bankName : null,
+    source_text: text,
+  };
+}
+
 export function parseGps(raw: string): { lat: number | null; lng: number | null } {
   const m = clean(raw).match(/(-?\d{1,3}\.\d+)[,;\s]+(-?\d{1,3}\.\d+)/);
   if (!m) return { lat: null, lng: null };
@@ -977,10 +1075,12 @@ export function mapIceRow(row: IceRow, today: Date = new Date()): MappedRow {
   const keySafe = row.get("Key Safe");
   const funeralPlan = row.get("Funeral Plan");
   const funeralPolicy = row.get("Policy Number", 1);
-  // "Death Funeral Wishes" is in REDACTED_HEADERS, so it is not read. Kept as an explicit null
-  // rather than a get() that silently returns "": a call that looks like it works is how a
-  // redaction quietly stops being one.
-  const wishes = "";
+  /* Restored 18 Sep 2026. This column is the funeral director's name, telephone and address —
+     who the office rings when a member dies — and `member_end_of_life.wishes` was built for it;
+     that migration's comment even counts the 17 rows. It was only ever blank because it got
+     swept into the card redaction. It is still kept out of `crm_import_rows.raw`, because the
+     table it lands in is admin-only and the archive is not. */
+  const wishes = row.get("Death Funeral Wishes");
 
   const postalStreet = row.get("Street");
   const hasPostal = Boolean(postalStreet || row.get("City/Town") || row.get("Postal Code"));
@@ -1003,6 +1103,10 @@ export function mapIceRow(row: IceRow, today: Date = new Date()): MappedRow {
     },
     today,
   );
+
+  /* The one restricted read in the whole mapper. See RESTRICTED_HEADERS: `get()` still refuses
+     this column, so nothing can pick it up by accident, and this line is named in the tests. */
+  const bank = parseBankCell(row.restricted("20 Digit Bank No"));
 
   const member: MappedRow["member"] = {
     first_name: firstName,
@@ -1096,7 +1200,10 @@ export function mapIceRow(row: IceRow, today: Date = new Date()): MappedRow {
           meds_notes: nz(row.get("Meds Notes")),
           // "Private Medical Details" is redacted (see REDACTED_HEADERS), so the insurer's name
           // is no longer imported. Its policy number below still is — they were separate columns.
-          private_insurer: null,
+          /* Restored 18 Sep 2026. This column is about private health INSURANCE, not about a
+             medical record — "he does not hold any private medical insurance due to his age" —
+             and it was only ever null because it got swept into the card redaction. */
+          private_insurer: nz(row.get("Private Medical Details")),
           private_policy_number: nz(row.get("Policy Number", 0)),
           additional_notes: nz(specialInstructions),
         }
@@ -1140,6 +1247,8 @@ export function mapIceRow(row: IceRow, today: Date = new Date()): MappedRow {
         }
       : null,
     access: keySafe ? { key_safe_location: null, key_safe_code: keySafe } : null,
+    bank: bank.source_text ? bank : null,
+    paymentMethod: nz(row.paymentMethodHint()),
     endOfLife:
       funeralPlan || funeralPolicy || wishes
         ? { funeral_plan: nz(funeralPlan), policy_number: nz(funeralPolicy), wishes: nz(wishes) }

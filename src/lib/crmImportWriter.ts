@@ -171,6 +171,23 @@ export interface RowPlan {
    * pressing Import, not discover afterwards.
    */
   emailContactConsent: boolean;
+  /**
+   * The three admin-only records: front-door access, end-of-life wishes, bank details.
+   *
+   * These were PARSED from the file since the first import and written by nothing. Their
+   * tables were built on 3 September (`member_access`, `member_end_of_life`) and 18 September
+   * (`member_bank_details`), each admin-only on purpose, and `MappedRow` has carried the data
+   * the whole time — `planRowWrites` simply never put it on the plan and `applyRowPlan` never
+   * wrote it. 96 key safe codes, 41 funeral plans and 85 bank accounts were being read out of
+   * the file and dropped on the floor.
+   *
+   * On the plan rather than done inside the apply step, for the same reason as
+   * `emailContactConsent`: an admin should see before pressing Import that a front-door code
+   * is about to be stored, not discover it afterwards.
+   */
+  access: { key_safe_location: string | null; key_safe_code: string | null } | null;
+  endOfLife: { funeral_plan: string | null; policy_number: string | null; wishes: string | null } | null;
+  bank: { iban: string | null; bank_name: string | null; source_text: string } | null;
 }
 
 /**
@@ -258,6 +275,10 @@ export function planRowWrites(row: MappedRow): RowPlan {
       notes: [],
       crmProfile: {},
       emailContactConsent: false,
+      /* A skipped row writes nothing at all, admin-only records included. */
+      access: null,
+      endOfLife: null,
+      bank: null,
     };
   }
 
@@ -354,6 +375,14 @@ export function planRowWrites(row: MappedRow): RowPlan {
      recognises it rather than adding a second copy. */
   if (row.spouse) notes.push(`Spouse: ${row.spouse}`);
 
+  /* What the card column said when it was not a card. 11 rows of the export say how somebody
+     pays — "Paid via Stripe", "to pay cash to Lee for the year", "See Roger Hawksworth" — and
+     that is worth keeping even though the 83 rows either side of them are not. A note, because
+     `subscriptions.payment_arrangement` is the CRM's own "DD or TVP" column and overwriting it
+     with this would replace a field with a remark. See IceRow.paymentMethodHint for why only
+     digit-free cells get this far. */
+  if (row.paymentMethod) notes.push(`Payment method (from CRM): ${row.paymentMethod}`);
+
   if (row.notes) notes.push(row.notes);
 
   const outcome: RowOutcome = blockers.length === 0 ? "member" : "crm_contact";
@@ -445,6 +474,9 @@ export function planRowWrites(row: MappedRow): RowPlan {
       legacy_date_joined: row.subscription?.start_date ?? null,
     },
     emailContactConsent: row.emailContactConsent,
+    access: row.access,
+    endOfLife: row.endOfLife,
+    bank: row.bank,
   };
 }
 
@@ -720,6 +752,13 @@ export interface ImportDb {
   noteExists(memberId: string, content: string): Promise<boolean>;
   insertNote(memberId: string, content: string): Promise<void>;
   upsertCrmProfile(memberId: string, profile: Record<string, unknown>): Promise<void>;
+  /**
+   * The three admin-only tables. Upserts on member_id, and each MUST leave a field it has no
+   * value for alone rather than writing null over it — see applyRowPlan.
+   */
+  upsertAccess(memberId: string, access: NonNullable<RowPlan["access"]>): Promise<void>;
+  upsertEndOfLife(memberId: string, eol: NonNullable<RowPlan["endOfLife"]>): Promise<void>;
+  upsertBank(memberId: string, bank: NonNullable<RowPlan["bank"]>): Promise<void>;
   insertCrmContact(plan: RowPlan): Promise<string>;
   /**
    * Takes the whole plan rather than the dedupe keys: `crm_contacts` also carries `source_id`,
@@ -742,6 +781,9 @@ export interface AppliedResult {
   contactMethodsCreated: number;
   deviceCreated: boolean;
   medicalCreated: boolean;
+  accessCreated: boolean;
+  endOfLifeCreated: boolean;
+  bankCreated: boolean;
   emailOptInCreated: boolean;
   notesCreated: number;
   /** Non-fatal problems. A row that half-wrote says so rather than reporting success. */
@@ -767,6 +809,9 @@ export async function applyRowPlan(db: ImportDb, plan: RowPlan): Promise<Applied
     contactMethodsCreated: 0,
     deviceCreated: false,
     medicalCreated: false,
+    accessCreated: false,
+    endOfLifeCreated: false,
+    bankCreated: false,
     emailOptInCreated: false,
     notesCreated: 0,
     problems: [],
@@ -881,6 +926,26 @@ export async function applyRowPlan(db: ImportDb, plan: RowPlan): Promise<Applied
   }
 
   await db.upsertCrmProfile(memberId, plan.crmProfile);
+
+  /* The three admin-only records. Upserts keyed on member_id, so a re-run is not a change and
+     a record that was missing gets created on the second pass — the same shape as the CRM
+     profile above, and for the same reason.
+
+     UPSERT AND NOT INSERT ALSO MEANS A RE-IMPORT CANNOT BLANK ONE. Each writes only the fields
+     it actually has: a key safe code somebody typed into the platform is not overwritten with
+     null because the CRM row never had one. */
+  if (plan.access) {
+    await db.upsertAccess(memberId, plan.access);
+    result.accessCreated = true;
+  }
+  if (plan.endOfLife) {
+    await db.upsertEndOfLife(memberId, plan.endOfLife);
+    result.endOfLifeCreated = true;
+  }
+  if (plan.bank) {
+    await db.upsertBank(memberId, plan.bank);
+    result.bankCreated = true;
+  }
 
   return result;
 }

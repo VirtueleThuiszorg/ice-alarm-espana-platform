@@ -54,6 +54,16 @@ interface FakeMember {
   devices: { imei: string }[];
   notes: string[];
   crmProfile: Record<string, unknown> | null;
+  access: Record<string, unknown> | null;
+  endOfLife: Record<string, unknown> | null;
+  bank: Record<string, unknown> | null;
+}
+
+/** What the Supabase adapter's `stripNulls` does, so the fake behaves like the real upsert. */
+function stripEmpty(value: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, v]) => v !== null && v !== undefined && v !== "")
+  );
 }
 
 class FakeDb implements ImportDb {
@@ -75,6 +85,9 @@ class FakeDb implements ImportDb {
       devices: [],
       notes: [],
       crmProfile: null,
+      access: null,
+      endOfLife: null,
+      bank: null,
     };
     this.members.push(m);
     return m;
@@ -124,6 +137,9 @@ class FakeDb implements ImportDb {
       devices: [],
       notes: [],
       crmProfile: null,
+      access: null,
+      endOfLife: null,
+      bank: null,
     };
     this.members.push(m);
     return m.id;
@@ -191,6 +207,26 @@ class FakeDb implements ImportDb {
   async upsertCrmProfile(memberId: string, profile: Record<string, unknown>) {
     // An upsert by definition writes the same thing twice, so it is not counted as a change.
     this.mustFind(memberId).crmProfile = profile;
+  }
+
+  /* The three admin-only tables. Kept as whole objects so a test can assert that a re-run
+     does not blank a field the CRM no longer has.
+
+     NOT counted in `writes`, for the same reason `upsertCrmProfile` is not: an upsert writing
+     the same values back is not a change, and the re-run assertion is about changes. */
+  async upsertAccess(memberId: string, access: NonNullable<RowPlan["access"]>) {
+    const m = this.mustFind(memberId);
+    m.access = { ...(m.access ?? {}), ...stripEmpty(access) };
+  }
+
+  async upsertEndOfLife(memberId: string, eol: NonNullable<RowPlan["endOfLife"]>) {
+    const m = this.mustFind(memberId);
+    m.endOfLife = { ...(m.endOfLife ?? {}), ...stripEmpty(eol) };
+  }
+
+  async upsertBank(memberId: string, bank: NonNullable<RowPlan["bank"]>) {
+    const m = this.mustFind(memberId);
+    m.bank = { ...(m.bank ?? {}), ...stripEmpty(bank) };
   }
 
   async insertCrmContact(plan: RowPlan) {

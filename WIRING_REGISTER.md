@@ -18,7 +18,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
 10 │   9  ████
  9 │   6  ██
  8 │   0  
- 7 │  35  ██████████████
+ 7 │  38  ███████████████
  6 │   9  ████
  5 │  84  ██████████████████████████████████
  4 │  50  ████████████████████
@@ -28,13 +28,13 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   1  
 ```
 
-194 distinct wires across 655 call sites and 114 routes.
+197 distinct wires across 658 call sites and 114 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
 | 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 9 | 5% |
-| 7–9 | arrives and proven; notification missing or on a channel not live today | 41 | 21% |
-| 4–6 | arrives; nobody told; nothing proves it | 143 | 74% |
+| 7–9 | arrives and proven; notification missing or on a channel not live today | 44 | 22% |
+| 4–6 | arrives; nobody told; nothing proves it | 143 | 73% |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0% |
 | 0 | dead control | 1 | 1% |
 
@@ -63,7 +63,7 @@ things, and a control with no wire cannot do anything:
 
 | kind | what it is | call sites |
 |---|---|---:|
-| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 353 |
+| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 356 |
 | `fn` | `supabase.functions.invoke(f)` — an edge function | 95 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 6 |
 | `channel` | `postgres_changes` — a realtime subscription | 53 |
@@ -436,6 +436,9 @@ The checks, verified on every build:
 | **7** | `table:email_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | toast | `src/test/checkoutPaymentMethods.test.ts` | 1 |
 | **7** | `table:email_templates` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | toast | `src/test/checkoutPaymentMethods.test.ts` | 1 |
 | **7** | `table:isabella_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | toast | `src/test/checkoutPaymentMethods.test.ts` | 1 |
+| **7** | `table:member_access` | CRM import: the three admin-only records — the front-door code, the funeral record and the legacy bank account come across, and only admins can read them | member_access / member_end_of_life / member_bank_details, via applyRowPlan | self | — | `src/test/crmImportAdminOnlyRecords.test.ts` | 1 |
+| **7** | `table:member_bank_details` | CRM import: the three admin-only records — the front-door code, the funeral record and the legacy bank account come across, and only admins can read them | member_access / member_end_of_life / member_bank_details, via applyRowPlan | self | — | `src/test/crmImportAdminOnlyRecords.test.ts` | 1 |
+| **7** | `table:member_end_of_life` | CRM import: the three admin-only records — the front-door code, the funeral record and the legacy bank account come across, and only admins can read them | member_access / member_end_of_life / member_bank_details, via applyRowPlan | self | — | `src/test/crmImportAdminOnlyRecords.test.ts` | 1 |
 | **7** | `table:notification_routes` | Admin → Settings → Notifications: the event × channel switches, the per-staff matrix beneath, and "send a test notification" — the person who needs to know is told, on a channel that works | notification_routes (company policy) and staff_notification_prefs (the person), both read by the notify-staff router on every send — so a switch changes the next notification, with no redeploy. Each change writes an activity_logs row carrying the old and new value. | screen | toast | `src/test/notificationMatrix.test.ts` | 1 |
 | **7** | `table:notification_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | mutation onError | `src/test/checkoutPaymentMethods.test.ts` | 1 |
 | **7** | `table:operational_costs` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | toast | `src/test/checkoutPaymentMethods.test.ts` | 1 |
@@ -2732,6 +2735,45 @@ One promise, one audience: the admin who pressed Save is the only person who nee
 - **call sites** src/hooks/useIsabellaSettings.ts
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. THE PAYMENT-METHOD ROWS ARE THE EXCEPTION TO 'cosmetic': neither checkout function set `payment_method_types`, so STRIPE'S DASHBOARD DEFAULTS decided — and in the EEA those include SEPA Direct Debit, which is ASYNCHRONOUS. Its session completes with `payment_status: "unpaid"` and activation depends on `checkout.session.async_payment_succeeded`; unless the webhook destination is subscribed to that, the customer pays and is NEVER ACTIVATED, with no error anywhere. Card is always offered and cannot be unticked; the three async methods are greyed with the reason until an admin confirms the destination listens, and that acknowledgement is re-applied when the setting is READ as well as when it is written.
+
+### `table:member_access` — 7/10 (proven; no notification owed)
+
+- **control** CRM import: the three admin-only records
+- **promised** the front-door code, the funeral record and the legacy bank account come across, and only admins can read them
+- **goes to** member_access / member_end_of_life / member_bank_details, via applyRowPlan
+- **who is told** self
+- **failure shown to user** no
+- **proof** `src/test/crmImportAdminOnlyRecords.test.ts`
+- **routes** /admin/crm-import
+- **call sites** src/lib/crmImportDb.ts
+
+All three are is_admin, never is_staff, and none of them reaches crm_import_rows.raw — see ARCHIVE_EXCLUDED_HEADERS. Written as upserts over stripNulls so a re-import cannot blank a key safe code somebody typed into the platform. Card numbers reach none of them.
+
+### `table:member_bank_details` — 7/10 (proven; no notification owed)
+
+- **control** CRM import: the three admin-only records
+- **promised** the front-door code, the funeral record and the legacy bank account come across, and only admins can read them
+- **goes to** member_access / member_end_of_life / member_bank_details, via applyRowPlan
+- **who is told** self
+- **failure shown to user** no
+- **proof** `src/test/crmImportAdminOnlyRecords.test.ts`
+- **routes** /admin/crm-import
+- **call sites** src/lib/crmImportDb.ts
+
+All three are is_admin, never is_staff, and none of them reaches crm_import_rows.raw — see ARCHIVE_EXCLUDED_HEADERS. Written as upserts over stripNulls so a re-import cannot blank a key safe code somebody typed into the platform. Card numbers reach none of them.
+
+### `table:member_end_of_life` — 7/10 (proven; no notification owed)
+
+- **control** CRM import: the three admin-only records
+- **promised** the front-door code, the funeral record and the legacy bank account come across, and only admins can read them
+- **goes to** member_access / member_end_of_life / member_bank_details, via applyRowPlan
+- **who is told** self
+- **failure shown to user** no
+- **proof** `src/test/crmImportAdminOnlyRecords.test.ts`
+- **routes** /admin/crm-import
+- **call sites** src/lib/crmImportDb.ts
+
+All three are is_admin, never is_staff, and none of them reaches crm_import_rows.raw — see ARCHIVE_EXCLUDED_HEADERS. Written as upserts over stripNulls so a re-import cannot blank a key safe code somebody typed into the platform. Card numbers reach none of them.
 
 ### `table:notification_routes` — 7/10 (proven; nobody told)
 

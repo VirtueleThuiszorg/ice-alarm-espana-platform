@@ -16,15 +16,27 @@
  * import cannot disagree; and it is exportable as CSV, because 431 rows are read in a
  * spreadsheet, not in a browser table.
  *
- * NOTHING IS WRITTEN UNTIL IMPORT IS PRESSED. The batch row is created inside `startImport`,
+ * NOTHING IS WRITTEN UNTIL IMPORT IS PRESSED. The batch row is created inside `importNext`,
  * not on file drop, so dropping a file to look at it leaves no trace.
+ *
+ * AND IT GOES IN A HANDFUL AT A TIME, NOT ALL 431 AT ONCE (Lee, 18 Sep 2026: "I wanted to be
+ * able to add 10 uploading at a time so I can watch them and make sure they all imported
+ * good"). The import used to run the whole file behind one progress bar and then report six
+ * numbers — which tells you 402 rows worked and nothing about WHICH 29 did not, on a file
+ * where the rows that fail are the ones with the messiest data and the most at stake.
+ *
+ * So the run stops at the end of every batch and shows that batch row by row — name, what
+ * happened to it, and anything the writer complained about — and waits to be told to carry
+ * on. Stopping is free: `applyRowPlan` is idempotent per row and the cursor is where it got
+ * to, so pressing on after a look is the same as never having stopped, and walking away
+ * leaves the rows already written exactly as they are.
  */
 import { useState, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
   Upload, FileText, AlertCircle, CheckCircle2, Users, UserX, Loader2, ArrowLeft,
-  Download, ShieldOff,
+  Download, ShieldOff, ListChecks,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +44,9 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,11 +61,34 @@ import CRMHistoryImportCard from "@/components/admin/CRMHistoryImportCard";
 
 const PREVIEW_ROWS = 50;
 
+/** How many rows one press of Import writes. 10 is Lee's number: a screenful he can read. */
+const BATCH_SIZES = [10, 25, 50, 100] as const;
+const DEFAULT_BATCH_SIZE = 10;
+
 type Results = Record<AppliedAction, number> & { failed: number };
 
 const emptyResults = (): Results => ({
   created: 0, updated: 0, unchanged: 0, crm_contact: 0, skipped: 0, failed: 0,
 });
+
+/** One row of the just-finished batch, as it is shown back for checking. */
+interface BatchOutcome {
+  rowIndex: number;
+  sourceId: string;
+  name: string;
+  action: AppliedAction | "failed";
+  memberId: string | null;
+  problems: string[];
+}
+
+const OUTCOME_LABEL: Record<BatchOutcome["action"], string> = {
+  created: "Member created",
+  updated: "Member filled in",
+  unchanged: "Already up to date",
+  crm_contact: "CRM contact",
+  skipped: "Not imported",
+  failed: "Failed",
+};
 
 export default function CRMImportPage() {
   const { t } = useTranslation();
@@ -63,6 +101,15 @@ export default function CRMImportPage() {
   const [importMode, setImportMode] = useState<ImportMode>("members_and_contacts");
   const [importComplete, setImportComplete] = useState(false);
   const [results, setResults] = useState<Results | null>(null);
+  /* The batched run. `cursor` is how far through `plans` the import has got and is the only
+     thing that decides what the next press writes; `batchId` is created once, on the first
+     press, so every batch of one file lands in one audit batch rather than pretending to be
+     separate imports. */
+  const [batchSize, setBatchSize] = useState<number>(DEFAULT_BATCH_SIZE);
+  const [cursor, setCursor] = useState(0);
+  const [batchId, setBatchId] = useState<string | null>(null);
+  const [tally, setTally] = useState<Results>(emptyResults());
+  const [lastBatch, setLastBatch] = useState<BatchOutcome[] | null>(null);
 
   /* The plan is derived, never stored. Storing it alongside the mode is how a screen ends up
      showing the plan for the mode the admin selected two clicks ago. */
@@ -132,38 +179,68 @@ export default function CRMImportPage() {
     setImportComplete(false);
     setResults(null);
     setImportProgress(0);
+    setCursor(0);
+    setBatchId(null);
+    setTally(emptyResults());
+    setLastBatch(null);
   };
 
-  const startImport = async () => {
-    if (plans.length === 0 || !file) return;
+  const nameOf = (plan: RowPlan) =>
+    [plan.parsedMember.first_name, plan.parsedMember.last_name].filter(Boolean).join(" ") ||
+    plan.sourceId;
+
+  /**
+   * Write the next `count` rows, then stop.
+   *
+   * The audit trail for the WHOLE file is written on the first press, not per batch: it is
+   * the record of what was in the file, and a row nobody ever got to is still a row somebody
+   * may need to look at. Only the writing of members and contacts is batched.
+   */
+  const importNext = async (count: number) => {
+    if (plans.length === 0 || !file || cursor >= plans.length) return;
     setImporting(true);
     setImportProgress(0);
-    const tally = emptyResults();
     const db = createSupabaseImportDb(supabase);
+    let announce: { kind: "success" | "warning" | "error"; text: string } | null = null;
 
     try {
-      const { data: batch, error: batchError } = await supabase
-        .from("crm_import_batches")
-        .insert({ filename: file.name, total_rows: plans.length, status: "importing", source: "karmacrm" })
-        .select("id")
-        .single();
-      if (batchError) throw batchError;
-      const batchId = batch.id;
+      let id = batchId;
+      if (!id) {
+        const { data: batch, error: batchError } = await supabase
+          .from("crm_import_batches")
+          .insert({ filename: file.name, total_rows: plans.length, status: "importing", source: "karmacrm" })
+          .select("id")
+          .single();
+        if (batchError) throw batchError;
+        id = batch.id;
+        setBatchId(id);
 
-      /* The audit trail first, so a row that fails to write is still a row somebody can look at.
-         `raw` here omits the redacted columns — see importRowPayload. */
-      const payloads = plans.map((plan, i) => importRowPayload(batchId, i, mapped[i], plan));
-      for (let i = 0; i < payloads.length; i += 100) {
-        const { error } = await supabase.from("crm_import_rows").insert(payloads.slice(i, i + 100));
-        if (error) throw error;
-        setImportProgress(Math.min(20, ((i + 100) / payloads.length) * 20));
+        /* `raw` here omits the redacted columns — see importRowPayload. */
+        const payloads = plans.map((plan, i) => importRowPayload(id!, i, mapped[i], plan));
+        for (let i = 0; i < payloads.length; i += 100) {
+          const { error } = await supabase.from("crm_import_rows").insert(payloads.slice(i, i + 100));
+          if (error) throw error;
+        }
       }
 
-      for (let i = 0; i < plans.length; i++) {
-        setImportProgress(20 + (i / plans.length) * 80);
+      const end = Math.min(cursor + count, plans.length);
+      const outcomes: BatchOutcome[] = [];
+      const running = { ...tally };
+
+      for (let i = cursor; i < end; i++) {
+        setImportProgress(((i - cursor) / (end - cursor)) * 100);
+        const plan = plans[i];
         try {
-          const applied = await applyRowPlan(db, plans[i]);
-          tally[applied.action] += 1;
+          const applied = await applyRowPlan(db, plan);
+          running[applied.action] += 1;
+          outcomes.push({
+            rowIndex: i,
+            sourceId: plan.sourceId,
+            name: nameOf(plan),
+            action: applied.action,
+            memberId: applied.memberId,
+            problems: applied.problems,
+          });
           await supabase
             .from("crm_import_rows")
             .update({
@@ -174,53 +251,84 @@ export default function CRMImportPage() {
               imported_crm_contact_id: applied.crmContactId,
               error_message: applied.problems.length > 0 ? applied.problems.join("; ") : null,
             })
-            .eq("batch_id", batchId)
+            .eq("batch_id", id)
             .eq("row_index", i);
         } catch (error) {
-          tally.failed += 1;
+          running.failed += 1;
+          const message = error instanceof Error ? error.message : "Unknown error";
+          outcomes.push({
+            rowIndex: i,
+            sourceId: plan.sourceId,
+            name: nameOf(plan),
+            action: "failed",
+            memberId: null,
+            problems: [message],
+          });
           console.error(`CRM import: row ${i} failed`, error);
           await supabase
             .from("crm_import_rows")
-            .update({
-              import_status: "failed",
-              error_message: error instanceof Error ? error.message : "Unknown error",
-            })
-            .eq("batch_id", batchId)
+            .update({ import_status: "failed", error_message: message })
+            .eq("batch_id", id)
             .eq("row_index", i);
         }
       }
 
-      await supabase
-        .from("crm_import_batches")
-        .update({
-          // The enum has no 'completed_with_errors': a batch with failures is 'failed', and the
-          // per-row error_message says which rows. Reporting it 'completed' would hide them.
-          status: tally.failed > 0 ? "failed" : "completed",
-          imported_rows: tally.created + tally.updated + tally.crm_contact,
-          failed_rows: tally.failed,
-          skipped_rows: tally.skipped + tally.unchanged,
-        })
-        .eq("id", batchId);
+      setTally(running);
+      setLastBatch(outcomes);
+      setCursor(end);
 
-      setResults(tally);
-      setImportComplete(true);
+      if (end >= plans.length) {
+        await supabase
+          .from("crm_import_batches")
+          .update({
+            // The enum has no 'completed_with_errors': a batch with failures is 'failed', and
+            // the per-row error_message says which rows. Reporting it 'completed' would hide them.
+            status: running.failed > 0 ? "failed" : "completed",
+            imported_rows: running.created + running.updated + running.crm_contact,
+            failed_rows: running.failed,
+            skipped_rows: running.skipped + running.unchanged,
+          })
+          .eq("id", id);
+        setResults(running);
+        setImportComplete(true);
+      }
 
       // The import writes members, contacts, devices and CRM profiles straight through the
       // Supabase client, so nothing tells React Query its cached lists are out of date.
       queryClient.invalidateQueries({ queryKey: ["admin-members"] });
       queryClient.invalidateQueries({ queryKey: ["admin-dashboard-stats"] });
 
-      toast.success(
-        `Import finished: ${tally.created} created, ${tally.updated} updated, ${tally.crm_contact} CRM contacts`
-      );
+      const failedHere = outcomes.filter((o) => o.action === "failed").length;
+      /* Deliberately NOT a toast call inside the try. A toast that throws — a stubbed
+         notifier, a missing level — would otherwise be caught below and reported as "the
+         import failed", when every row it claims to have lost is already written. The
+         batch's own success is decided before anything is announced. */
+      announce =
+        failedHere > 0
+          ? { kind: "warning", text: `${end - cursor} rows done, ${failedHere} failed — check the list below` }
+          : { kind: "success", text: `${end - cursor} rows done. ${plans.length - end} left.` };
     } catch (error) {
       console.error("CRM import failed", error);
-      toast.error("Import failed before it finished — see the batch record");
+      announce = { kind: "error", text: "Import failed before it finished — see the batch record" };
     } finally {
       setImporting(false);
       setImportProgress(100);
     }
+
+    if (announce) {
+      try {
+        const notify = toast[announce.kind] ?? toast.message ?? toast.success;
+        notify(announce.text);
+      } catch (error) {
+        // The rows are written either way. A notifier that cannot speak is worth a line in
+        // the console and nothing more — certainly not an unhandled rejection that looks,
+        // from the outside, exactly like the import having fallen over.
+        console.error("CRM import: could not show the batch result", error);
+      }
+    }
   };
+
+  const remaining = plans.length - cursor;
 
   const previewRows = plans.slice(0, PREVIEW_ROWS);
 
@@ -422,7 +530,10 @@ export default function CRMImportPage() {
         </Card>
       )}
 
-      {plans.length > 0 && !importing && !importComplete && (
+      {/* The before-you-press preview, which is only useful before you press: once the run has
+          started the batch results below are the thing to read, and 50 rows of plan above them
+          is just scrolling. */}
+      {plans.length > 0 && cursor === 0 && !importing && !importComplete && (
         <Card>
           <CardHeader className="flex flex-row items-start justify-between gap-4">
             <div>
@@ -527,16 +638,138 @@ export default function CRMImportPage() {
       )}
 
       {file && planSummary && !importing && !importComplete && (
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={reset}>Cancel</Button>
-          <Button
-            onClick={startImport}
-            disabled={planSummary.members + planSummary.crmContacts === 0}
-            data-testid="start-import"
-          >
-            Import {planSummary.members + planSummary.crmContacts} rows
-          </Button>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {cursor === 0 ? "Import, a few at a time" : `${cursor} of ${plans.length} done`}
+            </CardTitle>
+            <CardDescription>
+              {cursor === 0
+                ? "Each press writes one batch and then stops, so you can check them before going on. Stopping costs nothing — the next press carries on from where this one ended."
+                : `${remaining} row${remaining === 1 ? "" : "s"} still to go. Nothing already written is touched again.`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="batch-size">Rows per press</Label>
+                <Select
+                  value={String(batchSize)}
+                  onValueChange={(v) => setBatchSize(Number(v))}
+                >
+                  <SelectTrigger id="batch-size" className="w-[140px]" data-testid="batch-size">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BATCH_SIZES.map((n) => (
+                      <SelectItem key={n} value={String(n)}>{n} at a time</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={reset}>
+                  {cursor === 0 ? "Cancel" : "Stop here"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => void importNext(plans.length)}
+                  disabled={planSummary.members + planSummary.crmContacts === 0}
+                  data-testid="import-rest"
+                >
+                  Import the remaining {remaining}
+                </Button>
+                <Button
+                  onClick={() => void importNext(batchSize)}
+                  disabled={planSummary.members + planSummary.crmContacts === 0}
+                  data-testid="start-import"
+                >
+                  Import next {Math.min(batchSize, remaining)}
+                </Button>
+              </div>
+            </div>
+            {cursor > 0 && (
+              <div className="mt-4 space-y-2">
+                <Progress value={(cursor / plans.length) * 100} />
+                <p className="text-sm text-muted-foreground tabular-nums">
+                  {tally.created} created · {tally.updated} filled in · {tally.crm_contact} CRM
+                  contacts · {tally.unchanged} already up to date · {tally.skipped} not imported ·{" "}
+                  {tally.failed} failed
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* The whole point of batching: the batch just written, row by row, while it is still
+          small enough to read. A tally of six numbers says 402 worked; this says which. */}
+      {lastBatch && lastBatch.length > 0 && !importing && (
+        <Card data-testid="last-batch">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ListChecks className="h-4 w-4" />
+              The {lastBatch.length} just written — rows {lastBatch[0].rowIndex + 1} to{" "}
+              {lastBatch[lastBatch.length - 1].rowIndex + 1}
+            </CardTitle>
+            <CardDescription>
+              Check these before going on. Anything marked Failed is still in the file and can be
+              re-run once the cause is fixed — re-importing a row that worked changes nothing.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[60px]">Row</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>What happened</TableHead>
+                    <TableHead>Notes</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {lastBatch.map((o) => (
+                    <TableRow key={o.sourceId} data-testid={`batch-row-${o.sourceId}`}>
+                      <TableCell className="tabular-nums text-muted-foreground">
+                        {o.rowIndex + 1}
+                      </TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">
+                        {o.memberId ? (
+                          <button
+                            type="button"
+                            className="underline underline-offset-2 hover:no-underline"
+                            onClick={() => navigate(`/admin/members/${o.memberId}`)}
+                          >
+                            {o.name}
+                          </button>
+                        ) : (
+                          o.name
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            o.action === "failed"
+                              ? "destructive"
+                              : o.action === "created" || o.action === "updated"
+                                ? "default"
+                                : "secondary"
+                          }
+                        >
+                          {OUTCOME_LABEL[o.action]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground max-w-[320px]">
+                        {o.problems.length > 0 ? o.problems.join(" · ") : "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Always visible, and not gated on step 1 having a file loaded in THIS session:

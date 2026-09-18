@@ -87,10 +87,33 @@ export interface HistoryPlan {
   tasks: HistoryTask[];
   /** Every distinct karmaCRM contact id the plan refers to. */
   crmContactIds: string[];
+  /**
+   * karmaCRM contact id → the name on the record, so a batch can be checked against people
+   * rather than against numbers. karmaCRM carries it on every record: `history_record_label`
+   * on a note, the Contact participant's `label` on a todo. It is display only — the join is
+   * always on the id, never on the name — and some of them still have "CANCELLED" stuck on
+   * the end, which is how they are in the CRM and is left alone here.
+   */
+  crmContactNames: Record<string, string>;
   /** Records deliberately not imported, by kind, with the reason. */
   skipped: { kind: string; count: number; reason: string }[];
   /** Records that could not be imported and should have been. Never silent. */
   problems: string[];
+}
+
+/** Display only — see HistoryPlan.crmContactNames. */
+function nameOf(record: RawHistory): string {
+  const direct = str(record.history_record_label).trim();
+  if (str(record.history_record_type) === "Contact" && direct) return direct;
+  const participants = Array.isArray(record.participants) ? record.participants : [];
+  for (const p of participants) {
+    const part = obj(p);
+    if (str(part.participater_type) === "Contact") {
+      const label = str(part.label).trim();
+      if (label) return label;
+    }
+  }
+  return "";
 }
 
 interface RawHistory {
@@ -179,6 +202,7 @@ export function parseKarmaHistory(input: string | unknown): HistoryPlan {
         notes: [],
         tasks: [],
         crmContactIds: [],
+        crmContactNames: {},
         skipped: [],
         problems: [`file is not valid JSON: ${(e as Error).message}`],
       };
@@ -207,6 +231,7 @@ export function parseKarmaHistory(input: string | unknown): HistoryPlan {
     { contactId: string; label: string; created: string | null; updated: string | null }
   >();
   const skippedCounts = new Map<string, number>();
+  const names: Record<string, string> = {};
   let orphanNotes = 0;
   let orphanTodos = 0;
   let emptyNotes = 0;
@@ -217,6 +242,10 @@ export function parseKarmaHistory(input: string | unknown): HistoryPlan {
     const external = obj(record.external);
     const contactId = contactIdOf(record);
     const when = timestampOf(record);
+    if (contactId && !names[contactId]) {
+      const label = nameOf(record);
+      if (label) names[contactId] = label;
+    }
 
     if (kind === "Note" || kind === "Phone Call") {
       const content = str(external.body).trim();
@@ -332,7 +361,10 @@ export function parseKarmaHistory(input: string | unknown): HistoryPlan {
     ...new Set([...notes.map((n) => n.crmContactId), ...tasks.map((t) => t.crmContactId)]),
   ];
 
-  return { notes, tasks, crmContactIds, skipped, problems };
+  const crmContactNames: Record<string, string> = {};
+  for (const id of crmContactIds) crmContactNames[id] = names[id] ?? id;
+
+  return { notes, tasks, crmContactIds, crmContactNames, skipped, problems };
 }
 
 export interface HistorySummary {
@@ -361,4 +393,55 @@ export function summariseHistory(plan: HistoryPlan): HistorySummary {
     latest: dates[dates.length - 1] ?? null,
     skipped: plan.skipped.reduce((n, s) => n + s.count, 0),
   };
+}
+
+/**
+ * The slice of a plan belonging to a given set of contacts.
+ *
+ * The history goes in a few PEOPLE at a time rather than a few RECORDS at a time, because a
+ * person is what can actually be checked: "Audrey May Taylor, 773 notes, 14 calls" is a line
+ * somebody can look at and recognise, and half of Audrey's file arriving in one batch and half
+ * in the next is not. It also keeps a re-run honest — every record of a contact is written in
+ * the same press, so a batch that succeeded is a contact that is complete.
+ *
+ * `problems` is deliberately NOT carried: those belong to the file, not to any slice of it, and
+ * repeating them once per batch would bury the ones the batch itself produced.
+ */
+export function planForContacts(plan: HistoryPlan, contactIds: string[]): HistoryPlan {
+  const wanted = new Set(contactIds);
+  const names: Record<string, string> = {};
+  for (const id of contactIds) names[id] = plan.crmContactNames[id] ?? id;
+  return {
+    notes: plan.notes.filter((n) => wanted.has(n.crmContactId)),
+    tasks: plan.tasks.filter((t) => wanted.has(t.crmContactId)),
+    crmContactIds: contactIds,
+    crmContactNames: names,
+    skipped: [],
+    problems: [],
+  };
+}
+
+/** What one contact brings with them, for the per-person line in a batch. */
+export interface ContactVolume {
+  crmContactId: string;
+  name: string;
+  notes: number;
+  tasks: number;
+}
+
+export function volumeByContact(plan: HistoryPlan): ContactVolume[] {
+  const counts = new Map<string, { notes: number; tasks: number }>();
+  const bump = (id: string, key: "notes" | "tasks") => {
+    const entry = counts.get(id) ?? { notes: 0, tasks: 0 };
+    entry[key] += 1;
+    counts.set(id, entry);
+  };
+  for (const n of plan.notes) bump(n.crmContactId, "notes");
+  for (const t of plan.tasks) bump(t.crmContactId, "tasks");
+  return plan.crmContactIds.map((id) => ({
+    crmContactId: id,
+    name: plan.crmContactNames[id] ?? id,
+    notes: counts.get(id)?.notes ?? 0,
+    tasks: counts.get(id)?.tasks ?? 0,
+  }));
 }

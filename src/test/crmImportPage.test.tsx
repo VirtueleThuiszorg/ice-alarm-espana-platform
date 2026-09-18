@@ -80,6 +80,7 @@ vi.mock("sonner", () => ({
   toast: {
     success: (m: string) => toastCalls.push(`success:${m}`),
     error: (m: string) => toastCalls.push(`error:${m}`),
+    warning: (m: string) => toastCalls.push(`warning:${m}`),
   },
 }));
 
@@ -449,5 +450,127 @@ describe("consent the CRM recorded, on the way to the database", () => {
       (w) => (w.payload as { contact_name: string }).contact_name
     );
     expect(contactNames).not.toContain("Edith Pennington");
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Importing a few at a time
+ * ------------------------------------------------------------------ */
+
+/**
+ * Lee, 18 Sep 2026: "I wanted to be able to add 10 uploading at a time so I can watch them
+ * and make sure they all imported good."
+ *
+ * The file is 431 rows and the ones that fail are the ones with the messiest data, so a
+ * single run behind one progress bar reports six numbers and tells nobody WHICH rows went
+ * wrong. These tests hold the three things that makes the batching worth having: a press
+ * writes its batch and no more, the batch is shown back row by row, and the next press
+ * carries on rather than starting again.
+ */
+function csvOf(rows: number): string {
+  const lines = FIXTURE_CSV.trim().split("\n");
+  const header = lines[0];
+  const body: string[] = [];
+  // The id column is first, and is what the importer de-duplicates on, so each copy needs
+  // its own — otherwise this would be one row imported N times, which tests nothing.
+  for (let i = 0; body.length < rows; i++) {
+    const source = lines[1 + (i % (lines.length - 1))];
+    const cells = source.split(",");
+    cells[0] = String(900000 + body.length);
+    body.push(cells.join(","));
+  }
+  return [header, ...body].join("\n");
+}
+
+describe("importing a few at a time", () => {
+  it("writes only the first batch and then stops", async () => {
+    await loadFixture(csvOf(25));
+    fireEvent.click(screen.getByTestId("start-import"));
+
+    await waitFor(() => expect(screen.getByTestId("last-batch")).toBeTruthy());
+    // 10 rows attempted, not 25 — and the run is NOT reported complete.
+    expect(within(screen.getByTestId("last-batch")).getAllByRole("row").length - 1).toBe(10);
+    expect(screen.queryByTestId("result-created")).toBeNull();
+  });
+
+  it("shows that batch row by row, which is the whole point", async () => {
+    await loadFixture(csvOf(25));
+    fireEvent.click(screen.getByTestId("start-import"));
+    await waitFor(() => expect(screen.getByTestId("last-batch")).toBeTruthy());
+
+    const table = within(screen.getByTestId("last-batch"));
+    // Each row says what happened to it, not just that something did. Anchored, so the
+    // card's own prose about failures is not counted as a row.
+    const verdicts = table.getAllByText(
+      /^(Member created|Member filled in|Already up to date|CRM contact|Not imported|Failed)$/
+    );
+    expect(verdicts.length).toBe(10);
+  });
+
+  it("carries on from where it stopped rather than starting again", async () => {
+    await loadFixture(csvOf(25));
+    fireEvent.click(screen.getByTestId("start-import"));
+    await waitFor(() => expect(screen.getByTestId("last-batch")).toBeTruthy());
+    const afterFirst = writesTo("crm_import_rows", "update").length;
+
+    fireEvent.click(screen.getByTestId("start-import"));
+    await waitFor(() =>
+      expect(writesTo("crm_import_rows", "update").length).toBeGreaterThan(afterFirst)
+    );
+    await waitFor(() => expect(screen.getByText(/20 of 25 done/)).toBeTruthy());
+
+    // Exactly ten more rows were touched: the second press did not redo the first ten.
+    expect(writesTo("crm_import_rows", "update").length).toBe(afterFirst + 10);
+  });
+
+  it("uses one audit batch for the whole file, however many presses it takes", async () => {
+    await loadFixture(csvOf(25));
+    fireEvent.click(screen.getByTestId("start-import"));
+    await waitFor(() => expect(screen.getByTestId("last-batch")).toBeTruthy());
+    fireEvent.click(screen.getByTestId("start-import"));
+    await waitFor(() => expect(screen.getByText(/20 of 25 done/)).toBeTruthy());
+
+    // Two presses, one crm_import_batches row — three separate "imports" of one file would
+    // make the audit trail unreadable.
+    expect(writesTo("crm_import_batches", "insert").length).toBe(1);
+  });
+
+  it("writes the whole file's audit rows on the first press, not a batch at a time", async () => {
+    // A row nobody has got to yet is still a row somebody may need to look at.
+    await loadFixture(csvOf(25));
+    fireEvent.click(screen.getByTestId("start-import"));
+    await waitFor(() => expect(screen.getByTestId("last-batch")).toBeTruthy());
+
+    const audited = writesTo("crm_import_rows", "insert").flatMap((w) => w.payload as unknown[]);
+    expect(audited.length).toBe(25);
+  });
+
+  it("finishes the run, and only then reports it complete", async () => {
+    await loadFixture(csvOf(25));
+    fireEvent.click(screen.getByTestId("import-rest"));
+    await waitFor(() => expect(screen.queryByTestId("result-created")).toBeTruthy(), {
+      timeout: 5000,
+    });
+    expect(writesTo("crm_import_batches", "update").length).toBe(1);
+  });
+
+  it("a notifier that throws cannot be mistaken for a failed import", async () => {
+    // The batch's rows are already written by the time anything is announced; a stubbed or
+    // missing toast level must not turn that into "Import failed before it finished".
+    const { toast } = await import("sonner");
+    // Loaded FIRST, with the real stub in place: reading the file also announces itself, and
+    // breaking that would be testing a different thing.
+    await loadFixture(csvOf(25));
+    const original = toast.success;
+    (toast as { success: unknown }).success = () => {
+      throw new Error("no notifier here");
+    };
+    try {
+      fireEvent.click(screen.getByTestId("start-import"));
+      await waitFor(() => expect(screen.getByTestId("last-batch")).toBeTruthy());
+      expect(toastCalls.some((c) => c.startsWith("error:Import failed"))).toBe(false);
+    } finally {
+      (toast as { success: unknown }).success = original;
+    }
   });
 });

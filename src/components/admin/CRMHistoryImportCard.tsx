@@ -38,7 +38,11 @@ import {
   volumeByContact,
   type HistoryPlan,
 } from "@/lib/karmaHistoryImport";
-import { applyHistoryPlan, type HistoryApplyResult } from "@/lib/karmaHistoryWriter";
+import {
+  applyHistoryPlan,
+  resolvePlaceable,
+  type HistoryApplyResult,
+} from "@/lib/karmaHistoryWriter";
 import { createSupabaseHistoryDb } from "@/lib/crmImportDb";
 
 /** How many unplaced contact ids to name before saying "and N more". */
@@ -74,15 +78,51 @@ export default function CRMHistoryImportCard() {
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<HistoryApplyResult | null>(null);
-  /* `cursor` counts PEOPLE done, not records — see the header. */
   const [batchSize, setBatchSize] = useState<number>(DEFAULT_BATCH_SIZE);
-  const [cursor, setCursor] = useState(0);
   const [running, setRunning] = useState<HistoryApplyResult | null>(null);
   const [lastBatch, setLastBatch] = useState<BatchLine[] | null>(null);
+  /*
+    PROGRESS IS A SET OF PEOPLE, NOT AN INDEX, and that is the fix for the bug Lee found.
+
+    A counter into `plan.crmContactIds` walks the order the JSON happens to mention people.
+    Step 1 walks the CSV in row order. Those are two unrelated orders, so "the next 10 people"
+    here had nothing to do with the ten rows step 1 had just written — seven of Lee's first ten
+    came back "not in the platform" while their contact rows sat further down the CSV.
+
+    Holding the people already written, and asking the database before every press which of the
+    rest can be placed, makes the two sides track each other without either knowing the other's
+    order. Import ten more contacts and ten more people become available here.
+  */
+  const [done, setDone] = useState<Set<string>>(new Set());
+  const [placeable, setPlaceable] = useState<string[]>([]);
+  const [waiting, setWaiting] = useState<string[]>([]);
+  const [checking, setChecking] = useState(false);
 
   const summary = useMemo(() => (plan ? summariseHistory(plan) : null), [plan]);
   const volumes = useMemo(() => (plan ? volumeByContact(plan) : []), [plan]);
-  const remaining = volumes.length - cursor;
+  const volumeOf = useMemo(
+    () => new Map(volumes.map((v) => [v.crmContactId, v])),
+    [volumes]
+  );
+  /** The people who can be written now and have not been. */
+  const queue = useMemo(() => placeable.filter((id) => !done.has(id)), [placeable, done]);
+  const remaining = queue.length;
+
+  /** Ask the database who can be placed. Cheap, batched, and run before every press. */
+  const refreshPlaceable = useCallback(
+    async (target: HistoryPlan) => {
+      setChecking(true);
+      try {
+        const found = await resolvePlaceable(createSupabaseHistoryDb(supabase), target.crmContactIds);
+        setPlaceable(found.placeable);
+        setWaiting(found.waiting);
+        return found;
+      } finally {
+        setChecking(false);
+      }
+    },
+    []
+  );
 
   const processFile = useCallback(async (selected: File) => {
     setFile(selected);
@@ -96,8 +136,10 @@ export default function CRMHistoryImportCard() {
         return;
       }
       setPlan(parsed);
+      setDone(new Set());
+      const found = await refreshPlaceable(parsed);
       toast.success(
-        `Read ${parsed.notes.length + parsed.tasks.length} records. Nothing has been written yet.`
+        `Read ${parsed.notes.length + parsed.tasks.length} records for ${found.placeable.length} people already in the platform. Nothing has been written yet.`
       );
     } catch (error) {
       // No PII: the parser's own message, never a record's contents.
@@ -105,7 +147,7 @@ export default function CRMHistoryImportCard() {
       setPlan(null);
       toast.error("Could not read that file");
     }
-  }, []);
+  }, [refreshPlaceable]);
 
   const onDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
@@ -122,18 +164,35 @@ export default function CRMHistoryImportCard() {
     setPlan(null);
     setResult(null);
     setProgress(0);
-    setCursor(0);
+    setDone(new Set());
+    setPlaceable([]);
+    setWaiting([]);
     setRunning(null);
     setLastBatch(null);
   };
 
   /** Write the next `count` people, then stop. */
   const importNext = async (count: number) => {
-    if (!plan || cursor >= volumes.length) return;
+    if (!plan) return;
     setImporting(true);
     setProgress(0);
-    const end = Math.min(cursor + count, volumes.length);
-    const slice = volumes.slice(cursor, end);
+
+    /* Re-asked every press, so this batch is ten people who exist NOW — including any whose
+       contact row step 1 wrote since the last press. */
+    const found = await refreshPlaceable(plan);
+    const next = found.placeable.filter((id) => !done.has(id)).slice(0, count);
+    if (next.length === 0) {
+      setImporting(false);
+      toast.info(
+        found.waiting.length > 0
+          ? `Nothing to write yet — ${found.waiting.length} people are still waiting for their contact row.`
+          : "Every person in this file is already imported."
+      );
+      return;
+    }
+    const slice = next.map(
+      (id) => volumeOf.get(id) ?? { crmContactId: id, name: id, notes: 0, tasks: 0 }
+    );
 
     try {
       const applied = await applyHistoryPlan(
@@ -145,6 +204,9 @@ export default function CRMHistoryImportCard() {
       setLastBatch(
         slice.map((v) => ({
           ...v,
+          /* Should now always be false — the batch was resolved a moment ago — but it stays on
+             the line rather than being assumed away: a contact deleted between the check and
+             the write must show as skipped, not silently vanish from the count. */
           unplaced: applied.unplacedContactIds.includes(v.crmContactId),
         }))
       );
@@ -167,19 +229,23 @@ export default function CRMHistoryImportCard() {
             }
           : applied
       );
-      setCursor(end);
-      if (end >= volumes.length) setResult(applied);
+      const written = new Set([...done, ...next]);
+      setDone(written);
+      /* "Finished" means every person this file can reach is written, not that the cursor hit
+         the end of a list — people waiting for their contact row are not a finished import. */
+      if (written.size >= found.placeable.length && found.waiting.length === 0) setResult(applied);
 
       queryClient.invalidateQueries({ queryKey: ["member-notes"] });
       queryClient.invalidateQueries({ queryKey: ["courtesy-calls"] });
 
+      const left = found.placeable.length - written.size;
       if (applied.unplaced > 0) {
         toast.warning(
           `${slice.length} people done — ${applied.unplaced} record(s) had nobody to attach to`
         );
       } else {
         toast.success(
-          `${slice.length} people done: ${applied.notesCreated.toLocaleString()} notes, ${applied.tasksCreated.toLocaleString()} calls. ${volumes.length - end} people left.`
+          `${slice.length} people done: ${applied.notesCreated.toLocaleString()} notes, ${applied.tasksCreated.toLocaleString()} calls. ${left} ready, ${found.waiting.length} waiting on step 1.`
         );
       }
     } catch (error) {
@@ -231,7 +297,7 @@ export default function CRMHistoryImportCard() {
           </div>
         )}
 
-        {file && summary && cursor === 0 && !result && (
+        {file && summary && done.size === 0 && !result && (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <Stat
@@ -244,7 +310,15 @@ export default function CRMHistoryImportCard() {
                 label="Calls and tasks"
                 hint={`${summary.courtesyCalls.toLocaleString()} courtesy calls`}
               />
-              <Stat value={summary.contacts} label="People" />
+              <Stat
+                value={summary.contacts}
+                label="People"
+                hint={
+                  checking
+                    ? "checking who is in the platform…"
+                    : `${placeable.length} ready now, ${waiting.length} waiting on step 1`
+                }
+              />
               <Stat
                 value={summary.skipped}
                 label="Not imported"
@@ -295,7 +369,7 @@ export default function CRMHistoryImportCard() {
               <h3 className="font-medium">
                 {result
                   ? "History imported"
-                  : `${cursor} of ${volumes.length} people done — so far`}
+                  : `${done.size} of ${done.size + remaining} people done — so far`}
               </h3>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -329,13 +403,13 @@ export default function CRMHistoryImportCard() {
                 <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                 <p>
                   {running.unplaced.toLocaleString()} record(s) belong to{" "}
-                  {running.unplacedContactIds.length} karmaCRM contact(s) that are not in the
-                  platform: {running.unplacedContactIds.slice(0, UNPLACED_SHOWN).join(", ")}
+                  {running.unplacedContactIds.length} karmaCRM contact(s) that disappeared between
+                  the check and the write:{" "}
+                  {running.unplacedContactIds.slice(0, UNPLACED_SHOWN).join(", ")}
                   {running.unplacedContactIds.length > UNPLACED_SHOWN
                     ? ` and ${running.unplacedContactIds.length - UNPLACED_SHOWN} more`
                     : ""}
-                  . Import the contacts CSV and run this again — nothing already written is
-                  duplicated.
+                  . Press again — nothing already written is duplicated.
                 </p>
               </div>
             )}
@@ -357,7 +431,8 @@ export default function CRMHistoryImportCard() {
             <div className="border-b px-4 py-3">
               <p className="font-medium">The {lastBatch.length} just written</p>
               <p className="text-sm text-muted-foreground">
-                People {cursor - lastBatch.length + 1} to {cursor} of {volumes.length}
+                {done.size} of {done.size + remaining} people written
+                {waiting.length > 0 ? `, ${waiting.length} still waiting on step 1` : ""}
               </p>
             </div>
             <ul className="divide-y">
@@ -386,6 +461,29 @@ export default function CRMHistoryImportCard() {
           </div>
         )}
 
+        {/* The people this file knows about whose contact row has not been imported yet. NOT a
+            failure and NOT an error: their rows are further down the CSV, and every press
+            re-asks the database, so they join the queue as step 1 reaches them. */}
+        {file && waiting.length > 0 && !importing && (
+          <div
+            className="flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-4 text-sm"
+            data-testid="history-waiting"
+          >
+            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-yellow-700 dark:text-yellow-500" />
+            <div>
+              <p className="font-medium">
+                {waiting.length} {waiting.length === 1 ? "person is" : "people are"} waiting for
+                their contact row
+              </p>
+              <p className="text-muted-foreground">
+                Their records are in this file, but step 1 has not created them yet. They are not
+                skipped and nothing is lost — finish the contacts import and press again, and
+                they join the queue. Each press checks afresh.
+              </p>
+            </div>
+          </div>
+        )}
+
         {file && summary && !result && !importing && (
           <div className="flex flex-wrap items-end justify-between gap-4 border-t pt-4">
             <div className="space-y-2">
@@ -407,23 +505,32 @@ export default function CRMHistoryImportCard() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={reset}>
-                {cursor === 0 ? "Cancel" : "Stop here"}
+                {done.size === 0 ? "Cancel" : "Stop here"}
               </Button>
               <Button
                 variant="outline"
-                onClick={() => void importNext(volumes.length)}
-                disabled={summary.notes + summary.tasks === 0}
+                onClick={() => void refreshPlaceable(plan!)}
+                disabled={checking || !plan}
+                data-testid="history-recheck"
+              >
+                Check again
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => void importNext(Number.MAX_SAFE_INTEGER)}
+                disabled={remaining === 0}
                 data-testid="import-history-rest"
               >
-                Import the remaining {remaining}
+                Import the {remaining} ready
               </Button>
               <Button
                 onClick={() => void importNext(batchSize)}
-                disabled={summary.notes + summary.tasks === 0}
+                disabled={remaining === 0}
                 data-testid="start-history-import"
               >
                 <PhoneCall className="h-4 w-4 mr-2" />
-                Import next {Math.min(batchSize, remaining)} {remaining === 1 ? "person" : "people"}
+                Import next {Math.min(batchSize, remaining)}{" "}
+                {Math.min(batchSize, remaining) === 1 ? "person" : "people"}
               </Button>
             </div>
           </div>

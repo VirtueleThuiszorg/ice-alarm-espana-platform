@@ -243,3 +243,46 @@ export async function applyHistoryPlan(
 
   return result;
 }
+
+export interface Placeability {
+  /** karmaCRM contact ids that resolve to a member or a CRM contact RIGHT NOW. */
+  placeable: string[];
+  /** Ids that do not resolve yet — their contact row has not been imported. */
+  waiting: string[];
+}
+
+/**
+ * Which of a plan's people can be written at this moment.
+ *
+ * WHY THIS EXISTS, and it is the whole of the bug it fixes. The history import used to walk
+ * `plan.crmContactIds` in the order the JSON happened to mention people, and the contacts
+ * import walks the CSV in row order. Those are two unrelated orders. So "import the next 10
+ * people" in step 2 picked ten names that had nothing to do with the ten rows step 1 had just
+ * written, and seven of the first ten came back "not in the platform — nothing written" while
+ * their contact rows sat further down the CSV, unimported.
+ *
+ * Nothing was lost — a person skipped that way keeps every record, and a later press writes
+ * them — but the screen was unreadable and the counts did not line up, which defeats the point
+ * of batching, which is to be able to check.
+ *
+ * Resolving first fixes it without either side having to know the other's order: a batch is
+ * the next N people who CAN be placed, and the rest are shown as waiting rather than attempted
+ * and reported as failures. Re-resolving before every press is what makes it track step 1's
+ * progress — finish another ten contacts and ten more people become available here.
+ */
+export async function resolvePlaceable(
+  db: HistoryDb,
+  crmContactIds: string[],
+  chunkSize = CHUNK
+): Promise<Placeability> {
+  const known = new Set<string>();
+  for (const ids of chunk(crmContactIds, chunkSize)) {
+    for (const id of (await db.resolveOwners(ids)).keys()) known.add(id);
+  }
+  // Original order is kept on purpose: it is the order the file mentions people, which is at
+  // least stable between presses. Sorting by name would reorder the moment a name resolved.
+  return {
+    placeable: crmContactIds.filter((id) => known.has(id)),
+    waiting: crmContactIds.filter((id) => !known.has(id)),
+  };
+}

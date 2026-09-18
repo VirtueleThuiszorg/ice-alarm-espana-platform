@@ -168,3 +168,110 @@ describe("the batches together are the file, exactly once each", () => {
     expect(stopped.notes.map((n) => n.sourceId)).toEqual(firstTwo.map((n) => n.sourceId));
   });
 });
+
+/* ------------------------------------------------------------------ *
+ * The two steps have to batch the SAME people
+ * ------------------------------------------------------------------ */
+
+/**
+ * The bug Lee found on 18 September, ten rows into his first real import.
+ *
+ * Step 1 walks the CSV in row order. Step 2 used to walk `plan.crmContactIds`, which is the
+ * order the history JSON happens to mention people. Those are two unrelated orders, so "import
+ * the next 10 people" in step 2 picked ten names with nothing to do with the ten rows step 1
+ * had just written — SEVEN of his first ten came back "not in the platform — nothing written",
+ * while their contact rows sat further down the CSV waiting to be imported.
+ *
+ * Nothing was lost: a person skipped that way keeps every record and a later press writes them.
+ * But the screen was unreadable and the counts did not line up, which is the entire point of
+ * batching. You cannot check a batch that is mostly "not written".
+ *
+ * The fix is not to sort one side to match the other — neither side can see the other's order,
+ * and step 1's order changes the moment somebody imports a different file. It is to ASK, before
+ * every press, which people can be placed right now, and to batch only those.
+ */
+import { resolvePlaceable, type HistoryDb } from "@/lib/karmaHistoryWriter";
+
+/** A platform holding exactly the named karmaCRM contact ids. */
+function dbHolding(ids: string[]): HistoryDb {
+  const held = new Set(ids);
+  return {
+    async resolveOwners(asked) {
+      return new Map(
+        asked.filter((id) => held.has(id)).map((id) => [id, { kind: "member", id: `m-${id}` }])
+      );
+    },
+    async existingNoteSourceIds() {
+      return new Set();
+    },
+    async existingTaskSourceIds() {
+      return new Set();
+    },
+    async insertNotes() {},
+    async insertTasks() {},
+  };
+}
+
+describe("a batch is people who can actually be written", () => {
+  const plan = threePeople();
+
+  it("splits the file into ready and waiting", async () => {
+    const found = await resolvePlaceable(dbHolding(["200"]), plan.crmContactIds);
+    expect(found.placeable).toEqual(["200"]);
+    expect(found.waiting).toEqual(["100", "300"]);
+  });
+
+  it("everyone waits when the contacts import has not run at all", async () => {
+    const found = await resolvePlaceable(dbHolding([]), plan.crmContactIds);
+    expect(found.placeable).toEqual([]);
+    expect(found.waiting).toHaveLength(3);
+  });
+
+  it("nobody waits once every contact is in", async () => {
+    const found = await resolvePlaceable(dbHolding(plan.crmContactIds), plan.crmContactIds);
+    expect(found.placeable).toEqual(plan.crmContactIds);
+    expect(found.waiting).toEqual([]);
+  });
+
+  it("keeps the file's own order, so a batch does not reshuffle between presses", async () => {
+    const found = await resolvePlaceable(dbHolding(["300", "100"]), plan.crmContactIds);
+    expect(found.placeable).toEqual(["100", "300"]);
+  });
+
+  it("asks in batches, not one contact per round trip", async () => {
+    const asked: number[] = [];
+    const db = dbHolding([]);
+    const counting: HistoryDb = {
+      ...db,
+      async resolveOwners(ids) {
+        asked.push(ids.length);
+        return db.resolveOwners(ids);
+      },
+    };
+    const many = Array.from({ length: 250 }, (_, i) => String(i));
+    await resolvePlaceable(counting, many, 200);
+    expect(asked).toEqual([200, 50]);
+  });
+
+  it("re-asking picks up contacts imported since the last press — the whole fix", async () => {
+    // Step 1 writes ten more rows; step 2's next press must see them without reloading the file.
+    const before = await resolvePlaceable(dbHolding(["100"]), plan.crmContactIds);
+    expect(before.placeable).toEqual(["100"]);
+
+    const after = await resolvePlaceable(dbHolding(["100", "200"]), plan.crmContactIds);
+    expect(after.placeable).toEqual(["100", "200"]);
+    expect(after.waiting).toEqual(["300"]);
+  });
+
+  it("a press takes the next N READY people, skipping those already written", async () => {
+    // This is what the screen does: resolve, drop the done ones, take the first N.
+    const found = await resolvePlaceable(dbHolding(plan.crmContactIds), plan.crmContactIds);
+    const done = new Set(["100"]);
+    const next = found.placeable.filter((id) => !done.has(id)).slice(0, 1);
+    expect(next).toEqual(["200"]);
+
+    // And the batch really is whole people, so the count on screen is the count written.
+    const batch = planForContacts(plan, next);
+    expect(batch.notes.every((n) => n.crmContactId === "200")).toBe(true);
+  });
+});

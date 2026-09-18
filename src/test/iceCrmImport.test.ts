@@ -481,12 +481,10 @@ describe("batch summary", () => {
       // New: what the import threw away, by column, so the report can say so out loud.
       // Measured from the fixture, not assumed — my first guess was one card row and it is two,
       // plus a bank number, a private-medical cell and a funeral-wishes cell.
-      discardedSensitive: {
-        "Credit Card Details": 2,
-        "20 Digit Bank No": 1,
-        "Private Medical Details": 1,
-        "Death Funeral Wishes": 1,
-      },
+      /* Card only, from 18 Sep 2026. The bank account, the private-insurance note and the
+         funeral wishes are imported now, each to an admin-only table — so listing them here
+         as "discarded" would be a lie on the import screen about where they went. */
+      discardedSensitive: { "Credit Card Details": 2 },
     });
   });
 });

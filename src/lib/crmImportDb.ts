@@ -136,6 +136,15 @@ export function crmContactPayload(plan: RowPlan) {
 const MEMBER_COLUMNS =
   "id, first_name, last_name, email, phone, date_of_birth, address_line_1, address_line_2, city, province, postal_code, country, nie_dni, gender, nationality, passport_number, special_instructions, status, crm_source, crm_source_id";
 
+/** Keys whose value is null or "" are dropped, so an upsert cannot blank what it does not know. */
+function stripNulls<T extends Record<string, unknown>>(value: T): Partial<T> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value)) {
+    if (v !== null && v !== undefined && v !== "") out[k] = v;
+  }
+  return out as Partial<T>;
+}
+
 /** The national form of a Spanish E.164 number, for matching rows stored before normalisation. */
 function phoneVariants(phone: string): string[] {
   const variants = new Set<string>([phone]);
@@ -356,6 +365,35 @@ export function createSupabaseImportDb(client: Client): ImportDb {
       const { error } = await client
         .from("crm_profiles")
         .upsert({ member_id: memberId, ...profile } as never, { onConflict: "member_id" });
+      if (error) throw error;
+    },
+
+    /**
+     * The three admin-only tables, all keyed on member_id and all upserts.
+     *
+     * `stripNulls` is the load-bearing part. A re-import of a row whose CRM cell has since been
+     * emptied — or which never had one — must not write null over a key safe code, a funeral
+     * plan or an IBAN that somebody has since typed into the platform. An upsert sends every
+     * key it is given, so the fix is to not give it the empty ones.
+     */
+    async upsertAccess(memberId: string, access: NonNullable<RowPlan["access"]>) {
+      const { error } = await client
+        .from("member_access")
+        .upsert({ member_id: memberId, ...stripNulls(access) } as never, { onConflict: "member_id" });
+      if (error) throw error;
+    },
+
+    async upsertEndOfLife(memberId: string, eol: NonNullable<RowPlan["endOfLife"]>) {
+      const { error } = await client
+        .from("member_end_of_life")
+        .upsert({ member_id: memberId, ...stripNulls(eol) } as never, { onConflict: "member_id" });
+      if (error) throw error;
+    },
+
+    async upsertBank(memberId: string, bank: NonNullable<RowPlan["bank"]>) {
+      const { error } = await client
+        .from("member_bank_details")
+        .upsert({ member_id: memberId, ...stripNulls(bank) } as never, { onConflict: "member_id" });
       if (error) throw error;
     },
 

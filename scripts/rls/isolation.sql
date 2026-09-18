@@ -933,7 +933,8 @@ SELECT pg_temp.check(
 --  9. ICE import tables — golden rule 2 for WP-B's three new tables
 -- ============================================================
 --
--- `member_addresses`, `member_access` and `member_end_of_life` arrive with
+-- `member_addresses`, `member_access`, `member_end_of_life` and (from 18 Sep)
+-- `member_bank_details` arrive with
 -- WP-B. `src/test/iceImportSchema.test.ts` greps their migrations and proves a
 -- policy *exists*; that is not proof that it *isolates*. Golden rule 2 asks for
 -- "a test proving isolation", so these are the behavioural assertions — written
@@ -960,6 +961,14 @@ INSERT INTO public.member_end_of_life (member_id, funeral_plan, policy_number, w
 VALUES
   ('aaaaaaaa-0000-0000-0000-000000000001', 'Plan A', 'EOL-A-1', 'no resuscitation discussion on file'),
   ('bbbbbbbb-0000-0000-0000-000000000002', 'Plan B', 'EOL-B-2', 'family to be called first');
+
+-- `member_bank_details` joins them on 18 Sep 2026, for the 85 legacy accounts
+-- Santander still debits. Same is_admin shape, same reasoning: an IBAN is an
+-- instruction to move somebody's money.
+INSERT INTO public.member_bank_details (member_id, iban, bank_name, source_text)
+VALUES
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'ES9121000418450200051332', 'Caixa',     'Caixa IBAN ES91 2100 0418 4502 0005 1332'),
+  ('bbbbbbbb-0000-0000-0000-000000000002', 'ES7620770024003102575766', 'Santander', 'Santander IBAN ES76 2077 0024 0031 0257 5766');
 
 -- ── member_addresses: read ─────────────────────────────────────────────────
 SELECT pg_temp.check(
@@ -1056,12 +1065,38 @@ SELECT pg_temp.check(
   pg_temp.count_as('11111111-1111-1111-1111-111111111111',
     'SELECT member_id FROM public.member_end_of_life') = 1);
 
--- A partner is not a care route into any of the three.
+-- ── member_bank_details: the legacy direct-debit account ───────────────────
+-- The migration says these policies are is_admin. This is what proves it.
 SELECT pg_temp.check(
-  'a partner sees none of the three ICE tables',
+  'member A cannot read member B''s bank details',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT member_id FROM public.member_bank_details
+      WHERE member_id = ''bbbbbbbb-0000-0000-0000-000000000002''') = 0);
+
+SELECT pg_temp.check(
+  'call-centre staff cannot read member_bank_details — is_admin, not is_staff',
+  pg_temp.count_as('55555555-5555-5555-5555-555555555555',
+    'SELECT member_id FROM public.member_bank_details') = 0,
+  'an operator has no use for an IBAN mid-alert; is_staff would hand it to every shift');
+
+SELECT pg_temp.check(
+  'a member cannot change their own bank details (SELECT-only policy)',
+  pg_temp.exec_as('11111111-1111-1111-1111-111111111111',
+    'UPDATE public.member_bank_details SET iban = ''ES0000000000000000000000''
+      WHERE member_id = ''aaaaaaaa-0000-0000-0000-000000000001''') = 0);
+
+SELECT pg_temp.check(
+  'CONTROL: member A can read their OWN bank details',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+    'SELECT member_id FROM public.member_bank_details') = 1);
+
+-- A partner is not a care route into any of the four.
+SELECT pg_temp.check(
+  'a partner sees none of the four ICE tables',
   pg_temp.count_as('33333333-3333-3333-3333-333333333333',
     'SELECT member_id FROM public.member_access
       UNION ALL SELECT member_id FROM public.member_end_of_life
+      UNION ALL SELECT member_id FROM public.member_bank_details
       UNION ALL SELECT member_id FROM public.member_addresses') = 0);
 
 -- ============================================================

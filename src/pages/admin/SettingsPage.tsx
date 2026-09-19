@@ -42,6 +42,7 @@ import { TwoFactorSetup } from "@/components/auth/TwoFactorSetup";
 import { CommunicationsTab } from "@/components/admin/settings/CommunicationsTab";
 import type { TwilioKeys } from "@/components/admin/settings/PhoneSmsSection";
 import { DevicesSettingsTab } from "@/components/admin/settings/DevicesSettingsTab";
+import { LeadTemplatesCard } from "@/components/admin/settings/LeadTemplatesCard";
 import { PRICING } from "@/config/pricing";
 import { PricingPlansEditor } from "@/components/admin/PricingPlansEditor";
 import { functionError } from "@/lib/functionError";
@@ -1086,6 +1087,9 @@ export default function SettingsPage() {
             </p>
           </div>
           <EnablePushCard />
+          {/* What a staff member actually sends a lead. Here rather than on the Leads page
+              because it is wording the company owns, not a per-lead decision. */}
+          <LeadTemplatesCard canEdit={canEditNotifications} />
           {/* Firebase before the matrix: a switch for a channel with no credentials behind it is
               the "unproven" badge nobody can clear. */}
           {canEditNotifications && <FirebaseConfigCard />}

@@ -2566,6 +2566,21 @@
     "notViewedYet": "Not viewed yet",
     "linkOpened": "Link Opened"
   },
+  "leadTemplates": {
+    "title": "What we say to a lead",
+    "description": "The messages staff send when they introduce ICE Alarm to somebody. Edited here, not in the code.",
+    "placeholders": "You can use:",
+    "subject": "Subject",
+    "saved": "Template saved",
+    "saveFailed": "Could not save this template",
+    "length": "{{n}} of {{max}} characters when sent",
+    "unknown": "Nothing will fill in {{names}} — it will be sent exactly as written.",
+    "missing": "Missing: {{key}} ({{locale}}) — sending this will fail.",
+    "kind": {
+      "intro": "Introduction",
+      "followup": "Follow-up"
+    }
+  },
   "leads": {
     "followUp": {
       "filter": "Follow up today",

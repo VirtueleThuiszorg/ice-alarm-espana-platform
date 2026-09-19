@@ -2566,6 +2566,21 @@
     "notViewedYet": "Not viewed yet",
     "linkOpened": "Link Opened"
   },
+  "leadTemplates": {
+    "title": "Wat we tegen een lead zeggen",
+    "description": "De berichten die medewerkers sturen als ze ICE Alarm voorstellen. Hier aan te passen, niet in de code.",
+    "placeholders": "U kunt gebruiken:",
+    "subject": "Onderwerp",
+    "saved": "Sjabloon opgeslagen",
+    "saveFailed": "Dit sjabloon kon niet worden opgeslagen",
+    "length": "{{n}} van {{max}} tekens bij verzending",
+    "unknown": "Niets vult {{names}} in — het wordt precies zo verstuurd als het er staat.",
+    "missing": "Ontbreekt: {{key}} ({{locale}}) — verzenden zal mislukken.",
+    "kind": {
+      "intro": "Introductie",
+      "followup": "Opvolging"
+    }
+  },
   "leads": {
     "followUp": {
       "filter": "Vandaag opvolgen",

@@ -2566,6 +2566,21 @@
     "notViewedYet": "Aún no visto",
     "linkOpened": "Enlace Abierto"
   },
+  "leadTemplates": {
+    "title": "Lo que le decimos a un contacto",
+    "description": "Los mensajes que envía el equipo al presentar ICE Alarm. Se editan aquí, no en el código.",
+    "placeholders": "Puede usar:",
+    "subject": "Asunto",
+    "saved": "Plantilla guardada",
+    "saveFailed": "No se pudo guardar esta plantilla",
+    "length": "{{n}} de {{max}} caracteres al enviarse",
+    "unknown": "Nada rellenará {{names}}: se enviará tal cual está escrito.",
+    "missing": "Falta: {{key}} ({{locale}}). El envío fallará.",
+    "kind": {
+      "intro": "Presentación",
+      "followup": "Seguimiento"
+    }
+  },
   "leads": {
     "followUp": {
       "filter": "Seguimiento de hoy",

@@ -18,7 +18,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
 10 │  10  ████
  9 │   6  ██
  8 │   0  
- 7 │  41  █████████████████
+ 7 │  42  █████████████████
  6 │   9  ████
  5 │  84  ██████████████████████████████████
  4 │  50  ████████████████████
@@ -28,12 +28,12 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   1  
 ```
 
-201 distinct wires across 660 call sites and 114 routes.
+202 distinct wires across 661 call sites and 114 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
 | 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 10 | 5% |
-| 7–9 | arrives and proven; notification missing or on a channel not live today | 47 | 23% |
+| 7–9 | arrives and proven; notification missing or on a channel not live today | 48 | 24% |
 | 4–6 | arrives; nobody told; nothing proves it | 143 | 71% |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0% |
 | 0 | dead control | 1 | 0% |
@@ -63,7 +63,7 @@ things, and a control with no wire cannot do anything:
 
 | kind | what it is | call sites |
 |---|---|---:|
-| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 357 |
+| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 358 |
 | `fn` | `supabase.functions.invoke(f)` — an edge function | 98 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 7 |
 | `channel` | `postgres_changes` — a realtime subscription | 53 |
@@ -447,6 +447,7 @@ The checks, verified on every build:
 | **7** | `table:member_end_of_life` | CRM import: the three admin-only records — the front-door code, the funeral record and the legacy bank account come across, and only admins can read them | member_access / member_end_of_life / member_bank_details, via applyRowPlan | self | — | `src/test/crmImportAdminOnlyRecords.test.ts` | 1 |
 | **7** | `table:notification_routes` | Admin → Settings → Notifications: the event × channel switches, the per-staff matrix beneath, and "send a test notification" — the person who needs to know is told, on a channel that works | notification_routes (company policy) and staff_notification_prefs (the person), both read by the notify-staff router on every send — so a switch changes the next notification, with no redeploy. Each change writes an activity_logs row carrying the old and new value. | screen | toast | `src/test/notificationMatrix.test.ts` | 1 |
 | **7** | `table:notification_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | mutation onError | `src/test/checkoutPaymentMethods.test.ts` | 1 |
+| **7** | `table:notification_templates` | Admin → Settings → Notifications — “What we say to a lead” — the wording you save here is the wording that goes out | notification_templates (admin-manage, staff-read) | nobody now — it is read by send-lead-message at the moment a staff member sends | toast | `src/test/leadTemplatesCard.test.tsx` | 1 |
 | **7** | `table:operational_costs` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | toast | `src/test/checkoutPaymentMethods.test.ts` | 1 |
 | **7** | `table:pricing_plans` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | toast | `src/test/checkoutPaymentMethods.test.ts` | 1 |
 | **7** | `table:pricing_settings` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | toast | `src/test/checkoutPaymentMethods.test.ts` | 1 |
@@ -2846,6 +2847,19 @@ The switches are the fix for the schema this replaces: a boolean COLUMN PER EVEN
 - **call sites** src/components/admin/dashboard/NotificationSettings.tsx
 
 One promise, one audience: the admin who pressed Save is the only person who needs to know, and a toast tells them. No notification is owed and none is missing. THE PAYMENT-METHOD ROWS ARE THE EXCEPTION TO 'cosmetic': neither checkout function set `payment_method_types`, so STRIPE'S DASHBOARD DEFAULTS decided — and in the EEA those include SEPA Direct Debit, which is ASYNCHRONOUS. Its session completes with `payment_status: "unpaid"` and activation depends on `checkout.session.async_payment_succeeded`; unless the webhook destination is subscribed to that, the customer pays and is NEVER ACTIVATED, with no error anywhere. Card is always offered and cannot be unticked; the three async methods are greyed with the reason until an admin confirms the destination listens, and that acknowledgement is re-applied when the setting is READ as well as when it is written.
+
+### `table:notification_templates` — 7/10 (proven; nobody told)
+
+- **control** Admin → Settings → Notifications — “What we say to a lead”
+- **promised** the wording you save here is the wording that goes out
+- **goes to** notification_templates (admin-manage, staff-read)
+- **who is told** nobody now — it is read by send-lead-message at the moment a staff member sends
+- **failure shown to user** toast
+- **proof** `src/test/leadTemplatesCard.test.tsx`
+- **routes** /admin/settings
+- **call sites** src/components/admin/settings/LeadTemplatesCard.tsx
+
+`send-lead-message` reads these rows and has NO inline fallback text, deliberately — a hard-coded English sentence behind an editable Spanish template is how somebody gets a message in the wrong language months after the wording was fixed in the table. That makes this card the ONLY place the wording of a lead message exists, so a missing row is shown as a failure rather than as an empty box. Two things it exists to stop: a placeholder nothing fills in (renderTemplate leaves an unknown placeholder visible, which only helps if somebody sees it — and the person who typed it is not the person who reads it on a stranger’s telephone), and a third SMS segment, which costs a third again on every message for ever and which nobody typing into a box knows they have crossed. The length is counted against the RENDERED message with a realistic link, because counting the template would be reassuring and wrong.
 
 ### `table:operational_costs` — 7/10 (proven; no notification owed)
 

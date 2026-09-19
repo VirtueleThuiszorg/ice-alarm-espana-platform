@@ -30,7 +30,7 @@
  * The rule here is the opposite: a row that cannot be represented honestly does not become a
  * member. It becomes a CRM contact with the reason attached, which is a thing a human can fix.
  */
-import type { EmailOwner, MappedRow } from "./iceCrmImport";
+import type { EmailOwner, MappedRow, PhoneOwner } from "./iceCrmImport";
 
 /* ------------------------------------------------------------------ *
  * The plan
@@ -134,6 +134,18 @@ export interface RowPlan {
   outcome: RowOutcome;
   /** Why this row is not becoming a member. Empty when it is. */
   blockers: string[];
+  /**
+   * Whose phone number it is, from `resolveSharedPhones`. `dedupeKeysFor` is the only reader.
+   *
+   * UP HERE, NOT ON `parsedMember`, and that is load-bearing rather than tidy. Everything in
+   * `parsedMember` is a real `members` column, because `memberPatchFor` spreads the whole object
+   * into the UPDATE it builds for a row that matched an existing member. Putting a field there
+   * that is not a column makes the import try to write `phone_owner` to a table that has no such
+   * column — which is exactly what the first version of this did, and what
+   * `crmImportApply.test.ts` caught. A denylist entry would have fixed that one case; keeping
+   * non-columns out of the object fixes the next one too.
+   */
+  phoneOwner: PhoneOwner;
   /** Things a human should look at, that do not block the import. */
   warnings: string[];
   /**
@@ -264,6 +276,7 @@ export function planRowWrites(row: MappedRow): RowPlan {
       sourceId: row.sourceId,
       outcome: "skip",
       blockers: ["excluded by CRM status (staff or building record, not a client)"],
+      phoneOwner: row.phoneOwner,
       warnings,
       member: null,
       parsedMember: {
@@ -405,6 +418,7 @@ export function planRowWrites(row: MappedRow): RowPlan {
   return {
     sourceId: row.sourceId,
     outcome,
+    phoneOwner: row.phoneOwner,
     blockers,
     warnings,
     member:
@@ -630,7 +644,14 @@ export function dedupeKeysFor(plan: RowPlan): DedupeKeys {
       plan.parsedMember.email && plan.parsedMember.email_owner === "member"
         ? plan.parsedMember.email.trim().toLowerCase()
         : null,
-    phone: plan.parsedMember.phone ?? null,
+    /*
+     * AND NEITHER IS A SHARED LANDLINE, for exactly the reasons given above the email line. That
+     * rule was written for the address and left the number open, and the number is the one this
+     * dataset actually shares: twenty-one rows across the four queued exports, every one a
+     * couple at one house. `resolveSharedPhones` has already answered the question by the time a
+     * plan exists. Only a number that identifies THIS member is a key.
+     */
+    phone: plan.phoneOwner === "member" ? (plan.parsedMember.phone ?? null) : null,
   };
 }
 

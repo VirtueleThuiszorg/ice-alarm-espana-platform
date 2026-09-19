@@ -36,7 +36,13 @@ export interface LegacySchedule {
   nextRenewal: string | null;
   /** Monthly unless the row says annual. */
   frequency: "monthly" | "annual";
-  /** Where the day came from, for a human checking the import. */
+  /**
+   * Where the day came from, for a human checking the import.
+   *   monthly_payment_date  Karma recorded one. Strongest.
+   *   date_joined           derived from the day of the month they joined — an annual member's
+   *                         anniversary, or (since 19 Sep 2026) a monthly member's fallback.
+   *   none                  nothing in the row said, and nothing was invented.
+   */
   source: "monthly_payment_date" | "date_joined" | "none";
 }
 
@@ -187,14 +193,45 @@ export function deriveLegacySchedule(input: ScheduleInputs, today: Date): Legacy
     };
   }
 
-  const day = parseBillingDay(input.monthlyPaymentDate);
-  if (day === null) return { day: null, nextRenewal: null, frequency, source: "none" };
-  return {
-    day,
-    nextRenewal: nextRenewalFrom(day, today),
-    frequency,
-    source: "monthly_payment_date",
-  };
+  const fromColumn = parseBillingDay(input.monthlyPaymentDate);
+  if (fromColumn !== null) {
+    return {
+      day: fromColumn,
+      nextRenewal: nextRenewalFrom(fromColumn, today),
+      frequency,
+      source: "monthly_payment_date",
+    };
+  }
+
+  /*
+    THE DAY THEY JOINED IS THE DAY THEY PAY — Lee, 19 Sep 2026: "the payment dates against the
+    dates they joined, so if 15th then every 15th we take money (unless annual)".
+
+    Until this, a monthly member whose `Monthly Payment Date` was blank got NO billing day at
+    all, and the column is blank almost everywhere: 4 of the 121 live rows have it. So 87 of
+    121 came through the import with nothing to collect against, on a file where 62 rows say
+    plainly when the person joined. Annual members have read their anniversary out of
+    `Date Joined` since this module was written; the monthly branch simply never did the same.
+
+    It is a FALLBACK and not a replacement. Where Karma recorded a payment date, that is the
+    day Santander actually collects and it still wins — the join date is what the office used
+    to set the mandate up, which is the same day in the ordinary case and the wrong one in the
+    case where somebody later moved it.
+  */
+  const fromJoinDate = input.startDate ? parseBillingDay(input.startDate) : null;
+  if (fromJoinDate !== null) {
+    return {
+      day: fromJoinDate,
+      nextRenewal: nextRenewalFrom(fromJoinDate, today),
+      frequency,
+      source: "date_joined",
+    };
+  }
+
+  /* Neither column says. Deliberately left EMPTY rather than guessed at: this is a debit date
+     on a real person's real bank account, and "the 1st because we had nothing" is a collection
+     somebody either misses or takes twice. The import flags the row instead. */
+  return { day: null, nextRenewal: null, frequency, source: "none" };
 }
 
 export interface StoredSchedule {

@@ -74,7 +74,7 @@ for their value: `Credit Card Details`, `20 Digit Bank No`.
 | 61 | `GPS Co-ordinates` | `member.gps_lat`, `member.gps_lng`, `member.home_lat`, `member.home_lng` |
 | 62 | `Google Map Link` | `member.home_lat`, `member.home_lng`, `member.map_link` |
 | 63 | `Important Medical Info` | `medical.additional_notes`, `member.special_instructions` |
-| 64 | `Membership Type` | `member.legacy_billing_day`, `member.legacy_next_renewal`, `subscription.billing_frequency`, `subscription.legacy_membership_label`, `subscription.plan_type` |
+| 64 | `Membership Type` | `member.legacy_next_renewal`, `subscription.billing_frequency`, `subscription.legacy_membership_label`, `subscription.plan_type` |
 | 67 | `Critical Info` | `medical.additional_notes`, `member.special_instructions` |
 | 68 | `NIE Number` | `member.nie_dni` |
 | 69 | `AN/SS Number` | `member.an_ss_number` |
@@ -137,8 +137,8 @@ for their value: `Credit Card Details`, `20 Digit Bank No`.
 | 130 | `Policy Number` | `endOfLife.policy_number` |
 | 131 | `Permission State` | `member.consent_state` |
 | 134 | `Groups` | `crmProfile.groups`, `crmProfile.groups[]` |
-| 135 | `Date Joined` | `subscription.start_date` |
-| 136 | `Payment Type` | `member.legacy_billing_day`, `member.legacy_next_renewal`, `subscription.billing_frequency` |
+| 135 | `Date Joined` | `member.legacy_billing_day`, `member.legacy_next_renewal`, `member.next_courtesy_call_date`, `subscription.start_date` |
+| 136 | `Payment Type` | `member.legacy_next_renewal`, `subscription.billing_frequency` |
 | 139 | `House Number` | `member.address_line_1` |
 | 141 | `Debt or TVP` | `subscription.arrears_note` |
 | 142 | `Personal Pendant` | `subscription.has_pendant` |
@@ -155,7 +155,7 @@ when the first is blank. `Joined Date` is the same relationship with `Date Joine
 | # | Column | Destination when it is used |
 |---|---|---|
 | 5 | `Dob` | `member.date_of_birth` |
-| 65 | `Joined Date` | `subscription`, `subscription.has_pendant`, `subscription.is_free_of_charge`, `subscription.start_date` |
+| 65 | `Joined Date` | `member.legacy_billing_day`, `member.legacy_next_renewal`, `member.next_courtesy_call_date`, `subscription`, `subscription.has_pendant`, `subscription.is_free_of_charge`, `subscription.start_date` |
 | 66 | `Membership Type` | `subscription`, `subscription.billing_frequency`, `subscription.has_pendant`, `subscription.is_free_of_charge`, `subscription.legacy_membership_label`, `subscription.plan_type` |
 | 114 | `Purchased Package` | `subscription`, `subscription.billing_frequency`, `subscription.has_pendant`, `subscription.is_free_of_charge`, `subscription.legacy_membership_label`, `subscription.plan_type` |
 | 115 | `Membership Type` | `subscription`, `subscription.billing_frequency`, `subscription.has_pendant`, `subscription.is_free_of_charge`, `subscription.legacy_membership_label`, `subscription.plan_type` |

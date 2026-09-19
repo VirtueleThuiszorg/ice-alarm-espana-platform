@@ -74,6 +74,19 @@ export interface MemberInsert {
   legacy_billing_day: number | null;
   legacy_next_renewal: string | null;
   /**
+   * The monthly courtesy call, anchored to the day of the month they joined.
+   *
+   * Written on import from 19 Sep 2026. Both columns have existed since 20260126094603 and the
+   * import wrote neither, so every migrated member arrived with courtesy calls off and no call
+   * ever due — `CourtesyCallsCard` reads exactly these, and had nothing to read.
+   *
+   * Treated like the billing day for patching: NOT in NEVER_PATCH, so `computeEmptyOnlyPatch`
+   * can fill a date on a member already imported, and empty-only means a date somebody moved
+   * by hand is never dragged back by a re-run.
+   */
+  courtesy_calls_enabled: boolean;
+  next_courtesy_call_date: string | null;
+  /**
    * The home pin, when the CRM row held one that parses to a point in Spain.
    *
    * ALL FOUR TRAVEL TOGETHER or none does: `members_home_location_complete` refuses coordinates
@@ -152,6 +165,7 @@ export interface RowPlan {
        most of the imported file's re-runs. */
     legacy_billing_day: number | null;
     legacy_next_renewal: string | null;
+    next_courtesy_call_date: string | null;
   };
   medical: Record<string, unknown> | null;
   contacts: ContactInsert[];
@@ -265,6 +279,7 @@ export function planRowWrites(row: MappedRow): RowPlan {
         postal_code: row.member.postal_code,
         legacy_billing_day: row.member.legacy_billing_day,
         legacy_next_renewal: row.member.legacy_next_renewal,
+        next_courtesy_call_date: row.member.next_courtesy_call_date,
       },
       medical: null,
       contacts: [],
@@ -418,6 +433,8 @@ export function planRowWrites(row: MappedRow): RowPlan {
             crm_source_id: m.crm_source_id,
             legacy_billing_day: m.legacy_billing_day,
             legacy_next_renewal: m.legacy_next_renewal,
+            courtesy_calls_enabled: m.courtesy_calls_enabled,
+            next_courtesy_call_date: m.next_courtesy_call_date,
             home_lat: m.home_lat,
             home_lng: m.home_lng,
             // Never a source without a coordinate: the CHECK constraint refuses it, and a
@@ -439,6 +456,7 @@ export function planRowWrites(row: MappedRow): RowPlan {
       postal_code: m.postal_code,
       legacy_billing_day: m.legacy_billing_day,
       legacy_next_renewal: m.legacy_next_renewal,
+      next_courtesy_call_date: m.next_courtesy_call_date,
     },
     /* Parsed regardless of outcome, and that is deliberate.
        These were conditioned on `outcome === "member"` in the first draft, which zeroed the

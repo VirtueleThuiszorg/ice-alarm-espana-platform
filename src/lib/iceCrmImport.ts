@@ -31,7 +31,11 @@
  * Payment columns: never mapped to a structured field
  * ------------------------------------------------------------------ */
 
-import { deriveLegacySchedule } from "../../supabase/functions/_shared/legacy-billing-schedule";
+import {
+  deriveLegacySchedule,
+  nextRenewalFrom,
+  parseBillingDay,
+} from "../../supabase/functions/_shared/legacy-billing-schedule";
 import {
   billingFrequencyFromLabel,
   planTypeFromLabel,
@@ -772,6 +776,16 @@ export interface MappedRow {
      */
     legacy_billing_day: number | null;
     legacy_next_renewal: string | null;
+    /**
+     * The monthly courtesy call, anchored to the day of the month they joined.
+     *
+     * Lee, 19 Sep 2026: "auto add a monthly courtesy call … against the date they joined."
+     * `courtesy_calls_enabled` is true for every imported member; the DATE is null when the row
+     * does not say when they joined, and that is a queue for a human in exactly the way the
+     * billing day is. A call the rota promises on a day nobody chose is worse than no date.
+     */
+    courtesy_calls_enabled: boolean;
+    next_courtesy_call_date: string | null;
     title: string | null;
     nickname: string | null;
     gender: string | null;
@@ -1095,6 +1109,32 @@ export function mapIceRow(row: IceRow, today: Date = new Date()): MappedRow {
     schedule for somebody who pays once a year, and the runner would write to them eleven months
     early.
   */
+  /*
+    THE FIRST COURTESY CALL, ANCHORED TO THE DAY THEY JOINED — Lee's rule, 19 Sep 2026: "auto
+    add a monthly courtesy call … against the date they joined".
+
+    `courtesy_calls_enabled` and `next_courtesy_call_date` have existed since 20260126094603 and
+    the import has never written either, so every migrated member arrived with no call ever due.
+    `CourtesyCallsCard` reads them; the rota had nothing to show.
+
+    ANCHORED TO THE JOIN DATE rather than to the import, so the rota is spread across the month
+    the way the membership is rather than bunched on whichever afternoon somebody pressed Import
+    — and so a member's call day is a fact about them, not about us. Same day of the month as
+    the billing day in the ordinary case, which is also how the office has always worked.
+
+    NULL WHEN NOTHING SAYS WHEN THEY JOINED, for the same reason the billing day is: a date
+    invented here is a call the rota promises and nobody planned. The row is flagged instead.
+    `courtesy_calls_enabled` is still true — they are a member, and the missing part is the
+    schedule, not the intention.
+  */
+  const courtesyDay = joinDate ? parseBillingDay(joinDate) : null;
+  /* `nextRenewalFrom` and not a second implementation: "the next occurrence of this day of the
+     month, on or after today, clamped at month end" is exactly the same question the billing
+     day asks, and the 31st-in-February case is exactly as easy to get wrong here. The schedule
+     module's header says in as many words that a second copy of the clamp is the thing to
+     avoid; a courtesy call is a different subject, not a different rule. */
+  const nextCourtesyCall = courtesyDay !== null ? nextRenewalFrom(courtesyDay, today) : null;
+
   const legacySchedule = deriveLegacySchedule(
     {
       monthlyPaymentDate: row.get("Monthly Payment Date") || null,
@@ -1131,6 +1171,8 @@ export function mapIceRow(row: IceRow, today: Date = new Date()): MappedRow {
     home_lng: homeLng,
     legacy_billing_day: legacySchedule.day,
     legacy_next_renewal: legacySchedule.nextRenewal,
+    courtesy_calls_enabled: true,
+    next_courtesy_call_date: nextCourtesyCall,
     title: nz(row.get("Title")),
     nickname: nz(row.get("Nickname")),
     gender: gender.gender,
@@ -1165,6 +1207,18 @@ export function mapIceRow(row: IceRow, today: Date = new Date()): MappedRow {
   const memberReady = wantsMember && missing.length === 0;
   if (wantsMember && missing.length) {
     reviewReasons.push(`Live member missing required field(s): ${missing.join(", ")}`);
+  }
+
+  /* Flagged rather than guessed at — Lee's ruling, 19 Sep 2026. A debit date invented here is
+     real money taken on a day nobody chose, or a collection missed. The office fills these in
+     from the bank statement, and this is the list they work from. */
+  if (status.target === "member" && legacySchedule.day === null) {
+    reviewReasons.push(
+      "No collection date: neither Monthly Payment Date nor Date Joined says when money is taken"
+    );
+  }
+  if (status.target === "member" && nextCourtesyCall === null) {
+    reviewReasons.push("No courtesy call date: Date Joined is empty, so there is no day to anchor to");
   }
 
   const hasMedical =

@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { Phone, Calendar, Clock, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CourtesyCallDialog } from "@/components/call-centre/CourtesyCallDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { EditableCard } from "@/components/EditableCard";
 import { logMemberActivity } from "@/lib/auditLog";
@@ -61,6 +63,11 @@ export function CourtesyCallsCard({ memberId }: CourtesyCallsCardProps) {
   */
   const [draftEnabled, setDraftEnabled] = useState(true);
   const [draftFrequency, setDraftFrequency] = useState<string>("monthly");
+  /* The open courtesy task for this member, if there is one — what "Start call now" works on. */
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
+  const [memberName, setMemberName] = useState("");
+  const [memberPhone, setMemberPhone] = useState<string | null>(null);
+  const [callOpen, setCallOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -101,6 +108,25 @@ export function CourtesyCallsCard({ memberId }: CourtesyCallsCardProps) {
 
       if (callsError) throw callsError;
       setCompletedCalls(calls || []);
+
+      const { data: openTask } = await supabase
+        .from("tasks")
+        .select("id")
+        .eq("member_id", memberId)
+        .eq("task_type", "courtesy_call")
+        .neq("status", "completed")
+        .order("due_date", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      setOpenTaskId(openTask?.id ?? null);
+
+      const { data: who } = await supabase
+        .from("members")
+        .select("first_name, last_name, phone")
+        .eq("id", memberId)
+        .maybeSingle();
+      setMemberName(`${who?.first_name ?? ""} ${who?.last_name ?? ""}`.trim());
+      setMemberPhone(who?.phone ?? null);
     } catch (error) {
       console.error("Error fetching courtesy call data:", error);
     } finally {
@@ -229,14 +255,36 @@ export function CourtesyCallsCard({ memberId }: CourtesyCallsCardProps) {
 
         {/* Next Call Date */}
         {isEnabled && (
-          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-            <Calendar className="h-5 w-5 text-primary" />
-            <div>
-              <p className="text-sm font-medium">Next Scheduled Call</p>
-              <p className="text-lg font-semibold text-primary">
-                {nextCallDate ? format(parseISO(nextCallDate), "MMMM d, yyyy") : "Not scheduled"}
-              </p>
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-muted/50 rounded-lg">
+            <div className="flex items-center gap-3">
+              <Calendar className="h-5 w-5 text-primary" />
+              <div>
+                <p className="text-sm font-medium">Next Scheduled Call</p>
+                <p className="text-lg font-semibold text-primary">
+                  {nextCallDate ? format(parseISO(nextCallDate), "MMMM d, yyyy") : "Not scheduled"}
+                </p>
+              </div>
             </div>
+            {/*
+              RING THEM NOW, from the record you are already looking at. Somebody who opens a
+              member because a relative has phoned in should not have to find the task on a
+              dashboard to make the call count — and a call made outside the dialog is a call
+              nobody writes down.
+
+              Disabled when there is no open task: this closes a courtesy call, and inventing one
+              on the spot would let a member be "called" twice in a month and wreck the schedule.
+            */}
+            <Button
+              size="sm"
+              variant="outline"
+              data-testid="courtesy-start-call-now"
+              disabled={!openTaskId}
+              onClick={() => setCallOpen(true)}
+              title={openTaskId ? undefined : "No courtesy call is currently due"}
+            >
+              <Phone className="h-4 w-4 mr-2" />
+              Start call now
+            </Button>
           </div>
         )}
 
@@ -274,6 +322,24 @@ export function CourtesyCallsCard({ memberId }: CourtesyCallsCardProps) {
           </p>
         )}
       </div>
+
+      {/*
+        MOUNTED ONLY WHILE OPEN. The dialog's hooks fetch the member overview and the current
+        staff row the moment it exists, so mounting it permanently would run both queries on
+        every member record anybody opens — for a dialog almost nobody opens. It also drags the
+        auth context into a card that otherwise needs nothing from it.
+      */}
+      {callOpen && (
+      <CourtesyCallDialog
+        taskId={openTaskId}
+        memberId={memberId}
+        memberName={memberName}
+        memberPhone={memberPhone}
+        open={callOpen}
+        onOpenChange={setCallOpen}
+        onClosed={fetchData}
+      />
+      )}
     </EditableCard>
   );
 }

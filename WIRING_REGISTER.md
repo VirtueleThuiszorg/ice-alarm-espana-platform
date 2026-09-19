@@ -15,7 +15,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
 ## Score distribution
 
 ```
-10 │   9  ████
+10 │  10  ████
  9 │   6  ██
  8 │   0  
  7 │  39  ████████████████
@@ -28,11 +28,11 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   1  
 ```
 
-198 distinct wires across 659 call sites and 114 routes.
+199 distinct wires across 657 call sites and 114 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
-| 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 9 | 5% |
+| 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 10 | 5% |
 | 7–9 | arrives and proven; notification missing or on a channel not live today | 45 | 23% |
 | 4–6 | arrives; nobody told; nothing proves it | 143 | 72% |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0% |
@@ -65,12 +65,12 @@ things, and a control with no wire cannot do anything:
 |---|---|---:|
 | `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 356 |
 | `fn` | `supabase.functions.invoke(f)` — an edge function | 96 |
-| `rpc` | `supabase.rpc(f)` — a SQL function | 6 |
+| `rpc` | `supabase.rpc(f)` — a SQL function | 7 |
 | `channel` | `postgres_changes` — a realtime subscription | 53 |
 | `auth` | `supabase.auth.*` — sign in, sign out, register, password reset | 20 |
 | `storage` | `supabase.storage.from(b).upload/remove/…` — a file put somewhere | 14 |
-| `link` | `mailto:` / `tel:` / `wa.me` — a hand-off off the platform | 55 |
-| `open` | `window.open` / `window.location` — the SPA being left | 59 |
+| `link` | `mailto:` / `tel:` / `wa.me` — a hand-off off the platform | 53 |
+| `open` | `window.open` / `window.location` — the SPA being left | 58 |
 
 Routes come from an import graph over `src/App.tsx`, so a wire in a shared hook is
 attributed to every page that can reach it, and a wire in a **layout** (the notification
@@ -126,7 +126,7 @@ The checks, verified on every build:
 | **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
 | **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 12 |
-| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
+| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 17 |
 | **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 32 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:conversation_messages` | Isabella conversation turns — the assistant's reply appears as it is produced | conversation_messages | self | — | none | 2 |
@@ -157,7 +157,7 @@ The checks, verified on every build:
 | **5** | `auth:updateUser` | Forgot password → email link → set a new one — we will email you a link to get back in | resetPasswordForEmail sends via GoTrue's own mailer; the link returns to /reset-password, where updateUser sets the password | email | toast | none | 1 |
 | **5** | `fn:submit-member-update` | Member-update link — staff request a details check, member submits it without logging in — confirm your details from the link we sent you | send-member-update-request → token → validate-member-update-token → submit-member-update | nobody | toast | none | 1 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 12 |
-| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
+| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 17 |
 | **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 32 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:crm_events` | CRM import and contact editing — the legacy record is imported as it stands | crm_* tables via the import path | self | — | none | 1 |
@@ -188,7 +188,7 @@ The checks, verified on every build:
 | **5** | `auth:signOut` | Sign out — every header, plus the forced sign-out on a wrong-surface login — you are signed out | supabase.auth.signOut() | self | — | none | 6 |
 | **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
 | **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
-| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
+| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 17 |
 | **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 32 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:conversation_messages` | Isabella conversation turns — the assistant's reply appears as it is produced | conversation_messages | self | — | none | 2 |
@@ -251,7 +251,7 @@ The checks, verified on every build:
 | **5** | `fn:twilio-sms` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 4 |
 | **5** | `fn:twilio-whatsapp` | WhatsApp hand-off and outbound WhatsApp — message them on WhatsApp | wa.me deep link; twilio-whatsapp for outbound | whatsapp | toast | none | 1 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 12 |
-| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
+| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 17 |
 | **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 32 |
 | **5** | `rpc:get_todays_birthdays` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
@@ -292,6 +292,7 @@ The checks, verified on every build:
 | **9** | `table:conversations` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 8 |
 | **9** | `table:messages` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 7 |
 | **10** | `rpc:apply_shift_swap` | Ask a colleague to swap or cover a shift; accept or decline; a supervisor approves it — the person being asked finds out, both people find out when it is approved, and the rota actually moves | staff_shift_swaps → bell_on_shift_swap writes targeted notification_log rows; emit_shift_swap_to_router queues shift.swap_requested/_accepted/_approved to notify-staff (push on, SMS/WhatsApp/email off); approval calls apply_shift_swap, which moves staff_shifts and writes staff_shift_covers + activity_logs in one transaction | bell | toast | `src/test/shiftSwaps.test.tsx` | 1 |
+| **10** | `rpc:close_courtesy_call` | Close call — in the courtesy-call workspace, opened from the staff dashboard, the Tasks page (courtesy filter) and the member record's courtesy card — what was said is written into the member's history, and the next call exists before the operator closes the dialog | close_courtesy_call() writes a member_notes row (note_type courtesy_call, the outcome and the checklist rendered into the content), settles the task, sets members.last_courtesy_call_at and next_courtesy_call_date, and raises the next courtesy task — all in one transaction. An outcome that reached nobody instead leaves the task OPEN, counts the attempt and raises one retry for tomorrow; the third attempt writes targeted notification_log rows to admins | bell | toast | `src/test/courtesyCallDialog.test.tsx` | 1 |
 | **10** | `rpc:confirm_legacy_member` | Confirm as legacy member — on the member's record, and as a bulk action on the members list filtered to pending_review — the member becomes monitored, and WHO decided that is recorded — because there is no payment anywhere to point at | confirm_legacy_member() sets members.status = active + billing_source = legacy, writes an activity_logs row (action member.legacy_confirmed, the staff id, and the reason typed on the form), and bell_on_legacy_confirm writes targeted notification_log rows to admins and supervisors. Routed as member.legacy_confirmed: push on, SMS/WhatsApp/email off | bell | mutation onError | `src/test/legacyConfirmAction.test.tsx` | 1 |
 | **10** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | bell | toast | `scripts/rls/wiring.sql` | 2 |
 | **10** | `table:staff_shift_swaps` | Ask a colleague to swap or cover a shift; accept or decline; a supervisor approves it — the person being asked finds out, both people find out when it is approved, and the rota actually moves | staff_shift_swaps → bell_on_shift_swap writes targeted notification_log rows; emit_shift_swap_to_router queues shift.swap_requested/_accepted/_approved to notify-staff (push on, SMS/WhatsApp/email off); approval calls apply_shift_swap, which moves staff_shifts and writes staff_shift_covers + activity_logs in one transaction | bell | toast | `src/test/shiftSwaps.test.tsx` | 1 |
@@ -357,7 +358,7 @@ The checks, verified on every build:
 | **5** | `fn:youtube-oauth-start` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | mutation onError | none | 1 |
 | **5** | `fn:youtube-publish` | Media manager — plan, schedule, publish and measure social content — the post goes out when you said | media_* tables, social_posts, and the publish/metrics edge functions against Facebook and YouTube | bell | toast | none | 1 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 12 |
-| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
+| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 17 |
 | **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 32 |
 | **5** | `rpc:get_admin_dashboard_stats` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `rpc:get_sales_command_stats` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
@@ -456,6 +457,7 @@ The checks, verified on every build:
 | **9** | `table:conversations` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 8 |
 | **9** | `table:messages` | Member sends a message from /dashboard/messages or /dashboard/support; staff reply from either Messages screen — “we'll get back to you” — a member message reaches the team | conversations + messages; member-side notification and mark-read go through the member-self-service edge function because members deliberately hold no INSERT on notification_log and no UPDATE on messages | bell | — | `src/test/inboundMessages.test.ts` | 7 |
 | **10** | `rpc:apply_shift_swap` | Ask a colleague to swap or cover a shift; accept or decline; a supervisor approves it — the person being asked finds out, both people find out when it is approved, and the rota actually moves | staff_shift_swaps → bell_on_shift_swap writes targeted notification_log rows; emit_shift_swap_to_router queues shift.swap_requested/_accepted/_approved to notify-staff (push on, SMS/WhatsApp/email off); approval calls apply_shift_swap, which moves staff_shifts and writes staff_shift_covers + activity_logs in one transaction | bell | toast | `src/test/shiftSwaps.test.tsx` | 1 |
+| **10** | `rpc:close_courtesy_call` | Close call — in the courtesy-call workspace, opened from the staff dashboard, the Tasks page (courtesy filter) and the member record's courtesy card — what was said is written into the member's history, and the next call exists before the operator closes the dialog | close_courtesy_call() writes a member_notes row (note_type courtesy_call, the outcome and the checklist rendered into the content), settles the task, sets members.last_courtesy_call_at and next_courtesy_call_date, and raises the next courtesy task — all in one transaction. An outcome that reached nobody instead leaves the task OPEN, counts the attempt and raises one retry for tomorrow; the third attempt writes targeted notification_log rows to admins | bell | toast | `src/test/courtesyCallDialog.test.tsx` | 1 |
 | **10** | `rpc:confirm_legacy_member` | Confirm as legacy member — on the member's record, and as a bulk action on the members list filtered to pending_review — the member becomes monitored, and WHO decided that is recorded — because there is no payment anywhere to point at | confirm_legacy_member() sets members.status = active + billing_source = legacy, writes an activity_logs row (action member.legacy_confirmed, the staff id, and the reason typed on the form), and bell_on_legacy_confirm writes targeted notification_log rows to admins and supervisors. Routed as member.legacy_confirmed: push on, SMS/WhatsApp/email off | bell | mutation onError | `src/test/legacyConfirmAction.test.tsx` | 1 |
 | **10** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | bell | toast | `scripts/rls/wiring.sql` | 2 |
 | **10** | `table:partners` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | toast | `e2e/partnerJourney.spec.ts` | 5 |
@@ -478,7 +480,7 @@ The checks, verified on every build:
 | **5** | `channel:notification_log` | The bell itself — badge, dropdown, mark read, mark all read — you will be told when something needs you | notification_log; published to supabase_realtime, RLS scopes rows to the targeted user, staff broadcasts, admin oversight | self | — | none | 2 |
 | **5** | `fn:ai-run` | Admin edits Isabella's configuration, prompts and memory; runs her — the configuration you saved is the configuration she uses | ai_agents / ai_agent_configs / ai_memory; ai-run | self | — | none | 3 |
 | **5** | `link:mailto` | Email hand-off; outbound SMS — email or text this person | the user's mail client; twilio-sms for outbound | external | — | none | 12 |
-| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 18 |
+| **5** | `link:tel` | Every “call” affordance — 38 call sites across public pages, member dashboard, admin and the call centre — pressing this rings the number shown | the device dialler, via a tel: href built from company settings or a member's stored number | external | — | none | 17 |
 | **5** | `open:window` | Every window.open / window.location hand-off — checkout redirects, a generated file, an external dashboard — this takes you where it says | a new tab or a full navigation, out of the SPA | external | — | none | 32 |
 | **5** | `rpc:get_user_role_info` | Dashboard statistics and role resolution — the numbers on the dashboard are the numbers in the database | SQL functions, read-only | self | — | none | 1 |
 | **5** | `table:conversation_messages` | Isabella conversation turns — the assistant's reply appears as it is produced | conversation_messages | self | — | none | 2 |
@@ -1177,7 +1179,7 @@ See channel:shift_notes — the note lands, the live update does not.
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /admin/alerts, /admin/crm-import, /admin/members/:id, /admin/tasks, /call-centre, /call-centre/members/:id +1
-- **call sites** src/components/admin/FalseAlarmMonitor.tsx, src/components/admin/member-detail/TasksTab.tsx, src/lib/crmImportDb.ts, src/pages/admin/TasksPage.tsx +1
+- **call sites** src/components/admin/FalseAlarmMonitor.tsx, src/components/admin/member-detail/TasksTab.tsx, src/components/call-centre/CourtesyCallDialog.tsx, src/lib/crmImportDb.ts +1
 
 Tickets and comments ARE published, so they arrive live on an open Tickets screen. `tasks` is not (see channel:tasks above) — assigning a task tells its owner nothing, on any channel. Listed as a red.
 
@@ -1545,7 +1547,7 @@ mailto: leaves the platform entirely — nothing is recorded and nothing can be.
 - **failure shown to user** no
 - **proof** none — capped at 6
 - **routes** /, /admin, /admin/leads, /admin/members/:id, /admin/members/readiness-queue, /admin/messages +23
-- **call sites** src/components/call-centre/AlertDetailPanel.tsx, src/components/call-centre/DeviceOfflineAlertsCard.tsx, src/components/call-centre/MemberQuickSearch.tsx, src/components/call-centre/PendantLiveStatusModal.tsx +14
+- **call sites** src/components/call-centre/AlertDetailPanel.tsx, src/components/call-centre/DeviceOfflineAlertsCard.tsx, src/components/call-centre/MemberQuickSearch.tsx, src/components/call-centre/PendantLiveStatusModal.tsx +13
 
 Reaches the dialler, and `telHref()` returns null when the number is unset so a “Call us” card with no number in it is not rendered — the right failure. Nothing is recorded: a call placed this way leaves no interaction row (see table:member_interactions, whose logger is dead code), so the platform cannot say a member was ever phoned. On the SOS path the brief already calls for replacing tel: with the Twilio conference; that is Lee's gate, not this goal.
 
@@ -3079,6 +3081,19 @@ OWNED HERE AS OF ITEM 5 — this entry previously read 'out of scope by instruct
 - **call sites** src/hooks/useShiftSwaps.ts
 
 THE BELL IS WRITTEN BY THE DATABASE HERE, not by the client, and that is the difference from the cover flow above. An operator cannot call notify-staff at all (NOTIFY_CALLER_ROLES admits admins and the service role), and a notification raised by the browser is lost when the tab closes mid-request — so a trigger does it, which also covers a supervisor fixing a swap by hand in the SQL editor. The move is a single transaction because a half-applied swap puts two people on one slot and nobody on another, and staff_on_shift_now — which the shift monitor reads — would agree with it. 32 assertions in scripts/rls/isolation.sql exercise the refusals (an operator cannot apply; a swap not yet accepted cannot be applied; a rota that changed underneath is refused whole), the bell rows per transition, and the idempotent second click.
+
+### `rpc:close_courtesy_call` — 10/10 (fully wired)
+
+- **control** Close call — in the courtesy-call workspace, opened from the staff dashboard, the Tasks page (courtesy filter) and the member record's courtesy card
+- **promised** what was said is written into the member's history, and the next call exists before the operator closes the dialog
+- **goes to** close_courtesy_call() writes a member_notes row (note_type courtesy_call, the outcome and the checklist rendered into the content), settles the task, sets members.last_courtesy_call_at and next_courtesy_call_date, and raises the next courtesy task — all in one transaction. An outcome that reached nobody instead leaves the task OPEN, counts the attempt and raises one retry for tomorrow; the third attempt writes targeted notification_log rows to admins
+- **who is told** bell
+- **failure shown to user** toast
+- **proof** `src/test/courtesyCallDialog.test.tsx`
+- **routes** /admin/members/:id, /admin/tasks, /call-centre, /call-centre/members/:id, /call-centre/tasks
+- **call sites** src/components/call-centre/CourtesyCallDialog.tsx
+
+BEFORE THIS, COMPLETING A COURTESY CALL RECORDED NOTHING. The dashboard tick set tasks.status = 'completed' and no more, so the conversation with a vulnerable person — whether they were well, whether the pendant was worn, whether anybody answered — was written nowhere, and a member who had not answered three months running looked exactly like one who was fine. It is an RPC and not four client writes because closing touches member_notes, two tasks and members: from the browser that is four round trips with no transaction, and a dropped connection between them leaves a next-call date pointing at a call nobody recorded. Permission is NOT checked in the browser — the function is SECURITY DEFINER, so RLS on the tables it writes does not apply and its own staff check is the entire access control; 16 assertions in scripts/rls/isolation.sql cover who may close, that a member may not, that a member reads no member_notes at all, that closing twice is refused, and that voicemail does not mark a member as seen. The notes autosave to tasks.draft_notes rather than to the browser, because a browser dying mid-call is when losing them costs most and localStorage does not follow the operator to another machine.
 
 ### `rpc:confirm_legacy_member` — 10/10 (fully wired)
 

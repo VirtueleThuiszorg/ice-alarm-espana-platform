@@ -631,6 +631,38 @@ export const FAMILIES = [
       "row claiming a second decision.",
   },
   {
+    wires: ["rpc:close_courtesy_call"],
+    control:
+      "Close call — in the courtesy-call workspace, opened from the staff dashboard, the Tasks " +
+      "page (courtesy filter) and the member record's courtesy card",
+    promise:
+      "what was said is written into the member's history, and the next call exists before the " +
+      "operator closes the dialog",
+    dest:
+      "close_courtesy_call() writes a member_notes row (note_type courtesy_call, the outcome and " +
+      "the checklist rendered into the content), settles the task, sets members.last_courtesy_call_at " +
+      "and next_courtesy_call_date, and raises the next courtesy task — all in one transaction. " +
+      "An outcome that reached nobody instead leaves the task OPEN, counts the attempt and raises " +
+      "one retry for tomorrow; the third attempt writes targeted notification_log rows to admins",
+    told: "bell",
+    proof: "src/test/courtesyCallDialog.test.tsx",
+    note:
+      "BEFORE THIS, COMPLETING A COURTESY CALL RECORDED NOTHING. The dashboard tick set " +
+      "tasks.status = 'completed' and no more, so the conversation with a vulnerable person — " +
+      "whether they were well, whether the pendant was worn, whether anybody answered — was " +
+      "written nowhere, and a member who had not answered three months running looked exactly " +
+      "like one who was fine. It is an RPC and not four client writes because closing touches " +
+      "member_notes, two tasks and members: from the browser that is four round trips with no " +
+      "transaction, and a dropped connection between them leaves a next-call date pointing at a " +
+      "call nobody recorded. Permission is NOT checked in the browser — the function is " +
+      "SECURITY DEFINER, so RLS on the tables it writes does not apply and its own staff check " +
+      "is the entire access control; 16 assertions in scripts/rls/isolation.sql cover who may " +
+      "close, that a member may not, that a member reads no member_notes at all, that closing " +
+      "twice is refused, and that voicemail does not mark a member as seen. The notes autosave " +
+      "to tasks.draft_notes rather than to the browser, because a browser dying mid-call is when " +
+      "losing them costs most and localStorage does not follow the operator to another machine.",
+  },
+  {
     wires: ["table:staff_shift_swaps", "rpc:apply_shift_swap"],
     control: "Ask a colleague to swap or cover a shift; accept or decline; a supervisor approves it",
     promise: "the person being asked finds out, both people find out when it is approved, and the rota actually moves",

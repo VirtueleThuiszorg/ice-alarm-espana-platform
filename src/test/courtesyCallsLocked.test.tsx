@@ -19,6 +19,7 @@ vi.mock("@/integrations/supabase/client", () => {
     const self = () => q;
     q.select = self;
     q.eq = self;
+    q.neq = self;
     q.order = self;
     q.limit = self;
     // `.single()`, because that is what the card calls — with only `maybeSingle` faked the

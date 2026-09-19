@@ -61,6 +61,22 @@ export type CallerVerdict =
 export const NOTIFY_CALLER_ROLES = ["admin", "super_admin"] as const;
 
 /**
+ * Every active staff role, for the functions whose work is ordinary call-centre work.
+ *
+ * Adding a lead and writing to one is what a call-centre operator does all day; requiring
+ * `admin` for it would mean the four people who actually speak to these customers could not use
+ * the feature. This is a WIDER list than NOTIFY_CALLER_ROLES on purpose, and it is passed in
+ * explicitly by the functions that want it rather than being the default — so a function that
+ * says nothing keeps the narrow behaviour it has today.
+ */
+export const STAFF_CALLER_ROLES = [
+  "admin",
+  "super_admin",
+  "call_centre",
+  "supervisor",
+] as const;
+
+/**
  * Identify the caller behind an `Authorization` header.
  *
  * The service-role comparison is first and is an exact string match: an internal caller must
@@ -71,6 +87,11 @@ export async function identifyNotifyCaller(
   db: CallerLookup,
   authHeader: string | null,
   serviceRoleKey: string,
+  /**
+   * Which staff roles count. Defaults to the admin pair, so every existing caller behaves
+   * exactly as it did; `STAFF_CALLER_ROLES` widens it for the functions that do call-centre work.
+   */
+  allowedRoles: readonly string[] = NOTIFY_CALLER_ROLES,
 ): Promise<CallerVerdict> {
   const bearer = (authHeader ?? "").replace(/^Bearer\s+/i, "").trim();
   // This is also what stops an UNSET secret from authorising everybody. If
@@ -97,8 +118,19 @@ export async function identifyNotifyCaller(
     .eq("is_active", true)
     .maybeSingle();
 
-  if (!staff || !(NOTIFY_CALLER_ROLES as readonly string[]).includes(staff.role)) {
-    return { ok: false, status: 403, error: "Admin access required" };
+  if (!staff || !allowedRoles.includes(staff.role)) {
+    /*
+      THE MESSAGE IS THE DEFAULT'S MESSAGE UNLESS THE LIST WAS WIDENED. "Admin access required"
+      is what every existing caller returns and what `notifyCallerGuard.test.ts` pins, and it is
+      the truthful sentence for them. Telling a call-centre operator they need admin access, when
+      what they actually need is an active staff row, would send them to the wrong person.
+    */
+    const adminOnly = allowedRoles === NOTIFY_CALLER_ROLES;
+    return {
+      ok: false,
+      status: 403,
+      error: adminOnly ? "Admin access required" : "Staff access required",
+    };
   }
 
   return { ok: true, caller: "admin", userId: userData.user.id };

@@ -754,6 +754,27 @@ export const FAMILIES = [
       "scripts/rls/isolation.sql, and the day is deliberately NOT clamped in storage so a 31st " +
       "member does not become a 28th member after one February.",
   },
+    {
+    wires: ["fn:staff-lead"],
+    control: "\u201c+ Add lead\u201d on both Leads screens \u2014 admin and call centre",
+    promise: "this person is on the list, assigned to me, and nobody will ring them twice",
+    dest: "staff-lead \u2192 leads (service role), after checking members and leads for a duplicate",
+    told: "nobody \u2014 a hand-added lead is added BY the person who would be told",
+    proof: "src/test/staffLead.test.ts",
+    note:
+      "Most of the people this product is for did not find the website: they met somebody at a " +
+      "market stall, rang the office because a neighbour mentioned us, or were introduced by " +
+      "their daughter. Until now there was nowhere to put them. It is a function rather than an " +
+      "insert from the dialog for three reasons, none of which the browser can be trusted with: " +
+      "`source` and `created_by` are provenance, and a row that can choose its own source can " +
+      "claim to be a contact-form enquiry; the duplicate check reads `members`, which an " +
+      "operator's own token cannot read in full; and the partner code decides whether somebody " +
+      "is owed \u20ac50, so a typo is refused here rather than stored and quietly never paid. " +
+      "The field rules are `validateFields` from public-submit \u2014 the same code, not a copy " +
+      "\u2014 so a number typed by an operator normalises exactly as one typed by a visitor, " +
+      "which is what makes the duplicate check work at all. The bell is deliberately silent: " +
+      "the person who would be told is the person typing.",
+  },
   {
     wires: ["fn:public-submit"],
     control: "Public forms — the /contact enquiry form and the pendant page's Notify Me box",

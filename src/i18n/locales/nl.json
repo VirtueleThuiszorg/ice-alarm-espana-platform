@@ -2558,6 +2558,38 @@
     "linkOpened": "Link Opened"
   },
   "leads": {
+    "add": {
+      "button": "Lead toevoegen",
+      "title": "Een lead toevoegen",
+      "description": "Iemand die ons heeft gebeld, die we op een evenement ontmoetten of die door een ander lid is aangedragen.",
+      "firstName": "Voornaam",
+      "lastName": "Achternaam",
+      "phone": "Telefoon",
+      "email": "E-mailadres",
+      "emailOptional": "Optioneel",
+      "language": "Taal",
+      "enquiryType": "Vraag",
+      "heardAbout": "Hoe kent u ons?",
+      "heardAboutPlaceholder": "Kies er één",
+      "partnerCode": "Partnercode",
+      "notes": "Notities",
+      "notesPlaceholder": "Waar vroeg deze persoon naar?",
+      "consent": "Deze persoon gaf toestemming om door ICE Alarm España benaderd te worden.",
+      "save": "Lead toevoegen",
+      "saved": "Lead toegevoegd",
+      "failed": "Deze lead kon niet worden opgeslagen",
+      "dupMember": "Al lid",
+      "dupLead": "Al een lead",
+      "dupOpen": "Bestaande gegevens openen"
+    },
+    "heardAbout": {
+      "walk_in": "Kwam langs",
+      "phone_call": "Belde ons",
+      "event": "Ontmoette ons op een evenement",
+      "member_referral": "Aangedragen door een lid",
+      "partner_code": "Doorverwezen door een partner",
+      "other": "Iets anders"
+    },
     "noName": "Geen naam opgegeven",
     "noEmail": "Geen e-mailadres",
     "noPhone": "Geen telefoonnummer",

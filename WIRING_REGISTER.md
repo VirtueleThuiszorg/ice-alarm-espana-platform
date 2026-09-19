@@ -18,7 +18,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
 10 │   9  ████
  9 │   6  ██
  8 │   0  
- 7 │  38  ███████████████
+ 7 │  39  ████████████████
  6 │   9  ████
  5 │  84  ██████████████████████████████████
  4 │  50  ████████████████████
@@ -28,13 +28,13 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   1  
 ```
 
-197 distinct wires across 658 call sites and 114 routes.
+198 distinct wires across 659 call sites and 114 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
 | 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 9 | 5% |
-| 7–9 | arrives and proven; notification missing or on a channel not live today | 44 | 22% |
-| 4–6 | arrives; nobody told; nothing proves it | 143 | 73% |
+| 7–9 | arrives and proven; notification missing or on a channel not live today | 45 | 23% |
+| 4–6 | arrives; nobody told; nothing proves it | 143 | 72% |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0% |
 | 0 | dead control | 1 | 1% |
 
@@ -64,7 +64,7 @@ things, and a control with no wire cannot do anything:
 | kind | what it is | call sites |
 |---|---|---:|
 | `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 356 |
-| `fn` | `supabase.functions.invoke(f)` — an edge function | 95 |
+| `fn` | `supabase.functions.invoke(f)` — an edge function | 96 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 6 |
 | `channel` | `postgres_changes` — a realtime subscription | 53 |
 | `auth` | `supabase.auth.*` — sign in, sign out, register, password reset | 20 |
@@ -283,6 +283,7 @@ The checks, verified on every build:
 | **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
 | **7** | `fn:save-api-keys` | Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device — your credentials work | save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push | self | toast | `src/test/firebaseConfig.test.ts` | 7 |
 | **7** | `fn:send-payment-link` | Staff send a member a Stripe payment link (CRM → member → Subscription); and, in legacy_switch mode, MOVE A LEGACY MEMBER ONTO STRIPE BILLING — on the record and as a bulk action on the members list filtered to legacy billing — a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are switched on, and always shown on screen to copy | send-payment-link → create_payment_link_order (pending order + items + subscription + payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms and/or send-email; activation is stripe-webhook's alone | the payer (SMS + email), and activity_logs twice — the order created, and what was sent | mutation onError | `src/test/sendPaymentLink.test.ts` | 1 |
+| **7** | `fn:staff-lead` | “+ Add lead” on both Leads screens — admin and call centre — this person is on the list, assigned to me, and nobody will ring them twice | staff-lead → leads (service role), after checking members and leads for a duplicate | nobody — a hand-added lead is added BY the person who would be told | toast | `src/test/staffLead.test.ts` | 1 |
 | **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 5 |
 | **7** | `table:admin_ideas` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | mutation onError | `src/test/checkoutPaymentMethods.test.ts` | 1 |
 | **7** | `table:products` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | toast | `src/test/checkoutPaymentMethods.test.ts` | 2 |
@@ -426,6 +427,7 @@ The checks, verified on every build:
 | **7** | `fn:save-api-keys` | Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device — your credentials work | save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push | self | toast | `src/test/firebaseConfig.test.ts` | 7 |
 | **7** | `fn:send-payment-link` | Staff send a member a Stripe payment link (CRM → member → Subscription); and, in legacy_switch mode, MOVE A LEGACY MEMBER ONTO STRIPE BILLING — on the record and as a bulk action on the members list filtered to legacy billing — a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are switched on, and always shown on screen to copy | send-payment-link → create_payment_link_order (pending order + items + subscription + payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms and/or send-email; activation is stripe-webhook's alone | the payer (SMS + email), and activity_logs twice — the order created, and what was sent | mutation onError | `src/test/sendPaymentLink.test.ts` | 1 |
 | **7** | `fn:send-test-email` | Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device — your credentials work | save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push | self | toast | `src/test/firebaseConfig.test.ts` | 1 |
+| **7** | `fn:staff-lead` | “+ Add lead” on both Leads screens — admin and call centre — this person is on the list, assigned to me, and nobody will ring them twice | staff-lead → leads (service role), after checking members and leads for a duplicate | nobody — a hand-added lead is added BY the person who would be told | toast | `src/test/staffLead.test.ts` | 1 |
 | **7** | `fn:test-twilio` | Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device — your credentials work | save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push | self | mutation onError | `src/test/firebaseConfig.test.ts` | 1 |
 | **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 5 |
 | **7** | `table:admin_ideas` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | mutation onError | `src/test/checkoutPaymentMethods.test.ts` | 1 |
@@ -2605,6 +2607,19 @@ LEGACY_SWITCH MODE (2026-09-11) is the same builder with the registration fee an
 - **call sites** src/hooks/useEmailSettings.ts
 
 These are the only in-app way to find out whether the email, SMS and push channels are live, which is exactly what this register cannot determine from code. FIREBASE JOINED THEM: push used to need six VITE_FIREBASE_* build-time variables in Vercel plus a FIREBASE_SERVICE_ACCOUNT Edge secret — seven values, two consoles, and a redeploy before any of them did anything. The three paste fields replace that, and the test push's outcome is a notification_log row whichever way it goes. The service account is stored under a key ending `_key` so the staff read policy excludes it; the six web values are public by design and staff-readable because every operator's phone needs them.
+
+### `fn:staff-lead` — 7/10 (proven; nobody told)
+
+- **control** “+ Add lead” on both Leads screens — admin and call centre
+- **promised** this person is on the list, assigned to me, and nobody will ring them twice
+- **goes to** staff-lead → leads (service role), after checking members and leads for a duplicate
+- **who is told** nobody — a hand-added lead is added BY the person who would be told
+- **failure shown to user** toast
+- **proof** `src/test/staffLead.test.ts`
+- **routes** /admin/leads, /call-centre/leads
+- **call sites** src/components/leads/AddLeadDialog.tsx
+
+Most of the people this product is for did not find the website: they met somebody at a market stall, rang the office because a neighbour mentioned us, or were introduced by their daughter. Until now there was nowhere to put them. It is a function rather than an insert from the dialog for three reasons, none of which the browser can be trusted with: `source` and `created_by` are provenance, and a row that can choose its own source can claim to be a contact-form enquiry; the duplicate check reads `members`, which an operator's own token cannot read in full; and the partner code decides whether somebody is owed €50, so a typo is refused here rather than stored and quietly never paid. The field rules are `validateFields` from public-submit — the same code, not a copy — so a number typed by an operator normalises exactly as one typed by a visitor, which is what makes the duplicate check work at all. The bell is deliberately silent: the person who would be told is the person typing.
 
 ### `fn:test-twilio` — 7/10 (proven; no notification owed)
 

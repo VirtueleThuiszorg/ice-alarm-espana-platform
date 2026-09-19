@@ -4791,6 +4791,13 @@
       "referralIntro": "These are only stored if you arrive through a link shared by one of our partners. They record which partner referred you, so that the partner can be credited if you join. They do not track you on other websites.",
       "referralRows": [
         {
+          "name": "ice_lead_token",
+          "provider": "ICE Alarm España",
+          "purpose": "Records that you arrived on a personal link one of our team sent you, so the sign-up form can fill in what we already know and we can tell who helped you.",
+          "duration": "Until you complete the sign-up, or until you clear your browser data",
+          "type": "Local storage"
+        },
+        {
           "name": "partner_ref, partner_utm",
           "provider": "ICE Alarm España",
           "purpose": "Records the partner code and campaign in the link you followed.",

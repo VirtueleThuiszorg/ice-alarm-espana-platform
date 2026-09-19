@@ -113,6 +113,13 @@ const NO_USER_FACING_ERROR: Record<string, string> = {
   // functionError. The stale-entry half of this suite is what noticed.
   "src/pages/admin/SubscriptionsPage.tsx": "Stripe subscription path — deliberately untouched (human gate)",
   "src/pages/LandingPage.tsx": "track-invite-view is explicitly fire-and-forget (.catch(console.warn)); no UI path",
+  "src/pages/join/JoinWizard.tsx":
+    "lead-prefill is a CONVENIENCE and must never block or alarm. It fills in what a staff " +
+    "member already wrote down so somebody in their eighties does not retype it; an unknown or " +
+    "expired token returns 200-with-nulls by design, and a transport failure is the same " +
+    "outcome — the wizard is simply the wizard it has always been. Showing a person starting a " +
+    "registration an error about a lookup they never asked for would cost more than the " +
+    "pre-fill is worth",
   "src/hooks/useRegistrationDraft.ts": "draft autosave; returns {success:false} and logs — deliberately does not nag the user mid-form",
   "src/pages/admin/PartnersQAPage.tsx": "QA harness: renders raw error.message as the check's `details`, which is the point of the page",
   "src/components/partner/CareDashboard.tsx": "its `if (error) throw` are partner_invites DB inserts, not invoke; the invoke outcome is counted into sent/failed and reported",

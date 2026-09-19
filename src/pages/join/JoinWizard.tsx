@@ -15,6 +15,8 @@ import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { usePricingSettings } from "@/hooks/usePricingSettings";
 import { calculateOrder } from "@/config/pricing";
 import { resolveJoinEntry } from "@/lib/joinLink";
+import { captureLeadToken, storedLeadToken } from "@/lib/leadJoinLink";
+import { supabase } from "@/integrations/supabase/client";
 import { reportEvent, updateDailyMetrics } from "@/lib/syncHub";
 // Step Components
 import { JoinMembershipStep } from "@/components/join/steps/JoinMembershipStep";
@@ -105,8 +107,15 @@ export default function JoinWizard() {
   // Progressive save hook
   const { saveDraft, clearSession } = useRegistrationDraft();
 
-  // Capture partner referral code and UTM params from URL
+  /*
+    Capture the partner referral code, the UTM params, AND the personal lead token.
+
+    All three are read from the URL once and kept, because the wizard sends the member to
+    Stripe and comes back with `?success=…` and nothing else — a value held only in the URL is
+    lost at exactly the moment it is needed.
+  */
   useEffect(() => {
+    captureLeadToken(searchParams);
     const refCode = searchParams.get("ref");
     if (refCode) {
       // Extract UTM parameters if present
@@ -115,6 +124,45 @@ export default function JoinWizard() {
       // Store referral code and UTM data - first-touch wins, don't overwrite existing
       storeReferralData(refCode, utmParams);
     }
+  }, [searchParams]);
+
+  /*
+    PRE-FILL FROM THE PERSONAL LINK.
+
+    Somebody in their eighties, who has just been sent this by the person they spoke to on the
+    telephone. Asking them to type a name and a phone number we wrote down half an hour ago is
+    where a share of them stop.
+
+    ONLY WHAT IS STILL EMPTY IS FILLED. If the member has already typed something — because they
+    came back to a half-finished wizard, or corrected us — theirs wins. A pre-fill that
+    overwrites is worse than none: it is a form that argues with the person filling it in.
+
+    It never blocks and never shows an error. An unknown or expired token simply returns nulls,
+    and the wizard is the wizard it has always been.
+  */
+  useEffect(() => {
+    const token = searchParams.get("lead") ?? storedLeadToken();
+    if (!token) return;
+    let live = true;
+    (async () => {
+      const { data } = await supabase.functions.invoke("lead-prefill", { body: { token } });
+      if (!live || !data) return;
+      setWizardData((prev) => {
+        const p = prev.primaryMember ?? {};
+        return {
+          ...prev,
+          primaryMember: {
+            ...p,
+            firstName: p.firstName || data.firstName || "",
+            lastName: p.lastName || data.lastName || "",
+            email: p.email || data.email || "",
+            phone: p.phone || data.phone || "",
+            preferredLanguage: p.preferredLanguage || data.language || "en",
+          },
+        };
+      });
+    })();
+    return () => { live = false; };
   }, [searchParams]);
 
   // Handle return from Stripe checkout

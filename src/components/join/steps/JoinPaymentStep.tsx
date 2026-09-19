@@ -11,6 +11,7 @@ import { getStoredReferralData, clearReferralData } from "@/lib/crmEvents";
 import { buildRegistrationBody } from "@/lib/registrationPayload";
 import { extractFunctionErrorCode, functionError } from "@/lib/functionError";
 import { usePricingSettings } from "@/hooks/usePricingSettings";
+import { storedLeadToken } from "@/lib/leadJoinLink";
 
 interface JoinPaymentStepProps {
   data: JoinWizardData;
@@ -45,7 +46,8 @@ export function JoinPaymentStep({ data, onUpdate, onPaymentInitiated }: JoinPaym
     setError(null);
     try {
       const { referralCode: partnerRef, refPostId, utmParams } = getStoredReferralData();
-      const { data: registrationResult, error: registrationError } = await supabase.functions.invoke("submit-registration", { body: buildRegistrationBody(data, { partnerRef, refPostId, utmParams }) });
+      const leadToken = storedLeadToken();
+      const { data: registrationResult, error: registrationError } = await supabase.functions.invoke("submit-registration", { body: buildRegistrationBody(data, { partnerRef, refPostId, utmParams, leadToken }) });
       if (registrationError) throw new Error(registrationError.message || "Failed to submit registration");
       if (!registrationResult?.success) throw new Error(registrationResult?.error || "Registration failed");
       onUpdate({ memberId: registrationResult.memberId, orderId: registrationResult.orderNumber });
@@ -112,8 +114,9 @@ export function JoinPaymentStep({ data, onUpdate, onPaymentInitiated }: JoinPaym
     setError(null);
     try {
       const { referralCode: partnerRef, refPostId, utmParams } = getStoredReferralData();
+      const leadToken = storedLeadToken();
       const { data: registrationResult, error: registrationError } = await supabase.functions.invoke("submit-registration", {
-        body: buildRegistrationBody(data, { partnerRef, refPostId, utmParams, testMode: true })
+        body: buildRegistrationBody(data, { partnerRef, refPostId, utmParams, leadToken, testMode: true })
       });
 
       if (registrationError) throw new Error(registrationError.message || "Failed to submit registration");

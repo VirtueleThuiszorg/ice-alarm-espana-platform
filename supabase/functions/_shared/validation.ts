@@ -84,6 +84,11 @@ export const registrationSchema = z.object({
   // undefined and REJECTS null, so this was a second, independent cause of the same 400: fixing
   // only the health fields above would have left the wizard just as dead.
   partnerRef: z.string().max(100).nullish(),
+  /**
+   * `?lead=` from a personal join link. Bounded like every other free string here; a token
+   * longer than this is not one we minted, and the match will fail on it anyway.
+   */
+  leadToken: z.string().max(128).nullish(),
   refPostId: z.string().max(100).nullish(),
   utmParams: z
     .object({

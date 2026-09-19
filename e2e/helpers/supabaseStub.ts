@@ -86,6 +86,12 @@ export interface StubScenario {
    */
   /** What `public-submit` answers. Omit for a 200 `{ ok: true }`. */
   publicSubmitResponse?: { status: number; body: unknown };
+  /** What `staff-lead` answers. Omit for a 200 `{ ok: true, id }` — a lead was added. */
+  staffLeadResponse?: { status: number; body: unknown };
+  /** What `send-lead-message` answers, for the preview AND the send. */
+  sendLeadMessageResponse?: { status: number; body: unknown };
+  /** What `lead-prefill` answers. Omit for all-nulls, i.e. an unknown token. */
+  leadPrefillResponse?: { status: number; body: unknown };
   memberSelfServiceResponse?: { status: number; body: unknown };
   /** Fail the password grant, as GoTrue does on bad credentials. */
   signInError?: { status: number; body: unknown };
@@ -363,6 +369,30 @@ export async function installSupabaseStub(page: Page, initial: StubScenario = {}
       const r = scenario.publicSubmitResponse;
       if (r) return json(route, r.body, r.status);
       return json(route, { ok: true });
+    }
+
+    /*
+      The three lead functions. Named rather than folded into a generic "any function succeeds"
+      branch, for the reason at the top of this file: an UNRECOGNISED function must keep failing
+      loudly, because a journey that silently succeeds against a function nobody stubbed is the
+      defect this stub exists to catch.
+    */
+    if (url.pathname === "/functions/v1/staff-lead") {
+      const r = scenario.staffLeadResponse;
+      if (r) return json(route, r.body, r.status);
+      return json(route, { ok: true, id: "lead-new-0001" });
+    }
+
+    if (url.pathname === "/functions/v1/send-lead-message") {
+      const r = scenario.sendLeadMessageResponse;
+      if (r) return json(route, r.body, r.status);
+      return json(route, { ok: true, preview: true, locale: "en", joinLink: "", report: [] });
+    }
+
+    if (url.pathname === "/functions/v1/lead-prefill") {
+      const r = scenario.leadPrefillResponse;
+      if (r) return json(route, r.body, r.status);
+      return json(route, { firstName: null, lastName: null, phone: null, email: null, language: null });
     }
 
     if (url.pathname === "/functions/v1/member-self-service") {

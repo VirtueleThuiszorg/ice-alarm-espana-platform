@@ -259,3 +259,4 @@
 20260918100000_member_bank_details.sql
 20260919120000_lead_working_schema.sql
 20260919090000_close_courtesy_call.sql
+20260919160000_lead_followup_cron.sql

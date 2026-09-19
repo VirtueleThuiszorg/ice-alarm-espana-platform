@@ -786,7 +786,27 @@ export const FAMILIES = [
       "scripts/rls/isolation.sql, and the day is deliberately NOT clamped in storage so a 31st " +
       "member does not become a 28th member after one February.",
   },
-      {
+        {
+    wires: ["fn:lead-prefill"],
+    control: "Opening /join?lead=<token> \u2014 the personal link a staff member sent",
+    promise: "we already know who you are; you do not have to type it again",
+    dest: "lead-prefill \u2192 leads, by token only",
+    told: "nobody \u2014 it is a read",
+    proof: "src/test/leadConversion.test.ts",
+    note:
+      "Somebody in their eighties, on a telephone, who has just been sent a link by the person " +
+      "they spoke to. Asking them to type a name and a phone number we wrote down half an hour " +
+      "ago is where a share of them stop. It exists INSTEAD OF an anon SELECT policy on `leads`: " +
+      "that table holds a non-customer\u2019s consent record, the staff notes about them, a spam " +
+      "verdict and every other lead in the business, and a policy narrow enough to be safe would " +
+      "still be a policy, and policies get widened. So this is the whole read and it is four " +
+      "fields \u2014 no id, no status, no notes. An unknown or expired token gets the SAME " +
+      "200-with-nulls as a real one, because a 404 for one and a 200 for the other is an oracle " +
+      "telling anybody willing to guess which tokens exist. On the page, only fields the member " +
+      "has not already filled in are touched: a pre-fill that overwrites is a form that argues " +
+      "with the person filling it in.",
+  },
+  {
     wires: ["fn:send-lead-message"],
     control:
       "\u201cIntroduce ICE Alarm\u201d on a lead \u2014 Email / SMS / WhatsApp, preview then send",

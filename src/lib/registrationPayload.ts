@@ -61,6 +61,8 @@ export function assertNoHealthDataInPayload(data: Partial<JoinWizardData>): void
 }
 export interface RegistrationReferralOptions {
   partnerRef?: string | null;
+  /** `?lead=` from a personal join link, so the registration can be matched back to the lead. */
+  leadToken?: string | null;
   refPostId?: string | null;
   utmParams?: Record<string, string>;
   testMode?: boolean;
@@ -83,6 +85,7 @@ export function buildRegistrationBody(
     pendantCount: data.pendantCount,
     billingFrequency: data.billingFrequency,
     partnerRef: opts.partnerRef,
+    leadToken: opts.leadToken,
     refPostId: opts.refPostId,
     utmParams: opts.utmParams,
   };

@@ -4791,6 +4791,13 @@
       "referralIntro": "Solo se guardan si usted llega a través de un enlace compartido por uno de nuestros colaboradores. Registran qué colaborador le recomendó, para que se le pueda reconocer si usted se da de alta. No le siguen en otros sitios web.",
       "referralRows": [
         {
+          "name": "ice_lead_token",
+          "provider": "ICE Alarm España",
+          "purpose": "Registra que llegó por un enlace personal que le envió alguien de nuestro equipo, para que el formulario de alta rellene lo que ya sabemos y sepamos quién le atendió.",
+          "duration": "Hasta que complete el alta o borre los datos del navegador",
+          "type": "Almacenamiento local"
+        },
+        {
           "name": "partner_ref, partner_utm",
           "provider": "ICE Alarm España",
           "purpose": "Registra el código del colaborador y la campaña del enlace que siguió.",

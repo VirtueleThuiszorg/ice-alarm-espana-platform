@@ -116,3 +116,9 @@ verify_jwt = true
 # Staff only: the guard reads the caller's JWT and requires an ACTIVE staff row.
 [functions.send-lead-message]
 verify_jwt = true
+
+# Anonymous by design: the caller is somebody on the join page who has a personal link and no
+# account yet. The TOKEN is the credential, the answer is four fields they already know about
+# themselves, and an unknown token gets the same 200-with-nulls as a real one.
+[functions.lead-prefill]
+verify_jwt = false

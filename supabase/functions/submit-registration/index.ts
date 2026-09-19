@@ -5,6 +5,8 @@ import { sendEmail } from "../_shared/email.ts";
 import { checkRateLimit, getClientIp } from "../_shared/rate-limit.ts";
 import { registrationSchema, validateRequest } from "../_shared/validation.ts";
 import { calculateOrder, buildPricingConfig } from "../_shared/pricing-calc.ts";
+import { toE164 } from "../_shared/phone.ts";
+import { leadJoinedMessage, matchLeadToRegistration } from "../_shared/lead-conversion.ts";
 
 
 
@@ -178,6 +180,11 @@ interface RegistrationRequest {
   // Nullable, not merely absent: the browser sends null when the visitor arrived with no
   // referral code, and every read below coalesces with `|| null`.
   partnerRef?: string | null; // Partner referral code for attribution
+  /**
+   * `?lead=` from a personal join link a staff member sent. Evidence that this registration
+   * belongs to a particular lead, and to the operator who found them.
+   */
+  leadToken?: string | null;
   refPostId?: string | null; // Post ID from partner share link for attribution
   utmParams?: {
     utm_source?: string;
@@ -401,6 +408,94 @@ serve(async (req) => {
         console.error("Failed to send registration confirmation email:", emailErr);
         // Don't fail registration, email is non-critical
       }
+    }
+
+    /*
+      ─── NON-TRANSACTIONAL: the lead this registration came from ────────────
+
+      OUTSIDE THE TRANSACTION, for the same reason the email above is. If marking a lead failed
+      inside `submit_registration_atomic` — a constraint, a lock, anything — the REGISTRATION
+      would roll back. Losing a paying member because a lead row could not be updated is a trade
+      nobody would make on purpose, so a failure here is logged and the registration stands.
+
+      The cost is honest and small: a lead left on `join_link_sent` for a day until somebody
+      notices, against a registration that never happened.
+    */
+    try {
+      const identity = {
+        token: body.leadToken ?? null,
+        phone: toE164(body.primaryMember.phone ?? ""),
+        email: (body.primaryMember.email ?? "").trim().toLowerCase() || null,
+      };
+
+      if (identity.token || identity.phone || identity.email) {
+        const filters: string[] = [];
+        if (identity.token) filters.push(`join_token.eq.${identity.token}`);
+        if (identity.phone) filters.push(`phone.eq.${identity.phone}`);
+        if (identity.email) filters.push(`email.eq.${identity.email}`);
+
+        const { data: candidates } = await supabase
+          .from("leads")
+          .select("id, status, join_token, join_token_expires_at, phone, email, first_name, assigned_to")
+          .or(filters.join(","))
+          .limit(10);
+
+        const match = matchLeadToRegistration(candidates ?? [], identity, new Date());
+
+        if (match.matched) {
+          const lead = (candidates ?? []).find((l) => l.id === match.leadId);
+          const { error: convertErr } = await supabase
+            .from("leads")
+            .update({
+              status: "joined",
+              converted_member_id: result.memberId,
+              converted_at: new Date().toISOString(),
+            })
+            .eq("id", match.leadId);
+
+          if (convertErr) {
+            console.error("Lead conversion failed (registration stands):", convertErr.message);
+          } else {
+            console.log(`Lead ${match.leadId} marked joined, matched by ${match.by}`);
+
+            /*
+              THE BELL GOES TO THE PERSON WHO FOUND THEM, and to the admins. Targeted rows, not
+              a broadcast: a broadcast row is SHARED, so the first person to mark it read clears
+              it for the operator who had not seen it yet — which is the one person it is for.
+            */
+            const message = leadJoinedMessage((lead?.first_name as string) ?? "");
+            const recipients = new Set<string>();
+            if (lead?.assigned_to) {
+              const { data: owner } = await supabase
+                .from("staff").select("user_id").eq("id", lead.assigned_to).maybeSingle();
+              if (owner?.user_id) recipients.add(owner.user_id as string);
+            }
+            const { data: admins } = await supabase
+              .from("staff").select("user_id").in("role", ["admin", "super_admin"]).eq("is_active", true);
+            for (const a of admins ?? []) if (a.user_id) recipients.add(a.user_id as string);
+
+            if (recipients.size > 0) {
+              await supabase.from("notification_log").insert(
+                [...recipients].map((userId) => ({
+                  admin_user_id: userId,
+                  event_type: "message",
+                  entity_type: "lead",
+                  entity_id: match.leadId,
+                  message,
+                  status: "pending",
+                })),
+              );
+            }
+          }
+        } else if (match.reason !== "no_candidate") {
+          // `already_joined` is a retry and `token_expired` is a link older than 30 days —
+          // both are ordinary, and neither is an error. Logged so the conversion rate can be
+          // read honestly rather than looking like leads that never converted.
+          console.log(`Lead not converted: ${match.reason}`);
+        }
+      }
+    } catch (leadErr) {
+      console.error("Lead conversion threw (registration stands):", leadErr);
     }
 
     // Return all IDs needed for checkout

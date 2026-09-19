@@ -18,7 +18,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
 10 │  10  ████
  9 │   6  ██
  8 │   0  
- 7 │  40  ████████████████
+ 7 │  41  █████████████████
  6 │   9  ████
  5 │  84  ██████████████████████████████████
  4 │  50  ████████████████████
@@ -28,15 +28,15 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   1  
 ```
 
-200 distinct wires across 659 call sites and 114 routes.
+201 distinct wires across 660 call sites and 114 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
 | 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 10 | 5% |
-| 7–9 | arrives and proven; notification missing or on a channel not live today | 46 | 23% |
-| 4–6 | arrives; nobody told; nothing proves it | 143 | 72% |
+| 7–9 | arrives and proven; notification missing or on a channel not live today | 47 | 23% |
+| 4–6 | arrives; nobody told; nothing proves it | 143 | 71% |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0% |
-| 0 | dead control | 1 | 1% |
+| 0 | dead control | 1 | 0% |
 
 ### How to read a low score
 
@@ -64,7 +64,7 @@ things, and a control with no wire cannot do anything:
 | kind | what it is | call sites |
 |---|---|---:|
 | `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 357 |
-| `fn` | `supabase.functions.invoke(f)` — an edge function | 97 |
+| `fn` | `supabase.functions.invoke(f)` — an edge function | 98 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 7 |
 | `channel` | `postgres_changes` — a realtime subscription | 53 |
 | `auth` | `supabase.auth.*` — sign in, sign out, register, password reset | 20 |
@@ -164,6 +164,7 @@ The checks, verified on every build:
 | **5** | `table:members` | Staff edit a member record, notes, contact methods, payer, subscription, payment; staff set or correct the member's home-location pin; staff record when Santander collects from a legacy member — the record reflects what was agreed | the named tables | self | — | none | 13 |
 | **5** | `table:website_events` | Page tracking (mounted app-wide in App.tsx) — — nothing is promised to the user | website_events | self | — | none | 1 |
 | **7** | `fn:join-order-status` | /join?success — the confirmation screen, polling for the webhook — your payment is confirmed, and here is the one thing still to do | join-order-status, keyed on the Stripe Checkout Session id (never the order number, which is sequential) → the member's second-stage link and the 24-hour number | screen | — | `src/test/joinOrderPolling.test.tsx` | 1 |
+| **7** | `fn:lead-prefill` | Opening /join?lead=<token> — the personal link a staff member sent — we already know who you are; you do not have to type it again | lead-prefill → leads, by token only | nobody — it is a read | — | `src/test/leadConversion.test.ts` | 1 |
 | **7** | `table:app_daily_metrics` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | — | `src/test/checkoutPaymentMethods.test.ts` | 1 |
 | **7** | `table:app_events` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | — | `src/test/checkoutPaymentMethods.test.ts` | 1 |
 | **7** | `table:app_finance` | Admin edits the catalogue, pricing, settings, templates, images, testimonials, blog, costs — and, in Settings → Payments, WHICH PAYMENT METHODS A CHECKOUT OFFERS — the change is saved and takes effect | the named configuration tables. `system_settings.checkout_payment_methods` and `checkout_async_events_confirmed` are read by _shared/checkout-payment-methods.ts and passed as `payment_method_types` by BOTH create-checkout and send-payment-link; each change is an activity_logs row carrying the old and the new value | self | — | `src/test/checkoutPaymentMethods.test.ts` | 1 |
@@ -2544,6 +2545,19 @@ Gateway FIRST, record second, and the half-applied case is said out loud rather 
 - **call sites** src/hooks/useJoinOrderStatus.ts
 
 Item 6. The screen used to announce 'registration complete' from a query parameter, before the webhook had run and for ever if it never ran. It now waits, then shows the `member_update_tokens` link that collects the emergency contacts the wizard stopped asking for — on screen, because no member email is deliverable yet. It gives up after 90s and falls back to the phone route.
+
+### `fn:lead-prefill` — 7/10 (proven; nobody told)
+
+- **control** Opening /join?lead=<token> — the personal link a staff member sent
+- **promised** we already know who you are; you do not have to type it again
+- **goes to** lead-prefill → leads, by token only
+- **who is told** nobody — it is a read
+- **failure shown to user** no
+- **proof** `src/test/leadConversion.test.ts`
+- **routes** /join
+- **call sites** src/pages/join/JoinWizard.tsx
+
+Somebody in their eighties, on a telephone, who has just been sent a link by the person they spoke to. Asking them to type a name and a phone number we wrote down half an hour ago is where a share of them stop. It exists INSTEAD OF an anon SELECT policy on `leads`: that table holds a non-customer’s consent record, the staff notes about them, a spam verdict and every other lead in the business, and a policy narrow enough to be safe would still be a policy, and policies get widened. So this is the whole read and it is four fields — no id, no status, no notes. An unknown or expired token gets the SAME 200-with-nulls as a real one, because a 404 for one and a 200 for the other is an oracle telling anybody willing to guess which tokens exist. On the page, only fields the member has not already filled in are touched: a pre-fill that overwrites is a form that argues with the person filling it in.
 
 ### `fn:notify-staff` — 7/10 (proven; nobody told)
 

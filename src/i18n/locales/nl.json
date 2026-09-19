@@ -4791,6 +4791,13 @@
       "referralIntro": "Deze worden alleen opgeslagen als u via een link van een van onze partners binnenkomt. Ze leggen vast welke partner u heeft doorverwezen, zodat die partner kan worden vermeld als u lid wordt. Ze volgen u niet op andere websites.",
       "referralRows": [
         {
+          "name": "ice_lead_token",
+          "provider": "ICE Alarm España",
+          "purpose": "Legt vast dat u via een persoonlijke link van iemand van ons team binnenkwam, zodat het aanmeldformulier invult wat we al weten en we weten wie u heeft geholpen.",
+          "duration": "Tot u de aanmelding afrondt of uw browsergegevens wist",
+          "type": "Lokale opslag"
+        },
+        {
           "name": "partner_ref, partner_utm",
           "provider": "ICE Alarm España",
           "purpose": "Legt de partnercode en de campagne vast van de link die u hebt gevolgd.",

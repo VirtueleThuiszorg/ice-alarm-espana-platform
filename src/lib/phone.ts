@@ -44,3 +44,24 @@ export function waNumber(phone: string | null | undefined): string | null {
   const digits = trimmed.replace(/[^\d]/g, "");
   return digits || null;
 }
+
+/**
+ * E.164, Spanish numbers assumed +34 — THE app-side door to the platform's one phone rule.
+ *
+ * It lives in `supabase/functions/_shared/phone.ts` because the edge functions run in Deno and
+ * can only reach their own directory and `_shared`; `src/` is not on that path. Re-exported here
+ * so every app file writes `@/lib/phone` and there is still exactly one implementation — the same
+ * arrangement this repo already uses for `pricing-calc`, `holiday-policy` and `legacy-plan`.
+ *
+ * It used to exist twice, identically, kept in step by a comment. The cost of the two drifting
+ * was never cosmetic: every match between a lead and a member is a string comparison on this
+ * column, so a form storing `600111222` against an import storing `+34600111222` makes the same
+ * person two people — and the duplicate check on a hand-added lead then says "no match" for
+ * somebody who is already a customer.
+ *
+ * Unlike `telHref` and `waNumber` above, this one ACCEPTS a national number and returns an
+ * international one. That is not a contradiction of "never invent part of a phone number": nine
+ * digits beginning 6/7/8/9 is unambiguously Spanish, and a staff member typing a number off a
+ * business card types it the way it is printed.
+ */
+export { toE164 } from "../../supabase/functions/_shared/phone";

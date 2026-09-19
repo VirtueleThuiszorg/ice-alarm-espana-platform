@@ -40,6 +40,7 @@ import {
   billingFrequencyFromLabel,
   planTypeFromLabel,
 } from "../../supabase/functions/_shared/legacy-plan";
+import { toE164 } from "../../supabase/functions/_shared/phone";
 
 export const SENSITIVE_PAYMENT_HEADERS = [
   "Credit Card Details",
@@ -444,18 +445,19 @@ export function splitPhones(raw: string): SplitPhones {
   return { human: dedupe(human), deviceSim: dedupe(deviceSim) };
 }
 
-/** E.164 where it can be determined; Spanish mobiles/landlines assumed +34. */
+/**
+ * E.164 where it can be determined; Spanish mobiles/landlines assumed +34.
+ *
+ * THE RULE IS NOT HERE ANY MORE. It was duplicated in `public-submit.normalisePublicPhone`, kept
+ * identical by a comment; both are now `toE164`. This import's numbers and a contact enquiry's
+ * numbers have to normalise the same way or the duplicate check between a lead and a member
+ * compares `600111222` with `+34600111222` and finds nothing.
+ *
+ * `clean()` still runs first: this module's input is spreadsheet cells, which carry non-breaking
+ * spaces and stray whitespace that the general rule has no reason to know about.
+ */
 export function normalisePhone(raw: string): string {
-  let v = clean(raw).replace(/[^\d+]/g, "");
-  if (!v) return "";
-  if (v.startsWith("00")) v = `+${v.slice(2)}`;
-  if (!v.startsWith("+")) {
-    // 9 digits beginning 6/7/8/9 is a Spanish national number.
-    if (/^[6789]\d{8}$/.test(v)) v = `+34${v}`;
-    else if (/^\d{6,}$/.test(v)) v = `+${v}`;
-    else return "";
-  }
-  return /^\+\d{6,15}$/.test(v) ? v : "";
+  return toE164(clean(raw));
 }
 
 /* ------------------------------------------------------------------ *

@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { nextCallDateString } from "../_shared/courtesy-schedule.ts";
 
 
 
@@ -36,29 +37,9 @@ Deno.serve(async (req) => {
     let tasksCreated = 0;
     let tasksSkipped = 0;
 
-    // Helper function to calculate next call date based on frequency
-    const calculateNextCallDate = (frequency: string, baseDate: Date = new Date()): Date => {
-      const result = new Date(baseDate);
-      switch (frequency) {
-        case "daily":
-          result.setDate(result.getDate() + 1);
-          break;
-        case "weekly":
-          result.setDate(result.getDate() + 7);
-          break;
-        case "bi-weekly":
-          result.setDate(result.getDate() + 14);
-          break;
-        case "quarterly":
-          result.setMonth(result.getMonth() + 3);
-          break;
-        case "monthly":
-        default:
-          result.setMonth(result.getMonth() + 1);
-          break;
-      }
-      return result;
-    };
+    // The next-call date rule lives in `_shared/courtesy-schedule.ts`. The copy that used to sit
+    // here overflowed the month — 31 Jan + 1 month came out as 3 March — while the member's
+    // record clamped it to 28 February, so the two disagreed for anyone called near month end.
 
     // Helper function to get frequency label for task title
     const getFrequencyLabel = (frequency: string): string => {
@@ -144,10 +125,9 @@ Deno.serve(async (req) => {
       tasksCreated++;
 
       // Update next courtesy call date for the member based on frequency
-      const nextDate = calculateNextCallDate(frequency);
       await supabase
         .from("members")
-        .update({ next_courtesy_call_date: nextDate.toISOString().split("T")[0] })
+        .update({ next_courtesy_call_date: nextCallDateString(frequency, today) })
         .eq("id", member.id);
     }
 

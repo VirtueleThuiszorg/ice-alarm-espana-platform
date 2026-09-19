@@ -11,7 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { format, parseISO, addDays, addMonths } from "date-fns";
+import { format, parseISO } from "date-fns";
+import { nextCallDateString } from "@/lib/courtesySchedule";
 
 const frequencyOptions = [
   { value: "daily", label: "Daily" },
@@ -26,22 +27,11 @@ const getFrequencyLabel = (frequency: string) => {
   return option?.label || "Monthly";
 };
 
-const calculateNextCallDate = (frequency: string, baseDate?: Date): Date => {
-  const today = baseDate || new Date();
-  switch (frequency) {
-    case "daily":
-      return addDays(today, 1);
-    case "weekly":
-      return addDays(today, 7);
-    case "bi-weekly":
-      return addDays(today, 14);
-    case "quarterly":
-      return addMonths(today, 3);
-    case "monthly":
-    default:
-      return addMonths(today, 1);
-  }
-};
+/*
+  The next-call date rule lives in `@/lib/courtesySchedule`. The copy that used to sit here was
+  the CLAMPING one; the generator's copy overflowed the month, so this card and the job that
+  actually creates the task disagreed by up to three days for anyone called near month end.
+*/
 
 interface CourtesyCallsCardProps {
   memberId: string;
@@ -96,8 +86,7 @@ export function CourtesyCallsCard({ memberId }: CourtesyCallsCardProps) {
       // Calculate next call date if not set
       if (!member?.next_courtesy_call_date && member?.created_at) {
         const freq = member?.courtesy_call_frequency || "monthly";
-        const nextDate = calculateNextCallDate(freq);
-        setNextCallDate(nextDate.toISOString().split("T")[0]);
+        setNextCallDate(nextCallDateString(freq, new Date()));
       }
 
       // Fetch completed courtesy call tasks
@@ -129,7 +118,7 @@ export function CourtesyCallsCard({ memberId }: CourtesyCallsCardProps) {
       */
       const nextDate =
         draftEnabled && (draftFrequency !== frequency || !nextCallDate)
-          ? calculateNextCallDate(draftFrequency).toISOString().split("T")[0]
+          ? nextCallDateString(draftFrequency, new Date())
           : nextCallDate;
 
       const { error } = await supabase

@@ -153,13 +153,57 @@ describe("deriveLegacySchedule", () => {
     });
   });
 
-  it("says so, rather than guessing, when the column is empty", () => {
+  it("falls back to the day they JOINED when the column is empty", () => {
+    /*
+      Lee, 19 Sep 2026: "the payment dates against the dates they joined, so if 15th then every
+      15th we take money (unless annual)."
+
+      This test used to assert the opposite — that a monthly member with no `Monthly Payment
+      Date` got nothing at all — and that was the behaviour. On the real file the column is
+      filled in FOUR of the 121 live rows, so 87 members came through with no collection date
+      while 62 of those rows plainly said when the person joined. The annual branch has read
+      `Date Joined` since this module was written; the monthly branch simply never did.
+    */
     expect(
       deriveLegacySchedule(
         { monthlyPaymentDate: null, startDate: "2019-03-04", billingFrequency: "monthly" },
         today,
       ),
+    ).toEqual({ day: 4, nextRenewal: nextRenewalFrom(4, today), frequency: "monthly", source: "date_joined" });
+  });
+
+  it("but the recorded payment date still wins over the join date", () => {
+    // Where Karma wrote one down, that is the day Santander actually collects — the join date
+    // is when the mandate was set up, which is the same day in the ordinary case and the wrong
+    // one for anybody who later moved it.
+    const s = deriveLegacySchedule(
+      { monthlyPaymentDate: "21", startDate: "2019-03-04", billingFrequency: "monthly" },
+      today,
+    );
+    expect(s.day).toBe(21);
+    expect(s.source).toBe("monthly_payment_date");
+  });
+
+  it("says so, rather than guessing, when NEITHER column says", () => {
+    // Lee's ruling the same day: leave it blank and flag the row. A debit date invented here is
+    // real money taken on a day nobody chose, or a collection missed.
+    expect(
+      deriveLegacySchedule(
+        { monthlyPaymentDate: null, startDate: null, billingFrequency: "monthly" },
+        today,
+      ),
     ).toEqual({ day: null, nextRenewal: null, frequency: "monthly", source: "none" });
+  });
+
+  it("clamps a 31st join date in February, like any other billing day", () => {
+    const s = deriveLegacySchedule(
+      { monthlyPaymentDate: null, startDate: "2019-01-31", billingFrequency: "monthly" },
+      new Date(Date.UTC(2027, 1, 5)),
+    );
+    // The DAY is never clamped in storage — clamping on write turns a 31st member into a 28th
+    // member for ever after one February.
+    expect(s.day).toBe(31);
+    expect(s.nextRenewal).toBe("2027-02-28");
   });
 
   it("defaults to monthly when the frequency is unknown", () => {

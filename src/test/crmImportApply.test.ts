@@ -348,6 +348,8 @@ function withEmail(plan: RowPlan, email: string): RowPlan {
       last_name: plan.parsedMember.last_name,
       email,
       email_owner: "member",
+      courtesy_calls_enabled: true,
+      next_courtesy_call_date: plan.parsedMember.next_courtesy_call_date,
       phone: plan.parsedMember.phone ?? "+34600000000",
       date_of_birth: plan.parsedMember.date_of_birth ?? "1940-01-01",
       address_line_1: plan.parsedMember.address_line_1 ?? "1 Calle Test",
@@ -565,10 +567,39 @@ describe("an existing member the platform already holds", () => {
       address_line_2: "-",
       special_instructions: "-",
       passport_number: "-",
+      // Complete means complete, courtesy schedule included — from 19 Sep 2026 the import
+      // writes these two as well, so a member without them is not "already complete".
+      courtesy_calls_enabled: true,
+      next_courtesy_call_date: "2027-01-14",
     });
     const result = await applyRowPlan(db, byId("9006"));
     expect(result.action).toBe("unchanged");
     expect(db.writes.some((w) => w.startsWith("patchMember"))).toBe(false);
+  });
+
+  it("gives a member imported before 19 Sep a courtesy call date, without moving a set one", async () => {
+    /*
+      The backfill, and the reason these two columns are not in NEVER_PATCH. Every member
+      imported before this date arrived with courtesy calls off and no call ever due, because
+      the import wrote neither column. `computeEmptyOnlyPatch` is the only backfill there is —
+      there is no SQL migration for it, deliberately, since deriving the day in SQL would be a
+      second implementation of a date rule that already exists in one place.
+
+      EMPTY-ONLY is what makes it safe: a date somebody moved by hand is never dragged back.
+    */
+    // 9001, not 9006: only a row with a Date Joined has a courtesy date to give.
+    const plan = withEmail(byId("9001"), "backfill@example.com");
+    expect(plan.member?.next_courtesy_call_date, "the fixture must exercise this").toBeTruthy();
+
+    const db = new FakeDb();
+    db.seedMember({ ...seedRow(), crm_source_id: "9001", email: "backfill@example.com", next_courtesy_call_date: null });
+    await applyRowPlan(db, plan);
+    expect(db.members[0].row.next_courtesy_call_date).toBe(plan.member!.next_courtesy_call_date);
+
+    const moved = new FakeDb();
+    moved.seedMember({ ...seedRow(), crm_source_id: "9001", email: "backfill@example.com", next_courtesy_call_date: "2099-12-25" });
+    await applyRowPlan(moved, plan);
+    expect(moved.members[0].row.next_courtesy_call_date).toBe("2099-12-25");
   });
 });
 

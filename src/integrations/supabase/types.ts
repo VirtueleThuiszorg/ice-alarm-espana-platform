@@ -2224,14 +2224,24 @@ export type Database = {
       leads: {
         Row: {
           assigned_to: string | null
+          consent_source: string | null
+          contact_consent_at: string | null
           contacted_at: string | null
           converted_at: string | null
           converted_member_id: string | null
           created_at: string
+          created_by: string | null
+          do_not_contact: boolean
           email: string
           enquiry_type: string
           first_name: string
+          followup_bell_sent_at: string | null
+          heard_about: string | null
           id: string
+          join_token: string | null
+          join_token_expires_at: string | null
+          last_contact_channel: string | null
+          last_contacted_at: string | null
           last_name: string
           message: string | null
           notes: string | null
@@ -2242,19 +2252,31 @@ export type Database = {
           source: string | null
           spam_reasons: string[] | null
           status: string
+          status_changed_at: string | null
+          status_changed_by: string | null
           suspected_spam: boolean
           updated_at: string
         }
         Insert: {
           assigned_to?: string | null
+          consent_source?: string | null
+          contact_consent_at?: string | null
           contacted_at?: string | null
           converted_at?: string | null
           converted_member_id?: string | null
           created_at?: string
+          created_by?: string | null
+          do_not_contact?: boolean
           email: string
           enquiry_type?: string
           first_name: string
+          followup_bell_sent_at?: string | null
+          heard_about?: string | null
           id?: string
+          join_token?: string | null
+          join_token_expires_at?: string | null
+          last_contact_channel?: string | null
+          last_contacted_at?: string | null
           last_name: string
           message?: string | null
           notes?: string | null
@@ -2265,19 +2287,31 @@ export type Database = {
           source?: string | null
           spam_reasons?: string[] | null
           status?: string
+          status_changed_at?: string | null
+          status_changed_by?: string | null
           suspected_spam?: boolean
           updated_at?: string
         }
         Update: {
           assigned_to?: string | null
+          consent_source?: string | null
+          contact_consent_at?: string | null
           contacted_at?: string | null
           converted_at?: string | null
           converted_member_id?: string | null
           created_at?: string
+          created_by?: string | null
+          do_not_contact?: boolean
           email?: string
           enquiry_type?: string
           first_name?: string
+          followup_bell_sent_at?: string | null
+          heard_about?: string | null
           id?: string
+          join_token?: string | null
+          join_token_expires_at?: string | null
+          last_contact_channel?: string | null
+          last_contacted_at?: string | null
           last_name?: string
           message?: string | null
           notes?: string | null
@@ -2288,6 +2322,8 @@ export type Database = {
           source?: string | null
           spam_reasons?: string[] | null
           status?: string
+          status_changed_at?: string | null
+          status_changed_by?: string | null
           suspected_spam?: boolean
           updated_at?: string
         }
@@ -2325,6 +2361,57 @@ export type Database = {
             columns: ["ref_post_id"]
             isOneToOne: false
             referencedRelation: "social_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_communications: {
+        Row: {
+          channel: Database["public"]["Enums"]["notification_channel"]
+          created_at: string
+          detail: string | null
+          id: string
+          lead_id: string
+          outcome: string
+          provider_id: string | null
+          staff_id: string | null
+          template: string | null
+        }
+        Insert: {
+          channel: Database["public"]["Enums"]["notification_channel"]
+          created_at?: string
+          detail?: string | null
+          id?: string
+          lead_id: string
+          outcome: string
+          provider_id?: string | null
+          staff_id?: string | null
+          template?: string | null
+        }
+        Update: {
+          channel?: Database["public"]["Enums"]["notification_channel"]
+          created_at?: string
+          detail?: string | null
+          id?: string
+          lead_id?: string
+          outcome?: string
+          provider_id?: string | null
+          staff_id?: string | null
+          template?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_communications_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_communications_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
             referencedColumns: ["id"]
           },
         ]

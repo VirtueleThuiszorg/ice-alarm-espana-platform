@@ -18,7 +18,7 @@ main cannot drift from the code in main. To change a row, change the wire or the
 10 │  10  ████
  9 │   6  ██
  8 │   0  
- 7 │  39  ████████████████
+ 7 │  40  ████████████████
  6 │   9  ████
  5 │  84  ██████████████████████████████████
  4 │  50  ████████████████████
@@ -28,12 +28,12 @@ main cannot drift from the code in main. To change a row, change the wire or the
  0 │   1  
 ```
 
-199 distinct wires across 657 call sites and 114 routes.
+200 distinct wires across 659 call sites and 114 routes.
 
 | band | meaning | wires | share |
 |---|---|---:|---:|
 | 10 | fully wired — arrives, right person told on a live channel, failure shown, proof that goes red | 10 | 5% |
-| 7–9 | arrives and proven; notification missing or on a channel not live today | 45 | 23% |
+| 7–9 | arrives and proven; notification missing or on a channel not live today | 46 | 23% |
 | 4–6 | arrives; nobody told; nothing proves it | 143 | 72% |
 | 1–3 | fails, fails silently, or lands where nobody looks | 0 | 0% |
 | 0 | dead control | 1 | 1% |
@@ -63,8 +63,8 @@ things, and a control with no wire cannot do anything:
 
 | kind | what it is | call sites |
 |---|---|---:|
-| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 356 |
-| `fn` | `supabase.functions.invoke(f)` — an edge function | 96 |
+| `table` | `supabase.from(t).insert/update/upsert/delete` — a row written | 357 |
+| `fn` | `supabase.functions.invoke(f)` — an edge function | 97 |
 | `rpc` | `supabase.rpc(f)` — a SQL function | 7 |
 | `channel` | `postgres_changes` — a realtime subscription | 53 |
 | `auth` | `supabase.auth.*` — sign in, sign out, register, password reset | 20 |
@@ -282,6 +282,7 @@ The checks, verified on every build:
 | **7** | `fn:admin-subscription-action` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 2 |
 | **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
 | **7** | `fn:save-api-keys` | Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device — your credentials work | save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push | self | toast | `src/test/firebaseConfig.test.ts` | 7 |
+| **7** | `fn:send-lead-message` | “Introduce ICE Alarm” on a lead — Email / SMS / WhatsApp, preview then send — this person gets a message in their own language with a link that is theirs | send-lead-message → twilio-sms / twilio-whatsapp / send-email; lead_communications | the lead, on whichever channels are switched on — and the staff member, truthfully, about the ones that are not | toast | `src/test/leadMessage.test.ts` | 1 |
 | **7** | `fn:send-payment-link` | Staff send a member a Stripe payment link (CRM → member → Subscription); and, in legacy_switch mode, MOVE A LEGACY MEMBER ONTO STRIPE BILLING — on the record and as a bulk action on the members list filtered to legacy billing — a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are switched on, and always shown on screen to copy | send-payment-link → create_payment_link_order (pending order + items + subscription + payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms and/or send-email; activation is stripe-webhook's alone | the payer (SMS + email), and activity_logs twice — the order created, and what was sent | mutation onError | `src/test/sendPaymentLink.test.ts` | 1 |
 | **7** | `fn:staff-lead` | “+ Add lead” on both Leads screens — admin and call centre — this person is on the list, assigned to me, and nobody will ring them twice | staff-lead → leads (service role), after checking members and leads for a duplicate | nobody — a hand-added lead is added BY the person who would be told | toast | `src/test/staffLead.test.ts` | 1 |
 | **7** | `table:activity_logs` | Every staff action that must be attributable — who did what, and why | activity_logs, with enforce_member_action_attribution() refusing an unattributed member action | self | — | `src/test/staffMemberActions.test.tsx` | 5 |
@@ -294,7 +295,7 @@ The checks, verified on every build:
 | **10** | `rpc:apply_shift_swap` | Ask a colleague to swap or cover a shift; accept or decline; a supervisor approves it — the person being asked finds out, both people find out when it is approved, and the rota actually moves | staff_shift_swaps → bell_on_shift_swap writes targeted notification_log rows; emit_shift_swap_to_router queues shift.swap_requested/_accepted/_approved to notify-staff (push on, SMS/WhatsApp/email off); approval calls apply_shift_swap, which moves staff_shifts and writes staff_shift_covers + activity_logs in one transaction | bell | toast | `src/test/shiftSwaps.test.tsx` | 1 |
 | **10** | `rpc:close_courtesy_call` | Close call — in the courtesy-call workspace, opened from the staff dashboard, the Tasks page (courtesy filter) and the member record's courtesy card — what was said is written into the member's history, and the next call exists before the operator closes the dialog | close_courtesy_call() writes a member_notes row (note_type courtesy_call, the outcome and the checklist rendered into the content), settles the task, sets members.last_courtesy_call_at and next_courtesy_call_date, and raises the next courtesy task — all in one transaction. An outcome that reached nobody instead leaves the task OPEN, counts the attempt and raises one retry for tomorrow; the third attempt writes targeted notification_log rows to admins | bell | toast | `src/test/courtesyCallDialog.test.tsx` | 1 |
 | **10** | `rpc:confirm_legacy_member` | Confirm as legacy member — on the member's record, and as a bulk action on the members list filtered to pending_review — the member becomes monitored, and WHO decided that is recorded — because there is no payment anywhere to point at | confirm_legacy_member() sets members.status = active + billing_source = legacy, writes an activity_logs row (action member.legacy_confirmed, the staff id, and the reason typed on the form), and bell_on_legacy_confirm writes targeted notification_log rows to admins and supervisors. Routed as member.legacy_confirmed: push on, SMS/WhatsApp/email off | bell | mutation onError | `src/test/legacyConfirmAction.test.tsx` | 1 |
-| **10** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | bell | toast | `scripts/rls/wiring.sql` | 2 |
+| **10** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | bell | toast | `scripts/rls/wiring.sql` | 3 |
 | **10** | `table:staff_shift_swaps` | Ask a colleague to swap or cover a shift; accept or decline; a supervisor approves it — the person being asked finds out, both people find out when it is approved, and the rota actually moves | staff_shift_swaps → bell_on_shift_swap writes targeted notification_log rows; emit_shift_swap_to_router queues shift.swap_requested/_accepted/_approved to notify-staff (push on, SMS/WhatsApp/email off); approval calls apply_shift_swap, which moves staff_shifts and writes staff_shift_covers + activity_logs in one transaction | bell | toast | `src/test/shiftSwaps.test.tsx` | 1 |
 
 ### Admin
@@ -426,6 +427,7 @@ The checks, verified on every build:
 | **7** | `fn:cancel-mollie-subscription` | Staff pause / resume / cancel a subscription — billing changes, and the record says who changed it | admin-subscription-action (Stripe) or cancel-mollie-subscription (Mollie), then an activity_logs row | self | mutation onError | `src/test/staffMemberActions.test.tsx` | 1 |
 | **7** | `fn:notify-staff` | Admin → Settings → Notifications: the event × channel switches, the per-staff matrix beneath, and "send a test notification" — the person who needs to know is told, on a channel that works | notification_routes (company policy) and staff_notification_prefs (the person), both read by the notify-staff router on every send — so a switch changes the next notification, with no redeploy. Each change writes an activity_logs row carrying the old and new value. | screen | toast | `src/test/notificationMatrix.test.ts` | 2 |
 | **7** | `fn:save-api-keys` | Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device — your credentials work | save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push | self | toast | `src/test/firebaseConfig.test.ts` | 7 |
+| **7** | `fn:send-lead-message` | “Introduce ICE Alarm” on a lead — Email / SMS / WhatsApp, preview then send — this person gets a message in their own language with a link that is theirs | send-lead-message → twilio-sms / twilio-whatsapp / send-email; lead_communications | the lead, on whichever channels are switched on — and the staff member, truthfully, about the ones that are not | toast | `src/test/leadMessage.test.ts` | 1 |
 | **7** | `fn:send-payment-link` | Staff send a member a Stripe payment link (CRM → member → Subscription); and, in legacy_switch mode, MOVE A LEGACY MEMBER ONTO STRIPE BILLING — on the record and as a bulk action on the members list filtered to legacy billing — a real Stripe Checkout link for a chosen plan, sent by SMS and email where those are switched on, and always shown on screen to copy | send-payment-link → create_payment_link_order (pending order + items + subscription + payment, one transaction) → Stripe Checkout Session (mode: subscription) → twilio-sms and/or send-email; activation is stripe-webhook's alone | the payer (SMS + email), and activity_logs twice — the order created, and what was sent | mutation onError | `src/test/sendPaymentLink.test.ts` | 1 |
 | **7** | `fn:send-test-email` | Settings — save provider keys (Stripe, Mollie, Twilio, Facebook, and the three Firebase values), send a test email, test Twilio, send a test push to this device — your credentials work | save-api-keys → system_settings (secrets never reach the client); send-test-email; test-twilio; notify-staff for the test push | self | toast | `src/test/firebaseConfig.test.ts` | 1 |
 | **7** | `fn:staff-lead` | “+ Add lead” on both Leads screens — admin and call centre — this person is on the list, assigned to me, and nobody will ring them twice | staff-lead → leads (service role), after checking members and leads for a duplicate | nobody — a hand-added lead is added BY the person who would be told | toast | `src/test/staffLead.test.ts` | 1 |
@@ -459,7 +461,7 @@ The checks, verified on every build:
 | **10** | `rpc:apply_shift_swap` | Ask a colleague to swap or cover a shift; accept or decline; a supervisor approves it — the person being asked finds out, both people find out when it is approved, and the rota actually moves | staff_shift_swaps → bell_on_shift_swap writes targeted notification_log rows; emit_shift_swap_to_router queues shift.swap_requested/_accepted/_approved to notify-staff (push on, SMS/WhatsApp/email off); approval calls apply_shift_swap, which moves staff_shifts and writes staff_shift_covers + activity_logs in one transaction | bell | toast | `src/test/shiftSwaps.test.tsx` | 1 |
 | **10** | `rpc:close_courtesy_call` | Close call — in the courtesy-call workspace, opened from the staff dashboard, the Tasks page (courtesy filter) and the member record's courtesy card — what was said is written into the member's history, and the next call exists before the operator closes the dialog | close_courtesy_call() writes a member_notes row (note_type courtesy_call, the outcome and the checklist rendered into the content), settles the task, sets members.last_courtesy_call_at and next_courtesy_call_date, and raises the next courtesy task — all in one transaction. An outcome that reached nobody instead leaves the task OPEN, counts the attempt and raises one retry for tomorrow; the third attempt writes targeted notification_log rows to admins | bell | toast | `src/test/courtesyCallDialog.test.tsx` | 1 |
 | **10** | `rpc:confirm_legacy_member` | Confirm as legacy member — on the member's record, and as a bulk action on the members list filtered to pending_review — the member becomes monitored, and WHO decided that is recorded — because there is no payment anywhere to point at | confirm_legacy_member() sets members.status = active + billing_source = legacy, writes an activity_logs row (action member.legacy_confirmed, the staff id, and the reason typed on the form), and bell_on_legacy_confirm writes targeted notification_log rows to admins and supervisors. Routed as member.legacy_confirmed: push on, SMS/WhatsApp/email off | bell | mutation onError | `src/test/legacyConfirmAction.test.tsx` | 1 |
-| **10** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | bell | toast | `scripts/rls/wiring.sql` | 2 |
+| **10** | `table:leads` | Contact page “Send message”; /join lead capture; staff edit/assign on the two Leads screens — “Your enquiry has reached the team and someone will come back to you… if the matter is urgent please call the number above instead.” | leads (anon INSERT is allowed by policy “Anyone can submit leads”); rows are listed on /admin/leads and /call-centre/leads, and unworked ones on the call-centre dashboard | bell | toast | `scripts/rls/wiring.sql` | 3 |
 | **10** | `table:partners` | Partner signs up at /partner/join and verifies their email — your partner account exists and someone at ICE knows you joined | partner-register → partners; partner-verify confirms the address | bell | toast | `e2e/partnerJourney.spec.ts` | 5 |
 | **10** | `table:staff_shift_swaps` | Ask a colleague to swap or cover a shift; accept or decline; a supervisor approves it — the person being asked finds out, both people find out when it is approved, and the rota actually moves | staff_shift_swaps → bell_on_shift_swap writes targeted notification_log rows; emit_shift_swap_to_router queues shift.swap_requested/_accepted/_approved to notify-staff (push on, SMS/WhatsApp/email off); approval calls apply_shift_swap, which moves staff_shifts and writes staff_shift_covers + activity_logs in one transaction | bell | toast | `src/test/shiftSwaps.test.tsx` | 1 |
 
@@ -2582,6 +2584,19 @@ Both forms used to INSERT into `leads` straight from the browser with the anon k
 
 These are the only in-app way to find out whether the email, SMS and push channels are live, which is exactly what this register cannot determine from code. FIREBASE JOINED THEM: push used to need six VITE_FIREBASE_* build-time variables in Vercel plus a FIREBASE_SERVICE_ACCOUNT Edge secret — seven values, two consoles, and a redeploy before any of them did anything. The three paste fields replace that, and the test push's outcome is a notification_log row whichever way it goes. The service account is stored under a key ending `_key` so the staff read policy excludes it; the six web values are public by design and staff-readable because every operator's phone needs them.
 
+### `fn:send-lead-message` — 7/10 (proven; nobody told)
+
+- **control** “Introduce ICE Alarm” on a lead — Email / SMS / WhatsApp, preview then send
+- **promised** this person gets a message in their own language with a link that is theirs
+- **goes to** send-lead-message → twilio-sms / twilio-whatsapp / send-email; lead_communications
+- **who is told** the lead, on whichever channels are switched on — and the staff member, truthfully, about the ones that are not
+- **failure shown to user** toast
+- **proof** `src/test/leadMessage.test.ts`
+- **routes** /admin/leads, /call-centre/leads
+- **call sites** src/components/leads/LeadIntroduceSection.tsx
+
+WHAT IT RETURNS IS THE LINK; delivery is reported beside it, never instead of it — the same shape send-payment-link and send-member-update-request use. All three channels are OFF in production today, so pressing send usually produces three rows reading “skipped: channel off” and a URL the operator reads out over the telephone. That is not a fallback path; for now it is the path. Every attempt is written to lead_communications INCLUDING the skips, because “the channel is off” and “we never tried” are different facts and the second one wearing the first one’s clothes is how a lead goes cold unnoticed. A lead who asked not to be contacted is refused by planLeadChannels in the shared module rather than by a check in this function, so the follow-up runner — which does not exist yet — cannot forget it. The preview runs the same template read and the same render as the send: a separately built preview eventually shows text the send does not use, which is worse than none, because a staff member who has read the message believes they know what went out.
+
 ### `fn:send-payment-link` — 7/10 (proven; nobody told)
 
 - **control** Staff send a member a Stripe payment link (CRM → member → Subscription); and, in legacy_switch mode, MOVE A LEGACY MEMBER ONTO STRIPE BILLING — on the record and as a bulk action on the members list filtered to legacy billing
@@ -3117,7 +3132,7 @@ THE ONE ACTIVATION ON THIS PLATFORM THAT IS NOT A PAYMENT, which is why it is an
 - **failure shown to user** toast
 - **proof** `scripts/rls/wiring.sql`
 - **routes** /admin/leads, /call-centre/leads
-- **call sites** src/pages/admin/LeadsPage.tsx, src/pages/call-centre/LeadsPage.tsx
+- **call sites** src/components/leads/LeadIntroduceSection.tsx, src/pages/admin/LeadsPage.tsx, src/pages/call-centre/LeadsPage.tsx
 
 THE DEFECT THIS REGISTER CAME FROM, now fixed end to end. The row always arrived and both Leads screens always showed it, but the only trigger on `leads` was `update_leads_updated_at` — no notification, no task, no queue. `leads` is in supabase_realtime and /call-centre/leads does subscribe, so a lead appeared live on a screen nobody was required to have open. That is not being told.
 

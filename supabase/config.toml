@@ -112,3 +112,7 @@
 # JWT has to reach it rather than be checked away at the gateway.
 [functions.staff-lead]
 verify_jwt = true
+
+# Staff only: the guard reads the caller's JWT and requires an ACTIVE staff row.
+[functions.send-lead-message]
+verify_jwt = true

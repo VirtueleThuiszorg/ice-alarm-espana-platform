@@ -14,6 +14,8 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { LeadContactButton, LeadContactValue, LeadName } from "@/components/leads/LeadContact";
 import { LeadSpamBadge } from "@/components/leads/LeadSpamFlag";
+import { LeadIntroduceSection } from "@/components/leads/LeadIntroduceSection";
+import { LeadTimeline } from "@/components/leads/LeadTimeline";
 import { AddLeadDialog } from "@/components/leads/AddLeadDialog";
 import { 
   Search, 
@@ -58,6 +60,8 @@ export default function CallCentreLeadsPage() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [notes, setNotes] = useState("");
+  // Bumped after a send so the timeline re-reads without the dialog having to close.
+  const [commsKey, setCommsKey] = useState(0);
 
   useEffect(() => {
     const fetchStaffId = async () => {
@@ -393,6 +397,13 @@ export default function CallCentreLeadsPage() {
                   <p className="text-sm">{selectedLead.preferred_language === 'es' ? `🇪🇸 ${t("common.spanish", "Spanish")}` : `🇬🇧 ${t("common.english", "English")}`}</p>
                 </div>
               </div>
+
+              {/* INTRODUCING ICE ALARM — the section this dialog exists for once the
+                  details have been read. Above the notes, because it is what the operator
+                  came here to do; the notes are what they write afterwards. */}
+              <LeadIntroduceSection lead={selectedLead} onChanged={() => { fetchLeads(); setCommsKey((k) => k + 1); }} />
+
+              <LeadTimeline leadId={selectedLead.id} refreshKey={commsKey} />
 
               {/* Message */}
               {selectedLead.message && (

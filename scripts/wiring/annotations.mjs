@@ -786,7 +786,30 @@ export const FAMILIES = [
       "scripts/rls/isolation.sql, and the day is deliberately NOT clamped in storage so a 31st " +
       "member does not become a 28th member after one February.",
   },
-    {
+      {
+    wires: ["fn:send-lead-message"],
+    control:
+      "\u201cIntroduce ICE Alarm\u201d on a lead \u2014 Email / SMS / WhatsApp, preview then send",
+    promise: "this person gets a message in their own language with a link that is theirs",
+    dest: "send-lead-message \u2192 twilio-sms / twilio-whatsapp / send-email; lead_communications",
+    told: "the lead, on whichever channels are switched on \u2014 and the staff member, truthfully, about the ones that are not",
+    proof: "src/test/leadMessage.test.ts",
+    note:
+      "WHAT IT RETURNS IS THE LINK; delivery is reported beside it, never instead of it \u2014 the " +
+      "same shape send-payment-link and send-member-update-request use. All three channels are " +
+      "OFF in production today, so pressing send usually produces three rows reading " +
+      "\u201cskipped: channel off\u201d and a URL the operator reads out over the telephone. That " +
+      "is not a fallback path; for now it is the path. Every attempt is written to " +
+      "lead_communications INCLUDING the skips, because \u201cthe channel is off\u201d and \u201cwe " +
+      "never tried\u201d are different facts and the second one wearing the first one\u2019s " +
+      "clothes is how a lead goes cold unnoticed. A lead who asked not to be contacted is " +
+      "refused by planLeadChannels in the shared module rather than by a check in this function, " +
+      "so the follow-up runner \u2014 which does not exist yet \u2014 cannot forget it. The preview " +
+      "runs the same template read and the same render as the send: a separately built preview " +
+      "eventually shows text the send does not use, which is worse than none, because a staff " +
+      "member who has read the message believes they know what went out.",
+  },
+  {
     wires: ["fn:staff-lead"],
     control: "\u201c+ Add lead\u201d on both Leads screens \u2014 admin and call centre",
     promise: "this person is on the list, assigned to me, and nobody will ring them twice",

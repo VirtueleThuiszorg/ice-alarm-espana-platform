@@ -1308,6 +1308,15 @@
     "askAI": "Preguntar al Asistente IA",
     "sendUsMessage": "Envíenos un mensaje",
     "status": {
+      "new": "Nuevo",
+      "contacted": "Contactado",
+      "interested": "Interesado",
+      "join_link_sent": "Enlace enviado",
+      "joined": "Se dio de alta",
+      "not_interested": "No le interesa",
+      "unreachable": "No se le localiza",
+      "changed": "Estado actualizado",
+      "failed": "No se pudo cambiar el estado",
       "open": "Abierto",
       "resolved": "Resuelto",
       "closed": "Cerrado"
@@ -2558,6 +2567,31 @@
     "linkOpened": "Enlace Abierto"
   },
   "leads": {
+    "intro": {
+      "title": "Presentar ICE Alarm",
+      "email": "Correo",
+      "sms": "SMS",
+      "whatsapp": "WhatsApp",
+      "call": "Llamar",
+      "send": "Enviar",
+      "copy": "Copiar el enlace",
+      "copied": "Enlace copiado",
+      "failed": "No se pudo preparar el mensaje",
+      "doNotContact": "Pidió que no le contactemos",
+      "willSkip": "Este canal no está disponible: {{reason}}"
+    },
+    "timeline": {
+      "title": "Lo que hemos enviado",
+      "empty": "Todavía no se ha enviado nada a esta persona."
+    },
+    "outcome": {
+      "sent": "enviado",
+      "failed": "falló",
+      "skipped_channel_off": "canal desactivado",
+      "skipped_not_configured": "aún sin configurar",
+      "skipped_no_address": "sin dirección a la que enviar",
+      "skipped_do_not_contact": "pidió que no le contactemos"
+    },
     "add": {
       "button": "Añadir contacto",
       "title": "Añadir un contacto",

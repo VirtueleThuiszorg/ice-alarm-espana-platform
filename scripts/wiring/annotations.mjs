@@ -786,7 +786,7 @@ export const FAMILIES = [
       "scripts/rls/isolation.sql, and the day is deliberately NOT clamped in storage so a 31st " +
       "member does not become a 28th member after one February.",
   },
-        {
+  {
     wires: ["fn:lead-prefill"],
     control: "Opening /join?lead=<token> \u2014 the personal link a staff member sent",
     promise: "we already know who you are; you do not have to type it again",
@@ -805,6 +805,26 @@ export const FAMILIES = [
       "telling anybody willing to guess which tokens exist. On the page, only fields the member " +
       "has not already filled in are touched: a pre-fill that overwrites is a form that argues " +
       "with the person filling it in.",
+  },
+  {
+    wires: ["table:notification_templates"],
+    control: "Admin \u2192 Settings \u2192 Notifications \u2014 \u201cWhat we say to a lead\u201d",
+    promise: "the wording you save here is the wording that goes out",
+    dest: "notification_templates (admin-manage, staff-read)",
+    told: "nobody now \u2014 it is read by send-lead-message at the moment a staff member sends",
+    proof: "src/test/leadTemplatesCard.test.tsx",
+    note:
+      "`send-lead-message` reads these rows and has NO inline fallback text, deliberately \u2014 a " +
+      "hard-coded English sentence behind an editable Spanish template is how somebody gets a " +
+      "message in the wrong language months after the wording was fixed in the table. That makes " +
+      "this card the ONLY place the wording of a lead message exists, so a missing row is shown " +
+      "as a failure rather than as an empty box. Two things it exists to stop: a placeholder " +
+      "nothing fills in (renderTemplate leaves an unknown placeholder visible, which only helps " +
+      "if somebody sees it \u2014 and the person who typed it is not the person who reads it on a " +
+      "stranger\u2019s telephone), and a third SMS segment, which costs a third again on every " +
+      "message for ever and which nobody typing into a box knows they have crossed. The length " +
+      "is counted against the RENDERED message with a realistic link, because counting the " +
+      "template would be reassuring and wrong.",
   },
   {
     wires: ["fn:send-lead-message"],

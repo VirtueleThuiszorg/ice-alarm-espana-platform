@@ -2567,6 +2567,13 @@
     "linkOpened": "Enlace Abierto"
   },
   "leads": {
+    "followUp": {
+      "filter": "Seguimiento de hoy",
+      "explain": "Contactos abiertos a los que nadie ha escrito en {{days}} días.",
+      "never": "Nunca"
+    },
+    "export": "Exportar CSV",
+    "exported": "{{count}} contactos exportados",
     "intro": {
       "title": "Presentar ICE Alarm",
       "email": "Correo",

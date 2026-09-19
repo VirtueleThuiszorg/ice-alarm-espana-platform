@@ -2567,6 +2567,13 @@
     "linkOpened": "Link Opened"
   },
   "leads": {
+    "followUp": {
+      "filter": "Follow up today",
+      "explain": "Open leads nobody has written to for {{days}} days.",
+      "never": "Never"
+    },
+    "export": "Export CSV",
+    "exported": "{{count}} leads exported",
     "intro": {
       "title": "Introduce ICE Alarm",
       "email": "Email",

@@ -2567,6 +2567,13 @@
     "linkOpened": "Link Opened"
   },
   "leads": {
+    "followUp": {
+      "filter": "Vandaag opvolgen",
+      "explain": "Open leads waar al {{days}} dagen niemand naar heeft geschreven.",
+      "never": "Nooit"
+    },
+    "export": "CSV exporteren",
+    "exported": "{{count}} leads geëxporteerd",
     "intro": {
       "title": "ICE Alarm voorstellen",
       "email": "E-mail",

@@ -494,6 +494,16 @@ export function splitEmails(raw: string): { valid: string[]; rejected: string[] 
 export type EmailOwner = "member" | "carer" | "payer" | "family";
 
 /**
+ * Whose number it is, for dedupe purposes only.
+ *
+ * Deliberately NOT a column on `members`, which is the one asymmetry with `email_owner`. An
+ * address decides whether somebody can log in, so the database has to know whose it is. A number
+ * decides nothing once the import has finished — it is only ever a question about this file —
+ * so it lives on the mapped row and needs no migration.
+ */
+export type PhoneOwner = "member" | "shared";
+
+/**
  * Words in the row's free text that say the address belongs to somebody else.
  *
  * Deliberately narrow. The cost of a false positive is small — a member's own address marked
@@ -841,6 +851,11 @@ export interface MappedRow {
   postalAddress: { address_type: "postal"; address_line_1: string | null; city: string | null; province: string | null; postal_code: string | null } | null;
   access: { key_safe_location: string | null; key_safe_code: string | null } | null;
   endOfLife: { funeral_plan: string | null; policy_number: string | null; wishes: string | null } | null;
+  /**
+   * Whose number it is. Set by `resolveSharedPhones` once the whole batch is known, so it is
+   * always "member" on a row mapped on its own. `dedupeKeysFor` is the only reader.
+   */
+  phoneOwner: PhoneOwner;
   /** The legacy direct-debit account. Admin-only in the platform — see member_bank_details. */
   bank: { iban: string | null; bank_name: string | null; source_text: string } | null;
   /** How this member pays, when the card column said so in words rather than in digits. */
@@ -1438,6 +1453,9 @@ export function mapIceRow(row: IceRow, today: Date = new Date()): MappedRow {
     /* A refused card in `20 Digit Bank No` is reported the same way a `Credit Card Details`
        column is: by NAME AND COUNT, never by value. The office needs to know which rows to go
        and fix in karmaCRM, and that is all this can tell them. */
+    // Default; `resolveSharedPhones` downgrades it once the whole batch is known, exactly as
+    // `resolveSharedEmails` does for the address.
+    phoneOwner: "member",
     discardedSensitive: [
       ...REDACTED_HEADERS.filter((h) => row.redactedPresent(h)),
       ...(bank.cardRefused ? ["20 Digit Bank No"] : []),
@@ -1448,8 +1466,8 @@ export function mapIceRow(row: IceRow, today: Date = new Date()): MappedRow {
 
 export function mapIceCsv(text: string, today: Date = new Date()): MappedRow[] {
   const { headers, rows } = parseCsv(text);
-  return resolveSharedEmails(
-    rows.map((values) => mapIceRow(new IceRow(headers, values), today)),
+  return resolveSharedPhones(
+    resolveSharedEmails(rows.map((values) => mapIceRow(new IceRow(headers, values), today))),
   );
 }
 
@@ -1495,6 +1513,49 @@ export function resolveSharedEmails(mapped: MappedRow[]): MappedRow[] {
       row.member.email_owner = fromText;
       row.warnings.push(
         `Email ${email} is described as somebody else's in this row's notes — stored as a carer address, not a login`
+      );
+    }
+  }
+  return mapped;
+}
+
+/**
+ * THE SAME RULE, FOR THE NUMBER — and the reason it exists is that the address rule above only
+ * ever closed half the door.
+ *
+ * `resolveSharedEmails` carries a careful note about one daughter looking after both her
+ * parents: keyed on a shared address, the second row matches the first and the import patches
+ * her father's details onto her mother's record — "one member where there are two, with one set
+ * of emergency contacts and one pendant between them. An SOS from the other pendant then
+ * resolves to a person it is not."
+ *
+ * Every word of that is true of a shared LANDLINE, which `dedupeKeysFor` was still keying on. It
+ * is not the rarer case, it is the commoner one: across the four karmaCRM exports queued on 19
+ * September, `resolveSharedEmails` leaves zero rows colliding on an address, while twenty-one
+ * collide on a number — nineteen of them in the cancelled group, and every single one a married
+ * couple at one house. The Edmonds, the Linderstroms, the Tittershills, the Bigleys, the
+ * Bessells, the Rogers, the Kidds.
+ *
+ * Marked INCLUDING THE FIRST ROW, for the same reason as the address: the first to appear is not
+ * more entitled to the number, and if two members share a line it identifies neither of them.
+ *
+ * Nothing is blocked. A shared number is still written to both members and is still the number
+ * you ring; it simply stops being evidence that two rows are one person.
+ */
+export function resolveSharedPhones(mapped: MappedRow[]): MappedRow[] {
+  const seen = new Map<string, number>();
+  for (const row of mapped) {
+    if (!row.member.phone) continue;
+    seen.set(row.member.phone, (seen.get(row.member.phone) ?? 0) + 1);
+  }
+
+  for (const row of mapped) {
+    const phone = row.member.phone;
+    if (!phone) continue;
+    if ((seen.get(phone) ?? 0) > 1) {
+      row.phoneOwner = "shared";
+      row.warnings.push(
+        `Phone ${phone} appears on more than one row — not used to match an existing member`
       );
     }
   }

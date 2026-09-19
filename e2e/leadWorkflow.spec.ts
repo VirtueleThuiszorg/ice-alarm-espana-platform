@@ -128,7 +128,10 @@ test.describe("adding a lead by hand", () => {
     await settle(page);
     await page.screenshot({ path: "e2e/.report/lead-add.png", fullPage: false });
 
-    await page.getByRole("button", { name: /add lead/i }).last().click();
+    await page.getByTestId("lead-submit").click();
+    // The dialog closes only on a confirmed insert, so this is the wait AND the assertion that
+    // the happy path happened — no sleep to guess the length of.
+    await expect(page.getByRole("dialog")).toHaveCount(0);
 
     const calls = stub.functionCalls("staff-lead");
     expect(calls, "the dialog must go through staff-lead").toHaveLength(1);
@@ -167,7 +170,7 @@ test.describe("adding a lead by hand", () => {
     await page.locator("#lead-heard").click();
     await page.getByRole("option").first().click();
     await page.getByTestId("lead-consent").click();
-    await page.getByRole("button", { name: /add lead/i }).last().click();
+    await page.getByTestId("lead-submit").click();
 
     /*
       A REFUSAL WITH NOWHERE TO GO gets worked around by typing the number in differently —

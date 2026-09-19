@@ -122,3 +122,8 @@ verify_jwt = true
 # themselves, and an unknown token gets the same 200-with-nulls as a real one.
 [functions.lead-prefill]
 verify_jwt = false
+
+# Called by pg_cron with the service-role key, and by a staff member wanting to see what it would
+# do. Both go through the same guard inside, so the JWT has to reach it.
+[functions.lead-followup-runner]
+verify_jwt = true

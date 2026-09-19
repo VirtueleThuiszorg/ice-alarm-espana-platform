@@ -40,6 +40,7 @@ SKIP_MIGRATIONS=(
   "20260716120000_sos_escalation_cron.sql"                   # pg_cron
   "20260723120000_fix_cron_url_and_auth.sql"                 # pg_cron
   "20260911150100_billing_migration_cron.sql"                # pg_cron
+  "20260919160000_lead_followup_cron.sql"                    # pg_cron
 )
 
 # ── pg_net IS NO LONGER SKIPPED, and that is the point of this block ────────

@@ -56,7 +56,7 @@ import {
   planRowWrites, applyMode, summarisePlans, plansToCsv, applyRowPlan,
   type ImportMode, type RowPlan, type AppliedAction,
 } from "@/lib/crmImportWriter";
-import { createSupabaseImportDb, importRowPayload } from "@/lib/crmImportDb";
+import { createSupabaseImportDb, describeImportError, importRowPayload } from "@/lib/crmImportDb";
 import CRMHistoryImportCard from "@/components/admin/CRMHistoryImportCard";
 
 const PREVIEW_ROWS = 50;
@@ -255,7 +255,9 @@ export default function CRMImportPage() {
             .eq("row_index", i);
         } catch (error) {
           running.failed += 1;
-          const message = error instanceof Error ? error.message : "Unknown error";
+          /* NOT `instanceof Error`. A PostgREST failure is a plain object, so that test was
+             false for every database error and threw away the only useful thing. */
+          const message = describeImportError(error);
           outcomes.push({
             rowIndex: i,
             sourceId: plan.sourceId,

@@ -11,6 +11,7 @@
  * goes into `crm_import_rows.raw` is the one thing in this file that MUST be asserted — the
  * redacted columns must not reach it — and a pure function is the only way to assert it.
  */
+import { looksLikeACard } from "@/lib/iceCrmImport";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import type { MappedRow } from "./iceCrmImport";
@@ -514,4 +515,52 @@ export function createSupabaseHistoryDb(client: Client): HistoryDb {
       if (error) throw error;
     },
   };
+}
+
+/* ------------------------------------------------------------------ *
+ * Saying what actually went wrong
+ * ------------------------------------------------------------------ */
+
+/**
+ * TURN A THROWN SUPABASE ERROR INTO SOMETHING A HUMAN CAN ACT ON.
+ *
+ * The import page used to do `error instanceof Error ? error.message : "Unknown error"`. A
+ * PostgREST error is a PLAIN OBJECT — `{ message, details, hint, code }`, no prototype — so that
+ * test is false for every database failure, and the one piece of information worth having was
+ * replaced by the words "Unknown error" on exactly the rows that needed it. Three rows of the
+ * live import failed that way, and the audit row in `crm_import_rows.error_message` got the same
+ * empty answer, so the reason is not recoverable after the fact either. Re-running is the only
+ * way to find out, and this is what makes re-running worth anything.
+ *
+ * `code` and `details` are included because they are the diagnosis: `23505` with a constraint
+ * name says duplicate key, `23502` says a NOT NULL column arrived empty, `22001` says a value is
+ * too long for its column. The bare message alone routinely says none of that.
+ */
+export function describeImportError(error: unknown): string {
+  if (typeof error === "string" && error.trim()) return redactIfCard(error);
+
+  const parts: string[] = [];
+  if (error && typeof error === "object") {
+    const e = error as { message?: unknown; code?: unknown; details?: unknown; hint?: unknown };
+    if (typeof e.message === "string" && e.message.trim()) parts.push(e.message.trim());
+    if (typeof e.code === "string" && e.code.trim()) parts.push(`[${e.code.trim()}]`);
+    if (typeof e.details === "string" && e.details.trim()) parts.push(`— ${e.details.trim()}`);
+    if (typeof e.hint === "string" && e.hint.trim()) parts.push(`(${e.hint.trim()})`);
+  }
+  if (parts.length) return redactIfCard(parts.join(" "));
+
+  // Nothing readable. Say what arrived rather than asserting a reason nobody can check.
+  return `Unknown error (${error === null ? "null" : typeof error})`;
+}
+
+/**
+ * Postgres quotes the offending value back at you — `Key (source_text)=(...) already exists`.
+ * `crm_import_rows` deliberately keeps REDACTED and RESTRICTED columns out of `raw`, and an
+ * error string is not a licence to put one of them back. If the text carries a card, the whole
+ * string goes and the code alone is kept.
+ */
+function redactIfCard(text: string): string {
+  if (!looksLikeACard(text)) return text;
+  const code = text.match(/\[(\w+)\]/);
+  return `Database error${code ? ` [${code[1]}]` : ""} — message withheld: it quoted a payment card back.`;
 }

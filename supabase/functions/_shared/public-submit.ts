@@ -25,6 +25,8 @@
  */
 
 /** The forms that may write to the database without anybody being signed in. */
+import { toE164 } from "./phone.ts";
+
 export type PublicFormId = "contact" | "product_interest";
 
 /** How a single field is checked. Nothing here is a regex nobody can read six months on. */
@@ -87,27 +89,18 @@ export function publicFormFields(form: PublicFormId): readonly string[] {
 const MESSAGE_MIN = 10;
 
 /**
- * E.164, Spanish numbers assumed +34.
+ * E.164, Spanish numbers assumed +34 — the platform's one rule, not this module's own.
  *
- * Deliberately the same rule as `iceCrmImport.normalisePhone`, which is what the imported 431
- * members' numbers went through: a contact form that stored `600111222` while the CRM import
- * stored `+34600111222` would make the same person two people to anything that matches on phone.
+ * It used to be a second copy of `iceCrmImport.normalisePhone`, with a comment saying so. Both
+ * are now `toE164` in `_shared/phone.ts`: a contact form that stored `600111222` while the CRM
+ * import stored `+34600111222` makes the same person two people to anything matching on phone,
+ * and the two copies could only stay identical for as long as somebody kept reading the comment.
  *
- * Returns "" when it cannot be determined, and the caller refuses — a number we cannot dial is
- * not better than no number, because it is indistinguishable from one we can until somebody
- * tries it in front of a customer.
+ * Re-exported under this name because it is what this module's callers and tests already say.
+ * A bare `export { … } from` would re-export without binding it locally, and `decidePublicSubmit`
+ * below calls it — so it is imported and re-exported, which the typechecker holds to.
  */
-export function normalisePublicPhone(raw: string): string {
-  let v = (raw ?? "").replace(/[^\d+]/g, "");
-  if (!v) return "";
-  if (v.startsWith("00")) v = `+${v.slice(2)}`;
-  if (!v.startsWith("+")) {
-    if (/^[6789]\d{8}$/.test(v)) v = `+34${v}`;
-    else if (/^\d{6,}$/.test(v)) v = `+${v}`;
-    else return "";
-  }
-  return /^\+\d{6,15}$/.test(v) ? v : "";
-}
+export { toE164 as normalisePublicPhone };
 
 /**
  * Deliberately not RFC 5322. That grammar accepts addresses no mail server will take and is
@@ -323,7 +316,7 @@ export function decidePublicSubmit(
         break;
       }
       case "phone": {
-        const e164 = normalisePublicPhone(given);
+        const e164 = toE164(given);
         if (!e164) bad.push(field);
         else values[field] = e164;
         break;

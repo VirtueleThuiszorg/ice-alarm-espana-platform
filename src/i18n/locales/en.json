@@ -1308,6 +1308,15 @@
     "askAI": "Ask AI Assistant",
     "sendUsMessage": "Send us a message",
     "status": {
+      "new": "New",
+      "contacted": "Contacted",
+      "interested": "Interested",
+      "join_link_sent": "Link sent",
+      "joined": "Joined",
+      "not_interested": "Not interested",
+      "unreachable": "Cannot reach",
+      "changed": "Status updated",
+      "failed": "Could not change the status",
       "open": "Open",
       "resolved": "Resolved",
       "closed": "Closed"
@@ -2558,6 +2567,31 @@
     "linkOpened": "Link Opened"
   },
   "leads": {
+    "intro": {
+      "title": "Introduce ICE Alarm",
+      "email": "Email",
+      "sms": "SMS",
+      "whatsapp": "WhatsApp",
+      "call": "Call",
+      "send": "Send it",
+      "copy": "Copy the link",
+      "copied": "Link copied",
+      "failed": "Could not prepare the message",
+      "doNotContact": "Asked not to be contacted",
+      "willSkip": "This channel is not available: {{reason}}"
+    },
+    "timeline": {
+      "title": "What we have sent",
+      "empty": "Nothing has been sent to this person yet."
+    },
+    "outcome": {
+      "sent": "sent",
+      "failed": "failed",
+      "skipped_channel_off": "channel switched off",
+      "skipped_not_configured": "not set up yet",
+      "skipped_no_address": "nothing to send it to",
+      "skipped_do_not_contact": "they asked us not to"
+    },
     "add": {
       "button": "Add lead",
       "title": "Add a lead",

@@ -1308,6 +1308,15 @@
     "askAI": "Vraag de AI-assistent",
     "sendUsMessage": "Stuur ons een bericht",
     "status": {
+      "new": "Nieuw",
+      "contacted": "Benaderd",
+      "interested": "Geïnteresseerd",
+      "join_link_sent": "Link verstuurd",
+      "joined": "Aangemeld",
+      "not_interested": "Geen interesse",
+      "unreachable": "Niet bereikbaar",
+      "changed": "Status bijgewerkt",
+      "failed": "De status kon niet worden gewijzigd",
       "open": "Open",
       "resolved": "Opgelost",
       "closed": "Gesloten"
@@ -2558,6 +2567,31 @@
     "linkOpened": "Link Opened"
   },
   "leads": {
+    "intro": {
+      "title": "ICE Alarm voorstellen",
+      "email": "E-mail",
+      "sms": "Sms",
+      "whatsapp": "WhatsApp",
+      "call": "Bellen",
+      "send": "Versturen",
+      "copy": "Link kopiëren",
+      "copied": "Link gekopieerd",
+      "failed": "Het bericht kon niet worden voorbereid",
+      "doNotContact": "Wil niet benaderd worden",
+      "willSkip": "Dit kanaal is niet beschikbaar: {{reason}}"
+    },
+    "timeline": {
+      "title": "Wat we hebben verstuurd",
+      "empty": "Er is nog niets naar deze persoon verstuurd."
+    },
+    "outcome": {
+      "sent": "verstuurd",
+      "failed": "mislukt",
+      "skipped_channel_off": "kanaal staat uit",
+      "skipped_not_configured": "nog niet ingesteld",
+      "skipped_no_address": "geen adres om naar te sturen",
+      "skipped_do_not_contact": "wil niet benaderd worden"
+    },
     "add": {
       "button": "Lead toevoegen",
       "title": "Een lead toevoegen",

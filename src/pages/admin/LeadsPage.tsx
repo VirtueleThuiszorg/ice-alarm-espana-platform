@@ -23,6 +23,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { LeadContactValue, LeadName } from "@/components/leads/LeadContact";
 import { LeadNotSpamButton, LeadSpamBadge } from "@/components/leads/LeadSpamFlag";
+import { LeadIntroduceSection } from "@/components/leads/LeadIntroduceSection";
+import { LeadTimeline } from "@/components/leads/LeadTimeline";
 import { AddLeadDialog } from "@/components/leads/AddLeadDialog";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -183,6 +185,8 @@ export default function LeadsPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [draftDetailOpen, setDraftDetailOpen] = useState(false);
   const [notes, setNotes] = useState("");
+  // Bumped after a send so the timeline re-reads without the dialog having to close.
+  const [commsKey, setCommsKey] = useState(0);
   const [activeTab, setActiveTab] = useState("leads");
   const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
 
@@ -1045,6 +1049,13 @@ export default function LeadsPage() {
                   <p className="capitalize">{selectedLead.source?.replace('_', ' ')}</p>
                 </div>
               </div>
+
+              {/* INTRODUCING ICE ALARM — the section this dialog exists for once the
+                  details have been read. Above the notes, because it is what the operator
+                  came here to do; the notes are what they write afterwards. */}
+              <LeadIntroduceSection lead={selectedLead} onChanged={() => { fetchLeads(); setCommsKey((k) => k + 1); }} />
+
+              <LeadTimeline leadId={selectedLead.id} refreshKey={commsKey} />
 
               {/* Message */}
               {selectedLead.message && (

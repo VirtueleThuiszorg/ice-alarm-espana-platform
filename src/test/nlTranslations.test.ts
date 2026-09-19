@@ -40,6 +40,9 @@ const LEGITIMATE_IDENTICALS = new Set([
   "support.status.open",
   "support.aiShort",
   "support.faqShort",
+  // A brand name, not a word. "WhatsApp" is WhatsApp in Dutch, and translating it would name
+  // an application nobody has.
+  "leads.intro.whatsapp",
 ]);
 
 describe("nl locale — no English left in the fixed namespaces", () => {

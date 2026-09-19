@@ -23,6 +23,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { LeadContactValue, LeadName } from "@/components/leads/LeadContact";
 import { LeadNotSpamButton, LeadSpamBadge } from "@/components/leads/LeadSpamFlag";
+import { AddLeadDialog } from "@/components/leads/AddLeadDialog";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { 
@@ -485,10 +486,13 @@ export default function LeadsPage() {
              {t("adminLeads.subtitle", "Manage contact form submissions and prospective members")}
            </p>
          </div>
-         <Button onClick={fetchLeads} variant="outline" size="sm">
-           <RefreshCw className="h-4 w-4 mr-2" />
-           {t("common.refresh", "Refresh")}
-         </Button>
+         <div className="flex items-center gap-2">
+           <AddLeadDialog onAdded={fetchLeads} />
+           <Button onClick={fetchLeads} variant="outline" size="sm">
+             <RefreshCw className="h-4 w-4 mr-2" />
+             {t("common.refresh", "Refresh")}
+           </Button>
+         </div>
       </div>
 
       {/* Stats */}

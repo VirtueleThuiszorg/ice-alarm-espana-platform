@@ -30,15 +30,18 @@ import { toE164 } from "./phone.ts";
 export type PublicFormId = "contact" | "product_interest";
 
 /** How a single field is checked. Nothing here is a regex nobody can read six months on. */
-type FieldKind = "name" | "email" | "phone" | "text" | "language" | "choice";
+export type FieldKind = "name" | "email" | "phone" | "text" | "language" | "choice";
 
-interface FieldSpec {
+export interface FieldSpec {
   kind: FieldKind;
   required: boolean;
   max: number;
   /** For "choice": what it may be. An unknown value is refused rather than stored. */
   options?: readonly string[];
 }
+
+/** A form's rules: one `FieldSpec` per field it accepts. */
+export type FormSpec = Record<string, FieldSpec>;
 
 /**
  * THE FORMS, AND WHAT EACH ONE MUST HAVE TO BE WORTH ANYTHING.
@@ -291,60 +294,8 @@ export function decidePublicSubmit(
     return { ok: false, status: 429, fields: [], reason: "rate_limited_email" };
   }
 
-  // 4. The fields. EVERY failing field is collected rather than the first, so somebody who left
-  //    two boxes empty is told about both instead of discovering the second on the next attempt.
-  const values: Record<string, string> = {};
-  const bad: string[] = [];
-
-  for (const [field, rule] of Object.entries(spec)) {
-    const raw = input.fields[field];
-    const given = typeof raw === "string" ? raw.trim() : raw == null ? "" : String(raw).trim();
-
-    if (given.length === 0) {
-      if (rule.required) bad.push(field);
-      continue;
-    }
-    if (given.length > rule.max) {
-      bad.push(field);
-      continue;
-    }
-
-    switch (rule.kind) {
-      case "email": {
-        if (!isPublicEmail(given)) bad.push(field);
-        else values[field] = given.toLowerCase();
-        break;
-      }
-      case "phone": {
-        const e164 = toE164(given);
-        if (!e164) bad.push(field);
-        else values[field] = e164;
-        break;
-      }
-      case "language": {
-        // An unknown language is dropped rather than refused: it is never something a visitor
-        // typed, and losing an enquiry over a stale locale code would be absurd.
-        if (LANGUAGES.includes(given.toLowerCase() as never)) values[field] = given.toLowerCase();
-        break;
-      }
-      case "choice": {
-        if (!rule.options?.includes(given)) bad.push(field);
-        else values[field] = given;
-        break;
-      }
-      case "name": {
-        values[field] = given;
-        break;
-      }
-      case "text": {
-        // Only the message has a floor, and only where the form declares one.
-        if (field === "message" && given.length < MESSAGE_MIN) bad.push(field);
-        else values[field] = given;
-        break;
-      }
-    }
-  }
-
+  // 4. The fields.
+  const { values, bad } = validateFields(spec, input.fields);
   if (bad.length > 0) {
     return { ok: false, status: 400, fields: bad, reason: "invalid_fields" };
   }
@@ -451,4 +402,75 @@ export function leadRowFor(
   }
 
   return row;
+}
+
+/**
+ * ONE FIELD VALIDATOR, FOR EVERY FORM THAT WRITES A LEAD.
+ *
+ * Extracted when staff gained a form of their own. The brief for that form says "same
+ * validation rules as public-submit", and the only way to keep that true a year from now is for
+ * it to be the same code — a second copy would agree on the day it was written and then drift,
+ * which is exactly what happened to the phone normaliser.
+ *
+ * EVERY FAILING FIELD IS COLLECTED, not the first. Somebody who left two boxes empty is told
+ * about both, instead of discovering the second on the next attempt.
+ */
+export function validateFields(
+  spec: FormSpec,
+  fields: Record<string, unknown>,
+): { values: Record<string, string>; bad: string[] } {
+  const values: Record<string, string> = {};
+  const bad: string[] = [];
+
+  for (const [field, rule] of Object.entries(spec)) {
+    const raw = fields[field];
+    const given = typeof raw === "string" ? raw.trim() : raw == null ? "" : String(raw).trim();
+
+    if (given.length === 0) {
+      if (rule.required) bad.push(field);
+      continue;
+    }
+    if (given.length > rule.max) {
+      bad.push(field);
+      continue;
+    }
+
+    switch (rule.kind) {
+      case "email": {
+        if (!isPublicEmail(given)) bad.push(field);
+        else values[field] = given.toLowerCase();
+        break;
+      }
+      case "phone": {
+        const e164 = toE164(given);
+        if (!e164) bad.push(field);
+        else values[field] = e164;
+        break;
+      }
+      case "language": {
+        // An unknown language is dropped rather than refused: it is never something a visitor
+        // typed, and losing an enquiry over a stale locale code would be absurd.
+        if (LANGUAGES.includes(given.toLowerCase() as never)) values[field] = given.toLowerCase();
+        break;
+      }
+      case "choice": {
+        if (!rule.options?.includes(given)) bad.push(field);
+        else values[field] = given;
+        break;
+      }
+      case "name": {
+        values[field] = given;
+        break;
+      }
+      case "text": {
+        // Only the message has a floor, and only where the form declares one.
+        if (field === "message" && given.length < MESSAGE_MIN) bad.push(field);
+        else values[field] = given;
+        break;
+      }
+    }
+  }
+
+
+  return { values, bad };
 }

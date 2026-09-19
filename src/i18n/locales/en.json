@@ -2558,6 +2558,38 @@
     "linkOpened": "Link Opened"
   },
   "leads": {
+    "add": {
+      "button": "Add lead",
+      "title": "Add a lead",
+      "description": "Someone who got in touch by telephone, at an event, or through another member.",
+      "firstName": "First name",
+      "lastName": "Surname",
+      "phone": "Phone",
+      "email": "Email",
+      "emailOptional": "Optional",
+      "language": "Language",
+      "enquiryType": "Enquiry",
+      "heardAbout": "How did they hear of us?",
+      "heardAboutPlaceholder": "Choose one",
+      "partnerCode": "Partner code",
+      "notes": "Notes",
+      "notesPlaceholder": "What did they ask about?",
+      "consent": "The person agreed to be contacted by ICE Alarm España.",
+      "save": "Add lead",
+      "saved": "Lead added",
+      "failed": "Could not save this lead",
+      "dupMember": "Already a member",
+      "dupLead": "Already a lead",
+      "dupOpen": "Open the existing record"
+    },
+    "heardAbout": {
+      "walk_in": "Walked in",
+      "phone_call": "Telephoned us",
+      "event": "Met us at an event",
+      "member_referral": "Referred by a member",
+      "partner_code": "Partner referral",
+      "other": "Something else"
+    },
     "noName": "Name not given",
     "noEmail": "No email address",
     "noPhone": "No phone number",

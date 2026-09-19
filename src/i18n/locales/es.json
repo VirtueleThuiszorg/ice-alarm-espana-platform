@@ -2558,6 +2558,38 @@
     "linkOpened": "Enlace Abierto"
   },
   "leads": {
+    "add": {
+      "button": "Añadir contacto",
+      "title": "Añadir un contacto",
+      "description": "Alguien que nos llamó, a quien conocimos en un evento o que nos presentó otro socio.",
+      "firstName": "Nombre",
+      "lastName": "Apellidos",
+      "phone": "Teléfono",
+      "email": "Correo electrónico",
+      "emailOptional": "Opcional",
+      "language": "Idioma",
+      "enquiryType": "Consulta",
+      "heardAbout": "¿Cómo nos conoció?",
+      "heardAboutPlaceholder": "Elija una opción",
+      "partnerCode": "Código de colaborador",
+      "notes": "Notas",
+      "notesPlaceholder": "¿Qué preguntó?",
+      "consent": "La persona aceptó que ICE Alarm España se ponga en contacto con ella.",
+      "save": "Añadir contacto",
+      "saved": "Contacto añadido",
+      "failed": "No se pudo guardar este contacto",
+      "dupMember": "Ya es socio",
+      "dupLead": "Ya existe como contacto",
+      "dupOpen": "Abrir la ficha existente"
+    },
+    "heardAbout": {
+      "walk_in": "Vino en persona",
+      "phone_call": "Nos llamó",
+      "event": "Nos conoció en un evento",
+      "member_referral": "Se lo recomendó un socio",
+      "partner_code": "Recomendación de un colaborador",
+      "other": "Otra cosa"
+    },
     "noName": "Sin nombre",
     "noEmail": "Sin correo electrónico",
     "noPhone": "Sin teléfono",

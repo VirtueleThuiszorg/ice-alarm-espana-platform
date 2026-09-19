@@ -107,3 +107,8 @@
     verify_jwt = false
   [functions.cancel-mollie-subscription]
     verify_jwt = false
+
+# Staff only: the guard inside reads the caller's JWT and requires an ACTIVE staff row, so the
+# JWT has to reach it rather than be checked away at the gateway.
+[functions.staff-lead]
+verify_jwt = true

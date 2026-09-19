@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { LeadContactButton, LeadContactValue, LeadName } from "@/components/leads/LeadContact";
 import { LeadSpamBadge } from "@/components/leads/LeadSpamFlag";
+import { AddLeadDialog } from "@/components/leads/AddLeadDialog";
 import { 
   Search, 
   Clock,
@@ -200,13 +201,22 @@ export default function CallCentreLeadsPage() {
            <div>
              <h1 className="text-2xl font-bold">{t("callCentreLeads.title", "Leads")}</h1>
              <p className="text-sm text-muted-foreground">
-               {t("callCentreLeads.subtitle", "Contact form enquiries from potential members")}
+               {/* No longer only the contact form: an operator adds the people who rang, walked
+                   in, or were introduced by another member. */}
+               {t("callCentreLeads.subtitle", "Enquiries from people who might become members")}
              </p>
            </div>
-           <Button onClick={fetchLeads} variant="outline" size="sm">
-             <RefreshCw className="h-4 w-4 mr-2" />
-             {t("common.refresh", "Refresh")}
-           </Button>
+           <div className="flex items-center gap-2">
+             <AddLeadDialog
+               onAdded={fetchLeads}
+               memberHref={(id) => `/call-centre/members/${id}`}
+               leadsHref="/call-centre/leads"
+             />
+             <Button onClick={fetchLeads} variant="outline" size="sm">
+               <RefreshCw className="h-4 w-4 mr-2" />
+               {t("common.refresh", "Refresh")}
+             </Button>
+           </div>
         </div>
 
         {/* Stats */}

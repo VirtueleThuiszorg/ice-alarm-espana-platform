@@ -26,6 +26,9 @@ import { LeadNotSpamButton, LeadSpamBadge } from "@/components/leads/LeadSpamFla
 import { LeadIntroduceSection } from "@/components/leads/LeadIntroduceSection";
 import { LeadTimeline } from "@/components/leads/LeadTimeline";
 import { AddLeadDialog } from "@/components/leads/AddLeadDialog";
+import { DEFAULT_FOLLOWUP_DAYS, FOLLOWUP_STATUSES, followUpCutoff } from "@/lib/leadFollowUp";
+import { LEAD_STATUSES } from "@/lib/leadStatus";
+import { exportToCsv, type CsvColumnConfig } from "@/lib/csvExporter";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { 
@@ -36,6 +39,7 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  Download,
   UserPlus,
   MessageSquare,
   RefreshCw,
@@ -84,6 +88,10 @@ interface Lead {
   /** `public-submit`'s guess. Suppresses the bell and nothing else — see LeadSpamFlag. */
   suspected_spam: boolean | null;
   spam_reasons: string[] | null;
+  last_contacted_at: string | null;
+  last_contact_channel: string | null;
+  do_not_contact: boolean | null;
+  heard_about: string | null;
   assigned_staff?: {
     first_name: string;
     last_name: string;
@@ -180,6 +188,15 @@ export default function LeadsPage() {
     so somebody can work through the flagged ones, not so they disappear.
   */
   const [filterSpam, setFilterSpam] = useState("all");
+  /*
+    FOLLOW UP TODAY. A lead goes quiet not because anybody decided to leave it, but because the
+    operator working it had four other things on that morning. This is the list of people who
+    were told somebody would be in touch and then were not.
+  */
+  const [filterFollowUp, setFilterFollowUp] = useState(false);
+  const [filterSource, setFilterSource] = useState("all");
+  const [filterAssignee, setFilterAssignee] = useState("all");
+  const [followUpDays, setFollowUpDays] = useState(DEFAULT_FOLLOWUP_DAYS);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [selectedDraft, setSelectedDraft] = useState<RegistrationDraft | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -194,6 +211,7 @@ export default function LeadsPage() {
     fetchLeads();
     fetchDrafts();
     fetchStaff();
+    fetchFollowUpDays();
 
     const channel = supabase
       .channel('leads-realtime')
@@ -208,7 +226,7 @@ export default function LeadsPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [filterStatus, filterType, filterSpam]);
+  }, [filterStatus, filterType, filterSpam, filterSource, filterAssignee, filterFollowUp, followUpDays]);
 
   const fetchLeads = async () => {
     setLoading(true);
@@ -225,6 +243,29 @@ export default function LeadsPage() {
     }
     if (filterType !== 'all') {
       query = query.eq('enquiry_type', filterType);
+    }
+    if (filterSource !== 'all') {
+      query = query.eq('source', filterSource);
+    }
+    if (filterAssignee === 'unassigned') {
+      query = query.is('assigned_to', null);
+    } else if (filterAssignee !== 'all') {
+      query = query.eq('assigned_to', filterAssignee);
+    }
+    if (filterFollowUp) {
+      /*
+        THE CUT-OFF IS COMPUTED ONCE, in `leadFollowUp.ts`, so this query and the runner that
+        bells the assignee ask the same question. Two places computing "three days ago" is two
+        places that disagree the first time one of them is changed.
+
+        `.or()` because a lead nobody has ever written to has a NULL `last_contacted_at`, and
+        those are the ones most likely to have been forgotten — not the least.
+      */
+      const cutoff = followUpCutoff(followUpDays);
+      query = query
+        .in('status', FOLLOWUP_STATUSES as unknown as string[])
+        .not('do_not_contact', 'is', true)
+        .or(`last_contacted_at.is.null,last_contacted_at.lt.${cutoff}`);
     }
     if (filterSpam === 'spam') {
       query = query.eq('suspected_spam', true);
@@ -258,6 +299,69 @@ export default function LeadsPage() {
       setDrafts((data as unknown as RegistrationDraft[]) || []);
     }
     setDraftsLoading(false);
+  };
+
+  /*
+    `lead_followup_days` is a row so it can become 5 by editing a value rather than by shipping
+    code. Read once; a failure leaves the seeded default, which is the behaviour anybody expects
+    from a setting nobody has touched.
+  */
+  /**
+   * ADMIN ONLY, and it is the list on screen rather than the whole table.
+   *
+   * A CSV of every lead the business has ever had is a different object from a CSV of the
+   * thirty an admin is currently looking at: one is a working file, the other is the marketing
+   * list of every person who ever enquired, leaving the building on a laptop. Exporting what is
+   * filtered means the filters are the access control, which is at least visible.
+   *
+   * `contact_consent_at` is a column on purpose. A row in this file that nobody agreed to be
+   * contacted about is a row whoever opens the file needs to know about.
+   */
+  const exportLeadsCsv = () => {
+    const columns: CsvColumnConfig<Record<string, unknown>>[] = [
+      { key: "first_name", header: "First name" },
+      { key: "last_name", header: "Surname" },
+      { key: "email", header: "Email" },
+      { key: "phone", header: "Phone" },
+      { key: "preferred_language", header: "Language" },
+      { key: "status", header: "Status" },
+      { key: "source", header: "Source" },
+      { key: "heard_about", header: "How they heard of us" },
+      {
+        key: "assigned_staff",
+        header: "Assigned to",
+        formatter: (v) => {
+          const s = v as { first_name?: string; last_name?: string } | null;
+          return s ? `${s.first_name ?? ""} ${s.last_name ?? ""}`.trim() : "";
+        },
+      },
+      {
+        key: "last_contacted_at",
+        header: "Last contacted",
+        formatter: (v) => (v ? new Date(v as string).toLocaleDateString("en-GB") : ""),
+      },
+      { key: "last_contact_channel", header: "By" },
+      {
+        key: "contact_consent_at",
+        header: "Consent recorded",
+        formatter: (v) => (v ? new Date(v as string).toLocaleDateString("en-GB") : ""),
+      },
+      {
+        key: "created_at",
+        header: "Added",
+        formatter: (v) => (v ? new Date(v as string).toLocaleDateString("en-GB") : ""),
+      },
+    ];
+    const stamp = new Date().toISOString().slice(0, 10);
+    exportToCsv(filteredLeads as unknown as Record<string, unknown>[], `leads-${stamp}.csv`, columns);
+    toast.success(t("leads.exported", "{{count}} leads exported", { count: filteredLeads.length }));
+  };
+
+  const fetchFollowUpDays = async () => {
+    const { data } = await supabase
+      .from("system_settings").select("value").eq("key", "lead_followup_days").maybeSingle();
+    const n = Number(data?.value);
+    if (Number.isFinite(n) && n > 0) setFollowUpDays(n);
   };
 
   const fetchStaff = async () => {
@@ -598,11 +702,17 @@ export default function LeadsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="new">New</SelectItem>
-                <SelectItem value="contacted">Contacted</SelectItem>
-                <SelectItem value="qualified">Qualified</SelectItem>
-                <SelectItem value="converted">Converted</SelectItem>
-                <SelectItem value="lost">Lost</SelectItem>
+                {/*
+                  FROM THE LADDER, not restated. This dropdown still offered `qualified`,
+                  `converted` and `lost` — the three values migration 20260919120000 renamed —
+                  so three of its five options matched no row at all and the two real states
+                  they became could not be filtered for.
+                */}
+                {LEAD_STATUSES.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {t(`leads.status.${status}`, status.replace(/_/g, " "))}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select value={filterType} onValueChange={setFilterType}>
@@ -628,6 +738,53 @@ export default function LeadsPage() {
                 <SelectItem value="clean">Hide possible spam</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={filterSource} onValueChange={setFilterSource}>
+              <SelectTrigger className="w-full md:w-40">
+                <SelectValue placeholder="Source" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All sources</SelectItem>
+                <SelectItem value="contact_form">Contact form</SelectItem>
+                <SelectItem value="staff_manual">Added by staff</SelectItem>
+                <SelectItem value="product_interest">Notify me</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterAssignee} onValueChange={setFilterAssignee}>
+              <SelectTrigger className="w-full md:w-44">
+                <SelectValue placeholder="Assignee" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Anyone</SelectItem>
+                {/* Unassigned is first among the named options: it is the pile nobody owns,
+                    which is the one worth looking at. */}
+                <SelectItem value="unassigned">Nobody yet</SelectItem>
+                {staff.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.first_name} {s.last_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 mt-3">
+            {/* FOLLOW UP TODAY — a toggle rather than another dropdown, because it is the one
+                filter somebody comes to this page already intending to use. */}
+            <Button
+              variant={filterFollowUp ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilterFollowUp((v) => !v)}
+              data-testid="leads-followup-filter"
+            >
+              <Clock className="h-4 w-4 mr-1.5" />
+              {t("leads.followUp.filter", "Follow up today")}
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {t("leads.followUp.explain",
+                 "Open leads nobody has written to for {{days}} days.", { days: followUpDays })}
+            </span>
+            <div className="flex-1" />
+            <Button variant="outline" size="sm" onClick={exportLeadsCsv} data-testid="leads-export">
+              <Download className="h-4 w-4 mr-1.5" />
+              {t("leads.export", "Export CSV")}
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -643,7 +800,12 @@ export default function LeadsPage() {
                 <TableHead>Type</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Assigned To</TableHead>
-                <TableHead>Date</TableHead>
+                {/* LAST CONTACT, not "date added". Which of these two a person needs depends on
+                    what they came here to do, and the one that tells you whether a lead is going
+                    cold is this one — so it sits beside the assignee, where the question
+                    "is anybody working this?" is being answered. */}
+                <TableHead>Last contact</TableHead>
+                <TableHead>Added</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
@@ -709,6 +871,22 @@ export default function LeadsPage() {
                         </span>
                       ) : (
                         <span className="text-sm text-muted-foreground">Unassigned</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {lead.last_contacted_at ? (
+                        <div className="text-sm">
+                          {format(new Date(lead.last_contacted_at), 'dd MMM yyyy')}
+                          <p className="text-xs text-muted-foreground capitalize">
+                            {lead.last_contact_channel ?? ""}
+                          </p>
+                        </div>
+                      ) : (
+                        // Not an em dash: "never" is a fact about this lead, and the one an
+                        // operator scanning for neglected rows is looking for.
+                        <span className="text-sm text-muted-foreground italic">
+                          {t("leads.followUp.never", "Never")}
+                        </span>
                       )}
                     </TableCell>
                     <TableCell>

@@ -133,7 +133,15 @@ describe("the list does not hide what it guessed", () => {
   });
 
   it("re-queries when the filter changes", () => {
-    // A filter that does not refetch is a filter that silently does nothing.
-    expect(src).toMatch(/\[filterStatus, filterType, filterSpam\]/);
+    /*
+      A filter that does not refetch is a filter that silently does nothing.
+
+      The list has since gained source, assignee and follow-up filters, so this asserts that
+      `filterSpam` is IN the dependency array rather than that the array is exactly three long —
+      which would have to be edited every time a filter is added, and an assertion edited that
+      often stops being read.
+    */
+    const deps = src.slice(src.indexOf("}, [filterStatus"), src.indexOf("]);", src.indexOf("}, [filterStatus")));
+    expect(deps).toContain("filterSpam");
   });
 });

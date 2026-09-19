@@ -17,6 +17,8 @@ import { LeadSpamBadge } from "@/components/leads/LeadSpamFlag";
 import { LeadIntroduceSection } from "@/components/leads/LeadIntroduceSection";
 import { LeadTimeline } from "@/components/leads/LeadTimeline";
 import { AddLeadDialog } from "@/components/leads/AddLeadDialog";
+import { DEFAULT_FOLLOWUP_DAYS, FOLLOWUP_STATUSES, followUpCutoff } from "@/lib/leadFollowUp";
+import { LEAD_STATUSES } from "@/lib/leadStatus";
 import { 
   Search, 
   Clock,
@@ -57,6 +59,9 @@ export default function CallCentreLeadsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("new");
+  /* The list of people who were told somebody would be in touch, and then were not. */
+  const [filterFollowUp, setFilterFollowUp] = useState(false);
+  const [followUpDays, setFollowUpDays] = useState(DEFAULT_FOLLOWUP_DAYS);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [notes, setNotes] = useState("");
@@ -78,6 +83,7 @@ export default function CallCentreLeadsPage() {
 
   useEffect(() => {
     fetchLeads();
+    fetchFollowUpDays();
 
     const channel = supabase
       .channel('call-centre-leads')
@@ -89,7 +95,15 @@ export default function CallCentreLeadsPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [filterStatus]);
+  }, [filterStatus, filterFollowUp, followUpDays]);
+
+  /** `lead_followup_days`, so the number can change by editing a row rather than shipping code. */
+  const fetchFollowUpDays = async () => {
+    const { data } = await supabase
+      .from("system_settings").select("value").eq("key", "lead_followup_days").maybeSingle();
+    const n = Number(data?.value);
+    if (Number.isFinite(n) && n > 0) setFollowUpDays(n);
+  };
 
   const fetchLeads = async () => {
     setLoading(true);
@@ -103,6 +117,15 @@ export default function CallCentreLeadsPage() {
 
     if (filterStatus !== 'all') {
       query = query.eq('status', filterStatus);
+    }
+    if (filterFollowUp) {
+      // Same cut-off function as the admin list and the runner — three places computing
+      // "three days ago" is three places that disagree the first time one is changed.
+      const cutoff = followUpCutoff(followUpDays);
+      query = query
+        .in('status', FOLLOWUP_STATUSES as unknown as string[])
+        .not('do_not_contact', 'is', true)
+        .or(`last_contacted_at.is.null,last_contacted_at.lt.${cutoff}`);
     }
 
     const { data, error } = await query.limit(100);
@@ -260,15 +283,33 @@ export default function CallCentreLeadsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          {/* A toggle rather than another dropdown: it is the one filter an operator comes to
+              this page already intending to use. */}
+          <Button
+            variant={filterFollowUp ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilterFollowUp((v) => !v)}
+            data-testid="leads-followup-filter"
+          >
+            <Clock className="h-4 w-4 mr-1.5" />
+            {t("leads.followUp.filter", "Follow up today")}
+          </Button>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="w-36">
               <SelectValue placeholder={t("leads.statusFilter", "Status")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="new">{t("leads.status.new", "New")}</SelectItem>
-              <SelectItem value="contacted">{t("leads.status.contacted", "Contacted")}</SelectItem>
-              <SelectItem value="qualified">{t("leads.status.qualified", "Qualified")}</SelectItem>
+              {/*
+                FROM THE LADDER, not restated. This offered `qualified`, which migration
+                20260919120000 renamed to `interested` — so one of its four options matched no
+                row, and four of the seven real states could not be filtered for at all.
+              */}
               <SelectItem value="all">{t("common.all", "All")}</SelectItem>
+              {LEAD_STATUSES.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {t(`leads.status.${status}`, status.replace(/_/g, " "))}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

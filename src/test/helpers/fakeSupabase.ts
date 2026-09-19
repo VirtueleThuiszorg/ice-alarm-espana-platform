@@ -165,6 +165,29 @@ export function fakeSupabase(seed: Seed = {}): FakeDb {
         rows = rows.filter((r) => r[column] === undefined || r[column] === value);
         return self;
       },
+      /* `neq` filters like `eq` does, including its "a row that does not carry the column is not
+         excluded" rule — a seed that omits a column is saying "not relevant here", not "NULL". */
+      neq(column: string, value: unknown) {
+        filters.push([`neq.${column}`, value]);
+        rows = rows.filter((r) => r[column] === undefined || r[column] !== value);
+        return self;
+      },
+      /* Range filters, string-compared — which is what PostgREST does to an ISO timestamp and
+         to a `YYYY-MM-DD` date, both of which sort correctly as text. */
+      gte(column: string, value: unknown) {
+        filters.push([`gte.${column}`, value]);
+        rows = rows.filter(
+          (r) => r[column] === undefined || String(r[column]) >= String(value),
+        );
+        return self;
+      },
+      lte(column: string, value: unknown) {
+        filters.push([`lte.${column}`, value]);
+        rows = rows.filter(
+          (r) => r[column] === undefined || String(r[column]) <= String(value),
+        );
+        return self;
+      },
       in(column: string, list: unknown[]) {
         filters.push([column, list]);
         rows = rows.filter((r) => r[column] === undefined || list.includes(r[column]));

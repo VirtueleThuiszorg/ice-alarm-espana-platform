@@ -281,7 +281,12 @@ export function AddLeadDialog({
           )}
 
           <DialogFooter>
-            <Button type="submit" disabled={saving} className="w-full sm:w-auto">
+            {/* Its own hook. The trigger that OPENS this dialog carries the same words, and a
+                test that reaches for the label alone is one Radix detail away from clicking the
+                wrong one — silently, because clicking the trigger while it is open does nothing
+                worth noticing. */}
+            <Button type="submit" disabled={saving} className="w-full sm:w-auto"
+                    data-testid="lead-submit">
               {saving
                 ? <Loader2 className="h-4 w-4 animate-spin" />
                 : t("leads.add.save", "Add lead")}

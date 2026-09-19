@@ -7769,6 +7769,189 @@ SELECT pg_temp.check(
 
 
 -- ============================================================
+--  Closing a courtesy call
+-- ============================================================
+--
+-- `close_courtesy_call` is SECURITY DEFINER, so RLS on the tables it writes does NOT apply to it
+-- and the role check inside the function is the whole of its access control. That makes these
+-- assertions the only thing standing between "staff close a member's call" and "any signed-in
+-- user writes to any member's history".
+
+INSERT INTO auth.users (id, email) VALUES
+  ('cc000000-0000-0000-0000-00000000000a', 'courtesy-operator@example.com'),
+  ('cc000000-0000-0000-0000-00000000000b', 'courtesy-admin@example.com');
+
+INSERT INTO public.staff (id, user_id, email, first_name, last_name, role) VALUES
+  ('cca00000-0000-0000-0000-00000000000a', 'cc000000-0000-0000-0000-00000000000a',
+   'courtesy-operator@example.com', 'Cora', 'Operator', 'call_centre'),
+  ('cca00000-0000-0000-0000-00000000000b', 'cc000000-0000-0000-0000-00000000000b',
+   'courtesy-admin@example.com', 'Adam', 'Admin', 'admin');
+
+INSERT INTO public.members
+  (id, first_name, last_name, email, phone, date_of_birth, address_line_1, city, province,
+   postal_code, courtesy_call_frequency, courtesy_calls_enabled)
+VALUES
+  ('cce00000-0000-0000-0000-00000000000a', 'Rosa', 'Courtesy', 'rosa-courtesy@example.com',
+   '+34600300001', '1940-03-03', '1 Calle Cortesia', 'Albox', 'Almeria', '04800',
+   'monthly', true);
+
+INSERT INTO public.tasks (id, title, member_id, task_type, status, due_date)
+VALUES
+  ('ccf00000-0000-0000-0000-00000000000a', 'Monthly Courtesy Call - Rosa Courtesy',
+   'cce00000-0000-0000-0000-00000000000a', 'courtesy_call', 'pending', now()),
+  ('ccf00000-0000-0000-0000-00000000000b', 'Monthly Courtesy Call - Rosa Courtesy',
+   'cce00000-0000-0000-0000-00000000000a', 'courtesy_call', 'pending', now());
+
+-- ── the date rule, in SQL, agreeing with the TypeScript one ────────────────
+--
+-- `_shared/courtesy-schedule.ts` is the one rule for the app and the edge functions; it cannot be
+-- called from inside a transaction, so `courtesy_next_call_date` answers the same question in
+-- SQL. It agrees because PostgreSQL's interval arithmetic already clamps — not because anybody
+-- keeps the two in step. These four are the cases where clamping and overflowing differ, and
+-- they are the cases the two old TypeScript copies disagreed on.
+
+SELECT pg_temp.check(
+  'SQL: 31 Jan + monthly is 28 Feb, not 3 Mar',
+  public.courtesy_next_call_date('monthly', DATE '2026-01-31') = DATE '2026-02-28',
+  'if this is 2026-03-03 the SQL overflows the month and the member is rung three days late');
+
+SELECT pg_temp.check(
+  'SQL: 31 Jan + monthly in a leap year is 29 Feb',
+  public.courtesy_next_call_date('monthly', DATE '2028-01-31') = DATE '2028-02-29');
+
+SELECT pg_temp.check(
+  'SQL: 30 Nov + quarterly is 28 Feb',
+  public.courtesy_next_call_date('quarterly', DATE '2026-11-30') = DATE '2027-02-28');
+
+SELECT pg_temp.check(
+  'SQL: an unknown frequency is monthly, as it is in TypeScript',
+  public.courtesy_next_call_date('fortnightly', DATE '2026-01-31') = DATE '2026-02-28');
+
+-- ── who may close a call ───────────────────────────────────────────────────
+
+SELECT pg_temp.check(
+  'a MEMBER cannot close a courtesy call',
+  pg_temp.raises_as('11111111-1111-1111-1111-111111111111',
+    $$SELECT public.close_courtesy_call('ccf00000-0000-0000-0000-00000000000a'::uuid,
+        'spoke_member', 'I am writing my own care record')$$),
+  'SECURITY DEFINER bypasses RLS, so the role check inside the function is the only guard');
+
+SELECT pg_temp.check(
+  'a member cannot read member_notes at all',
+  pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+                   'SELECT id FROM public.member_notes') = 0,
+  'staff write frankly about a member here; the member portal must never render it');
+
+SELECT pg_temp.check(
+  'an operator CAN close a courtesy call',
+  NOT pg_temp.raises_as('cc000000-0000-0000-0000-00000000000a',
+    $$SELECT public.close_courtesy_call('ccf00000-0000-0000-0000-00000000000a'::uuid,
+        'spoke_member', 'Rosa is well. Pendant worn, test press done.',
+        '{"pendant_worn":true,"test_press":true}'::jsonb)$$),
+  'a guard that refuses everybody would pass the member check above while breaking the job');
+
+-- ── and what closing it actually wrote ─────────────────────────────────────
+
+SELECT pg_temp.check(
+  'the call is written into the member history, with the outcome and the checklist',
+  (SELECT count(*) FROM public.member_notes
+    WHERE member_id = 'cce00000-0000-0000-0000-00000000000a'
+      AND note_type = 'courtesy_call'
+      AND source_id = 'ccf00000-0000-0000-0000-00000000000a'
+      AND content LIKE '%spoke_member%'
+      AND content LIKE '%pendant_worn: yes%') = 1,
+  'this note is the whole point: completing the task alone recorded nothing');
+
+SELECT pg_temp.check(
+  'the task is completed and carries the outcome',
+  (SELECT status = 'completed' AND outcome = 'spoke_member' AND draft_notes IS NULL
+     FROM public.tasks WHERE id = 'ccf00000-0000-0000-0000-00000000000a'),
+  'the draft is cleared so the finished note is not shadowed by a staler copy');
+
+SELECT pg_temp.check(
+  'the member now has a last-call time and next month booked',
+  (SELECT last_courtesy_call_at IS NOT NULL
+            AND next_courtesy_call_date = public.courtesy_next_call_date('monthly', CURRENT_DATE)
+     FROM public.members WHERE id = 'cce00000-0000-0000-0000-00000000000a'));
+
+SELECT pg_temp.check(
+  'the NEXT call exists as a task already, not after tonight''s generator',
+  (SELECT count(*) FROM public.tasks
+    WHERE member_id = 'cce00000-0000-0000-0000-00000000000a'
+      AND task_type = 'courtesy_call'
+      AND status = 'pending'
+      AND due_date::date = public.courtesy_next_call_date('monthly', CURRENT_DATE)) = 1,
+  'the operator should see "next: 19 Oct" before closing the dialog');
+
+SELECT pg_temp.check(
+  'closing the same call twice is refused',
+  pg_temp.raises_as('cc000000-0000-0000-0000-00000000000a',
+    $$SELECT public.close_courtesy_call('ccf00000-0000-0000-0000-00000000000a'::uuid,
+        'spoke_member', 'second write')$$),
+  'two operators with the same call open must not write two notes and two next-month tasks');
+
+-- ── nobody answered ────────────────────────────────────────────────────────
+
+-- The call and the assertion about it MUST be separate statements: one SQL statement runs on one
+-- snapshot, so a sub-select in the same statement as the call reads the task as it was BEFORE it.
+SELECT pg_temp.exec_as('cc000000-0000-0000-0000-00000000000a',
+  $$SELECT public.close_courtesy_call('ccf00000-0000-0000-0000-00000000000b'::uuid,
+      'no_answer', 'Rang twice, no reply.')$$);
+
+SELECT pg_temp.check(
+  'a no-answer LEAVES THE TASK OPEN and counts the attempt',
+  (SELECT status <> 'completed' AND attempt_count = 1
+     FROM public.tasks WHERE id = 'ccf00000-0000-0000-0000-00000000000b'),
+  'closing it would return the member to the queue in a month having never been spoken to');
+
+SELECT pg_temp.check(
+  'a no-answer does NOT set the last-contact time',
+  (SELECT last_courtesy_call_at IS NOT NULL
+     FROM public.members WHERE id = 'cce00000-0000-0000-0000-00000000000a'),
+  'it was set by the reached call above and must not be moved by an unanswered one')
+;
+
+SELECT pg_temp.check(
+  'a no-answer raises a retry for tomorrow',
+  (SELECT count(*) FROM public.tasks
+    WHERE member_id = 'cce00000-0000-0000-0000-00000000000a'
+      AND task_type = 'courtesy_call_retry'
+      AND due_date::date = CURRENT_DATE + 1) = 1);
+
+SELECT pg_temp.check(
+  'the third no-answer bells the admins, and the first two do not',
+  (SELECT count(*) FROM public.notification_log
+    WHERE entity_id = 'cce00000-0000-0000-0000-00000000000a'
+      AND message LIKE '%three courtesy calls%') = 0,
+  'only one attempt so far, so nobody should have been told yet');
+
+-- Attempts two and three, run AS THE OPERATOR. A bare SELECT here would run as the suite owner,
+-- where auth.uid() is NULL and the function correctly refuses — which is what it did first time.
+SELECT pg_temp.exec_as('cc000000-0000-0000-0000-00000000000a',
+  $$SELECT public.close_courtesy_call('ccf00000-0000-0000-0000-00000000000b'::uuid,
+      'voicemail', 'Left a message.')$$);
+SELECT pg_temp.exec_as('cc000000-0000-0000-0000-00000000000a',
+  $$SELECT public.close_courtesy_call('ccf00000-0000-0000-0000-00000000000b'::uuid,
+      'no_answer', 'Still nothing.')$$);
+
+SELECT pg_temp.check(
+  'after the third, each admin is told exactly once',
+  (SELECT count(*) > 0 AND max(n) = 1 FROM (
+     SELECT count(*) AS n FROM public.notification_log
+      WHERE entity_id = 'cce00000-0000-0000-0000-00000000000a'
+        AND message LIKE '%three courtesy calls%'
+      GROUP BY admin_user_id) per_admin),
+  'one bell EACH, at the third — a bell per attempt teaches people to ignore the bell. '
+  'The row count is per admin, so counting rows would grow with the team rather than the problem.');
+
+SELECT pg_temp.check(
+  'voicemail counts as nobody reached',
+  (SELECT attempt_count = 3 FROM public.tasks
+    WHERE id = 'ccf00000-0000-0000-0000-00000000000b'),
+  'a message into an empty room is not a check-in and must not mark the member as seen');
+
+
+-- ============================================================
 --  Report
 -- ============================================================
 

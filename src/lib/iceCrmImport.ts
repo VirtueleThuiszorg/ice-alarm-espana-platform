@@ -891,9 +891,114 @@ const nz = (v: string): string | null => (v ? v : null);
  * The IBAN is normalised to unspaced upper case, because the same account appears in the export
  * spaced three different ways and two copies of one account is worse than none.
  */
-export function parseBankCell(raw: string): { iban: string | null; bank_name: string | null; source_text: string } {
+/**
+ * IS THERE A PAYMENT CARD IN THIS TEXT?
+ *
+ * `20 Digit Bank No` is the one restricted column the mapper reads, and what people typed into
+ * it in karmaCRM is not always a bank account. Four known cases, all of them a full PAN with an
+ * expiry beside it: karmaCRM 11667665 in the live file, and — found by scanning the queued files
+ * before importing them — 11399174, 11337706 and 11279347, all in the cancelled group. They are
+ * identified by id and not by name on purpose: the id is what the office needs to go and fix the
+ * record, and a name here would leave a permanent list of whose card was mishandled in a file
+ * that has no need to know. A card written into an account field is not a
+ * transcription slip to be tidied later: storing a PAN is a thing this business must not do, and
+ * `parseBankCell` used to copy the cell verbatim into `member_bank_details.source_text`.
+ *
+ * So the guard is here rather than in a document telling people not to do it.
+ *
+ * HOW IT DECIDES, and why it is built to over-refuse rather than under-refuse:
+ *
+ *  - IBANs are blanked first. The files carry ES, IE, LT and GB IBANs, and an IBAN's digits
+ *    would otherwise form runs that have nothing to do with a card.
+ *  - A "run" tolerates up to three spaces, dots or dashes between digits. This is not fussiness:
+ *    the first version of this guard allowed one, and it read a live Mastercard in the cancelled
+ *    file (id 11337706) written with double dots as four four-digit runs, and passed it. It
+ *    was caught by running this function over the real export rather than over its own fixtures.
+ *  - A whole run of 13-19 digits that passes Luhn AND starts 3-6 (the card major industry
+ *    identifiers) is a card. Both real cases are this: 16 digits, Luhn-valid, Visa and Mastercard.
+ *  - THE EXPIRY IS THE AWKWARD PART, and it is why prefixes are tested at all. People write the
+ *    expiry next to the number, and one space or dot between them makes the two a single run:
+ *    `4111 1111 1111 1111 05/27` reads as eighteen digits, which Luhn rejects. So for a run of
+ *    17-20 the leading 16, 15 and 14 are tested, but ONLY when what follows looks like a date —
+ *    at most four digits whose first two are a month. That last condition is what keeps this off
+ *    legitimate accounts.
+ *
+ * WHY A 20-DIGIT RUN IS NOT SIMPLY TRUSTED. This column is named for the Spanish CCC, which is
+ * exactly 20 digits, so the obvious rule is to leave any 20-digit run alone — and it is wrong: a
+ * 16-digit PAN with a four-digit expiry run onto it is also exactly 20. The month test separates
+ * them. A CCC is additionally protected by the 3-6 check, since a prefix starts with whatever the
+ * run starts with, and the common Spanish entity codes (0049, 0081, 2100, 0182, 1465) do not.
+ *
+ * It can still in principle refuse a Cajamar-style account that both starts 3-6 and happens to
+ * Luhn under a month-shaped tail. That is the right way round to be wrong: a refusal writes
+ * nothing and is reported to the office as a row to go and look at, whereas a miss writes a live
+ * card number into the database.
+ */
+export function looksLikeACard(raw: string): boolean {
+  // Any IBAN — not just Spanish ones — stops contributing digits before anything else runs.
+  const text = String(raw ?? "").replace(/\b[A-Z]{2}\d{2}[ .-]?(?:[A-Z0-9][ .-]?){10,30}\b/gi, " ");
+
+  const isCard = (digits: string) => /^[3-6]/.test(digits) && luhnValid(digits);
+
+  /** Could these trailing digits be the expiry somebody wrote beside the number? */
+  const looksLikeAnExpiry = (tail: string) => {
+    if (tail.length < 1 || tail.length > 4) return false;
+    if (tail.length === 1) return true; // A lone digit is not evidence either way.
+    const month = Number(tail.slice(0, 2));
+    return month >= 1 && month <= 12;
+  };
+
+  for (const match of text.matchAll(/\d(?:[ .-]{0,3}\d){11,}/g)) {
+    const digits = match[0].replace(/\D/g, "");
+
+    if (digits.length >= 13 && digits.length <= 19 && isCard(digits)) return true;
+
+    // Longer than a card: either a card with its expiry run on, or an account number.
+    if (digits.length >= 17) {
+      for (const width of [16, 15, 14]) {
+        if (digits.length <= width) continue;
+        const tail = digits.slice(width);
+        const tailIsDateish = digits.length > 20 ? true : looksLikeAnExpiry(tail);
+        if (tailIsDateish && isCard(digits.slice(0, width))) return true;
+      }
+    }
+  }
+  return false;
+}
+
+/** Luhn checksum. Digits only — callers strip separators first. */
+function luhnValid(digits: string): boolean {
+  if (digits.length < 13) return false;
+  let sum = 0;
+  let double = false;
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let n = digits.charCodeAt(i) - 48;
+    if (n < 0 || n > 9) return false;
+    if (double) {
+      n *= 2;
+      if (n > 9) n -= 9;
+    }
+    sum += n;
+    double = !double;
+  }
+  return sum % 10 === 0;
+}
+
+export function parseBankCell(raw: string): {
+  iban: string | null;
+  bank_name: string | null;
+  source_text: string;
+  /** A card was found and the whole cell dropped. Presence only — the value is gone. */
+  cardRefused: boolean;
+} {
   const text = clean(raw);
-  if (!text) return { iban: null, bank_name: null, source_text: "" };
+  if (!text) return { iban: null, bank_name: null, source_text: "", cardRefused: false };
+
+  /* THE WHOLE CELL GOES, not just the digits. A cell holding a PAN has already shown that
+     whoever filled it in was not recording a bank account, and a "cleaned" remainder would be a
+     half-record nobody can trust — with the real risk that the part kept still carries enough of
+     the card to matter. Refuse it, report it, and let a human fix karmaCRM at the source. */
+  if (looksLikeACard(text)) return { iban: null, bank_name: null, source_text: "", cardRefused: true };
 
   const match = text.replace(/[-.]/g, " ").match(/\bES\s?\d{2}(?:\s?\d{4}){5}\b/i);
   const iban = match ? match[0].replace(/\s+/g, "").toUpperCase() : null;
@@ -907,6 +1012,7 @@ export function parseBankCell(raw: string): { iban: string | null; bank_name: st
     iban,
     bank_name: bankName && bankName.length <= 60 && !/\d{4,}/.test(bankName) ? bankName : null,
     source_text: text,
+    cardRefused: false,
   };
 }
 
@@ -1303,7 +1409,9 @@ export function mapIceRow(row: IceRow, today: Date = new Date()): MappedRow {
         }
       : null,
     access: keySafe ? { key_safe_location: null, key_safe_code: keySafe } : null,
-    bank: bank.source_text ? bank : null,
+    bank: bank.source_text
+      ? { iban: bank.iban, bank_name: bank.bank_name, source_text: bank.source_text }
+      : null,
     paymentMethod: nz(row.paymentMethodHint()),
     endOfLife:
       funeralPlan || funeralPolicy || wishes
@@ -1327,7 +1435,13 @@ export function mapIceRow(row: IceRow, today: Date = new Date()): MappedRow {
        `crm_import_rows.raw` for a human to read. Consent recorded on a guess is worse than no
        consent recorded: it is a defence nobody can stand behind later. */
     emailContactConsent: parseUnambiguousYes(row.get("Contact Friend for Email")),
-    discardedSensitive: REDACTED_HEADERS.filter((h) => row.redactedPresent(h)),
+    /* A refused card in `20 Digit Bank No` is reported the same way a `Credit Card Details`
+       column is: by NAME AND COUNT, never by value. The office needs to know which rows to go
+       and fix in karmaCRM, and that is all this can tell them. */
+    discardedSensitive: [
+      ...REDACTED_HEADERS.filter((h) => row.redactedPresent(h)),
+      ...(bank.cardRefused ? ["20 Digit Bank No"] : []),
+    ],
     raw: row.raw(),
   };
 }
@@ -1412,7 +1526,10 @@ export function summarise(mapped: MappedRow[]): ImportSummary {
     deceased: mapped.filter((m) => m.member.deceased_at !== null).length,
     needingReview: mapped.filter((m) => m.reviewReasons.length > 0).length,
     discardedSensitive: Object.fromEntries(
-      REDACTED_HEADERS.map((h) => [h, mapped.filter((m) => m.discardedSensitive.includes(h)).length])
+      // RESTRICTED as well as REDACTED: a card refused out of `20 Digit Bank No` is discarded
+      // sensitive data, and counting only the redacted list would drop it silently.
+      [...REDACTED_HEADERS, ...RESTRICTED_HEADERS]
+        .map((h) => [h, mapped.filter((m) => m.discardedSensitive.includes(h)).length])
         // A column no row carried is not news; only report what was actually discarded.
         .filter(([, n]) => (n as number) > 0)
     ),

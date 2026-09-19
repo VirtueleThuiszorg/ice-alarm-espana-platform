@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link, useLocation } from "react-router-dom";
 import { memberBasePathFor } from "@/lib/portalPath";
+import { CourtesyCallDialog } from "@/components/call-centre/CourtesyCallDialog";
 import {
   Loader2, Plus, CheckCircle, Clock, AlertCircle,
   User, Calendar, Search, MoreHorizontal, Phone,
@@ -103,6 +104,8 @@ export default function TasksPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  /* The courtesy call being worked, or null — the same one-at-a-time rule as the dashboard. */
+  const [activeCall, setActiveCall] = useState<Task | null>(null);
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
@@ -477,14 +480,22 @@ export default function TasksPage() {
                           {task.member.first_name} {task.member.last_name}
                         </Link>
                       )}
+                      {/*
+                        The number opens the CALL, not the `tel:` scheme. On a desk PC `tel:`
+                        hands off to whatever is registered for it, which is usually nothing;
+                        inside the dialog the number can be dialled or copied, and what is said
+                        gets written down.
+                      */}
                       {task.task_type === "courtesy_call" && task.member?.phone && (
-                        <a 
-                          href={`tel:${task.member.phone}`}
+                        <button
+                          type="button"
+                          data-testid="tasks-start-courtesy-call"
+                          onClick={() => setActiveCall(task)}
                           className="flex items-center gap-1 text-primary hover:underline"
                         >
                           <Phone className="w-3 h-3" />
                           {task.member.phone}
-                        </a>
+                        </button>
                       )}
                       {task.due_date && (
                         <span className="flex items-center gap-1">
@@ -693,6 +704,23 @@ export default function TasksPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Mounted only while a call is open — see the note in CourtesyCallsCard. */}
+      {activeCall && (
+      <CourtesyCallDialog
+        taskId={activeCall?.id ?? null}
+        memberId={activeCall?.member_id ?? null}
+        memberName={
+          activeCall
+            ? `${activeCall.member?.first_name ?? ""} ${activeCall.member?.last_name ?? ""}`.trim()
+            : ""
+        }
+        memberPhone={activeCall?.member?.phone ?? null}
+        open={!!activeCall}
+        onOpenChange={(next) => { if (!next) setActiveCall(null); }}
+        onClosed={fetchTasks}
+      />
+      )}
+
     </div>
   );
 }

@@ -3335,6 +3335,7 @@ export type Database = {
           preferred_contact_method: string | null
           preferred_contact_time: string | null
           courtesy_calls_enabled: boolean | null
+          last_courtesy_call_at: string | null
           next_courtesy_call_date: string | null
           courtesy_call_frequency: string | null
           ref_partner_id: string | null
@@ -3406,6 +3407,7 @@ export type Database = {
           preferred_contact_method?: string | null
           preferred_contact_time?: string | null
           courtesy_calls_enabled?: boolean | null
+          last_courtesy_call_at?: string | null
           next_courtesy_call_date?: string | null
           courtesy_call_frequency?: string | null
           ref_partner_id?: string | null
@@ -3477,6 +3479,7 @@ export type Database = {
           preferred_contact_method?: string | null
           preferred_contact_time?: string | null
           courtesy_calls_enabled?: boolean | null
+          last_courtesy_call_at?: string | null
           next_courtesy_call_date?: string | null
           courtesy_call_frequency?: string | null
           ref_partner_id?: string | null
@@ -6981,6 +6984,9 @@ export type Database = {
       tasks: {
         Row: {
           assigned_to: string | null
+          attempt_count: number
+          draft_notes: string | null
+          outcome: string | null
           completed_at: string | null
           created_at: string | null
           created_by: string | null
@@ -6999,6 +7005,9 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          attempt_count?: number
+          draft_notes?: string | null
+          outcome?: string | null
           completed_at?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -7017,6 +7026,9 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          attempt_count?: number
+          draft_notes?: string | null
+          outcome?: string | null
           completed_at?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -7883,6 +7895,20 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_partner: { Args: { _user_id: string }; Returns: boolean }
+      close_courtesy_call: {
+        Args: {
+          p_task_id: string
+          p_outcome: string
+          p_notes: string
+          p_checklist?: Json
+          p_follow_up_at?: string | null
+        }
+        Returns: Json
+      }
+      courtesy_next_call_date: {
+        Args: { p_frequency: string; p_from: string }
+        Returns: string
+      }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {

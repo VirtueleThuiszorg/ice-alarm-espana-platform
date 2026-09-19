@@ -31,6 +31,7 @@ import { PendantLiveStatusModal } from "@/components/call-centre/PendantLiveStat
 import { EV07BLiveStatusCard } from "@/components/call-centre/EV07BLiveStatusCard";
 import { DeviceIssuesQueue } from "@/components/call-centre/DeviceIssuesQueue";
 import { DeviceOfflineAlertsCard } from "@/components/call-centre/DeviceOfflineAlertsCard";
+import { CourtesyCallDialog } from "@/components/call-centre/CourtesyCallDialog";
 import { NewEnquiriesCard } from "@/components/call-centre/NewEnquiriesCard";
 import { WhoIsOnStrip } from "@/components/call-centre/WhoIsOnStrip";
 import { ROTA_MANAGER_ROLES } from "@/lib/staffNotify";
@@ -131,7 +132,9 @@ export default function StaffDashboard() {
   const [shiftNotes, setShiftNotes] = useState<ShiftNote[]>([]);
   const [birthdays, setBirthdays] = useState<BirthdayMember[]>([]);
   const [courtesyCalls, setCourtesyCalls] = useState<CourtesyCall[]>([]);
-  const [isCompletingCall, setIsCompletingCall] = useState<string | null>(null);
+  /* The call the operator is working, or null. One at a time on purpose: two dialogs open is two
+     conversations, and the notes autosave to whichever task is in front of you. */
+  const [activeCall, setActiveCall] = useState<CourtesyCall | null>(null);
   const [dashboardLoading, setDashboardLoading] = useState(true);
 
   // Locale-aware date formatting
@@ -370,25 +373,13 @@ export default function StaffDashboard() {
     }
   };
 
-  const handleCompleteCourtesyCall = async (taskId: string) => {
-    setIsCompletingCall(taskId);
-    try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({ 
-          status: 'completed', 
-          completed_at: new Date().toISOString() 
-        })
-        .eq('id', taskId);
-
-      if (error) throw error;
-      fetchCourtesyCalls();
-    } catch (error) {
-      console.error('Error completing courtesy call:', error);
-    } finally {
-      setIsCompletingCall(null);
-    }
-  };
+  /*
+    A courtesy call is due when its date has arrived, and overdue once that date has passed. The
+    amber chip is the only thing on the row that says "this one has been waiting", which is the
+    signal an operator picking up a queue actually sorts by.
+  */
+  const isOverdue = (dueDate: string | null) =>
+    !!dueDate && new Date(dueDate).setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0);
 
   const handleClaimAlert = async (alertId: string) => {
     if (!staffId) return;
@@ -562,8 +553,9 @@ export default function StaffDashboard() {
                   className="flex items-center justify-between p-2.5 border rounded-lg hover:bg-muted/50 transition-colors"
                 >
                   <div
+                    data-testid="courtesy-row"
                     className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer"
-                    onClick={() => navigate(`/call-centre/members/${call.member_id}`)}
+                    onClick={() => setActiveCall(call)}
                   >
                     <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                       <Phone className="h-3.5 w-3.5 text-primary" />
@@ -575,29 +567,29 @@ export default function StaffDashboard() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-0.5 shrink-0 ml-2">
+                  {/*
+                    THE tel: BUTTON AND THE TICK ARE GONE, deliberately.
+
+                    `tel:` on a desk PC opens whatever the machine has registered for the scheme,
+                    which on most of them is nothing — and the tick set `status = 'completed'`
+                    without recording one word of the conversation, which is the behaviour this
+                    work exists to replace. Both live inside the dialog now: the number is there
+                    to dial or copy, and the call closes through `close_courtesy_call`, which
+                    writes what happened.
+                  */}
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    {isOverdue(call.due_date) && (
+                      <Badge variant="outline" className="border-amber-500 text-amber-600 text-[10px]">
+                        {t('staffDashboard.overdue', 'Overdue')}
+                      </Badge>
+                    )}
                     <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={(e) => { e.stopPropagation(); window.location.href = `tel:${call.member?.phone}`; }}
-                      title={t('common.call')}
+                      size="sm"
+                      variant="outline"
+                      className="h-7"
+                      onClick={(e) => { e.stopPropagation(); setActiveCall(call); }}
                     >
-                      <Phone className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-emerald-600 hover:text-emerald-600"
-                      onClick={() => handleCompleteCourtesyCall(call.id)}
-                      disabled={isCompletingCall === call.id}
-                      title={t('common.markComplete')}
-                    >
-                      {isCompletingCall === call.id ? (
-                        <Clock className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <CheckCircle className="h-3.5 w-3.5" />
-                      )}
+                      {t('staffDashboard.startCall', 'Start call')}
                     </Button>
                   </div>
                 </div>
@@ -607,6 +599,21 @@ export default function StaffDashboard() {
         </Card>
 
       </div>
+
+      {/* Mounted only while a call is open — see the note in CourtesyCallsCard. */}
+      {activeCall && (
+      <CourtesyCallDialog
+        taskId={activeCall?.id ?? null}
+        memberId={activeCall?.member_id ?? null}
+        memberName={
+          activeCall ? `${activeCall.member?.first_name ?? ""} ${activeCall.member?.last_name ?? ""}`.trim() : ""
+        }
+        memberPhone={activeCall?.member?.phone ?? null}
+        open={!!activeCall}
+        onOpenChange={(next) => { if (!next) setActiveCall(null); }}
+        onClosed={fetchCourtesyCalls}
+      />
+      )}
 
       {/* New enquiries from the public Contact page. Sits with tasks and
           messages because it is the same kind of thing — work waiting for a

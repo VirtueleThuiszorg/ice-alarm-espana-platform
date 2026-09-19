@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { 
   Loader2, Plus, Pin, PinOff, Edit, Trash2, Search,
   FileText, Stethoscope, CreditCard, HeadphonesIcon, 
-  CalendarCheck, AlertCircle, Lock, Phone
+  CalendarCheck, AlertCircle, Lock, Phone, PhoneCall
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -101,7 +101,25 @@ const noteTypeConfig: Record<string, { icon: LucideIcon; label: string; color: s
   followup: { icon: CalendarCheck, label: "Follow-up", color: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400" },
   complaint: { icon: AlertCircle, label: "Complaint", color: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
   call: { icon: Phone, label: "Call", color: "bg-purple-500/10 text-purple-600 dark:text-purple-400" },
+  courtesy_call: {
+    icon: PhoneCall,
+    label: "Courtesy call",
+    color: "bg-teal-500/10 text-teal-700 dark:text-teal-300",
+  },
 };
+
+/*
+  WHAT A PERSON MAY WRITE BY HAND, which is NOT the same list as what may be rendered.
+
+  `courtesy_call` notes are written by `close_courtesy_call` and carry a task, an outcome and a
+  move to the member's next-call date. A hand-typed one would look identical in this list while
+  none of that happened — a note claiming a vulnerable person was checked on when nobody rang.
+
+  So the create form is driven by the schema's own enum rather than by the render config. The two
+  lists were previously the same object used twice and kept in step by nobody; the schema is the
+  one that actually decides, because it is what rejects the write.
+*/
+const CREATABLE_NOTE_TYPES = noteSchema.shape.note_type.options;
 
 interface NotesTabProps {
   memberId: string;
@@ -408,14 +426,17 @@ export function NotesTab({ memberId }: NotesTabProps) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {Object.entries(noteTypeConfig).map(([key, config]) => (
-                            <SelectItem key={key} value={key}>
-                              <div className="flex items-center gap-2">
-                                <config.icon className="h-4 w-4" />
-                                {config.label}
-                              </div>
-                            </SelectItem>
-                          ))}
+                          {CREATABLE_NOTE_TYPES.map((key) => {
+                            const config = noteTypeConfig[key];
+                            return (
+                              <SelectItem key={key} value={key}>
+                                <div className="flex items-center gap-2">
+                                  <config.icon className="h-4 w-4" />
+                                  {config.label}
+                                </div>
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -571,6 +592,16 @@ function NoteCard({
 }) {
   const config = noteTypeConfig[note.note_type] || noteTypeConfig.general;
   const Icon = config.icon;
+  /*
+    A courtesy call's content begins "[spoke_member] …" because that is how the RPC writes it.
+    Read the outcome off the front and show it as a badge: "no answer" three months running is
+    the thing somebody scanning this list needs to see, and it is invisible inside a paragraph.
+    The marker itself is a machine detail and is stripped from the body.
+  */
+  const outcome = note.note_type === "courtesy_call"
+    ? note.content.match(/^\[([a-z_]+)\]/)?.[1] ?? null
+    : null;
+  const body = outcome ? note.content.replace(/^\[[a-z_]+\]\s*/, "") : note.content;
 
   return (
     <div className="p-4 border rounded-lg bg-muted/30 space-y-2">
@@ -580,6 +611,11 @@ function NoteCard({
             <Icon className="h-3 w-3 mr-1" />
             {config.label}
           </Badge>
+          {outcome && (
+            <Badge variant="outline" className="text-xs" data-testid="courtesy-outcome-badge">
+              {outcome.replace(/_/g, " ")}
+            </Badge>
+          )}
           {note.is_private && (
             <Badge variant="outline" className="text-xs">
               <Lock className="h-3 w-3 mr-1" />
@@ -623,7 +659,7 @@ function NoteCard({
           </Button>
         </div>
       </div>
-      <p className="text-sm whitespace-pre-wrap">{note.content}</p>
+      <p className="text-sm whitespace-pre-wrap">{body}</p>
       <p className="text-xs text-muted-foreground">
         {/* An imported note has no staff row — karmaCRM's API reports the account, not the
             person, so the author is genuinely unknown. Saying so beats "By:  •". */}

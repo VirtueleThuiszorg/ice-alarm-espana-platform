@@ -462,6 +462,159 @@ BEGIN
   PERFORM pg_temp.check('anonymous cannot INSERT into registration_drafts', failed);
 END $$;
 
+-- ── WORKING A LEAD: who may read the record, and who may read what was SAID ─
+--
+-- `leads` now carries a hand-added lead's consent timestamp, the staff member who took the
+-- call, and a personal join token; `lead_communications` carries every message sent to them.
+-- Between them that is a named person who is not a customer, what we believe about them, and a
+-- credential that pre-fills a registration form.
+--
+-- THE MEMBER CASE IS THE ONE WORTH ASSERTING. `anon` cannot read `leads` because there is no
+-- policy for it at all, which is easy. A MEMBER is `authenticated`, which is the role every
+-- staff policy is written `TO` — so the only thing standing between a signed-in member and the
+-- whole lead list is the `is_staff()` inside each USING clause. A policy written `TO
+-- authenticated` with a predicate somebody later loosens is the realistic way this breaks.
+DO $$
+DECLARE v_lead uuid := 'eeee1111-1111-1111-1111-111111111111';
+BEGIN
+  INSERT INTO public.leads (id, first_name, last_name, email, phone, source, status,
+                            created_by, contact_consent_at, consent_source, join_token)
+  VALUES (v_lead, 'Rosa', 'Delgado', 'rosa@example.es', '+34600555444',
+          'staff_manual', 'contacted',
+          (SELECT id FROM public.staff WHERE user_id = '55555555-5555-5555-5555-555555555555'),
+          now(), 'phone_call', 'tok-rosa-0000000000000000');
+
+  INSERT INTO public.lead_communications (lead_id, channel, template, outcome, staff_id)
+  VALUES (v_lead, 'sms', 'lead.intro_sms', 'sent',
+          (SELECT id FROM public.staff WHERE user_id = '55555555-5555-5555-5555-555555555555'));
+
+  -- The operator who is supposed to work it.
+  PERFORM pg_temp.check(
+    'a call-centre operator can read the lead they are working',
+    pg_temp.count_as('55555555-5555-5555-5555-555555555555',
+      'SELECT 1 FROM public.leads WHERE id = ''' || v_lead || '''') = 1);
+
+  PERFORM pg_temp.check(
+    'and the record of what was said to them',
+    pg_temp.count_as('55555555-5555-5555-5555-555555555555',
+      'SELECT 1 FROM public.lead_communications WHERE lead_id = ''' || v_lead || '''') = 1);
+
+  /*
+    AND CAN MOVE IT ALONG THE LADDER — the assertion that found a live defect.
+
+    "Staff can update assigned leads" (January) required `assigned_to` to be the operator's own
+    staff id. Every contact-form lead arrives unassigned, so a call-centre operator could not
+    move ANY of them — and because RLS turns a forbidden UPDATE into zero rows rather than an
+    error, both Leads pages showed a success toast and refreshed the list unchanged. Admins
+    never saw it. The policy is now "unassigned or mine".
+  */
+  PERFORM pg_temp.check(
+    'an operator can pick up a lead NOBODY has picked up',
+    pg_temp.exec_as('55555555-5555-5555-5555-555555555555',
+      'UPDATE public.leads SET status = ''interested'' WHERE id = ''' || v_lead || '''') = 1,
+    'unassigned is how every contact-form lead arrives');
+
+  -- BUT NOT ONE SOMEBODY ELSE IS WORKING. Otherwise "unassigned or mine" would have been
+  -- written as plain `is_staff`, and two operators would quietly ring the same person.
+  INSERT INTO auth.users (id, email)
+  VALUES ('5555aaaa-5555-5555-5555-555555555555', 'colleague@example.com')
+  ON CONFLICT (id) DO NOTHING;
+  INSERT INTO public.staff (user_id, email, first_name, last_name, role)
+  VALUES ('5555aaaa-5555-5555-5555-555555555555', 'colleague@example.com',
+          'Col', 'League', 'call_centre')
+  ON CONFLICT (email) DO NOTHING;
+
+  UPDATE public.leads
+     SET assigned_to = (SELECT id FROM public.staff WHERE email = 'colleague@example.com')
+   WHERE id = v_lead;
+  PERFORM pg_temp.check(
+    'but cannot take one off a colleague who already has it',
+    pg_temp.exec_as('55555555-5555-5555-5555-555555555555',
+      'UPDATE public.leads SET status = ''unreachable'' WHERE id = ''' || v_lead || '''') = 0);
+  UPDATE public.leads SET assigned_to = NULL WHERE id = v_lead;
+
+  -- A MEMBER IS `authenticated` TOO. This is the assertion that matters.
+  PERFORM pg_temp.check(
+    'a signed-in MEMBER sees no lead at all — not even the one with their own name on it',
+    pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+      'SELECT 1 FROM public.leads') = 0,
+    'leads hold a non-customer''s consent record and a token that pre-fills a registration');
+
+  PERFORM pg_temp.check(
+    'and no record of what was said to anybody',
+    pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+      'SELECT 1 FROM public.lead_communications') = 0);
+
+  -- A join token is a credential. Being able to read one is being able to use it.
+  PERFORM pg_temp.check(
+    'a member cannot read a join token by guessing at the column',
+    pg_temp.count_as('11111111-1111-1111-1111-111111111111',
+      'SELECT 1 FROM public.leads WHERE join_token IS NOT NULL') = 0);
+
+  -- CONTROL: the sweep is looking at a row that exists. Without this, a fixture that failed to
+  -- insert would make all four "sees nothing" assertions pass for the wrong reason.
+  PERFORM pg_temp.check(
+    'CONTROL: the lead and its message actually exist',
+    (SELECT count(*) FROM public.leads WHERE id = v_lead) = 1
+      AND (SELECT count(*) FROM public.lead_communications WHERE lead_id = v_lead) = 1,
+    'if this fails the four negatives above are vacuous');
+END $$;
+
+-- Anonymous, for completeness — and because `lead_communications` is a NEW table, and a new
+-- table shipping without RLS is the failure golden rule 2 exists for.
+DO $$
+DECLARE failed boolean := false; n bigint;
+BEGIN
+  PERFORM set_config('request.jwt.claims', '', true);
+  SET LOCAL ROLE anon;
+  EXECUTE 'SELECT count(*) FROM public.lead_communications' INTO n;
+  RESET ROLE;
+  PERFORM pg_temp.check('anonymous reads no lead communications', n = 0);
+
+  SET LOCAL ROLE anon;
+  BEGIN
+    EXECUTE 'INSERT INTO public.lead_communications (lead_id, channel, outcome)
+             VALUES (''eeee1111-1111-1111-1111-111111111111'', ''sms'', ''sent'')';
+  EXCEPTION WHEN OTHERS THEN failed := true;
+  END;
+  RESET ROLE;
+  PERFORM pg_temp.check(
+    'and cannot fabricate one',
+    failed,
+    'a record of what was said to whom is evidence, not convenience');
+END $$;
+
+-- ── AND THE FOLLOW-UP CLOCK IS NOT WOUND BY A MESSAGE NOBODY RECEIVED ──────
+--
+-- `touch_lead_last_contact` fires on every `lead_communications` row, and the whole follow-up
+-- filter turns on it. A row recording "the SMS channel is off" must NOT reset the clock: the
+-- person has still not heard from us, which is the entire question the filter asks. Getting
+-- this backwards would hide exactly the leads that need chasing, silently, for ever.
+DO $$
+DECLARE v_lead uuid := 'eeee2222-2222-2222-2222-222222222222';
+        t1 timestamptz; t2 timestamptz; ch text;
+BEGIN
+  INSERT INTO public.leads (id, first_name, last_name, email, phone, source, status)
+  VALUES (v_lead, 'Piet', 'Jansen', 'piet@example.nl', '+31612345678', 'staff_manual', 'contacted');
+
+  INSERT INTO public.lead_communications (lead_id, channel, outcome)
+  VALUES (v_lead, 'sms', 'skipped_channel_off');
+  SELECT last_contacted_at INTO t1 FROM public.leads WHERE id = v_lead;
+  PERFORM pg_temp.check(
+    'a SKIPPED send does not count as having contacted the lead',
+    t1 IS NULL,
+    'otherwise the follow-up filter hides the leads that most need chasing');
+
+  INSERT INTO public.lead_communications (lead_id, channel, outcome)
+  VALUES (v_lead, 'sms', 'sent');
+  SELECT l.last_contacted_at, l.last_contact_channel INTO t2, ch
+    FROM public.leads l WHERE l.id = v_lead;
+  PERFORM pg_temp.check(
+    'a SENT one does, and names the channel',
+    t2 IS NOT NULL AND ch = 'sms',
+    'and the gate above is not simply never firing');
+END $$;
+
 -- website_events is DELIBERATELY still anon-insertable, and asserting that is as important as
 -- the two refusals above: it is page-view telemetry written on every page load, and routing it
 -- through a function would put an invocation on every visit to a marketing site to protect rows
